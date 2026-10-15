@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+__pycache__/
+*.pyc
+
+# Local credentials, agent state and private working notes.
+.aws/
+.codex/
+.agents/
+/ACTION_PLAN.md
+/apps/orbit-sandbox/FULL_BODY_PHYSICS_MOD_PLAN.md
+/apps/orbit-sandbox/SPACELAB_SUGGESTIONS.md

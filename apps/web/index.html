@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080f19" />
+    <meta name="description" content="Launch, coast, and find your orbit in a compact fictional solar system." />
+    <title>Space Sim · Flight console</title>
+  </head>
+  <body>
+    <div id="app">
+      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACE SIM<span class="version">/ 01</span></a><span class="header-note">A SMALL WORLD. AN OPEN SKY.</span><span class="connection"><i></i> LOCAL FLIGHT</span></header>
+      <main>
+        <div class="intro"><div><p class="eyebrow">MISSION CONTROL</p><h1>Make your own orbit.</h1><p class="subtitle">One ship, one planet, and a little momentum.</p></div><span class="build-tag">FLIGHT LAB <b>M1</b></span></div>
+        <div class="workspace">
+          <section class="flight-panel" aria-label="Flight view">
+            <div class="view-toolbar"><span class="view-title"><i></i> LIVE TELEMETRY</span><div><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">North up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
+            <div class="viewport"><canvas aria-label="Planet, vessel and sampled coast trajectory"></canvas><div class="view-label">PRIMUS SYSTEM <span>BODY-RELATIVE / METRES</span></div><div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div><div class="view-time">T+ <output id="time">00:00.00</output><span>REAL TIME · 1×</span></div></div>
+            <div class="telemetry"><div><span>ALTITUDE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
+          </section>
+          <aside>
+            <section class="card"><p class="eyebrow">01 / FLIGHT SETUP</p><h2>Choose your starting point</h2><label for="preset">Scenario</label><select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option></select><div class="actions"><button id="pause" type="button">Pause</button><button id="reset" type="button">Reset flight ↗</button></div><div class="flight-state"><span>Vessel status</span><output id="status">LANDED</output></div></section>
+            <section class="card controls"><p class="eyebrow">02 / ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
+            <section class="card path-card"><p class="eyebrow">03 / TRAJECTORY</p><h2><span class="path-key"></span> If you coast now</h2><p>Sampled path with engine off. Stops at surface contact or after 60 seconds.</p><div class="flight-state"><span>Prediction</span><output id="prediction">Preparing…</output></div></section>
+          </aside>
+        </div>
+        <details class="help" open><summary>Flight manual <span>KEYBOARD & TOUCH</span></summary><div class="help-grid"><p><kbd>←</kbd> <kbd>→</kbd> Turn the ship</p><p><kbd>↑</kbd> <kbd>↓</kbd> Adjust throttle</p><p><kbd>Space</kbd> Hold to burn</p><p><kbd>+</kbd> <kbd>−</kbd> Zoom</p><p><kbd>C</kbd> Camera <kbd>H</kbd> Horizon</p><p><kbd>P</kbd> Pause <kbd>R</kbd> Reset</p></div><p class="tip">Launch tip: climb, then turn gradually to build sideways speed. Land upright at 5 m/s or less. This compact fictional planet has strong gravity.</p></details>
+        <details class="debug"><summary>Flight diagnostics</summary><output id="debug"></output></details>
+      </main><footer><span>SPACE SIM / FLIGHT LAB</span><span>Explore a little. Learn a lot.</span></footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "legacy-c64-compact",
+  "name": "Original compact planet and moon",
+  "status": "proposed-data-contract",
+  "sourceRevision": "9be6780a582c1351a42458623ba1a1b104552e16",
+  "physicsModel": "patched-conic-2d",
+  "units": {
+    "length": "metre",
+    "time": "second",
+    "gravitationalParameter": "metre^3/second^2",
+    "legacyMetresPerWorldUnit": 1,
+    "legacySecondsPerFrame": 0.02
+  },
+  "coordinates": {
+    "x": "right",
+    "y": "up",
+    "angles": "radians-counterclockwise-from-positive-x"
+  },
+  "epochSeconds": 0,
+  "bodies": [
+    {
+      "id": "planet",
+      "parentId": null,
+      "radiusMetres": 512,
+      "mu": 13107200,
+      "ephemeris": {
+        "kind": "fixed-inertial",
+        "positionMetres": [0, 0],
+        "velocityMetresPerSecond": [0, 0]
+      }
+    },
+    {
+      "id": "moon",
+      "parentId": "planet",
+      "radiusMetres": 128,
+      "mu": 204800,
+      "soi": {
+        "entryMetres": 2910,
+        "exitMetres": 3000
+      },
+      "ephemeris": {
+        "kind": "circular-kepler",
+        "radiusMetres": 15360,
+        "phaseRadiansAtEpoch": 0,
+        "direction": -1
+      }
+    }
+  ],
+  "vehicleDefaults": {
+    "thrustModel": "constant-acceleration-legacy-fixture",
+    "fullThrottleAccelerationMetresPerSecondSquared": 125,
+    "initialThrottle": 0.5,
+    "throttleSteps": 16,
+    "throttleRepeatSeconds": 0.08,
+    "turnRateRadiansPerSecond": 1.227184630308513,
+    "fuelModel": "not-enabled-in-legacy-fixture"
+  },
+  "presets": [
+    {
+      "id": "pad",
+      "bodyId": "planet",
+      "kind": "landed",
+      "positionMetres": [0, 512],
+      "velocityMetresPerSecond": [0, 0],
+      "headingRadians": 1.5707963267948966
+    },
+    {
+      "id": "planet-orbit",
+      "bodyId": "planet",
+      "kind": "circular-orbit",
+      "radiusMetres": 640,
+      "phaseRadians": 1.5707963267948966,
+      "direction": -1,
+      "headingRadians": 0
+    },
+    {
+      "id": "moon-orbit",
+      "bodyId": "moon",
+      "kind": "circular-orbit",
+      "radiusMetres": 256,
+      "phaseRadians": 1.5707963267948966,
+      "direction": -1,
+      "headingRadians": 0
+    }
+  ]
+}
