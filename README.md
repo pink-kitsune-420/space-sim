@@ -19,6 +19,12 @@ C/H change cameras, +/− zoom, P pauses and R resets. On-screen hold buttons an
 throttle slider support pointers/touch. Focus the flight canvas for keyboard flight.
 Losing window focus or hiding the tab pauses and releases held controls; resume is explicit.
 
+**To play offline:** download `space-sim-offline.html` from the
+[private preview release](https://github.com/pink-kitsune-420/space-sim/releases/tag/v0.1.0-m1),
+then double-click it. Everything is embedded in that one file: no server,
+installation, or internet connection is required. For a local checkout, `npm run build`
+also creates `dist/space-sim-offline.html`. Copy that file anywhere to test it.
+
 ```sh
 npm run check          # strict TypeScript, production build, Node tests, archive integrity
 npx playwright install chromium firefox webkit

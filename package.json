@@ -8,10 +8,11 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/build_offline.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:browser": "playwright test",
+    "measure": "node scripts/measure_browser.mjs",
     "check": "npm run build && npm test && python3 scripts/verify_project.py"
   },
   "devDependencies": {

@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 async function diagnostics(page: Page): Promise<Record<string, unknown>> {
   return JSON.parse(await page.locator('#debug').textContent() || '{}') as Record<string, unknown>;
@@ -6,6 +8,29 @@ async function diagnostics(page: Page): Promise<Record<string, unknown>> {
 async function flightFocus(page: Page): Promise<void> {
   await page.locator('canvas').click({ position: { x: 20, y: 120 } });
 }
+
+test('standalone download plays directly from disk with networking disabled', async ({ page, context }) => {
+  const network: string[] = [];
+  const errors: string[] = [];
+  page.on('request', request => { if (/^https?:/.test(request.url())) network.push(request.url()); });
+  page.on('pageerror', error => errors.push(error.message));
+  await context.setOffline(true);
+  await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+  await expect(page.locator('#status')).toHaveText('LANDED');
+  await expect(page.locator('.connection')).toContainText('OFFLINE FLIGHT');
+  await flightFocus(page);
+  await page.keyboard.down('Space');
+  await expect(page.locator('#status')).toHaveText('FLYING');
+  await page.keyboard.up('Space');
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await expect(page.locator('#status')).toHaveText('PAUSED');
+  await page.reload();
+  await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.locator('#preset').selectOption('planet-orbit');
+  await expect.poll(async () => (await diagnostics(page)).samples as number).toBeGreaterThan(5000);
+  expect(network).toEqual([]);
+  expect(errors).toEqual([]);
+});
 
 test('launch, input release, pause and reset work in the production build', async ({ page }) => {
   const errors: string[] = [];
