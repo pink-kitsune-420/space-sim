@@ -11,7 +11,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -181,6 +181,8 @@ function packageAndroid() {
   runStep('Syncing web game assets into Android project', () => {
     const src = join(root, 'dist');
     const dest = join(root, 'android', 'app', 'src', 'main', 'assets', 'public');
+    // Clear first so hashed bundles from older builds don't ship inside the APK.
+    rmSync(dest, { recursive: true, force: true });
     mkdirSync(dest, { recursive: true });
     cpSync(src, dest, { recursive: true });
   });
@@ -193,10 +195,9 @@ function packageAndroid() {
       execFileSync(gradlew, ['assembleDebug'], { cwd: join(root, 'android'), stdio: 'inherit' });
     });
     const apkPath = join(root, 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
-    if (existsSync(apkPath)) {
-      console.log(`\n🎉 Success! Android APK built at:\n   ${apkPath}\n`);
-      return;
-    }
+    if (!existsSync(apkPath)) throw new Error(`Gradle finished but no APK was found at ${apkPath}`);
+    console.log(`\n🎉 Success! Android APK built at:\n   ${apkPath}\n`);
+    return;
   }
 
   console.log('\n🎉 Success! Android project is prepared and synced at:');
