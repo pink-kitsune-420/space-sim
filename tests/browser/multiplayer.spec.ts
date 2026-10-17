@@ -1,5 +1,5 @@
 import { openPanel } from '../helpers/workspace';
-import { test, expect, type Browser, type Page } from '@playwright/test';
+import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -108,9 +108,11 @@ test('a browser host invites a player with codes and both fly in one world', asy
   await expect(host.locator('.connection')).toContainText('HOSTING');
   await host.getByRole('button', { name: 'Create invite' }).click();
   await expect(host.locator('#invite-code')).toHaveValue(/^SSO1\./);
-  await guest.locator('#join-address').fill(await host.locator('#invite-code').inputValue());
-  await guest.getByRole('button', { name: 'Join', exact: true }).click();
+  await guest.getByRole('tab', { name: 'Invite code' }).click();
+  await guest.locator('#invite-input').fill(await host.locator('#invite-code').inputValue());
+  await guest.getByRole('button', { name: 'Make reply code' }).click();
   await expect(guest.locator('#reply-code')).toHaveValue(/^SSA1\./);
+  await expect(guest.locator('#mp-reply')).toContainText('Not connected yet');
   await host.locator('#host-reply').fill(await guest.locator('#reply-code').inputValue());
   await host.getByRole('button', { name: 'Connect player' }).click();
   await expect(guest.locator('.connection')).toContainText('ONLINE');
@@ -135,6 +137,68 @@ test('a browser host invites a player with codes and both fly in one world', asy
   await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
   await expect(guest.locator('#mp-status')).toContainText('stopped hosting');
   expect([...errorsOf(host), ...errorsOf(guest)]).toEqual([]);
+});
+
+/** Tabs of one browser share storage and a BroadcastChannel. */
+async function tab(context: BrowserContext, name: string): Promise<Page> {
+  const page = await context.newPage();
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  (page as Page & { errors?: string[] }).errors = errors;
+  await page.goto('/');
+  await openPanel(page, 'multiplayer');
+  await page.locator('#player-name').fill(name);
+  await page.locator('#player-name').dispatchEvent('change');
+  return page;
+}
+async function say(page: Page, text: string): Promise<void> {
+  await page.locator('#chat-form').evaluate((form, line) => {
+    (form.querySelector('#chat-input') as HTMLInputElement).value = line;
+    (form as HTMLFormElement).requestSubmit();
+  }, text);
+}
+
+test('a second tab of the same browser joins a hosting tab in one click, and pilots chat', async ({ browser }) => {
+  test.setTimeout(150000);
+  const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
+  const host = await tab(context, 'Hana');
+  const guest = await tab(context, 'Gus');
+  await expect(guest.locator('#local-empty')).toBeVisible();
+  await host.getByRole('button', { name: 'Host this world' }).click();
+  await expect(host.locator('.connection')).toContainText('HOSTING');
+  await guest.getByRole('tab', { name: 'This browser' }).click();
+  await expect(guest.locator('#local-worlds')).toContainText('Hana');
+  await guest.locator('#local-worlds').getByRole('button', { name: /^Join Hana/ }).click();
+  await expect(guest.locator('.connection')).toContainText('ONLINE');
+  await expect(host.locator('.connection')).toContainText('2 PILOTS');
+  // Shared storage holds the host's seat; the guest takes a seat of its own.
+  await expect(guest.locator('#player-list')).toContainText('Gus (you)');
+  await expect(guest.locator('#player-list')).toContainText('Hana · host');
+
+  await say(guest, 'hello from the other tab');
+  await expect(host.locator('#chat-messages')).toContainText('hello from the other tab');
+  await expect(guest.locator('#chat-messages')).toContainText('Gus (you)');
+
+  // A cheat placement goes through the host: everyone sees the ship in orbit.
+  await say(guest, '/throw on');
+  await say(guest, '/orbit 300');
+  await expect(guest.locator('#chat-messages')).toContainText('sent to the host');
+  await expect(guest.locator('#status')).toHaveText('FLYING');
+  await expect(host.locator('#ship-list .foreign')).toContainText('FLYING');
+
+  await guest.close();
+  await expect(host.locator('.connection')).toContainText('1 PILOT');
+  expect([...errorsOf(host)]).toEqual([]);
+  await context.close();
+});
+
+test('joining an address with no server explains how to start one', async ({ page }) => {
+  await page.goto('/');
+  await openPanel(page, 'multiplayer');
+  await page.getByRole('tab', { name: 'Server' }).click();
+  await page.locator('#join-address').fill('localhost:1');
+  await page.getByRole('button', { name: 'Join', exact: true }).click();
+  await expect(page.locator('#mp-status')).toContainText('Start the dedicated server first');
 });
 
 test('a solo fleet keeps flying, switches ships and round-trips through a world file', async ({ page }) => {

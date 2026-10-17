@@ -103,18 +103,38 @@
               <label for="player-name">Pilot name</label>
               <input id="player-name" type="text" maxlength="24" autocomplete="nickname" placeholder="Pilot" spellcheck="false" />
               <div id="mp-offline">
-                <label for="join-address">Server address or invite code</label>
-                <div class="join-row"><input id="join-address" type="text" placeholder="192.168.1.20:6464" autocomplete="off" spellcheck="false" /><button id="join-game" type="button">Join</button></div>
-                <div id="password-row" hidden><label for="join-password">Server password</label><input id="join-password" type="password" autocomplete="off" /></div>
-                <div class="actions"><button id="host-game" type="button">Host this world</button></div>
+                <div class="mp-modes" role="tablist" aria-label="How to connect">
+                  <button id="mp-mode-tab" type="button" role="tab" data-mode="tab" aria-controls="mp-panel-tab" aria-selected="true">This browser</button>
+                  <button type="button" role="tab" data-mode="invite" aria-controls="mp-panel-invite" aria-selected="false" tabindex="-1">Invite code</button>
+                  <button type="button" role="tab" data-mode="server" aria-controls="mp-panel-server" aria-selected="false" tabindex="-1">Server</button>
+                </div>
+                <div id="mp-panel-tab" class="mp-panel" role="tabpanel" aria-label="This browser">
+                  <ul id="local-worlds" class="player-list mp-list" aria-label="Worlds hosted in other tabs"></ul>
+                  <p id="local-empty" class="control-note">No other tab of this browser is hosting. To try multiplayer on one computer, open the game in a second tab and choose Host this world there.</p>
+                </div>
+                <div id="mp-panel-invite" class="mp-panel" role="tabpanel" aria-label="Invite code" hidden>
+                  <label for="invite-input">1 · Paste the invite code the host sent you</label>
+                  <textarea id="invite-input" rows="3" spellcheck="false" autocomplete="off" placeholder="SSO1.…"></textarea>
+                  <div class="actions"><button id="answer-invite" type="button">Make reply code</button></div>
+                </div>
+                <div id="mp-panel-server" class="mp-panel" role="tabpanel" aria-label="Server" hidden>
+                  <label for="join-address">Server address</label>
+                  <div class="join-row"><input id="join-address" type="text" placeholder="192.168.1.20:6464" autocomplete="off" spellcheck="false" /><button id="join-game" type="button">Join</button></div>
+                  <div id="password-row" hidden><label for="join-password">Server password</label><input id="join-password" type="password" autocomplete="off" /></div>
+                  <div class="actions"><button id="scan-lan" type="button">Scan local network</button></div>
+                  <ul id="lan-servers" class="player-list mp-list" aria-label="Servers found" hidden></ul>
+                </div>
+                <div class="actions mp-host"><button id="host-game" type="button">Host this world</button></div>
               </div>
               <div id="mp-reply" hidden>
-                <label for="reply-code">Send this reply code back to the host</label>
+                <label for="reply-code">2 · Send this reply code back to the host</label>
                 <textarea id="reply-code" readonly rows="3"></textarea>
                 <div class="actions"><button id="cancel-join" type="button">Cancel</button><button id="copy-reply" type="button">Copy reply</button></div>
+                <p class="mp-warning" role="note"><b>Not connected yet.</b> Send the code above back to the host. You join automatically once they paste it and choose Connect player.</p>
               </div>
               <div id="mp-hosting" hidden>
                 <div class="actions"><button id="stop-hosting" type="button">Stop hosting</button><button id="create-invite" type="button">Create invite</button></div>
+                <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" /><span>Across the internet<small>New invites also use a public STUN server (Google) to find your address; the player's side follows the invite. Off: same network only.</small></span></label>
                 <div id="invite-panel" hidden>
                   <label for="invite-code">1 · Send this invite to one player</label>
                   <textarea id="invite-code" readonly rows="3"></textarea>
@@ -125,7 +145,6 @@
                 </div>
               </div>
               <div id="mp-online" hidden><div class="actions"><button id="leave-game" type="button">Leave game</button></div></div>
-              <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" /><span>Internet play<small>Invite codes also use a public STUN server (Google) to find your address. Off: same network only.</small></span></label>
               <p id="mp-status" class="control-note" role="status">Single player. Host this world for friends, or join a server.</p>
               <ul id="player-list" class="player-list" aria-label="Players"></ul>
             </section>

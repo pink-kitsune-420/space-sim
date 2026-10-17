@@ -7,6 +7,8 @@ import type { Connection } from '../../../packages/net/src/connection';
 import type { NetPlayer } from '../../../packages/net/src/protocol';
 import { newToken } from '../../../packages/net/src/sha256';
 
+export type ChatLine = { readonly from?: string; readonly name: string; readonly text: string };
+
 /** What the flight loop needs from a game, whether this browser owns the world or follows
  * someone else's. */
 export interface GameSession {
@@ -32,6 +34,8 @@ export interface GameSession {
   /** Returns the new ship's id when it exists immediately (local worlds). */
   spawn(presetId: string, godMode: boolean): string | undefined;
   respawn(shipId: string, presetId: string): void;
+  /** Place an owned ship (throw, orbit and teleport cheats). Local worlds apply it now or
+   * throw a SessionError; remote hosts check it and answer with the next snapshot or a notice. */
   teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void;
   remove(shipId: string): void;
   setThrottle(shipId: string, throttle: number): void;
@@ -41,6 +45,10 @@ export interface GameSession {
   command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void;
   players(): readonly NetPlayer[];
   playerName(id: string): string | undefined;
+  /** Say something to everyone in this world (just this pilot when playing alone). */
+  chat(text: string): void;
+  /** Every chat line in this world, this pilot's own included. */
+  onchat: ((line: ChatLine) => void) | null;
 }
 
 /** This browser's own world: single player, or the authoritative host for remote players. */
@@ -125,7 +133,7 @@ export class LocalSession implements GameSession {
     this.host.respawnShip(this.playerId, shipId, presetId);
   }
   teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
-    this.world.teleport(shipId, bodyId, position, velocity, heading);
+    this.host.teleportShip(this.playerId, shipId, bodyId, position, velocity, heading);
     this.settle();
   }
   remove(shipId: string): void { this.host.removeShip(this.playerId, shipId); }
@@ -137,6 +145,9 @@ export class LocalSession implements GameSession {
   accept(connection: Connection): void { this.host.accept(connection); }
   players(): readonly NetPlayer[] { return this.host.playerList(); }
   playerName(id: string): string | undefined { return this.host.playerName(id); }
+  chat(text: string): void { this.host.chat(this.playerId, text); }
+  get onchat(): ((line: ChatLine) => void) | null { return this.host.onchat; }
+  set onchat(listener: ((line: ChatLine) => void) | null) { this.host.onchat = listener; }
 }
 
 /** A world hosted elsewhere, mirrored and predicted locally. Commands are requests; their
@@ -163,7 +174,8 @@ export class RemoteSession implements GameSession {
   spawn(presetId: string): undefined { this.client.spawn(presetId); return undefined; }
   respawn(shipId: string, presetId: string): void { this.client.respawn(shipId, presetId); }
   teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
-    try { this.world.teleport(shipId, bodyId, position, velocity, heading); } catch {}
+    if (this.client.rules && !this.client.rules.allowGodMode) throw new SessionError('Cheats (teleport, throw, orbit) are disabled on this server.');
+    this.client.teleport(shipId, bodyId, position, velocity, heading);
   }
   remove(shipId: string): void { this.client.remove(shipId); }
   setThrottle(shipId: string, throttle: number): void { this.client.setThrottle(shipId, throttle); }
@@ -171,6 +183,9 @@ export class RemoteSession implements GameSession {
   command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void { this.client.command(shipId, commandId, args); }
   players(): readonly NetPlayer[] { return this.client.players; }
   playerName(id: string): string | undefined { return this.client.players.find(p => p.id === id)?.name; }
+  chat(text: string): void { this.client.chat(text); }
+  get onchat(): ((line: ChatLine) => void) | null { return this.client.onchat; }
+  set onchat(listener: ((line: ChatLine) => void) | null) { this.client.onchat = listener; }
 }
 
 export { SessionError };

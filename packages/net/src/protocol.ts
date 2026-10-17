@@ -5,13 +5,17 @@ import type { SavedShip } from '../../sim-core/src/save';
 
 /** Bumped whenever a message changes shape. Client and host must match exactly, and so must
  * the physics model, because clients predict with the same code the host runs. */
-export const PROTOCOL = 'space-sim-net/4';
+export const PROTOCOL = 'space-sim-net/5';
 /** Clients only send small commands. */
 export const MAX_CLIENT_MESSAGE = 16 * 1024;
 /** Welcome messages and complete snapshots carry the whole world (a 65,536-object world
  * is about 23 MB of JSON). */
 export const MAX_HOST_MESSAGE = 64 * 1024 * 1024;
 export const MAX_PASSWORD = 128;
+export const MAX_CHAT = 300;
+/** Inputs may be scheduled at most this far past the host clock (3 s); clients never
+ * predict further ahead of the host than this. */
+export const MAX_INPUT_LEAD_TICKS = 300;
 
 export interface NetPlayer {
   readonly id: string;
@@ -29,6 +33,7 @@ export interface NetShip extends SavedShip {
 export interface SessionRules {
   readonly maxPlayers: number;
   readonly maxShipsPerPlayer: number;
+  /** Cheats: God mode and placing ships anywhere (teleport, throw, circularize). */
   readonly allowGodMode: boolean;
   readonly snapshotEveryTicks: number;
 }
@@ -36,7 +41,10 @@ export interface SessionRules {
 export type HostMessage =
   | { readonly t: 'info'; readonly protocol: string; readonly model: string; readonly worldId: string;
       readonly name: string; readonly password: boolean; readonly players: number; readonly maxPlayers: number;
-      readonly fingerprint?: string }
+      readonly fingerprint?: string;
+      /** The player seated in the hosting browser, if any. A browser that shares storage
+       * with that host (another tab) must not present the host's token. */
+      readonly host?: string }
   | { readonly t: 'welcome'; readonly playerId: string; readonly token?: string; readonly universe: UniverseDefinition;
       readonly systemId: string; readonly tick: number; readonly time: number; readonly paused: boolean; readonly reason?: string;
       readonly rules: SessionRules; readonly players: readonly NetPlayer[]; readonly ships: readonly NetShip[];
@@ -53,6 +61,8 @@ export type HostMessage =
   | { readonly t: 'players'; readonly players: readonly NetPlayer[] }
   | { readonly t: 'pong'; readonly id: number; readonly tick: number }
   | { readonly t: 'notice'; readonly text: string }
+  /** A chat line. `from` is a player id, or absent for the server console. */
+  | { readonly t: 'chat'; readonly from?: string; readonly name: string; readonly text: string }
   | { readonly t: 'error'; readonly code: ErrorCode; readonly message: string };
 export type ErrorCode = 'version' | 'password' | 'full' | 'kicked' | 'replaced' | 'invalid' | 'rate' | 'timeout' | 'closing';
 
@@ -69,6 +79,13 @@ export type ClientMessage =
   /** A registered module command for one owned ship. The host validates ownership and
    * arguments and runs it between fixed steps; the result arrives in snapshots. */
   | { readonly t: 'command'; readonly ship: string; readonly command: string; readonly args?: Readonly<Record<string, number>> }
+  /** Place an owned ship (a cheat: allowed only with `allowGodMode`). Body-relative metres
+   * and metres per second; the host checks the values and the body. */
+  | { readonly t: 'teleport'; readonly ship: string; readonly body: string; readonly x: number; readonly y: number;
+      readonly vx: number; readonly vy: number; readonly heading?: number }
+  /** The mirror fell too far behind to catch up step by step: send the complete world. */
+  | { readonly t: 'resync' }
+  | { readonly t: 'chat'; readonly text: string }
   | { readonly t: 'ping'; readonly id: number };
 
 export class ProtocolError extends Error {}
@@ -93,6 +110,14 @@ function int(value: unknown, field: string, min = 0, max = Number.MAX_SAFE_INTEG
 }
 function unit(value: unknown, field: string, min: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > 1) bad(`${field} must be in [${min}, 1]`);
+  return value as number;
+}
+/** Positions and velocities a teleport may request: far beyond any system, short of
+ * overflowing the physics. */
+export const MAX_TELEPORT_DISTANCE = 1e15;
+export const MAX_TELEPORT_SPEED = 1e8;
+function finite(value: unknown, field: string, limit: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > limit) bad(`${field} must be a finite number within ±${limit}`);
   return value as number;
 }
 function optional<T>(value: unknown, read: (value: unknown) => T): T | undefined {
@@ -149,6 +174,15 @@ export function parseClientMessage(raw: string): ClientMessage {
       });
       return { t: 'command', ship: ident(m.ship, 'ship'), command: m.command as string, ...(args ? { args } : {}) };
     }
+    case 'teleport': {
+      const heading = optional(m.heading, v => finite(v, 'heading', 1e3));
+      return { t: 'teleport', ship: ident(m.ship, 'ship'), body: ident(m.body, 'body'),
+        x: finite(m.x, 'x', MAX_TELEPORT_DISTANCE), y: finite(m.y, 'y', MAX_TELEPORT_DISTANCE),
+        vx: finite(m.vx, 'vx', MAX_TELEPORT_SPEED), vy: finite(m.vy, 'vy', MAX_TELEPORT_SPEED),
+        ...(heading !== undefined ? { heading } : {}) };
+    }
+    case 'resync': return { t: 'resync' };
+    case 'chat': return { t: 'chat', text: text(m.text, MAX_CHAT, 'text') };
     case 'ping': return { t: 'ping', id: int(m.id, 'id') };
     default: return bad(`unknown message type ${String(m.t)}`);
   }
@@ -206,10 +240,11 @@ export function parseHostMessage(raw: string): HostMessage {
     case 'info': {
       if (typeof m.password !== 'boolean') bad('password must be boolean');
       const fingerprint = optional(m.fingerprint, v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v) ? v : bad('fingerprint must be 64 hex digits'));
+      const host = optional(m.host, v => ident(v, 'host'));
       return { t: 'info', protocol: text(m.protocol, 64, 'protocol'), model: text(m.model, 128, 'model'),
         worldId: ident(m.worldId, 'worldId'), name: text(m.name, 80, 'name'), password: m.password,
         players: int(m.players, 'players'), maxPlayers: int(m.maxPlayers, 'maxPlayers'),
-        ...(fingerprint ? { fingerprint } : {}) };
+        ...(fingerprint ? { fingerprint } : {}), ...(host ? { host } : {}) };
     }
     case 'welcome': {
       const r = object(m.rules);
@@ -243,6 +278,10 @@ export function parseHostMessage(raw: string): HostMessage {
     case 'players': return { t: 'players', players: players(m.players) };
     case 'pong': return { t: 'pong', id: int(m.id, 'id'), tick: int(m.tick, 'tick') };
     case 'notice': return { t: 'notice', text: text(m.text, 500, 'text') };
+    case 'chat': {
+      const from = optional(m.from, v => ident(v, 'from'));
+      return { t: 'chat', ...(from ? { from } : {}), name: text(m.name, 64, 'name'), text: text(m.text, MAX_CHAT, 'text') };
+    }
     case 'error': {
       const codes: readonly ErrorCode[] = ['version', 'password', 'full', 'kicked', 'replaced', 'invalid', 'rate', 'timeout', 'closing'];
       const code = codes.includes(m.code as ErrorCode) ? m.code as ErrorCode : 'invalid';

@@ -1,11 +1,11 @@
-import { IDLE, MODEL, STEP, checkWarpSafety, clampWarpFactor, type Controls } from '../../sim-core/src/index';
+import { IDLE, MODEL, STEP, checkWarpSafety, clampWarpFactor, type Controls, type Vec } from '../../sim-core/src/index';
 import { DEFAULT_BUILTIN_LOCK, MAX_PLAYER_NAME, MAX_SAVE_PLAYERS, shipToSaved, type SavedPlayer } from '../../sim-core/src/save';
 import { cleanName, type Ship, type World, type WorldEvent } from '../../sim-core/src/world';
 import { resolveCommand } from '../../game-runtime/src/commands';
 import type { CommandEffect } from '../../game-api/src/index';
 import type { Connection } from './connection';
 import {
-  PROTOCOL, ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
+  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
   type NetShip, type SessionRules,
 } from './protocol';
 import { newPlayerId, newToken, sha256Hex } from './sha256';
@@ -28,13 +28,17 @@ export const DEFAULT_HOST_SETTINGS: HostSettings = Object.freeze({
   snapshotEveryTicks: 5, releaseAfterMs: 3000, joinTimeoutMs: 15000,
 });
 
-/** Inputs may be scheduled at most this far past the host clock (3 s). */
-export const MAX_INPUT_LEAD_TICKS = 300;
+export { MAX_INPUT_LEAD_TICKS } from './protocol';
 const MAX_QUEUED_INPUTS = 256;
 /** Skip snapshots for a peer that has this much unsent data; the next one supersedes them. */
 const SNAPSHOT_BACKLOG_BYTES = 1 << 20;
 const RATE_PER_SECOND = 150;
 const RATE_BURST = 300;
+/** A peer may ask for the complete world at most this often. */
+const RESYNC_INTERVAL_MS = 1000;
+/** Chat lines per pilot: a burst of this many, refilled at one every CHAT_REFILL_MS. */
+const CHAT_BURST = 5;
+const CHAT_REFILL_MS = 1500;
 
 interface PendingInput { readonly seq: number; readonly tick: number; readonly controls: Controls; readonly set?: number }
 interface Player { readonly id: string; name: string; tokenHash?: string; peer?: Peer; host?: boolean }
@@ -53,6 +57,10 @@ interface Peer {
    * everything it missed in the next one it can take. */
   readonly changed: Set<string>;
   readonly removed: Set<string>;
+  /** When the peer last asked for the complete world. */
+  resyncAt: number;
+  chatAllowance: number;
+  chatRefilledAt: number;
 }
 
 /** Every awake ship is resent within this many snapshots (2 s by default: numerical motion
@@ -77,10 +85,14 @@ export class HostSession {
   requestedWarp = 1;
   warpReason = '';
   private warpAccumulator = 0;
+  /** Wall-clock seconds since the last snapshot while warping, where ticks jump. */
+  private warpSnapshotSeconds = 0;
   /** The player playing inside the hosting browser, if any. */
   hostId?: string;
   /** The roster or a connection changed. */
   onplayers: (() => void) | null = null;
+  /** Every chat line, as sent to the players. */
+  onchat: ((line: { readonly from?: string; readonly name: string; readonly text: string }) => void) | null = null;
   private readonly players = new Map<string, Player>();
   private readonly peers = new Set<Peer>();
   private readonly queues = new Map<string, PendingInput[]>();
@@ -126,13 +138,14 @@ export class HostSession {
     }
     const now = this.now();
     const peer: Peer = { connection, openedAt: now, lastHeard: now, released: true, allowance: RATE_BURST, refilledAt: now, closed: false,
-      needsFull: true, changed: new Set(), removed: new Set() };
+      needsFull: true, changed: new Set(), removed: new Set(), resyncAt: -Infinity,
+      chatAllowance: CHAT_BURST, chatRefilledAt: now };
     this.peers.add(peer);
     connection.onmessage = text => this.receive(peer, text);
     connection.onclose = reason => this.disconnected(peer, reason);
     this.send(peer, { t: 'info', protocol: PROTOCOL, model: MODEL, worldId: this.world.id, name: this.settings.name,
       password: this.settings.password !== '', players: this.connectedCount(), maxPlayers: this.settings.maxPlayers,
-      fingerprint: this.world.simulationFingerprint });
+      fingerprint: this.world.simulationFingerprint, ...(this.hostId ? { host: this.hostId } : {}) });
   }
 
   /** Players currently in the game, including the host seat. */
@@ -217,6 +230,19 @@ export class HostSession {
     this.world.setGodMode(shipId, enabled);
     this.changed();
   }
+  /** Place an owned ship with a new body-relative position and velocity: the throw, orbit
+   * and teleport cheats. Refused unless the session allows cheats. */
+  teleportShip(playerId: string, shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): Ship {
+    this.owned(playerId, shipId);
+    if (!this.settings.allowGodMode) throw new SessionError('Cheats (teleport, throw, orbit) are disabled on this server.');
+    if (!this.world.hasBody(bodyId)) throw new SessionError(`Unknown body ${bodyId}.`);
+    const values = [position.x, position.y, velocity.x, velocity.y, heading ?? 0];
+    if (!values.every(Number.isFinite)) throw new SessionError('A teleport needs finite coordinates.');
+    this.queues.delete(shipId);
+    const ship = this.world.teleport(shipId, bodyId, position, velocity, heading);
+    this.changed();
+    return ship;
+  }
   /** Immediate held controls for the host seat; remote players schedule theirs by tick. */
   setControls(playerId: string, shipId: string, controls: Controls): void {
     this.owned(playerId, shipId);
@@ -281,6 +307,19 @@ export class HostSession {
     if (effect.controls) this.world.setControls(shipId, effect.controls);
     if (effect.throttle !== undefined) this.world.setThrottle(shipId, effect.throttle);
     this.changed();
+  }
+
+  /** Send a chat line to everyone: from a player, or from the server console (no id). */
+  chat(playerId: string | undefined, text: string): void {
+    const name = playerId === undefined ? 'Server' : this.requirePlayer(playerId).name;
+    // One line of printable text; control characters could garble a terminal or log.
+    const clean = text.replace(/[\s\u0000-\u001f\u007f-\u009f]+/g, ' ').trim().slice(0, MAX_CHAT);
+    if (!clean) return;
+    const line = { ...(playerId !== undefined ? { from: playerId } : {}), name, text: clean };
+    this.log(`<${name}> ${clean}`);
+    const message = JSON.stringify({ t: 'chat', ...line } satisfies HostMessage);
+    for (const peer of this.peers) if (peer.player && !peer.closed) peer.connection.send(message);
+    this.onchat?.(line);
   }
 
   kick(playerId: string, message = 'Removed by the host.'): boolean {
@@ -352,19 +391,31 @@ export class HostSession {
     const acceptedSeconds = Math.min(seconds, 0.1);
     const effectiveSeconds = acceptedSeconds * this.warp;
     this.warpAccumulator += effectiveSeconds;
+    this.warpSnapshotSeconds += acceptedSeconds;
 
     const totalTicksToAdvance = Math.floor(this.warpAccumulator / STEP);
     if (totalTicksToAdvance <= 0) return events;
 
     const targetTick = this.world.tick + totalTicksToAdvance;
     this.warpAccumulator -= totalTicksToAdvance * STEP;
+    const warp = this.warp;
 
-    while (this.world.tick < targetTick && !this.paused) {
+    // Time computed for this warp factor ends when the factor changes.
+    while (this.world.tick < targetTick && !this.paused && this.warp === warp) {
       let earliestInputTick = Infinity;
       for (const queue of this.queues.values()) {
         if (queue.length && queue[0]!.tick < earliestInputTick) {
           earliestInputTick = queue[0]!.tick;
         }
+      }
+
+      // Due now, or late: an input stamped before the host's clock (a mirror that fell
+      // behind, say in a hidden tab) applies at once instead of stalling the loop.
+      if (earliestInputTick <= this.world.tick) {
+        this.applyDueInputs(this.world.tick);
+        if (this.regulateWarp()) break;
+        events.push(...this.step());
+        continue;
       }
 
       const nextBound = Math.min(targetTick, earliestInputTick);
@@ -394,17 +445,10 @@ export class HostSession {
           }
         }
       }
-
-      if (this.world.tick === earliestInputTick) {
-        this.applyDueInputs(this.world.tick);
-        if (this.regulateWarp()) break;
-        events.push(...this.step());
-      }
     }
 
-    if (this.world.tick % this.settings.snapshotEveryTicks === 0 || this.dirty) {
-      this.broadcastSnapshot();
-    }
+    // Ticks jump while warping: publish on the wall clock, as often as at normal speed.
+    if (this.warpSnapshotSeconds >= this.settings.snapshotEveryTicks * STEP || this.dirty) this.broadcastSnapshot();
     return events;
   }
 
@@ -466,6 +510,7 @@ export class HostSession {
    * every ship is refreshed now and then. Idle ships cost no bandwidth. */
   private broadcastSnapshot(): void {
     this.dirty = false;
+    this.warpSnapshotSeconds = 0;
     const { changed, removed } = this.world.takeChanges();
     const ready = [...this.peers].filter(p => p.player && !p.closed);
     for (const peer of ready) {
@@ -539,6 +584,25 @@ export class HostSession {
         case 'remove': this.removeShip(player.id, message.ship); break;
         case 'god': this.setGodMode(player.id, message.ship, message.on); break;
         case 'command': this.command(player.id, message.ship, message.command, message.args); break;
+        case 'teleport':
+          this.teleportShip(player.id, message.ship, message.body, { x: message.x, y: message.y },
+            { x: message.vx, y: message.vy }, message.heading);
+          break;
+        case 'chat': {
+          peer.chatAllowance = Math.min(CHAT_BURST, peer.chatAllowance + (now - peer.chatRefilledAt) / CHAT_REFILL_MS);
+          peer.chatRefilledAt = now;
+          if (peer.chatAllowance < 1) throw new SessionError('You are sending messages too quickly.');
+          peer.chatAllowance--;
+          this.chat(player.id, message.text);
+          break;
+        }
+        case 'resync':
+          if (now - peer.resyncAt < RESYNC_INTERVAL_MS) break;
+          peer.resyncAt = now;
+          peer.needsFull = true;
+          // Delivered by the next snapshot, or by service() while paused.
+          this.dirty = true;
+          break;
       }
     } catch (error) {
       if (error instanceof SessionError) { this.send(peer, { t: 'notice', text: error.message }); return; }

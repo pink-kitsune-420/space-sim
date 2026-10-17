@@ -44,6 +44,8 @@ import { MAX_PLAYER_NAME, saveWorld, type SavedPlayer } from '../../../packages/
 import { ClientSession } from '../../../packages/net/src/client';
 import type { Connection } from '../../../packages/net/src/connection';
 import { connectWebSocket, serverUrl } from '../../../packages/net/src/websocket';
+import { LocalDiscovery, LocalHost, connectLocal, type LocalAdvert } from '../../../packages/net/src/broadcast';
+import { lanCandidates, scanServers } from '../../../packages/net/src/discovery';
 import { OCEAN_UNIVERSE, TERRAIN_UNIVERSE } from '../../../packages/scenarios/builtin';
 import { type Camera, type RenderShip, saveThemeSettings, hashWorldSeed, screenToWorld } from '../../../packages/render-2d/src/index';
 import { initThemeCustomizer } from './theme-customizer';
@@ -51,8 +53,8 @@ import type { CommandExtension, PresentationSnapshot, OverlayPrimitive } from '.
 import { Profiler, createRows } from './profiler';
 import { FleetView } from './fleet-view';
 import { STRESS_OWNER, STRESS_ROCK_PREFIX, clearStress, populateStress } from '../../../packages/scenarios/stress';
-import { LocalSession, RemoteSession, SessionError, type GameSession } from './session';
-import { rememberToken, saveName, savedName, tokenFor } from './identity';
+import { LocalSession, RemoteSession, SessionError, type ChatLine, type GameSession } from './session';
+import { joinTokenFor, rememberJoinToken, rememberToken, saveName, savedName, tokenFor } from './identity';
 import { answerInvite, createInvite, isInviteCode, type Invite, type Reply } from './webrtc';
 
 let canvas = element<HTMLCanvasElement>('flight-view');
@@ -325,13 +327,22 @@ function logChatMessage(kind: 'system' | 'error' | 'success' | 'chat', text: str
   }
 }
 
-const chatChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('space-sim-chat') : null;
-chatChannel?.addEventListener('message', (event: MessageEvent) => {
-  const data = event.data;
-  if (data && typeof data.text === 'string') {
-    logChatMessage('chat', data.text, data.sender || 'Pilot');
+/** A chat line from the session: every pilot in the world sees the same ones. */
+function showChatLine(line: ChatLine): void {
+  logChatMessage('chat', line.text, line.from === undefined ? line.name : line.from === session.playerId ? `${line.name} (you)` : line.name);
+}
+
+/** Place a ship through the session (throw, orbit and teleport cheats). A remote host
+ * applies it with its next update, or refuses with a notice. False if refused here. */
+function placeShip(ship: Ship, bodyId: string, position: Vec, velocity: Vec, heading: number | undefined, done: string): boolean {
+  try { session.teleport(ship.id, bodyId, position, velocity, heading); } catch (error) {
+    logChatMessage('error', message(error));
+    notify(message(error));
+    return false;
   }
-});
+  logChatMessage('success', session.kind === 'client' ? `${done} (sent to the host)` : done);
+  return true;
+}
 
 function executeChatCommand(cmdStr: string): void {
   const parts = cmdStr.slice(1).trim().split(/\s+/);
@@ -390,10 +401,10 @@ function executeChatCommand(cmdStr: string): void {
       const vCirc = Math.sqrt(targetBody.mu / r);
       const pos = { x: 0, y: r };
       const vel = { x: vCirc, y: 0 };
-      session.teleport(ship.id, targetBody.id, pos, vel, 0);
+      if (!placeShip(ship, targetBody.id, pos, vel, 0,
+        `Teleported ${ship.name} into ${altKm} km circular orbit around ${targetBody.name} (${vCirc.toFixed(1)} m/s).`)) return;
       cameraControl.followShip();
       syncCameraButton();
-      logChatMessage('success', `Teleported ${ship.name} into ${altKm} km circular orbit around ${targetBody.name} (${vCirc.toFixed(1)} m/s).`);
       break;
     }
     case 'throw': {
@@ -423,8 +434,8 @@ function executeChatCommand(cmdStr: string): void {
       }
       const vx = parseFloat(args[0] ?? '0') || 0;
       const vy = parseFloat(args[1] ?? '0') || 0;
-      session.teleport(ship.id, ship.bodyId, ship.state.position, { x: vx, y: vy });
-      logChatMessage('success', `Threw ${ship.name} with velocity (${vx.toFixed(1)}, ${vy.toFixed(1)}) m/s.`);
+      placeShip(ship, ship.bodyId, ship.state.position, { x: vx, y: vy }, undefined,
+        `Threw ${ship.name} with velocity (${vx.toFixed(1)}, ${vy.toFixed(1)}) m/s.`);
       break;
     }
     case 'circ':
@@ -450,8 +461,8 @@ function executeChatCommand(cmdStr: string): void {
       const cw = { x: p.y / r * vCirc, y: -p.x / r * vCirc };
       const dotCcw = ccw.x * currentV.x + ccw.y * currentV.y;
       const chosen = dotCcw >= 0 ? ccw : cw;
-      session.teleport(ship.id, ship.bodyId, p, chosen);
-      logChatMessage('success', `Circularized orbit around ${body.name} at ${(r - body.radius).toFixed(0)} m altitude (${vCirc.toFixed(1)} m/s).`);
+      placeShip(ship, ship.bodyId, p, chosen, undefined,
+        `Circularized orbit around ${body.name} at ${(r - body.radius).toFixed(0)} m altitude (${vCirc.toFixed(1)} m/s).`);
       break;
     }
     case 'tp':
@@ -475,10 +486,10 @@ function executeChatCommand(cmdStr: string): void {
       const alt = Math.max(50_000, targetBody.radius * 0.15);
       const r = targetBody.radius + alt;
       const vCirc = Math.sqrt(targetBody.mu / r);
-      session.teleport(ship.id, targetBody.id, { x: 0, y: r }, { x: vCirc, y: 0 }, 0);
+      if (!placeShip(ship, targetBody.id, { x: 0, y: r }, { x: vCirc, y: 0 }, 0,
+        `Teleported to ${targetBody.name} in ${(alt / 1000).toFixed(0)} km orbit.`)) return;
       cameraControl.followShip();
       syncCameraButton();
-      logChatMessage('success', `Teleported to ${targetBody.name} in ${(alt / 1000).toFixed(0)} km orbit.`);
       break;
     }
     case 'god': {
@@ -494,8 +505,10 @@ function executeChatCommand(cmdStr: string): void {
     case 'warp': {
       const factor = parseInt(args[0] ?? '1', 10);
       if (Number.isFinite(factor) && factor >= 1 && factor <= 10000) {
+        if (!session.canWarp) { logChatMessage('error', 'Only the host can activate time warp.'); return; }
         setWarp(factor);
-        logChatMessage('success', `Time warp set to ${factor}×.`);
+        if (session.warp === factor) logChatMessage('success', `Time warp set to ${factor}×.`);
+        else logChatMessage('system', `Time warp ${session.warp}×${session.warpReason ? `: ${session.warpReason}` : ''}.`);
       } else {
         logChatMessage('error', 'Usage: /warp [1-10000]');
       }
@@ -523,9 +536,8 @@ function handleChatSubmit(text: string): void {
   if (trimmed.startsWith('/')) {
     executeChatCommand(trimmed);
   } else {
-    const name = pilotName();
-    logChatMessage('chat', trimmed, name);
-    chatChannel?.postMessage({ sender: name, text: trimmed, time: Date.now() });
+    // Shown when the session echoes it back, in the order every pilot sees.
+    session.chat(trimmed);
   }
 }
 
@@ -648,7 +660,9 @@ function syncLocks(): void {
  * returns the camera to the piloted ship. */
 function useSession(next: GameSession, recenter = true): void {
   release();
+  session.onchat = null;
   session = next;
+  next.onchat = showChatLine;
   preparePads(next.world);
   selectedShipId = undefined;
   selectShip(ownShips()[0]?.id);
@@ -1226,11 +1240,12 @@ const endCameraDrag = (event: PointerEvent): void => {
       }
       const finalSpeed = Math.hypot(finalVel.x, finalVel.y);
       const heading = Math.atan2(finalVel.y, finalVel.x);
-      session.teleport(ship.id, s.dominantBody.id, s.relPos, finalVel, heading);
-      cameraControl.followShip();
-      syncCameraButton();
-      logChatMessage('success', `Vessel ${ship.name.toUpperCase()} placed into orbit around ${s.dominantBody.name} (${finalSpeed.toFixed(1)} m/s).`);
-      show('flight-message', `Placed in orbit around ${s.dominantBody.name}`);
+      if (placeShip(ship, s.dominantBody.id, s.relPos, finalVel, heading,
+        `Vessel ${ship.name.toUpperCase()} placed into orbit around ${s.dominantBody.name} (${finalSpeed.toFixed(1)} m/s).`)) {
+        cameraControl.followShip();
+        syncCameraButton();
+        show('flight-message', `Placed in orbit around ${s.dominantBody.name}`);
+      }
     }
     activeFlightSlingshot = null;
     updateFlightSlingshotHud();
@@ -1963,27 +1978,70 @@ element('stress-clear').addEventListener('click', () => {
 /** Automation hook for scripts/stress/browser-bench.mjs (the same as the panel's buttons). */
 (window as unknown as { spaceSimStress?: (request: StressRequest) => string }).spaceSimStress = stressTest;
 
-// Multiplayer
+// Multiplayer: three ways in. Tabs of this browser (no network), invite codes (WebRTC) and
+// dedicated servers (WebSocket, with a LAN scan). Hosting serves the first two at once.
+type MpMode = 'tab' | 'invite' | 'server';
+const MP_MODE_KEY = 'space-sim-mp-mode';
 let invite: Invite | undefined;
 let reply: Reply | undefined;
+/** Gathering addresses for a reply code (a few seconds). */
+let answering = false;
 let pending: ClientSession | undefined;
+let localHost: LocalHost | undefined;
+let discovery: LocalDiscovery | undefined;
+let scan: AbortController | undefined;
+const sameBrowser = typeof BroadcastChannel === 'function';
 nameInput.value = savedName();
 nameInput.addEventListener('change', () => {
   nameInput.value = cleanName(nameInput.value, MAX_PLAYER_NAME);
   saveName(nameInput.value);
-  if (session === local) local.host.seatHost(pilotName(), local.token);
+  if (session === local) {
+    local.host.seatHost(pilotName(), local.token);
+    localHost?.announce();
+  }
 });
 
 function mpStatus(text: string): void { show('mp-status', text); }
+function mpMode(): MpMode {
+  return (document.querySelector<HTMLElement>('.mp-modes [aria-selected="true"]')?.dataset.mode as MpMode | undefined) ?? 'tab';
+}
+function setMpMode(mode: MpMode, remember = true): void {
+  for (const tab of document.querySelectorAll<HTMLButtonElement>('.mp-modes [role="tab"]')) {
+    const selected = tab.dataset.mode === mode;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    element(`mp-panel-${tab.dataset.mode}`).hidden = !selected;
+  }
+  if (remember) try { localStorage.setItem(MP_MODE_KEY, mode); } catch { /* storage unavailable */ }
+}
+const mpTabs = [...document.querySelectorAll<HTMLButtonElement>('.mp-modes [role="tab"]')];
+for (const tab of mpTabs) {
+  tab.addEventListener('click', () => setMpMode(tab.dataset.mode as MpMode));
+  tab.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const next = mpTabs[(mpTabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : mpTabs.length - 1)) % mpTabs.length]!;
+    setMpMode(next.dataset.mode as MpMode);
+    next.focus();
+  });
+}
+{
+  let saved: string | null = null;
+  try { saved = localStorage.getItem(MP_MODE_KEY); } catch { /* storage unavailable */ }
+  setMpMode(saved === 'invite' || saved === 'server' || (saved === 'tab' && sameBrowser) ? saved : sameBrowser ? 'tab' : 'invite', false);
+}
+if (!sameBrowser) element('mp-mode-tab').hidden = true;
+
 function updateMultiplayer(): void {
   const hosting = isHosting();
-  element('mp-offline').hidden = session !== local || hosting || !!reply;
+  const offline = session === local && !hosting;
+  element('mp-offline').hidden = !offline || !!reply;
   element('mp-reply').hidden = !reply;
   element('mp-hosting').hidden = !hosting;
   element('invite-panel').hidden = !invite;
   element('mp-online').hidden = session === local;
-  element('internet-row').hidden = session !== local;
   joinButton.disabled = !!pending;
+  element<HTMLButtonElement>('answer-invite').disabled = answering || !!pending;
   if (session !== local) {
     connectionLabel.innerHTML = '<i></i> ONLINE';
     connectionLabel.append(` · ${remote?.client.hostName.toUpperCase() ?? ''}`);
@@ -1991,6 +2049,11 @@ function updateMultiplayer(): void {
     connectionLabel.innerHTML = '<i></i> HOSTING';
     connectionLabel.append(` · ${local.host.connectedCount()} ${local.host.connectedCount() === 1 ? 'PILOT' : 'PILOTS'}`);
   } else connectionLabel.innerHTML = localLabel;
+  // Other tabs' worlds are listed while this one could join them.
+  if (offline && sameBrowser && !discovery) discovery = new LocalDiscovery(renderLocalWorlds);
+  else if (!offline && discovery) { discovery.close(); discovery = undefined; }
+  if (!offline) stopScan();
+  renderLocalWorlds(discovery?.worlds() ?? []);
   lastLists = -Infinity;
 }
 let playersKey = '';
@@ -2010,7 +2073,41 @@ function updatePlayers(): void {
     item.append(detail);
     return item;
   }));
-  if (isHosting()) updateMultiplayer();
+  if (isHosting()) {
+    localHost?.announce();
+    updateMultiplayer();
+  }
+}
+
+/** A list row: a label with detail, and a Join button. */
+function joinRow(label: string, detail: string, action: string, onjoin: () => void, disabled = false): HTMLLIElement {
+  const item = document.createElement('li');
+  item.className = 'mp-found';
+  const text = document.createElement('span');
+  text.textContent = `● ${label}`;
+  const small = document.createElement('small');
+  small.textContent = detail;
+  text.append(small);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = 'Join';
+  button.setAttribute('aria-label', action);
+  button.disabled = disabled || !!pending;
+  button.addEventListener('click', onjoin);
+  item.append(text, button);
+  return item;
+}
+let shownLocalHint = false;
+function renderLocalWorlds(worlds: readonly LocalAdvert[]): void {
+  element('local-worlds').replaceChildren(...worlds.map(world => joinRow(world.name,
+    `${world.players}/${world.maxPlayers} ${world.maxPlayers === 1 ? 'pilot' : 'pilots'}`, `Join ${world.name}`,
+    () => void joinLocal(world.host), world.players >= world.maxPlayers)));
+  element('local-empty').hidden = worlds.length > 0;
+  // A world appearing elsewhere while this tab sits on another mode: point at it once.
+  if (worlds.length && session === local && !local.hosting && mpMode() !== 'tab' && !shownLocalHint) {
+    shownLocalHint = true;
+    mpStatus('A world is hosted in another tab of this browser: see This browser.');
+  }
 }
 
 async function copy(textarea: HTMLTextAreaElement): Promise<void> {
@@ -2021,13 +2118,19 @@ async function copy(textarea: HTMLTextAreaElement): Promise<void> {
 }
 
 element('host-game').addEventListener('click', () => {
-  if (session !== local) return;
+  if (session !== local || local.hosting) return;
   if (local.world.soloPreview) { mpStatus('Custom flight profiles are solo previews; use the built-in default to host.'); return; }
   local.hosting = true;
   rememberToken(local.world.id, local.token, local.playerId);
   local.host.seatHost(pilotName(), local.token);
   if (local.paused) setPaused(false);
-  mpStatus('Hosting. Create one invite per player and send it to them (chat, email…). They send back a reply code.');
+  if (sameBrowser) {
+    localHost = new LocalHost(() => ({ name: `${pilotName()} · ${local.world.system.system.name}`, worldId: local.world.id,
+      players: local.host.connectedCount(), maxPlayers: local.host.settings.maxPlayers }), connection => local.accept(connection));
+  }
+  mpStatus(sameBrowser
+    ? 'Hosting. Other tabs of this browser can join from This browser. For friends elsewhere, create one invite per player.'
+    : 'Hosting. Create one invite per player and send it to them (chat, email…). They send back a reply code.');
   profiler.event('host-start', { world: local.world.id });
   syncLocks();
   updateMultiplayer();
@@ -2037,10 +2140,15 @@ function cancelInvite(): void {
   invite = undefined;
   updateMultiplayer();
 }
-element('stop-hosting').addEventListener('click', () => {
+function stopHosting(reason = 'The host stopped hosting.'): void {
   cancelInvite();
-  local.host.close('The host stopped hosting.');
+  local.host.close(reason);
+  localHost?.close(reason);
+  localHost = undefined;
   local.hosting = false;
+}
+element('stop-hosting').addEventListener('click', () => {
+  stopHosting();
   mpStatus('Stopped hosting. Remote ships stay in this world.');
   profiler.event('host-stop', {});
   syncLocks();
@@ -2053,10 +2161,15 @@ element('create-invite').addEventListener('click', async () => {
   mpStatus('Preparing an invite…');
   try {
     invite?.cancel();
-    invite = await createInvite(stunToggle.checked);
-    element<HTMLTextAreaElement>('invite-code').value = invite.code;
+    invite = undefined;
+    const made = await createInvite(stunToggle.checked);
+    if (!isHosting()) { made.cancel(); return; }
+    invite = made;
+    element<HTMLTextAreaElement>('invite-code').value = made.code;
     element<HTMLTextAreaElement>('host-reply').value = '';
-    mpStatus('Send the invite to one player. Paste the reply they send you below.');
+    mpStatus(made.stun
+      ? 'Send the invite to one player, anywhere. Paste the reply code they send back in step 2.'
+      : 'Send the invite to one player on your network. Paste the reply code they send back in step 2.');
   } catch (error) {
     invite = undefined;
     mpStatus(`Could not create an invite: ${message(error)}`);
@@ -2065,27 +2178,33 @@ element('create-invite').addEventListener('click', async () => {
     updateMultiplayer();
   }
 });
-element('cancel-invite').addEventListener('click', cancelInvite);
+element('cancel-invite').addEventListener('click', () => { cancelInvite(); mpStatus('Invite cancelled.'); });
 element('copy-invite').addEventListener('click', () => void copy(element<HTMLTextAreaElement>('invite-code')));
 element('accept-reply').addEventListener('click', async () => {
   const current = invite;
-  if (!current) return;
+  const button = element<HTMLButtonElement>('accept-reply');
+  if (!current || button.disabled) return;
+  button.disabled = true;
   mpStatus('Connecting the player…');
   try {
     const connection = await current.accept(element<HTMLTextAreaElement>('host-reply').value);
     if (invite === current) invite = undefined;
+    // Hosting stopped while the link opened.
+    if (!isHosting()) { connection.close('The host stopped hosting.'); return; }
     local.accept(connection);
     mpStatus('Player connected. Create another invite for the next player.');
   } catch (error) {
-    mpStatus(message(error));
+    if (invite === current) mpStatus(message(error));
+  } finally {
+    button.disabled = false;
+    updateMultiplayer();
   }
-  updateMultiplayer();
 });
 
 function startClient(connection: Connection): void {
-  const client = new ClientSession(connection, {
+  const client: ClientSession = new ClientSession(connection, {
     name: pilotName(), ...(passwordInput.value ? { password: passwordInput.value } : {}),
-    token: tokenFor, saveToken: rememberToken,
+    token: joinTokenFor, saveToken: (worldId, token, playerId) => rememberJoinToken(worldId, token, playerId, client.hostSeat),
     lock: local.world.lock, simulationFingerprint: local.world.simulationFingerprint,
     createContext: worldModules(local.world)?.createContext,
     rules: local.world.rules, forces: local.world.forces, commands: local.world.commands,
@@ -2094,48 +2213,83 @@ function startClient(connection: Connection): void {
   updateMultiplayer();
   client.onjoined = () => {
     pending = undefined;
+    // Joining ends anything this tab offered to others.
+    if (isHosting()) stopHosting('The host joined another game.');
     if (session === local && !local.paused) setPaused(true, 'Playing online');
     remote = new RemoteSession(client);
     useSession(remote);
     mpStatus(`Joined ${client.hostName}. Your ships are listed under Fleet.`);
     notify(`Welcome to ${client.hostName}.`);
+    logChatMessage('system', `Joined ${client.hostName}. Messages you type here reach every pilot.`);
     profiler.event('join', { world: client.worldId });
   };
   client.onplayers = () => { lastLists = -Infinity; };
-  client.onnotice = text => notify(text);
+  client.onnotice = text => { notify(text); logChatMessage('system', text); };
   client.onclose = reason => {
     if (pending === client) pending = undefined;
     if (remote?.client === client) {
       remote = undefined;
       useSession(local);
       setPaused(true, `Left the online game (${reason})`);
+      logChatMessage('system', `Left the online game: ${reason}`);
       profiler.event('leave', { reason });
     }
-    if (/password/i.test(reason)) element('password-row').hidden = false;
+    if (/password/i.test(reason)) { element('password-row').hidden = false; setMpMode('server'); }
     mpStatus(reason);
     updateMultiplayer();
   };
 }
+
+/** Player side of an invite: make the reply code, then wait for the host to accept it. */
+async function answerInviteCode(text: string): Promise<void> {
+  if (pending || reply || answering || session !== local || isHosting()) return;
+  answering = true;
+  updateMultiplayer();
+  mpStatus('Reading the invite…');
+  let answer: Reply;
+  try { answer = await answerInvite(text); } catch (error) {
+    mpStatus(message(error));
+    return;
+  } finally {
+    answering = false;
+    updateMultiplayer();
+  }
+  if (session !== local || isHosting() || pending) { answer.cancel(); return; }
+  reply = answer;
+  element<HTMLTextAreaElement>('reply-code').value = answer.code;
+  mpStatus('Step 2: send this reply code to the host.');
+  updateMultiplayer();
+  try {
+    const connection = await answer.connection;
+    if (reply !== answer) { connection.close('Cancelled.'); return; }
+    reply = undefined;
+    startClient(connection);
+  } catch (error) {
+    // Cancelled or replaced: whatever came after owns the panel now.
+    if (reply !== answer) return;
+    reply = undefined;
+    mpStatus(message(error));
+  }
+  updateMultiplayer();
+}
+element('answer-invite').addEventListener('click', () => {
+  const text = element<HTMLTextAreaElement>('invite-input').value.trim();
+  if (!text) { mpStatus('Paste the invite code the host sent you.'); return; }
+  void answerInviteCode(text);
+});
+
+const isLoopback = (url: string): boolean => {
+  try { return /^(localhost|127(\.\d{1,3}){3}|\[::1\]|0\.0\.0\.0)$/i.test(new URL(url).hostname); } catch { return false; }
+};
 async function join(): Promise<void> {
   const text = joinInput.value.trim();
-  if (!text || pending || reply) return;
+  if (!text || pending || reply || session !== local || isHosting()) return;
+  // An invite pasted where a server address goes.
   if (isInviteCode(text)) {
-    mpStatus('Answering the invite…');
-    try {
-      const answer = await answerInvite(text, stunToggle.checked);
-      reply = answer;
-      element<HTMLTextAreaElement>('reply-code').value = answer.code;
-      mpStatus('Send this reply code to the host. You join as soon as they paste it.');
-      updateMultiplayer();
-      const connection = await answer.connection;
-      if (reply !== answer) { connection.close('Cancelled.'); return; }
-      reply = undefined;
-      startClient(connection);
-    } catch (error) {
-      reply = undefined;
-      mpStatus(message(error));
-    }
-    updateMultiplayer();
+    element<HTMLTextAreaElement>('invite-input').value = text;
+    joinInput.value = '';
+    setMpMode('invite');
+    await answerInviteCode(text);
     return;
   }
   let url: string;
@@ -2143,8 +2297,17 @@ async function join(): Promise<void> {
   mpStatus(`Connecting to ${url}…`);
   joinButton.disabled = true;
   try { startClient(await connectWebSocket(url)); } catch (error) {
-    mpStatus(location.protocol === 'https:' && url.startsWith('ws:') ? `${message(error)} Secure pages can only reach wss:// servers.` : message(error));
+    mpStatus(location.protocol === 'https:' && url.startsWith('ws:') ? `${message(error)} Secure pages can only reach wss:// servers.`
+      : isLoopback(url) ? `Could not reach a Space Sim server on ${new URL(url).host}. Start the dedicated server first `
+        + '(npm run server, or the space-sim-server program). To play with another tab of this browser, use This browser instead.'
+      : `${message(error)} Check the address and that the server is running and reachable (firewall, same network).`);
   } finally { updateMultiplayer(); }
+}
+async function joinLocal(host: string): Promise<void> {
+  if (pending || reply || session !== local || isHosting()) return;
+  mpStatus('Joining the world in another tab…');
+  try { startClient(await connectLocal(host)); } catch (error) { mpStatus(message(error)); }
+  updateMultiplayer();
 }
 joinButton.addEventListener('click', () => void join());
 joinInput.addEventListener('keydown', event => { if (event.key === 'Enter') void join(); });
@@ -2156,6 +2319,51 @@ element('cancel-join').addEventListener('click', () => {
 });
 element('copy-reply').addEventListener('click', () => void copy(element<HTMLTextAreaElement>('reply-code')));
 element('leave-game').addEventListener('click', () => remote?.client.leave());
+
+// LAN scan: browsers cannot see this computer's address, so it tries likely ones.
+function stopScan(): void {
+  scan?.abort();
+  scan = undefined;
+  element<HTMLButtonElement>('scan-lan').textContent = 'Scan local network';
+}
+element('scan-lan').addEventListener('click', async () => {
+  if (scan) { stopScan(); mpStatus('Scan stopped.'); return; }
+  if (location.protocol === 'https:') {
+    mpStatus('Secure (https) pages cannot reach local servers. Open the game from the server itself, or the desktop app, to scan.');
+    return;
+  }
+  const current = scan = new AbortController();
+  const list = element('lan-servers');
+  list.replaceChildren();
+  list.hidden = false;
+  element<HTMLButtonElement>('scan-lan').textContent = 'Stop scan';
+  let found = 0;
+  const results = await scanServers(lanCandidates([location.hostname, joinInput.value]), {
+    signal: current.signal,
+    onprogress: (done, total) => { if (scan === current) mpStatus(`Scanning ${done}/${total}… ${found ? `${found} found.` : ''}`); },
+    onfound: server => {
+      found++;
+      list.append(joinRow(server.name, `${server.address} · ${server.players}/${server.maxPlayers}${server.password ? ' · password' : ''}`
+        + `${server.compatible ? '' : ' · other version'}`, `Join ${server.name} at ${server.address}`, () => {
+        joinInput.value = server.address;
+        if (server.password) element('password-row').hidden = false;
+        void join();
+      }, !server.compatible));
+    },
+  });
+  if (scan !== current) return;
+  stopScan();
+  mpStatus(results.length ? `Found ${results.length} ${results.length === 1 ? 'server' : 'servers'}.`
+    : 'No servers found on the usual addresses. Enter the server\'s address (shown in its window) above.');
+});
+
+// Closing or reloading the tab says goodbye at once instead of leaving others waiting.
+window.addEventListener('pagehide', () => {
+  if (isHosting()) stopHosting('The host closed the game.');
+  remote?.client.leave();
+  discovery?.close();
+  discovery = undefined;
+});
 
 // World files: the whole world (clock, every ship, pilots) as portable JSON.
 element('save-world').addEventListener('click', () => {
@@ -2612,20 +2820,39 @@ window.addEventListener('error', event => profiler.event('error',
 window.addEventListener('unhandledrejection', event => profiler.event('error', { message: String(event.reason) }));
 
 /** Hidden tabs get no animation frames; a hosting tab (or solo flight with Run in background enabled)
- * keeps the world moving on a timer, which browsers slow to about once a second. */
-let background: ReturnType<typeof setInterval> | undefined;
+ * keeps the world moving on a timer. Browsers slow a hidden page's own timers to about once
+ * a second, and later to once a minute, which stalls hosted players' world (their inputs
+ * then miss the host's schedule). A worker's timer is not throttled that way, so it paces
+ * the world; a page timer is the fallback where workers cannot start (some file:// pages). */
+let background: { stop(): void } | undefined;
 let backgroundAt = 0;
+function ticker(tick: () => void, ms: number): { stop(): void } {
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let worker: Worker | undefined;
+  const fallback = (): void => {
+    worker?.terminate();
+    worker = undefined;
+    timer ??= setInterval(tick, ms);
+  };
+  try {
+    const url = URL.createObjectURL(new Blob([`setInterval(() => postMessage(0), ${ms});`], { type: 'text/javascript' }));
+    worker = new Worker(url);
+    worker.onmessage = () => { URL.revokeObjectURL(url); tick(); };
+    worker.onerror = () => { URL.revokeObjectURL(url); fallback(); };
+  } catch { fallback(); }
+  return { stop: () => { worker?.terminate(); if (timer) clearInterval(timer); } };
+}
 function updateBackground(): void {
   const wanted = document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
   if (wanted && !background) {
     backgroundAt = performance.now();
-    background = setInterval(() => {
+    background = ticker(() => {
       const now = performance.now();
       handleEvents(local.catchUp((now - backgroundAt) / 1000, selectedShipId));
       backgroundAt = now;
-    }, 100);
+    }, 50);
   } else if (!wanted && background) {
-    clearInterval(background);
+    background.stop();
     background = undefined;
     lastWall = undefined;
   }
@@ -3159,6 +3386,7 @@ if (requestedGame === 'orbit-sandbox') {
 if (document.querySelector('meta[name="space-sim-server"]')) {
   // This page came from a dedicated server: joining it is one click away.
   joinInput.value = location.origin;
+  setMpMode('server', false);
   mpStatus('This page comes from a Space Sim server. Enter your pilot name and choose Join.');
 }
 profiler.event('session', { model: MODEL, userAgent: navigator.userAgent });

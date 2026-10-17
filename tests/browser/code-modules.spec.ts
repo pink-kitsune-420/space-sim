@@ -130,6 +130,7 @@ test('a browser with the same locally enabled artifact can join its dedicated se
     const port = /http:\/\/localhost:(\d+)/.exec(output)![1];
     const fingerprint = (await debug(page)).fingerprint;
     await openPanel(page, 'multiplayer');
+    await page.getByRole('tab', { name: 'Server' }).click();
     await page.locator('#join-address').fill(`ws://127.0.0.1:${port}`);
     await page.locator('#join-game').click();
     await expect(page.locator('#mp-status')).toContainText('Joined');

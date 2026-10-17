@@ -245,10 +245,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       } catch (error) { log(`Save failed: ${(error as Error).message}`); }
       await new Promise<void>(done => {
         server.close(() => done());
-        // Idle HTTP connections end now. Players get a moment to read the goodbye and close
-        // politely: destroying a socket with unread input resets it, and the reset can
-        // discard the goodbye before the player reads it.
-        server.closeIdleConnections();
+        // Players get a moment to read the goodbye and close politely: destroying a socket
+        // with unread input resets it, and the reset can discard the goodbye before the
+        // player reads it. No closeIdleConnections() here: Node counts upgraded WebSocket
+        // sockets as idle HTTP connections and destroyed them mid-goodbye.
         setTimeout(() => server.closeAllConnections(), 500).unref();
       });
       world.dispose();
@@ -263,7 +263,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     switch (word.toLowerCase()) {
       case '': return '';
       case 'help': case '?':
-        return 'Commands: status, players, ships, warp [factor], save, backup, pause, resume, kick <player>, asteroids <count>|clear, stop';
+        return 'Commands: status, players, ships, say <message>, warp [factor], save, backup, pause, resume, kick <player>, asteroids <count>|clear, stop';
       case 'status':
         return `${config.name} · world ${world.id} · ${world.system.system.name} · T+${clockText(world.time)}`
           + `${host.warp > 1 ? ` · ${host.warp}x` : ''}`
@@ -300,6 +300,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         const result = populateStress(world, { asteroids: count, seed: world.version + 1 });
         return `Added ${result.asteroids} asteroids (${Object.entries(result.kinds).map(([k, n]) => `${k} ${n}`).join(', ')}).`;
       }
+      case 'say':
+        if (!arg) return 'Usage: say <message>';
+        host.chat(undefined, arg);
+        return '';
       case 'save': await save(true); return `Saved to ${store.file}.`;
       case 'backup': return (await store.backup()) ?? 'Nothing to back up yet.';
       case 'pause': consolePause = true; emptyPause(); return 'Paused.';

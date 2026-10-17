@@ -759,7 +759,55 @@ input:disabled,select:disabled {
   margin:0 0 12px
 }
 #internet-row {
-  margin:4px 0 0
+  margin:0 0 10px
+}
+.mp-modes {
+  display:flex;
+  margin:4px 0 10px;
+  border-bottom:1px solid var(--ui-win-border)
+}
+.mp-modes button {
+  flex:1;
+  padding:7px 4px;
+  font-size:10px;
+  background:transparent;
+  border:none;
+  border-bottom:2px solid transparent;
+  border-radius:0;
+  color:#8da4b4
+}
+.mp-modes button[aria-selected=true] {
+  color:var(--ui-win-accent);
+  border-bottom-color:var(--ui-win-accent)
+}
+.mp-panel .control-note {
+  margin-top:0
+}
+.mp-list {
+  margin:0 0 10px
+}
+.mp-list li {
+  align-items:center
+}
+.mp-list li>span {
+  display:grid;
+  gap:2px;
+  min-width:0;
+  overflow-wrap:anywhere
+}
+.mp-list button {
+  flex:none;
+  padding:5px 12px;
+  font-size:10px
+}
+.mp-warning {
+  margin:0 0 12px;
+  padding:8px 10px;
+  font-size:11px;
+  line-height:1.4;
+  color:#f7c775;
+  border:1px solid currentColor;
+  border-radius:5px
 }
 @media(min-width:1500px) {
   .viewport {

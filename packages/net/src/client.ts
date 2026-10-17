@@ -6,15 +6,16 @@ import { validateUniverse } from '../../sim-core/src/universe';
 import { World, type Ship, type WorldEvent } from '../../sim-core/src/world';
 import type { Connection } from './connection';
 import {
-  PROTOCOL, parseHostMessage, type ClientMessage, type HostMessage, type NetPlayer, type NetShip, type SessionRules,
+  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, parseHostMessage, type ClientMessage, type HostMessage, type NetPlayer, type NetShip, type SessionRules,
 } from './protocol';
 
 export interface ClientOptions {
   readonly createContext?: SimulationContextFactory;
   readonly name: string;
   readonly password?: string;
-  /** A reconnect token saved for this world, if any. */
-  readonly token?: (worldId: string) => string | undefined;
+  /** A reconnect token saved for this world, if any. `hostId` is the player seated in the
+   * hosting browser: a browser sharing storage with it must not present that seat's token. */
+  readonly token?: (worldId: string, hostId?: string) => string | undefined;
   /** Store a newly issued token; it reclaims this player's ships later. */
   readonly saveToken?: (worldId: string, token: string, playerId: string) => void;
   /** Milliseconds on a monotonic clock. */
@@ -41,6 +42,13 @@ const SYNC_WINDOW_MS = 3000;
 const PING_INTERVAL_MS = 1000;
 const MAX_STEPS_PER_UPDATE = 60;
 const MAX_REPLAY_TICKS = 400;
+/** Ask again if a requested complete world has not arrived by then. */
+const RESYNC_RETRY_MS = 2000;
+/** Deltas waiting for a frame (a hidden tab gets none); past this the complete world is
+ * requested instead. */
+const MAX_PENDING_SNAPSHOTS = 64;
+/** Room left under the host's input horizon for an input's trip to the host. */
+const INPUT_HORIZON_MARGIN_TICKS = 20;
 /** Unacknowledged inputs this far behind the host are dropped. */
 const INPUT_HISTORY_TICKS = 300;
 /** Visual corrections fade with this time constant. */
@@ -59,6 +67,8 @@ export class ClientSession {
   playerId?: string;
   worldId = '';
   hostName = '';
+  /** The player seated in the hosting browser, if the host is a browser. */
+  hostSeat?: string;
   players: readonly NetPlayer[] = [];
   rules?: SessionRules;
   paused = false;
@@ -71,12 +81,17 @@ export class ClientSession {
   onjoined: (() => void) | null = null;
   onplayers: (() => void) | null = null;
   onnotice: ((text: string) => void) | null = null;
+  /** A chat line from a player (`from`), or from the server console. */
+  onchat: ((line: { readonly from?: string; readonly name: string; readonly text: string }) => void) | null = null;
   onclose: ((reason: string) => void) | null = null;
 
   private readonly connection: Connection;
   private readonly options: ClientOptions;
   private readonly now: () => number;
-  private latest?: { readonly snapshot: Snapshot; readonly at: number };
+  /** Snapshots received since the last update, oldest first. Each delta lists only what
+   * changed since the one before, so none may be skipped. */
+  private pending: Array<{ readonly snapshot: Snapshot; readonly at: number }> = [];
+  private overflowed = false;
   private events: InputEvent[] = [];
   private cursor = 0;
   private seq = 0;
@@ -89,6 +104,10 @@ export class ClientSession {
   private lastPing = -Infinity;
   private rtts: number[] = [];
   private samples: Array<{ readonly offset: number; readonly at: number }> = [];
+  /** The newest tick the host has reported (snapshots, pongs). */
+  private hostTick = 0;
+  /** When the complete world was last requested; deltas wait for it. */
+  private resyncAt = -Infinity;
 
   constructor(connection: Connection, options: ClientOptions) {
     this.connection = connection;
@@ -128,10 +147,22 @@ export class ClientSession {
   }
   remove(shipId: string): void { this.send({ t: 'remove', ship: shipId }); }
   setGodMode(shipId: string, on: boolean): void { this.send({ t: 'god', ship: shipId, on }); }
+  /** Ask the host to place an owned ship (a cheat the host may refuse with a notice). */
+  teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
+    // The host releases the ship's controls; held keys are sent again.
+    this.sent.delete(shipId);
+    this.send({ t: 'teleport', ship: shipId, body: bodyId, x: position.x, y: position.y, vx: velocity.x, vy: velocity.y,
+      ...(heading !== undefined ? { heading } : {}) });
+  }
   /** A module command request; the host validates and applies it, and the next snapshot
    * carries the result. */
   command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void {
     this.send({ t: 'command', ship: shipId, command: commandId, ...(args && Object.keys(args).length ? { args } : {}) });
+  }
+
+  chat(text: string): void {
+    const line = text.trim().slice(0, MAX_CHAT);
+    if (line && this.phase === 'joined') this.send({ t: 'chat', text: line });
   }
 
   leave(): void { this.connection.close('Left the game.'); }
@@ -149,25 +180,45 @@ export class ClientSession {
       if (this.pings.size > 8) this.pings.delete(this.pings.keys().next().value!);
       this.send({ t: 'ping', id: this.pingId });
     }
-    if (this.latest) {
-      const { snapshot, at } = this.latest;
-      this.latest = undefined;
+    if (this.overflowed) { this.overflowed = false; this.requestResync(now); }
+    const pending = this.pending;
+    this.pending = [];
+    for (const { snapshot, at } of pending) {
+      if (this.phase !== 'joined') return out;
       this.reconcile(snapshot, at, out);
     }
     const target = this.paused ? undefined : this.targetTick(now);
     if (target === undefined) { this.alpha = 1; return out; }
     const goal = Math.floor(target);
-    if (world.tick < goal) {
-      if (this.warp > 1 && this.events.length === 0 && world.awakeCount === 0 && world.rules.length === 0 && world.rails) {
-        out.push(...world.advanceTo(goal));
-        this.reported = Math.max(this.reported, world.tick);
-      } else {
-        const maxSteps = this.warp > 1 ? Math.min(300, Math.ceil(this.warp * 2)) : MAX_STEPS_PER_UPDATE;
-        for (let n = 0; world.tick < goal && n < maxSteps; n++) this.stepOnce(out);
-      }
-    }
+    if (world.tick < goal) this.catchUp(goal, out, this.warp > 1 ? Math.min(300, Math.ceil(this.warp * 2)) : MAX_STEPS_PER_UPDATE);
     this.alpha = world.tick === goal ? target - goal : 1;
     return out;
+  }
+
+  /** Advance the mirror toward `goal`: on rails while warping and nothing needs stepping
+   * (as the host does), otherwise at most `budget` fixed steps. False if it stopped short. */
+  private catchUp(goal: number, out: WorldEvent[], budget: number): boolean {
+    const world = this.world!;
+    let steps = 0;
+    while (world.tick < goal && !this.paused) {
+      if (this.warp > 1 && this.cursor >= this.events.length && world.awakeCount === 0 && world.rules.length === 0 && world.rails) {
+        const before = world.tick;
+        out.push(...world.advanceTo(goal));
+        this.reported = Math.max(this.reported, world.tick);
+        if (world.tick > before) continue;
+      }
+      if (steps++ >= budget) return false;
+      this.stepOnce(out);
+    }
+    // Paused: the host's clock stands still too.
+    return world.tick >= goal || this.paused;
+  }
+
+  /** The mirror cannot catch up with a delta in one go: ask for the complete world. */
+  private requestResync(now: number): void {
+    if (now - this.resyncAt < RESYNC_RETRY_MS) return;
+    this.resyncAt = now;
+    this.send({ t: 'resync' });
   }
 
   /** Estimated host tick at local time `now`, from the least-delayed recent clock sample. */
@@ -187,7 +238,11 @@ export class ClientSession {
     const sorted = [...this.rtts].sort((a, b) => a - b);
     const rtt = sorted.length ? sorted[sorted.length >> 1]! : DEFAULT_RTT_MS;
     const effectiveTickMs = TICK_MS / (this.warp || 1);
-    return server + (rtt / 2 + LEAD_MARGIN_MS) / effectiveTickMs;
+    const target = server + (rtt / 2 + LEAD_MARGIN_MS) / effectiveTickMs;
+    // A host that stalls (a hidden or busy tab) still answers, with its real tick. Running
+    // past what it will schedule would stamp inputs it moves earlier, and the pilot would
+    // see a flight the host never flies; wait for it instead. (Warp ends on any input.)
+    return this.warp > 1 ? target : Math.min(target, this.hostTick + MAX_INPUT_LEAD_TICKS - INPUT_HORIZON_MARGIN_TICKS);
   }
 
   private input(shipId: string, controls: Controls, set?: number): void {
@@ -234,6 +289,10 @@ export class ClientSession {
       const effectiveTickMs = TICK_MS / (this.warp || 1);
       this.samples.push({ offset: snapshot.tick - at / effectiveTickMs, at });
     }
+    this.hostTick = Math.max(this.hostTick, snapshot.tick);
+    if (snapshot.full) this.resyncAt = -Infinity;
+    // Deltas build on a world this mirror no longer has; the complete one is on its way.
+    else if (this.now() - this.resyncAt < RESYNC_RETRY_MS) return;
     if (this.world!.rules.length > 0) this.reconcileWorld(snapshot, out);
     else if (snapshot.full) this.resync(snapshot, out);
     else this.patch(snapshot, out);
@@ -251,7 +310,8 @@ export class ClientSession {
       shown.set(ship.id, { x: ship.state.position.x + o.x, y: ship.state.position.y + o.y, bodyId: ship.bodyId, at: now });
     }
     const predicted = world.tick;
-    while (world.tick < snapshot.tick && !this.paused) this.stepOnce(out);
+    // Catching up only reports events on the way; a complete world replaces everything.
+    if (!this.catchUp(snapshot.tick, out, MAX_REPLAY_TICKS) && !snapshot.full) { this.requestResync(now); return; }
 
     world.tick = snapshot.tick;
     world.time = snapshot.time;
@@ -307,8 +367,9 @@ export class ClientSession {
   private patch(snapshot: Snapshot, out: WorldEvent[]): void {
     const world = this.world!;
     const now = this.now();
-    // A mirror behind the host first steps up to the snapshot.
-    while (world.tick < snapshot.tick && !this.paused) this.stepOnce(out);
+    // A mirror behind the host first steps up to the snapshot; one far behind (a hidden
+    // tab, a stall) asks for the complete world instead of stepping for seconds.
+    if (!this.catchUp(snapshot.tick, out, MAX_REPLAY_TICKS)) { this.requestResync(now); return; }
     const ahead = world.tick - snapshot.tick;
     if (ahead < 0) { this.resync({ ...snapshot, full: true }, out); return; }
     const acks = new Map<string, number>();
@@ -458,8 +519,12 @@ export class ClientSession {
         }
         this.worldId = message.worldId;
         this.hostName = message.name;
-        this.send({ t: 'join', name: this.options.name, ...(this.token() ? { token: this.token() } : {}),
-          ...(this.options.password ? { password: this.options.password } : {}) });
+        this.hostSeat = message.host;
+        {
+          const token = this.options.token?.(message.worldId, message.host);
+          this.send({ t: 'join', name: this.options.name, ...(token ? { token } : {}),
+            ...(this.options.password ? { password: this.options.password } : {}) });
+        }
         return;
       case 'welcome': {
         if (this.phase !== 'connecting' || !this.worldId) throw new Error('unexpected welcome');
@@ -506,6 +571,7 @@ export class ClientSession {
         this.warp = message.warp ?? 1;
         this.apply(message.tick, message.time, message.ships);
         this.reported = message.tick;
+        this.hostTick = message.tick;
         if (!message.paused) {
           const effectiveTickMs = TICK_MS / (this.warp || 1);
           this.samples.push({ offset: message.tick - now / effectiveTickMs, at: now });
@@ -515,7 +581,11 @@ export class ClientSession {
         return;
       }
       case 'snapshot':
-        if (this.phase === 'joined') this.latest = { snapshot: message, at: now };
+        if (this.phase !== 'joined') return;
+        // A complete world supersedes everything before it.
+        if (message.full) this.pending = [];
+        this.pending.push({ snapshot: message, at: now });
+        if (this.pending.length > MAX_PENDING_SNAPSHOTS) { this.pending = []; this.overflowed = true; }
         return;
       case 'players':
         this.players = message.players;
@@ -525,6 +595,7 @@ export class ClientSession {
         const sent = this.pings.get(message.id);
         if (sent === undefined) return;
         this.pings.delete(message.id);
+        this.hostTick = Math.max(this.hostTick, message.tick);
         this.rttMs = now - sent;
         this.rtts.push(this.rttMs);
         if (this.rtts.length > 10) this.rtts.shift();
@@ -537,13 +608,16 @@ export class ClientSession {
       case 'notice':
         this.onnotice?.(message.text);
         return;
+      case 'chat': {
+        const { t: _t, ...line } = message;
+        this.onchat?.(line);
+        return;
+      }
       case 'error':
         this.closeReason = message.message;
         return;
     }
   }
-
-  private token(): string | undefined { return this.worldId ? this.options.token?.(this.worldId) : undefined; }
 
   private send(message: ClientMessage): void {
     if (this.phase !== 'closed') this.connection.send(JSON.stringify(message));

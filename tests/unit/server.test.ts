@@ -132,7 +132,7 @@ describe('dedicated server', () => {
     expect((await fetch(`http://127.0.0.1:${running.port}/../server.json`)).status).toBe(404);
     expect((await fetch(`http://127.0.0.1:${running.port}/`, { method: 'POST' })).status).toBe(405);
     const status = await (await fetch(`http://127.0.0.1:${running.port}/status`)).json() as Record<string, unknown>;
-    expect(status).toMatchObject({ protocol: 'space-sim-net/4', paused: true, ships: 0, players: [] });
+    expect(status).toMatchObject({ protocol: 'space-sim-net/5', paused: true, ships: 0, players: [] });
   });
 
   it('speaks WebSocket correctly: fragments, pings and closing', async () => {
