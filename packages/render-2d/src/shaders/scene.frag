@@ -113,7 +113,7 @@ vec3 rocky(Body b, vec3 s, float px, float z) {
     col = mix(col, b.c2, 0.45 * c.y * strength);
   }
   // Polar frost (invisible when the fourth colour is the ground).
-  float edge = mix(1.02, 0.78, b.tune.z);
+  float edge = mix(1.0, 0.88, b.tune.z); // about 70 degrees of latitude at the default
   float cap = smoothstep(edge, edge + 0.04, z + 0.04 * (fbm(s * 6.0, px * 6.0) - 0.5));
   return mix(col, b.c3, cap);
 }
@@ -133,7 +133,7 @@ vec3 arid(Body b, vec3 s, float px, float z) {
   col = mix(col, b.c1 * (0.85 + 0.3 * fbm(s * 12.0, px * 12.0)), smoothstep(0.6, 0.7, h)); // rock mesas
   col = mix(col, b.c1 * 0.7, 0.5 * ridge(s * 8.0 + b.seed, px * 8.0) * smoothstep(0.45, 0.6, h)); // canyons
   col *= 1.0 - 0.15 * cell.x; // a few old, weathered craters
-  float edge = mix(1.03, 0.79, b.tune.z);
+  float edge = mix(1.0, 0.89, b.tune.z);
   float cap = smoothstep(edge, edge + 0.04, z + 0.04 * (fbm(s * 6.0, px * 6.0) - 0.5));
   return mix(col, b.c3, cap);
 }
@@ -141,14 +141,15 @@ vec3 arid(Body b, vec3 s, float px, float z) {
 vec3 oceanic(Body b, vec3 s, float px, float z, out float water) {
   float h = fbm(s * 1.6 + b.seed, px * 1.6) + 0.3 * (fbm(s * 5.0 + b.seed * 2.0, px * 5.0) - 0.5);
   float sea = mix(0.36, 0.64, b.tune.x);
-  // Temperature falls towards the pole (the centre) and with altitude; moisture is its own field.
-  float temperature = 1.0 - z + 0.12 * (fbm(s * 3.0 + 11.0, px * 3.0) - 0.5) - max(0.0, h - sea) * 1.4
+  // Temperature follows cos(latitude), which seen from above the pole is the distance from the
+  // centre: 1 at the equator (the rim), 0 at the pole. It also falls with altitude. Moisture is its own field.
+  float temperature = sqrt(max(0.0, 1.0 - z * z)) + 0.1 * (fbm(s * 3.0 + 11.0, px * 3.0) - 0.5) - max(0.0, h - sea) * 1.2
     + (0.5 - b.tune.z) * 0.4;
   float moisture = fbm(s * 2.4 + 7.0, px * 2.4);
   water = 1.0 - smoothstep(sea, sea + 0.006, h);
   // Seas: deep blue offshore, turquoise shelves, frozen near the pole.
   vec3 ocean = mix(b.color * 0.62, b.color * 1.25 + vec3(0.0, 0.07, 0.06), smoothstep(sea - 0.12, sea, h));
-  ocean = mix(ocean, b.c3 * 0.92, smoothstep(0.14, 0.08, temperature));
+  ocean = mix(ocean, b.c3 * 0.92, smoothstep(0.2, 0.12, temperature)); // sea ice beyond about 80 degrees
   // Biomes on land.
   vec3 forest = b.c1, desert = b.c2;
   vec3 rainforest = b.c1 * vec3(0.62, 0.8, 0.6);
@@ -156,11 +157,11 @@ vec3 oceanic(Body b, vec3 s, float px, float z, out float water) {
   vec3 tundra = mix(b.c1, vec3(0.52, 0.52, 0.47), 0.65);
   vec3 rock = vec3(0.45, 0.42, 0.38);
   vec3 land = mix(grass, forest, smoothstep(0.42, 0.55, moisture));
-  land = mix(land, rainforest, smoothstep(0.58, 0.68, moisture) * smoothstep(0.62, 0.75, temperature));
-  land = mix(land, desert, smoothstep(0.38, 0.30, moisture) * smoothstep(0.45, 0.6, temperature)); // subtropical deserts
-  land = mix(land, tundra, smoothstep(0.34, 0.24, temperature));
+  land = mix(land, rainforest, smoothstep(0.58, 0.68, moisture) * smoothstep(0.9, 0.97, temperature)); // tropics
+  land = mix(land, desert, smoothstep(0.4, 0.31, moisture) * smoothstep(0.72, 0.84, temperature)); // subtropical deserts
+  land = mix(land, tundra, smoothstep(0.47, 0.36, temperature));
   land = mix(land, rock, smoothstep(0.66, 0.74, h));
-  land = mix(land, b.c3, smoothstep(0.2, 0.12, temperature)); // ice sheets and snowy peaks
+  land = mix(land, b.c3, smoothstep(0.3, 0.2, temperature)); // ice sheets and snowy peaks
   land = mix(mix(desert, vec3(0.9, 0.85, 0.7), 0.4), land, smoothstep(sea + 0.006, sea + 0.02, h)); // beaches
   land *= 0.9 + 0.2 * fbm(s * 14.0, px * 14.0);
   vec3 col = mix(land, ocean, water);
@@ -335,15 +336,14 @@ void main() {
       vec3 light = lit ? normalize(vec3(b.sunDir.x, -b.sunDir.y, 0.25)) : normalize(vec3(-0.5, 0.55, 0.65));
       vec2 rim = normalize(vec2(relCenter.x, -relCenter.y));
       float cosRim = lit ? dot(rim, normalize(light.xy)) : 1.0; // day/night at the equator, where ships land
-      // Close to the ground the view becomes a side-on cross-section, with a sky above it.
+      // Close to the ground the view becomes a side-on cross-section.
       float near = smoothstep(1500.0, 5000.0, r);
-      float atmoThickness = min(120.0, max(25.0, r * 0.08));
       if (sd > 0.0) {
-        float atmoT = 1.0 - sd / atmoThickness;
-        float alpha = sd <= atmoThickness ? b.atmosphere.a * pow(max(atmoT, 0.0), 1.5) : 0.0;
-        // Daytime sky: a deep gradient above the horizon when standing on the surface.
-        float sky = b.atmosphere.a * 1.6 * near * exp(-sd / (0.25 * min(r, 2400.0)));
-        alpha = max(alpha, sky);
+        // Air thins exponentially with altitude, over a scale height of 6% of the radius (in
+        // metres, so it scales with zoom): a deep sky from the ground that fades as you climb,
+        // a thin glowing rim from orbit. Never thinner than a few pixels on a small disc.
+        float scaleHeight = max(0.06 * r, min(12.0, 0.12 * r));
+        float alpha = b.atmosphere.a * 1.6 * exp(-sd / scaleHeight);
         vec3 airCol = b.atmosphere.rgb * 1.2;
         if (lit) {
           alpha *= 0.15 + 0.85 * smoothstep(-0.25, 0.1, cosRim);
@@ -356,7 +356,8 @@ void main() {
       float z = sqrt(max(0.0, 1.0 - dot(v, v)));
       float c = cos(b.spin), s = sin(b.spin);
       vec2 q = vec2(c * v.x + s * v.y, -s * v.x + c * v.y);
-      vec3 p = vec3(q, z);
+      // The seed moves every noise layer to its own part of the lattice, so each seed is a different world.
+      vec3 p = vec3(q, z) + fract(vec3(b.seed) * vec3(0.1031, 0.1030, 0.0973)) * 64.0;
       float px = 1.0 / (r * max(z, 0.12)); // one pixel on the sphere, for level of detail
       vec3 surface = b.color;
       float water = 0.0, glow = 0.0;
@@ -399,7 +400,7 @@ void main() {
     } else {
       bool lit = dot(b.sunDir, b.sunDir) > 0.5;
       float cosSun = lit ? dot(normalize(relCenter), b.sunDir) : 1.0;
-      float atmoThickness = min(120.0, max(25.0, r * 0.08));
+      float atmoThickness = max(0.08 * r, min(25.0, 0.25 * r)); // 8% of the radius: thick near the ground
       if (sd > 0.0 && sd <= atmoThickness) {
         float atmoT = 1.0 - sd / atmoThickness;
         float atmoAlpha = b.atmosphere.a * pow(atmoT, 1.5);

@@ -1812,3 +1812,10 @@ header .connection { font-size:9px; letter-spacing:.4px; white-space:nowrap }
 .designer-colors input[type=color] { width:30px; height:22px; padding:0; border:1px solid #283946; background:none }
 .designer-tuning { display:grid; gap:6px }
 .designer-tuning label { display:grid; grid-template-columns:96px 1fr; align-items:center; gap:8px }
+.planet-designer button.primary { border-color:#8ddbc1; color:#8ddbc1 }
+.planet-designer button:disabled { opacity:.45; cursor:default }
+.designer-row input[type=text] { flex:1; min-width:140px }
+.designer-library { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:6px }
+.designer-saved { display:flex; gap:4px; min-width:0 }
+.designer-saved .designer-preset { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.designer-saved button:not(.designer-preset) { font-size:11px; padding:4px 8px }

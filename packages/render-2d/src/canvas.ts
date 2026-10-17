@@ -247,7 +247,8 @@ export function drawPlanetHorizon(
   const thetaMax = theta0 + maxDiff + margin;
   const angleSpan = Math.min(Math.PI * 0.95, Math.max(0.01, thetaMax - thetaMin));
 
-  const glowHeight = isStar ? Math.min(200, Math.max(60, radius * 0.15)) : Math.min(80, Math.max(25, radius * 0.05));
+  // Air is a share of the radius, so it stays as deep as the zoom shows it, however close.
+  const glowHeight = isStar ? Math.min(200, Math.max(60, radius * 0.15)) : Math.max(radius * 0.08, Math.min(25, radius * 0.25));
   const atmoRadius = radius + glowHeight;
 
   for (let i = 0; i <= HORIZON_STEPS; i++) {
