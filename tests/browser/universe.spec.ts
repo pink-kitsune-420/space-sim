@@ -13,12 +13,16 @@ const surface = {
   pads: [{ id: 'import-pad', angleRadians: 1.57, widthMetres: 32, elevationMetres: 7 }],
 };
 
+/** Primus, the home planet of the first system (its star comes first in the list). */
+const primus = (universe: { systems: readonly { bodies: readonly { id: string }[] }[] }): Record<string, unknown> =>
+  universe.systems[0]!.bodies.find(body => body.id === 'planet') as Record<string, unknown>;
+
 function terrainUniverse() {
   const universe = structuredClone(defaultUniverse);
   universe.id = 'terrain-import';
   universe.name = 'Terrain import';
   return { ...universe, systems: universe.systems.map((system, i) => ({ ...system,
-    bodies: system.bodies.map((body, j) => i === 0 && j === 0 ? { ...body, surface } : body),
+    bodies: system.bodies.map(body => i === 0 && body.id === 'planet' ? { ...body, surface } : body),
   })) };
 }
 
@@ -35,9 +39,9 @@ test('custom surface settings survive universe loading and JSON export', async (
   await page.locator('#export-universe-json').click();
   const download = await pending;
   const exported = JSON.parse(await readFile(await download.path(), 'utf8'));
-  expect(exported.systems[0].bodies[0].surface).toEqual(surface);
+  expect(primus(exported).surface).toEqual(surface);
   expect(exported.systems[0].bodies[1].surface).toBeUndefined();
-  expect(exported.systems[0].bodies[0].surfaceIdentity).toBeUndefined();
+  expect(primus(exported).surfaceIdentity).toBeUndefined();
   await page.locator('#universe-select').selectOption('default-universe');
   await page.locator('#universe-file').setInputFiles({ name: 'exported.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(exported)) });
@@ -48,7 +52,7 @@ test('custom surface settings survive universe loading and JSON export', async (
 test('oversized terrain import reports a clear error and keeps the active universe', async ({ page }) => {
   await page.goto('/');
   const invalid = terrainUniverse();
-  Object.assign(invalid.systems[0]!.bodies[0]!, { surface: { ...surface, sampleCount: 65537 } });
+  Object.assign(primus(invalid), { surface: { ...surface, sampleCount: 65537 } });
   const dialogMessage = new Promise<string>(resolve => page.once('dialog', async dialog => {
     resolve(dialog.message());
     await dialog.accept();
@@ -70,7 +74,7 @@ test('compressed universe export preserves every planet and can be imported thro
   const download = await pending; expect(download.suggestedFilename()).toBe('terrain-import.spaceuniverse');
   const bytes = await readFile(await download.path());
   const restored = JSON.parse(gunzipSync(bytes).toString('utf8'));
-  expect(restored.systems[0].bodies[0].surface).toEqual(surface);
+  expect(primus(restored).surface).toEqual(surface);
   expect(restored.systems.map((s: { bodies: unknown[] }) => s.bodies.length)).toEqual(universe.systems.map(s => s.bodies.length));
   expect(bytes.length).toBeLessThan(Buffer.byteLength(JSON.stringify(restored)));
   await expect(page.locator('#universe-status')).toContainText('smaller than JSON');
@@ -98,5 +102,5 @@ test('standalone Space Lab imports and exports compressed planets without a netw
   await expect(page.locator('#universe-select')).toHaveValue('terrain-import');
   const pending = page.waitForEvent('download'); await page.locator('#export-universe').click();
   const restored = JSON.parse(gunzipSync(await readFile(await (await pending).path())).toString('utf8'));
-  expect(restored.systems[0].bodies[0].surface).toEqual(surface);
+  expect(primus(restored).surface).toEqual(surface);
 });
