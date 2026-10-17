@@ -19,6 +19,18 @@ export function createProjector(camera: Camera, width: number, height: number): 
   };
 }
 
+/** Project a screen-space coordinate (CSS pixels) to world coordinates. */
+export function screenToWorld(screenPos: Vec, camera: Camera, width: number, height: number): Vec {
+  const c = Math.cos(camera.rotation);
+  const s = Math.sin(camera.rotation);
+  const sx = (screenPos.x - width / 2) / camera.scale;
+  const sy = -(screenPos.y - height / 2) / camera.scale;
+  return {
+    x: camera.center.x + (sx * c + sy * s),
+    y: camera.center.y + (-sx * s + sy * c),
+  };
+}
+
 /** Move the scene by a screen-space pointer displacement (CSS pixels). */
 export function dragCamera(camera: Camera, delta: Vec): Camera {
   const c = Math.cos(camera.rotation), s = Math.sin(camera.rotation);

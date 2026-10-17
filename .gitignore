@@ -30,8 +30,7 @@ packages/tile-core/
 games/space-sim-nextgen/
 tests/unit/tile-core.test.ts
 
-# Experimental Orbit Sandbox
-apps/orbit-sandbox/
+# Orbit Sandbox build output
 dist-orbit-sandbox/
 
 # Idea & Bug trackers
@@ -40,6 +39,39 @@ bugs.md
 
 # Local archive for sidetracked and retired plans
 archive/
+
+# AI Agent Directives & Local Tool Files (kept private/local)
+AGENTS.md
+.claude/
+.gemini/
+.cursor/
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md
+
+# Environment variables & secrets
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.cert
+
+# Editor & IDE workspaces
+.idea/
+.zed/
+*.swp
+*.swo
+*~
+
+# Logs & Diagnostics
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
 
 # Local credentials, agent state and private working notes.
 .aws/

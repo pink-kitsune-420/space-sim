@@ -16,7 +16,10 @@ export type ActionId =
   | 'zoomIn'
   | 'zoomOut'
   | 'cycleShip'
-  | 'cycleShipPrev';
+  | 'cycleShipPrev'
+  | 'cyclePlanet'
+  | 'cyclePlanetPrev'
+  | 'throwShip';
 
 export type ActionCategory = 'flight' | 'warp' | 'view' | 'system';
 
@@ -64,6 +67,13 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
     category: 'flight',
     defaultKeys: ['ArrowDown', 'KeyS'],
     description: 'Lower engine thrust percentage',
+  },
+  {
+    id: 'throwShip',
+    name: 'Throw Ship / Sling Orbit',
+    category: 'flight',
+    defaultKeys: ['KeyT'],
+    description: 'Toggle or hold to slingshot your ship into orbit around any location',
   },
 
   // Time warp
@@ -143,17 +153,31 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
   },
   {
     id: 'cycleShip',
-    name: 'Next Ship',
+    name: 'Next Ship / Target',
     category: 'system',
     defaultKeys: ['Backslash'],
-    description: 'Switch pilot focus to next ship in world fleet',
+    description: 'Switch pilot focus to next ship, or cycle celestial bodies in free view',
   },
   {
     id: 'cycleShipPrev',
-    name: 'Previous Ship',
+    name: 'Previous Ship / Target',
     category: 'system',
+    defaultKeys: ['Backspace'],
+    description: 'Switch pilot focus to previous ship, or cycle celestial bodies in free view',
+  },
+  {
+    id: 'cyclePlanet',
+    name: 'Next Planet',
+    category: 'view',
     defaultKeys: [],
-    description: 'Switch pilot focus to previous ship in fleet',
+    description: 'Focus camera on next planet in system order',
+  },
+  {
+    id: 'cyclePlanetPrev',
+    name: 'Previous Planet',
+    category: 'view',
+    defaultKeys: [],
+    description: 'Focus camera on previous planet in system order',
   },
   {
     id: 'profiler',

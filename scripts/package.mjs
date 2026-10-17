@@ -28,7 +28,7 @@ Usage:
 Targets:
   --target=desktop-exe    Build standalone game executable for current OS (default)
   --target=server-exe     Build standalone dedicated server executable
-  --target=offline        Build single-file offline HTML game (space-sim-offline.html)
+  --target=offline        Build single-file offline HTML game (space-lab-offline.html)
   --target=tauri          Build native desktop application via Tauri v2 (requires Rust)
   --target=android        Prepare & build Android mobile package (Capacitor / Tauri)
   --target=ios            Prepare & build iOS mobile package (Capacitor / Tauri)
@@ -42,7 +42,7 @@ Platform Output Summary:
   • Windows:   dist-desktop/space-sim.exe
   • macOS:     dist-desktop/space-sim
   • Linux:     dist-desktop/space-sim
-  • Web:       dist/space-sim-offline.html
+  • Web:       dist/space-lab-offline.html
   • Android:   android/app/build/outputs/apk/debug/app-debug.apk
   • iOS:       ios/App (Xcode Project)
 `;
@@ -260,7 +260,7 @@ function main() {
       break;
     case 'offline':
       buildWebAssets();
-      console.log('\nOffline single-file HTML ready at dist/space-sim-offline.html');
+      console.log('\nOffline single-file HTML ready at dist/space-lab-offline.html');
       break;
     case 'tauri':
       packageTauri();

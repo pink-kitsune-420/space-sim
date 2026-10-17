@@ -14,13 +14,51 @@
   </head>
   <body>
     <div id="app">
-      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACELAB</a><nav class="workspace-nav" aria-label="Workspace sections"><a href="#flight-console">Flight</a><a href="#lab-manager">Games & plugins</a><a href="#flight-manual">Manual</a></nav><span class="connection"><i></i> LOCAL FLIGHT</span></header>
+      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACELAB</a><nav class="workspace-nav" aria-label="Workspace sections"><a href="#flight-console">Flight</a><a href="#lab-manager">Load game</a><a href="#flight-manual">Manual</a></nav><span class="connection"><i></i> LOCAL FLIGHT</span></header>
       <main>
-        <div class="intro"><div><p class="eyebrow">FLIGHT WORKSPACE</p><h1 id="active-game">Space Sim</h1></div><a class="lab-shortcut" href="#lab-manager">Open games & plugins ↗</a></div>
+        <div class="intro"><div><p class="eyebrow">FLIGHT WORKSPACE</p><h1 id="active-game">Space Sim</h1></div><a class="lab-shortcut" href="#lab-manager">Load game / library ↗</a></div>
         <div id="flight-console" class="workspace">
           <section class="flight-panel" aria-label="Flight view">
-            <div class="view-toolbar"><span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span><div><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button">Pause</button><button id="reset" type="button" aria-label="Reset flight" title="Reset flight">Reset</button><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog">Controls ⚙</button><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler">Profiler</button><button id="fullscreen" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">Horizon up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
-            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas><div class="view-label"><span id="system-label">PRIMUS SYSTEM</span> <span>BODY-RELATIVE / METRES</span></div><div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div><div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span></div><section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section></div>
+            <div class="view-toolbar"><span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span><div><button id="throw-ship-toggle" type="button" title="Slingshot Throw / Teleport mode (T, or hold Alt and drag in space)">Throw 🚀</button><button id="chat-toggle" type="button" title="Toggle chat & command bar (Enter or /)">Chat 💬</button><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="theme-toggle" type="button" title="Customize Skybox, Procedural Nebulas, Grids & Timers" aria-haspopup="dialog">Theme 🎨</button><button id="grid-toggle" type="button" title="Toggle navigation grid on/off (G)" aria-pressed="false">Grid: Off</button><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button">Pause</button><button id="reset" type="button" aria-label="Reset flight" title="Reset flight">Reset</button><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog">Controls ⚙</button><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler">Profiler</button><button id="fullscreen" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">Horizon up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
+            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas><div class="view-label"><span id="system-label">PRIMUS SYSTEM</span> <span>BODY-RELATIVE / METRES</span></div><div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div><div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span></div><section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section>
+              <!-- Flight Slingshot HUD (shown during Alt-drag or throw mode) -->
+              <div id="flight-slingshot-hud" class="slingshot-hud hidden">
+                <div class="hud-stat"><span class="hud-label">Launch Vel:</span> <span id="fhud-vel" class="hud-val">0 m/s</span></div>
+                <div class="hud-stat"><span class="hud-label">Circ. Speed:</span> <span id="fhud-circ" class="hud-val">—</span></div>
+                <div class="hud-stat"><span class="hud-label">Dominant:</span> <span id="fhud-body" class="hud-val">PRIMUS</span></div>
+                <div id="fhud-snap-badge" class="hud-badge hidden">CIRCULAR SNAP</div>
+              </div>
+
+              <div id="trajectory-source" hidden>
+            <section class="card path-card"><p class="eyebrow">TRAJECTORY</p><h2><span class="path-key"></span> If you coast now</h2><div class="flight-state"><span>Radial periapsis · ref. radius</span><output id="periapsis">—</output></div><div class="flight-state"><span>Radial apoapsis · ref. radius</span><output id="apoapsis">—</output></div><div class="flight-state"><span>Prediction</span><output id="prediction">Preparing…</output></div><details class="panel-note"><summary>About predictions</summary><p>Engine-off trajectory. Safe orbits use exact coast; near terrain, shared flight steps stop at first contact or show a partial path. Predictions use the active body until a sphere-of-influence change.</p></details></section>
+              </div>
+
+              <!-- Interactive Chat & Command Bar Overlay -->
+              <div id="chat-overlay" class="chat-overlay" aria-label="Flight chat and commands">
+                <div class="chat-header">
+                  <button type="button" class="chat-title-wrap" aria-label="Move chat window" title="Drag to move; arrow keys move the window">
+                    <span class="chat-title-dot"></span>
+                    <span class="chat-title">COMMS / CONSOLE</span>
+                  </button>
+                  <div class="chat-header-actions">
+                    <button type="button" id="chat-minimize" class="btn-chat-min" title="Minimize chat console (Esc or click)">−</button>
+                  </div>
+                </div>
+                <div id="chat-messages" class="chat-messages">
+                  <div class="chat-msg system"><span class="chat-tag">SYSTEM</span> Flight console ready. Type <kbd>/help</kbd> for commands or <kbd>Alt+Drag</kbd> to throw ship.</div>
+                </div>
+                <form id="chat-form" class="chat-form" autocomplete="off">
+                  <span class="chat-prompt">&gt;</span>
+                  <input id="chat-input" type="text" placeholder="Press Enter or / to chat or run commands (/help)..." maxlength="256" spellcheck="false" />
+                  <button type="submit" id="chat-send" class="btn-chat-send" title="Send message or run command">↵</button>
+                </form>
+                <button type="button" id="chat-min-pill" class="chat-min-pill" aria-label="Expand chat and commands (Enter or /)" hidden>
+                  <span class="chat-min-icon">💬</span>
+                  <span class="chat-min-label">Chat & Commands</span>
+                  <span id="chat-unread-dot" class="chat-unread-dot" hidden></span>
+                </button>
+              </div>
+            </div>
             <p id="terrain-notice" class="control-note" role="note" hidden>Physical terrain · Clearance is above local ground or sea level. Gentle water entry sinks and floats; inward thrust dives, and water hits above 5 m/s inward crash. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less.</p>
             <div class="telemetry"><div><span>GROUND / SEA CLEARANCE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
           </section>
@@ -47,9 +85,10 @@
               <select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option><option value="moon-orbit">Parvus circular orbit · 128 m altitude</option></select></div></div>
               <div class="setup-run-controls">
               <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode</span></label>
+              <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat</span></label>
               <label class="god-mode" title="Keep the simulation running when the window or tab is in the background"><input id="run-in-background" type="checkbox"/><span>Run in background</span></label></div></section>
             <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
-            <section class="card path-card"><p class="eyebrow">TRAJECTORY</p><h2><span class="path-key"></span> If you coast now</h2><div class="flight-state"><span>Radial periapsis · ref. radius</span><output id="periapsis">—</output></div><div class="flight-state"><span>Radial apoapsis · ref. radius</span><output id="apoapsis">—</output></div><div class="flight-state"><span>Prediction</span><output id="prediction">Preparing…</output></div><details class="panel-note"><summary>About predictions</summary><p>Engine-off trajectory. Safe orbits use exact coast; near terrain, shared flight steps stop at first contact or show a partial path. Predictions use the active body until a sphere-of-influence change.</p></details></section>
+
             <section class="card instruments-card" aria-labelledby="instruments-title"><p class="eyebrow">INSTRUMENTS</p><h2 id="instruments-title">Flight information</h2>
               <div id="instruments" class="instruments" role="group" aria-label="Instruments"></div>
               <p class="control-note">Velocity and orbit markers draw on the view; Telemetry adds the panel below. They only change what you see, never the flight, saves or multiplayer.</p></section>
@@ -92,10 +131,329 @@
             </section>
           </aside>
         </div>
+        <div id="orbit-sandbox-workspace" class="orbit-sandbox-workspace" hidden>
+          <!-- Full-screen Canvas Context -->
+          <canvas id="orbit-canvas" tabindex="0" aria-label="Orbit sandbox celestial canvas"></canvas>
+
+          <!-- Top Navigation & Simulation HUD -->
+          <header class="sandbox-header">
+            <div class="brand">
+              <span class="brand-badge">SPACELAB</span>
+              <h1 class="brand-title">Orbit Sandbox</h1>
+              <span class="brand-subtitle">Gravity Playground</span>
+            </div>
+
+            <!-- Time & Simulation Controls -->
+            <div class="control-group time-controls">
+              <button id="btn-play-pause" class="btn btn-icon" title="Play / Pause [Space]">
+                <span id="play-icon">⏸</span>
+              </button>
+              <div class="warp-selector">
+                <button class="warp-btn" data-warp="0.2">0.2×</button>
+                <button class="warp-btn active" data-warp="1">1×</button>
+                <button class="warp-btn" data-warp="5">5×</button>
+                <button class="warp-btn" data-warp="15">15×</button>
+                <button class="warp-btn" data-warp="50">50×</button>
+              </div>
+            </div>
+
+            <!-- Physics Mode Switcher -->
+            <div class="control-group physics-mode-group">
+              <span class="group-label">Physics:</span>
+              <div class="mode-toggles">
+                <button id="mode-kepler" class="toggle-btn" title="Kepler 2-body patched conic motion">Kepler</button>
+                <button id="mode-nbody" class="toggle-btn" title="Newtonian point-mass N-body gravitation">N-Body</button>
+                <button id="mode-fullbody" class="toggle-btn active" title="Full Body: Oblateness J2, Tidal Torques, Elastic Bounce/Merge">Full Body</button>
+              </div>
+              <button id="btn-fullbody-settings" class="btn btn-sm" title="Configure Full Body Physics">⚙ Mod</button>
+            </div>
+
+            <!-- System Actions -->
+            <div class="control-group header-actions">
+              <button id="btn-circularize-toggle" class="btn btn-pill" title="Toggle circular orbit snap [Shift]">
+                <span class="icon">⭘</span> Circularize <span class="hotkey">Shift</span>
+              </button>
+              <button id="btn-toggle-orbits" class="btn btn-pill active" title="Toggle Planet Orbit Lines [O]">
+                <span class="icon">⬭</span> Orbit Lines <span class="hotkey">O</span>
+              </button>
+              <button id="btn-sandbox-grid" class="btn btn-pill active" title="Toggle Navigation Grid [G]">
+                <span class="icon">⊞</span> Grid <span class="hotkey">G</span>
+              </button>
+              <button id="btn-reset" class="btn btn-secondary" title="Reset to default Primus solar system">Reset</button>
+              <button id="btn-sandbox-theme" class="btn btn-secondary" title="Customize Skybox, Procedural Nebulas, Grids & Timers">🎨 Theme</button>
+              <button id="btn-testing-open" class="btn btn-secondary" title="Open Testing Lab & Physics Benchmarks [T]">🧪 Testing Lab</button>
+              <button id="btn-export-open" class="btn btn-primary" title="Export universe to Space Sim">Export Universe</button>
+              <button id="btn-sandbox-menu" class="btn btn-menu" title="Open Load Game menu (Esc)">☰ Load Game</button>
+            </div>
+          </header>
+
+          <!-- Bottom Spawner Palette -->
+          <div class="palette-container">
+            <div class="palette-label">Spawn Palette (Click to select candidate, drag empty space to launch):</div>
+            <div class="palette-items" id="palette-items"></div>
+          </div>
+
+          <!-- Slingshot Action Indicator HUD (shown during drag) -->
+          <div id="slingshot-hud" class="slingshot-hud hidden">
+            <div class="hud-stat"><span class="hud-label">Velocity:</span> <span id="hud-vel" class="hud-val">0 m/s</span></div>
+            <div class="hud-stat"><span class="hud-label">Circ. Speed:</span> <span id="hud-circ" class="hud-val">—</span></div>
+            <div class="hud-stat"><span class="hud-label">Apoapsis:</span> <span id="hud-ap" class="hud-val">—</span></div>
+            <div class="hud-stat"><span class="hud-label">Periapsis:</span> <span id="hud-pe" class="hud-val">—</span></div>
+            <div class="hud-stat"><span class="hud-label">Period:</span> <span id="hud-period" class="hud-val">—</span></div>
+            <div id="hud-snap-badge" class="hud-snap-badge hidden">CIRCULAR ORBIT SNAPPED</div>
+          </div>
+
+          <!-- Floating / In-Situ Planet Inspector Panel -->
+          <aside id="planet-inspector" class="inspector-panel hidden">
+            <div class="inspector-header">
+              <div class="inspector-title-wrap">
+                <span id="inspector-preview-dot" class="preview-dot"></span>
+                <input type="text" id="inp-body-name" class="inspector-title-input" value="Planet" />
+              </div>
+              <button id="btn-close-inspector" class="btn-close" title="Close inspector">✕</button>
+            </div>
+
+            <div class="inspector-body">
+              <div class="form-row">
+                <label class="form-label" for="sel-preset">Style Preset</label>
+                <select id="sel-preset" class="form-select">
+                  <option value="oceanic">Oceanic Garden</option>
+                  <option value="rocky">Rocky Moon</option>
+                  <option value="gas-giant">Gas Giant (Rings)</option>
+                  <option value="icy">Icy World</option>
+                  <option value="volcanic">Volcanic World</option>
+                  <option value="star">Radiant Star</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="label-with-val">
+                  <label class="form-label" for="rng-radius">Radius</label>
+                  <span id="val-radius" class="val-display">512 m</span>
+                </div>
+                <input type="range" id="rng-radius" min="40" max="12000" step="10" value="512" />
+              </div>
+
+              <div class="form-row">
+                <div class="label-with-val">
+                  <label class="form-label" for="rng-mu">Gravity Parameter (μ)</label>
+                  <span id="val-mu" class="val-display">1.31e7</span>
+                </div>
+                <input type="range" id="rng-mu" min="10000" max="8000000000" step="10000" value="13107200" />
+              </div>
+
+              <div class="form-row">
+                <div class="label-with-val">
+                  <label class="form-label" for="rng-rotation">Rotation Period</label>
+                  <span id="val-rotation" class="val-display">360 s</span>
+                </div>
+                <input type="range" id="rng-rotation" min="30" max="3600" step="10" value="360" />
+              </div>
+
+              <div id="row-ocean-level" class="form-row">
+                <div class="label-with-val">
+                  <label class="form-label" for="rng-ocean">Ocean Level</label>
+                  <span id="val-ocean" class="val-display">70%</span>
+                </div>
+                <input type="range" id="rng-ocean" min="0" max="1" step="0.05" value="0.7" />
+              </div>
+
+              <div class="form-row">
+                <div class="label-with-val">
+                  <label class="form-label" for="inp-atmo-color">Atmosphere Glow Color</label>
+                  <input type="color" id="inp-atmo-color" value="#4aa3df" />
+                </div>
+              </div>
+
+              <div class="inspector-section ring-section">
+                <div class="section-header">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="chk-has-rings" />
+                    <span>Enable Ring Belt</span>
+                  </label>
+                </div>
+                <div id="ring-controls" class="ring-controls hidden">
+                  <div class="form-row">
+                    <div class="label-with-val">
+                      <label class="form-label" for="rng-ring-inner">Inner Ring Radius</label>
+                      <span id="val-ring-inner" class="val-display">1200 m</span>
+                    </div>
+                    <input type="range" id="rng-ring-inner" min="100" max="25000" step="50" value="1200" />
+                  </div>
+                  <div class="form-row">
+                    <div class="label-with-val">
+                      <label class="form-label" for="rng-ring-outer">Outer Ring Radius</label>
+                      <span id="val-ring-outer" class="val-display">2500 m</span>
+                    </div>
+                    <input type="range" id="rng-ring-outer" min="150" max="35000" step="50" value="2500" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="inspector-section">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="chk-show-orbit-line" checked />
+                  <span>Show Orbit Line & Apsides</span>
+                </label>
+              </div>
+
+              <div class="inspector-actions">
+                <button id="btn-focus-body" class="btn btn-secondary btn-block">Center Camera</button>
+                <button id="btn-delete-body" class="btn btn-danger btn-block">Delete Body [Del]</button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Full Body Physics Config Modal -->
+          <div id="modal-fullbody" class="modal-backdrop hidden">
+            <div class="modal-window">
+              <div class="modal-header">
+                <h2>Full Body Physics Settings</h2>
+                <button id="btn-close-fullbody" class="btn-close">✕</button>
+              </div>
+              <div class="modal-body">
+                <p class="modal-desc">
+                  Full Body physics simulates non-spherical body dynamics, equatorial oblateness harmonics (J2),
+                  tidal dissipation torques, and physical finite-volume collision responses.
+                </p>
+
+                <div class="setting-item">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="chk-fb-j2" checked />
+                    <span><strong>J2 Gravitational Oblateness</strong> — Quadrupole field causes nodal & apsidal precession.</span>
+                  </label>
+                </div>
+
+                <div class="setting-item">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="chk-fb-tidal" checked />
+                    <span><strong>Tidal Torques & Spin-Orbit Locking</strong> — Gravitational gradients gradually synchronize rotation to orbital period.</span>
+                  </label>
+                </div>
+
+                <div class="setting-item">
+                  <label class="form-label">Collision Behavior:</label>
+                  <div class="radio-group">
+                    <label><input type="radio" name="rad-collision" value="merge" checked /> Inelastic Merge (Accrete mass & radius)</label>
+                    <label><input type="radio" name="rad-collision" value="bounce" /> Physical Elastic Bounce</label>
+                  </div>
+                </div>
+
+                <div id="row-restitution" class="form-row hidden">
+                  <div class="label-with-val">
+                    <label class="form-label" for="rng-restitution">Restitution Coefficient (e)</label>
+                    <span id="val-restitution" class="val-display">0.50</span>
+                  </div>
+                  <input type="range" id="rng-restitution" min="0" max="1" step="0.05" value="0.5" />
+                </div>
+
+              </div>
+              <div class="modal-footer">
+                <button id="btn-save-fullbody" class="btn btn-primary">Apply Settings</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Universe Export Modal -->
+          <div id="modal-export" class="modal-backdrop hidden">
+            <div class="modal-window modal-lg">
+              <div class="modal-header">
+                <h2>Export to Space Sim</h2>
+                <button id="btn-close-export" class="btn-close">✕</button>
+              </div>
+              <div class="modal-body">
+                <p class="modal-desc">
+                  Compile your sandbox universe into a certified <code>UniverseDefinition</code> ready for flight in Space Sim.
+                </p>
+
+                <div class="form-row">
+                  <label class="form-label" for="inp-universe-name">Universe Name</label>
+                  <input type="text" id="inp-universe-name" class="form-input" value="Custom Orbit Sandbox Universe" />
+                </div>
+
+                <div class="form-row">
+                  <label class="form-label" for="inp-universe-id">Universe ID (a-z, 0-9, dashes)</label>
+                  <input type="text" id="inp-universe-id" class="form-input" value="custom-orbit-universe" />
+                </div>
+
+                <div id="export-summary" class="export-summary"></div>
+
+                <div class="export-actions-grid">
+                  <div class="export-card">
+                    <h3>Direct Flight Console Deep-Link</h3>
+                    <p>Stage universe into browser storage and launch Space Sim directly in flight mode.</p>
+                    <button id="btn-launch-flight" class="btn btn-primary btn-block">🚀 Launch in Space Sim Flight Console</button>
+                  </div>
+
+                  <div class="export-card">
+                    <h3>Compressed Binary (.spaceuniverse)</h3>
+                    <p>Lossless gzip binary archive ready for the Space Sim Import button.</p>
+                    <button id="btn-download-spaceuniverse" class="btn btn-secondary btn-block">📦 Download .spaceuniverse</button>
+                  </div>
+
+                  <div class="export-card">
+                    <h3>Raw JSON (.json)</h3>
+                    <p>Uncompressed human-readable schema file conforming to universe.schema.json.</p>
+                    <button id="btn-download-json" class="btn btn-secondary btn-block">📄 Download .json</button>
+                  </div>
+
+                  <div class="export-card">
+                    <h3>Clipboard Export</h3>
+                    <p>Copy formatted JSON directly to paste into Space Sim or developer tools.</p>
+                    <button id="btn-copy-json" class="btn btn-secondary btn-block">📋 Copy JSON to Clipboard</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testing Lab & Benchmark Modal -->
+          <div id="modal-testing" class="modal-backdrop hidden">
+            <div class="modal-window modal-lg">
+              <div class="modal-header">
+                <h2>🧪 Testing Lab & Physics Benchmarks</h2>
+                <button id="btn-close-testing" class="btn-close">✕</button>
+              </div>
+              <div class="modal-body">
+                <p class="modal-desc">
+                  The Testing Environment provides automated verification suites and interactive orbital physics benchmarks
+                  (chaotic three-body choreographies, J2 apsidal precession, tidal synchronization, and elastic bounce).
+                </p>
+
+                <div class="testing-grid">
+                  <div class="testing-section">
+                    <h3>Interactive Benchmark Scenarios</h3>
+                    <p class="subtext">Load verified orbital setups directly into the physics engine:</p>
+                    <div id="scenario-list" class="scenario-list"></div>
+                  </div>
+
+                  <div class="testing-section">
+                    <div class="section-top-row">
+                      <h3>Automated Diagnostics</h3>
+                      <button id="btn-run-diagnostics" class="btn btn-primary btn-sm">▶ Run Tests</button>
+                    </div>
+                    <p class="subtext">Direct in-browser validation of energy conservation, J2, and schema integrity:</p>
+                    <div id="diagnostic-results" class="diagnostic-results">
+                      <div class="diag-empty">Click "Run Tests" to execute the in-browser test suite.</div>
+                    </div>
+
+                    <div class="cli-command-box">
+                      <span class="cli-label">Terminal Test Command:</span>
+                      <code>npm run test:sandbox</code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toast Notification Overlay -->
+          <div id="toast-container" class="toast-container"></div>
+        </div>
         <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
           <div class="lab-heading"><div><p class="eyebrow">SPACELAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
           <p id="lab-status" role="status">Space Sim is ready to fly. Import a game, or build a remix with plugins.</p>
-          <details class="library-settings" open><summary>Game library</summary>
+          <details class="library-settings" open><summary>Game library (Load game)</summary>
             <p id="library-storage" class="control-note">Opening your local library…</p>
             <p class="control-note">Play enables a game’s plugins. Only play code plugins you trust; they run with this page’s privileges.</p>
             <div class="library-tools"><label>Find a game or collection<input id="game-search" type="text" placeholder="Search your library" /></label><label>Sort<select id="game-sort"><option value="name">Name</option><option value="folder">Collection</option></select></label><label class="favorite-filter"><input id="game-favorites" type="checkbox" /> Favorites only</label></div>

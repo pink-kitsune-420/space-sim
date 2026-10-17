@@ -18,7 +18,7 @@ const names = (options.get('--browsers') ?? 'chromium,firefox,webkit').split(','
 for (const name of names) if (!({ chromium, firefox, webkit })[name]) throw new Error(`Unknown browser: ${name}`);
 const out = options.get('--out') ?? 'test-results/module-baseline.json';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
-const artifact = resolve('dist/space-sim-offline.html');
+const artifact = resolve('dist/space-lab-offline.html');
 const artifactSha256 = sha(await readFile(artifact)); // require an explicit production build first
 const inputPaths = [];
 async function collect(path) {

@@ -10,6 +10,6 @@ export async function openPanel(page: Page, panel: WorkspacePanel = 'setup'): Pr
 export async function closePanel(page: Page): Promise<void> {
   await page.evaluate(() => {
     const drawer = document.getElementById('workspace-drawer');
-    if (drawer && !drawer.hidden) document.querySelector<HTMLButtonElement>('[data-workspace="flight"]')?.click();
+    if (drawer && !drawer.hidden) drawer.querySelector<HTMLButtonElement>('.drawer-close')?.click();
   });
 }

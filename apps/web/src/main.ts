@@ -4,9 +4,14 @@ import { moduleLibrary } from './module-library';
 import { ModuleManager } from './module-manager';
 import { LabManager } from './lab-manager';
 import { Workspace } from './workspace';
+import { initHudLayout } from './hud-layout';
+import { initChatWindow } from './chat-window';
+import { initFlightWindows } from './flight-windows';
 import { artifactModules, validatePackage, type GamePackage } from '../../../packages/game-library/src/archive';
 import { createPresentationRegistry, presentationProfile } from '../../../packages/modules/src/browser';
 import builtinGame from '../../../games/space-sim/game.json' with { type: 'json' };
+import builtinOrbitSandbox from '../../../games/orbit-sandbox/game.json' with { type: 'json' };
+import { initOrbitSandbox, type OrbitSandboxInstance } from '../../orbit-sandbox/src/main';
 import universeCatalog from '../../../games/space-sim/universes/catalog.json';
 import { encodeUniverse, decodeUniverse } from '../../../packages/game-library/src/universe';
 import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compression';
@@ -40,8 +45,9 @@ import { ClientSession } from '../../../packages/net/src/client';
 import type { Connection } from '../../../packages/net/src/connection';
 import { connectWebSocket, serverUrl } from '../../../packages/net/src/websocket';
 import { OCEAN_UNIVERSE, TERRAIN_UNIVERSE } from '../../../packages/scenarios/builtin';
-import { type Camera, type RenderShip } from '../../../packages/render-2d/src/index';
-import type { CommandExtension, PresentationSnapshot } from '../../../packages/game-api/src/index';
+import { type Camera, type RenderShip, saveThemeSettings, hashWorldSeed, screenToWorld } from '../../../packages/render-2d/src/index';
+import { initThemeCustomizer } from './theme-customizer';
+import type { CommandExtension, PresentationSnapshot, OverlayPrimitive } from '../../../packages/game-api/src/index';
 import { Profiler, createRows } from './profiler';
 import { FleetView } from './fleet-view';
 import { STRESS_OWNER, STRESS_ROCK_PREFIX, clearStress, populateStress } from '../../../packages/scenarios/stress';
@@ -53,7 +59,9 @@ let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
 const defaultGame = validatePackage(builtinGame) as GamePackage;
+const orbitSandboxGame = validatePackage(builtinOrbitSandbox) as GamePackage;
 let activeGameInfo = { ...defaultGame.info };
+let orbitSandboxInstance: OrbitSandboxInstance | undefined;
 /** Renderer provider, presentation modules and their hooks; started below once input exists. */
 const presentation = new Presentation(canvas, {
   onCanvas: next => { canvas = next; cache.set('flight-view', next); attachCanvasListeners(next); },
@@ -69,6 +77,9 @@ const workspace = new Workspace(() => release(), () => {
     requestAppFullscreen(true);
   }
 });
+
+initHudLayout();
+initFlightWindows();
 
 const universes = builtinUniverses();
 const terrainUniverse = TERRAIN_UNIVERSE;
@@ -91,6 +102,8 @@ const cameraButton = element<HTMLButtonElement>('camera');
 const orientationButton = element<HTMLButtonElement>('orientation');
 const graphicsButton = element<HTMLButtonElement>('graphics-toggle');
 let graphicsQuality = loadGraphicsQuality();
+const themeCustomizer = initThemeCustomizer();
+saveThemeSettings({ highQuality: graphicsQuality === 'high' });
 function syncGraphicsButton(): void {
   graphicsButton.textContent = `Graphics: ${graphicsQuality === 'high' ? 'High' : 'Low'}`;
   graphicsButton.setAttribute('aria-pressed', String(graphicsQuality === 'high'));
@@ -100,6 +113,7 @@ graphicsButton.addEventListener('click', () => {
   graphicsQuality = graphicsQuality === 'high' ? 'low' : 'high';
   saveGraphicsQuality(graphicsQuality);
   syncGraphicsButton();
+  saveThemeSettings({ highQuality: graphicsQuality === 'high' });
   profiler.event('graphics', { quality: graphicsQuality });
 });
 const godModeToggle = element<HTMLInputElement>('god-mode');
@@ -107,6 +121,14 @@ const runInBackgroundToggle = element<HTMLInputElement>('run-in-background');
 const RUN_IN_BACKGROUND_KEY = 'space-sim:run-in-background:v1';
 try {
   runInBackgroundToggle.checked = localStorage.getItem(RUN_IN_BACKGROUND_KEY) === 'true';
+} catch { /* ignore */ }
+const throwCheatToggle = document.getElementById('throw-cheat-toggle') as HTMLInputElement | null;
+const throwShipToggleBtn = document.getElementById('throw-ship-toggle') as HTMLButtonElement | null;
+const THROW_CHEAT_KEY = 'space-sim:throw-cheat:v1';
+let throwCheatEnabled = false;
+try {
+  throwCheatEnabled = localStorage.getItem(THROW_CHEAT_KEY) === 'true';
+  if (throwCheatToggle) throwCheatToggle.checked = throwCheatEnabled;
 } catch { /* ignore */ }
 const profilerPanel = element<HTMLElement>('profiler');
 const profilerButton = element<HTMLButtonElement>('profiler-toggle');
@@ -232,6 +254,327 @@ function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };
   lastHud = -Infinity;
 }
+
+const chatOverlay = document.getElementById('chat-overlay');
+const chatMessages = document.getElementById('chat-messages');
+const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
+const chatInput = document.getElementById('chat-input') as HTMLInputElement | null;
+const chatToggleBtn = document.getElementById('chat-toggle');
+const chatMinimizeBtn = document.getElementById('chat-minimize');
+const chatMinPill = document.getElementById('chat-min-pill');
+const chatUnreadDot = document.getElementById('chat-unread-dot');
+
+let chatMinimized = false;
+try {
+  chatMinimized = localStorage.getItem('space-sim:chat:minimized') === 'true';
+} catch {}
+
+function setChatMinimized(minimized: boolean, focusInput = false): void {
+  chatMinimized = minimized;
+  try {
+    localStorage.setItem('space-sim:chat:minimized', String(minimized));
+  } catch {}
+  chatOverlay?.classList.toggle('minimized', minimized);
+  if (chatMinPill) chatMinPill.hidden = !minimized;
+  chatToggleBtn?.setAttribute('aria-pressed', String(!minimized));
+  chatToggleBtn?.classList.toggle('active', !minimized);
+  if (!minimized) {
+    if (chatUnreadDot) chatUnreadDot.hidden = true;
+    if (focusInput) chatInput?.focus();
+  }
+}
+
+// Initial state
+setChatMinimized(chatMinimized);
+initChatWindow();
+
+function logChatMessage(kind: 'system' | 'error' | 'success' | 'chat', text: string, sender?: string): void {
+  if (!chatMessages) return;
+  const msg = document.createElement('div');
+  msg.className = `chat-msg ${kind}`;
+  if (sender) {
+    const s = document.createElement('span');
+    s.className = 'sender';
+    s.textContent = `${sender}:`;
+    msg.appendChild(s);
+  } else if (kind === 'system') {
+    const t = document.createElement('span');
+    t.className = 'chat-tag';
+    t.textContent = 'SYSTEM';
+    msg.appendChild(t);
+  } else if (kind === 'error') {
+    const t = document.createElement('span');
+    t.className = 'chat-tag';
+    t.textContent = 'ERROR';
+    msg.appendChild(t);
+  } else if (kind === 'success') {
+    const t = document.createElement('span');
+    t.className = 'chat-tag';
+    t.textContent = 'OK';
+    msg.appendChild(t);
+  }
+  const content = document.createTextNode(` ${text}`);
+  msg.appendChild(content);
+  chatMessages.appendChild(msg);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  while (chatMessages.children.length > 60) {
+    chatMessages.firstElementChild?.remove();
+  }
+  if (chatMinimized && chatUnreadDot) {
+    chatUnreadDot.hidden = false;
+  }
+}
+
+const chatChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('space-sim-chat') : null;
+chatChannel?.addEventListener('message', (event: MessageEvent) => {
+  const data = event.data;
+  if (data && typeof data.text === 'string') {
+    logChatMessage('chat', data.text, data.sender || 'Pilot');
+  }
+});
+
+function executeChatCommand(cmdStr: string): void {
+  const parts = cmdStr.slice(1).trim().split(/\s+/);
+  const cmd = parts[0]?.toLowerCase();
+  const args = parts.slice(1);
+  const ship = selectedShip() ?? ownShips()[0];
+
+  switch (cmd) {
+    case 'help':
+    case '?': {
+      logChatMessage('system', 'Flight commands:');
+      logChatMessage('system', '/throw [on|off] — Toggle slingshot throw & teleport cheat (T or Alt+Drag)');
+      logChatMessage('system', '/orbit [body] [alt_km] — Teleport into circular orbit (e.g. /orbit Parvus 100)');
+      logChatMessage('system', '/throw [vx] [vy] — Slingshot throw with velocity vector in m/s');
+      logChatMessage('system', '/circ — Circularize current orbit around dominant body');
+      logChatMessage('system', '/tp [body] — Teleport ship to celestial body orbit');
+      logChatMessage('system', '/god — Toggle god mode (invulnerable)');
+      logChatMessage('system', '/warp [factor] — Set time warp rate (1-10000)');
+      logChatMessage('system', '/spawn [preset] — Spawn a new vessel');
+      logChatMessage('system', '/clear — Clear chat messages');
+      logChatMessage('system', 'Tip: Hold Alt and drag in space (or press T / click "Throw 🚀") to sling your ship into orbit!');
+      break;
+    }
+    case 'clear': {
+      if (chatMessages) chatMessages.innerHTML = '';
+      logChatMessage('system', 'Chat cleared.');
+      break;
+    }
+    case 'orbit': {
+      if (!throwCheatEnabled) {
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        return;
+      }
+      if (!ship) {
+        logChatMessage('error', 'No active vessel to place in orbit.');
+        return;
+      }
+      let targetBodyName = activeBody?.name ?? 'Primus';
+      let altKm = 200;
+      if (args.length === 1) {
+        const num = parseFloat(args[0]!);
+        if (Number.isFinite(num)) {
+          altKm = num;
+        } else {
+          targetBodyName = args[0]!;
+        }
+      } else if (args.length >= 2) {
+        targetBodyName = args[0]!;
+        altKm = parseFloat(args[1]!) || 200;
+      }
+      const bodies = session.world.system.getAllBodies();
+      const targetBody = bodies.find(b => b.name.toLowerCase() === targetBodyName.toLowerCase())
+        ?? bodies.find(b => b.id.toLowerCase() === targetBodyName.toLowerCase())
+        ?? session.world.body(activeBody.id);
+      const r = targetBody.radius + altKm * 1000;
+      const vCirc = Math.sqrt(targetBody.mu / r);
+      const pos = { x: 0, y: r };
+      const vel = { x: vCirc, y: 0 };
+      session.teleport(ship.id, targetBody.id, pos, vel, 0);
+      cameraControl.followShip();
+      syncCameraButton();
+      logChatMessage('success', `Teleported ${ship.name} into ${altKm} km circular orbit around ${targetBody.name} (${vCirc.toFixed(1)} m/s).`);
+      break;
+    }
+    case 'throw': {
+      if (args.length === 0) {
+        setThrowCheat(!throwCheatEnabled);
+        logChatMessage('success', `Throw / orbit cheat ${throwCheatEnabled ? 'ENABLED' : 'DISABLED'}.`);
+        return;
+      }
+      const sub = args[0]!.toLowerCase();
+      if (sub === 'on' || sub === 'enable' || sub === 'true' || sub === '1') {
+        setThrowCheat(true);
+        logChatMessage('success', 'Throw / orbit cheat ENABLED. Drag with Alt or press T to sling ship.');
+        return;
+      }
+      if (sub === 'off' || sub === 'disable' || sub === 'false' || sub === '0') {
+        setThrowCheat(false);
+        logChatMessage('system', 'Throw / orbit cheat DISABLED.');
+        return;
+      }
+      if (!throwCheatEnabled) {
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        return;
+      }
+      if (!ship) {
+        logChatMessage('error', 'No active vessel to throw.');
+        return;
+      }
+      const vx = parseFloat(args[0] ?? '0') || 0;
+      const vy = parseFloat(args[1] ?? '0') || 0;
+      session.teleport(ship.id, ship.bodyId, ship.state.position, { x: vx, y: vy });
+      logChatMessage('success', `Threw ${ship.name} with velocity (${vx.toFixed(1)}, ${vy.toFixed(1)}) m/s.`);
+      break;
+    }
+    case 'circ':
+    case 'circularize': {
+      if (!throwCheatEnabled) {
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        return;
+      }
+      if (!ship) {
+        logChatMessage('error', 'No active vessel to circularize.');
+        return;
+      }
+      const body = session.world.body(ship.bodyId);
+      const p = ship.state.position;
+      const r = Math.hypot(p.x, p.y);
+      if (r <= body.radius) {
+        logChatMessage('error', 'Cannot circularize while on or below surface.');
+        return;
+      }
+      const vCirc = Math.sqrt(body.mu / r);
+      const currentV = ship.state.velocity;
+      const ccw = { x: -p.y / r * vCirc, y: p.x / r * vCirc };
+      const cw = { x: p.y / r * vCirc, y: -p.x / r * vCirc };
+      const dotCcw = ccw.x * currentV.x + ccw.y * currentV.y;
+      const chosen = dotCcw >= 0 ? ccw : cw;
+      session.teleport(ship.id, ship.bodyId, p, chosen);
+      logChatMessage('success', `Circularized orbit around ${body.name} at ${(r - body.radius).toFixed(0)} m altitude (${vCirc.toFixed(1)} m/s).`);
+      break;
+    }
+    case 'tp':
+    case 'teleport': {
+      if (!throwCheatEnabled) {
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        return;
+      }
+      if (!ship) {
+        logChatMessage('error', 'No active vessel to teleport.');
+        return;
+      }
+      const targetName = args[0] || 'Primus';
+      const bodies = session.world.system.getAllBodies();
+      const targetBody = bodies.find(b => b.name.toLowerCase() === targetName.toLowerCase())
+        ?? bodies.find(b => b.id.toLowerCase() === targetName.toLowerCase());
+      if (!targetBody) {
+        logChatMessage('error', `Unknown celestial body: "${targetName}".`);
+        return;
+      }
+      const alt = Math.max(50_000, targetBody.radius * 0.15);
+      const r = targetBody.radius + alt;
+      const vCirc = Math.sqrt(targetBody.mu / r);
+      session.teleport(ship.id, targetBody.id, { x: 0, y: r }, { x: vCirc, y: 0 }, 0);
+      cameraControl.followShip();
+      syncCameraButton();
+      logChatMessage('success', `Teleported to ${targetBody.name} in ${(alt / 1000).toFixed(0)} km orbit.`);
+      break;
+    }
+    case 'god': {
+      if (!ship) {
+        logChatMessage('error', 'No active vessel.');
+        return;
+      }
+      const nextGod = !ship.state.godMode;
+      session.setGodMode(ship.id, nextGod);
+      logChatMessage('success', `God Mode ${nextGod ? 'ENABLED (invulnerable)' : 'DISABLED'}.`);
+      break;
+    }
+    case 'warp': {
+      const factor = parseInt(args[0] ?? '1', 10);
+      if (Number.isFinite(factor) && factor >= 1 && factor <= 10000) {
+        setWarp(factor);
+        logChatMessage('success', `Time warp set to ${factor}×.`);
+      } else {
+        logChatMessage('error', 'Usage: /warp [1-10000]');
+      }
+      break;
+    }
+    case 'spawn': {
+      const presetId = args[0] || session.world.presetId(preset.value || 'pad');
+      try {
+        session.spawn(presetId, false);
+        logChatMessage('success', `Spawned vessel with preset "${presetId}".`);
+      } catch (e) {
+        logChatMessage('error', `Failed to spawn: ${(e as Error).message}`);
+      }
+      break;
+    }
+    default: {
+      logChatMessage('error', `Unknown command: "/${cmd}". Type /help for available commands.`);
+    }
+  }
+}
+
+function handleChatSubmit(text: string): void {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  if (trimmed.startsWith('/')) {
+    executeChatCommand(trimmed);
+  } else {
+    const name = pilotName();
+    logChatMessage('chat', trimmed, name);
+    chatChannel?.postMessage({ sender: name, text: trimmed, time: Date.now() });
+  }
+}
+
+chatForm?.addEventListener('submit', event => {
+  event.preventDefault();
+  if (!chatInput) return;
+  const text = chatInput.value;
+  chatInput.value = '';
+  handleChatSubmit(text);
+});
+
+chatMinimizeBtn?.addEventListener('click', () => setChatMinimized(true));
+chatMinPill?.addEventListener('click', () => setChatMinimized(false, true));
+
+chatToggleBtn?.addEventListener('click', () => {
+  if (chatMinimized) {
+    setChatMinimized(false, true);
+  } else if (document.activeElement === chatInput) {
+    setChatMinimized(true);
+  } else {
+    chatInput?.focus();
+  }
+});
+
+window.addEventListener('keydown', event => {
+  if (event.code === 'Enter') {
+    if (document.activeElement === chatInput) {
+      // Handled by form submit
+    } else if (!document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
+      event.preventDefault();
+      setChatMinimized(false, true);
+    }
+  } else if (event.code === 'Slash') {
+    if (document.activeElement !== chatInput && !document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
+      event.preventDefault();
+      setChatMinimized(false);
+      if (chatInput) {
+        chatInput.focus();
+        chatInput.value = '/';
+      }
+    }
+  } else if (event.code === 'Escape') {
+    if (document.activeElement === chatInput) {
+      chatInput?.blur();
+      setChatMinimized(true);
+      event.preventDefault();
+    }
+  }
+});
 
 function syncUniverseSelect(): void {
   universeSelect.innerHTML = '';
@@ -615,10 +958,11 @@ function reset(): void {
   }
   syncSelected();
   lastTerrainContact = undefined;
+  cameraControl.followShip();
+  cameraControl.horizon = true;
   const startState = session.world.presetState(presetId).state;
-  cameraControl.rotation = cameraControl.horizon ? Math.PI / 2 - Math.atan2(startState.position.y, startState.position.x) : 0;
+  cameraControl.rotation = Math.PI / 2 - Math.atan2(startState.position.y, startState.position.x);
   fitZoom(startState, presetId);
-  cameraControl.recenter();
   lastStatus = state.status;
   syncCameraButton();
   invalidatePrediction(); setPaused(false);
@@ -628,7 +972,7 @@ function reset(): void {
 function changeZoom(factor: number): void { cameraControl.changeZoom(factor); }
 /** Follow ship → planet view → module camera modes → follow ship. */
 function toggleCamera(): void {
-  cameraControl.cycle(presentation.cameras);
+  cameraControl.cycle(presentation.cameras, activeBody?.radius);
   syncCameraButton();
   profiler.event('camera', { mode: cameraControl.mode });
 }
@@ -690,6 +1034,139 @@ const pointerVelocityTracker = new VelocityTracker();
 const canvasTouches = new Map<number, { x: number; y: number }>();
 let lastPinchDistance: number | undefined;
 
+interface FlightSlingshot {
+  pointerId: number;
+  screenStart: Vec;
+  originWorld: Vec;
+  dominantBody: ResolvedBody;
+  dominantWorldPos: Vec;
+  relPos: Vec;
+  pointerWorld: Vec;
+  pullVelocity: Vec;
+  circularVelocity: Vec;
+  circularSpeed: number;
+  currentSpeed: number;
+  isSnappingCircular: boolean;
+}
+let activeFlightSlingshot: FlightSlingshot | null = null;
+let isThrowModeActive = false;
+let isThrowKeyDown = false;
+let throwKeyDownTime = 0;
+let isTouchSlingHolding = false;
+
+function setThrowCheat(enabled: boolean): void {
+  throwCheatEnabled = enabled;
+  try {
+    localStorage.setItem(THROW_CHEAT_KEY, String(enabled));
+  } catch { /* ignore */ }
+  if (throwCheatToggle) throwCheatToggle.checked = enabled;
+  if (!enabled && isThrowModeActive) {
+    setThrowMode(false);
+  }
+  updateThrowCheatUI();
+}
+
+function updateThrowCheatUI(): void {
+  if (throwCheatToggle) throwCheatToggle.checked = throwCheatEnabled;
+  if (throwShipToggleBtn) {
+    throwShipToggleBtn.style.display = throwCheatEnabled ? '' : 'none';
+    throwShipToggleBtn.classList.toggle('active', isThrowModeActive);
+    throwShipToggleBtn.setAttribute('aria-pressed', String(isThrowModeActive));
+  }
+  touchControls.setSlingVisible(throwCheatEnabled);
+  touchControls.setSlingActive(isThrowModeActive);
+}
+
+function setThrowMode(active: boolean): void {
+  if (!throwCheatEnabled && active) {
+    notify('Throw cheat is disabled. Enable in setup or type /throw on in chat.');
+    logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable in setup to unlock.');
+    return;
+  }
+  isThrowModeActive = active;
+  updateThrowModeUI();
+  if (isThrowModeActive) {
+    notify('Throw mode active: Click/touch & drag in space to aim trajectory. Press Shift to snap circular.');
+  }
+}
+
+function toggleThrowMode(): void {
+  setThrowMode(!isThrowModeActive);
+}
+
+function updateThrowModeUI(): void {
+  const active = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
+  if (throwShipToggleBtn) {
+    throwShipToggleBtn.classList.toggle('active', isThrowModeActive);
+    throwShipToggleBtn.setAttribute('aria-pressed', String(isThrowModeActive));
+  }
+  touchControls.setSlingActive(isThrowModeActive);
+  canvas.classList.toggle('throw-mode-cursor', active);
+}
+
+function findDominantCelestialBody(worldPos: Vec, time: number): { body: ResolvedBody; bodyPos: Vec; relPos: Vec; dist: number } {
+  const bodies = session.world.system.getAllBodies();
+  let best = bodies[0]!;
+  let bestPos = session.world.system.getBodyPosition(best.id, time);
+  let maxG = -1;
+  let bestDist = Infinity;
+  let bestRel: Vec = { x: 0, y: 0 };
+  for (const b of bodies) {
+    const bPos = session.world.system.getBodyPosition(b.id, time);
+    const rx = worldPos.x - bPos.x;
+    const ry = worldPos.y - bPos.y;
+    const d = Math.hypot(rx, ry);
+    const g = b.mu / Math.max(b.radius * b.radius, d * d);
+    if (g > maxG) {
+      maxG = g;
+      best = b;
+      bestPos = bPos;
+      bestDist = d;
+      bestRel = { x: rx, y: ry };
+    }
+  }
+  return { body: best, bodyPos: bestPos, relPos: bestRel, dist: bestDist };
+}
+
+function computeBodyCircularVelocity(relPos: Vec, dist: number, body: ResolvedBody, preferredDir?: Vec): { velocity: Vec; speed: number } {
+  const r = Math.max(body.radius * 1.01, dist);
+  const vCirc = Math.sqrt(body.mu / r);
+  const rx = relPos.x / r;
+  const ry = relPos.y / r;
+  const ccw = { x: -ry * vCirc, y: rx * vCirc };
+  const cw = { x: ry * vCirc, y: -rx * vCirc };
+  if (preferredDir && (preferredDir.x !== 0 || preferredDir.y !== 0)) {
+    const dotCcw = ccw.x * preferredDir.x + ccw.y * preferredDir.y;
+    const dotCw = cw.x * preferredDir.x + cw.y * preferredDir.y;
+    return { velocity: dotCcw >= dotCw ? ccw : cw, speed: vCirc };
+  }
+  return { velocity: ccw, speed: vCirc };
+}
+
+function updateFlightSlingshotHud(): void {
+  const hud = document.getElementById('flight-slingshot-hud');
+  if (!hud) return;
+  if (!activeFlightSlingshot) {
+    hud.classList.add('hidden');
+    return;
+  }
+  hud.classList.remove('hidden');
+  const velEl = document.getElementById('fhud-vel');
+  const circEl = document.getElementById('fhud-circ');
+  const bodyEl = document.getElementById('fhud-body');
+  const snapEl = document.getElementById('fhud-snap-badge');
+  if (velEl) velEl.textContent = `${activeFlightSlingshot.currentSpeed.toFixed(1)} m/s`;
+  if (circEl) circEl.textContent = `${activeFlightSlingshot.circularSpeed.toFixed(1)} m/s`;
+  if (bodyEl) bodyEl.textContent = activeFlightSlingshot.dominantBody.name.toUpperCase();
+  if (snapEl) {
+    if (activeFlightSlingshot.isSnappingCircular) {
+      snapEl.classList.remove('hidden');
+    } else {
+      snapEl.classList.add('hidden');
+    }
+  }
+}
+
 function initiateCameraFling(vel: Vec, width: number, height: number): void {
   const world = session.world;
   const bodies: SmartCandidate[] = world.system.getAllBodies().map(b => ({
@@ -700,7 +1177,7 @@ function initiateCameraFling(vel: Vec, width: number, height: number): void {
   }));
 
   const ships: SmartCandidate[] = [];
-  const piloted = selectedShip();
+  const piloted = cameraControl.mode === 'free' ? undefined : selectedShip();
   if (piloted) {
     ships.push({
       kind: 'ship',
@@ -736,6 +1213,32 @@ function initiateCameraFling(vel: Vec, width: number, height: number): void {
 }
 
 const endCameraDrag = (event: PointerEvent): void => {
+  if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId) {
+    const s = activeFlightSlingshot;
+    const dragDist = Math.hypot(event.clientX - s.screenStart.x, event.clientY - s.screenStart.y);
+    const ship = selectedShip() ?? ownShips()[0];
+    if (ship) {
+      let finalVel: Vec;
+      if (dragDist < 6 || s.isSnappingCircular) {
+        finalVel = s.circularVelocity;
+      } else {
+        finalVel = s.pullVelocity;
+      }
+      const finalSpeed = Math.hypot(finalVel.x, finalVel.y);
+      const heading = Math.atan2(finalVel.y, finalVel.x);
+      session.teleport(ship.id, s.dominantBody.id, s.relPos, finalVel, heading);
+      cameraControl.followShip();
+      syncCameraButton();
+      logChatMessage('success', `Vessel ${ship.name.toUpperCase()} placed into orbit around ${s.dominantBody.name} (${finalSpeed.toFixed(1)} m/s).`);
+      show('flight-message', `Placed in orbit around ${s.dominantBody.name}`);
+    }
+    activeFlightSlingshot = null;
+    updateFlightSlingshotHud();
+    if (canvas.hasPointerCapture(event.pointerId)) {
+      try { canvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+    }
+    return;
+  }
   if (canvasTouches.has(event.pointerId)) {
     canvasTouches.delete(event.pointerId);
     if (canvasTouches.size < 2) lastPinchDistance = undefined;
@@ -783,6 +1286,8 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   let lastTouchZoomTime = -Infinity;
 
   target.addEventListener('touchstart', event => {
+    const wantsThrow = throwCheatEnabled && (isThrowModeActive || event.altKey || isThrowKeyDown || isTouchSlingHolding);
+    if (wantsThrow) return;
     cameraControl.stopFling();
     if (event.touches.length >= 2) {
       isPinching = true;
@@ -875,6 +1380,39 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   // Pointer events: mouse drag/throw and fallback for pointer-only touchscreen devices
   target.addEventListener('pointerdown', event => {
     cameraControl.stopFling();
+    const wantsThrow = event.altKey || isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
+    if (wantsThrow) {
+      if (!throwCheatEnabled) {
+        notify('Throw cheat is disabled. Enable in setup or type /throw on in chat.');
+        logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable in setup to unlock.');
+        return;
+      }
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
+      event.preventDefault();
+      target.focus();
+      try { target.setPointerCapture(event.pointerId); } catch {}
+      const rect = target.getBoundingClientRect();
+      const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const originWorld = screenToWorld(screenPos, cameraControl.last, target.clientWidth, target.clientHeight);
+      const dom = findDominantCelestialBody(originWorld, view.time);
+      const circ = computeBodyCircularVelocity(dom.relPos, dom.dist, dom.body);
+      activeFlightSlingshot = {
+        pointerId: event.pointerId,
+        screenStart: { x: event.clientX, y: event.clientY },
+        originWorld,
+        dominantBody: dom.body,
+        dominantWorldPos: dom.bodyPos,
+        relPos: dom.relPos,
+        pointerWorld: originWorld,
+        pullVelocity: { x: 0, y: 0 },
+        circularVelocity: circ.velocity,
+        circularSpeed: circ.speed,
+        currentSpeed: 0,
+        isSnappingCircular: event.shiftKey,
+      };
+      updateFlightSlingshotHud();
+      return;
+    }
     if (event.pointerType === 'touch') {
       canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (canvasTouches.size === 2) {
@@ -897,6 +1435,30 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   });
 
   target.addEventListener('pointermove', event => {
+    if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId) {
+      const rect = target.getBoundingClientRect();
+      const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const pointerWorld = screenToWorld(screenPos, cameraControl.last, target.clientWidth, target.clientHeight);
+      activeFlightSlingshot.pointerWorld = pointerWorld;
+      const dragDx = activeFlightSlingshot.originWorld.x - pointerWorld.x;
+      const dragDy = activeFlightSlingshot.originWorld.y - pointerWorld.y;
+      const pullVel = { x: dragDx * 0.5, y: dragDy * 0.5 };
+      activeFlightSlingshot.pullVelocity = pullVel;
+      const circ = computeBodyCircularVelocity(
+        activeFlightSlingshot.relPos,
+        Math.hypot(activeFlightSlingshot.relPos.x, activeFlightSlingshot.relPos.y),
+        activeFlightSlingshot.dominantBody,
+        pullVel,
+      );
+      activeFlightSlingshot.circularVelocity = circ.velocity;
+      activeFlightSlingshot.circularSpeed = circ.speed;
+      activeFlightSlingshot.isSnappingCircular = event.shiftKey;
+      activeFlightSlingshot.currentSpeed = activeFlightSlingshot.isSnappingCircular
+        ? circ.speed
+        : Math.hypot(pullVel.x, pullVel.y);
+      updateFlightSlingshotHud();
+      return;
+    }
     if (event.pointerType === 'touch') {
       if (performance.now() - lastTouchZoomTime < 80) return;
       if (canvasTouches.has(event.pointerId)) {
@@ -1236,12 +1798,34 @@ slider.addEventListener('input', () => {
   if (ship) session.setThrottle(ship.id, Number(slider.value) / 100);
 });
 
-// Fleet
+// Fleet & Navigation
 function cycleShip(direction: number): void {
   const own = ownShips();
-  if (own.length < 2) return;
+  if (cameraControl.mode === 'free' || own.length < 2) {
+    cyclePlanet(direction);
+    return;
+  }
   const index = own.findIndex(s => s.id === selectedShipId);
   selectShip(own[(index + direction + own.length) % own.length]!.id);
+}
+
+function cyclePlanet(direction: number): void {
+  const bodies = session.world.system.getAllBodies();
+  if (bodies.length === 0) return;
+  const currentTargetId = cameraControl.focusTarget?.kind === 'body' ? cameraControl.focusTarget.id : activeBody.id;
+  const currentIndex = bodies.findIndex(b => b.id === currentTargetId);
+  const nextIndex = (currentIndex + direction + bodies.length) % bodies.length;
+  const nextBody = bodies[nextIndex]!;
+
+  cameraControl.planetView(nextBody.radius);
+  cameraControl.focusTarget = { kind: 'body', id: nextBody.id, name: nextBody.name };
+  cameraControl.smartTarget = undefined;
+  cameraControl.mode = 'free';
+  cameraControl.dragged = false;
+  cameraControl.rotation = 0;
+  show('active-body', nextBody.name.toUpperCase());
+  syncCameraButton();
+  notify(`Viewing ${nextBody.name}`);
 }
 spawnButton.addEventListener('click', () => {
   try {
@@ -1653,6 +2237,15 @@ function executeAction(action: ActionId): void {
     case 'cycleShipPrev':
       cycleShip(-1);
       break;
+    case 'cyclePlanet':
+      cyclePlanet(1);
+      break;
+    case 'cyclePlanetPrev':
+      cyclePlanet(-1);
+      break;
+    case 'throwShip':
+      toggleThrowMode();
+      break;
   }
 }
 
@@ -1660,6 +2253,48 @@ gamepadManager.onShortcut(action => executeAction(action));
 touchControls.onShortcut(action => executeAction(action));
 touchControls.onZoom(factor => changeZoom(factor));
 touchControls.attach(element('flight-view').parentElement!);
+touchControls.onSlingHold(holding => {
+  isTouchSlingHolding = holding;
+  updateThrowModeUI();
+});
+updateThrowCheatUI();
+
+throwShipToggleBtn?.addEventListener('click', () => {
+  toggleThrowMode();
+});
+throwCheatToggle?.addEventListener('change', () => {
+  setThrowCheat(throwCheatToggle.checked);
+  logChatMessage(throwCheatEnabled ? 'success' : 'system', `Throw / orbit cheat ${throwCheatEnabled ? 'ENABLED' : 'DISABLED'}.`);
+});
+
+window.addEventListener('keydown', event => {
+  if (event.target && (event.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return;
+  const actions = keyLookup.get(event.code);
+  if (actions?.includes('throwShip')) {
+    if (event.repeat) return;
+    if (!throwCheatEnabled) {
+      notify('Throw cheat is disabled. Enable in setup or type /throw on in chat.');
+      logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable in setup to unlock.');
+      return;
+    }
+    isThrowKeyDown = true;
+    throwKeyDownTime = performance.now();
+    updateThrowModeUI();
+  }
+});
+
+window.addEventListener('keyup', event => {
+  const actions = keyLookup.get(event.code);
+  if (actions?.includes('throwShip') && isThrowKeyDown) {
+    isThrowKeyDown = false;
+    const duration = performance.now() - throwKeyDownTime;
+    if (duration < 350 && !activeFlightSlingshot) {
+      toggleThrowMode();
+    } else {
+      updateThrowModeUI();
+    }
+  }
+});
 
 bindFlightInput({
   keys, pointers, paused: () => session.paused, autoPause, autoResume, visibility: updateBackground,
@@ -1680,6 +2315,7 @@ bindFlightInput({
     const actions = keyLookup.get(code);
     if (actions) {
       for (const action of actions) {
+        if (action === 'throwShip') continue;
         if (!isFlightAction(action)) executeAction(action);
       }
     }
@@ -2265,8 +2901,102 @@ function frame(now: number): void {
   const camera = cameraControl.update({ body: activeBodyPos, ship: view.position, elapsed, instant: reducedMotion.matches,
     width, height, ...(target ? { target } : {}), ...(focusPosition ? { focusPosition } : {}) });
   if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
-  const overlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   const others = otherShips(view.time, session.alpha, camera);
+  const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
+  let overlays = baseOverlays;
+  if (activeFlightSlingshot) {
+    const s = activeFlightSlingshot;
+    const slingList: OverlayPrimitive[] = [];
+    slingList.push({
+      kind: 'circle',
+      space: 'world',
+      center: s.originWorld,
+      radius: 12 / camera.scale,
+      color: '#38ef7d',
+      width: 2,
+    });
+    slingList.push({
+      kind: 'circle',
+      space: 'world',
+      center: s.originWorld,
+      radius: 3 / camera.scale,
+      color: '#ffffff',
+      fill: true,
+    });
+
+    const dragDist = Math.hypot(s.pointerWorld.x - s.originWorld.x, s.pointerWorld.y - s.originWorld.y);
+    if (s.isSnappingCircular || dragDist * camera.scale < 6) {
+      const circVel = s.circularVelocity;
+      const speed = s.circularSpeed;
+      if (speed > 0) {
+        const arrowLen = 50 / camera.scale;
+        const dirX = circVel.x / speed;
+        const dirY = circVel.y / speed;
+        const tipX = s.originWorld.x + dirX * arrowLen;
+        const tipY = s.originWorld.y + dirY * arrowLen;
+        slingList.push({
+          kind: 'line',
+          space: 'world',
+          points: [s.originWorld, { x: tipX, y: tipY }],
+          color: '#00d2ff',
+          width: 3,
+        });
+        const perpX = -dirY;
+        const perpY = dirX;
+        const barbLen = 10 / camera.scale;
+        slingList.push({
+          kind: 'line',
+          space: 'world',
+          points: [
+            { x: tipX - dirX * barbLen + perpX * (barbLen * 0.5), y: tipY - dirY * barbLen + perpY * (barbLen * 0.5) },
+            { x: tipX, y: tipY },
+            { x: tipX - dirX * barbLen - perpX * (barbLen * 0.5), y: tipY - dirY * barbLen - perpY * (barbLen * 0.5) },
+          ],
+          color: '#00d2ff',
+          width: 2,
+        });
+      }
+    } else {
+      slingList.push({
+        kind: 'line',
+        space: 'world',
+        points: [s.originWorld, s.pointerWorld],
+        color: '#ff4d4d',
+        width: 1.5,
+      });
+      const pullSpeed = Math.hypot(s.pullVelocity.x, s.pullVelocity.y);
+      if (pullSpeed > 0) {
+        const dirX = s.pullVelocity.x / pullSpeed;
+        const dirY = s.pullVelocity.y / pullSpeed;
+        const arrowPx = Math.min(120, Math.max(30, pullSpeed * 0.05));
+        const arrowWorldLen = arrowPx / camera.scale;
+        const tipX = s.originWorld.x + dirX * arrowWorldLen;
+        const tipY = s.originWorld.y + dirY * arrowWorldLen;
+        slingList.push({
+          kind: 'line',
+          space: 'world',
+          points: [s.originWorld, { x: tipX, y: tipY }],
+          color: '#38ef7d',
+          width: 3,
+        });
+        const perpX = -dirY;
+        const perpY = dirX;
+        const barbWorldLen = 12 / camera.scale;
+        slingList.push({
+          kind: 'line',
+          space: 'world',
+          points: [
+            { x: tipX - dirX * barbWorldLen + perpX * (barbWorldLen * 0.5), y: tipY - dirY * barbWorldLen + perpY * (barbWorldLen * 0.5) },
+            { x: tipX, y: tipY },
+            { x: tipX - dirX * barbWorldLen - perpX * (barbWorldLen * 0.5), y: tipY - dirY * barbWorldLen - perpY * (barbWorldLen * 0.5) },
+          ],
+          color: '#38ef7d',
+          width: 2,
+        });
+      }
+    }
+    overlays = baseOverlays ? [...baseOverlays, ...slingList] : slingList;
+  }
   presentation.rendering.renderer!.draw({
     state: view,
     path: prediction.path,
@@ -2280,6 +3010,13 @@ function frame(now: number): void {
     padNormal: pad && spinView.point(activeBody, view.time, pad.normal),
     shipLabel: ship?.name.toUpperCase(),
     ships: others,
+    theme: {
+      ...themeCustomizer.getSettings(),
+      highQuality: graphicsQuality === 'high',
+      worldSeed: (themeCustomizer.getSettings().shaderSeed && themeCustomizer.getSettings().shaderSeed !== 0)
+        ? themeCustomizer.getSettings().shaderSeed!
+        : hashWorldSeed(world.id),
+    },
     ...(overlays ? { overlays } : {}),
   }, profiler);
 
@@ -2326,8 +3063,50 @@ moduleManager = new ModuleManager(presentation, {
     focusOnShipForNewWorld();
   },
 });
+function switchToOrbitSandbox(): void {
+  if (orbitSandboxInstance?.isOpen()) return;
+  setPaused(true, 'Playing Orbit Sandbox');
+  const flightConsole = document.getElementById('flight-console');
+  const sandboxWorkspace = document.getElementById('orbit-sandbox-workspace');
+  if (flightConsole) flightConsole.hidden = true;
+  if (sandboxWorkspace) sandboxWorkspace.hidden = false;
+
+  if (!orbitSandboxInstance) {
+    orbitSandboxInstance = initOrbitSandbox({
+      onOpenMenu: () => {
+        workspace.open('library');
+      },
+      onLaunchInSpaceSim: (universe) => {
+        switchToSpaceSim();
+        importUniverse(universe);
+        show('universe-status', `Loaded ${universe.name} from Orbit Sandbox. Ready to fly.`);
+        workspace.close(true, false);
+      },
+    });
+  }
+  orbitSandboxInstance.start();
+  activeGameInfo = { ...orbitSandboxGame.info };
+  show('active-game', orbitSandboxGame.info.name);
+  document.title = `Spacelab · ${orbitSandboxGame.info.name}`;
+  workspace.close(false, false);
+}
+
+function switchToSpaceSim(): void {
+  if (orbitSandboxInstance?.isOpen()) {
+    orbitSandboxInstance.stop();
+  }
+  const sandboxWorkspace = document.getElementById('orbit-sandbox-workspace');
+  const flightConsole = document.getElementById('flight-console');
+  if (sandboxWorkspace) sandboxWorkspace.hidden = true;
+  if (flightConsole) flightConsole.hidden = false;
+  activeGameInfo = { ...defaultGame.info };
+  show('active-game', defaultGame.info.name);
+  document.title = `Spacelab · ${defaultGame.info.name}`;
+}
+
 labManager = new LabManager({
   builtin: defaultGame,
+  builtins: [defaultGame, orbitSandboxGame],
   install: plugin => moduleManager!.install(plugin), legacy: loadModuleText,
   universe: universe => { importUniverse(universe); show('universe-status', `Loaded ${universe.name}. Export a compressed universe or save its setup as a game.`); },
   editable: () => session === local && !local.hosting,
@@ -2339,6 +3118,11 @@ labManager = new LabManager({
   },
   play: game => {
     if (session !== local || local.hosting) throw new Error('Leave multiplayer before switching games');
+    if (game.info.id === 'builtin.orbit-sandbox') {
+      switchToOrbitSandbox();
+      return;
+    }
+    switchToSpaceSim();
     const code = artifactModules(game.plugins, environment());
     const authoritative = [...GAME_EXAMPLES, ...code.filter(m => m.manifest.authority === 'authoritative')];
     const display = code.filter(m => m.manifest.authority === 'presentation');
@@ -2367,6 +3151,10 @@ labManager = new LabManager({
 void labManager.start();
 element('presentation-list').addEventListener('change', () => moduleManager?.refresh());
 useSession(local);
+const requestedGame = new URLSearchParams(location.search).get('game');
+if (requestedGame === 'orbit-sandbox') {
+  switchToOrbitSandbox();
+}
 if (document.querySelector('meta[name="space-sim-server"]')) {
   // This page came from a dedicated server: joining it is one click away.
   joinInput.value = location.origin;

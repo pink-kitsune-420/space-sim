@@ -26,6 +26,9 @@ export const orbitMarkers: RegisteredModule = {
         const mark = (point: Vec | undefined, radius: number | null, time: number | null, name: string, color: string): void => {
           // Below the reference surface the pass never happens; the trajectory card reports the impact.
           if (!point || radius === null || radius <= view.body.radius) return;
+          // Suppress past / unreachable apsides: on hyperbolic trajectories or when time is negative
+          if (time !== null && time < 0) return;
+          if (orbit.kind === 'hyperbolic' && (time === null || time < 0)) return;
           out.push({ kind: 'circle', space: 'world', center: point, radius: 4 / scale, color, width: 2 });
           const timing = time === null ? '' : ` · ${flight.format.duration(time)}`;
           out.push({ kind: 'text', space: 'world', at: { x: point.x, y: point.y + 10 / scale }, color, align: 'center',

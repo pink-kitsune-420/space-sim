@@ -1,10 +1,11 @@
-import { magnitude, planet, type Vec } from '../../sim-core/src/index';
-import { createProjector, getPathGeometry, hermiteControls, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
+import { planet, type Vec } from '../../sim-core/src/index';
+import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
   type RendererFeatures, type RenderTimer } from './frame';
 import { screenOverlays, type ScreenOverlay } from './overlay';
 import { drawCanvasTerrain, terrainGeometry } from './terrain';
 import { daylight, NIGHT_LEVEL, screenDirection } from './lighting';
 import { BodyCrowd, LabelPlacer, labelRect } from './layout';
+import { drawProceduralBackdrop, getActiveTheme, type RenderThemeOptions } from './theme';
 
 const distance = (a: Vec, b: Vec): number => Math.hypot(b.x - a.x, b.y - a.y);
 const CULL_MARGIN = 8;
@@ -371,7 +372,8 @@ export class CanvasRenderer implements Renderer {
       surfaceFeatures: 'globe-lines' as const,
     }];
 
-    this.drawBackground(width, height);
+    const realTimeSec = (typeof performance !== 'undefined' ? performance.now() * 0.001 : state.time) % 3600;
+    this.drawBackground(width, height, camera, frame.theme, realTimeSec);
     timer?.lap('background');
 
     // 1. Draw orbit rings for moons around their parent bodies, all in one dashed path
@@ -562,10 +564,9 @@ export class CanvasRenderer implements Renderer {
     // Scale annotation is in world metres, independent of canvas device pixels.
     const metres = 10 ** Math.floor(Math.log10(100 / camera.scale));
     const pixels = metres * camera.scale;
-    ctx.strokeStyle = '#66808c'; ctx.beginPath(); ctx.moveTo(24, height - 27); ctx.lineTo(24 + pixels, height - 27); ctx.stroke();
-    ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#95a9b5'; ctx.textAlign = 'left';
-    ctx.fillText(`${metres} m`, 24, height - 36);
-    ctx.textAlign = 'right'; ctx.fillText(`R ${magnitude(state.position).toFixed(1)} m`, width - 24, height - 27);
+    ctx.strokeStyle = '#66808c'; ctx.beginPath(); ctx.moveTo(width - 24 - pixels, height - 27); ctx.lineTo(width - 24, height - 27); ctx.stroke();
+    ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#95a9b5'; ctx.textAlign = 'right';
+    ctx.fillText(`${metres} m`, width - 24, height - 36);
     if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
     timer?.lap('overlay');
   }
@@ -651,30 +652,23 @@ export class CanvasRenderer implements Renderer {
     ctx.strokeStyle = '#080f19'; ctx.lineWidth = 1; ctx.stroke();
   }
 
-  private drawBackground(width: number, height: number): void {
-    const { ctx } = this;
-    ctx.fillStyle = '#080f19'; ctx.fillRect(0, 0, width, height);
-    ctx.fillStyle = '#77869c';
-    ctx.beginPath();
-    for (let i = 0; i < STAR_BRIGHT_UV.length; i += 2) {
-      ctx.rect(STAR_BRIGHT_UV[i]! * width, STAR_BRIGHT_UV[i + 1]! * height, 1.5, 1);
-    }
-    ctx.fill();
-    ctx.fillStyle = '#28374b';
-    ctx.beginPath();
-    for (let i = 0; i < STAR_DIM_UV.length; i += 2) {
-      ctx.rect(STAR_DIM_UV[i]! * width, STAR_DIM_UV[i + 1]! * height, 1, 1);
-    }
-    ctx.fill();
-    ctx.strokeStyle = '#152332'; ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = width / 2 % 80; x < width; x += 80) {
-      ctx.moveTo(x, 0); ctx.lineTo(x, height);
-    }
-    for (let y = height / 2 % 80; y < height; y += 80) {
-      ctx.moveTo(0, y); ctx.lineTo(width, y);
-    }
-    ctx.stroke();
+  private drawBackground(
+    width: number,
+    height: number,
+    camera?: Camera,
+    theme?: RenderThemeOptions,
+    timeSec = 0,
+  ): void {
+    const fullTheme = theme ? { ...getActiveTheme(), ...theme } : getActiveTheme();
+    drawProceduralBackdrop(
+      this.ctx,
+      width,
+      height,
+      camera ?? { center: { x: 0, y: 0 }, scale: 1, rotation: 0 },
+      fullTheme,
+      timeSec,
+      fullTheme.highQuality !== false,
+    );
   }
 
   /** Dashed Hermite curves through the ghost samples. Off-screen segments are culled; each

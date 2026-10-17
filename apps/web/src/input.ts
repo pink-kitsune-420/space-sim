@@ -1,7 +1,7 @@
 const defaultFlightKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
 const defaultShortcuts = new Set([
-  'KeyP', 'KeyR', 'KeyC', 'KeyH', 'KeyF', 'Equal', 'NumpadAdd', 'Minus', 'NumpadSubtract',
-  'Backquote', 'BracketLeft', 'BracketRight', 'Backslash', 'Comma', 'Period', 'Slash',
+  'KeyP', 'KeyR', 'KeyC', 'KeyH', 'KeyF', 'KeyT', 'Equal', 'NumpadAdd', 'Minus', 'NumpadSubtract',
+  'Backquote', 'BracketLeft', 'BracketRight', 'Backslash', 'Backspace', 'Comma', 'Period', 'Slash',
 ]);
 /** Keys the console owns; module commands may not bind them. */
 export const RESERVED_KEYS: ReadonlySet<string> = new Set([...defaultFlightKeys, ...defaultShortcuts]);

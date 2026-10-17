@@ -204,7 +204,7 @@ it('applies custom horizonColor and skyColor when drawing horizon', () => {
   expect(addedStops.some(s => s.offset === 0 && s.color === '#ff00ff80')).toBe(true);
 });
 
-it('renders consistent body, vessel, scale bar, and radial distance labels across CanvasRenderer and WebGLRenderer', () => {
+it('renders consistent body and vessel labels with the scale bar at bottom right across CanvasRenderer and WebGLRenderer', () => {
   const c2dLabels: Array<{ text: string; x: number; y: number; align: string; color: string }> = [];
   const fake2dCtx = {
     setTransform: () => {},
@@ -212,6 +212,7 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
     restore: () => {},
     translate: () => {},
     rotate: () => {},
+    scale: () => {},
     beginPath: () => {},
     closePath: () => {},
     moveTo: () => {},
@@ -247,6 +248,7 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
   let uploadedVertices: Float32Array = new Float32Array();
   let drawingStyle = 0;
   const vesselTips: number[][] = [];
+  const scaleBars: number[][] = [];
   const fakeLabelCtx = {
     setTransform: () => {},
     clearRect: () => {},
@@ -320,6 +322,7 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
     uniform4f: () => {},
     drawArrays: (mode: number) => {
       if (mode === 6 && drawingStyle === 5) vesselTips.push([uploadedVertices[0]!, uploadedVertices[1]!]);
+      if (mode === 1 && drawingStyle === 8) scaleBars.push(Array.from(uploadedVertices.slice(0, 4)));
     },
     enable: () => {},
     disable: () => {},
@@ -373,8 +376,9 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
     const gpuRenderer = new WebGLRenderer(glCanvas);
     gpuRenderer.draw(frame);
 
-    expect(c2dLabels.map(l => l.text)).toEqual(['PRIMUS', 'VESSEL 01', '100 m', 'R 640.0 m']);
-    expect(glLabels).toEqual(['PRIMUS', 'VESSEL 01', '100 m', 'R 640.0 m']);
+    expect(c2dLabels.map(l => l.text)).toEqual(['PRIMUS', 'VESSEL 01', '100 m']);
+    expect(glLabels).toEqual(['PRIMUS', 'VESSEL 01', '100 m']);
+    expect(scaleBars).toEqual([[736, 573, 776, 573]]);
 
     // A long path grows the shared GPU staging buffer. The later vessel draw must
     // write into that new buffer, rather than uploading leftover path coordinates.
@@ -384,14 +388,14 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
     gpuRenderer.draw({ ...frame, path, pathClosed: true });
     expect(vesselTips).toEqual([[411, 44], [411, 44]]);
 
-    // Verify scale bar label stays left-aligned with #95a9b5 even when the ship is offscreen
+    // Verify scale bar label stays at bottom right, right-aligned with #95a9b5 even when the ship is offscreen
     c2dLabels.length = 0;
     new CanvasRenderer(c2dCanvas).draw({
       ...frame,
       shipWorldPosition: { x: 100000, y: 100000 },
     });
     const scaleLabel = c2dLabels.find(l => l.text === '100 m');
-    expect(scaleLabel?.align).toBe('left');
+    expect(scaleLabel).toMatchObject({ x: 776, y: 564, align: 'right' });
     expect(scaleLabel?.color).toBe('#95a9b5');
   } finally {
     (globalThis as { window?: unknown }).window = prevWindow;
@@ -609,6 +613,83 @@ it('smart fling targeting piloted ship smoothly returns camera to follow mode on
   expect(camera.smartTarget).toBeUndefined();
   expect(camera.mode).toBe('follow');
   expect(camera.label([])).toBe('Follow ship');
+});
+
+it('smart fling does not overshoot target even at high fling velocity or frame rate spikes', () => {
+  const camera = new CameraController();
+  camera.drag({ x: 50, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, 800, 600);
+
+  const targetPos = { x: 300, y: 0 };
+  const smartTarget = { kind: 'body' as const, id: 'planet-b', name: 'Aurelia' };
+  // Aggressive fling: 3500 px/s in screen coordinates towards target
+  camera.fling({ x: -3500, y: 0 }, 800, 600, smartTarget);
+
+  let prevDist = Infinity;
+  let overshootDetected = false;
+
+  // Simulate 60fps frames (16.6ms each)
+  for (let frame = 0; frame < 120; frame++) {
+    camera.update({
+      body: { x: 0, y: 0 },
+      ship: { x: 0, y: 0 },
+      elapsed: 0.0166,
+      instant: false,
+      width: 800,
+      height: 600,
+      focusPosition: targetPos,
+    });
+
+    const currentX = camera.last.center.x;
+    const dist = Math.hypot(targetPos.x - currentX, targetPos.y - camera.last.center.y);
+
+    // If camera stepped PAST the target (+X > 300), that is an overshoot
+    if (currentX > targetPos.x + 0.1) {
+      overshootDetected = true;
+    }
+
+    // While still in flight, distance to target should decrease monotonically
+    if (camera.smartTarget && dist > prevDist + 0.001) {
+      overshootDetected = true;
+    }
+    prevDist = dist;
+
+    if (!camera.smartTarget) break; // Docked
+  }
+
+  expect(overshootDetected).toBe(false);
+  expect(camera.smartTarget).toBeUndefined();
+  expect(camera.focusTarget).toEqual(smartTarget);
+  expect(camera.last.center.x).toBeCloseTo(targetPos.x, 2);
+  expect(camera.last.center.y).toBeCloseTo(targetPos.y, 2);
+});
+
+it('smart fling with off-axis angle smoothly suppresses lateral drift without swinging past target', () => {
+  const camera = new CameraController();
+  camera.drag({ x: 0, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, 800, 600);
+
+  const targetPos = { x: 200, y: 0 };
+  const smartTarget = { kind: 'body' as const, id: 'station-1', name: 'Gateway' };
+
+  // Fling angled 25 degrees off axis (vx = -2000, vy = 800)
+  camera.fling({ x: -2000, y: 800 }, 800, 600, smartTarget);
+
+  for (let frame = 0; frame < 90; frame++) {
+    camera.update({
+      body: { x: 0, y: 0 },
+      ship: { x: 0, y: 0 },
+      elapsed: 0.0166,
+      instant: false,
+      width: 800,
+      height: 600,
+      focusPosition: targetPos,
+    });
+    if (!camera.smartTarget) break;
+  }
+
+  expect(camera.smartTarget).toBeUndefined();
+  expect(camera.focusTarget).toEqual(smartTarget);
+  expect(camera.last.center.x).toBeCloseTo(targetPos.x, 1);
+  expect(camera.last.center.y).toBeCloseTo(targetPos.y, 1);
 });
 
 

@@ -35,9 +35,16 @@ export const flightVectors: RegisteredModule = {
         const ship = view.ship, data = flight.read(view);
         if (!ship || !data?.prograde || ship.state.status === 'crashed') return [];
         const scale = view.camera.scale;
-        const label = { x: ship.position.x + data.prograde.x * (PROGRADE_PX + 22) / scale, y: ship.position.y + data.prograde.y * (PROGRADE_PX + 22) / scale };
-        return [...arrow(ship.position, data.prograde, PROGRADE_PX, scale, PROGRADE),
-          { kind: 'text', space: 'world', at: label, text: `${data.speed.toFixed(1)} m/s`, color: LABEL, align: 'center' }];
+        // Zoom threshold fade: when zoomed out to orbital/system view (scale < 0.0003),
+        // suppress the fixed-pixel arrow and speed readout so it doesn't span across planets.
+        if (scale < 0.0003) return [];
+        const speed = data.speed;
+        if (speed < 0.2) return [];
+        // Speed-responsive clamping at tactical zoom (min 24px, max 56px)
+        const arrowPx = Math.min(PROGRADE_PX, Math.max(24, speed * 2.5));
+        const label = { x: ship.position.x + data.prograde.x * (arrowPx + 20) / scale, y: ship.position.y + data.prograde.y * (arrowPx + 20) / scale };
+        return [...arrow(ship.position, data.prograde, arrowPx, scale, PROGRADE),
+          { kind: 'text', space: 'world', at: label, text: `${speed.toFixed(1)} m/s`, color: LABEL, align: 'center' }];
       },
     });
   },

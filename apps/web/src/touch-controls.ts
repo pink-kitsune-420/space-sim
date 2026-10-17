@@ -18,6 +18,8 @@ export class TouchControlsManager {
   private stickKnob?: HTMLElement;
   private burnBtn?: HTMLElement;
   private zoomThumb?: HTMLElement;
+  private slingBtn?: HTMLElement;
+  private onSlingHoldHandler?: (holding: boolean) => void;
 
   private activeStickPointerId: number | null = null;
   private stickCenterX = 0;
@@ -78,6 +80,24 @@ export class TouchControlsManager {
     this.onZoomHandler = handler;
   }
 
+  onSlingHold(handler: (holding: boolean) => void): void {
+    this.onSlingHoldHandler = handler;
+  }
+
+  setSlingVisible(visible: boolean): void {
+    if (this.slingBtn) {
+      this.slingBtn.style.display = visible ? '' : 'none';
+    }
+  }
+
+  setSlingActive(active: boolean): void {
+    if (this.slingBtn) {
+      this.slingBtn.classList.toggle('active', active);
+      this.slingBtn.classList.toggle('toggled', active);
+      this.slingBtn.setAttribute('aria-pressed', String(active));
+    }
+  }
+
   /** Determines if device supports touch input. */
   isTouchDevice(): boolean {
     if (typeof window === 'undefined') return false;
@@ -119,6 +139,7 @@ export class TouchControlsManager {
               <button type="button" class="touch-btn touch-btn-aux" id="touch-warp-up" aria-label="Increase warp" title="Warp up">▶▶</button>
               <button type="button" class="touch-btn touch-btn-aux" id="touch-cam" aria-label="Change camera" title="Camera">CAM</button>
               <button type="button" class="touch-btn touch-btn-aux" id="touch-pause" aria-label="Pause flight" title="Pause">⏸</button>
+              <button type="button" class="touch-btn touch-btn-aux touch-btn-sling" id="touch-sling" aria-label="Sling ship into orbit" title="Hold or tap to sling ship">🚀 SLING</button>
             </div>
             <button type="button" class="touch-btn touch-btn-burn" id="touch-burn" aria-label="Hold to burn main engine">
               <span class="touch-burn-icon" aria-hidden="true">▲</span>
@@ -301,6 +322,47 @@ export class TouchControlsManager {
     wireShortcut('touch-cam', 'camera');
     wireShortcut('touch-warp-down', 'warpDown');
     wireShortcut('touch-warp-up', 'warpUp');
+
+    const slingBtn = overlay.querySelector('#touch-sling') as HTMLElement | null;
+    this.slingBtn = slingBtn ?? undefined;
+    if (slingBtn) {
+      let slingDownTime = 0;
+      let activeSlingPointerId: number | null = null;
+
+      slingBtn.addEventListener('pointerdown', (e) => {
+        if (activeSlingPointerId !== null) return;
+        e.preventDefault();
+        try { slingBtn.setPointerCapture(e.pointerId); } catch {}
+        activeSlingPointerId = e.pointerId;
+        slingDownTime = performance.now();
+        slingBtn.classList.add('active');
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(10); } catch {}
+        }
+        if (this.onSlingHoldHandler) {
+          this.onSlingHoldHandler(true);
+        }
+      });
+
+      const endSling = (e: PointerEvent) => {
+        if (e.pointerId !== activeSlingPointerId) return;
+        e.preventDefault();
+        activeSlingPointerId = null;
+        slingBtn.classList.remove('active');
+        try { slingBtn.releasePointerCapture(e.pointerId); } catch {}
+        const duration = performance.now() - slingDownTime;
+        if (this.onSlingHoldHandler) {
+          this.onSlingHoldHandler(false);
+        }
+        if (duration < 350) {
+          if (this.onShortcutHandler) this.onShortcutHandler('throwShip');
+        }
+      };
+
+      slingBtn.addEventListener('pointerup', endSling);
+      slingBtn.addEventListener('pointercancel', endSling);
+      slingBtn.addEventListener('lostpointercapture', endSling);
+    }
   }
 
   private updateStickPosition(clientX: number, clientY: number): void {

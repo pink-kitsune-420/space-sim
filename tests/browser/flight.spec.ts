@@ -21,7 +21,7 @@ test('standalone download plays directly from disk with networking disabled', as
   page.on('request', request => { if (/^https?:/.test(request.url())) network.push(request.url()); });
   page.on('pageerror', error => errors.push(error.message));
   await context.setOffline(true);
-  await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+  await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect(page.locator('.connection')).toContainText('OFFLINE FLIGHT');
   await flightFocus(page);

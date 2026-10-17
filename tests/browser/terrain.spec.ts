@@ -57,7 +57,7 @@ test('physical terrain imports offline and survives launch, renderer/system swit
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await context.setOffline(true);
-  await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+  await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await expect(page.locator('#terrain-notice')).toBeHidden();
   await page.locator('#universe-file').setInputFiles({ name: 'terrain.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(examples)) });
   await expect(page.locator('#terrain-notice')).toContainText('Physical terrain');

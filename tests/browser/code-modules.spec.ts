@@ -82,7 +82,7 @@ test('installed code stays inactive until enabled; settings, fork/export, depend
 
 test('copied and renamed offline HTML imports presentation and replacement code without network access', async ({ page, context }, testInfo) => {
   const file = testInfo.outputPath('renamed-with-local-modules.html');
-  await copyFile(resolve('dist/space-sim-offline.html'), file);
+  await copyFile(resolve('dist/space-lab-offline.html'), file);
   const requests: string[] = [], errors: string[] = [];
   page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
   page.on('pageerror', error => errors.push(error.message));

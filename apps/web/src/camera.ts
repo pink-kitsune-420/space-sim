@@ -126,7 +126,7 @@ export class CameraController {
   rotation = 0;
   horizon = true;
   /** Free view reached by dragging, rather than the planet-centred overview. */
-  private dragged = false;
+  dragged = false;
   /** The latest drawn camera, in system coordinates. */
   last: Camera = { center: { x: 0, y: 0 }, rotation: 0, scale: 1 };
 
@@ -155,17 +155,25 @@ export class CameraController {
   changeZoom(factor: number): void { this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom * factor)); }
 
   followShip(): void { this.mode = 'follow'; this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); this.clearFocus(); }
-  planetView(): void { this.mode = 'free'; this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); this.clearFocus(); }
-  /** Recentre a free view on the active body; other modes are unchanged. */
-  recenter(): void { this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); this.clearFocus(); }
+  planetView(bodyRadius?: number): void {
+    this.mode = 'free'; this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); this.clearFocus(); this.rotation = 0;
+    if (bodyRadius && bodyRadius > 0) this.setZoom(525 / bodyRadius);
+  }
+  /** Recentre a view on the ship. */
+  recenter(): void { this.followShip(); }
   /** Clear any focused or in-flight smart target. */
   clearFocus(): void { this.focusTarget = undefined; this.smartTarget = undefined; }
   /** Follow ship → planet view → each module mode → follow ship. A dragged view returns to following. */
-  cycle(cameras: readonly CameraExtension[]): void {
+  cycle(cameras: readonly CameraExtension[], bodyRadius?: number): void {
     this.stopFling();
     this.clearFocus();
-    if (this.mode === 'follow') { this.planetView(); return; }
-    const next = this.mode === 'free' ? (this.dragged ? undefined : cameras[0])
+    if (this.mode === 'follow') { this.planetView(bodyRadius); return; }
+    if (this.mode === 'free' && !this.dragged) {
+      this.dragged = true;
+      this.rotation = 0;
+      return;
+    }
+    const next = this.mode === 'free' ? cameras[0]
       : cameras[cameras.findIndex(c => c.id === this.mode) + 1];
     if (next) { this.mode = next.id; this.dragged = false; } else this.followShip();
   }
@@ -184,7 +192,7 @@ export class CameraController {
     const relative = this.mode === 'free' ? this.pan : this.mode === 'follow' ? ship
       : { x: this.last.center.x - body.x, y: this.last.center.y - body.y };
     this.pan = dragCamera({ center: relative, rotation: this.rotation, scale: this.scale(width, height) }, delta).center;
-    this.mode = 'free'; this.dragged = true;
+    this.mode = 'free'; this.dragged = true; this.rotation = 0;
   }
 
   stopFling(): void {
@@ -226,36 +234,54 @@ export class CameraController {
       const distPx = dist * scale;
       const speedPx = Math.hypot(this.panVelocity.x, this.panVelocity.y) * scale;
 
-      if (options.instant || distPx < 4) {
-        // Arrived at target
-        this.pan = { x: options.focusPosition.x - body.x, y: options.focusPosition.y - body.y };
+      const finishArrival = () => {
+        this.pan = { x: options.focusPosition!.x - body.x, y: options.focusPosition!.y - body.y };
         this.panVelocity = { x: 0, y: 0 };
-        const arrived = this.smartTarget;
+        const arrived = this.smartTarget!;
         this.smartTarget = undefined;
         if (arrived.isPilotedShip) {
           this.followShip();
         } else {
           this.focusTarget = { kind: arrived.kind, id: arrived.id, name: arrived.name };
         }
+      };
+
+      if (options.instant || distPx < 1.0) {
+        finishArrival();
       } else {
-        // Smoothly guide camera towards target
-        const approachSpeed = Math.min(4500, Math.max(120, distPx * 5.0));
-        const desiredSpeedPx = distPx > 300 ? Math.max(speedPx, approachSpeed) : approachSpeed;
+        // Natural braking curve: stopping speed from distance d at comfortable deceleration (3600 px/s²)
+        const a = 3600;
+        const maxBrakeSpeedPx = Math.sqrt(2 * a * distPx);
+        // Brisk approach when far away (up to 3500 px/s), bounded cleanly by the braking curve
+        const approachSpeedPx = Math.min(3500, Math.max(speedPx, distPx * 4.0));
+        const desiredSpeedPx = Math.min(approachSpeedPx, maxBrakeSpeedPx);
         const desiredSpeedWorld = scale > 0 ? desiredSpeedPx / scale : 0;
+
         const ux = dist > 0 ? dx / dist : 0;
         const uy = dist > 0 ? dy / dist : 0;
         const desiredVel = { x: ux * desiredSpeedWorld, y: uy * desiredSpeedWorld };
 
-        const blend = 1 - Math.exp(-options.elapsed * 6.0);
+        // Steer velocity smoothly towards target; tighten steering as we get close to eliminate lateral drift
+        const blendRate = distPx < 300 ? 20.0 : 12.0;
+        const blend = 1 - Math.exp(-options.elapsed * blendRate);
         this.panVelocity = {
           x: this.panVelocity.x + (desiredVel.x - this.panVelocity.x) * blend,
           y: this.panVelocity.y + (desiredVel.y - this.panVelocity.y) * blend,
         };
 
-        this.pan = {
-          x: this.pan.x + this.panVelocity.x * options.elapsed,
-          y: this.pan.y + this.panVelocity.y * options.elapsed,
-        };
+        const stepX = this.panVelocity.x * options.elapsed;
+        const stepY = this.panVelocity.y * options.elapsed;
+        const stepAlongTarget = stepX * ux + stepY * uy;
+
+        // If this frame's step reaches or overshoots the target, or if remaining distance is within docking range, arrive cleanly
+        if (stepAlongTarget >= dist || distPx < 2.0) {
+          finishArrival();
+        } else {
+          this.pan = {
+            x: this.pan.x + stepX,
+            y: this.pan.y + stepY,
+          };
+        }
       }
     } else if (this.mode === 'free' && this.focusTarget && options.focusPosition) {
       // Locked onto target in orbit or flight
@@ -281,8 +307,8 @@ export class CameraController {
     const relative = this.mode === 'follow' ? ship : this.mode === 'free' ? this.pan : undefined;
     const center = relative ? { x: body.x + relative.x, y: body.y + relative.y } : options.target!.center;
     const goal = this.mode !== 'follow' && this.mode !== 'free' && options.target?.rotation !== undefined ? options.target.rotation
-      : this.horizon ? Math.PI / 2 - Math.atan2(ship.y, ship.x) : 0;
-    this.rotation = blendAngle(this.rotation, goal, options.instant ? 1 : Math.min(1, options.elapsed / .12));
+      : (this.mode === 'follow' && this.horizon) ? Math.PI / 2 - Math.atan2(ship.y, ship.x) : 0;
+    this.rotation = this.mode === 'free' ? 0 : blendAngle(this.rotation, goal, options.instant ? 1 : Math.min(1, options.elapsed / .12));
     this.last = { center, rotation: this.rotation, scale };
     return this.last;
   }

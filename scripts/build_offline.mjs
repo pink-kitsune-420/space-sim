@@ -31,7 +31,6 @@ html = html.replace(/<link\b[^>]*\brel="(?:manifest|icon)"[^>]*>\s*/gi, '');
 if (/<(?:script|link)\b[^>]*(?:src|href)="[^#]/i.test(html)) throw new Error('External build asset remains');
 const output = resolve(root, 'space-lab-offline.html');
 await writeFile(output, html);
-await writeFile(resolve(root, 'space-sim-offline.html'), html);
 const game = JSON.parse(await readFile(new URL('../games/space-sim/game.json', import.meta.url), 'utf8'));
 await writeFile(resolve(root, 'space-sim.spacegame'), gzipSync(JSON.stringify(game), { level: 9 }));
 const universe = JSON.parse(await readFile(new URL('../games/space-sim/universes/sandbox/default/universe.json', import.meta.url), 'utf8'));

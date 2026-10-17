@@ -16,7 +16,7 @@ for (const name of names.length ? names : ['chromium', 'firefox']) {
   try {
     const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, offline: true });
     const page = await context.newPage();
-    await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+    await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
     await page.locator('#preset').selectOption('planet-orbit');
     await page.waitForFunction(() => JSON.parse(document.querySelector('#debug').textContent || '{}').predictionEnd === 'closed');
     await page.waitForTimeout(12000);
@@ -28,7 +28,7 @@ for (const name of names.length ? names : ['chromium', 'firefox']) {
   } finally { await browser.close(); }
 }
 const report = { measuredAt: new Date().toISOString(), platform: platform(), kernel: release(),
-  artifactSha256: createHash('sha256').update(await readFile('dist/space-sim-offline.html')).digest('hex'),
+  artifactSha256: createHash('sha256').update(await readFile('dist/space-lab-offline.html')).digest('hex'),
   cpu: cpus()[0]?.model, mode: 'headless; local standalone HTML; networking disabled',
   caveat: 'Single desktop run, not a real mobile-device or release performance qualification.', results };
 await mkdir(dirname(out), { recursive: true });

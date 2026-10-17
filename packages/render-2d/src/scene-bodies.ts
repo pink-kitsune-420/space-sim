@@ -48,9 +48,9 @@ export function bodyUniformLocations(gl: WebGL2RenderingContext, program: WebGLP
 
 /** Upload one body: `pos` and `r` in CSS pixels, `center` the viewport centre (for the horizon of huge bodies). */
 export function setBodyUniforms(gl: WebGL2RenderingContext, u: BodyUniformLocations, b: RenderBody, pos: Vec, r: number,
-  center: Vec, camera: Camera): void {
+  center: Vec, camera: Camera, worldSeed = 0): void {
   const isStar = b.surfaceFeatures === 'star';
-  const look = appearanceUniforms(b);
+  const look = appearanceUniforms(b, worldSeed);
   const col = look ? look.colors[0] : parseHex(b.color ?? '#233c47');
   const accent = parseHex(b.horizonColor ?? b.accentColor ?? '#659497');
   const atmo = parseHexAlpha(b.skyColor ?? b.atmosphereColor ?? '#29495380');

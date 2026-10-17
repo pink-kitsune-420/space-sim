@@ -32,6 +32,7 @@ export interface GameSession {
   /** Returns the new ship's id when it exists immediately (local worlds). */
   spawn(presetId: string, godMode: boolean): string | undefined;
   respawn(shipId: string, presetId: string): void;
+  teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void;
   remove(shipId: string): void;
   setThrottle(shipId: string, throttle: number): void;
   setGodMode(shipId: string, enabled: boolean): void;
@@ -123,6 +124,10 @@ export class LocalSession implements GameSession {
   respawn(shipId: string, presetId: string): void {
     this.host.respawnShip(this.playerId, shipId, presetId);
   }
+  teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
+    this.world.teleport(shipId, bodyId, position, velocity, heading);
+    this.settle();
+  }
   remove(shipId: string): void { this.host.removeShip(this.playerId, shipId); }
   setThrottle(shipId: string, throttle: number): void { this.host.setThrottle(this.playerId, shipId, throttle); }
   setGodMode(shipId: string, enabled: boolean): void { this.host.setGodMode(this.playerId, shipId, enabled); }
@@ -157,6 +162,9 @@ export class RemoteSession implements GameSession {
   }
   spawn(presetId: string): undefined { this.client.spawn(presetId); return undefined; }
   respawn(shipId: string, presetId: string): void { this.client.respawn(shipId, presetId); }
+  teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
+    try { this.world.teleport(shipId, bodyId, position, velocity, heading); } catch {}
+  }
   remove(shipId: string): void { this.client.remove(shipId); }
   setThrottle(shipId: string, throttle: number): void { this.client.setThrottle(shipId, throttle); }
   setGodMode(shipId: string, enabled: boolean): void { this.client.setGodMode(shipId, enabled); }

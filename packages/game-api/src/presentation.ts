@@ -72,6 +72,43 @@ export interface RenderFrame {
   /** Validated presentation layers above the scene, in the overlay section: shapes in order,
    * then text in order so labels stay readable. */
   readonly overlays?: readonly OverlayPrimitive[];
+  /** Visual theme settings for universe backdrop, skybox, grids, and timers/counters. */
+  readonly theme?: RenderThemeOptions;
+}
+
+export type ThemeBackdropStyle = 'spacelab' | 'nebula' | 'carina' | 'galactic' | 'aurora' | 'supernova' | 'void' | 'pillars' | 'helix' | 'asteroids';
+export type ThemeGridStyle = 'cartesian' | 'polar' | 'dots' | 'hex' | 'off';
+export type ThemeCounterStyle = 'spacelab' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'custom';
+export type ThemeWindowStyle = 'classic' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'void' | 'crimson';
+
+export interface RenderThemeOptions {
+  readonly backdropStyle?: ThemeBackdropStyle;
+  readonly nebulaVisible?: boolean;
+  readonly nebulaIntensity?: number;
+  readonly starsVisible?: boolean;
+  readonly starDensity?: number;
+  readonly dustVisible?: boolean;
+  readonly galaxiesVisible?: boolean;
+  readonly animatedNebula?: boolean;
+  readonly ringsVisible?: boolean;
+  readonly asteroidBeltVisible?: boolean;
+  readonly gridEnabled?: boolean;
+  readonly gridStyle?: ThemeGridStyle;
+  readonly gridSpacing?: number;
+  readonly gridOpacity?: number;
+  readonly gridLabels?: boolean;
+  readonly gridColor?: string;
+  readonly windowStyle?: ThemeWindowStyle;
+  readonly windowColor?: string;
+  readonly counterTheme?: ThemeCounterStyle;
+  readonly hudColor?: string;
+  readonly hudScanlines?: boolean;
+  readonly hudGlow?: boolean;
+  readonly hudChamfer?: boolean;
+  readonly compactHud?: boolean;
+  readonly highQuality?: boolean;
+  readonly worldSeed?: number;
+  readonly shaderSeed?: number;
 }
 export type RenderSection = 'background' | 'planet' | 'path' | 'ship' | 'overlay';
 /** Optional profiler hook, called after each section has been drawn. */

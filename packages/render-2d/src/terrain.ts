@@ -216,7 +216,8 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const center = project(0, 0);
   const depth = Math.min(profile.bounds.minRadius * .22, 220 / camera.scale);
   // Air is a share of the radius, so it stays as deep as the zoom shows it, however close.
-  const glow = Math.max(profile.bounds.maxRadius * camera.scale * .08, Math.min(25, profile.bounds.maxRadius * camera.scale * .25)) / camera.scale;
+  const glowPx = Math.min(18, Math.max(2, profile.bounds.maxRadius * camera.scale * 0.05));
+  const glow = glowPx / camera.scale;
   const face = (vertices: readonly { x: number; y: number }[], color: Color, gradient?: TerrainFace['gradient']) => {
     const clipped = clipPolygon(vertices, width, height);
     if (clipped.length >= 3) faces.push({ points: clipped, color, gradient });

@@ -49,7 +49,7 @@ test('data imports start a new solo world, round trip the profile and keep the p
 
 test('a copied offline HTML imports data and flies with networking disabled', async ({ page, context }, testInfo) => {
   const path = testInfo.outputPath('renamed-game.html');
-  await copyFile(resolve('dist/space-sim-offline.html'), path);
+  await copyFile(resolve('dist/space-lab-offline.html'), path);
   const requests: string[] = [], errors: string[] = [];
   page.on('request', req => { if (/^https?:/.test(req.url())) requests.push(req.url()); });
   page.on('pageerror', error => errors.push(error.message));
@@ -148,7 +148,7 @@ for (const example of ['force', 'numerical']) test(`static ${example} motion exa
 
 test('a copied offline HTML runs the static force example without network access', async ({ page, context }, testInfo) => {
   const path = testInfo.outputPath('force-preview.html');
-  await copyFile(resolve('dist/space-sim-offline.html'), path);
+  await copyFile(resolve('dist/space-lab-offline.html'), path);
   const requests: string[] = [], errors: string[] = [];
   page.on('request', req => { if (/^https?:/.test(req.url())) requests.push(req.url()); });
   page.on('pageerror', error => errors.push(error.message));

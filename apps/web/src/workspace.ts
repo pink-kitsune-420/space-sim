@@ -59,10 +59,10 @@ export class Workspace {
 
     const groups: [Panel, string, HTMLElement[]][] = [
       ['setup', 'Flight & setup', [toolbar, setup, controls]],
-      ['data', 'Flight data', [take('.path-card'), element('module-panels')]],
+      ['data', 'Flight data', [element('module-panels')]],
       ['fleet', 'Fleet', [take('.fleet-card')]],
       ['multiplayer', 'Multiplayer', [take('.multiplayer')]],
-      ['library', 'Games & plugins', [element('lab-manager')]],
+      ['library', 'Load game & plugins', [element('lab-manager')]],
       ['tools', 'Tools & manual', [take('.utility-grid'), take('.debug')]],
     ];
     const shortLabels: Record<Panel, string> = {
@@ -70,7 +70,7 @@ export class Workspace {
       data: 'Data',
       fleet: 'Fleet',
       multiplayer: 'Online',
-      library: 'Games',
+      library: 'Load Game',
       tools: 'Tools',
     };
 
@@ -100,12 +100,6 @@ export class Workspace {
 
     const nav = take('.workspace-nav');
     nav.replaceChildren();
-    const flight = document.createElement('button');
-    flight.type = 'button';
-    flight.textContent = 'Flight';
-    flight.dataset.workspace = 'flight';
-    flight.onclick = () => this.close(true, false);
-    nav.append(flight);
 
     for (const [id, title, nodes] of groups) {
       this.titles.set(id, title);
@@ -186,6 +180,14 @@ export class Workspace {
       controlsModal.close();
       return;
     }
+    const themeModal = document.getElementById('theme-dialog') as HTMLDialogElement | null;
+    if (themeModal?.open || themeModal?.classList.contains('visible')) {
+      this.lastEscapeToggleAt = now;
+      if (typeof themeModal.close === 'function') themeModal.close();
+      else themeModal.removeAttribute('open');
+      themeModal.classList.remove('visible');
+      return;
+    }
     this.lastEscapeToggleAt = now;
     this.toggle(true);
   }
@@ -201,12 +203,19 @@ export class Workspace {
     this.updateButtons();
   }
 
-  private close(focus = false, fromEscape = false): void {
+  close(focus = false, fromEscape = false): void {
     const wasOpen = this.active !== undefined;
     this.active = undefined;
     this.drawer.hidden = true;
     this.updateButtons();
-    if (focus) element('flight-view').focus({ preventScroll: true });
+    if (focus) {
+      const isOrbitActive = !document.getElementById('orbit-sandbox-workspace')?.hidden;
+      if (isOrbitActive) {
+        document.getElementById('orbit-canvas')?.focus({ preventScroll: true });
+      } else {
+        element('flight-view').focus({ preventScroll: true });
+      }
+    }
     if (wasOpen && !fromEscape) this.onClose?.();
   }
 

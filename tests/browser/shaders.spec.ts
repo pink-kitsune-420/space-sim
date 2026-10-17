@@ -24,7 +24,7 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await context.setOffline(true);
-  await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+  await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   // Some browser test environments only provide Canvas 2D; check its graceful fallback separately.
   test.skip(await page.locator('#renderer-toggle').textContent() !== 'Renderer: WebGL', 'WebGL 2 unavailable in this browser environment');
   await openPanel(page, 'setup');

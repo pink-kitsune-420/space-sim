@@ -1,4 +1,4 @@
-// Browser frame-time benchmark for the built offline game (dist/space-sim-offline.html).
+// Browser frame-time benchmark for the built offline game (dist/space-lab-offline.html).
 // Loads a universe, optionally runs the in-game stress test, steps the zoom out, and
 // reads the game's own profiler from the #debug panel.
 //
@@ -30,7 +30,7 @@ try {
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   // --url targets a running dev server (readable function names in CPU profiles).
-  await page.goto(args.get('url') ?? pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+  await page.goto(args.get('url') ?? pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   const gl = await page.evaluate(() => {
     const c = document.createElement('canvas').getContext('webgl2');
     const ext = c?.getExtension('WEBGL_debug_renderer_info');

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Orbit Sandbox · Spacelab Gravity Playground</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Full-screen Canvas Context -->
+    <canvas id="orbit-canvas"></canvas>
+
+    <!-- Top Navigation & Simulation HUD -->
+    <header class="sandbox-header">
+      <div class="brand">
+        <span class="brand-badge">SPACELAB</span>
+        <h1 class="brand-title">Orbit Sandbox</h1>
+        <span class="brand-subtitle">Gravity Playground</span>
+      </div>
+
+      <!-- Time & Simulation Controls -->
+      <div class="control-group time-controls">
+        <button id="btn-play-pause" class="btn btn-icon" title="Play / Pause [Space]">
+          <span id="play-icon">⏸</span>
+        </button>
+        <div class="warp-selector">
+          <button class="warp-btn" data-warp="0.2">0.2×</button>
+          <button class="warp-btn active" data-warp="1">1×</button>
+          <button class="warp-btn" data-warp="5">5×</button>
+          <button class="warp-btn" data-warp="15">15×</button>
+          <button class="warp-btn" data-warp="50">50×</button>
+        </div>
+      </div>
+
+      <!-- Physics Mode Switcher -->
+      <div class="control-group physics-mode-group">
+        <span class="group-label">Physics:</span>
+        <div class="mode-toggles">
+          <button id="mode-kepler" class="toggle-btn" title="Kepler 2-body patched conic motion">Kepler</button>
+          <button id="mode-nbody" class="toggle-btn" title="Newtonian point-mass N-body gravitation">N-Body</button>
+          <button id="mode-fullbody" class="toggle-btn active" title="Full Body: Oblateness J2, Tidal Torques, Elastic Bounce/Merge">Full Body</button>
+        </div>
+        <button id="btn-fullbody-settings" class="btn btn-sm" title="Configure Full Body Physics">⚙ Mod</button>
+      </div>
+
+      <!-- System Actions -->
+      <div class="control-group header-actions">
+        <button id="btn-circularize-toggle" class="btn btn-pill" title="Toggle circular orbit snap [Shift]">
+          <span class="icon">⭘</span> Circularize <span class="hotkey">Shift</span>
+        </button>
+        <button id="btn-toggle-orbits" class="btn btn-pill active" title="Toggle Planet Orbit Lines [O]">
+          <span class="icon">⬭</span> Orbit Lines <span class="hotkey">O</span>
+        </button>
+        <button id="btn-toggle-grid" class="btn btn-pill active" title="Toggle Navigation Grid [G]">
+          <span class="icon">⊞</span> Grid <span class="hotkey">G</span>
+        </button>
+        <button id="btn-reset" class="btn btn-secondary" title="Reset to default Primus solar system">Reset</button>
+        <button id="btn-theme-open" class="btn btn-secondary" title="Customize Skybox, Procedural Nebulas, Grids & Timers">🎨 Theme</button>
+        <button id="btn-testing-open" class="btn btn-secondary" title="Open Testing Lab & Physics Benchmarks [T]">🧪 Testing Lab</button>
+        <button id="btn-export-open" class="btn btn-primary" title="Export universe to Space Sim">Export Universe</button>
+      </div>
+    </header>
+
+    <!-- Bottom Spawner Palette -->
+    <div class="palette-container">
+      <div class="palette-label">Spawn Palette (Click to select candidate, drag empty space to launch):</div>
+      <div class="palette-items" id="palette-items">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- Slingshot Action Indicator HUD (shown during drag) -->
+    <div id="slingshot-hud" class="slingshot-hud hidden">
+      <div class="hud-stat"><span class="hud-label">Velocity:</span> <span id="hud-vel" class="hud-val">0 m/s</span></div>
+      <div class="hud-stat"><span class="hud-label">Circ. Speed:</span> <span id="hud-circ" class="hud-val">—</span></div>
+      <div class="hud-stat"><span class="hud-label">Apoapsis:</span> <span id="hud-ap" class="hud-val">—</span></div>
+      <div class="hud-stat"><span class="hud-label">Periapsis:</span> <span id="hud-pe" class="hud-val">—</span></div>
+      <div class="hud-stat"><span class="hud-label">Period:</span> <span id="hud-period" class="hud-val">—</span></div>
+      <div id="hud-snap-badge" class="hud-snap-badge hidden">CIRCULAR ORBIT SNAPPED</div>
+    </div>
+
+    <!-- Floating / In-Situ Planet Inspector Panel -->
+    <aside id="planet-inspector" class="inspector-panel hidden">
+      <div class="inspector-header">
+        <div class="inspector-title-wrap">
+          <span id="inspector-preview-dot" class="preview-dot"></span>
+          <input type="text" id="inp-body-name" class="inspector-title-input" value="Planet" />
+        </div>
+        <button id="btn-close-inspector" class="btn-close" title="Close inspector">✕</button>
+      </div>
+
+      <div class="inspector-body">
+        <!-- Preset Quick Switcher -->
+        <div class="form-row">
+          <label class="form-label">Style Preset</label>
+          <select id="sel-preset" class="form-select">
+            <option value="oceanic">Oceanic Garden</option>
+            <option value="rocky">Rocky Moon</option>
+            <option value="gas-giant">Gas Giant (Rings)</option>
+            <option value="icy">Icy World</option>
+            <option value="volcanic">Volcanic World</option>
+            <option value="star">Radiant Star</option>
+          </select>
+        </div>
+
+        <!-- Radius Slider -->
+        <div class="form-row">
+          <div class="label-with-val">
+            <label class="form-label" for="rng-radius">Radius</label>
+            <span id="val-radius" class="val-display">512 m</span>
+          </div>
+          <input type="range" id="rng-radius" min="40" max="12000" step="10" value="512" />
+        </div>
+
+        <!-- Mass / Mu Slider -->
+        <div class="form-row">
+          <div class="label-with-val">
+            <label class="form-label" for="rng-mu">Gravity Parameter (μ)</label>
+            <span id="val-mu" class="val-display">1.31e7</span>
+          </div>
+          <input type="range" id="rng-mu" min="10000" max="8000000000" step="10000" value="13107200" />
+        </div>
+
+        <!-- Rotation Period Slider -->
+        <div class="form-row">
+          <div class="label-with-val">
+            <label class="form-label" for="rng-rotation">Rotation Period</label>
+            <span id="val-rotation" class="val-display">360 s</span>
+          </div>
+          <input type="range" id="rng-rotation" min="30" max="3600" step="10" value="360" />
+        </div>
+
+        <!-- Ocean Level Slider (Oceanic worlds) -->
+        <div id="row-ocean-level" class="form-row">
+          <div class="label-with-val">
+            <label class="form-label" for="rng-ocean">Ocean Level</label>
+            <span id="val-ocean" class="val-display">70%</span>
+          </div>
+          <input type="range" id="rng-ocean" min="0" max="1" step="0.05" value="0.7" />
+        </div>
+
+        <!-- Atmosphere Color -->
+        <div class="form-row">
+          <div class="label-with-val">
+            <label class="form-label">Atmosphere Glow Color</label>
+            <input type="color" id="inp-atmo-color" value="#4aa3df" />
+          </div>
+        </div>
+
+        <!-- Ring Belt Creator Section -->
+        <div class="inspector-section ring-section">
+          <div class="section-header">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-has-rings" />
+              <span>Enable Ring Belt</span>
+            </label>
+          </div>
+          <div id="ring-controls" class="ring-controls hidden">
+            <div class="form-row">
+              <div class="label-with-val">
+                <label class="form-label" for="rng-ring-inner">Inner Ring Radius</label>
+                <span id="val-ring-inner" class="val-display">1200 m</span>
+              </div>
+              <input type="range" id="rng-ring-inner" min="100" max="25000" step="50" value="1200" />
+            </div>
+            <div class="form-row">
+              <div class="label-with-val">
+                <label class="form-label" for="rng-ring-outer">Outer Ring Radius</label>
+                <span id="val-ring-outer" class="val-display">2500 m</span>
+              </div>
+              <input type="range" id="rng-ring-outer" min="150" max="35000" step="50" value="2500" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Orbit Line Setting -->
+        <div class="inspector-section">
+          <label class="checkbox-label">
+            <input type="checkbox" id="chk-show-orbit-line" checked />
+            <span>Show Orbit Line & Apsides</span>
+          </label>
+        </div>
+
+        <!-- Inspector Action Buttons -->
+        <div class="inspector-actions">
+          <button id="btn-focus-body" class="btn btn-secondary btn-block">Center Camera</button>
+          <button id="btn-delete-body" class="btn btn-danger btn-block">Delete Body [Del]</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Full Body Physics Config Modal -->
+    <div id="modal-fullbody" class="modal-backdrop hidden">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h2>Full Body Physics Settings</h2>
+          <button id="btn-close-fullbody" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            Full Body physics simulates non-spherical body dynamics, equatorial oblateness harmonics (J2),
+            tidal dissipation torques, and physical finite-volume collision responses.
+          </p>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-fb-j2" checked />
+              <span><strong>J2 Gravitational Oblateness</strong> — Quadrupole field causes nodal & apsidal precession.</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chk-fb-tidal" checked />
+              <span><strong>Tidal Torques & Spin-Orbit Locking</strong> — Gravitational gradients gradually synchronize rotation to orbital period.</span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <label class="form-label">Collision Behavior:</label>
+            <div class="radio-group">
+              <label><input type="radio" name="rad-collision" value="merge" checked /> Inelastic Merge (Accrete mass & radius)</label>
+              <label><input type="radio" name="rad-collision" value="bounce" /> Physical Elastic Bounce</label>
+            </div>
+          </div>
+
+          <div id="row-restitution" class="form-row hidden">
+            <div class="label-with-val">
+              <label class="form-label" for="rng-restitution">Restitution Coefficient (e)</label>
+              <span id="val-restitution" class="val-display">0.50</span>
+            </div>
+            <input type="range" id="rng-restitution" min="0" max="1" step="0.05" value="0.5" />
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-fullbody" class="btn btn-primary">Apply Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universe Export Modal -->
+    <div id="modal-export" class="modal-backdrop hidden">
+      <div class="modal-window modal-lg">
+        <div class="modal-header">
+          <h2>Export to Space Sim</h2>
+          <button id="btn-close-export" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            Compile your sandbox universe into a certified <code>UniverseDefinition</code> ready for flight in Space Sim.
+          </p>
+
+          <div class="form-row">
+            <label class="form-label" for="inp-universe-name">Universe Name</label>
+            <input type="text" id="inp-universe-name" class="form-input" value="Custom Orbit Sandbox Universe" />
+          </div>
+
+          <div class="form-row">
+            <label class="form-label" for="inp-universe-id">Universe ID (a-z, 0-9, dashes)</label>
+            <input type="text" id="inp-universe-id" class="form-input" value="custom-orbit-universe" />
+          </div>
+
+          <div id="export-summary" class="export-summary">
+            <!-- Populated dynamically with body count, central star, and validation status -->
+          </div>
+
+          <div class="export-actions-grid">
+            <div class="export-card">
+              <h3>Direct Flight Console Deep-Link</h3>
+              <p>Stage universe into browser storage and launch Space Sim directly in flight mode.</p>
+              <button id="btn-launch-flight" class="btn btn-primary btn-block">🚀 Launch in Space Sim Flight Console</button>
+            </div>
+
+            <div class="export-card">
+              <h3>Compressed Binary (.spaceuniverse)</h3>
+              <p>Lossless gzip binary archive ready for the Space Sim Import button.</p>
+              <button id="btn-download-spaceuniverse" class="btn btn-secondary btn-block">📦 Download .spaceuniverse</button>
+            </div>
+
+            <div class="export-card">
+              <h3>Raw JSON (.json)</h3>
+              <p>Uncompressed human-readable schema file conforming to universe.schema.json.</p>
+              <button id="btn-download-json" class="btn btn-secondary btn-block">📄 Download .json</button>
+            </div>
+
+            <div class="export-card">
+              <h3>Clipboard Export</h3>
+              <p>Copy formatted JSON directly to paste into Space Sim or developer tools.</p>
+              <button id="btn-copy-json" class="btn btn-secondary btn-block">📋 Copy JSON to Clipboard</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Testing Lab & Benchmark Modal -->
+    <div id="modal-testing" class="modal-backdrop hidden">
+      <div class="modal-window modal-lg">
+        <div class="modal-header">
+          <h2>🧪 Testing Lab & Physics Benchmarks</h2>
+          <button id="btn-close-testing" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            The Testing Environment provides automated verification suites and interactive orbital physics benchmarks
+            (chaotic three-body choreographies, J2 apsidal precession, tidal synchronization, and elastic bounce).
+          </p>
+
+          <div class="testing-grid">
+            <!-- Left: Interactive Benchmark Scenarios -->
+            <div class="testing-section">
+              <h3>Interactive Benchmark Scenarios</h3>
+              <p class="subtext">Load verified orbital setups directly into the physics engine:</p>
+              <div id="scenario-list" class="scenario-list">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+
+            <!-- Right: Automated In-Browser Diagnostic Suite -->
+            <div class="testing-section">
+              <div class="section-top-row">
+                <h3>Automated Diagnostics</h3>
+                <button id="btn-run-diagnostics" class="btn btn-primary btn-sm">▶ Run Tests</button>
+              </div>
+              <p class="subtext">Direct in-browser validation of energy conservation, J2, and schema integrity:</p>
+              <div id="diagnostic-results" class="diagnostic-results">
+                <div class="diag-empty">Click "Run Tests" to execute the in-browser test suite.</div>
+              </div>
+
+              <div class="cli-command-box">
+                <span class="cli-label">Terminal Test Command:</span>
+                <code>npm run test:sandbox</code>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

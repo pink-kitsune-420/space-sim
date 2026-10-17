@@ -92,7 +92,7 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await context.setOffline(true);
-  await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
+  await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await page.locator('#universe-file').setInputFiles({ name: 'ocean.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(ocean)) });
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect.poll(async () => (await debug(page)).position?.y).toBe(520);

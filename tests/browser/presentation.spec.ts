@@ -164,7 +164,7 @@ test('repeated presentation changes release GPU programs, panels and module reso
 
 test('a copied offline HTML runs the instruments and module commands without network access', async ({ page, context }, testInfo) => {
   const path = testInfo.outputPath('instruments.html');
-  await copyFile(resolve('dist/space-sim-offline.html'), path);
+  await copyFile(resolve('dist/space-lab-offline.html'), path);
   const requests: string[] = [], errors: string[] = [];
   page.on('request', req => { if (/^https?:/.test(req.url())) requests.push(req.url()); });
   page.on('pageerror', error => errors.push(error.message));

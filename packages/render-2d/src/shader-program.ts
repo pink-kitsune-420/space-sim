@@ -18,7 +18,23 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string): WebG
 /** Inspect once at load time. Reject incompatible inputs before they can break drawing. */
 function checkInterface(gl: WebGL2RenderingContext, program: WebGLProgram, pass: ShaderPass): void {
   const uniforms: Record<string, number> = { u_resolution: gl.FLOAT_VEC2, u_time: gl.FLOAT };
-  if (pass === 'scene') { uniforms.u_bodyCount = gl.INT; uniforms.u_noise = gl.SAMPLER_3D; }
+  if (pass === 'scene') {
+    uniforms.u_bodyCount = gl.INT;
+    uniforms.u_noise = gl.SAMPLER_3D;
+    uniforms.u_bgMode = gl.INT;
+    uniforms.u_gridEnabled = gl.INT;
+    uniforms.u_gridMode = gl.INT;
+    uniforms.u_gridSpacing = gl.FLOAT;
+    uniforms.u_gridOpacity = gl.FLOAT;
+    uniforms.u_gridColor = gl.FLOAT_VEC3;
+    uniforms.u_nebulaIntensity = gl.FLOAT;
+    uniforms.u_highQuality = gl.INT;
+    uniforms.u_galaxiesVisible = gl.INT;
+    uniforms.u_worldSeed = gl.FLOAT;
+    uniforms.u_camCenter = gl.FLOAT_VEC2;
+    uniforms.u_camScale = gl.FLOAT;
+    uniforms.u_camRotation = gl.FLOAT;
+  }
   else uniforms.u_style = gl.INT;
   if (pass === 'text') uniforms.u_tex = gl.SAMPLER_2D;
   const bodyTypes: Record<string, number> = {

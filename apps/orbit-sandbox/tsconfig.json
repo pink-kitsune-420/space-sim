@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@spacelab/sim-core": ["../../packages/sim-core/src/index.ts"],
+      "@spacelab/game-api": ["../../packages/game-api/src/index.ts"],
+      "@spacelab/render-2d": ["../../packages/render-2d/src/index.ts"],
+      "@spacelab/game-library": ["../../packages/game-library/src/index.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "vite.config.ts"
+  ]
+}

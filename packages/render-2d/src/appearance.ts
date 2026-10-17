@@ -29,20 +29,27 @@ export interface AppearanceUniforms {
 
 const CACHE = new WeakMap<object, AppearanceUniforms>();
 
+export function hashWorldSeed(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  return ((h >>> 0) % 10000) / 10;
+}
+
 /** Parsed palette for a body, cached per appearance object. Undefined draws a plain disc. */
-export function appearanceUniforms(body: RenderBody): AppearanceUniforms | undefined {
+export function appearanceUniforms(body: RenderBody, worldSeed = 0): AppearanceUniforms | undefined {
   const a = body.appearance;
   if (!a) return undefined;
   const cached = CACHE.get(a);
-  if (cached) return cached;
+  if (cached && a.seed !== undefined) return cached;
   const colors = [0, 1, 2, 3].map(i => parseRGB(a.colors[i] ?? a.colors[0] ?? body.color ?? '#233c47')) as unknown as AppearanceUniforms['colors'];
   const weights = COVERAGE[a.style];
   const mean = [0, 1, 2].map(k => colors.reduce((sum, c, i) => sum + c[k]! * weights[i]!, 0)) as unknown as RGB;
-  // A stable per-body pattern offset from its id.
+  // A stable per-body pattern offset from its id, seeded per world when not authored.
   let h = 2166136261;
   for (const ch of body.id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
   const tune = [a.water, a.clouds, a.ice, a.craters, a.turbulence, a.glow].map(v => v ?? .5) as unknown as AppearanceUniforms['tune'];
-  const result = { style: STYLE_INDEX[a.style], colors, mean, tune, seed: a.seed ?? (h >>> 0) % 997 / 10 };
-  CACHE.set(a, result);
+  const seed = a.seed ?? ((((h ^ Math.floor(worldSeed * 100)) >>> 0) % 9970) / 10);
+  const result = { style: STYLE_INDEX[a.style], colors, mean, tune, seed };
+  if (a.seed !== undefined) CACHE.set(a, result);
   return result;
 }

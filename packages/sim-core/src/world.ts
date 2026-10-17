@@ -1,4 +1,4 @@
-import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, ModuleState } from '../../game-api/src/index';
+import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, ModuleState } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import { createSimulationContext, ghostSample, magnitude, normalizeAngle, setGodMode } from './context';
@@ -305,6 +305,38 @@ export class World {
     const start = this.presetState(presetId);
     const next: Ship = { id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId: start.bodyId, controls: IDLE,
       state: { ...start.state, revision: ship.state.revision + 1, ...(ship.state.godMode ? { godMode: true } : {}) } };
+    this.fleet.set(ship.id, next);
+    this.prior.delete(ship.id);
+    this.wake(ship.id);
+    this.touched(ship.id);
+    return next;
+  }
+
+  /** Teleport/throw a ship into a new position, velocity and parent body frame. */
+  teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): Ship {
+    const ship = this.require(shipId);
+    const body = this.body(bodyId);
+    const rad = Math.hypot(position.x, position.y);
+    const speed = Math.hypot(velocity.x, velocity.y);
+    const dir = speed > 1e-6 ? Math.atan2(velocity.y, velocity.x) : Math.atan2(position.y, position.x) + Math.PI / 2;
+    const h = heading ?? dir;
+    const next: Ship = {
+      id: ship.id,
+      name: ship.name,
+      ownerId: ship.ownerId,
+      bodyId,
+      controls: IDLE,
+      state: {
+        time: this.time,
+        position: { x: position.x, y: position.y },
+        velocity: { x: velocity.x, y: velocity.y },
+        heading: h,
+        throttle: 0,
+        status: rad <= body.radius ? 'landed' : 'flying',
+        revision: ship.state.revision + 1,
+        ...(ship.state.godMode ? { godMode: true } : {}),
+      },
+    };
     this.fleet.set(ship.id, next);
     this.prior.delete(ship.id);
     this.wake(ship.id);

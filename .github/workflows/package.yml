@@ -62,7 +62,6 @@ jobs:
           name: space-sim-offline-html
           path: |
             dist/space-lab-offline.html
-            dist/space-sim-offline.html
             dist/space-sim.spacegame
             dist/space-sim.spaceuniverse
             dist/universes/
@@ -152,11 +151,15 @@ jobs:
           fi
 
           # Offline Web & Bundles
-          if [ -f all-artifacts/space-sim-offline-html/space-sim-offline.html ]; then
-            cp all-artifacts/space-sim-offline-html/space-sim-offline.html "release-files/space-sim-${TAG}-offline.html"
+          if [ -f all-artifacts/space-sim-offline-html/space-lab-offline.html ]; then
+            cp all-artifacts/space-sim-offline-html/space-lab-offline.html "release-files/space-lab-${TAG}-offline.html"
           fi
-          find all-artifacts/space-sim-offline-html -name "*.spacegame" -exec cp {} release-files/ \;
-          find all-artifacts/space-sim-offline-html -name "*.spaceuniverse" -exec cp {} release-files/ \;
+          find all-artifacts/space-sim-offline-html -maxdepth 1 -name "*.spacegame" -exec cp {} release-files/ \;
+          find all-artifacts/space-sim-offline-html -maxdepth 1 -name "*.spaceuniverse" -exec cp {} release-files/ \;
+
+          if [ -d all-artifacts/space-sim-offline-html/universes ]; then
+            tar -czf "release-files/space-sim-universes-${TAG}.tar.gz" -C all-artifacts/space-sim-offline-html universes
+          fi
 
           # Android APK (debug-signed, for sideloading)
           if [ -f all-artifacts/space-sim-android-apk/app-debug.apk ]; then

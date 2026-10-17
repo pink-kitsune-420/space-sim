@@ -14,6 +14,7 @@ export class LabManager {
   private ready: Promise<void> | undefined;
   constructor(private readonly options: {
     readonly builtin: GamePackage;
+    readonly builtins?: readonly GamePackage[];
     readonly install: (plugin: PluginPackage) => void;
     readonly legacy: (text: string) => void;
     readonly universe: (universe: UniverseDefinition) => void;
@@ -87,7 +88,13 @@ export class LabManager {
   refresh(): void {
     const search = element<HTMLInputElement>('game-search').value.trim().toLowerCase();
     const favorites = element<HTMLInputElement>('game-favorites').checked;
-    const entries: LibraryGame[] = [{ id: 'builtin', game: this.options.builtin, folder: 'Built-in', favorite: false }, ...this.library.entries];
+    const builtins: LibraryGame[] = (this.options.builtins ?? [this.options.builtin]).map(b => ({
+      id: b.info.id === this.options.builtin.info.id ? 'builtin' : b.info.id,
+      game: b,
+      folder: 'Built-in',
+      favorite: false,
+    }));
+    const entries: LibraryGame[] = [...builtins, ...this.library.entries];
     const visible = entries.filter(e => (!favorites || e.favorite)
       && `${e.game.info.name} ${e.game.info.description} ${e.folder}`.toLowerCase().includes(search));
     const folder = element<HTMLSelectElement>('game-sort').value === 'folder';
@@ -118,7 +125,8 @@ export class LabManager {
       this.status(`Playing ${entry.game.info.name}. Its plugin selection is active in a new world.`);
     }, !this.options.editable()), this.button('Export game', () => this.export(entry.game)));
     card.append(title, description, meta, actions);
-    if (entry.id !== 'builtin') {
+    const isBuiltin = entry.id === 'builtin' || entry.id.startsWith('builtin') || entry.folder === 'Built-in';
+    if (!isBuiltin) {
       const star = this.button(entry.favorite ? '★ Favorite' : '☆ Favorite', async () => {
         await this.library.put(entry.game, { ...entry, favorite: !entry.favorite }); this.refresh();
       }); star.setAttribute('aria-pressed', String(entry.favorite)); actions.append(star);

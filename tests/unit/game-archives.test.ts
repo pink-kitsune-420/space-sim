@@ -9,6 +9,7 @@ import { buildModule } from '../../packages/module-tools/author.mjs';
 import { createBuiltinRegistry, DEFAULT_PROFILE, prepareGame } from '../../packages/modules/src/index';
 import { createPresentationRegistry, DEFAULT_PRESENTATION_PROFILE } from '../../packages/modules/src/browser';
 import builtinGame from '../../games/space-sim/game.json' with { type: 'json' };
+import builtinOrbitSandbox from '../../games/orbit-sandbox/game.json' with { type: 'json' };
 import gentle from '../../examples/modules/gentle-flight.json' with { type: 'json' };
 import { startServer } from '../../apps/server/src/server';
 import { parseCommandLine } from '../../apps/server/src/config';
@@ -32,6 +33,13 @@ describe('Spacelab portable games and plugins', () => {
     const world = prepareGame({ environment: 'node', universeKey: builtin.bundle.selection.universe, profile: builtin.bundle.profile });
     expect(world.world.systemId).toBeTruthy();
     world.candidate.dispose();
+  });
+  it('ships Orbit Sandbox as an ordinary selectable game descriptor', () => {
+    const sandbox = validatePackage(builtinOrbitSandbox) as GamePackage;
+    expect(sandbox.info.id).toBe('builtin.orbit-sandbox');
+    expect(sandbox.info.name).toBe('Orbit Sandbox');
+    expect(sandbox.bundle.profile).toEqual(DEFAULT_PROFILE);
+    expect(sandbox.bundle.presentation).toEqual(DEFAULT_PRESENTATION_PROFILE);
   });
   it('round trips a self-contained compressed game with code, data, settings and exact identity', async () => {
     const source = game();

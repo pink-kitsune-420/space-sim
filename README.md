@@ -24,7 +24,7 @@ Play directly in any modern desktop or mobile web browser:
 **[Launch Space Sim Online](https://pink-kitsune-420.github.io/space-sim/)**
 
 ### 2. Single-File Offline Web
-Download `space-sim-offline.html` from the [Releases](https://github.com/pink-kitsune-420/space-sim/releases) page and double-click to play locally with zero internet connection or server required.
+Download `space-lab-offline.html` from the [Releases](https://github.com/pink-kitsune-420/space-sim/releases) page and double-click to play locally with zero internet connection or server required.
 
 ### 3. Standalone Desktop & Dedicated Server Executables
 Download self-contained single-file executables for Windows, macOS, or Linux from GitHub Releases:

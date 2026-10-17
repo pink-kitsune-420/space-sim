@@ -18,7 +18,6 @@ jobs:
           name: space-lab-offline
           path: |
             dist/space-lab-offline.html
-            dist/space-sim-offline.html
             dist/space-sim.spacegame
             dist/space-sim.spaceuniverse
             dist/universes/

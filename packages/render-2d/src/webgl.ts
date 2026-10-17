@@ -1,4 +1,4 @@
-import { magnitude, planet, type State, type Vec } from '../../sim-core/src/index';
+import { planet, type State, type Vec } from '../../sim-core/src/index';
 import {
   type RenderBody, type RenderFrame, type RenderShip, type RenderTimer, type Renderer, type RendererFeatures,
   createProjector, hermiteControls, pathFromShip
@@ -11,6 +11,7 @@ import { terrainGeometry, terrainFaceColor, type TerrainGeometry } from './terra
 import { bodyUniformLocations, parseHex, setBodyUniforms, type BodyUniformLocations } from './scene-bodies';
 import { createNoiseTexture } from './noise-texture';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
+import { getActiveTheme, hexToRgb01, themeBackdropToShaderIndex, themeGridToShaderIndex } from './theme';
 
 /** Unit circle vertex tables, built once per segment count. */
 const UNIT_CIRCLES = new Map<number, Float64Array>();
@@ -94,6 +95,19 @@ export class WebGLRenderer implements Renderer {
   private quadResolutionLoc: WebGLUniformLocation | null = null;
   private quadBodyCountLoc: WebGLUniformLocation | null = null;
   private quadNoiseLoc: WebGLUniformLocation | null = null;
+  private bgModeLoc: WebGLUniformLocation | null = null;
+  private gridEnabledLoc: WebGLUniformLocation | null = null;
+  private gridModeLoc: WebGLUniformLocation | null = null;
+  private gridSpacingLoc: WebGLUniformLocation | null = null;
+  private gridOpacityLoc: WebGLUniformLocation | null = null;
+  private gridColorLoc: WebGLUniformLocation | null = null;
+  private nebulaIntensityLoc: WebGLUniformLocation | null = null;
+  private highQualityLoc: WebGLUniformLocation | null = null;
+  private galaxiesVisibleLoc: WebGLUniformLocation | null = null;
+  private worldSeedLoc: WebGLUniformLocation | null = null;
+  private camCenterLoc: WebGLUniformLocation | null = null;
+  private camScaleLoc: WebGLUniformLocation | null = null;
+  private camRotationLoc: WebGLUniformLocation | null = null;
   private pendingScene: PendingProgram | undefined;
   private readonly noise!: WebGLTexture;
   private bodyUniforms: readonly BodyUniformLocations[] = [];
@@ -255,6 +269,19 @@ export class WebGLRenderer implements Renderer {
     this.quadBodyCountLoc = gl.getUniformLocation(program, 'u_bodyCount');
     this.quadNoiseLoc = gl.getUniformLocation(program, 'u_noise');
     this.sceneTimeLoc = gl.getUniformLocation(program, 'u_time');
+    this.bgModeLoc = gl.getUniformLocation(program, 'u_bgMode');
+    this.gridEnabledLoc = gl.getUniformLocation(program, 'u_gridEnabled');
+    this.gridModeLoc = gl.getUniformLocation(program, 'u_gridMode');
+    this.gridSpacingLoc = gl.getUniformLocation(program, 'u_gridSpacing');
+    this.gridOpacityLoc = gl.getUniformLocation(program, 'u_gridOpacity');
+    this.gridColorLoc = gl.getUniformLocation(program, 'u_gridColor');
+    this.nebulaIntensityLoc = gl.getUniformLocation(program, 'u_nebulaIntensity');
+    this.highQualityLoc = gl.getUniformLocation(program, 'u_highQuality');
+    this.galaxiesVisibleLoc = gl.getUniformLocation(program, 'u_galaxiesVisible');
+    this.worldSeedLoc = gl.getUniformLocation(program, 'u_worldSeed');
+    this.camCenterLoc = gl.getUniformLocation(program, 'u_camCenter');
+    this.camScaleLoc = gl.getUniformLocation(program, 'u_camScale');
+    this.camRotationLoc = gl.getUniformLocation(program, 'u_camRotation');
     const bodyUniforms: BodyUniformLocations[] = [];
     for (let i = 0; i < 8; i++) bodyUniforms.push(bodyUniformLocations(gl, program, i));
     this.bodyUniforms = bodyUniforms;
@@ -300,7 +327,7 @@ export class WebGLRenderer implements Renderer {
     const { canvas, gl } = this;
     const { state, camera, engine, bodies } = frame;
     const width = canvas.clientWidth, height = canvas.clientHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pixelWidth = Math.round(width * dpr);
     const pixelHeight = Math.round(height * dpr);
 
@@ -322,14 +349,16 @@ export class WebGLRenderer implements Renderer {
     // 1. Fullscreen Shader Pass (Stars + Celestial Bodies)
     gl.disable(gl.BLEND);
     gl.useProgram(this.quadProgram);
-    if (this.sceneTimeLoc) gl.uniform1f(this.sceneTimeLoc, state.time);
+    const realTimeSec = (typeof performance !== 'undefined' ? performance.now() * 0.001 : state.time) % 3600;
+    const animTime = (frame.theme?.animatedNebula ?? true) ? realTimeSec : 0.0;
+    if (this.sceneTimeLoc) gl.uniform1f(this.sceneTimeLoc, animTime);
     if (this.vectorTimeLoc) {
       gl.useProgram(this.vectorProgram);
-      gl.uniform1f(this.vectorTimeLoc, state.time);
+      gl.uniform1f(this.vectorTimeLoc, realTimeSec);
     }
     if (this.textTimeLoc) {
       gl.useProgram(this.textProgram);
-      gl.uniform1f(this.textTimeLoc, state.time);
+      gl.uniform1f(this.textTimeLoc, realTimeSec);
     }
     if (this.vectorTimeLoc || this.textTimeLoc) gl.useProgram(this.quadProgram);
     gl.uniform2f(this.quadResolutionLoc, width, height);
@@ -350,7 +379,7 @@ export class WebGLRenderer implements Renderer {
       const isStar = b.surfaceFeatures === 'star';
       const outer = r < 2.5
         ? (isStar ? 6 : 2.5)
-        : (isStar ? r * 1.85 : r + Math.min(120, Math.max(25, r * 0.08)));
+        : (isStar ? r * 1.85 : (b.appearance?.style === 'banded' ? r * 2.45 : r + Math.min(120, Math.max(25, r * 0.08))));
       const clampX = Math.max(0, Math.min(width, pos.x));
       const clampY = Math.max(0, Math.min(height, pos.y));
       if ((pos.x - clampX) ** 2 + (pos.y - clampY) ** 2 > (outer + 8) ** 2) continue;
@@ -361,14 +390,35 @@ export class WebGLRenderer implements Renderer {
 
     let count = 0;
     const overflow: typeof visible = [];
+    const theme = frame.theme ? { ...getActiveTheme(), ...frame.theme } : getActiveTheme();
+    const worldSeed = (theme.shaderSeed && theme.shaderSeed !== 0)
+      ? theme.shaderSeed
+      : (frame.theme?.worldSeed ?? theme.worldSeed ?? 0.0);
     for (const v of visible) {
       const { b, pos, r, isStar } = v;
       if (b.surface && !isStar) continue;
       if (count >= 8) { overflow.push(v); continue; }
-      setBodyUniforms(gl, this.bodyUniforms[count]!, b, pos, r, { x: cx, y: cy }, camera);
+      setBodyUniforms(gl, this.bodyUniforms[count]!, b, pos, r, { x: cx, y: cy }, camera, worldSeed);
       count++;
     }
     gl.uniform1i(this.quadBodyCountLoc, count);
+    if (this.bgModeLoc) gl.uniform1i(this.bgModeLoc, themeBackdropToShaderIndex(theme.backdropStyle));
+    if (this.gridEnabledLoc) gl.uniform1i(this.gridEnabledLoc, theme.gridEnabled && theme.gridStyle !== 'off' ? 1 : 0);
+    if (this.gridModeLoc) gl.uniform1i(this.gridModeLoc, themeGridToShaderIndex(theme.gridStyle));
+    if (this.gridSpacingLoc) gl.uniform1f(this.gridSpacingLoc, theme.gridSpacing || 80);
+    if (this.gridOpacityLoc) gl.uniform1f(this.gridOpacityLoc, theme.gridOpacity ?? 0.45);
+    if (this.gridColorLoc) {
+      const gc = hexToRgb01(theme.gridColor || '#38bdf8');
+      gl.uniform3f(this.gridColorLoc, gc.r, gc.g, gc.b);
+    }
+    if (this.nebulaIntensityLoc) gl.uniform1f(this.nebulaIntensityLoc, theme.nebulaVisible ? (theme.nebulaIntensity ?? 1.0) : 0.0);
+    if (this.highQualityLoc) gl.uniform1i(this.highQualityLoc, theme.highQuality !== false ? 1 : 0);
+    if (this.galaxiesVisibleLoc) gl.uniform1i(this.galaxiesVisibleLoc, theme.galaxiesVisible !== false ? 1 : 0);
+    if (this.worldSeedLoc) gl.uniform1f(this.worldSeedLoc, worldSeed);
+    if (this.camCenterLoc) gl.uniform2f(this.camCenterLoc, camera.center.x, camera.center.y);
+    if (this.camScaleLoc) gl.uniform1f(this.camScaleLoc, camera.scale);
+    if (this.camRotationLoc) gl.uniform1f(this.camRotationLoc, camera.rotation);
+
     // Unit 1 keeps the noise lattice clear of the label textures on unit 0.
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_3D, this.noise);
@@ -460,13 +510,12 @@ export class WebGLRenderer implements Renderer {
     const metres = 10 ** Math.floor(Math.log10(100 / camera.scale));
     const pixels = metres * camera.scale;
     const barY = height - 27;
-    verts[0] = 24; verts[1] = barY;
-    verts[2] = 24 + pixels; verts[3] = barY;
+    verts[0] = width - 24 - pixels; verts[1] = barY;
+    verts[2] = width - 24; verts[3] = barY;
     this.uploadAndDraw(2, gl.LINES, ShaderStyle.scale);
 
     this.beginTextPass(width, height);
-    this.drawLabel(`${metres} m`, 24, height - 36, ShaderStyle.telemetryLabel, 'left', dpr);
-    this.drawLabel(`R ${magnitude(state.position).toFixed(1)} m`, width - 24, height - 27, ShaderStyle.telemetryLabel, 'right', dpr);
+    this.drawLabel(`${metres} m`, width - 24, height - 36, ShaderStyle.telemetryLabel, 'right', dpr);
     if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
     timer?.lap('overlay');
 
