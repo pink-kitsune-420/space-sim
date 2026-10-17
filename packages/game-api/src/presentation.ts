@@ -27,6 +27,8 @@ export interface RenderBody {
   readonly orbitRadius?: number;
   /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */
   readonly rotation?: number;
+  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */
+  readonly sunDirection?: Vec;
 }
 /** Another vessel in the same world: one of this player's fleet, or someone else's. */
 export interface RenderShip {

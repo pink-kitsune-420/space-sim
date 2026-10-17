@@ -25,6 +25,7 @@ import { CommandBar } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
 import { Prediction } from './prediction';
 import { SpinView } from './spin-view';
+import { loadGraphicsQuality, saveGraphicsQuality } from './graphics';
 import './style.css';
 import {
   DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
@@ -82,6 +83,19 @@ const warpFactorSpan = element<HTMLElement>('warp-factor');
 let lastWarp = 1;
 const cameraButton = element<HTMLButtonElement>('camera');
 const orientationButton = element<HTMLButtonElement>('orientation');
+const graphicsButton = element<HTMLButtonElement>('graphics-toggle');
+let graphicsQuality = loadGraphicsQuality();
+function syncGraphicsButton(): void {
+  graphicsButton.textContent = `Graphics: ${graphicsQuality === 'high' ? 'High' : 'Low'}`;
+  graphicsButton.setAttribute('aria-pressed', String(graphicsQuality === 'high'));
+}
+syncGraphicsButton();
+graphicsButton.addEventListener('click', () => {
+  graphicsQuality = graphicsQuality === 'high' ? 'low' : 'high';
+  saveGraphicsQuality(graphicsQuality);
+  syncGraphicsButton();
+  profiler.event('graphics', { quality: graphicsQuality });
+});
 const godModeToggle = element<HTMLInputElement>('god-mode');
 const profilerPanel = element<HTMLElement>('profiler');
 const profilerButton = element<HTMLButtonElement>('profiler-toggle');
@@ -1802,8 +1816,12 @@ function frame(now: number): void {
   }
   // Resolved bodies for renderer
   const world = session.world;
+  // High quality lights every body from the system's star; starless systems stay unlit.
+  const star = graphicsQuality === 'high' ? world.system.getAllBodies().find(b => b.surfaceFeatures === 'star') : undefined;
+  const starPos = star && world.system.getBodyPosition(star.id, view.time);
   const renderBodies = world.system.getAllBodies().map(b => {
     const pos = world.system.getBodyPosition(b.id, view.time);
+    const toStar = starPos && b !== star ? Math.hypot(starPos.x - pos.x, starPos.y - pos.y) : 0;
     const parentPos = b.parentId ? world.system.getBodyPosition(b.parentId, view.time) : undefined;
     const orbitR = b.ephemeris.kind === 'circular-kepler'
       ? (b.ephemeris.radius ?? b.ephemeris.radiusMetres)
@@ -1823,6 +1841,7 @@ function frame(now: number): void {
       parentPosition: parentPos,
       orbitRadius: orbitR,
       ...(b.rotation ? { rotation: spinView.angle(b, view.time) } : {}),
+      ...(toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
     };
   });
 

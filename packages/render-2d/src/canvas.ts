@@ -3,6 +3,7 @@ import { createProjector, getPathGeometry, hermiteControls, type RenderBody, typ
   type RendererFeatures, type RenderTimer } from './frame';
 import { screenOverlays, type ScreenOverlay } from './overlay';
 import { drawCanvasTerrain, terrainGeometry } from './terrain';
+import { daylight, NIGHT_LEVEL, screenDirection } from './lighting';
 import { BodyCrowd, LabelPlacer, labelRect } from './layout';
 
 const distance = (a: Vec, b: Vec): number => Math.hypot(b.x - a.x, b.y - a.y);
@@ -35,8 +36,21 @@ const STAR_DIM_UV = new Float64Array(150);
   }
 }
 
+/** Shade the night side of a disc (and its glow) away from the screen direction to the star. */
+function drawNightSide(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, sun: Vec): void {
+  const edge = radius * 0.18;
+  const shadow = ctx.createLinearGradient(x + sun.x * edge, y + sun.y * edge, x - sun.x * edge, y - sun.y * edge);
+  shadow.addColorStop(0, 'rgba(5,10,18,0)');
+  shadow.addColorStop(1, `rgba(5,10,18,${1 - NIGHT_LEVEL})`);
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, 2 * Math.PI);
+  ctx.fill();
+}
+
 function drawPlanetBase(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number,
-  color = '#233c47', accent = '#659497', atmosphere = '#29495380'): void {
+  color = '#233c47', accent = '#659497', atmosphere = '#29495380', sun?: Vec): void {
+  // A lit disc shades from its day side; drawNightSide darkens it once its markings are drawn.
   // Only render outer atmospheric glow if body is large enough to see it
   if (radius >= 6) {
     const atmoRadius = radius * 1.08;
@@ -48,7 +62,8 @@ function drawPlanetBase(ctx: CanvasRenderingContext2D, x: number, y: number, rad
     ctx.arc(x, y, atmoRadius, 0, 2 * Math.PI);
     ctx.fill();
   }
-  const gradient = ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
+  const gradient = sun ? ctx.createLinearGradient(x + sun.x * radius, y + sun.y * radius, x - sun.x * radius, y - sun.y * radius)
+    : ctx.createLinearGradient(x - radius, y - radius, x + radius, y + radius);
   gradient.addColorStop(0, color);
   gradient.addColorStop(1, '#101e2b');
   ctx.fillStyle = gradient;
@@ -190,6 +205,8 @@ export function drawPlanetHorizon(
   isStar = false,
   horizonColor?: string,
   skyColor?: string,
+  /** Darkness of the visible ground and sky, 0 by day (see lighting.ts). */
+  night = 0,
 ): void {
   const cx = width / 2, cy = height / 2;
   const dx = x - cx, dy = y - cy;
@@ -297,6 +314,18 @@ export function drawPlanetHorizon(
   ctx.lineTo(horizonPtsX[0]! + ux * groundDepth, horizonPtsY[0]! + uy * groundDepth);
   ctx.closePath();
   ctx.fill();
+
+  // Night over the visible ground and its sky.
+  if (night > 0) {
+    ctx.fillStyle = `rgba(5,10,18,${night})`;
+    ctx.beginPath();
+    ctx.moveTo(horizonAtmoX[0]!, horizonAtmoY[0]!);
+    for (let i = 1; i <= HORIZON_STEPS; i++) ctx.lineTo(horizonAtmoX[i]!, horizonAtmoY[i]!);
+    ctx.lineTo(horizonPtsX[HORIZON_STEPS]! + ux * groundDepth, horizonPtsY[HORIZON_STEPS]! + uy * groundDepth);
+    ctx.lineTo(horizonPtsX[0]! + ux * groundDepth, horizonPtsY[0]! + uy * groundDepth);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   // 3. Crisp horizon line stroke
   ctx.strokeStyle = isStar ? '#fff8db' : (horizonColor ?? accent);
@@ -416,6 +445,7 @@ export class CanvasRenderer implements Renderer {
       const r = (b.surface?.bounds.maxRadius ?? b.radius) * camera.scale;
       const isStar = b.surfaceFeatures === 'star';
       const outer = isStar ? r * 1.85 : r + Math.min(120, Math.max(25, r * .08));
+      const sun = b.sunDirection && !isStar ? screenDirection(b.sunDirection, camera.rotation) : undefined;
 
       // Strict circle-to-viewport distance culling
       const clampX = Math.max(0, Math.min(width, pos.x));
@@ -462,11 +492,12 @@ export class CanvasRenderer implements Renderer {
             isStar,
             b.horizonColor,
             b.skyColor,
+            sun ? 1 - daylight((sun.x * (width / 2 - pos.x) + sun.y * (height / 2 - pos.y)) / (distToCenter || 1)) : 0,
           );
         } else if (isStar) {
           drawSun(ctx, pos.x, pos.y, r, b.color, b.accentColor, b.skyColor ?? b.atmosphereColor);
         } else {
-          drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.skyColor ?? b.atmosphereColor);
+          drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.skyColor ?? b.atmosphereColor, sun);
           if (r >= 18) {
             if (b.surfaceFeatures === 'craters') {
               drawCraterLines(ctx, pos.x, pos.y, r, -camera.rotation - (b.rotation ?? 0));
@@ -474,6 +505,7 @@ export class CanvasRenderer implements Renderer {
               drawPlanetLines(ctx, pos.x, pos.y, r, -camera.rotation - (b.rotation ?? 0));
             }
           }
+          if (sun) drawNightSide(ctx, pos.x, pos.y, r >= 6 ? r * 1.08 : r, sun);
         }
       }
       if (r <= maxViewportDim * 0.9 && labelled.has(b)) {

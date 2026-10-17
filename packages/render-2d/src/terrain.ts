@@ -1,5 +1,6 @@
 import { querySurface, type SurfaceProfile } from '../../sim-core/src/surface';
 import type { Camera, RenderBody } from './frame';
+import { daylight, skyLight, twilight, TWILIGHT_COLOR } from './lighting';
 
 const TAU = 2 * Math.PI;
 /** CSS pixels, independent of framebuffer DPI. Curve + simplification <= 0.5. */
@@ -29,6 +30,7 @@ function rgba(hex: string, alpha = 1): Color {
     parseInt(h.slice(4, 6), 16) / 255, h.length === 8 ? parseInt(h.slice(6), 16) / 255 : alpha];
 }
 const mix = (a: Color, b: Color, t: number): Color => a.map((v, i) => v + (b[i]! - v) * t) as unknown as Color;
+const dim = (c: Color, k: number): Color => [c[0] * k, c[1] * k, c[2] * k, c[3]];
 export const terrainCSS = (c: Color): string => `rgba(${c[0] * 255},${c[1] * 255},${c[2] * 255},${c[3]})`;
 export function terrainFaceColor(face: TerrainFace, p: { x: number; y: number }): Color {
   const g = face.gradient;
@@ -145,8 +147,13 @@ const LAST_GEOMETRY = new WeakMap<SurfaceProfile, { key: string; geometry: Terra
 /** One last view per immutable profile; no growing history of zoom levels or universes. */
 export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, view: Camera, width: number, height: number): TerrainGeometry {
   const profile = body.surface, camera = bodyFrameCamera(body, view);
+  // The sun in the body's own frame; slow orbital drift is rounded so a still view stays cached.
+  const angle = body.rotation ?? 0, sunDirection = body.sunDirection;
+  const sun = sunDirection && { x: Math.cos(angle) * sunDirection.x + Math.sin(angle) * sunDirection.y,
+    y: -Math.sin(angle) * sunDirection.x + Math.cos(angle) * sunDirection.y };
   const key = JSON.stringify([camera.center.x - body.position.x, camera.center.y - body.position.y,
-    camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor]);
+    camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor,
+    sun ? [Math.round(sun.x * 1e3), Math.round(sun.y * 1e3)] : null]);
   const cached = LAST_GEOMETRY.get(profile);
   if (cached?.key === key) return cached.geometry;
   const localDistance = Math.hypot(camera.center.x - body.position.x, camera.center.y - body.position.y);
@@ -227,10 +234,13 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
     const qDepth = water ? depth : Math.min(depth, landDepth(q.radius));
     if (ocean && !water) face([p, q, project(q.angle, q.radius - landDepth(q.radius)), project(p.angle, p.radius - landDepth(p.radius))], dark);
     const normal = query.normal;
-    const light = .45 + .3 * (normal.x * -.6 + normal.y * .8);
+    // Slopes facing the sun are brighter; without a sun, a fixed upper-left light.
+    const light = .45 + .3 * (sun ? normal.x * sun.x + normal.y * sun.y : normal.x * -.6 + normal.y * .8);
+    const cosSun = sun ? Math.cos(middle) * sun.x + Math.sin(middle) * sun.y : 1;
+    const day = sun ? daylight(cosSun) : 1;
     const shallowScale = Math.max(.1, profile.referenceRadius * .005);
-    const shade = water ? mix(rgba('#53afad'), rgba('#155882'), Math.min(1, query.waterDepth / shallowScale))
-      : mix(dark, base, light + .25);
+    const shade = dim(water ? mix(rgba('#53afad'), rgba('#155882'), Math.min(1, query.waterDepth / shallowScale))
+      : mix(dark, base, light + .25), day);
     face([p, q, project(q.angle, q.radius - qDepth), project(p.angle, p.radius - pDepth)], shade,
       { from: project(middle, radius), to: project(middle, radius - Math.max(1e-12, (pDepth + qDepth) / 2)), color: deep });
     if (water) {
@@ -238,8 +248,13 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
       face([p, q, project(q.angle, q.radius - band), project(p.angle, p.radius - band)], rgba('#71c5c338'),
         { from: project(middle, radius), to: project(middle, radius - band), color: rgba('#71c5c300') });
     }
-    if (sky[3] > 0) face([p, q, project(q.angle, q.radius + glow), project(p.angle, p.radius + glow)], sky,
-      { from: project(middle, radius), to: project(middle, radius + glow), color: [sky[0], sky[1], sky[2], 0] });
+    // The atmosphere glows by day, fades at night and warms at sunrise and sunset.
+    const air: Color = !sun ? sky : (() => {
+      const warm = mix(sky, [...TWILIGHT_COLOR, sky[3]] as Color, twilight(cosSun) * .7);
+      return [warm[0], warm[1], warm[2], sky[3] * skyLight(cosSun)];
+    })();
+    if (air[3] > 0) face([p, q, project(q.angle, q.radius + glow), project(p.angle, p.radius + glow)], air,
+      { from: project(middle, radius), to: project(middle, radius + glow), color: [air[0], air[1], air[2], 0] });
     const line = clipLine(p, q, width, height);
     if (line) edge.push(line);
   }

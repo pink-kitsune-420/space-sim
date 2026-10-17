@@ -7,6 +7,7 @@ import { DEFAULT_SHADERS, ShaderStyle, validateShaderPack, type ShaderPack } fro
 import { compileOverlayTextProgram, compileShaderPack, compileTerrainProgram, type ShaderPrograms } from './shader-program';
 import { overlayRgba, screenOverlays, type ScreenOverlay } from './overlay';
 import { terrainGeometry, terrainFaceColor, type TerrainGeometry } from './terrain';
+import { screenDirection } from './lighting';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
 
 const HEX_RGB_CACHE = new Map<string, readonly [number, number, number]>();
@@ -103,6 +104,8 @@ interface BodyUniformLocations {
   readonly accent: WebGLUniformLocation | null;
   readonly atmosphere: WebGLUniformLocation | null;
   readonly isStar: WebGLUniformLocation | null;
+  /** Optional in shader packs: screen direction to the star, zero when unlit. */
+  readonly sunDir: WebGLUniformLocation | null;
 }
 
 const DEFAULT_BODY_LIST: readonly RenderBody[] = Object.freeze([{
@@ -280,6 +283,7 @@ export class WebGLRenderer implements Renderer {
         accent: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].accent`),
         atmosphere: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].atmosphere`),
         isStar: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].isStar`),
+        sunDir: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].sunDir`),
       });
     }
     this.bodyUniforms = bodyUniforms;
@@ -405,6 +409,8 @@ export class WebGLRenderer implements Renderer {
       gl.uniform3f(u.accent, accent[0], accent[1], accent[2]);
       gl.uniform4f(u.atmosphere, atmo[0], atmo[1], atmo[2], atmo[3]);
       gl.uniform1i(u.isStar, isStar ? 1 : 0);
+      const sun = b.sunDirection && !isStar ? screenDirection(b.sunDirection, camera.rotation) : { x: 0, y: 0 };
+      gl.uniform2f(u.sunDir, sun.x, sun.y);
       count++;
     }
     gl.uniform1i(this.quadBodyCountLoc, count);

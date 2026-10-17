@@ -124,3 +124,31 @@ it('retains zoom simplification on a maximum-resolution flat profile exactly at 
   const plateau = createSurfaceProfile(160, [-1, 0, 0, 0, -1], 0, 160);
   expect(plateau.coastAngles).toEqual([2 * Math.PI / 5, 6 * Math.PI / 5]);
 });
+
+it('draws a turned body exactly as its unturned frame seen through the turned camera', () => {
+  const position = { x: 3e6, y: -2e6 }, spin = 1.1;
+  const body = { id: 'fixture', name: 'Fixture', radius: 160, position, surface: profile };
+  const camera: Camera = { center: { x: position.x + 120, y: position.y + 90 }, rotation: .4, scale: 3 };
+  const turned = terrainGeometry({ ...body, rotation: spin }, camera, 800, 600);
+  // The same view from the body frame: camera offset turned back, rotation added.
+  const x = 120, y = 90, c = Math.cos(spin), s = Math.sin(spin);
+  const local = terrainGeometry({ ...body, id: 'copy', surface: createSurfaceProfile(160, elevations, orientation) },
+    { center: { x: position.x + x * c + y * s, y: position.y - x * s + y * c }, rotation: .4 + spin, scale: 3 }, 800, 600);
+  expect(turned.boundary.length).toBe(local.boundary.length);
+  turned.boundary.forEach((p, i) => {
+    expect(p.x).toBeCloseTo(local.boundary[i]!.x, 6);
+    expect(p.y).toBeCloseTo(local.boundary[i]!.y, 6);
+  });
+});
+
+it('lights ground facing the star and darkens the night side', () => {
+  const brightness = (sunDirection: { x: number; y: number }): number => {
+    const surface = createSurfaceProfile(160, elevations, orientation);
+    const body = { id: 'lit', name: 'Lit', radius: 160, position: { x: 0, y: 0 }, surface, sunDirection };
+    const geometry = terrainGeometry(body, { center: { x: 0, y: 170 }, rotation: 0, scale: 4 }, 800, 600);
+    const ground = geometry.faces.filter(f => f.gradient && f.color[3] === 1);
+    return ground.reduce((sum, f) => sum + f.color[0] + f.color[1] + f.color[2], 0) / ground.length;
+  };
+  // The camera looks at the north pole: noon with the star overhead, midnight with it below.
+  expect(brightness({ x: 0, y: 1 })).toBeGreaterThan(brightness({ x: 0, y: -1 }) * 2);
+});

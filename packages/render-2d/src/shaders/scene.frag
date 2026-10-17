@@ -15,10 +15,14 @@ struct Body {
   vec3 accent;
   vec4 atmosphere;
   int isStar;
+  vec2 sunDir; // screen direction (y down) to the star; zero when unlit
 };
 
 uniform int u_bodyCount;
 uniform Body u_bodies[8];
+
+// Day/night: 1 by day, 0.35 at night, smooth across the terminator (see lighting.ts).
+float daylight(float c) { return 0.35 + 0.65 * smoothstep(-0.18, 0.18, c); }
 
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -94,11 +98,19 @@ void main() {
         col = mix(col, vec3(1.0, 0.97, 0.86), 0.8);
       }
     } else {
+      bool lit = dot(b.sunDir, b.sunDir) > 0.5;
+      float cosSun = lit ? dot(normalize(relCenter), b.sunDir) : 1.0;
       float atmoThickness = min(120.0, max(25.0, r * 0.08));
       if (sd > 0.0 && sd <= atmoThickness) {
         float atmoT = 1.0 - sd / atmoThickness;
         float atmoAlpha = b.atmosphere.a * pow(atmoT, 1.5);
-        col = mix(col, b.atmosphere.rgb, atmoAlpha);
+        vec3 atmoCol = b.atmosphere.rgb;
+        if (lit) {
+          // Faint at night, warm at sunrise and sunset.
+          atmoAlpha *= 0.2 + 0.8 * smoothstep(-0.25, 0.1, cosSun);
+          atmoCol = mix(atmoCol, vec3(1.0, 0.6, 0.35), (1.0 - smoothstep(0.0, 0.3, abs(cosSun))) * 0.7);
+        }
+        col = mix(col, atmoCol, atmoAlpha);
       }
       if (sd <= 0.0) {
         float gradT;
@@ -106,12 +118,14 @@ void main() {
           gradT = clamp(-sd / 350.0, 0.0, 1.0);
         } else {
           vec2 dir = relCenter / max(1.0, r);
-          gradT = clamp((dir.x + dir.y) * 0.5 + 0.5, 0.0, 1.0);
+          // Shade away from the star when lit, else from a fixed upper-left light.
+          gradT = lit ? clamp(0.5 - 0.5 * cosSun, 0.0, 1.0) * 0.6 : clamp((dir.x + dir.y) * 0.5 + 0.5, 0.0, 1.0);
         }
         vec3 bodyCol = mix(b.color, vec3(0.063, 0.118, 0.169), gradT);
-        col = bodyCol;
+        float day = lit ? daylight(cosSun) : 1.0;
+        col = bodyCol * day;
         float edge = smoothstep(0.0, -2.0, sd) - smoothstep(-1.5, -3.5, sd);
-        if (edge > 0.0) col = mix(col, b.accent, edge);
+        if (edge > 0.0) col = mix(col, b.accent * day, edge);
       }
     }
   }
