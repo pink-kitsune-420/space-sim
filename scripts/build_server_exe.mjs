@@ -3,10 +3,29 @@
 // in a copy of this Node binary, so players run it without installing anything.
 // It builds for the platform it runs on; CI builds Windows, macOS and Linux.
 import { execFileSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inject } from 'postject';
+
+function removeSignatureWindows(exePath) {
+  if (process.platform !== 'win32') return;
+  const candidates = ['signtool', 'signtool.exe'];
+  const kits = 'C:\\Program Files (x86)\\Windows Kits\\10\\bin';
+  if (existsSync(kits)) {
+    try {
+      for (const ver of readdirSync(kits).reverse()) {
+        candidates.push(join(kits, ver, 'x64', 'signtool.exe'));
+      }
+    } catch {}
+  }
+  for (const cmd of candidates) {
+    try {
+      execFileSync(cmd, ['remove', '/s', exePath], { stdio: 'ignore' });
+      return;
+    } catch {}
+  }
+}
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'dist-server');
@@ -23,9 +42,7 @@ execFileSync(process.execPath, ['--experimental-sea-config', config], { stdio: '
 rmSync(exe, { force: true });
 copyFileSync(process.execPath, exe);
 if (process.platform === 'darwin') execFileSync('codesign', ['--remove-signature', exe]);
-if (process.platform === 'win32') {
-  try { execFileSync('signtool', ['remove', '/s', exe]); } catch {}
-}
+removeSignatureWindows(exe);
 await inject(exe, 'NODE_SEA_BLOB', readFileSync(blob), {
   sentinelFuse: 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2',
   ...(process.platform === 'darwin' ? { machoSegmentName: 'NODE_SEA' } : {}),

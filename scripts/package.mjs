@@ -109,11 +109,15 @@ function checkEnvironment() {
 }
 
 function buildWebAssets() {
+  if (existsSync(join(root, 'dist', 'index.html')) && existsSync(join(root, 'dist-desktop', 'space-sim-desktop.cjs'))) {
+    return;
+  }
   runStep('Building web distribution & offline artifacts', () => {
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    execFileSync(npmCmd, ['run', 'build'], { cwd: root, stdio: 'inherit' });
+    execFileSync(npmCmd, ['run', 'build'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
   });
 }
+
 
 function packageDesktopExe() {
   console.log('\n[1/1] Packaging Standalone Game Desktop Executable...');
