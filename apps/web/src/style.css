@@ -1191,69 +1191,99 @@ main { max-width:1800px; padding:16px 24px 24px }
   .setup-run-controls { align-items:start }
 }
 
-/* Flight occupies one window. Secondary work shares an independently scrolling drawer. */
-html,body { height:100%; overflow:hidden }
-#app { height:100dvh; display:flex; flex-direction:column; overflow:hidden }
-#app > header { height:auto; min-height:48px; flex:0 0 auto; padding:6px 14px; gap:16px; flex-wrap:nowrap }
-header .wordmark { font-size:12px; letter-spacing:1px; gap:6px; white-space:nowrap }
-header .logo { font-size:23px }
-header #active-game { font:500 15px ui-sans-serif,system-ui,sans-serif; letter-spacing:0; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px }
-.workspace-nav { margin-left:auto; display:flex; gap:4px; width:auto; order:0; border:0; padding:0 }
-.workspace-nav button { padding:7px 10px; font-size:11px; white-space:nowrap; background:transparent; border-color:transparent }
-.workspace-nav button[aria-pressed=true] { background:#233b36; border-color:#416459; color:#c4efdb }
-.nav-short { display:none }
+/* Full-bleed flight viewport with minimal HUD; all settings & tools live in the Menu / Esc drawer. */
+html,body { width:100%; height:100%; margin:0; overflow:hidden; background:#080f19 }
+#app { width:100dvw; height:100dvh; display:flex; flex-direction:column; overflow:hidden; position:relative }
 :fullscreen, :fullscreen #app { width:100vw; height:100vh }
-header .connection { font-size:9px; letter-spacing:.4px; white-space:nowrap }
-#app > main { max-width:none; width:100%; margin:0; padding:8px; flex:1; min-height:0; overflow:hidden }
-#flight-console.workspace { display:grid; height:100%; min-height:0; grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) auto; gap:8px; overflow:visible }
-#flight-console > .setup-card { grid-column:1; grid-row:1; display:flex; align-items:center; gap:12px; padding:8px 12px; height:auto; overflow:visible }
-#flight-console > .setup-card h2,#flight-console > .setup-card > .eyebrow { display:none }
-.setup-card .universe-group { flex:1; min-width:0; margin:0; position:relative }
-.setup-card .setup-fields { flex:1.25; display:grid; grid-template-columns:1fr 1.2fr; gap:12px; min-width:0 }
-.setup-card .setup-fields > div { min-width:0 }
-.setup-card label { font-size:10px; margin:0 0 4px }
-.setup-card select { width:100%; min-width:0; font-size:11px; padding:5px 8px }
-.setup-card .universe-row { margin:0 0 4px; height:14px }
-.setup-card .universe-row label { margin:0 }
-.setup-card .universe-actions button { padding:1px 5px; font-size:9px }
-.setup-card .setup-run-controls { display:block; padding:16px 0 0; margin:0; flex-shrink:0 }
-.setup-card .god-mode { margin:0; white-space:nowrap }
-#universe-status:empty { display:none }
-#universe-status:not(:empty) { position:absolute; top:100%; left:0; z-index:5; margin:5px 0 0; background:#162531; padding:8px; border:1px solid #395561; width:min(450px,85vw); box-shadow:0 4px 15px #0008 }
-#flight-console > .flight-panel { grid-column:1; grid-row:2; min-height:0; height:100%; display:flex; flex-direction:column; align-self:stretch }
-#flight-console .view-toolbar { flex:0 0 auto; padding:6px 12px; min-height:38px; flex-wrap:wrap; gap:6px }
-#flight-console .view-toolbar > div { flex-wrap:wrap; gap:4px }
-#flight-console .view-toolbar button { padding:5px 8px; font-size:10px }
-#flight-console .viewport { height:auto; flex:1; min-height:0; aspect-ratio:auto }
-#flight-console .telemetry { flex:0 0 auto; padding:10px 16px; gap:12px }
-#flight-console .telemetry > div { padding:0 12px }
-#flight-console .telemetry output { font-size:22px }
-#flight-console .telemetry span { font-size:9px }
-#terrain-notice { position:absolute; bottom:150px; left:24px; z-index:2; max-width:min(600px,70vw); background:#101d27ed; padding:8px; pointer-events:none; font-size:10px }
-#flight-console > .controls { grid-column:1; grid-row:3; height:auto; overflow:visible; display:grid; grid-template-columns:auto minmax(90px,1fr) minmax(220px,1.4fr) auto; align-items:center; gap:12px; padding:8px 12px }
-.controls > .eyebrow,.controls > .control-note,.controls > .range-labels { display:none }
-.controls .throttle-heading { gap:10px; margin:0 }
-.controls .throttle-heading h2 { font-size:12px; margin:0 }
-.controls #throttle-value { font-size:16px }
-.controls #throttle { width:100%; margin:0 }
-.controls .piloting { display:grid; grid-template-columns:40px 1fr 40px; gap:6px; margin:0 }
-.controls .piloting button { min-height:38px; padding:6px }
-.controls #burn { font-size:10px }
-.controls #burn span { display:inline; margin-left:8px }
-.controls > .instruments-card { grid-column:auto; grid-row:auto; display:block; padding:0; border:0; background:transparent; height:auto; overflow:visible; margin:0 }
-.controls .instruments-card h2,.controls .instruments-card > p { display:none }
-.controls .instruments { display:flex; gap:5px; margin:0 }
-.controls .instruments button { font-size:10px; padding:7px 8px; flex:0 1 auto }
-.controls .module-commands:not([hidden]) { grid-column:1/-1; margin:0 }
-.workspace-drawer { position:fixed; z-index:20; top:var(--drawer-top,160px); bottom:var(--drawer-bottom,130px); right:16px; width:min(410px,calc(100vw - 32px)); display:flex; flex-direction:column; background:#0e1924f7; border:1px solid #3e5966; border-radius:8px; box-shadow:0 10px 40px #0008; min-height:100px }
-.workspace-drawer.wide { width:min(1040px,calc(100vw - 32px)) }
-.drawer-heading { display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; padding:10px 14px; border-bottom:1px solid #2d4350; gap:12px }
-.drawer-heading h2 { margin:0; font-size:14px; font-weight:500 }
-.drawer-heading button { padding:5px 9px; font-size:11px }
-.drawer-content { padding:12px; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable }
+#app > main { max-width:none; width:100%; height:100%; margin:0; padding:0; flex:1; min-height:0; overflow:hidden }
+#flight-console.workspace { display:block; width:100%; height:100%; min-height:0; margin:0; padding:0; overflow:hidden }
+#flight-console > .flight-panel { width:100%; height:100%; min-height:0; border:0; border-radius:0; background:#080f19; display:flex; flex-direction:column }
+#flight-console .viewport { width:100%; height:100%; flex:1; min-height:0; position:relative; overflow:hidden }
+
+/* Top-left HUD: Menu button + Active body & status pill */
+.hud-top-left { position:absolute; top:12px; left:12px; z-index:15; display:flex; align-items:center; gap:8px; pointer-events:none }
+.menu-toggle { pointer-events:auto; display:inline-flex; align-items:center; gap:7px; padding:6px 12px; min-height:36px; background:rgba(14,25,36,.92); border:1px solid rgba(164,230,207,.38); border-radius:6px; color:#e3ecee; font:600 12px Inter,ui-sans-serif,system-ui,sans-serif; letter-spacing:.3px; box-shadow:0 4px 16px rgba(0,0,0,.45); cursor:pointer }
+.menu-toggle:hover { background:rgba(30,50,68,.96); border-color:#a4e6cf }
+.menu-toggle[aria-pressed=true] { background:#233b36; border-color:#5fe0a8; color:#c4efdb }
+.menu-toggle .menu-icon { font-size:14px; line-height:1; color:#9ee0c6 }
+.menu-toggle kbd { margin:0 0 0 2px; padding:2px 5px; font-size:9px; background:rgba(20,35,48,.9); border-color:rgba(164,230,207,.25); color:#9fb5bb }
+.hud-status { display:flex; flex-direction:column; gap:2px; padding:4px 10px; background:rgba(10,18,28,.86); border:1px solid rgba(44,65,80,.65); border-radius:6px }
+.hud-status .view-title { display:flex !important; align-items:center; gap:7px; font:600 10px ui-monospace,monospace; letter-spacing:1px; color:#d9e4e3 }
+.hud-status .view-title i { margin:0 }
+.hud-status .view-title #status { color:#a3dcc5; border-left:1px solid #30414e; padding-left:7px }
+.hud-status .view-label { position:static; display:flex; align-items:center; gap:6px; font:9px ui-monospace,monospace; letter-spacing:.8px; color:#8ca4ad }
+.hud-status .view-label span { display:inline; font-size:8px; color:#5d7785; margin:0 }
+
+/* Top-right HUD: Mission clock, warp rate & connection status */
+#flight-console .view-time { position:absolute; right:12px; top:12px; z-index:15; padding:5px 10px; background:rgba(10,18,28,.86); border:1px solid rgba(44,65,80,.65); border-radius:6px; color:#d9e4e3; font:12px ui-monospace,monospace; text-align:right; pointer-events:none }
+#flight-console .view-time span { display:block; font-size:9px; color:#6d8893; margin-top:2px }
+#flight-console .view-time .connection { display:inline-flex !important; align-items:center; justify-content:flex-end; gap:5px; font-size:8px; letter-spacing:.5px; color:#8ab8a8; margin-top:2px }
+
+/* Top-center HUD: Flight message & terrain notice */
+#flight-message { position:absolute; top:14px; left:50%; right:auto; transform:translateX(-50%); max-width:min(480px,calc(100vw - 380px)); padding:5px 12px; background:rgba(10,18,28,.86); border:1px solid rgba(44,65,80,.6); border-radius:999px; text-align:center; font-size:11px; color:#d4e4e6; pointer-events:none; z-index:12; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+#terrain-notice { position:absolute; top:46px; bottom:auto; left:50%; transform:translateX(-50%); z-index:12; max-width:min(560px,calc(100vw - 32px)); background:rgba(14,25,36,.92); border:1px solid rgba(57,85,97,.6); border-radius:6px; padding:6px 10px; margin:0; pointer-events:none; font-size:10px; line-height:1.4; text-align:center }
+.profiler { top:68px; right:12px; z-index:18; max-height:calc(100% - 84px); overflow:auto; scrollbar-width:thin }
+
+/* Bottom-center HUD: Compact telemetry strip */
+#flight-console .telemetry { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:12; pointer-events:none; background:rgba(10,18,28,.88); border:1px solid rgba(44,65,80,.65); border-radius:8px; display:grid; grid-template-columns:repeat(4,auto); padding:6px 6px; gap:0; width:auto; max-width:calc(100vw - 24px) }
+#flight-console .telemetry > div { border-right:1px solid rgba(48,65,78,.7); padding:0 12px; white-space:nowrap }
+#flight-console .telemetry > div:last-child { border-right:0 }
+#flight-console .telemetry span { display:block; font:8px ui-monospace,monospace; color:#8ca4ad; letter-spacing:.5px; margin-bottom:2px }
+#flight-console .telemetry output { font:600 16px ui-monospace,monospace; letter-spacing:-.5px; font-variant-numeric:tabular-nums; color:#e3ecee }
+#flight-console .telemetry small { font:9px ui-monospace,monospace; color:#79919a; margin-left:3px; display:inline }
+
+/* Unified Tabbed Menu Overlay (Workspace Drawer) */
+.workspace-drawer { position:fixed; z-index:40; top:14px; bottom:14px; right:16px; width:min(500px,calc(100vw - 48px)); display:flex; flex-direction:column; background:rgba(13,23,34,.98); border:1px solid #3e5966; border-radius:10px; box-shadow:0 16px 48px rgba(0,0,0,.75); min-height:100px }
+.workspace-drawer.wide { width:min(960px,calc(100vw - 48px)) }
+.drawer-heading { display:flex; flex-direction:column; flex:0 0 auto; padding:10px 14px 8px; border-bottom:1px solid #2d4350; gap:8px; background:rgba(16,28,42,.85); border-radius:10px 10px 0 0 }
+.drawer-top-bar { display:flex; align-items:center; justify-content:space-between; gap:12px }
+.drawer-brand { display:flex; align-items:center; gap:10px; min-width:0 }
+.drawer-brand .wordmark { font-size:12px; letter-spacing:1px; gap:6px; white-space:nowrap }
+.drawer-brand .logo { font-size:20px }
+.drawer-brand #active-game { font:600 14px Inter,ui-sans-serif,system-ui,sans-serif; letter-spacing:0; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; color:#a4e6cf }
+.drawer-brand h2 { margin:0; font-size:13px; font-weight:500; color:#8fa4ad; border-left:1px solid #2d4350; padding-left:10px; white-space:nowrap }
+.drawer-close { padding:5px 10px; font-size:11px; flex-shrink:0 }
+.workspace-nav { display:flex; gap:4px; width:100%; overflow-x:auto; scrollbar-width:none; border:0; padding:0; margin:0 }
+.workspace-nav button { padding:6px 10px; font-size:11px; white-space:nowrap; background:#13202d; border:1px solid #283946; border-radius:5px }
+.workspace-nav button:hover { background:#1e3244 }
+.workspace-nav button[aria-pressed=true] { background:#233b36; border-color:#5fe0a8; color:#c4efdb }
+.nav-short { display:none }
+
+.drawer-content { padding:12px; flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable }
 .drawer-content .card { padding:14px; height:auto; overflow:visible; margin-bottom:12px }
+.drawer-content .card:last-child { margin-bottom:0 }
 .drawer-content .card > .eyebrow { display:none }
-.drawer-content .card h2 { font-size:14px; margin:0 0 12px }
+.drawer-content .card h2 { font-size:14px; margin:0 0 10px }
+
+/* Setup & Controls tab inside the menu drawer */
+.drawer-content .view-toolbar { display:flex; flex-direction:column; align-items:stretch; gap:8px; min-height:0; border:1px solid #283946 }
+.drawer-content .view-toolbar > div { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-start }
+.drawer-content .view-toolbar button { padding:6px 10px; font-size:11px; background:#14212e }
+.drawer-content .view-toolbar button:hover { background:#263c49 }
+.drawer-content .view-toolbar button[aria-pressed=true] { background:#345448; border-color:#5fe0a8 }
+.drawer-content .setup-card { display:flex; flex-direction:column; gap:10px }
+.drawer-content .setup-card h2 { display:none }
+.drawer-content .setup-card .universe-group { margin:0; position:relative }
+.drawer-content .setup-card .setup-fields { display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.drawer-content .setup-card .setup-run-controls { padding:4px 0 0; margin:0 }
+#universe-status:empty { display:none }
+#universe-status:not(:empty) { margin:6px 0 0; background:#162531; padding:8px; border:1px solid #395561; border-radius:5px }
+.drawer-content .controls { display:flex; flex-direction:column; gap:12px }
+.drawer-content .controls > .control-note,.drawer-content .controls > .range-labels { display:none }
+.drawer-content .controls .throttle-heading { display:flex; align-items:center; justify-content:space-between; margin:0 }
+.drawer-content .controls .throttle-heading h2 { font-size:13px; margin:0 }
+.drawer-content .controls #throttle-value { font-size:16px }
+.drawer-content .controls #throttle { width:100%; margin:0 }
+.drawer-content .controls .piloting { display:grid; grid-template-columns:48px 1fr 48px; gap:8px; margin:0 }
+.drawer-content .controls .piloting button { min-height:40px; padding:6px }
+.drawer-content .controls #burn { font-size:11px }
+.drawer-content .controls #burn span { display:inline; margin-left:8px }
+.drawer-content .controls > .instruments-card { display:block; padding:10px 0 0; border:0; border-top:1px solid #263743; border-radius:0; background:transparent; margin:0 }
+.drawer-content .controls .instruments-card h2,.drawer-content .controls .instruments-card > p { display:none }
+.drawer-content .controls .instruments { display:flex; flex-wrap:wrap; gap:6px; margin:0 }
+.drawer-content .controls .instruments button { font-size:11px; padding:6px 10px; flex:1 1 auto }
+.drawer-content .controls .module-commands:not([hidden]) { margin:0 }
+
 .drawer-content .module-panels { display:flex; flex-direction:column; gap:12px }
 .drawer-content .module-panel { padding:14px; height:auto; overflow:visible }
 .drawer-content .lab-manager { margin:0; padding:0; border:0; background:transparent; grid-template-columns:minmax(0,1fr) minmax(0,1fr) }
@@ -1262,54 +1292,43 @@ header .connection { font-size:9px; letter-spacing:.4px; white-space:nowrap }
 .drawer-content .utility-grid { display:block; margin:0 }
 .drawer-content .utility-grid > details { margin-bottom:12px }
 .drawer-content .debug { margin:12px 0 0 }
-@media(max-width:1050px) {
-  header .connection { display:none }
-  #app > header { gap:10px }
-  .workspace-nav button { padding:7px }
-  #flight-console > .controls { grid-template-columns:auto 1fr minmax(220px,1.3fr) }
-  .controls > .instruments-card { grid-column:1/-1 }
-  .controls .instruments { justify-content:center }
-}
+
 @media(max-width:650px) {
-  #app > header { flex-wrap:wrap; padding:6px 8px; gap:5px 12px; overflow:hidden }
-  header .wordmark { font-size:10px }
-  header #active-game { font-size:13px; max-width:190px }
-  .workspace-nav { width:100%; justify-content:space-between; gap:2px; max-width:100%; overflow-x:auto; scrollbar-width:none }
-  .workspace-nav button { font-size:10px; padding:6px 4px }
+  .hud-top-left { top:8px; left:8px; gap:6px }
+  .menu-toggle { padding:5px 10px; min-height:32px; font-size:11px }
+  .menu-toggle kbd { display:none }
+  .hud-status { padding:3px 8px }
+  .hud-status .view-title { font-size:9px }
+  .hud-status .view-label { display:none }
+  #flight-console .view-time { top:8px; right:8px; padding:4px 8px; font-size:10px }
+  #flight-console .view-time span { font-size:8px }
+  #flight-message { top:46px; max-width:calc(100vw - 20px); font-size:10px; padding:4px 10px }
+  #terrain-notice { top:74px; max-width:calc(100vw - 20px); font-size:9px }
+  #flight-console .telemetry { bottom:8px; padding:4px 4px }
+  #flight-console .telemetry > div { padding:0 7px }
+  #flight-console .telemetry span { font-size:7px; letter-spacing:.2px }
+  #flight-console .telemetry output { font-size:13px }
+  #flight-console .telemetry small { font-size:8px }
+  .workspace-drawer,.workspace-drawer.wide { top:8px; bottom:8px; right:8px; left:8px; width:auto }
+  .drawer-heading { padding:8px 10px 6px; gap:6px }
+  .drawer-brand #active-game { font-size:13px; max-width:130px }
+  .drawer-brand h2 { display:none }
+  .workspace-nav { justify-content:space-between; gap:3px }
+  .workspace-nav button { font-size:10px; padding:6px 6px; flex:1 1 auto; text-align:center }
   .nav-long { display:none }
   .nav-short { display:inline }
-  #app > main { padding:5px }
-  #flight-console.workspace { gap:5px }
-  #flight-console > .setup-card { flex-wrap:wrap; padding:6px 8px; gap:6px 10px }
-  .setup-card .universe-group { flex:1 1 70% }
-  .setup-card .setup-fields { flex:1 1 100%; order:3; gap:10px }
-  .setup-card .setup-run-controls { padding:12px 0 0 }
-  #flight-console .view-toolbar { padding:5px 7px }
-  #flight-console .view-toolbar > div { gap:3px }
-  #flight-console .view-toolbar button { padding:4px 6px; font-size:9px }
-  #flight-console .telemetry { padding:8px 4px; gap:0 }
-  #flight-console .telemetry > div { padding:0 7px }
-  #flight-console .telemetry span { font-size:7px; letter-spacing:.3px }
-  #flight-console .telemetry output { font-size:18px }
-  #flight-console .telemetry small { font-size:8px }
-  #flight-console > .controls { grid-template-columns:auto 1fr; gap:6px 10px; padding:6px 8px }
-  .controls .piloting { grid-column:1/-1; grid-template-columns:44px 1fr 44px }
-  .controls .piloting button { min-height:36px }
-  .controls .instruments button { padding:5px 8px; font-size:9px }
-  .workspace-drawer { right:10px; width:calc(100vw - 20px) }
-  .workspace-drawer.wide { width:calc(100vw - 20px) }
-  .drawer-content .lab-manager { display:block }
-  .drawer-heading { padding:7px 10px }
   .drawer-content { padding:8px }
-  #terrain-notice { left:16px; bottom:205px; max-width:calc(100vw - 32px); font-size:9px }
+  .drawer-content .setup-card .setup-fields { grid-template-columns:1fr }
+  .drawer-content .lab-manager { display:block }
 }
-@media(max-height:500px) and (min-width:651px) {
-  #app > header { min-height:36px }
-  #flight-console > .setup-card { padding:4px 8px }
-  #flight-console .telemetry { padding:5px }
-  #flight-console .telemetry output { font-size:17px }
-  #flight-console > .controls { padding:4px 8px; gap:5px }
-  .controls > .instruments-card { grid-column:auto }
+@media(max-height:500px) {
+  .hud-top-left { top:8px; left:8px }
+  .hud-status .view-label { display:none }
+  #flight-console .view-time { top:8px; right:8px; padding:3px 8px; font-size:10px }
+  #flight-console .telemetry { bottom:6px; padding:4px 6px }
+  #flight-console .telemetry output { font-size:13px }
+  .workspace-drawer,.workspace-drawer.wide { top:8px; bottom:8px }
+  .drawer-heading { padding:6px 10px }
 }
 
 /* Controls Configuration Modal */

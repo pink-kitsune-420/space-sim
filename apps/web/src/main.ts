@@ -304,7 +304,8 @@ function useSession(next: GameSession, recenter = true): void {
   syncPresetSelect();
   syncLocks();
   if (recenter) {
-    cameraControl.followShip(); cameraControl.rotation = 0;
+    cameraControl.followShip();
+    cameraControl.rotation = cameraControl.horizon ? Math.PI / 2 - Math.atan2(state.position.y, state.position.x) : 0;
     syncCameraButton();
     fitZoom(state);
   }
@@ -548,7 +549,7 @@ function fitZoom(start: State, presetId = preset.value): void {
   if (selectedPreset && typeof selectedPreset.zoom === 'number') {
     cameraControl.zoom = selectedPreset.zoom;
   } else if (start.status === 'landed') {
-    cameraControl.zoom = 1;
+    cameraControl.zoom = 10;
   } else {
     cameraControl.setZoom(1500 / (magnitude(start.position) * 2.8));
   }
@@ -578,8 +579,9 @@ function reset(): void {
   }
   syncSelected();
   lastTerrainContact = undefined;
-  cameraControl.rotation = 0;
-  fitZoom(session.world.presetState(presetId).state, presetId);
+  const startState = session.world.presetState(presetId).state;
+  cameraControl.rotation = cameraControl.horizon ? Math.PI / 2 - Math.atan2(startState.position.y, startState.position.x) : 0;
+  fitZoom(startState, presetId);
   cameraControl.recenter();
   lastStatus = state.status;
   syncCameraButton();
@@ -598,6 +600,8 @@ function syncCameraButton(): void {
   cameraControl.retain(presentation.cameras);
   const label = cameraControl.label(presentation.cameras);
   if (cameraButton.textContent !== label) cameraButton.textContent = label;
+  const orientLabel = cameraControl.horizon ? 'Horizon up' : 'North up';
+  if (orientationButton.textContent !== orientLabel) orientationButton.textContent = orientLabel;
 }
 function toggleProfiler(): void {
   profilerPanel.hidden = !profilerPanel.hidden;

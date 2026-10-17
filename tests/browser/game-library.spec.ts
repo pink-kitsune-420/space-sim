@@ -149,7 +149,7 @@ test('presentation initialization failure restores the old registry and code sel
   await play(page, 'Space Sim'); await play(page, 'Code flight');
 });
 
-test('copied Space Lab HTML plays compressed games and exports their code without network access', async ({ page, context }, testInfo) => {
+test('copied Spacelab HTML plays compressed games and exports their code without network access', async ({ page, context }, testInfo) => {
   const file = testInfo.outputPath('my-space-lab.html'); await copyFile(resolve('dist/space-lab-offline.html'), file);
   const requests: string[] = [], errors: string[] = [];
   page.on('request', r => { if (/^https?:/.test(r.url())) requests.push(r.url()); });

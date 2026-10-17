@@ -1,4 +1,4 @@
-# Space Lab 🚀
+# Spacelab 🚀
 
 A browser-first workspace and simulation engine for modular 2D space games, featuring double-precision orbital mechanics, hardware-accelerated WebGL 2 GPU shaders, multiplayer fleets, and custom module authoring.
 
@@ -51,7 +51,7 @@ Download self-contained single-file executables for Windows, macOS, or Linux fro
 ## 🛠️ Creating Custom Content
 
 ### Custom Universes
-Space Lab supports custom planetary systems and universes with arbitrary hierarchies, physical radii, gravitational parameters ($\mu$), atmospheres, and terrains.
+Spacelab supports custom planetary systems and universes with arbitrary hierarchies, physical radii, gravitational parameters ($\mu$), atmospheres, and terrains.
 - Use the **Import…** button to load a `.spaceuniverse` or `.json` file.
 - Use the **Export** button to download your customized universe.
 - Pre-made universes are available in `games/space-sim/universes/` (including the compact default system, ocean worlds, rugged terrain worlds, and the full 1:1 scale solar system with 477 bodies).
@@ -125,8 +125,8 @@ npm run package -- --target=android
 
 ## 📄 License & Credits
 
-Space Lab is free, open-source software licensed under the **[MIT License](LICENSE)**.
+Spacelab is free, open-source software licensed under the **[MIT License](LICENSE)**.
 
-- **Shipped Code:** 100% first-party code authored specifically for Space Lab, with zero third-party runtime dependencies.
+- **Shipped Code:** 100% first-party code authored specifically for Spacelab, with zero third-party runtime dependencies.
 - **Node.js Runtime Exception:** Standalone single-file executables bundle the official, unmodified Node.js runtime (MIT license) and are distributed alongside `NODE-LICENSE.txt`.
 - **Third-Party Build Tools:** Verified for commercial-friendly open-source licensing (MIT, Apache-2.0, BSD-3-Clause). See [CREDITS.md](CREDITS.md).

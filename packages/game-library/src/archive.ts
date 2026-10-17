@@ -37,7 +37,7 @@ function unique(data: readonly DataModule[], code: readonly CodeArtifact[]): voi
 }
 /** Inspection validates every embedded artifact and exact requirement without evaluating code. */
 export function validatePackage(raw: unknown): LabPackage {
-  const value = object(raw, 'Space Lab package');
+  const value = object(raw, 'Spacelab package');
   const metadata = info(value.info);
   if (value.format === 'space-lab-plugin/1') {
     keys(value, ['format', 'info', 'data', 'code'], 'Plugin package');
@@ -47,7 +47,7 @@ export function validatePackage(raw: unknown): LabPackage {
     unique(data, code);
     return freezeJson({ format: value.format, info: metadata, data, code });
   }
-  if (value.format !== 'space-lab-game/1') throw new Error('Unsupported Space Lab package format');
+  if (value.format !== 'space-lab-game/1') throw new Error('Unsupported Spacelab package format');
   keys(value, ['format', 'info', 'bundle', 'plugins'], 'Game package');
   const parsed = parseModuleImport(JSON.stringify(value.bundle));
   if (parsed.format !== 'space-sim-module-profile/1') throw new Error('Game requires a module profile');

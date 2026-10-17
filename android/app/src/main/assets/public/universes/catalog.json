@@ -8,8 +8,8 @@
       "category": "sandbox",
       "file": "sandbox/default/universe.spaceuniverse",
       "json": "sandbox/default/universe.json",
-      "bytes": 1836,
-      "expandedBytes": 6642
+      "bytes": 2277,
+      "expandedBytes": 8431
     },
     {
       "id": "dry-terrain-examples",
@@ -38,8 +38,8 @@
       "category": "astronomy",
       "file": "astronomy/solar-system/universe.spaceuniverse",
       "json": "astronomy/solar-system/universe.json",
-      "bytes": 1088,
-      "expandedBytes": 3064
+      "bytes": 2139,
+      "expandedBytes": 7534
     },
     {
       "id": "full-solar-system",
@@ -48,8 +48,8 @@
       "category": "astronomy",
       "file": "astronomy/full-solar-system/universe.spaceuniverse",
       "json": "astronomy/full-solar-system/universe.json",
-      "bytes": 14905,
-      "expandedBytes": 138429
+      "bytes": 15531,
+      "expandedBytes": 140304
     }
   ]
 }

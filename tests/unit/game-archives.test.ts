@@ -22,7 +22,7 @@ function game(): GamePackage {
   } }) as GamePackage;
 }
 
-describe('Space Lab portable games and plugins', () => {
+describe('Spacelab portable games and plugins', () => {
   it('ships Space Sim as an ordinary descriptor matching the default simulation and presentation', () => {
     const builtin = validatePackage(builtinGame) as GamePackage;
     expect(builtin.bundle.profile).toEqual(DEFAULT_PROFILE);

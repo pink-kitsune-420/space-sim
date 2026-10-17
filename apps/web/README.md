@@ -1,6 +1,6 @@
 # Browser Application
 
-Space Lab's web application hosts the Space Sim simulation and owns the simulation lifecycle, keyboard and touch/pointer controls, rendering cadence, camera selection, mouse/touch panning, and real-time orbital HUD.
+Spacelab's web application hosts the Space Sim simulation and owns the simulation lifecycle, keyboard and touch/pointer controls, rendering cadence, camera selection, mouse/touch panning, and real-time orbital HUD.
 
 - `src/session.ts` gives the frame loop one interface over local solo or peer-to-peer hosted worlds (`LocalSession`) and remote dedicated servers (`RemoteSession`).
 - `src/webrtc.ts` connects a browser host and peers with hand-swapped invite and reply codes.

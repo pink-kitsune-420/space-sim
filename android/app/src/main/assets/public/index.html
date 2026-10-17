@@ -10,18 +10,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <title>Space Lab · Space Sim</title>
-    <script type="module" crossorigin src="./assets/index-mfVYBdsh.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-zqd3yTgs.css">
+    <title>Spacelab · Space Sim</title>
+    <script type="module" crossorigin src="./assets/index-7safkdMN.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-qr_Cy3NM.css">
   </head>
   <body>
     <div id="app">
-      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACE LAB</a><nav class="workspace-nav" aria-label="Workspace sections"><a href="#flight-console">Flight</a><a href="#lab-manager">Games & plugins</a><a href="#flight-manual">Manual</a></nav><span class="connection"><i></i> LOCAL FLIGHT</span></header>
+      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACELAB</a><nav class="workspace-nav" aria-label="Workspace sections"><a href="#flight-console">Flight</a><a href="#lab-manager">Games & plugins</a><a href="#flight-manual">Manual</a></nav><span class="connection"><i></i> LOCAL FLIGHT</span></header>
       <main>
         <div class="intro"><div><p class="eyebrow">FLIGHT WORKSPACE</p><h1 id="active-game">Space Sim</h1></div><a class="lab-shortcut" href="#lab-manager">Open games & plugins ↗</a></div>
         <div id="flight-console" class="workspace">
           <section class="flight-panel" aria-label="Flight view">
-            <div class="view-toolbar"><span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span><div><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button">Pause</button><button id="reset" type="button" aria-label="Reset flight" title="Reset flight">Reset</button><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog">Controls ⚙</button><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler">Profiler</button><button id="fullscreen" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">North up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
+            <div class="view-toolbar"><span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span><div><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button">Pause</button><button id="reset" type="button" aria-label="Reset flight" title="Reset flight">Reset</button><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog">Controls ⚙</button><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler">Profiler</button><button id="fullscreen" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">Horizon up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
             <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas><div class="view-label"><span id="system-label">PRIMUS SYSTEM</span> <span>BODY-RELATIVE / METRES</span></div><div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div><div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span></div><section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section></div>
             <p id="terrain-notice" class="control-note" role="note" hidden>Physical terrain · Clearance is above local ground or sea level. Gentle water entry sinks and floats; inward thrust dives, and water hits above 5 m/s inward crash. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less.</p>
             <div class="telemetry"><div><span>GROUND / SEA CLEARANCE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
@@ -46,7 +46,7 @@
               <div class="setup-fields"><div><label for="system-select">System</label>
               <select id="system-select"><option value="primus-system">Primus System</option></select>
               </div><div><label for="preset">Scenario</label>
-              <select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option><option value="moon-orbit">Secundus circular orbit · 128 m altitude</option></select></div></div>
+              <select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option><option value="moon-orbit">Parvus circular orbit · 128 m altitude</option></select></div></div>
               <div class="setup-run-controls">
               <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode</span></label></div></section>
             <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
@@ -94,7 +94,7 @@
           </aside>
         </div>
         <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
-          <div class="lab-heading"><div><p class="eyebrow">SPACE LAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
+          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
           <p id="lab-status" role="status">Space Sim is ready to fly. Import a game, or build a remix with plugins.</p>
           <details class="library-settings" open><summary>Game library</summary>
             <p id="library-storage" class="control-note">Opening your local library…</p>
@@ -133,6 +133,7 @@
           </section>
         </section>
         <div class="utility-grid" aria-label="Additional tools">
+        <details class="planet-designer"><summary>Planet designer</summary><div id="planet-designer"></div></details>
         <details class="shader-settings"><summary>Shaders</summary><p class="manager-current">Current: <output id="shader-name">Default</output></p>
           <div class="shader-actions"><button id="load-shader" type="button">Load shader…</button><input id="shader-file" type="file" accept=".json,.frag,.glsl,application/json,text/plain" hidden /><button id="export-shader" type="button">Export shaders</button><button id="reset-shader" type="button">Restore default</button></div>
           <p>Change the look with a local shader file. Export the current shaders as a starting point, edit the GLSL, then load your copy. A .frag or .glsl file changes the scene; a JSON pack can also change the ship, paths and labels. Requires WebGL 2.</p>
@@ -216,7 +217,7 @@
             </div>
           </div>
         </dialog>
-      </main><footer><span>SPACE LAB / SPACE SIM</span><span>Explore a little. Learn a lot.</span></footer>
+      </main><footer><span>SPACELAB / SPACE SIM</span><span>Explore a little. Learn a lot.</span></footer>
     </div>
   </body>
 </html>

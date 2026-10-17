@@ -8,29 +8,43 @@ for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, 
     await page.setViewportSize(size);
     await page.goto('/');
     await expect(page.locator('#status')).toHaveText('LANDED');
+    await expect(page.locator('#menu-toggle')).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     const layout = () => page.evaluate(() => ({
       width: innerWidth, height: innerHeight,
       scrollWidth: document.documentElement.scrollWidth,
       scrollHeight: document.documentElement.scrollHeight,
       scene: document.querySelector('#flight-view')!.getBoundingClientRect().toJSON(),
-      controls: document.querySelector('.controls')!.getBoundingClientRect().toJSON(),
+      telemetry: document.querySelector('.telemetry')!.getBoundingClientRect().toJSON(),
     }));
     const before = await layout();
     expect(before.scrollWidth).toBeLessThanOrEqual(size.width);
     expect(before.scrollHeight).toBeLessThanOrEqual(size.height);
-    expect(before.scene.height).toBeGreaterThan(150);
-    expect(before.controls.bottom).toBeLessThanOrEqual(size.height);
-    for (const panel of ['data', 'fleet', 'multiplayer', 'library', 'tools'] as const) {
+    expect(before.scene.width).toBe(size.width);
+    expect(before.scene.height).toBe(size.height);
+    expect(before.telemetry.bottom).toBeLessThanOrEqual(size.height);
+    for (const panel of ['setup', 'data', 'fleet', 'multiplayer', 'library', 'tools'] as const) {
       await openPanel(page, panel);
-      await expect(page.getByRole('dialog')).toBeVisible();
-      expect((await layout()).scene).toEqual(before.scene);
-      const bounds = await page.getByRole('dialog').boundingBox();
-      expect(bounds!.y).toBeGreaterThan(0);
-      expect(bounds!.y + bounds!.height).toBeLessThan(size.height);
+      await expect(page.locator('#workspace-drawer')).toBeVisible();
+      if (panel === 'setup') {
+        await expect(page.locator('#camera')).toHaveText('Follow ship');
+        await expect(page.locator('#orientation')).toHaveText('Horizon up');
+      }
+      const current = await page.evaluate(() => ({
+        scene: document.querySelector('#flight-view')!.getBoundingClientRect().toJSON(),
+        bounds: document.getElementById('workspace-drawer')!.getBoundingClientRect().toJSON(),
+      }));
+      expect(current.scene).toEqual(before.scene);
+      expect(current.bounds.y).toBeGreaterThan(0);
+      expect(current.bounds.y + current.bounds.height).toBeLessThan(size.height);
       await page.keyboard.press('Escape');
-      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.locator('#workspace-drawer')).toBeHidden();
     }
+    // Pressing Escape while in flight brings up the menu; pressing Escape again closes it
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#workspace-drawer')).toBeVisible();
     await closePanel(page);
+    await expect(page.locator('#workspace-drawer')).toBeHidden();
     await page.screenshot({ path: info.outputPath('flight.png') });
     await page.keyboard.down('Space');
     await expect(page.locator('#status')).toHaveText('FLYING');
@@ -45,6 +59,7 @@ for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, 
 
 test('fullscreen button and F shortcut toggle fullscreen controls and state', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   const btn = page.locator('#fullscreen');
   await expect(btn).toBeVisible();
   await expect(btn).toHaveAttribute('aria-pressed', 'false');

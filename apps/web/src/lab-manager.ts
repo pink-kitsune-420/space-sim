@@ -113,7 +113,7 @@ export class LabManager {
       if (!this.options.editable()) throw new Error('Leave multiplayer before switching games');
       this.options.play(entry.game);
       show('active-game', entry.game.info.name);
-      document.title = `Space Lab · ${entry.game.info.name}`;
+      document.title = `Spacelab · ${entry.game.info.name}`;
       element<HTMLInputElement>('game-name').value = `${entry.game.info.name} remix`;
       this.status(`Playing ${entry.game.info.name}. Its plugin selection is active in a new world.`);
     }, !this.options.editable()), this.button('Export game', () => this.export(entry.game)));

@@ -1,4 +1,4 @@
-name: Deploy Space Lab to GitHub Pages
+name: Deploy Spacelab to GitHub Pages
 
 on:
   push:

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openPanel, closePanel } from '../helpers/workspace';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -27,10 +28,12 @@ test('standalone download plays directly from disk with networking disabled', as
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('FLYING');
   await page.keyboard.up('Space');
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
   await page.reload();
   await expect(page.locator('#status')).toHaveText('LANDED');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await tracedOrbit(page);
   expect(network).toEqual([]);
@@ -48,6 +51,7 @@ test('launch, input release, pause and reset work in the production build', asyn
   await expect.poll(async () => Number(await page.locator('#altitude').textContent())).toBeGreaterThan(1);
   await page.keyboard.up('Space');
   await expect(page.locator('#flight-message')).toContainText('COASTING');
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
   const time = await page.locator('#time').textContent();
@@ -61,6 +65,7 @@ test('launch, input release, pause and reset work in the production build', asyn
 
 test('orbit, camera, zoom, heading and sampled prediction stay coherent', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect(page.locator('#status')).toHaveText('FLYING');
   await tracedOrbit(page);
@@ -74,28 +79,32 @@ test('orbit, camera, zoom, heading and sampled prediction stay coherent', async 
   await page.keyboard.down('ArrowLeft');
   await expect.poll(async () => Number(await page.locator('#heading').textContent())).toBeGreaterThan(10);
   await page.keyboard.up('ArrowLeft');
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
   const before = await diagnostics(page);
   await page.getByRole('button', { name: 'Follow ship' }).click();
-  await page.getByRole('button', { name: 'North up' }).click();
+  await page.getByRole('button', { name: 'Horizon up' }).click();
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
   await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Planet view' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Horizon up' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'North up' })).toBeVisible();
   const after = await diagnostics(page);
   expect(after.position).toEqual(before.position);
   expect(after.velocity).toEqual(before.velocity);
+  await closePanel(page);
   await page.screenshot({ path: `test-results/orbit-${test.info().project.name}.png`, fullPage: true });
 });
 
 test('mouse drag pans a rotated view and follow restores without changing flight state', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await diagnostics(page)).dynamics).toBe('kepler');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
-  await page.getByRole('button', { name: 'North up' }).click();
+  await expect(page.getByRole('button', { name: 'Horizon up' })).toBeVisible();
+  await closePanel(page);
   const before = await diagnostics(page);
   const canvas = page.locator('#flight-view');
   const box = await canvas.boundingBox();
@@ -104,6 +113,7 @@ test('mouse drag pans a rotated view and follow restores without changing flight
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 80, box.y + box.height / 2 + 40, { steps: 5 });
   await page.mouse.up();
+  await openPanel(page, 'setup');
   await expect(page.getByRole('button', { name: 'Free camera', exact: true })).toBeVisible();
   await expect.poll(async () => (await diagnostics(page)).camera).not.toEqual(before.camera);
   const after = await diagnostics(page);
@@ -117,6 +127,7 @@ test('mouse drag pans a rotated view and follow restores without changing flight
 
 test('pointer cancellation and focus loss release the engine and pause without catch-up', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   const burn = page.locator('#burn');
   await burn.scrollIntoViewIfNeeded();
@@ -142,6 +153,7 @@ test('pointer cancellation and focus loss release the engine and pause without c
   await page.waitForTimeout(300);
   expect(await page.locator('#time').textContent()).toBe(time);
   await page.keyboard.up('Space');
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect(page.locator('#flight-message')).not.toContainText('ENGINE ACTIVE');
 });
@@ -150,6 +162,7 @@ test('mobile viewport fits and pointer controls can launch', async ({ page, brow
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await openPanel(page, 'setup');
   await page.getByRole('slider', { name: 'Throttle' }).fill('100');
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   const burn = page.locator('#burn');
@@ -170,6 +183,7 @@ test('mobile viewport fits and pointer controls can launch', async ({ page, brow
     await page.mouse.up();
   }
   await expect.poll(async () => (await diagnostics(page)).engine).toBe(false);
+  await closePanel(page);
   await page.screenshot({ path: `test-results/mobile-${test.info().project.name}.png`, fullPage: true });
 });
 
@@ -182,6 +196,7 @@ test('the coast preview traces progressively, then stays as a full orbit', async
     new MutationObserver(() => seen.push(document.querySelector('#prediction')!.textContent!))
       .observe(document.querySelector('#prediction')!, { childList: true, characterData: true, subtree: true });
   });
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await tracedOrbit(page);
   const seen = await page.evaluate(() => (window as unknown as { seen: string[] }).seen);
@@ -199,13 +214,14 @@ test('the profiler overlay opens from the keyboard and exports a local JSON log'
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await tracedOrbit(page);
   await flightFocus(page);
   await expect(page.locator('#profiler')).toBeHidden();
   await page.keyboard.press('Backquote');
   await expect(page.locator('#profiler')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Profiler' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: 'Profiler', includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#profiler-fps')).toContainText('FPS');
   await expect(page.locator('#profiler-rows tr')).toHaveCount(10);
   const pending = page.waitForEvent('download');
@@ -227,6 +243,7 @@ test('the profiler overlay opens from the keyboard and exports a local JSON log'
 
 test('zooming in on Earth renders a clean smooth horizon without triangle tessellation bugs', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
   await expect(page.locator('#active-body')).toHaveText('EARTH');
@@ -236,6 +253,7 @@ test('zooming in on Earth renders a clean smooth horizon without triangle tessel
     await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
     if (i >= 5 && ((await diagnostics(page)).camera as { scale: number }).scale > 1) break;
   }
+  await closePanel(page);
   await page.waitForTimeout(200);
   const diag = await diagnostics(page);
   expect((diag.camera as { scale: number }).scale).toBeGreaterThan(1);
@@ -244,8 +262,10 @@ test('zooming in on Earth renders a clean smooth horizon without triangle tessel
 
 test('Earth horizon at intermediate scale renders a smooth curved atmosphere without cutoff step', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
+  await closePanel(page);
   await expect(page.locator('#active-body')).toHaveText('EARTH');
   await page.waitForTimeout(200);
   await page.screenshot({ path: `test-results/earth-horizon-intermediate-${test.info().project.name}.png` });
@@ -253,11 +273,13 @@ test('Earth horizon at intermediate scale renders a smooth curved atmosphere wit
 
 test('zooming out from Earth pad transitions smoothly between horizon and planet disc', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
   for (let i = 0; i < 4; i++) {
     await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   }
+  await closePanel(page);
   await page.waitForTimeout(200);
   await page.screenshot({ path: `test-results/earth-horizon-zoomout-${test.info().project.name}.png` });
 });
@@ -266,6 +288,7 @@ test('starts with WebGL 2 renderer by default and toggles cleanly to 2D and back
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
+  await openPanel(page, 'setup');
   await expect(page.getByRole('button', { name: 'Renderer: WebGL' })).toBeVisible();
   await page.getByRole('button', { name: 'Renderer: WebGL' }).click();
   await expect(page.getByRole('button', { name: 'Renderer: 2D' })).toBeVisible();
@@ -278,6 +301,7 @@ test('starts with WebGL 2 renderer by default and toggles cleanly to 2D and back
 
 test('suborbital coast on Earth finishes tracing to impact without restarting every frame', async ({ page }) => {
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
   await flightFocus(page);

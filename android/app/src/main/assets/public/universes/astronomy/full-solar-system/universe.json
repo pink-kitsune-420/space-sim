@@ -24,7 +24,7 @@
           "parentId": null,
           "radius": 695700000,
           "mu": 132712440041000000000,
-          "color": "#ffd000",
+          "color": "#fff8e6",
           "accentColor": "#ff7700",
           "atmosphereColor": "#ffaa0060",
           "surfaceFeatures": "star",
@@ -38,6 +38,15 @@
               0,
               0
             ]
+          },
+          "appearance": {
+            "style": "star",
+            "colors": [
+              "#fff8e6",
+              "#ffd27a",
+              "#ff8a2a",
+              "#c8661c"
+            ]
           }
         },
         {
@@ -46,7 +55,7 @@
           "parentId": "sun",
           "radius": 2439400,
           "mu": 22031868550000,
-          "color": "#6f6a66",
+          "color": "#8a837c",
           "accentColor": "#a8a29e",
           "horizonColor": "#a8a29e",
           "atmosphereColor": "#00000000",
@@ -57,6 +66,15 @@
             "radius": 57909226542,
             "phaseRadiansAtEpoch": 4.4025986842958265,
             "direction": 1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8a837c",
+              "#5e5852",
+              "#b3aca4",
+              "#8a837c"
+            ]
           }
         },
         {
@@ -65,7 +83,7 @@
           "parentId": "sun",
           "radius": 6051840,
           "mu": 324858592000000,
-          "color": "#c9a86a",
+          "color": "#d9b878",
           "accentColor": "#f2d9a2",
           "horizonColor": "#f2d9a2",
           "atmosphereColor": "#f0d49a55",
@@ -76,6 +94,15 @@
             "radius": 108209474537,
             "phaseRadiansAtEpoch": 3.1761344560893665,
             "direction": 1
+          },
+          "appearance": {
+            "style": "hazy",
+            "colors": [
+              "#d9b878",
+              "#b8925a",
+              "#f2dfae",
+              "#e8cc90"
+            ]
           }
         },
         {
@@ -84,7 +111,7 @@
           "parentId": "sun",
           "radius": 6371010,
           "mu": 398600435436000,
-          "color": "#1b4965",
+          "color": "#1a4f86",
           "accentColor": "#62b6cb",
           "horizonColor": "#62b6cb",
           "atmosphereColor": "#48cae480",
@@ -95,6 +122,15 @@
             "radius": 149598261150,
             "phaseRadiansAtEpoch": 1.7534375570727854,
             "direction": 1
+          },
+          "appearance": {
+            "style": "oceanic",
+            "colors": [
+              "#1a4f86",
+              "#3f7535",
+              "#c7a56a",
+              "#f2f6f8"
+            ]
           }
         },
         {
@@ -103,7 +139,7 @@
           "parentId": "sun",
           "radius": 3389920,
           "mu": 42828375662000,
-          "color": "#9c4a2f",
+          "color": "#b65a33",
           "accentColor": "#d9825b",
           "horizonColor": "#d9825b",
           "atmosphereColor": "#d9825b40",
@@ -114,6 +150,15 @@
             "radius": 227943822428,
             "phaseRadiansAtEpoch": 6.203712925641251,
             "direction": 1
+          },
+          "appearance": {
+            "style": "arid",
+            "colors": [
+              "#b65a33",
+              "#6e3420",
+              "#d79a72",
+              "#f2ede6"
+            ]
           }
         },
         {
@@ -122,7 +167,7 @@
           "parentId": "sun",
           "radius": 69911000,
           "mu": 126686531900000000,
-          "color": "#b08a63",
+          "color": "#d8b98e",
           "accentColor": "#e3c9a3",
           "horizonColor": "#e3c9a3",
           "atmosphereColor": "#e3c9a350",
@@ -133,6 +178,15 @@
             "radius": 778340816693,
             "phaseRadiansAtEpoch": 0.6003311378658576,
             "direction": 1
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#d8b98e",
+              "#a5714a",
+              "#f4e8d2",
+              "#c25a3c"
+            ]
           }
         },
         {
@@ -141,7 +195,7 @@
           "parentId": "sun",
           "radius": 58232000,
           "mu": 37931206234000000,
-          "color": "#c2a868",
+          "color": "#e2cd98",
           "accentColor": "#ecd9a4",
           "horizonColor": "#ecd9a4",
           "atmosphereColor": "#ecd9a450",
@@ -152,6 +206,15 @@
             "radius": 1426666414180,
             "phaseRadiansAtEpoch": 0.8718660371588796,
             "direction": 1
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#e2cd98",
+              "#bf9f68",
+              "#f6ecca",
+              "#d6bd86"
+            ]
           }
         },
         {
@@ -160,7 +223,7 @@
           "parentId": "sun",
           "radius": 25362000,
           "mu": 5793950610300000,
-          "color": "#6fb7c4",
+          "color": "#9fd8e0",
           "accentColor": "#b6e3ea",
           "horizonColor": "#b6e3ea",
           "atmosphereColor": "#b6e3ea50",
@@ -171,6 +234,15 @@
             "radius": 2870658170656,
             "phaseRadiansAtEpoch": 5.4670362664056,
             "direction": 1
+          },
+          "appearance": {
+            "style": "hazy",
+            "colors": [
+              "#9fd8e0",
+              "#84c4cf",
+              "#c9eff3",
+              "#9fd8e0"
+            ]
           }
         },
         {
@@ -179,7 +251,7 @@
           "parentId": "sun",
           "radius": 24624000,
           "mu": 6835099970000000,
-          "color": "#3a5fb0",
+          "color": "#3f6fd0",
           "accentColor": "#7d9ee8",
           "horizonColor": "#7d9ee8",
           "atmosphereColor": "#7d9ee850",
@@ -190,6 +262,15 @@
             "radius": 4498396417009,
             "phaseRadiansAtEpoch": 5.321159305292056,
             "direction": 1
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#3f6fd0",
+              "#2b4fa6",
+              "#86aef2",
+              "#eef4ff"
+            ]
           }
         },
         {
@@ -198,7 +279,7 @@
           "parentId": "sun",
           "radius": 1188300,
           "mu": 869326000000,
-          "color": "#b39b87",
+          "color": "#d9c3a8",
           "accentColor": "#e0d0c0",
           "horizonColor": "#e0d0c0",
           "atmosphereColor": "#00000000",
@@ -209,6 +290,15 @@
             "radius": 5906440596529,
             "phaseRadiansAtEpoch": 4.170098397482234,
             "direction": 1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#d9c3a8",
+              "#8a6650",
+              "#f6eee0",
+              "#d9c3a8"
+            ]
           }
         },
         {
@@ -217,7 +307,7 @@
           "parentId": "sun",
           "radius": 469700,
           "mu": 62628400000,
-          "color": "#5f5c58",
+          "color": "#6e6a66",
           "accentColor": "#9b9792",
           "horizonColor": "#9b9792",
           "surfaceFeatures": "craters",
@@ -226,6 +316,15 @@
             "radius": 414012107162,
             "phaseRadiansAtEpoch": 2.6860617188192735,
             "direction": 1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#6e6a66",
+              "#4a4743",
+              "#9d9893",
+              "#6e6a66"
+            ]
           }
         },
         {
@@ -234,7 +333,7 @@
           "parentId": "sun",
           "radius": 1163000,
           "mu": 1108000000000,
-          "color": "#d8d4cf",
+          "color": "#e6e2dd",
           "accentColor": "#f4f1ec",
           "horizonColor": "#f4f1ec",
           "surfaceFeatures": "craters",
@@ -243,6 +342,15 @@
             "radius": 10151711505702,
             "phaseRadiansAtEpoch": 3.563962332572421,
             "direction": 1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#e6e2dd",
+              "#a8a39c",
+              "#ffffff",
+              "#e6e2dd"
+            ]
           }
         },
         {
@@ -251,7 +359,7 @@
           "parentId": "sun",
           "radius": 780000,
           "mu": 267399999999.99997,
-          "color": "#cfcac4",
+          "color": "#e2ded8",
           "accentColor": "#efe9e2",
           "horizonColor": "#efe9e2",
           "surfaceFeatures": "craters",
@@ -260,6 +368,15 @@
             "radius": 6452156163291,
             "phaseRadiansAtEpoch": 3.808308427851627,
             "direction": 1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#e2ded8",
+              "#a39d95",
+              "#ffffff",
+              "#e2ded8"
+            ]
           }
         },
         {
@@ -268,7 +385,7 @@
           "parentId": "sun",
           "radius": 715000,
           "mu": 206900000000,
-          "color": "#a8826a",
+          "color": "#c9a487",
           "accentColor": "#d8b9a2",
           "horizonColor": "#d8b9a2",
           "surfaceFeatures": "craters",
@@ -277,6 +394,15 @@
             "radius": 6850086499353,
             "phaseRadiansAtEpoch": 3.0543261909900767,
             "direction": 1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#c9a487",
+              "#8a6a52",
+              "#efdccb",
+              "#c9a487"
+            ]
           }
         },
         {
@@ -285,7 +411,7 @@
           "parentId": "earth",
           "radius": 1737400,
           "mu": 4902800000000,
-          "color": "#4a4e54",
+          "color": "#8f8d89",
           "accentColor": "#9aa0a6",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -293,6 +419,15 @@
             "radius": 384400000,
             "phaseRadiansAtEpoch": 3.8137867188844945,
             "direction": 1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8f8d89",
+              "#4f4d4b",
+              "#c0bdb6",
+              "#8f8d89"
+            ]
           }
         },
         {
@@ -333,7 +468,7 @@
           "parentId": "jupiter",
           "radius": 1821490,
           "mu": 5959915470000,
-          "color": "#c9b440",
+          "color": "#c9b048",
           "accentColor": "#efe08a",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -341,6 +476,15 @@
             "radius": 421800000,
             "phaseRadiansAtEpoch": 0.3490658503988661,
             "direction": 1
+          },
+          "appearance": {
+            "style": "volcanic",
+            "colors": [
+              "#c9b048",
+              "#6e5a2a",
+              "#ff5a1a",
+              "#efe28a"
+            ]
           }
         },
         {
@@ -349,7 +493,7 @@
           "parentId": "jupiter",
           "radius": 1560800,
           "mu": 3202712100000,
-          "color": "#b8a990",
+          "color": "#d9cdb8",
           "accentColor": "#e4d9c6",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -357,6 +501,15 @@
             "radius": 671100000,
             "phaseRadiansAtEpoch": 3.74196929701484,
             "direction": 1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#d9cdb8",
+              "#9a6a48",
+              "#f6f1e8",
+              "#d9cdb8"
+            ]
           }
         },
         {
@@ -365,7 +518,7 @@
           "parentId": "jupiter",
           "radius": 2631200,
           "mu": 9887832750000,
-          "color": "#7d7466",
+          "color": "#8a8070",
           "accentColor": "#b9b0a2",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -373,6 +526,15 @@
             "radius": 1070400000,
             "phaseRadiansAtEpoch": 3.8676513169919366,
             "direction": 1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8a8070",
+              "#5a5248",
+              "#b9b0a2",
+              "#d8d8d8"
+            ]
           }
         },
         {
@@ -381,7 +543,7 @@
           "parentId": "jupiter",
           "radius": 2410300,
           "mu": 7179283400000,
-          "color": "#4f4a44",
+          "color": "#5a5248",
           "accentColor": "#8c867e",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -389,6 +551,15 @@
             "radius": 1882700000,
             "phaseRadiansAtEpoch": 1.4015061830728541,
             "direction": 1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#5a5248",
+              "#3a352f",
+              "#9a9288",
+              "#5a5248"
+            ]
           }
         },
         {
@@ -2189,7 +2360,7 @@
           "parentId": "saturn",
           "radius": 252100,
           "mu": 7210370000,
-          "color": "#d9e4ea",
+          "color": "#eef6fb",
           "accentColor": "#f4fbff",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -2197,6 +2368,15 @@
             "radius": 238400000,
             "phaseRadiansAtEpoch": 3.080506129769992,
             "direction": 1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#eef6fb",
+              "#8fb0c4",
+              "#ffffff",
+              "#eef6fb"
+            ]
           }
         },
         {
@@ -2253,7 +2433,7 @@
           "parentId": "saturn",
           "radius": 2574760,
           "mu": 8978137100000,
-          "color": "#c08a3e",
+          "color": "#d09a4a",
           "accentColor": "#e8bf7a",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -2261,6 +2441,15 @@
             "radius": 1221900000,
             "phaseRadiansAtEpoch": 2.9426251188624395,
             "direction": 1
+          },
+          "appearance": {
+            "style": "hazy",
+            "colors": [
+              "#d09a4a",
+              "#a8742e",
+              "#e8bf7a",
+              "#c08a3e"
+            ]
           }
         },
         {
@@ -7293,7 +7482,7 @@
           "parentId": "neptune",
           "radius": 1352600,
           "mu": 1428495460000,
-          "color": "#b9a7a0",
+          "color": "#d6c4bc",
           "accentColor": "#e0d2cc",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -7301,6 +7490,15 @@
             "radius": 354800000,
             "phaseRadiansAtEpoch": 2.042248766334696,
             "direction": -1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#d6c4bc",
+              "#9a7f74",
+              "#f2e8e2",
+              "#d6c4bc"
+            ]
           }
         },
         {
@@ -7549,7 +7747,7 @@
           "parentId": "pluto",
           "radius": 606000,
           "mu": 106100000000,
-          "color": "#77716b",
+          "color": "#8a847e",
           "accentColor": "#aaa49e",
           "surfaceFeatures": "craters",
           "ephemeris": {
@@ -7557,6 +7755,15 @@
             "radius": 19600000,
             "phaseRadiansAtEpoch": 5.307546255314756,
             "direction": 1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8a847e",
+              "#5a544e",
+              "#b5aea7",
+              "#8a847e"
+            ]
           }
         },
         {

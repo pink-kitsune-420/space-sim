@@ -1,6 +1,6 @@
 # Dedicated Server
 
-Space Lab can host a complete exported game using:
+Spacelab can host a complete exported game using:
 ```sh
 npm run server -- --data ./space-lab-data --game ./my-game.spacegame --new
 ```

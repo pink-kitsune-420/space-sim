@@ -2,7 +2,9 @@
 
 ## Project
 
-**Space Lab** and its default bundled game **Space Sim** are modern, browser-first 2D orbital space flight simulation software.
+**Spacelab** and its default bundled game **Space Sim** are modern, browser-first 2D orbital space flight simulation software.
+
+The name is inspired by the joint ESA/NASA orbital laboratory missions. This project is an independent open-source software project and is not affiliated with, endorsed by, or sponsored by NASA or ESA.
 
 All simulation physics, orbital mechanics, Kepler propagators, Canvas 2D and WebGL 2 GPU shader renderers, flight HUDs, multiplayer networking, and application plumbing are first-party code authored specifically for this project.
 

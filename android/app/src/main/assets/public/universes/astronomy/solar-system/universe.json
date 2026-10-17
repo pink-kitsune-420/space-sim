@@ -3,14 +3,14 @@
   "schemaVersion": 1,
   "id": "solar-system-universe",
   "name": "Solar System Universe (1/10 Scale)",
-  "description": "Authentic representation of our solar system scaled to 1/10 physical dimensions, featuring the Sun, Earth, and Moon with real surface gravity and orbital periods.",
+  "description": "Our solar system scaled to 1/10 physical dimensions: the Sun, all eight planets and the Moon, with real surface gravity.",
   "author": "Space Sim Team",
   "defaultSystemId": "solar-system",
   "systems": [
     {
       "id": "solar-system",
       "name": "Solar System (1/10 Scale)",
-      "description": "Real solar system scaled to 1/10 dimensions, featuring the Sun, Earth, and Moon with authentic surface gravities and orbital periods.",
+      "description": "Real solar system scaled to 1/10 dimensions: the Sun, all eight planets and the Moon, with authentic surface gravities.",
       "centralBodyId": "sun",
       "bodies": [
         {
@@ -21,8 +21,8 @@
           "radiusMetres": 69570000,
           "mass": 1.98841e+28,
           "mu": 1327124400000000000,
-          "color": "#ffd000",
-          "accentColor": "#ff7700",
+          "color": "#ffd27a",
+          "accentColor": "#ff8a2a",
           "atmosphereColor": "#ffaa0060",
           "surfaceFeatures": "star",
           "ephemeris": {
@@ -35,6 +35,76 @@
               0,
               0
             ]
+          },
+          "appearance": {
+            "style": "star",
+            "colors": [
+              "#fff8e6",
+              "#ffd27a",
+              "#ff8a2a",
+              "#c8661c"
+            ]
+          }
+        },
+        {
+          "id": "mercury",
+          "name": "Mercury",
+          "parentId": "sun",
+          "radius": 243940,
+          "radiusMetres": 243940,
+          "mass": 3.301000636770898e+21,
+          "mu": 220318685500,
+          "color": "#8a837c",
+          "accentColor": "#a8a29e",
+          "surfaceFeatures": "craters",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 5790922654,
+            "radiusMetres": 5790922654,
+            "phaseRadiansAtEpoch": 4.4025986842958265,
+            "direction": -1,
+            "period": 2403509
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8a837c",
+              "#5e5852",
+              "#b3aca4",
+              "#8a837c"
+            ]
+          }
+        },
+        {
+          "id": "venus",
+          "name": "Venus",
+          "parentId": "sun",
+          "radius": 605184,
+          "radiusMetres": 605184,
+          "mass": 4.867305814842006e+22,
+          "mu": 3248585920000,
+          "color": "#d9b878",
+          "accentColor": "#f2d9a2",
+          "atmosphereColor": "#f0d49a55",
+          "horizonColor": "#f2d9a2",
+          "skyColor": "#f0d49a55",
+          "surfaceFeatures": "smooth",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 10820947454,
+            "radiusMetres": 10820947454,
+            "phaseRadiansAtEpoch": 3.1761344560893665,
+            "direction": -1,
+            "period": 6139344
+          },
+          "appearance": {
+            "style": "hazy",
+            "colors": [
+              "#d9b878",
+              "#b8925a",
+              "#f2dfae",
+              "#e8cc90"
+            ]
           }
         },
         {
@@ -45,7 +115,7 @@
           "radiusMetres": 637100,
           "mass": 5.972168e+22,
           "mu": 3986004418000,
-          "color": "#1b4965",
+          "color": "#1a4f86",
           "accentColor": "#62b6cb",
           "atmosphereColor": "#48cae480",
           "horizonColor": "#62b6cb",
@@ -63,6 +133,15 @@
             "phaseRadiansAtEpoch": 1.5707963267948966,
             "direction": -1,
             "period": 9979788
+          },
+          "appearance": {
+            "style": "oceanic",
+            "colors": [
+              "#1a4f86",
+              "#3f7535",
+              "#c7a56a",
+              "#f2f6f8"
+            ]
           }
         },
         {
@@ -73,8 +152,8 @@
           "radiusMetres": 173740,
           "mass": 734889000000000000000,
           "mu": 49048695000,
-          "color": "#4a4e54",
-          "accentColor": "#9aa0a6",
+          "color": "#8f8d89",
+          "accentColor": "#c0bdb6",
           "atmosphereColor": "#50555c20",
           "surfaceFeatures": "craters",
           "soi": {
@@ -89,6 +168,175 @@
             "phaseRadiansAtEpoch": 0,
             "direction": -1,
             "period": 749997
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8f8d89",
+              "#4f4d4b",
+              "#c0bdb6",
+              "#8f8d89"
+            ]
+          }
+        },
+        {
+          "id": "mars",
+          "name": "Mars",
+          "parentId": "sun",
+          "radius": 338992,
+          "radiusMetres": 338992,
+          "mass": 6.416908988508158e+21,
+          "mu": 428283756620,
+          "color": "#b65a33",
+          "accentColor": "#d9825b",
+          "atmosphereColor": "#d9825b40",
+          "horizonColor": "#d9825b",
+          "skyColor": "#d9825b40",
+          "surfaceFeatures": "craters",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 22794382243,
+            "radiusMetres": 22794382243,
+            "phaseRadiansAtEpoch": 6.203712925641251,
+            "direction": -1,
+            "period": 18770066
+          },
+          "appearance": {
+            "style": "arid",
+            "colors": [
+              "#b65a33",
+              "#6e3420",
+              "#d79a72",
+              "#f2ede6"
+            ]
+          }
+        },
+        {
+          "id": "jupiter",
+          "name": "Jupiter",
+          "parentId": "sun",
+          "radius": 6991100,
+          "radiusMetres": 6991100,
+          "mass": 1.8981246258034552e+25,
+          "mu": 1266865319000000,
+          "color": "#d8b98e",
+          "accentColor": "#e3c9a3",
+          "atmosphereColor": "#e3c9a350",
+          "horizonColor": "#e3c9a3",
+          "skyColor": "#e3c9a350",
+          "surfaceFeatures": "globe-lines",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 77834081669,
+            "radiusMetres": 77834081669,
+            "phaseRadiansAtEpoch": 0.6003311378658576,
+            "direction": -1,
+            "period": 118434644
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#d8b98e",
+              "#a5714a",
+              "#f4e8d2",
+              "#c25a3c"
+            ]
+          }
+        },
+        {
+          "id": "saturn",
+          "name": "Saturn",
+          "parentId": "sun",
+          "radius": 5823200,
+          "radiusMetres": 5823200,
+          "mass": 5.683173701212113e+24,
+          "mu": 379312062340000,
+          "color": "#e2cd98",
+          "accentColor": "#ecd9a4",
+          "atmosphereColor": "#ecd9a450",
+          "horizonColor": "#ecd9a4",
+          "skyColor": "#ecd9a450",
+          "surfaceFeatures": "globe-lines",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 142666641418,
+            "radiusMetres": 142666641418,
+            "phaseRadiansAtEpoch": 0.8718660371588796,
+            "direction": -1,
+            "period": 293905496
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#e2cd98",
+              "#bf9f68",
+              "#f6ecca",
+              "#d6bd86"
+            ]
+          }
+        },
+        {
+          "id": "uranus",
+          "name": "Uranus",
+          "parentId": "sun",
+          "radius": 2536200,
+          "radiusMetres": 2536200,
+          "mass": 8.680986186266726e+23,
+          "mu": 57939506103000,
+          "color": "#9fd8e0",
+          "accentColor": "#b6e3ea",
+          "atmosphereColor": "#b6e3ea50",
+          "horizonColor": "#b6e3ea",
+          "skyColor": "#b6e3ea50",
+          "surfaceFeatures": "smooth",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 287065817066,
+            "radiusMetres": 287065817066,
+            "phaseRadiansAtEpoch": 5.4670362664056,
+            "direction": -1,
+            "period": 838873109
+          },
+          "appearance": {
+            "style": "hazy",
+            "colors": [
+              "#9fd8e0",
+              "#84c4cf",
+              "#c9eff3",
+              "#9fd8e0"
+            ]
+          }
+        },
+        {
+          "id": "neptune",
+          "name": "Neptune",
+          "parentId": "sun",
+          "radius": 2462400,
+          "radiusMetres": 2462400,
+          "mass": 1.024092409690904e+24,
+          "mu": 68350999700000,
+          "color": "#3f6fd0",
+          "accentColor": "#7d9ee8",
+          "atmosphereColor": "#7d9ee850",
+          "horizonColor": "#7d9ee8",
+          "skyColor": "#7d9ee850",
+          "surfaceFeatures": "smooth",
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 449839641701,
+            "radiusMetres": 449839641701,
+            "phaseRadiansAtEpoch": 5.321159305292056,
+            "direction": -1,
+            "period": 1645548315
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#3f6fd0",
+              "#2b4fa6",
+              "#86aef2",
+              "#eef4ff"
+            ]
           }
         }
       ],
@@ -168,6 +416,48 @@
           "direction": -1,
           "headingRadians": 0,
           "zoom": 8e-8
+        },
+        {
+          "id": "mars-pad",
+          "name": "Mars · surface",
+          "bodyId": "mars",
+          "kind": "landed",
+          "position": [
+            0,
+            338992
+          ],
+          "velocity": [
+            0,
+            0
+          ],
+          "headingRadians": 1.5707963267948966,
+          "zoom": 1
+        },
+        {
+          "id": "mars-orbit",
+          "name": "Mars low orbit · 30 km altitude",
+          "bodyId": "mars",
+          "kind": "circular-orbit",
+          "radius": 368992,
+          "radiusMetres": 368992,
+          "altitude": 30000,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.0014
+        },
+        {
+          "id": "jupiter-orbit",
+          "name": "Jupiter orbit · 10,000 km altitude",
+          "bodyId": "jupiter",
+          "kind": "circular-orbit",
+          "radius": 16991100,
+          "radiusMetres": 16991100,
+          "altitude": 10000000,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.00003
         }
       ]
     }

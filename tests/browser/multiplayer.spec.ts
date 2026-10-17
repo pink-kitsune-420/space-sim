@@ -71,6 +71,7 @@ test('a dedicated server serves the game, shows every pilot and keeps the world 
     await ada.keyboard.up('Space');
     expect((await diagnostics(ada)).session).toBe('client');
     // Persist a stable orbit: a brief pad hop can land during shutdown/rejoin.
+    await openPanel(ada, 'setup');
     await ada.locator('#preset').selectOption('planet-orbit');
     await expect.poll(async () => Number(await ada.locator('#altitude').textContent())).toBeGreaterThan(100);
 
@@ -123,10 +124,13 @@ test('a browser host invites a player with codes and both fly in one world', asy
   await expect(host.locator('#ship-list .foreign')).toContainText('FLYING');
   await guest.keyboard.up('Space');
   // The host is the world's owner: its pause reaches the guest.
+  await openPanel(host, 'setup');
   await host.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(guest.locator('#status')).toHaveText('PAUSED');
+  await openPanel(guest, 'setup');
   await expect(guest.getByRole('button', { name: 'Resume', exact: true })).toBeDisabled();
   await host.getByRole('button', { name: 'Resume', exact: true }).click();
+  await openPanel(host, 'multiplayer');
   await host.getByRole('button', { name: 'Stop hosting' }).click();
   await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
   await expect(guest.locator('#mp-status')).toContainText('stopped hosting');
@@ -138,6 +142,7 @@ test('a solo fleet keeps flying, switches ships and round-trips through a world 
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect(page.locator('#status')).toHaveText('FLYING');
   await openPanel(page, 'fleet');
@@ -167,6 +172,7 @@ test('a solo fleet keeps flying, switches ships and round-trips through a world 
   await expect(page.locator('#status')).toHaveText('PAUSED');
   await expect(page.locator('#flight-message')).toContainText('World loaded');
   await expect(page.locator('#ship-list button')).toHaveCount(2);
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Resume', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('FLYING');
   expect(errors).toEqual([]);

@@ -105,6 +105,7 @@ test('copied and renamed offline HTML imports presentation and replacement code 
   expect((await debug(page)).motionCapabilities.analyticCoast).toBe(false);
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
   await page.keyboard.down('Space'); await expect(page.locator('#status')).toHaveText('FLYING'); await page.keyboard.up('Space');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await debug(page)).samples, { timeout: 15000 }).toBeGreaterThan(4);
   expect(requests).toEqual([]); expect(errors).toEqual([]);

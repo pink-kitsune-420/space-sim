@@ -59,6 +59,7 @@ test('a copied offline HTML imports data and flies with networking disabled', as
   await page.locator('#module-file').setInputFiles(payload(gentle));
   await expect(page.locator('#module-name')).toHaveText('Gentle flight');
   // At half throttle the gentler engine cannot lift off; full throttle can.
+  await openPanel(page, 'setup');
   await page.locator('#throttle').fill('100');
   await page.locator('#throttle').dispatchEvent('input');
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
@@ -66,6 +67,7 @@ test('a copied offline HTML imports data and flies with networking disabled', as
   await expect(page.locator('#status')).toHaveText('FLYING');
   await expect.poll(async () => Number(await page.locator('#altitude').textContent())).toBeGreaterThan(1);
   await page.keyboard.up('Space');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await debug(page)).predictionEnd, { timeout: 15000 }).toBe('closed');
   expect(requests).toEqual([]); expect(errors).toEqual([]);
@@ -78,6 +80,7 @@ test('legacy universe imports export as portable module profiles and data univer
   universe.id = 'portable-universe'; universe.name = 'Portable universe';
   await page.locator('#universe-file').setInputFiles(payload(universe));
   await expect(page.locator('#universe-select')).toHaveValue('portable-universe');
+  await openPanel(page, 'library');
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#export-profile').click();
   const bundle = JSON.parse(await readFile(await (await downloadPromise).path(), 'utf8'));
@@ -129,6 +132,7 @@ for (const example of ['force', 'numerical']) test(`static ${example} motion exa
   expect((await debug(page)).asleep).toBe(0);
   expect((await debug(page)).orbit).toBeNull();
   const oldWorld = (await debug(page)).world;
+  await openPanel(page, 'library');
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#export-profile').click();
   const bundle = JSON.parse(await readFile(await (await downloadPromise).path(), 'utf8'));
@@ -156,6 +160,7 @@ test('a copied offline HTML runs the static force example without network access
   await expect(page.locator('#status')).toHaveText('FLYING');
   await expect.poll(async () => Number(await page.locator('#altitude').textContent())).toBeGreaterThan(1);
   await page.keyboard.up('Space');
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await debug(page)).samples).toBeGreaterThan(4);
   expect(requests).toEqual([]); expect(errors).toEqual([]);
@@ -169,10 +174,12 @@ test('the shared rule example predicts without consuming live state and preserve
   await expect(page.locator('#module-name')).toHaveText('example.scheduled-cutoff');
   await expect(page.locator('#save-world')).toBeDisabled();
   await expect(page.locator('#host-game')).toBeDisabled();
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await debug(page)).samples, { timeout: 15000 }).toBeGreaterThan(4);
   await expect(page.locator('#periapsis')).toHaveText('Unavailable · custom motion');
   expect((await debug(page)).asleep).toBe(0);
+  await openPanel(page, 'library');
   await page.locator('#reset-modules').click();
   await expect(page.locator('#save-world')).toBeEnabled();
   expect(errors).toEqual([]);

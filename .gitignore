@@ -25,6 +25,11 @@ private-docs/
 docs/
 references/
 
+# Experimental Spherical Tile Planets & Modular Shipbuilding fork
+packages/tile-core/
+games/space-sim-nextgen/
+tests/unit/tile-core.test.ts
+
 # Local credentials, agent state and private working notes.
 .aws/
 .codex/

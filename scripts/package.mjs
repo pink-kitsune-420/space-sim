@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Automated Packaging Tool for Space Lab / Space Sim.
+ * Automated Packaging Tool for Spacelab / Space Sim.
  * Supports:
  *   - Standalone Desktop Executable (Windows, macOS, Linux via Node SEA)
  *   - Dedicated Server Executable (Windows, macOS, Linux via Node SEA)
@@ -19,7 +19,7 @@ import { parseArgs } from 'node:util';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const HELP_TEXT = `
-Space Lab · Auto Packaging Tool
+Spacelab · Auto Packaging Tool
 
 Usage:
   npm run package -- [options]

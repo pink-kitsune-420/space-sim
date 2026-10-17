@@ -33,7 +33,7 @@ export interface ServerConfig {
   readonly moduleDirectory: string;
   /** Local exported module profile for new worlds; existing saves require exact installed artifacts. */
   readonly moduleProfile: string;
-  /** Owner-selected portable Space Lab game; includes its exact plugins and data. */
+  /** Owner-selected portable Spacelab game; includes its exact plugins and data. */
   readonly gameFile: string;
 }
 

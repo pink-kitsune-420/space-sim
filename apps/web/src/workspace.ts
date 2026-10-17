@@ -1,37 +1,73 @@
 import { element } from './ui';
 
-type Panel = 'data' | 'fleet' | 'multiplayer' | 'library' | 'tools';
+export type Panel = 'setup' | 'data' | 'fleet' | 'multiplayer' | 'library' | 'tools';
 
-/** Keep flight in one viewport; secondary tools share one nonmodal drawer. */
+/** Keep flight in one full-bleed viewport; all settings and tools share one tabbed menu drawer. */
 export class Workspace {
   private active: Panel | undefined;
+  private lastPanel: Panel = 'setup';
   private readonly drawer = document.createElement('section');
   private readonly title = document.createElement('h2');
   private readonly content = document.createElement('div');
+  private readonly menuButton = document.createElement('button');
   private readonly panels = new Map<Panel, HTMLElement>();
-
   private readonly titles = new Map<Panel, string>();
 
   constructor(private readonly release: () => void) {
     const take = (selector: string): HTMLElement => document.querySelector<HTMLElement>(selector)!;
-    const setup = take('.setup-card'), controls = take('.controls');
-    element('flight-console').prepend(setup);
-    element('flight-console').append(controls);
+    const viewport = take('.viewport');
+    const setup = take('.setup-card');
+    const controls = take('.controls');
+    const toolbar = take('.view-toolbar');
+    const viewTitle = take('.view-title');
+    const viewLabel = take('.view-label');
+    const viewTime = take('.view-time');
+    const connection = take('.connection');
+    const telemetry = take('.telemetry');
+    const terrainNotice = element('terrain-notice');
+
+    // Minimal overlaid HUD in the full-bleed viewport
+    const hudTopLeft = document.createElement('div');
+    hudTopLeft.className = 'hud-top-left';
+    this.menuButton.id = 'menu-toggle';
+    this.menuButton.className = 'menu-toggle';
+    this.menuButton.type = 'button';
+    this.menuButton.title = 'Open menu (Esc)';
+    this.menuButton.setAttribute('aria-label', 'Menu');
+    this.menuButton.setAttribute('aria-controls', 'workspace-drawer');
+    this.menuButton.setAttribute('aria-expanded', 'false');
+    this.menuButton.setAttribute('aria-pressed', 'false');
+    this.menuButton.innerHTML = '<span class="menu-icon" aria-hidden="true">☰</span><span>Menu</span><kbd>Esc</kbd>';
+    this.menuButton.onclick = () => this.active ? this.close(true) : this.open(this.lastPanel);
+
+    const hudStatus = document.createElement('div');
+    hudStatus.className = 'hud-status';
+    hudStatus.append(viewTitle, viewLabel);
+    hudTopLeft.append(this.menuButton, hudStatus);
+
+    viewTime.append(connection);
+    viewport.append(hudTopLeft, terrainNotice, telemetry);
+
     controls.append(take('.instruments-card'));
-    const groups: [Panel, string, string[]][] = [
-      ['data', 'Flight data', ['.path-card', '#module-panels']],
-      ['fleet', 'Fleet', ['.fleet-card']],
-      ['multiplayer', 'Multiplayer', ['.multiplayer']],
-      ['library', 'Games & plugins', ['#lab-manager']],
-      ['tools', 'Tools & manual', ['.utility-grid', '.debug']],
+    toolbar.classList.add('card');
+
+    const groups: [Panel, string, HTMLElement[]][] = [
+      ['setup', 'Flight & setup', [toolbar, setup, controls]],
+      ['data', 'Flight data', [take('.path-card'), element('module-panels')]],
+      ['fleet', 'Fleet', [take('.fleet-card')]],
+      ['multiplayer', 'Multiplayer', [take('.multiplayer')]],
+      ['library', 'Games & plugins', [element('lab-manager')]],
+      ['tools', 'Tools & manual', [take('.utility-grid'), take('.debug')]],
     ];
     const shortLabels: Record<Panel, string> = {
+      setup: 'Setup',
       data: 'Data',
       fleet: 'Fleet',
       multiplayer: 'Online',
       library: 'Games',
       tools: 'Tools',
     };
+
     this.drawer.className = 'workspace-drawer';
     this.drawer.id = 'workspace-drawer';
     this.drawer.hidden = true;
@@ -39,26 +75,44 @@ export class Workspace {
     this.drawer.setAttribute('aria-modal', 'false');
     this.drawer.setAttribute('aria-labelledby', 'drawer-title');
     this.title.id = 'drawer-title';
-    const heading = document.createElement('div'); heading.className = 'drawer-heading';
+
+    const heading = document.createElement('div');
+    heading.className = 'drawer-heading';
+    const topBar = document.createElement('div');
+    topBar.className = 'drawer-top-bar';
+    const brand = document.createElement('div');
+    brand.className = 'drawer-brand';
+    brand.append(take('header .wordmark'), element('active-game'), this.title);
+
     const close = document.createElement('button');
-    close.type = 'button'; close.textContent = 'Close ×'; close.setAttribute('aria-label', 'Close panel');
+    close.type = 'button';
+    close.className = 'drawer-close';
+    close.textContent = 'Close ×';
+    close.setAttribute('aria-label', 'Close panel');
     close.onclick = () => this.close(true);
-    heading.append(this.title, close);
-    this.content.className = 'drawer-content';
-    this.drawer.append(heading, this.content);
-    document.body.append(this.drawer);
-    const nav = take('.workspace-nav'); nav.replaceChildren();
+    topBar.append(brand, close);
+
+    const nav = take('.workspace-nav');
+    nav.replaceChildren();
     const flight = document.createElement('button');
-    flight.type = 'button'; flight.textContent = 'Flight'; flight.dataset.workspace = 'flight';
-    flight.onclick = () => this.close(true); nav.append(flight);
-    for (const [id, title, selectors] of groups) {
+    flight.type = 'button';
+    flight.textContent = 'Flight';
+    flight.dataset.workspace = 'flight';
+    flight.onclick = () => this.close(true);
+    nav.append(flight);
+
+    for (const [id, title, nodes] of groups) {
       this.titles.set(id, title);
       const panel = document.createElement('div');
-      panel.dataset.workspacePanel = id; panel.hidden = true;
-      panel.append(...selectors.map(take));
-      this.panels.set(id, panel); this.content.append(panel);
+      panel.dataset.workspacePanel = id;
+      panel.hidden = true;
+      panel.append(...nodes);
+      this.panels.set(id, panel);
+      this.content.append(panel);
+
       const button = document.createElement('button');
-      button.type = 'button'; button.dataset.workspace = id;
+      button.type = 'button';
+      button.dataset.workspace = id;
       const longSpan = document.createElement('span');
       longSpan.className = 'nav-long';
       longSpan.textContent = title;
@@ -66,17 +120,29 @@ export class Workspace {
       shortSpan.className = 'nav-short';
       shortSpan.textContent = shortLabels[id];
       button.append(longSpan, shortSpan);
-      button.setAttribute('aria-controls', this.drawer.id); button.setAttribute('aria-expanded', 'false');
+      button.setAttribute('aria-controls', this.drawer.id);
+      button.setAttribute('aria-expanded', 'false');
       button.onclick = () => this.active === id ? this.close(true) : this.open(id);
       nav.append(button);
     }
+
+    heading.append(topBar, nav);
+    this.content.className = 'drawer-content';
+    this.drawer.append(heading, this.content);
+    document.body.append(this.drawer);
+
     document.querySelector('.workspace > aside')?.remove();
-    // Keep the game's identity visible without spending a second row on a page title.
-    document.querySelector('header .wordmark')!.after(element('active-game'));
     document.querySelector('.intro')?.remove();
+    document.querySelector('header')?.remove();
     document.querySelector('footer')?.remove();
+
     document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && this.active) { event.preventDefault(); this.close(true); }
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const controlsModal = document.getElementById('controls-dialog') as HTMLDialogElement | null;
+      if (controlsModal?.open || (event.target instanceof Node && controlsModal?.contains(event.target))) return;
+      event.preventDefault();
+      if (this.active) this.close(true);
+      else this.open(this.lastPanel);
     });
     document.addEventListener('pointerdown', event => {
       if (event.target instanceof HTMLCanvasElement && event.target.id === 'flight-view') this.close();
@@ -85,25 +151,18 @@ export class Workspace {
     document.addEventListener('change', event => {
       const input = event.target;
       if (!(input instanceof HTMLInputElement) || input.type !== 'file' || !input.files?.length) return;
+      if (input.id === 'universe-file') this.open('setup');
       if (['lab-file', 'module-file', 'code-module-file'].includes(input.id)) this.open('library');
       if (input.id === 'shader-file') this.open('tools');
       if (input.id === 'world-file') this.open('fleet');
     }, true);
-    const measure = (): void => {
-      const toolbar = take('.view-toolbar').getBoundingClientRect();
-      const bottom = take('.telemetry').getBoundingClientRect();
-      document.documentElement.style.setProperty('--drawer-top', `${toolbar.bottom + 6}px`);
-      document.documentElement.style.setProperty('--drawer-bottom', `${innerHeight - bottom.top + 6}px`);
-    };
-    const observer = new ResizeObserver(measure);
-    for (const node of [take('header'), setup, controls, take('.view-toolbar'), take('.flight-panel')]) observer.observe(node);
-    window.addEventListener('resize', measure);
-    measure();
+    this.updateButtons();
   }
 
-  open(panel: Panel): void {
+  open(panel: Panel = this.lastPanel): void {
     this.release();
     this.active = panel;
+    this.lastPanel = panel;
     for (const [id, content] of this.panels) content.hidden = id !== panel;
     this.drawer.hidden = false;
     this.drawer.classList.toggle('wide', panel === 'library' || panel === 'tools');
@@ -112,11 +171,16 @@ export class Workspace {
   }
 
   private close(focus = false): void {
-    this.active = undefined; this.drawer.hidden = true; this.updateButtons();
+    this.active = undefined;
+    this.drawer.hidden = true;
+    this.updateButtons();
     if (focus) element('flight-view').focus({ preventScroll: true });
   }
 
   private updateButtons(): void {
+    const isOpen = this.active !== undefined;
+    this.menuButton.setAttribute('aria-expanded', String(isOpen));
+    this.menuButton.setAttribute('aria-pressed', String(isOpen));
     for (const button of document.querySelectorAll<HTMLButtonElement>('[data-workspace]')) {
       const active = button.dataset.workspace === (this.active ?? 'flight');
       button.setAttribute('aria-pressed', String(active));

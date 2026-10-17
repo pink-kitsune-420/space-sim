@@ -27,6 +27,7 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   await page.goto(pathToFileURL(resolve('dist/space-sim-offline.html')).href);
   // Some browser test environments only provide Canvas 2D; check its graceful fallback separately.
   test.skip(await page.locator('#renderer-toggle').textContent() !== 'Renderer: WebGL', 'WebGL 2 unavailable in this browser environment');
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const original = await pixel(page);
   await openPanel(page, 'tools');
@@ -38,10 +39,12 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   await load(page, pack({ scene: { fragment: scene } }));
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
+  await openPanel(page, 'setup');
   await page.locator('#renderer-toggle').click();
   await expect(page.locator('#shader-status')).toContainText('Canvas 2D');
   await page.locator('#renderer-toggle').click();
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
+  await openPanel(page, 'tools');
   const customDownload = page.waitForEvent('download');
   await page.locator('#export-shader').click();
   const exported = await readFile(await (await customDownload).path(), 'utf8');
@@ -53,6 +56,7 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
   await load(page, JSON.stringify(defaults));
   expect(await pixel(page)).toEqual(original);
+  await openPanel(page, 'setup');
   await page.locator('#renderer-toggle').click();
   await load(page, scene, 'blue.frag');
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
@@ -80,9 +84,10 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
   });
   await page.goto('/');
   test.skip(await page.locator('#renderer-toggle').textContent() !== 'Renderer: WebGL', 'WebGL 2 unavailable in this browser environment');
+  await openPanel(page, 'setup');
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await openPanel(page, 'tools');
   await page.locator('.shader-settings summary').click();
-  await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await load(page, pack({ scene: { fragment: scene } }));
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
   const stats = () => page.evaluate(() => (window as unknown as { shaderStats: Record<string, number> }).shaderStats);
@@ -105,10 +110,13 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
     expect((await stats()).livePrograms).toBe(4);
     expect((await stats()).liveShaders).toBe(0);
   }
+  await openPanel(page, 'setup');
   await page.locator('#renderer-toggle').click();
   expect((await stats()).livePrograms).toBe(0);
+  await openPanel(page, 'tools');
   await page.locator('#reset-shader').click(); // Reset also works while using Canvas.
   await expect(page.locator('#shader-name')).toHaveText('Default');
+  await openPanel(page, 'setup');
   await page.locator('#renderer-toggle').click();
   expect((await stats()).livePrograms).toBe(4);
   expect((await stats()).liveShaders).toBe(0);
@@ -180,6 +188,7 @@ test('full packs replace all stages and receive drawing roles, glyph textures an
   expect(before.cyanGlyphs).toBeGreaterThan(10);
   expect(before.error).toBe(0);
   await expect.poll(async () => (await vesselPixels()).ship[1]).not.toBe(before.ship[1]);
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const stopped = await vesselPixels();
   await page.waitForTimeout(150);

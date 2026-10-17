@@ -15,7 +15,7 @@ interface DesktopArgs {
   help: boolean;
 }
 
-const USAGE = `Space Lab · Space Sim (Desktop Player)
+const USAGE = `Spacelab · Space Sim (Desktop Player)
 
 Usage: space-sim [options]
 
@@ -134,7 +134,7 @@ function launchAppBrowser(
         'gi.require_version("Gtk", "3.0")',
         'gi.require_version("WebKit2", "4.1")',
         'from gi.repository import Gtk, WebKit2',
-        'win = Gtk.Window(title="Space Lab · Space Sim")',
+        'win = Gtk.Window(title="Spacelab · Space Sim")',
         'win.set_default_size(1280, 800)',
         'win.set_position(Gtk.WindowPosition.CENTER)',
         fullscreen ? 'win.fullscreen()' : '',
@@ -277,7 +277,7 @@ async function main(): Promise<void> {
 
   console.log([
     '',
-    `  Space Lab · Space Sim ${version}`,
+    `  Spacelab · Space Sim ${version}`,
     `  Local game server running at: ${gameUrl}`,
     args.open ? '  Opening game window...' : '  (Browser launch skipped via --no-open)',
     '  Press Ctrl+C to stop.',

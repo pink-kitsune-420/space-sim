@@ -10,6 +10,7 @@ declare global { interface Window { overlayHarness: typeof Harness } }
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 const instrument = (page: Page, name: string) => page.locator('#instruments').getByRole('button', { name, exact: true });
 async function orbit(page: Page): Promise<void> {
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await debug(page)).predictionEnd, { timeout: 15000 }).toBe('closed');
 }
@@ -28,6 +29,7 @@ test('the flight instruments are part of the default game and each switches off 
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBeGreaterThan(0);
   const before = await debug(page);
   expect(before.presentation.modules).toEqual(['builtin.flight-data', 'builtin.flight-vectors', 'builtin.orbit-markers', 'builtin.telemetry']);
+  await openPanel(page, 'setup');
   await instrument(page, 'Telemetry').click();
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'false');
   await expect(panel).toHaveCount(0);
@@ -43,6 +45,7 @@ test('the flight instruments are part of the default game and each switches off 
   await expect(page.locator('#save-world')).toBeEnabled();
   // A viewer's choices are remembered in this browser, relative to the defaults.
   await page.reload();
+  await openPanel(page, 'setup');
   for (const name of ['Velocity', 'Orbit markers', 'Telemetry']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
   await instrument(page, 'Telemetry').click();
   await expect(page.locator('#presentation-status')).toContainText('Telemetry enabled with Flight data, which it needs');
@@ -74,6 +77,7 @@ test('dependencies: an add-on enables what it needs, and removing a library remo
   await expect.poll(async () => (await debug(page)).camera.mode).toBe('example.lead-camera/lead');
   const lead = await debug(page);
   expect(Math.hypot(lead.camera.center.x - lead.position.x, lead.camera.center.y - lead.position.y)).toBeGreaterThan(1);
+  await openPanel(page, 'library');
   await list.locator('input[data-module="builtin.flight-data"]').uncheck();
   await expect(page.locator('#presentation-status')).toContainText('Flight data disabled, with Lead camera (example), which needs it');
   await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
@@ -108,7 +112,7 @@ test('module commands bind keys and buttons and go through the host', async ({ p
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/?example=commands');
   const commands = page.locator('#module-commands');
-  await expect(commands.getByRole('button')).toHaveText(['Full throttle Z', 'Cut throttle X', 'Throttle +10% V']);
+  await expect(commands.getByRole('button', { includeHidden: true })).toHaveText(['Full throttle Z', 'Cut throttle X', 'Throttle +10% V']);
   await expect(page.locator('#module-name')).toHaveText('example.maneuvers');
   await expect(page.locator('#save-world')).toBeDisabled();
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
@@ -118,6 +122,7 @@ test('module commands bind keys and buttons and go through the host', async ({ p
   await expect(page.locator('#throttle-value')).toHaveText('0%');
   await page.keyboard.press('v');
   await expect(page.locator('#throttle-value')).toHaveText('10%');
+  await openPanel(page, 'setup');
   await commands.getByRole('button', { name: /Full throttle/ }).click();
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   expect((await debug(page)).commands).toEqual(['example.maneuvers/full-throttle', 'example.maneuvers/cut-throttle', 'example.maneuvers/trim-throttle']);

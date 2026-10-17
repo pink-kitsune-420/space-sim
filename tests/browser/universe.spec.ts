@@ -95,7 +95,7 @@ test('invalid compressed universe data keeps the old world and names the problem
   expect(JSON.parse(await page.locator('#debug').textContent() || '{}').world).toBe(before);
 });
 
-test('standalone Space Lab imports and exports compressed planets without a network', async ({ page, context }, testInfo) => {
+test('standalone Spacelab imports and exports compressed planets without a network', async ({ page, context }, testInfo) => {
   const file = testInfo.outputPath('universe-workshop.html'); await copyFile(resolve('dist/space-lab-offline.html'), file);
   await context.setOffline(true); await page.goto(pathToFileURL(file).href);
   await page.locator('#universe-file').setInputFiles({ name: 'offline.spaceuniverse', mimeType: 'application/gzip', buffer: gzipSync(JSON.stringify(terrainUniverse())) });

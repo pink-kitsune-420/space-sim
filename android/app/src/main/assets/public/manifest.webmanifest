@@ -1,5 +1,5 @@
 {
-  "name": "Space Lab · Space Sim",
+  "name": "Spacelab · Space Sim",
   "short_name": "Space Sim",
   "description": "A browser-first modular 2D space simulation game.",
   "start_url": "./index.html",

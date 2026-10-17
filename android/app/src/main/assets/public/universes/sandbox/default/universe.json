@@ -3,30 +3,28 @@
   "schemaVersion": 1,
   "id": "default-universe",
   "name": "Default Universe",
-  "description": "The default universe containing the compact Primus System, the 1/10 scale Solar System (Sun, Earth, Moon), and the distant Outer Reach System.",
+  "description": "The default universe containing the compact Primus System and the distant Outer Reach System. The 1/10 scale Solar System is its own universe.",
   "author": "Space Sim Team",
   "defaultSystemId": "primus-system",
   "systems": [
     {
       "id": "primus-system",
       "name": "Primus System",
-      "description": "A compact fictional planetary system with Primus and its orbiting moon Secundus.",
-      "centralBodyId": "planet",
+      "description": "A compact beginner system around the star Lumen: volcanic little Ignis, dusty low-gravity Velum, the gentle home planet Primus with its moon Parvus, and heavy giant Magnus with its moons Nix and Umbra.",
+      "centralBodyId": "star",
       "bodies": [
         {
-          "id": "planet",
-          "name": "Primus",
+          "id": "star",
+          "name": "Lumen",
           "parentId": null,
-          "radius": 512,
-          "radiusMetres": 512,
-          "mass": 196382991474761400,
-          "mu": 13107200,
-          "color": "#233c47",
-          "accentColor": "#659497",
-          "atmosphereColor": "#29495380",
-          "horizonColor": "#659497",
-          "skyColor": "#29495380",
-          "surfaceFeatures": "globe-lines",
+          "radius": 16384,
+          "radiusMetres": 16384,
+          "mass": 196383141303207850000,
+          "mu": 13107200000,
+          "color": "#ffd27a",
+          "accentColor": "#ff8a2a",
+          "atmosphereColor": "#ffaa0060",
+          "surfaceFeatures": "star",
           "ephemeris": {
             "kind": "fixed-inertial",
             "position": [
@@ -37,19 +35,152 @@
               0,
               0
             ]
+          },
+          "rotation": {
+            "period": 2000,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "star",
+            "colors": [
+              "#fff8e6",
+              "#ffd27a",
+              "#ff8a2a",
+              "#c8661c"
+            ]
+          }
+        },
+        {
+          "id": "ignis",
+          "name": "Ignis",
+          "parentId": "star",
+          "radius": 64,
+          "radiusMetres": 64,
+          "mass": 613697316572524.5,
+          "mu": 40960,
+          "color": "#3d2b24",
+          "accentColor": "#e0703a",
+          "atmosphereColor": "#a0482830",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 1286,
+            "entryMetres": 1247,
+            "exitMetres": 1286
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 204800,
+            "radiusMetres": 204800,
+            "phaseRadiansAtEpoch": 2,
+            "direction": -1,
+            "period": 5086.5092
+          },
+          "rotation": {
+            "period": 240,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "volcanic",
+            "colors": [
+              "#3d2b24",
+              "#1e1613",
+              "#ff6a1f",
+              "#c9a83a"
+            ]
+          }
+        },
+        {
+          "id": "velum",
+          "name": "Velum",
+          "parentId": "star",
+          "radius": 384,
+          "radiusMetres": 384,
+          "mass": 44186206793221770,
+          "mu": 2949120,
+          "color": "#c8a46e",
+          "accentColor": "#ead2a2",
+          "atmosphereColor": "#e3c08a55",
+          "horizonColor": "#ead2a2",
+          "skyColor": "#e3c08a55",
+          "surfaceFeatures": "smooth",
+          "soi": {
+            "radius": 14231,
+            "entryMetres": 13800,
+            "exitMetres": 14231
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 409600,
+            "radiusMetres": 409600,
+            "phaseRadiansAtEpoch": 4,
+            "direction": -1,
+            "period": 14386.8206
+          },
+          "rotation": {
+            "period": 900,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "arid",
+            "colors": [
+              "#c8a46e",
+              "#7a5a3c",
+              "#ece4d2",
+              "#f4efe6"
+            ]
+          }
+        },
+        {
+          "id": "planet",
+          "name": "Primus",
+          "parentId": "star",
+          "radius": 512,
+          "radiusMetres": 512,
+          "mass": 196382991474761400,
+          "mu": 13107200,
+          "color": "#1d5a8a",
+          "accentColor": "#7cc3e6",
+          "atmosphereColor": "#6ab4ec80",
+          "horizonColor": "#7cc3e6",
+          "skyColor": "#6ab4ec80",
+          "surfaceFeatures": "globe-lines",
+          "soi": {
+            "radius": 51688,
+            "entryMetres": 50000,
+            "exitMetres": 51688
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 819200,
+            "radiusMetres": 819200,
+            "phaseRadiansAtEpoch": 4.71238898038469,
+            "direction": -1,
+            "period": 40692.0735
+          },
+          "rotation": {
+            "period": 600,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "oceanic",
+            "colors": [
+              "#1d5a8a",
+              "#4c7f3a",
+              "#c9aa6e",
+              "#f1f5f8"
+            ]
           }
         },
         {
           "id": "moon",
-          "name": "Secundus",
+          "name": "Parvus",
           "parentId": "planet",
           "radius": 128,
           "radiusMetres": 128,
           "mass": 3068484241793147,
           "mu": 204800,
-          "color": "#3f4651",
-          "accentColor": "#8d98a7",
-          "atmosphereColor": "#44525d40",
+          "color": "#8c8984",
+          "accentColor": "#c4c0b8",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 2910,
@@ -63,6 +194,136 @@
             "phaseRadiansAtEpoch": 0,
             "direction": -1,
             "period": 3297.8009
+          },
+          "rotation": {
+            "period": 3297.8009,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8c8984",
+              "#4d4b48",
+              "#c4c0b8",
+              "#8c8984"
+            ]
+          }
+        },
+        {
+          "id": "magnus",
+          "name": "Magnus",
+          "parentId": "star",
+          "radius": 2048,
+          "radiusMetres": 2048,
+          "mass": 5027408417362121000,
+          "mu": 335544320,
+          "color": "#3a6db0",
+          "accentColor": "#9cc2ee",
+          "atmosphereColor": "#7aa8e680",
+          "horizonColor": "#9cc2ee",
+          "skyColor": "#7aa8e680",
+          "surfaceFeatures": "globe-lines",
+          "soi": {
+            "radius": 567292,
+            "entryMetres": 550273,
+            "exitMetres": 567292
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 2457600,
+            "radiusMetres": 2457600,
+            "phaseRadiansAtEpoch": 0.6,
+            "direction": -1,
+            "period": 211442.2165
+          },
+          "rotation": {
+            "period": 400,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#3a6db0",
+              "#284f8a",
+              "#a9c9ee",
+              "#eef4ff"
+            ]
+          }
+        },
+        {
+          "id": "nix",
+          "name": "Nix",
+          "parentId": "magnus",
+          "radius": 96,
+          "radiusMetres": 96,
+          "mass": 1726023702860225.2,
+          "mu": 115200,
+          "color": "#d6e3ee",
+          "accentColor": "#f4f9ff",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 505,
+            "entryMetres": 490,
+            "exitMetres": 505
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 12288,
+            "radiusMetres": 12288,
+            "phaseRadiansAtEpoch": 0,
+            "direction": -1,
+            "period": 467.2257
+          },
+          "rotation": {
+            "period": 467.2257,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#d6e3ee",
+              "#7f98ad",
+              "#ffffff",
+              "#d6e3ee"
+            ]
+          }
+        },
+        {
+          "id": "umbra",
+          "name": "Umbra",
+          "parentId": "magnus",
+          "radius": 160,
+          "radiusMetres": 160,
+          "mass": 7671216457156556,
+          "mu": 512000,
+          "color": "#4a4448",
+          "accentColor": "#7a7076",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 1836,
+            "entryMetres": 1781,
+            "exitMetres": 1836
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 24576,
+            "radiusMetres": 24576,
+            "phaseRadiansAtEpoch": 3,
+            "direction": -1,
+            "period": 1321.5139
+          },
+          "rotation": {
+            "period": 1321.5139,
+            "direction": -1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#4a4448",
+              "#2a2629",
+              "#7a7076",
+              "#4a4448"
+            ]
           }
         }
       ],
@@ -101,7 +362,7 @@
         },
         {
           "id": "moon-orbit",
-          "name": "Secundus circular orbit · 128 m altitude",
+          "name": "Parvus circular orbit · 128 m altitude",
           "bodyId": "moon",
           "kind": "circular-orbit",
           "radius": 256,
@@ -110,168 +371,48 @@
           "phaseRadians": 1.5707963267948966,
           "direction": -1,
           "headingRadians": 0
-        }
-      ]
-    },
-    {
-      "id": "solar-system",
-      "name": "Solar System (1/10 Scale)",
-      "description": "Real solar system scaled to 1/10 dimensions, featuring the Sun, Earth, and Moon with authentic surface gravities and orbital periods.",
-      "centralBodyId": "sun",
-      "bodies": [
-        {
-          "id": "sun",
-          "name": "Sun",
-          "parentId": null,
-          "radius": 69570000,
-          "radiusMetres": 69570000,
-          "mass": 1.98841e+28,
-          "mu": 1327124400000000000,
-          "color": "#ffd000",
-          "accentColor": "#ff7700",
-          "atmosphereColor": "#ffaa0060",
-          "surfaceFeatures": "star",
-          "ephemeris": {
-            "kind": "fixed-inertial",
-            "position": [
-              0,
-              0
-            ],
-            "velocity": [
-              0,
-              0
-            ]
-          }
         },
         {
-          "id": "earth",
-          "name": "Earth",
-          "parentId": "sun",
-          "radius": 637100,
-          "radiusMetres": 637100,
-          "mass": 5.972168e+22,
-          "mu": 3986004418000,
-          "color": "#1b4965",
-          "accentColor": "#62b6cb",
-          "atmosphereColor": "#48cae480",
-          "surfaceFeatures": "globe-lines",
-          "soi": {
-            "radius": 89205000,
-            "entryMetres": 89000000,
-            "exitMetres": 92000000
-          },
-          "ephemeris": {
-            "kind": "circular-kepler",
-            "radius": 14959787070,
-            "radiusMetres": 14959787070,
-            "phaseRadiansAtEpoch": 1.5707963267948966,
-            "direction": -1,
-            "period": 9979788
-          }
-        },
-        {
-          "id": "moon",
-          "name": "Moon",
-          "parentId": "earth",
-          "radius": 173740,
-          "radiusMetres": 173740,
-          "mass": 734889000000000000000,
-          "mu": 49048695000,
-          "color": "#4a4e54",
-          "accentColor": "#9aa0a6",
-          "atmosphereColor": "#50555c20",
-          "surfaceFeatures": "craters",
-          "soi": {
-            "radius": 6608600,
-            "entryMetres": 6600000,
-            "exitMetres": 6800000
-          },
-          "ephemeris": {
-            "kind": "circular-kepler",
-            "radius": 38440000,
-            "radiusMetres": 38440000,
-            "phaseRadiansAtEpoch": 0,
-            "direction": -1,
-            "period": 749997
-          }
-        }
-      ],
-      "vehicleDefaults": {
-        "acceleration": 40,
-        "turnRate": 1.22718463,
-        "initialThrottle": 0.5
-      },
-      "presets": [
-        {
-          "id": "earth-pad",
-          "name": "Earth · North pad · ready to launch",
-          "bodyId": "earth",
+          "id": "velum-pad",
+          "name": "Velum · low-gravity pad",
+          "bodyId": "velum",
           "kind": "landed",
           "position": [
             0,
-            637100
+            384
           ],
           "velocity": [
             0,
             0
           ],
-          "headingRadians": 1.5707963267948966,
-          "zoom": 1
+          "headingRadians": 1.5707963267948966
         },
         {
-          "id": "earth-orbit",
-          "name": "Earth low orbit · 100 km altitude",
-          "bodyId": "earth",
+          "id": "magnus-orbit",
+          "name": "Magnus circular orbit · 256 m altitude",
+          "bodyId": "magnus",
           "kind": "circular-orbit",
-          "radius": 737100,
-          "radiusMetres": 737100,
-          "altitude": 100000,
+          "radius": 2304,
+          "radiusMetres": 2304,
+          "altitude": 256,
           "phaseRadians": 1.5707963267948966,
           "direction": -1,
-          "headingRadians": 0,
-          "zoom": 0.0007
+          "headingRadians": 0
         },
         {
-          "id": "moon-orbit",
-          "name": "Moon low orbit · 50 km altitude",
-          "bodyId": "moon",
-          "kind": "circular-orbit",
-          "radius": 223740,
-          "radiusMetres": 223740,
-          "altitude": 50000,
-          "phaseRadians": 1.5707963267948966,
-          "direction": -1,
-          "headingRadians": 0,
-          "zoom": 0.002
-        },
-        {
-          "id": "moon-pad",
-          "name": "Moon · Tranquility Base · surface landing",
-          "bodyId": "moon",
+          "id": "umbra-pad",
+          "name": "Umbra · dark moon pad",
+          "bodyId": "umbra",
           "kind": "landed",
           "position": [
             0,
-            173740
+            160
           ],
           "velocity": [
             0,
             0
           ],
-          "headingRadians": 1.5707963267948966,
-          "zoom": 1
-        },
-        {
-          "id": "sun-orbit",
-          "name": "Sun orbit · 0.5 AU (Inner solar transfer)",
-          "bodyId": "sun",
-          "kind": "circular-orbit",
-          "radius": 7479893535,
-          "radiusMetres": 7479893535,
-          "altitude": 7410323535,
-          "phaseRadians": 1.5707963267948966,
-          "direction": -1,
-          "headingRadians": 0,
-          "zoom": 8e-8
+          "headingRadians": 1.5707963267948966
         }
       ]
     },
@@ -289,9 +430,9 @@
           "radiusMetres": 1024,
           "mass": 785531965899045600,
           "mu": 52428800,
-          "color": "#4a3c28",
-          "accentColor": "#b89758",
-          "atmosphereColor": "#614e3680",
+          "color": "#c99a5e",
+          "accentColor": "#ecd6aa",
+          "atmosphereColor": "#d9b07a60",
           "surfaceFeatures": "globe-lines",
           "ephemeris": {
             "kind": "fixed-inertial",
@@ -303,6 +444,15 @@
               0,
               0
             ]
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": [
+              "#c99a5e",
+              "#8d6337",
+              "#ecd6aa",
+              "#b4513a"
+            ]
           }
         },
         {
@@ -313,8 +463,8 @@
           "radiusMetres": 256,
           "mass": 12273936967172588,
           "mu": 819200,
-          "color": "#334d5c",
-          "accentColor": "#6cb0c8",
+          "color": "#9fd0df",
+          "accentColor": "#e6f6fa",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 4500,
@@ -328,6 +478,15 @@
             "phaseRadiansAtEpoch": 0.5,
             "direction": -1,
             "period": 3223.7388
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": [
+              "#9fd0df",
+              "#4f7f90",
+              "#e6f6fa",
+              "#9fd0df"
+            ]
           }
         },
         {
@@ -338,8 +497,8 @@
           "radiusMetres": 160,
           "mass": 4091312322394196,
           "mu": 273066.67,
-          "color": "#5c4040",
-          "accentColor": "#b88080",
+          "color": "#8a5a50",
+          "accentColor": "#c39286",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 3200,
@@ -353,6 +512,15 @@
             "phaseRadiansAtEpoch": 3.14159,
             "direction": -1,
             "period": 5922.3789
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": [
+              "#8a5a50",
+              "#55372f",
+              "#c39286",
+              "#8a5a50"
+            ]
           }
         }
       ],

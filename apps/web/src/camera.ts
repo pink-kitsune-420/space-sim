@@ -12,9 +12,9 @@ export class CameraController {
   mode = 'follow';
   /** Free-view centre relative to the active body (metres). */
   pan: Vec = { x: 0, y: 0 };
-  zoom = 1;
+  zoom = 10;
   rotation = 0;
-  horizon = false;
+  horizon = true;
   /** Free view reached by dragging, rather than the planet-centred overview. */
   private dragged = false;
   /** The latest drawn camera, in system coordinates. */
