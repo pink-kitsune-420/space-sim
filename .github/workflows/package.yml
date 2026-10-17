@@ -1,4 +1,5 @@
 name: Auto Package Releases
+
 on:
   workflow_dispatch:
   push:
@@ -68,6 +69,7 @@ jobs:
 
   package-android:
     runs-on: ubuntu-24.04
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -78,20 +80,97 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
       - run: npm ci
       - run: npm run build
-      - name: Initialize & Build Android via Capacitor
-        run: |
-          npm install --no-save @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/android@^6.0.0
-          npx cap add android
-          npx cap sync android
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Build Android via packaging tool
+        run: node scripts/package.mjs --target=android
       - uses: actions/upload-artifact@v4
         with:
           name: space-sim-android-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: warn
+
+  release:
+    needs: [package-desktop, package-web-offline]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+      - name: Prepare Release Distribution Files
+        run: |
+          mkdir -p release-files
+
+          # Linux Standalone Executables
+          if [ -f all-artifacts/space-sim-linux/dist-desktop/space-sim ]; then
+            cp all-artifacts/space-sim-linux/dist-desktop/space-sim release-files/space-sim-linux-x64
+            chmod +x release-files/space-sim-linux-x64
+            tar -czf release-files/space-sim-linux-x64.tar.gz -C all-artifacts/space-sim-linux/dist-desktop space-sim
+          elif [ -f all-artifacts/space-sim-linux/space-sim ]; then
+            cp all-artifacts/space-sim-linux/space-sim release-files/space-sim-linux-x64
+            chmod +x release-files/space-sim-linux-x64
+            tar -czf release-files/space-sim-linux-x64.tar.gz -C all-artifacts/space-sim-linux space-sim
+          fi
+
+          # Linux Dedicated Server
+          if [ -f all-artifacts/space-sim-linux/dist-server/space-sim-server ]; then
+            cp all-artifacts/space-sim-linux/dist-server/space-sim-server release-files/space-sim-server-linux-x64
+            chmod +x release-files/space-sim-server-linux-x64
+            tar -czf release-files/space-sim-server-linux-x64.tar.gz -C all-artifacts/space-sim-linux/dist-server space-sim-server
+          elif [ -f all-artifacts/space-sim-linux/space-sim-server ]; then
+            cp all-artifacts/space-sim-linux/space-sim-server release-files/space-sim-server-linux-x64
+            chmod +x release-files/space-sim-server-linux-x64
+            tar -czf release-files/space-sim-server-linux-x64.tar.gz -C all-artifacts/space-sim-linux space-sim-server
+          fi
+
+          # Windows Standalone Executables
+          if [ -f all-artifacts/space-sim-windows/dist-desktop/space-sim.exe ]; then
+            (cd all-artifacts/space-sim-windows/dist-desktop && zip -j ../../../release-files/space-sim-windows-x64.zip space-sim.exe)
+          elif [ -f all-artifacts/space-sim-windows/space-sim.exe ]; then
+            (cd all-artifacts/space-sim-windows && zip -j ../../release-files/space-sim-windows-x64.zip space-sim.exe)
+          fi
+
+          # Windows Dedicated Server
+          if [ -f all-artifacts/space-sim-windows/dist-server/space-sim-server.exe ]; then
+            (cd all-artifacts/space-sim-windows/dist-server && zip -j ../../../release-files/space-sim-server-windows-x64.zip space-sim-server.exe)
+          elif [ -f all-artifacts/space-sim-windows/space-sim-server.exe ]; then
+            (cd all-artifacts/space-sim-windows && zip -j ../../release-files/space-sim-server-windows-x64.zip space-sim-server.exe)
+          fi
+
+          # macOS Standalone Executables
+          if [ -f all-artifacts/space-sim-macos/dist-desktop/space-sim ]; then
+            tar -czf release-files/space-sim-macos-arm64.tar.gz -C all-artifacts/space-sim-macos/dist-desktop space-sim
+          elif [ -f all-artifacts/space-sim-macos/space-sim ]; then
+            tar -czf release-files/space-sim-macos-arm64.tar.gz -C all-artifacts/space-sim-macos space-sim
+          fi
+
+          # macOS Dedicated Server
+          if [ -f all-artifacts/space-sim-macos/dist-server/space-sim-server ]; then
+            tar -czf release-files/space-sim-server-macos-arm64.tar.gz -C all-artifacts/space-sim-macos/dist-server space-sim-server
+          elif [ -f all-artifacts/space-sim-macos/space-sim-server ]; then
+            tar -czf release-files/space-sim-server-macos-arm64.tar.gz -C all-artifacts/space-sim-macos space-sim-server
+          fi
+
+          # Offline Web & Bundles
+          find all-artifacts/space-sim-offline-html -name "*.html" -exec cp {} release-files/ \;
+          find all-artifacts/space-sim-offline-html -name "*.spacegame" -exec cp {} release-files/ \;
+          find all-artifacts/space-sim-offline-html -name "*.spaceuniverse" -exec cp {} release-files/ \;
+
+          # Android APK if present
+          find all-artifacts/ -name "*.apk" -exec cp {} release-files/space-sim-android-debug.apk \; || true
+
+          # Generate Checksums
+          cd release-files
+          sha256sum * > SHA256SUMS.txt
+          ls -lh
+      - name: Publish or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}
+          files: release-files/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
