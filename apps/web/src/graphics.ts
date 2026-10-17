@@ -1,5 +1,5 @@
 /** Graphics quality: a per-browser convenience, never shared or saved with worlds.
- * High draws day and night from the system's star; Low skips lighting for slower devices. */
+ * High draws detailed procedural planets lit by the system's star; Low draws plain discs for slower devices. */
 export type GraphicsQuality = 'high' | 'low';
 
 const STORAGE_KEY = 'space-sim.graphics/1';

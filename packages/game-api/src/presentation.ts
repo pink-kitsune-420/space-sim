@@ -1,7 +1,7 @@
 import type { Controls, GhostEnd, GhostSample, State, Vec } from './state';
 import type { SurfaceProfile } from './surface';
 import type { Elements } from './orbit';
-import type { VehicleDefaults } from './universe';
+import type { AppearanceStyle, VehicleDefaults } from './universe';
 import type { WorldRuleState } from './rules';
 
 /** Presentation contracts. Browser/offline scope: nothing here enters the authoritative
@@ -29,6 +29,8 @@ export interface RenderBody {
   readonly rotation?: number;
   /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */
   readonly sunDirection?: Vec;
+  /** Procedural surface look; absent draws a plain disc (low graphics quality). */
+  readonly appearance?: { readonly style: AppearanceStyle; readonly colors: readonly string[] };
 }
 /** Another vessel in the same world: one of this player's fleet, or someone else's. */
 export interface RenderShip {

@@ -8,7 +8,7 @@ import {
   type SystemDefinition,
   type UniverseDefinition,
 } from '../../packages/sim-core/src/index';
-import { SOLAR_UNIVERSE } from '../../packages/scenarios/builtin';
+import { FULL_SOLAR_UNIVERSE, SOLAR_UNIVERSE } from '../../packages/scenarios/builtin';
 
 describe('universe format, validation and system loader', () => {
   it('loads and validates the default universe with primus and outer-reach systems', () => {
@@ -304,6 +304,24 @@ describe('universe format, validation and system loader', () => {
   });
 
   describe('Sun and 1/10 scale Solar System (Earth, Moon, Sun)', () => {
+    it('includes all eight planets at a tenth of their size with real surface gravity', () => {
+      const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system'), full = loadSystem(FULL_SOLAR_UNIVERSE);
+      const planets = loaded.getMoonsOf('sun');
+      expect(planets.map(b => b.id)).toEqual(['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune']);
+      const g = (b: { mu: number; radius: number }) => b.mu / (b.radius * b.radius);
+      for (const planet of planets) {
+        const real = full.getResolvedBody(planet.id);
+        expect(planet.radius / real.radius).toBeCloseTo(0.1, 3);
+        expect(g(planet) / g(real)).toBeCloseTo(1, 3);
+        expect(planet.appearance.style).toBe(real.appearance.style);
+      }
+      const orbit = (b: typeof planets[number]) => b.ephemeris.kind === 'circular-kepler' ? b.ephemeris.radius! : 0;
+      for (let i = 1; i < planets.length; i++) {
+        expect(orbit(planets[i]!) - orbit(planets[i - 1]!)).toBeGreaterThan(planets[i]!.soi.exitMetres + planets[i - 1]!.soi.exitMetres);
+      }
+      for (const preset of loaded.presets) expect(loaded.initialState(preset.id).body.id).toBe(preset.bodyId);
+    });
+
     it('loads and validates the 1/10 scale solar system with authentic physical properties', () => {
       const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system');
       expect(loaded.system.id).toBe('solar-system');
@@ -357,7 +375,7 @@ describe('universe format, validation and system loader', () => {
 
     it('correctly models 3-tier hierarchy: Sun -> Earth -> Moon', () => {
       const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system');
-      expect(loaded.getMoonsOf('sun').map(b => b.id)).toEqual(['earth']);
+      expect(loaded.getMoonsOf('sun').map(b => b.id)).toContain('earth');
       expect(loaded.getMoonsOf('earth').map(b => b.id)).toEqual(['moon']);
       expect(loaded.getMoonsOf('moon')).toHaveLength(0);
 

@@ -41,6 +41,21 @@ export interface CelestialBodyDefinition {
   readonly ephemeris?: Ephemeris;
   /** Sidereal spin; absent bodies do not rotate. */
   readonly rotation?: RotationDefinition;
+  /** How the body is drawn; derived from `surfaceFeatures` and its colours when absent. */
+  readonly appearance?: BodyAppearance;
+}
+
+/** Procedural look of a body. Presentation only: it never changes the physical outline. */
+export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';
+
+export interface BodyAppearance {
+  readonly style: AppearanceStyle;
+  /** Up to four '#rrggbb' colours. Their roles depend on the style:
+   * rocky [ground, dark lava seas, bright highlands, polar frost], arid [sand, rock, salt flats, polar ice],
+   * oceanic [ocean, vegetation, desert, ice and cloud],
+   * banded [band, dark band, light band, storms], icy [ice, cracks, frost, tint], hazy [cloud, dark cloud, light cloud, tint],
+   * volcanic [rock, dark crust, lava, sulfur], star [core, surface, limb, spots]. */
+  readonly colors?: readonly string[];
 }
 
 export interface RotationDefinition {
@@ -113,6 +128,8 @@ export interface ResolvedBody extends Body {
   readonly skyColor?: string;
   readonly surfaceFeatures: 'globe-lines' | 'craters' | 'smooth' | 'star';
   readonly ephemeris: Ephemeris;
+  /** Always four colours once resolved. */
+  readonly appearance: { readonly style: AppearanceStyle; readonly colors: readonly [string, string, string, string] };
 }
 
 export interface LoadedSystem {

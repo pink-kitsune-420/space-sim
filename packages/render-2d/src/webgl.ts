@@ -8,6 +8,7 @@ import { compileOverlayTextProgram, compileShaderPack, compileTerrainProgram, ty
 import { overlayRgba, screenOverlays, type ScreenOverlay } from './overlay';
 import { terrainGeometry, terrainFaceColor, type TerrainGeometry } from './terrain';
 import { screenDirection } from './lighting';
+import { appearanceUniforms } from './appearance';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
 
 const HEX_RGB_CACHE = new Map<string, readonly [number, number, number]>();
@@ -106,6 +107,15 @@ interface BodyUniformLocations {
   readonly isStar: WebGLUniformLocation | null;
   /** Optional in shader packs: screen direction to the star, zero when unlit. */
   readonly sunDir: WebGLUniformLocation | null;
+  /** Optional in shader packs: the procedural look (see scene.frag). */
+  readonly style: WebGLUniformLocation | null;
+  readonly c1: WebGLUniformLocation | null;
+  readonly c2: WebGLUniformLocation | null;
+  readonly c3: WebGLUniformLocation | null;
+  readonly mean: WebGLUniformLocation | null;
+  readonly spin: WebGLUniformLocation | null;
+  readonly seed: WebGLUniformLocation | null;
+  readonly metres: WebGLUniformLocation | null;
 }
 
 const DEFAULT_BODY_LIST: readonly RenderBody[] = Object.freeze([{
@@ -284,6 +294,14 @@ export class WebGLRenderer implements Renderer {
         atmosphere: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].atmosphere`),
         isStar: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].isStar`),
         sunDir: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].sunDir`),
+        style: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].style`),
+        c1: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].c1`),
+        c2: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].c2`),
+        c3: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].c3`),
+        mean: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].mean`),
+        spin: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].spin`),
+        seed: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].seed`),
+        metres: gl.getUniformLocation(this.quadProgram, `u_bodies[${i}].metres`),
       });
     }
     this.bodyUniforms = bodyUniforms;
@@ -387,7 +405,8 @@ export class WebGLRenderer implements Renderer {
       if (b.surface && !isStar) continue;
       if (count >= 8) { overflow.push(v); continue; }
       const u = this.bodyUniforms[count]!;
-      const col = parseHex(b.color ?? '#233c47');
+      const look = appearanceUniforms(b);
+      const col = look ? look.colors[0] : parseHex(b.color ?? '#233c47');
       const accent = parseHex(b.horizonColor ?? b.accentColor ?? '#659497');
       const atmo = parseHexAlpha(b.skyColor ?? b.atmosphereColor ?? '#29495380');
 
@@ -411,6 +430,17 @@ export class WebGLRenderer implements Renderer {
       gl.uniform1i(u.isStar, isStar ? 1 : 0);
       const sun = b.sunDirection && !isStar ? screenDirection(b.sunDirection, camera.rotation) : { x: 0, y: 0 };
       gl.uniform2f(u.sunDir, sun.x, sun.y);
+      gl.uniform1i(u.style, look?.style ?? 0);
+      if (look) {
+        const [, c1, c2, c3] = look.colors;
+        gl.uniform3f(u.c1, c1[0], c1[1], c1[2]);
+        gl.uniform3f(u.c2, c2[0], c2[1], c2[2]);
+        gl.uniform3f(u.c3, c3[0], c3[1], c3[2]);
+        gl.uniform3f(u.mean, look.mean[0], look.mean[1], look.mean[2]);
+        gl.uniform1f(u.spin, (b.rotation ?? 0) + camera.rotation);
+        gl.uniform1f(u.seed, look.seed);
+        gl.uniform1f(u.metres, b.radius);
+      }
       count++;
     }
     gl.uniform1i(this.quadBodyCountLoc, count);

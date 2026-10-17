@@ -204,6 +204,37 @@
                     }
                   }
                 },
+                "appearance": {
+                  "type": "object",
+                  "description": "Procedural look, drawn in code. Presentation only: it never changes the physical outline. Derived from surfaceFeatures and the body colours when absent.",
+                  "required": [
+                    "style"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "style": {
+                      "enum": [
+                        "rocky",
+                        "arid",
+                        "oceanic",
+                        "banded",
+                        "icy",
+                        "hazy",
+                        "volcanic",
+                        "star"
+                      ]
+                    },
+                    "colors": {
+                      "type": "array",
+                      "maxItems": 4,
+                      "items": {
+                        "type": "string",
+                        "pattern": "^#[0-9a-fA-F]{6}$"
+                      },
+                      "description": "Roles by style. rocky: ground, dark lava seas, bright highlands, polar frost. arid: sand, rock, salt flats, polar ice. oceanic: ocean, vegetation, desert, ice and cloud. banded: band, dark band, light band, storms. icy: ice, cracks, frost, tint. hazy: cloud, dark cloud, light cloud, tint. volcanic: rock, dark crust, lava, sulfur. star: core, surface, limb, spots."
+                    }
+                  }
+                },
                 "rotation": {
                   "type": "object",
                   "description": "Sidereal spin. Terrain, oceans and resting ships turn with the body, so launches gain its surface speed.",

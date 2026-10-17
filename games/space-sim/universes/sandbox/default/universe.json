@@ -10,7 +10,7 @@
     {
       "id": "primus-system",
       "name": "Primus System",
-      "description": "A compact beginner system around the star Lumen: tiny Ignis, hazy low-gravity Velum, the gentle home planet Primus with its moon Parvus, and heavy giant Magnus with its moons Nix and Umbra.",
+      "description": "A compact beginner system around the star Lumen: volcanic little Ignis, dusty low-gravity Velum, the gentle home planet Primus with its moon Parvus, and heavy giant Magnus with its moons Nix and Umbra.",
       "centralBodyId": "star",
       "bodies": [
         {
@@ -21,8 +21,8 @@
           "radiusMetres": 16384,
           "mass": 1.9638314130320785e20,
           "mu": 13107200000,
-          "color": "#ffd000",
-          "accentColor": "#ff7700",
+          "color": "#ffd27a",
+          "accentColor": "#ff8a2a",
           "atmosphereColor": "#ffaa0060",
           "surfaceFeatures": "star",
           "ephemeris": {
@@ -33,6 +33,10 @@
           "rotation": {
             "period": 2000,
             "direction": -1
+          },
+          "appearance": {
+            "style": "star",
+            "colors": ["#fff8e6", "#ffd27a", "#ff8a2a", "#c8661c"]
           }
         },
         {
@@ -43,9 +47,9 @@
           "radiusMetres": 64,
           "mass": 613697316572524.5,
           "mu": 40960,
-          "color": "#5c2e1f",
+          "color": "#3d2b24",
           "accentColor": "#e0703a",
-          "atmosphereColor": "#a0482840",
+          "atmosphereColor": "#a0482830",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 1286,
@@ -63,6 +67,10 @@
           "rotation": {
             "period": 240,
             "direction": -1
+          },
+          "appearance": {
+            "style": "volcanic",
+            "colors": ["#3d2b24", "#1e1613", "#ff6a1f", "#c9a83a"]
           }
         },
         {
@@ -73,11 +81,11 @@
           "radiusMetres": 384,
           "mass": 4.418620679322177e16,
           "mu": 2949120,
-          "color": "#6b5f3e",
-          "accentColor": "#d9c78f",
-          "atmosphereColor": "#c9b77a70",
-          "horizonColor": "#d9c78f",
-          "skyColor": "#c9b77a70",
+          "color": "#c8a46e",
+          "accentColor": "#ead2a2",
+          "atmosphereColor": "#e3c08a55",
+          "horizonColor": "#ead2a2",
+          "skyColor": "#e3c08a55",
           "surfaceFeatures": "smooth",
           "soi": {
             "radius": 14231,
@@ -95,6 +103,10 @@
           "rotation": {
             "period": 900,
             "direction": -1
+          },
+          "appearance": {
+            "style": "arid",
+            "colors": ["#c8a46e", "#7a5a3c", "#ece4d2", "#f4efe6"]
           }
         },
         {
@@ -105,11 +117,11 @@
           "radiusMetres": 512,
           "mass": 1.963829914747614e17,
           "mu": 13107200,
-          "color": "#233c47",
-          "accentColor": "#659497",
-          "atmosphereColor": "#29495380",
-          "horizonColor": "#659497",
-          "skyColor": "#29495380",
+          "color": "#1d5a8a",
+          "accentColor": "#7cc3e6",
+          "atmosphereColor": "#6ab4ec80",
+          "horizonColor": "#7cc3e6",
+          "skyColor": "#6ab4ec80",
           "surfaceFeatures": "globe-lines",
           "soi": {
             "radius": 51688,
@@ -127,6 +139,10 @@
           "rotation": {
             "period": 600,
             "direction": -1
+          },
+          "appearance": {
+            "style": "oceanic",
+            "colors": ["#1d5a8a", "#4c7f3a", "#c9aa6e", "#f1f5f8"]
           }
         },
         {
@@ -137,9 +153,8 @@
           "radiusMetres": 128,
           "mass": 3.068484241793147e15,
           "mu": 204800,
-          "color": "#3f4651",
-          "accentColor": "#8d98a7",
-          "atmosphereColor": "#44525d40",
+          "color": "#8c8984",
+          "accentColor": "#c4c0b8",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 2910,
@@ -157,6 +172,10 @@
           "rotation": {
             "period": 3297.8009,
             "direction": -1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": ["#8c8984", "#4d4b48", "#c4c0b8", "#8c8984"]
           }
         },
         {
@@ -167,11 +186,11 @@
           "radiusMetres": 2048,
           "mass": 5.027408417362121e18,
           "mu": 335544320,
-          "color": "#2e3f5c",
-          "accentColor": "#8fb3d9",
-          "atmosphereColor": "#4a6a9480",
-          "horizonColor": "#8fb3d9",
-          "skyColor": "#4a6a9480",
+          "color": "#3a6db0",
+          "accentColor": "#9cc2ee",
+          "atmosphereColor": "#7aa8e680",
+          "horizonColor": "#9cc2ee",
+          "skyColor": "#7aa8e680",
           "surfaceFeatures": "globe-lines",
           "soi": {
             "radius": 567292,
@@ -189,6 +208,10 @@
           "rotation": {
             "period": 400,
             "direction": -1
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": ["#3a6db0", "#284f8a", "#a9c9ee", "#eef4ff"]
           }
         },
         {
@@ -199,9 +222,8 @@
           "radiusMetres": 96,
           "mass": 1726023702860225.2,
           "mu": 115200,
-          "color": "#5a6773",
-          "accentColor": "#dfe9f2",
-          "atmosphereColor": "#c8d8e830",
+          "color": "#d6e3ee",
+          "accentColor": "#f4f9ff",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 505,
@@ -219,6 +241,10 @@
           "rotation": {
             "period": 467.2257,
             "direction": -1
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": ["#d6e3ee", "#7f98ad", "#ffffff", "#d6e3ee"]
           }
         },
         {
@@ -229,9 +255,8 @@
           "radiusMetres": 160,
           "mass": 7671216457156556.0,
           "mu": 512000,
-          "color": "#2b2a30",
-          "accentColor": "#6e6a78",
-          "atmosphereColor": "#3a384020",
+          "color": "#4a4448",
+          "accentColor": "#7a7076",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 1836,
@@ -249,6 +274,10 @@
           "rotation": {
             "period": 1321.5139,
             "direction": -1
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": ["#4a4448", "#2a2629", "#7a7076", "#4a4448"]
           }
         }
       ],
@@ -337,14 +366,18 @@
           "radiusMetres": 1024,
           "mass": 7.855319658990456e17,
           "mu": 52428800,
-          "color": "#4a3c28",
-          "accentColor": "#b89758",
-          "atmosphereColor": "#614e3680",
+          "color": "#c99a5e",
+          "accentColor": "#ecd6aa",
+          "atmosphereColor": "#d9b07a60",
           "surfaceFeatures": "globe-lines",
           "ephemeris": {
             "kind": "fixed-inertial",
             "position": [0, 0],
             "velocity": [0, 0]
+          },
+          "appearance": {
+            "style": "banded",
+            "colors": ["#c99a5e", "#8d6337", "#ecd6aa", "#b4513a"]
           }
         },
         {
@@ -355,8 +388,8 @@
           "radiusMetres": 256,
           "mass": 1.2273936967172588e16,
           "mu": 819200,
-          "color": "#334d5c",
-          "accentColor": "#6cb0c8",
+          "color": "#9fd0df",
+          "accentColor": "#e6f6fa",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 4500,
@@ -370,6 +403,10 @@
             "phaseRadiansAtEpoch": 0.5,
             "direction": -1,
             "period": 3223.7388
+          },
+          "appearance": {
+            "style": "icy",
+            "colors": ["#9fd0df", "#4f7f90", "#e6f6fa", "#9fd0df"]
           }
         },
         {
@@ -380,8 +417,8 @@
           "radiusMetres": 160,
           "mass": 4.091312322394196e15,
           "mu": 273066.67,
-          "color": "#5c4040",
-          "accentColor": "#b88080",
+          "color": "#8a5a50",
+          "accentColor": "#c39286",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 3200,
@@ -395,6 +432,10 @@
             "phaseRadiansAtEpoch": 3.14159,
             "direction": -1,
             "period": 5922.3789
+          },
+          "appearance": {
+            "style": "rocky",
+            "colors": ["#8a5a50", "#55372f", "#c39286", "#8a5a50"]
           }
         }
       ],

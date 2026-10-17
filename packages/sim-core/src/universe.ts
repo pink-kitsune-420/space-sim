@@ -1,4 +1,4 @@
-import type { Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
+import type { AppearanceStyle, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 import defaultUniverseJson from '../../../games/space-sim/universes/sandbox/default/universe.json';
 import type { State, Vec } from '../../game-api/src/index';
@@ -23,6 +23,42 @@ export function calculateLaplaceSOI(semiMajorAxis: number, bodyMass: number, par
 function bodySurfaceFeatures(b: Pick<CelestialBodyDefinition, 'id' | 'name' | 'parentId' | 'surfaceFeatures'>): ResolvedBody['surfaceFeatures'] {
   return b.surfaceFeatures ?? (b.id === 'sun' || b.name.toLowerCase().includes('sun') || b.name.toLowerCase().includes('star')
     ? 'star' : b.parentId === null ? 'globe-lines' : 'craters');
+}
+
+const APPEARANCE_STYLES: readonly AppearanceStyle[] = ['rocky', 'arid', 'oceanic', 'banded', 'icy', 'hazy', 'volcanic', 'star'];
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+function validateAppearance(raw: unknown, where: string): BodyAppearance {
+  if (!raw || typeof raw !== 'object') throw new Error(`${where} must be an object`);
+  const a = raw as Record<string, unknown>;
+  if (!APPEARANCE_STYLES.includes(a.style as AppearanceStyle)) throw new Error(`${where}: style must be one of ${APPEARANCE_STYLES.join(', ')}`);
+  if (a.colors !== undefined && (!Array.isArray(a.colors) || a.colors.length > 4
+    || !a.colors.every(c => typeof c === 'string' && HEX_COLOR.test(c)))) throw new Error(`${where}: colors must be up to four #rrggbb strings`);
+  return { style: a.style as AppearanceStyle, ...(a.colors ? { colors: [...a.colors as string[]] } : {}) };
+}
+
+/** Scale a #rrggbb colour's brightness. */
+function shade(hex: string, k: number): string {
+  const n = parseInt(hex.slice(1, 7), 16);
+  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v * k))).toString(16).padStart(2, '0');
+  return `#${c(n >> 16)}${c((n >> 8) & 255)}${c(n & 255)}`;
+}
+
+/** A body's look: its authored appearance, else one derived from its legacy style and colours. */
+function resolveAppearance(b: CelestialBodyDefinition, features: ResolvedBody['surfaceFeatures'], color: string, accent: string): ResolvedBody['appearance'] {
+  const authored = b.appearance ? validateAppearance(b.appearance, `Body ${b.id} appearance`) : undefined;
+  const style = features === 'star' ? 'star' : authored?.style
+    ?? (features === 'craters' ? 'rocky' : features === 'smooth' ? 'hazy' : 'oceanic');
+  const base = (HEX_COLOR.test(color) ? color : '#233c47').slice(0, 7), light = (HEX_COLOR.test(accent) ? accent : '#659497').slice(0, 7);
+  // Fallbacks keep each colour role sensible; polar frost defaults to the ground (no cap).
+  const defaults = style === 'oceanic' ? [base, '#4f7d3a', '#c2a46a', '#eef3f6']
+    : style === 'arid' ? [base, shade(base, .6), shade(base, 1.35), '#f2eee8']
+    : style === 'volcanic' ? [base, shade(base, .5), '#ff6a1f', '#d9b23a']
+    : style === 'star' ? ['#fff6e0', base, light, shade(base, .55)]
+    : style === 'icy' || style === 'hazy' ? [base, shade(base, .6), light, base]
+    : [base, shade(base, .6), light, base];
+  const colors = defaults.map((d, i) => authored?.colors?.[i] ?? d) as [string, string, string, string];
+  return Object.freeze({ style, colors: Object.freeze(colors) });
 }
 
 /** A spin whose ground outruns a surface orbit would fling resting ships off the equator. */
@@ -126,6 +162,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
         throw new Error(`Body ${b.id} surfaceFeatures must be globe-lines, craters, smooth or star`);
       }
       const rotation = b.rotation === undefined ? undefined : validateRotation(b.rotation, radius, mu, `Body ${b.id} rotation`);
+      const appearance = b.appearance === undefined ? undefined : validateAppearance(b.appearance, `Body ${b.id} appearance`);
       let surface: SurfaceDefinition | undefined;
       if (b.surface !== undefined) {
         if (bodySurfaceFeatures({ id: b.id, name: typeof b.name === 'string' ? b.name : b.id,
@@ -151,6 +188,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
         mass,
         mu,
         ...(rotation ? { rotation } : {}),
+        ...(appearance ? { appearance } : {}),
       } as CelestialBodyDefinition);
     }
 
@@ -304,6 +342,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
       surfaceFeatures,
       ephemeris,
       ...(rotation ? { rotation } : {}),
+      appearance: resolveAppearance(b, surfaceFeatures, b.color ?? '#233c47', b.accentColor ?? '#659497'),
     });
 
     bodiesMap.set(b.id, resolved);

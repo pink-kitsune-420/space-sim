@@ -1842,6 +1842,7 @@ function frame(now: number): void {
       orbitRadius: orbitR,
       ...(b.rotation ? { rotation: spinView.angle(b, view.time) } : {}),
       ...(toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
+      ...(graphicsQuality === 'high' ? { appearance: b.appearance } : {}),
     };
   });
 

@@ -166,6 +166,33 @@ PLANET_STYLE = {
     'makemake': ('#a8826a', '#d8b9a2', '#00000000', 'craters'),
 }
 
+# Procedural looks (see BodyAppearance): style and up to four colours whose roles depend on it.
+APPEARANCE = {
+    'sun': ('star', ('#fff8e6', '#ffd27a', '#ff8a2a', '#c8661c')),
+    'mercury': ('rocky', ('#8a837c', '#5e5852', '#b3aca4', '#8a837c')),
+    'venus': ('hazy', ('#d9b878', '#b8925a', '#f2dfae', '#e8cc90')),
+    'earth': ('oceanic', ('#1a4f86', '#3f7535', '#c7a56a', '#f2f6f8')),
+    'mars': ('arid', ('#b65a33', '#6e3420', '#d79a72', '#f2ede6')),
+    'jupiter': ('banded', ('#d8b98e', '#a5714a', '#f4e8d2', '#c25a3c')),
+    'saturn': ('banded', ('#e2cd98', '#bf9f68', '#f6ecca', '#d6bd86')),
+    'uranus': ('hazy', ('#9fd8e0', '#84c4cf', '#c9eff3', '#9fd8e0')),
+    'neptune': ('banded', ('#3f6fd0', '#2b4fa6', '#86aef2', '#eef4ff')),
+    'pluto': ('icy', ('#d9c3a8', '#8a6650', '#f6eee0', '#d9c3a8')),
+    'ceres': ('rocky', ('#6e6a66', '#4a4743', '#9d9893', '#6e6a66')),
+    'eris': ('icy', ('#e6e2dd', '#a8a39c', '#ffffff', '#e6e2dd')),
+    'haumea': ('icy', ('#e2ded8', '#a39d95', '#ffffff', '#e2ded8')),
+    'makemake': ('icy', ('#c9a487', '#8a6a52', '#efdccb', '#c9a487')),
+    'moon': ('rocky', ('#8f8d89', '#4f4d4b', '#c0bdb6', '#8f8d89')),
+    'io': ('volcanic', ('#c9b048', '#6e5a2a', '#ff5a1a', '#efe28a')),
+    'europa': ('icy', ('#d9cdb8', '#9a6a48', '#f6f1e8', '#d9cdb8')),
+    'ganymede': ('rocky', ('#8a8070', '#5a5248', '#b9b0a2', '#d8d8d8')),
+    'callisto': ('rocky', ('#5a5248', '#3a352f', '#9a9288', '#5a5248')),
+    'titan': ('hazy', ('#d09a4a', '#a8742e', '#e8bf7a', '#c08a3e')),
+    'enceladus': ('icy', ('#eef6fb', '#8fb0c4', '#ffffff', '#eef6fb')),
+    'triton': ('icy', ('#d6c4bc', '#9a7f74', '#f2e8e2', '#d6c4bc')),
+    'charon': ('rocky', ('#8a847e', '#5a544e', '#b5aea7', '#8a847e')),
+}
+
 # Dwarf planets beyond Pluto: (a AU, mean longitude deg at J2000, radius km, GM km^3/s^2).
 # Rounded literature values; their orbits are as approximate as the circular model.
 DWARFS = {
@@ -295,6 +322,12 @@ def main(source, out):
     for b in bodies:
         if b['id'] in styles:
             b['color'], b['accentColor'] = styles[b['id']]
+
+    for b in bodies:
+        if b['id'] in APPEARANCE:
+            style, colors = APPEARANCE[b['id']]
+            b['appearance'] = {'style': style, 'colors': list(colors)}
+            b['color'] = colors[0]
 
     by_id = {b['id']: b for b in bodies}
 
