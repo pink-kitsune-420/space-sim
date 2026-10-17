@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { IDLE, type State } from '../../packages/sim-core/src/index';
 import { soiHorizon, WakeQueue } from '../../packages/sim-core/src/rails';
 import { World, type Ship, type WorldEvent } from '../../packages/sim-core/src/world';
-import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
-import { FULL_SOLAR_UNIVERSE } from '../../packages/scenarios/builtin';
+import { FULL_SOLAR_UNIVERSE, SOLAR_UNIVERSE } from '../../packages/scenarios/builtin';
 
 /** Deterministic xorshift32 in [0, 1). */
 function rng(seed: number): () => number {
@@ -12,7 +11,7 @@ function rng(seed: number): () => number {
 }
 
 /** Same ships and rocks in two worlds; one may sleep idle ships, the other steps everything. */
-function twins(universe = DEFAULT_UNIVERSE, systemId = 'solar-system', rocks = 60, seed = 7, every = 1): [World, World] {
+function twins(universe = SOLAR_UNIVERSE, systemId = 'solar-system', rocks = 60, seed = 7, every = 1): [World, World] {
   const worlds = [new World(universe, { systemId }), new World(universe, { systemId })] as [World, World];
   worlds[1].rails = false;
   for (const world of worlds) {
@@ -106,7 +105,7 @@ describe('ships on rails', () => {
   }, 60_000);
 
   it('keeps sleeping ships exact when read between steps and at arbitrary times', () => {
-    const [railed, stepped] = twins(DEFAULT_UNIVERSE, 'solar-system', 20, 11);
+    const [railed, stepped] = twins(SOLAR_UNIVERSE, 'solar-system', 20, 11);
     for (let tick = 0; tick < 400; tick++) {
       railed.step(); stepped.step();
       // Reading a sleeper must not disturb it.
@@ -123,7 +122,7 @@ describe('ships on rails', () => {
   }, 30_000);
 
   it('sleeps fresh coasting records before stepping them and adopts late records on rails', () => {
-    const [railed, stepped] = twins(DEFAULT_UNIVERSE, 'solar-system', 40, 5);
+    const [railed, stepped] = twins(SOLAR_UNIVERSE, 'solar-system', 40, 5);
     railed.step(); stepped.step();
     // Idle coasts with a horizon fall asleep on their first step without being advanced.
     expect(railed.asleepCount).toBeGreaterThan(30);
@@ -147,7 +146,7 @@ describe('ships on rails', () => {
   }, 30_000);
 
   it('never sleeps past a moon encounter on a crossing orbit', () => {
-    const world = new World(DEFAULT_UNIVERSE, { systemId: 'solar-system' });
+    const world = new World(SOLAR_UNIVERSE, { systemId: 'solar-system' });
     const moon = world.body('moon'), earth = world.body('earth');
     // Aim at where the Moon will be: start inside its orbit on a fast outbound ellipse.
     const a = moon.ephemeris.kind === 'circular-kepler' ? moon.ephemeris.radius! : 0;

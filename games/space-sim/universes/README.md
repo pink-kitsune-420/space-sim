@@ -7,7 +7,7 @@ universes/
   catalog.json                     IDs, display names, categories and server aliases
   universe.schema.json             shared editor/validation schema
   sandbox/
-    default/universe.json          Primus, Outer Reach and the scaled system
+    default/universe.json          Primus beginner system and Outer Reach
     terrain/universe.json          mountain and crater demonstrations
     ocean/universe.json            islands, oceans and underwater starts
   astronomy/

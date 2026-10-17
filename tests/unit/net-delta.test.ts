@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_UNIVERSE, type Controls, type State } from '../../packages/sim-core/src/index';
+import { type Controls, type State } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
 import { parseHostMessage, type HostMessage } from '../../packages/net/src/protocol';
 import type { ClientSession } from '../../packages/net/src/client';
 import { populateStress } from '../../packages/scenarios/stress';
+import { SOLAR_UNIVERSE } from '../../packages/scenarios/builtin';
 import { Game } from '../helpers/net-harness';
 
 type Snapshot = Extract<HostMessage, { t: 'snapshot' }>;
@@ -23,7 +24,7 @@ function tap(client: ClientSession): { snapshots: Snapshot[]; bytes: number[] } 
 }
 
 function crowdedWorld(rocks = 400): World {
-  const world = new World(DEFAULT_UNIVERSE, { id: 'w-test', systemId: 'solar-system' });
+  const world = new World(SOLAR_UNIVERSE, { id: 'w-test', systemId: 'solar-system' });
   populateStress(world, { asteroids: rocks, seed: 5 });
   return world;
 }

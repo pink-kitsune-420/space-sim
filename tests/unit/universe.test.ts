@@ -8,6 +8,7 @@ import {
   type SystemDefinition,
   type UniverseDefinition,
 } from '../../packages/sim-core/src/index';
+import { SOLAR_UNIVERSE } from '../../packages/scenarios/builtin';
 
 describe('universe format, validation and system loader', () => {
   it('loads and validates the default universe with primus and outer-reach systems', () => {
@@ -18,15 +19,15 @@ describe('universe format, validation and system loader', () => {
 
     const primus = DEFAULT_UNIVERSE.systems.find(s => s.id === 'primus-system');
     expect(primus).toBeDefined();
-    expect(primus!.bodies.map(b => b.id)).toEqual(['planet', 'moon']);
-    expect(primus!.presets.map(p => p.id)).toEqual(['pad', 'planet-orbit', 'moon-orbit']);
+    expect(primus!.bodies.map(b => b.id)).toEqual(['star', 'ignis', 'velum', 'planet', 'moon', 'magnus', 'nix', 'umbra']);
+    expect(primus!.presets.map(p => p.id)).toEqual(['pad', 'planet-orbit', 'moon-orbit', 'velum-pad', 'magnus-orbit', 'umbra-pad']);
   });
 
   it('loads only one system at a time into LoadedSystem', () => {
     const loadedPrimus = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
     expect(loadedPrimus.system.id).toBe('primus-system');
-    expect(loadedPrimus.rootBody.id).toBe('planet');
-    expect(loadedPrimus.getAllBodies().map(b => b.id)).toEqual(['planet', 'moon']);
+    expect(loadedPrimus.rootBody.id).toBe('star');
+    expect(loadedPrimus.getAllBodies().map(b => b.id)).toEqual(['star', 'ignis', 'velum', 'planet', 'moon', 'magnus', 'nix', 'umbra']);
 
     const loadedOuter = loadSystem(DEFAULT_UNIVERSE, 'outer-reach-system');
     expect(loadedOuter.system.id).toBe('outer-reach-system');
@@ -39,13 +40,15 @@ describe('universe format, validation and system loader', () => {
     const planet = loaded.getResolvedBody('planet');
     const moon = loaded.getResolvedBody('moon');
 
-    expect(planet.parentId).toBeNull();
+    expect(loaded.getResolvedBody('star').parentId).toBeNull();
+    expect(planet.parentId).toBe('star');
     expect(moon.parentId).toBe('planet');
+    expect(loaded.getMoonsOf('star').map(b => b.id)).toEqual(['ignis', 'velum', 'planet', 'magnus']);
 
     const moons = loaded.getMoonsOf('planet');
     expect(moons).toHaveLength(1);
     expect(moons[0]!.id).toBe('moon');
-    expect(moons[0]!.name).toBe('Secundus');
+    expect(moons[0]!.name).toBe('Parvus');
     expect(loaded.getMoonsOf('moon')).toHaveLength(0);
   });
 
@@ -53,10 +56,15 @@ describe('universe format, validation and system loader', () => {
     const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
     const moon = loaded.getResolvedBody('moon');
     const a = moon.ephemeris.kind === 'circular-kepler' ? moon.ephemeris.radius! : 15360;
+    // Primus orbits its star, so measure Parvus from Primus.
+    const relative = (get: typeof loaded.getBodyPosition, t: number) => {
+      const m = get('moon', t), p = get('planet', t);
+      return { x: m.x - p.x, y: m.y - p.y };
+    };
 
     // At t=0
-    const p0 = loaded.getBodyPosition('moon', 0);
-    const v0 = loaded.getBodyVelocity('moon', 0);
+    const p0 = relative(loaded.getBodyPosition, 0);
+    const v0 = relative(loaded.getBodyVelocity, 0);
     expect(p0.x).toBeCloseTo(a, 6);
     expect(p0.y).toBeCloseTo(0, 6);
     expect(v0.x).toBeCloseTo(0, 6);
@@ -65,15 +73,15 @@ describe('universe format, validation and system loader', () => {
 
     // Period T = 2 * pi * sqrt(a^3 / mu_planet)
     const T = 2 * Math.PI * Math.sqrt((a * a * a) / 13107200);
-    const pQuarter = loaded.getBodyPosition('moon', T / 4);
+    const pQuarter = relative(loaded.getBodyPosition, T / 4);
     expect(pQuarter.x).toBeCloseTo(0, 4);
     expect(pQuarter.y).toBeCloseTo(-a, 4);
 
-    const pHalf = loaded.getBodyPosition('moon', T / 2);
+    const pHalf = relative(loaded.getBodyPosition, T / 2);
     expect(pHalf.x).toBeCloseTo(-a, 4);
     expect(pHalf.y).toBeCloseTo(0, 4);
 
-    const pFull = loaded.getBodyPosition('moon', T);
+    const pFull = relative(loaded.getBodyPosition, T);
     expect(pFull.x).toBeCloseTo(a, 4);
     expect(pFull.y).toBeCloseTo(0, 4);
   });
@@ -122,7 +130,8 @@ describe('universe format, validation and system loader', () => {
     const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
     const moon = loaded.getResolvedBody('moon');
     expect(moon.id).toBe('moon');
-    const moonPos = loaded.getBodyPosition('moon', 0);
+    const moonAbs = loaded.getBodyPosition('moon', 0), planetAbs = loaded.getBodyPosition('planet', 0);
+    const moonPos = { x: moonAbs.x - planetAbs.x, y: moonAbs.y - planetAbs.y };
 
     // Ship in planet frame, 100m away from moon center (well inside moon entryMetres: 2910m)
     const shipNearMoon = {
@@ -245,9 +254,58 @@ describe('universe format, validation and system loader', () => {
     })).toThrow('radius > 0');
   });
 
+  describe('Primus orbiting its star Lumen', () => {
+    it('keeps the whole Parvus sphere inside the Primus sphere', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const star = loaded.getResolvedBody('star'), planet = loaded.getResolvedBody('planet');
+      const moon = loaded.getResolvedBody('moon');
+      expect(star.surfaceFeatures).toBe('star');
+      expect(planet.soi.radius).toBeCloseTo(calculateLaplaceSOI(819200, planet.mass, star.mass), -1);
+      const moonOrbit = moon.ephemeris.kind === 'circular-kepler' ? moon.ephemeris.radius! : 0;
+      expect(moonOrbit + moon.soi.exitMetres).toBeLessThan(planet.soi.entryMetres * 0.5);
+    });
+
+    it('spaces the planets so their spheres never touch and every preset loads', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const planets = loaded.getMoonsOf('star').map(b => ({
+        a: b.ephemeris.kind === 'circular-kepler' ? b.ephemeris.radius! : 0, soi: b.soi.exitMetres }));
+      for (let i = 1; i < planets.length; i++) {
+        expect(planets[i]!.a - planets[i - 1]!.a).toBeGreaterThan(2 * (planets[i]!.soi + planets[i - 1]!.soi));
+      }
+      for (const preset of loaded.presets) expect(loaded.initialState(preset.id).body.id).toBe(preset.bodyId);
+      // Moons of Magnus clear its surface and each other.
+      const [nix, umbra] = loaded.getMoonsOf('magnus');
+      const orbit = (b: typeof nix) => b!.ephemeris.kind === 'circular-kepler' ? b!.ephemeris.radius! : 0;
+      expect(orbit(nix) - nix!.soi.exitMetres).toBeGreaterThan(loaded.getResolvedBody('magnus').radius * 2);
+      expect(orbit(umbra) - orbit(nix)).toBeGreaterThan(2 * (nix!.soi.exitMetres + umbra!.soi.exitMetres));
+    });
+
+    it('starts with Lumen overhead at the north pad', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const star = loaded.getBodyPosition('star', 0), planet = loaded.getBodyPosition('planet', 0);
+      const angle = Math.atan2(star.y - planet.y, star.x - planet.x);
+      expect(angle).toBeCloseTo(Math.PI / 2, 9);
+      expect(Math.hypot(star.x - planet.x, star.y - planet.y)).toBeCloseTo(819200, 3);
+    });
+
+    it('hands a ship escaping Primus to the star frame with heliocentric velocity', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const t = 1234;
+      const ship = { time: t, position: { x: 52000, y: 0 }, velocity: { x: 20, y: 0 }, heading: 0,
+        throttle: 0, status: 'flying' as const, revision: 0 };
+      const exit = loaded.checkSOI(ship, 'planet', t);
+      expect(exit.switched).toBe(true);
+      expect(exit.newBody.id).toBe('star');
+      const p = loaded.getBodyPosition('planet', t), v = loaded.getBodyVelocity('planet', t);
+      expect(exit.newState.position).toEqual({ x: 52000 + p.x, y: p.y });
+      expect(exit.newState.velocity).toEqual({ x: 20 + v.x, y: v.y });
+      expect(loaded.checkSOI(exit.newState, 'star', t).newBody.id).toBe('star');
+    });
+  });
+
   describe('Sun and 1/10 scale Solar System (Earth, Moon, Sun)', () => {
     it('loads and validates the 1/10 scale solar system with authentic physical properties', () => {
-      const loaded = loadSystem(DEFAULT_UNIVERSE, 'solar-system');
+      const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system');
       expect(loaded.system.id).toBe('solar-system');
       expect(loaded.rootBody.id).toBe('sun');
       expect(loaded.rootBody.surfaceFeatures).toBe('star');
@@ -298,7 +356,7 @@ describe('universe format, validation and system loader', () => {
     });
 
     it('correctly models 3-tier hierarchy: Sun -> Earth -> Moon', () => {
-      const loaded = loadSystem(DEFAULT_UNIVERSE, 'solar-system');
+      const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system');
       expect(loaded.getMoonsOf('sun').map(b => b.id)).toEqual(['earth']);
       expect(loaded.getMoonsOf('earth').map(b => b.id)).toEqual(['moon']);
       expect(loaded.getMoonsOf('moon')).toHaveLength(0);
@@ -319,7 +377,7 @@ describe('universe format, validation and system loader', () => {
     });
 
     it('handles 3-tier patched-conic SOI transitions (Sun <-> Earth <-> Moon)', () => {
-      const loaded = loadSystem(DEFAULT_UNIVERSE, 'solar-system');
+      const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system');
       const earth = loaded.getResolvedBody('earth');
       const moon = loaded.getResolvedBody('moon');
       expect(earth.id).toBe('earth');
@@ -393,7 +451,7 @@ describe('universe format, validation and system loader', () => {
     });
 
     it('initializes real solar system presets on Earth, Moon, and Sun', () => {
-      const loaded = loadSystem(DEFAULT_UNIVERSE, 'solar-system');
+      const loaded = loadSystem(SOLAR_UNIVERSE, 'solar-system');
 
       // 1. Earth pad
       const earthPad = loaded.initialState('earth-pad');

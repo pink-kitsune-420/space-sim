@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { advance, setVehicle, step, type Controls, type State } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
-import { OCEAN_UNIVERSE, TERRAIN_UNIVERSE } from '../../packages/scenarios/builtin';
+import { OCEAN_UNIVERSE, SOLAR_UNIVERSE, TERRAIN_UNIVERSE } from '../../packages/scenarios/builtin';
 import * as reference from '../helpers/reference-advance';
 
 /** Deterministic xorshift32 in [0, 1). */
@@ -19,7 +19,7 @@ function run(fn: () => State): Outcome {
 /** Optimized motion must equal the original implementation exactly, for every path. */
 describe('motion matches the original implementation bit for bit', () => {
   for (const [label, universe, systemId] of [
-    ['circular bodies', DEFAULT_UNIVERSE, 'solar-system'],
+    ['circular bodies', SOLAR_UNIVERSE, 'solar-system'],
     ['legacy planet', DEFAULT_UNIVERSE, 'primus-system'],
     ['terrain', TERRAIN_UNIVERSE, undefined],
     ['ocean', OCEAN_UNIVERSE, undefined],
