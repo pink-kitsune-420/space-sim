@@ -20,7 +20,7 @@ export function download(name: string, text: string): void {
 export function downloadBytes(name: string, bytes: Uint8Array<ArrayBuffer>): void {
   downloadBlob(name, new Blob([bytes], { type: 'application/gzip' }));
 }
-function downloadBlob(name: string, blob: Blob): void {
+export function downloadBlob(name: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

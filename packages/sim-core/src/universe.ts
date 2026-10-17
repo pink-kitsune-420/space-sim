@@ -1,4 +1,4 @@
-import type { AppearanceStyle, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
+import type { AppearanceStyle, AppearanceTuning, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 import defaultUniverseJson from '../../../games/space-sim/universes/sandbox/default/universe.json';
 import type { State, Vec } from '../../game-api/src/index';
@@ -27,6 +27,8 @@ function bodySurfaceFeatures(b: Pick<CelestialBodyDefinition, 'id' | 'name' | 'p
 
 const APPEARANCE_STYLES: readonly AppearanceStyle[] = ['rocky', 'arid', 'oceanic', 'banded', 'icy', 'hazy', 'volcanic', 'star'];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+/** Tunable appearance settings, in shader order (see BodyAppearance). */
+export const APPEARANCE_TUNING: readonly AppearanceTuning[] = ['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow'];
 
 function validateAppearance(raw: unknown, where: string): BodyAppearance {
   if (!raw || typeof raw !== 'object') throw new Error(`${where} must be an object`);
@@ -34,7 +36,16 @@ function validateAppearance(raw: unknown, where: string): BodyAppearance {
   if (!APPEARANCE_STYLES.includes(a.style as AppearanceStyle)) throw new Error(`${where}: style must be one of ${APPEARANCE_STYLES.join(', ')}`);
   if (a.colors !== undefined && (!Array.isArray(a.colors) || a.colors.length > 4
     || !a.colors.every(c => typeof c === 'string' && HEX_COLOR.test(c)))) throw new Error(`${where}: colors must be up to four #rrggbb strings`);
-  return { style: a.style as AppearanceStyle, ...(a.colors ? { colors: [...a.colors as string[]] } : {}) };
+  if (a.seed !== undefined && (typeof a.seed !== 'number' || !(a.seed >= 0 && a.seed <= 1000))) throw new Error(`${where}: seed must be a number from 0 to 1000`);
+  const tuning: Partial<Record<AppearanceTuning, number>> = {};
+  for (const key of APPEARANCE_TUNING) {
+    const value = a[key];
+    if (value === undefined) continue;
+    if (typeof value !== 'number' || !(value >= 0 && value <= 1)) throw new Error(`${where}: ${key} must be a number from 0 to 1`);
+    tuning[key] = value;
+  }
+  return { style: a.style as AppearanceStyle, ...(a.colors ? { colors: [...a.colors as string[]] } : {}),
+    ...(a.seed !== undefined ? { seed: a.seed as number } : {}), ...tuning };
 }
 
 /** Scale a #rrggbb colour's brightness. */
@@ -58,7 +69,8 @@ function resolveAppearance(b: CelestialBodyDefinition, features: ResolvedBody['s
     : style === 'icy' || style === 'hazy' ? [base, shade(base, .6), light, base]
     : [base, shade(base, .6), light, base];
   const colors = defaults.map((d, i) => authored?.colors?.[i] ?? d) as [string, string, string, string];
-  return Object.freeze({ style, colors: Object.freeze(colors) });
+  const { colors: _colors, style: _style, ...settings } = authored ?? {};
+  return Object.freeze({ ...settings, style, colors: Object.freeze(colors) });
 }
 
 /** A spin whose ground outruns a surface orbit would fling resting ships off the equator. */

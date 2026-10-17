@@ -56,7 +56,20 @@ export interface BodyAppearance {
    * banded [band, dark band, light band, storms], icy [ice, cracks, frost, tint], hazy [cloud, dark cloud, light cloud, tint],
    * volcanic [rock, dark crust, lava, sulfur], star [core, surface, limb, spots]. */
   readonly colors?: readonly string[];
+  /** Pattern seed, 0 to 1000; derived from the body id when absent. */
+  readonly seed?: number;
+  /** Tuning from 0 to 1, 0.5 by default: sea level (or dry basins), cloud cover, polar ice,
+   * crater density, turbulence of bands and clouds, and volcanic glow. */
+  readonly water?: number;
+  readonly clouds?: number;
+  readonly ice?: number;
+  readonly craters?: number;
+  readonly turbulence?: number;
+  readonly glow?: number;
 }
+
+/** Tunable appearance settings. */
+export type AppearanceTuning = 'water' | 'clouds' | 'ice' | 'craters' | 'turbulence' | 'glow';
 
 export interface RotationDefinition {
   /** Seconds per turn. */
@@ -129,7 +142,7 @@ export interface ResolvedBody extends Body {
   readonly surfaceFeatures: 'globe-lines' | 'craters' | 'smooth' | 'star';
   readonly ephemeris: Ephemeris;
   /** Always four colours once resolved. */
-  readonly appearance: { readonly style: AppearanceStyle; readonly colors: readonly [string, string, string, string] };
+  readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };
 }
 
 export interface LoadedSystem {

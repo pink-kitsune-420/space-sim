@@ -26,6 +26,7 @@ import { cache, shown, element, show, download, downloadBytes, message } from '.
 import { Prediction } from './prediction';
 import { SpinView } from './spin-view';
 import { loadGraphicsQuality, saveGraphicsQuality } from './graphics';
+import { PlanetDesigner } from './planet-designer';
 import './style.css';
 import {
   DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
@@ -208,6 +209,7 @@ function preparePads(world: World): void {
 
 const prediction = new Prediction(pass => profiler.event('prediction', pass));
 const spinView = new SpinView();
+const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id);
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
 const isHosting = (): boolean => session === local && local.hosting;
@@ -1842,7 +1844,7 @@ function frame(now: number): void {
       orbitRadius: orbitR,
       ...(b.rotation ? { rotation: spinView.angle(b, view.time) } : {}),
       ...(toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
-      ...(graphicsQuality === 'high' ? { appearance: b.appearance } : {}),
+      ...(graphicsQuality === 'high' ? { appearance: designer.appearanceFor(world, b) } : {}),
     };
   });
 

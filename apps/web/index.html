@@ -131,6 +131,7 @@
           </section>
         </section>
         <div class="utility-grid" aria-label="Additional tools">
+        <details class="planet-designer"><summary>Planet designer</summary><div id="planet-designer"></div></details>
         <details class="shader-settings"><summary>Shaders</summary><p class="manager-current">Current: <output id="shader-name">Default</output></p>
           <div class="shader-actions"><button id="load-shader" type="button">Load shader…</button><input id="shader-file" type="file" accept=".json,.frag,.glsl,application/json,text/plain" hidden /><button id="export-shader" type="button">Export shaders</button><button id="reset-shader" type="button">Restore default</button></div>
           <p>Change the look with a local shader file. Export the current shaders as a starting point, edit the GLSL, then load your copy. A .frag or .glsl file changes the scene; a JSON pack can also change the ship, paths and labels. Requires WebGL 2.</p>

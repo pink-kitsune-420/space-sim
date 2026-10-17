@@ -26,6 +26,8 @@ struct Body {
   float spin;   // screen angle of the body-fixed frame (counter-clockwise, y up)
   float seed;
   float metres; // radius in metres, for surface-anchored detail up close
+  vec4 tune;    // water, clouds, ice, craters: 0..1, 0.5 by default
+  vec2 tune2;   // turbulence, volcanic glow
 };
 
 uniform int u_bodyCount;
@@ -82,12 +84,12 @@ float ridge(vec3 p, float px) {
 }
 // Craters on a jittered grid in the body-fixed plane: x = 0 outside, else 1 - d/radius (bowl
 // depth); y = rim strength. Skipped when the grid is under ~3 pixels.
-vec2 craters(vec2 p, float px, float seed) {
+vec2 craters(vec2 p, float px, float seed, float density) {
   if (px > 0.35) return vec2(0.0);
   vec2 g = floor(p), f = fract(p), result = vec2(0.0);
   for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
     vec2 n = vec2(x, y), h = hash22(g + n + seed);
-    if (h.x > 0.55) continue; // not every cell holds a crater
+    if (h.x > density) continue; // not every cell holds a crater
     vec2 c = n + 0.2 + 0.6 * h;
     float radius = 0.12 + 0.3 * fract(h.y * 7.31);
     float d = length(c - f) / radius;
@@ -102,19 +104,21 @@ vec2 craters(vec2 p, float px, float seed) {
 vec3 rocky(Body b, vec3 s, float px, float z) {
   // Dark maria: old lava seas, dry and smooth, filling the lowlands.
   float h = fbm(s * 1.7 + b.seed, px * 1.7);
-  vec3 col = mix(b.c1, b.color, smoothstep(0.40, 0.52, h));
+  float lowland = 0.40 + (b.tune.x - 0.5) * 0.24; // more water: wider lava seas
+  vec3 col = mix(b.c1, b.color, smoothstep(lowland, lowland + 0.12, h));
   col = mix(col, b.c2, smoothstep(0.58, 0.75, h) * 0.7); // bright cratered highlands
   col *= 0.88 + 0.24 * fbm(s * 9.0 + b.seed, px * 9.0);
   float highland = smoothstep(0.45, 0.6, h);
   for (int k = 0; k < 2; k++) {
     float scale = k == 0 ? 7.0 : 19.0;
-    vec2 c = craters(s.xy * scale, px * scale, b.seed + float(k) * 17.0);
+    vec2 c = craters(s.xy * scale, px * scale, b.seed + float(k) * 17.0, b.tune.w * 1.1);
     float strength = mix(0.5, 1.0, highland); // maria are younger: fewer, softer craters
     col *= 1.0 - 0.28 * c.x * strength;
     col = mix(col, b.c2, 0.45 * c.y * strength);
   }
   // Polar frost (invisible when the fourth colour is the ground).
-  float cap = smoothstep(0.90, 0.94, z + 0.04 * (fbm(s * 6.0, px * 6.0) - 0.5));
+  float edge = mix(1.02, 0.78, b.tune.z);
+  float cap = smoothstep(edge, edge + 0.04, z + 0.04 * (fbm(s * 6.0, px * 6.0) - 0.5));
   return mix(col, b.c3, cap);
 }
 
@@ -125,22 +129,25 @@ vec3 arid(Body b, vec3 s, float px, float z) {
   float dunes = sin(dot(s.xy, vec2(0.8, 0.6)) * 90.0 + fbm(s * 6.0, px * 6.0) * 12.0);
   sand *= 1.0 + 0.07 * dunes * (1.0 - smoothstep(0.004, 0.012, px));
   // Dry seas: pale salt flats and playas in the basins, cracked into polygons.
-  float basin = 1.0 - smoothstep(0.36, 0.42, h);
-  vec2 cell = craters(s.xy * 40.0, px * 40.0, b.seed + 5.0);
+  float shore = mix(0.22, 0.5, b.tune.x);
+  float basin = 1.0 - smoothstep(shore, shore + 0.06, h);
+  vec2 cell = craters(s.xy * 40.0, px * 40.0, b.seed + 5.0, b.tune.w * 1.1);
   vec3 salt = b.c2 * (0.95 + 0.05 * fbm(s * 20.0, px * 20.0)) * (1.0 - 0.12 * ridge(s * 55.0, px * 55.0));
   vec3 col = mix(sand, salt, basin);
   col = mix(col, b.c1 * (0.85 + 0.3 * fbm(s * 12.0, px * 12.0)), smoothstep(0.6, 0.7, h)); // rock mesas
   col = mix(col, b.c1 * 0.7, 0.5 * ridge(s * 8.0 + b.seed, px * 8.0) * smoothstep(0.45, 0.6, h)); // canyons
   col *= 1.0 - 0.15 * cell.x; // a few old, weathered craters
-  float cap = smoothstep(0.91, 0.95, z + 0.04 * (fbm(s * 6.0, px * 6.0) - 0.5));
+  float edge = mix(1.03, 0.79, b.tune.z);
+  float cap = smoothstep(edge, edge + 0.04, z + 0.04 * (fbm(s * 6.0, px * 6.0) - 0.5));
   return mix(col, b.c3, cap);
 }
 
 vec3 oceanic(Body b, vec3 s, float px, float z, out float water) {
   float h = fbm(s * 1.6 + b.seed, px * 1.6) + 0.3 * (fbm(s * 5.0 + b.seed * 2.0, px * 5.0) - 0.5);
-  const float sea = 0.5;
+  float sea = mix(0.36, 0.64, b.tune.x);
   // Temperature falls towards the pole (the centre) and with altitude; moisture is its own field.
-  float temperature = 1.0 - z + 0.12 * (fbm(s * 3.0 + 11.0, px * 3.0) - 0.5) - max(0.0, h - sea) * 1.4;
+  float temperature = 1.0 - z + 0.12 * (fbm(s * 3.0 + 11.0, px * 3.0) - 0.5) - max(0.0, h - sea) * 1.4
+    + (0.5 - b.tune.z) * 0.4;
   float moisture = fbm(s * 2.4 + 7.0, px * 2.4);
   water = 1.0 - smoothstep(sea, sea + 0.006, h);
   // Seas: deep blue offshore, turquoise shelves, frozen near the pole.
@@ -162,8 +169,9 @@ vec3 oceanic(Body b, vec3 s, float px, float z, out float water) {
   land *= 0.9 + 0.2 * fbm(s * 14.0, px * 14.0);
   vec3 col = mix(land, ocean, water);
   // Clouds: swirled bands that turn with the planet.
-  vec3 w = s * 2.2 + vec3(fbm(s * 2.0 + 1.7, px * 2.0), fbm(s * 2.0 + 4.3, px * 2.0), 0.0) * 1.4;
-  float clouds = smoothstep(0.55, 0.78, fbm(w + b.seed * 0.37, px * 2.2)) * 0.85;
+  vec3 w = s * 2.2 + vec3(fbm(s * 2.0 + 1.7, px * 2.0), fbm(s * 2.0 + 4.3, px * 2.0), 0.0) * 2.8 * b.tune2.x;
+  float cover = mix(0.8, 0.3, b.tune.y);
+  float clouds = smoothstep(cover, cover + 0.23, fbm(w + b.seed * 0.37, px * 2.2)) * 0.85;
   return mix(col, b.c3, clouds);
 }
 
@@ -171,7 +179,8 @@ vec3 banded(Body b, vec3 s, float px, float z, vec2 q) {
   // Seen from above the pole, a giant's belts and zones are rings of uneven width,
   // their edges stirred into eddies.
   float turbulence = fbm(s * 3.0 + b.seed, px * 3.0);
-  float lat = z + 0.035 * (turbulence - 0.5) + 0.012 * (fbm(s * 11.0 + b.seed, px * 11.0) - 0.5);
+  float stir = b.tune2.x * 2.0;
+  float lat = z + stir * (0.035 * (turbulence - 0.5) + 0.012 * (fbm(s * 11.0 + b.seed, px * 11.0) - 0.5));
   float belts = noise3(vec3(lat * 11.0, b.seed, 0.5));
   float fine = noise3(vec3(lat * 37.0, b.seed + 3.0, 0.5));
   vec3 col = mix(b.c1, b.color, smoothstep(0.35, 0.65, belts));
@@ -182,23 +191,23 @@ vec3 banded(Body b, vec3 s, float px, float z, vec2 q) {
   float vortex = smoothstep(0.94, 0.99, z) * (0.5 + 0.5 * sin(angle * 5.0 + turbulence * 4.0));
   col = mix(col, b.c2 * 0.9, vortex * 0.45);
   // A few large storms.
-  vec2 storm = craters(s.xy * 3.5, px * 3.5, b.seed + 31.0);
+  vec2 storm = craters(s.xy * 3.5, px * 3.5, b.seed + 31.0, 0.55);
   float rare = step(0.62, noise3(s * 2.0 + b.seed));
   return mix(col, b.c3, smoothstep(0.25, 0.65, storm.x) * 0.75 * rare);
 }
 
 vec3 icy(Body b, vec3 s, float px, float z) {
   vec3 col = mix(b.color, b.c2, 0.5 * fbm(s * 3.0 + b.seed, px * 3.0));
-  col = mix(col, b.c3, 0.25 * smoothstep(0.5, 0.7, fbm(s * 1.5 + 9.0, px * 1.5)));
+  col = mix(col, b.c3, b.tune.z * 0.5 * smoothstep(0.5, 0.7, fbm(s * 1.5 + 9.0, px * 1.5)));
   // Long cracks in the ice shell at two scales.
   col = mix(col, b.c1, 0.7 * smoothstep(0.93, 0.985, ridge(s * 6.0 + b.seed, px * 6.0)));
   col = mix(col, b.c1, 0.45 * smoothstep(0.95, 0.99, ridge(s * 17.0 + b.seed, px * 17.0)));
-  vec2 c = craters(s.xy * 12.0, px * 12.0, b.seed + 3.0);
+  vec2 c = craters(s.xy * 12.0, px * 12.0, b.seed + 3.0, b.tune.w * 1.1);
   return col * (1.0 - 0.12 * c.x);
 }
 
 vec3 hazy(Body b, vec3 s, float px, float z) {
-  vec3 w = s * 1.8 + vec3(fbm(s * 2.2 + 2.0, px * 2.2), fbm(s * 2.2 + 6.0, px * 2.2), 0.0) * 1.1;
+  vec3 w = s * 1.8 + vec3(fbm(s * 2.2 + 2.0, px * 2.2), fbm(s * 2.2 + 6.0, px * 2.2), 0.0) * 2.2 * b.tune2.x;
   float c = fbm(w + b.seed, px * 1.8) + 0.12 * sin(z * 16.0 + b.seed);
   vec3 col = mix(b.c1, b.c2, smoothstep(0.35, 0.8, c));
   return mix(mix(col, b.color, 0.35), b.c3, 0.15);
@@ -207,8 +216,9 @@ vec3 hazy(Body b, vec3 s, float px, float z) {
 vec3 volcanic(Body b, vec3 s, float px, float z, out float glow) {
   vec3 col = mix(b.c1, b.color, fbm(s * 4.0 + b.seed, px * 4.0));
   col = mix(col, b.c3, 0.55 * smoothstep(0.58, 0.72, fbm(s * 2.2 + 9.0, px * 2.2))); // sulfur plains
-  vec2 c = craters(s.xy * 9.0, px * 9.0, b.seed + 7.0); // calderas
-  float lava = smoothstep(0.9, 0.97, ridge(s * 5.0 + b.seed, px * 5.0)) + 0.8 * c.x * step(0.6, c.x);
+  vec2 c = craters(s.xy * 9.0, px * 9.0, b.seed + 7.0, b.tune.w * 1.1); // calderas
+  float flow = mix(0.98, 0.82, b.tune2.y);
+  float lava = smoothstep(flow, flow + 0.07, ridge(s * 5.0 + b.seed, px * 5.0)) + 0.8 * c.x * step(0.6, c.x) * b.tune2.y * 2.0;
   lava = clamp(lava, 0.0, 1.0);
   glow = lava;
   return mix(col, b.c2 * 0.5, lava);
@@ -304,7 +314,7 @@ void main() {
           vec3 core = mix(b.c1, b.color, smoothstep(0.0, 0.9, z));
           core = mix(b.c2, core, smoothstep(0.0, 0.35, z));
           core *= 0.88 + 0.24 * granules;
-          vec2 spots = craters(p.xy * 5.0, px * 5.0, b.seed);
+          vec2 spots = craters(p.xy * 5.0, px * 5.0, b.seed, 0.55);
           col = mix(core, b.c3, smoothstep(0.3, 0.7, spots.x) * 0.7 * step(0.25, z));
         } else {
           float depthScale = max(1.0, min(r, 350.0));

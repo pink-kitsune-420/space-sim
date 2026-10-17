@@ -25,7 +25,7 @@ function checkInterface(gl: WebGL2RenderingContext, program: WebGLProgram, pass:
     screenPos: gl.FLOAT_VEC2, horizonPoint: gl.FLOAT_VEC2, horizonNormal: gl.FLOAT_VEC2,
     radius: gl.FLOAT, color: gl.FLOAT_VEC3, accent: gl.FLOAT_VEC3, atmosphere: gl.FLOAT_VEC4, isStar: gl.INT,
     sunDir: gl.FLOAT_VEC2, style: gl.INT, c1: gl.FLOAT_VEC3, c2: gl.FLOAT_VEC3, c3: gl.FLOAT_VEC3, mean: gl.FLOAT_VEC3,
-    spin: gl.FLOAT, seed: gl.FLOAT, metres: gl.FLOAT,
+    spin: gl.FLOAT, seed: gl.FLOAT, metres: gl.FLOAT, tune: gl.FLOAT_VEC4, tune2: gl.FLOAT_VEC2,
   };
   if (gl.getProgramParameter(program, gl.ACTIVE_UNIFORM_BLOCKS)) throw new Error('Uniform blocks are unsupported.');
   const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) as number;

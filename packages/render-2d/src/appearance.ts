@@ -20,6 +20,8 @@ export function parseRGB(hex: string): RGB {
 
 export interface AppearanceUniforms {
   readonly style: number;
+  /** water, clouds, ice, craters, turbulence, glow: 0..1, 0.5 by default. */
+  readonly tune: readonly [number, number, number, number, number, number];
   readonly colors: readonly [RGB, RGB, RGB, RGB];
   readonly mean: RGB;
   readonly seed: number;
@@ -39,7 +41,8 @@ export function appearanceUniforms(body: RenderBody): AppearanceUniforms | undef
   // A stable per-body pattern offset from its id.
   let h = 2166136261;
   for (const ch of body.id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  const result = { style: STYLE_INDEX[a.style], colors, mean, seed: (h >>> 0) % 997 / 10 };
+  const tune = [a.water, a.clouds, a.ice, a.craters, a.turbulence, a.glow].map(v => v ?? .5) as unknown as AppearanceUniforms['tune'];
+  const result = { style: STYLE_INDEX[a.style], colors, mean, tune, seed: a.seed ?? (h >>> 0) % 997 / 10 };
   CACHE.set(a, result);
   return result;
 }
