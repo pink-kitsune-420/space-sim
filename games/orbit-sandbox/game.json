@@ -54,6 +54,10 @@
         {
           "id": "builtin.telemetry",
           "version": "0.1.0"
+        },
+        {
+          "id": "builtin.navball",
+          "version": "0.1.0"
         }
       ],
       "providers": {

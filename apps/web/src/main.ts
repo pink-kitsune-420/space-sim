@@ -35,7 +35,7 @@ import { PlanetDesigner } from './planet-designer';
 import './style.css';
 import {
   DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
-  magnitude, querySurface, nextWarpFactor, rotate, spinAngle,
+  magnitude, querySurface, nextWarpFactor, rotate, spinAngle, spinRate,
   type Controls, type ResolvedBody, type State,
   type UniverseDefinition, type Vec, type SurfaceContactEvent
 } from '../../../packages/sim-core/src/index';
@@ -2794,7 +2794,8 @@ function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnaps
   return presentationSnapshot({
     time: view.time, tick: world.tick, paused: session.paused, elapsed,
     viewport: { width: canvas.clientWidth, height: canvas.clientHeight, pixelRatio: window.devicePixelRatio || 1 },
-    body: { id: activeBody.id, name: activeBody.name, radius: activeBody.radius, mu: activeBody.mu, position: bodyPosition },
+    body: { id: activeBody.id, name: activeBody.name, radius: activeBody.radius, mu: activeBody.mu, position: bodyPosition,
+      ...(activeBody.rotation ? { spin: spinRate(activeBody) } : {}) },
     ...(ship ? { ship: { id: ship.id, name: ship.name, bodyId: activeBody.id, state: view, controls: ship.controls,
       position: { x: bodyPosition.x + view.position.x, y: bodyPosition.y + view.position.y }, ...(ship.fault ? { fault: ship.fault } : {}) } } : {}),
     vehicle: world.context.vehicle, analyticOrbits,

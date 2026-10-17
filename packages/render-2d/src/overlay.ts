@@ -42,6 +42,26 @@ function clipPolyline(points: readonly Vec[], box: Box): Vec[][] {
   return runs;
 }
 
+/** Sutherland–Hodgman: a convex polygon cut to the box, still convex. */
+function clipPolygon(points: readonly Vec[], box: Box): Vec[] {
+  let poly = points as Vec[];
+  const edges: readonly [(v: Vec) => number, number][] = [[v => v.x, box.x0], [v => -v.x, -box.x1], [v => v.y, box.y0], [v => -v.y, -box.y1]];
+  for (const [axis, limit] of edges) {
+    const next: Vec[] = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i]!, b = poly[(i + 1) % poly.length]!, da = axis(a) - limit, db = axis(b) - limit;
+      if (da >= 0) next.push(a);
+      if ((da >= 0) !== (db >= 0)) {
+        const t = da / (da - db);
+        next.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+      }
+    }
+    poly = next;
+    if (poly.length < 3) return [];
+  }
+  return poly;
+}
+
 /** Points along the part of a huge circle that can reach the view, plus the direction from
  * the view toward the circle's centre. */
 function visibleArc(center: Vec, radius: number, width: number, height: number): { readonly arc: Vec[]; readonly inward: Vec } {
@@ -82,6 +102,11 @@ export function screenOverlays(primitives: readonly OverlayPrimitive[], camera: 
       continue;
     }
     const lineWidth = p.width ?? DEFAULT_WIDTH;
+    if (p.kind === 'line' && p.fill) {
+      const points = clipPolygon(p.points.map(at), box);
+      if (points.length >= 3) out.push({ kind: 'polygon', points, color: p.color });
+      continue;
+    }
     if (p.kind === 'line') {
       const points = p.points.map(at);
       if (p.closed) points.push(points[0]!);

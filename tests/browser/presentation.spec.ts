@@ -21,20 +21,21 @@ test('the flight instruments are part of the default game and each switches off 
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   await orbit(page);
-  for (const name of ['Velocity', 'Orbit markers', 'Telemetry']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'true');
+  for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'true');
   await openPanel(page, 'data');
   const panel = page.locator('.module-panel', { has: page.getByRole('heading', { name: 'Telemetry' }) });
   await expect(panel).toContainText('Speed');
   await expect(panel).toContainText(/Period\s*28\.1 s/);
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBeGreaterThan(0);
   const before = await debug(page);
-  expect(before.presentation.modules).toEqual(['builtin.flight-data', 'builtin.flight-vectors', 'builtin.orbit-markers', 'builtin.telemetry']);
+  expect(before.presentation.modules).toEqual(['builtin.flight-data', 'builtin.flight-vectors', 'builtin.navball', 'builtin.orbit-markers', 'builtin.telemetry']);
   await openPanel(page, 'setup');
   await instrument(page, 'Telemetry').click();
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'false');
   await expect(panel).toHaveCount(0);
   await instrument(page, 'Velocity').click();
   await instrument(page, 'Orbit markers').click();
+  await instrument(page, 'Navball').click();
   // Flight data stays only while something needs it.
   await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBe(0);
@@ -46,7 +47,7 @@ test('the flight instruments are part of the default game and each switches off 
   // A viewer's choices are remembered in this browser, relative to the defaults.
   await page.reload();
   await openPanel(page, 'setup');
-  for (const name of ['Velocity', 'Orbit markers', 'Telemetry']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
+  for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
   await instrument(page, 'Telemetry').click();
   await expect(page.locator('#presentation-status')).toContainText('Telemetry enabled with Flight data, which it needs');
   await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.telemetry']);
@@ -148,8 +149,8 @@ test('repeated presentation changes release GPU programs, panels and module reso
   // Three pack programs, the private colored pass and the private overlay-label pass.
   await expect.poll(programs).toBe(5);
   for (let i = 0; i < 4; i++) {
-    for (const name of ['Telemetry', 'Velocity', 'Orbit markers']) await instrument(page, name).click();
-    await expect.poll(async () => (await debug(page)).presentation.modules.length).toBe(i % 2 ? 4 : 0);
+    for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball']) await instrument(page, name).click();
+    await expect.poll(async () => (await debug(page)).presentation.modules.length).toBe(i % 2 ? 5 : 0);
     expect(await page.locator('.module-panel').count()).toBeLessThanOrEqual(1);
   }
   for (let i = 0; i < 4; i++) await page.locator('#renderer-toggle').click();

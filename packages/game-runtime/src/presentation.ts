@@ -69,7 +69,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
   return Object.freeze(raw.map((value, i): OverlayPrimitive => {
     const label = `primitive ${i}`;
     const kind = (value as { kind?: unknown } | null)?.kind;
-    const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed']
+    const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed', 'fill']
       : kind === 'circle' ? ['kind', 'space', 'center', 'radius', 'color', 'width', 'fill']
       : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align'] : undefined;
     if (!fields) throw new Error(`${label}: kind must be line, circle or text`);
@@ -82,9 +82,11 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
       points += p.points.length;
       if (points > MAX_OVERLAY_POINTS) throw new Error(`layers return at most ${MAX_OVERLAY_POINTS} points`);
       if (p.closed !== undefined && typeof p.closed !== 'boolean') throw new Error(`${label}: closed must be boolean`);
+      if (p.fill !== undefined && typeof p.fill !== 'boolean') throw new Error(`${label}: fill must be boolean`);
+      if (p.fill && p.points.length < 3) throw new Error(`${label}: filled shapes need at least three points`);
       const w = width(p.width, label);
       return Object.freeze({ kind, space, color: c, points: Object.freeze(p.points.map((q, j) => point(q, space, `${label} point ${j}`))),
-        ...(w !== undefined ? { width: w } : {}), ...(p.closed ? { closed: true } : {}) });
+        ...(w !== undefined ? { width: w } : {}), ...(p.closed ? { closed: true } : {}), ...(p.fill ? { fill: true } : {}) });
     }
     if (kind === 'circle') {
       if (typeof p.radius !== 'number' || !(p.radius > 0 && p.radius <= LIMIT[space])) throw new Error(`${label}: radius must be positive and finite`);

@@ -162,8 +162,9 @@ export interface RendererProvider {
  * `#RRGGBB` or `#RRGGBBAA`; widths are CSS pixels in both spaces. */
 export type OverlaySpace = 'world' | 'screen';
 export type OverlayPrimitive =
+  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */
   | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;
-      readonly width?: number; readonly closed?: boolean }
+      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }
   /** Radius is metres in world space and CSS pixels in screen space. */
   | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;
       readonly color: string; readonly width?: number; readonly fill?: boolean }
@@ -189,6 +190,8 @@ export interface PresentationBody {
   readonly mu: number;
   /** Centre in system coordinates at the view time. */
   readonly position: Vec;
+  /** Signed spin rate in rad/s (counter-clockwise positive); absent when the body does not rotate. */
+  readonly spin?: number;
 }
 /** A detached, frozen snapshot of what the pilot sees. Built at most once per frame. */
 export interface PresentationSnapshot {
