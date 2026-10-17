@@ -8,6 +8,7 @@ import { surfaceContactTolerance } from './surface-contact';
 import { safeSurfaceLanding, SurfaceContactError } from './surface-flight';
 import { dampedKick, WATER_CRASH_SPEED, waterFloatRadius, waterForces } from './water';
 import * as dm from './dmath';
+import { bodyFixed, groundVelocity, inertialState, rotate, spinAngle, spinRate } from './spin';
 
 export const COAST_CACHE_CAPACITY = 8192;
 /** Timestamp results kept across every coast together (each is a few hundred bytes).
@@ -90,6 +91,27 @@ function contactFraction(p: Vec, end: Vec, radius: number): number | undefined {
   if (discriminant < 0) return undefined;
   const t = (-b - Math.sqrt(discriminant)) / (2 * a);
   return t >= 0 && t <= 1 ? t : undefined;
+}
+
+/** The prediction sample for a state after one step, in the inertial frame: a contact is drawn
+ * where and as fast as it struck, a resting state where the turning ground carries it. */
+export function ghostSample(state: State, body: Body): GhostSample {
+  const time = state.contact?.time ?? state.time;
+  let position = state.position, velocity = state.contact?.impactVelocity ?? state.velocity;
+  if (bodyFixed(state, body)) {
+    const angle = spinAngle(body, time);
+    position = rotate(position, angle);
+    velocity = rotate(velocity, angle);
+    const ground = groundVelocity(spinRate(body), position);
+    velocity = { x: velocity.x + ground.x, y: velocity.y + ground.y };
+  }
+  return { time, position, velocity, linear: true, ...(state.contact?.material === 'water' ? { contactMaterial: 'water' as const } : {}) };
+}
+
+/** `dampedKick` of the velocity relative to a medium moving at `medium` (rotating water). */
+function relativeKick(velocity: number, acceleration: number, drag: number, seconds: number, medium: number): number {
+  return drag === 0 || medium === 0 ? dampedKick(velocity, acceleration, drag, seconds)
+    : dampedKick(velocity - medium, acceleration, drag, seconds) + medium;
 }
 
 /** The built-in motion bundle. Settings are detached; all model-dependent caches and
@@ -245,8 +267,10 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     // Free flight above the highest terrain cannot be inside ground: skip the profile query.
     const clear = surface !== undefined && state.status === 'flying' && state.water === undefined
       && radius >= surface.bounds.maxRadius + tolerance;
+    // Terrain is body-fixed; a flying state is inertial, so find its point on the turning ground.
+    const local = state.status === 'flying' ? rotate(state.position, -spinAngle(body, state.time)) : state.position;
     const ground = !surface ? body.radius : clear ? surface.bounds.maxRadius
-      : querySurface(surface, dm.atan2(state.position.y, state.position.x)).groundRadius;
+      : querySurface(surface, dm.atan2(local.y, local.x)).groundRadius;
     if (state.water && (radius > surface!.seaRadiusMetres! + tolerance
       || (state.water === 'submerged') !== (state.status === 'flying'))) {
       throw new Error('Invalid water state: medium, support and position disagree');
@@ -261,6 +285,11 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
 
   function numericalStep(state: State, controls: Controls, dt: number, body: Body, surface?: SurfaceProfile, transaction?: ForceTransaction): State {
     if (state.status === 'crashed') return { ...state, time: state.time + dt };
+    // On a rotating body a landed state is body-fixed (see State) and flight is inertial: the
+    // ground, its terrain and its water turn underneath at omega. Without spin every
+    // rotation below is the identity and every ground velocity is zero.
+    const omega = spinRate(body), fixed = omega !== 0 && state.status === 'landed';
+    const theta0 = spinAngle(body, state.time);
     const turn = Math.max(-1, Math.min(1, controls.turn)) * vehicle.turnRate;
     const heading = normalizeAngle(state.heading + turn * dt);
     const throttle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * 0.78125));
@@ -268,13 +297,16 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const thrust = controls.engine ? midThrottle * vehicle.acceleration : 0;
     const midHeading = state.heading + turn * dt / 2;
     const engine = { x: dm.cos(midHeading) * thrust, y: dm.sin(midHeading) * thrust };
-    const a0 = transaction?.acceleration(state.time, state.position, state.velocity);
+    // Force modules always see the inertial frame.
+    const a0 = !transaction ? undefined : !fixed ? transaction.acceleration(state.time, state.position, state.velocity)
+      : rotate(transaction.acceleration(state.time, rotate(state.position, theta0),
+        groundVelocity(omega, rotate(state.position, theta0))), -theta0);
     const engine0 = a0 ? { x: engine.x + a0.x, y: engine.y + a0.y } : engine;
     const g0 = gravity(state.position, body);
     const radius = magnitude(state.position);
     const sea = surface?.seaRadiusMetres;
     const inWater = sea !== undefined && (radius < sea || state.water !== undefined);
-    const f0 = surface && inWater ? waterForces(surface, state.position, querySurface) : { gravityFactor: 1, drag: 0 };
+    const f0 = surface && inWater ? waterForces(surface, fixed ? state.position : rotate(state.position, -theta0), querySurface) : { gravityFactor: 1, drag: 0 };
     const radialAcceleration = (engine0.x * state.position.x + engine0.y * state.position.y) / radius;
     const next = { ...state, heading, throttle, time: state.time + dt, revision: state.revision + 1 };
     if (state.status === 'landed') {
@@ -287,45 +319,64 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
           return { ...next, position: { x: equilibrium * dm.cos(angle), y: equilibrium * dm.sin(angle) }, water: 'floating' };
         }
       }
+      // The rotating frame adds centrifugal acceleration omega^2 r outward.
+      const spin = omega * omega;
       if (state.water === 'floating') {
         if (thrust === 0 && !a0?.x && !a0?.y) return next;
       } else if (surface) {
         const support = surfaceSupport(surface, dm.atan2(state.position.y, state.position.x));
         // Static friction holds tangent forces. Liftoff requires positive net
         // acceleration out of every incident support face; sweep checks recontact.
-        if (!support.normals.every(n => (engine0.x + g0.x * f0.gravityFactor) * n.x + (engine0.y + g0.y * f0.gravityFactor) * n.y > 0)) return next;
-      } else if (radialAcceleration <= body.mu / (radius * radius)) return next;
+        if (!support.normals.every(n => (engine0.x + g0.x * f0.gravityFactor + spin * state.position.x) * n.x
+          + (engine0.y + g0.y * f0.gravityFactor + spin * state.position.y) * n.y > 0)) return next;
+      } else if (radialAcceleration <= body.mu / (radius * radius) - spin * radius) return next;
+      // Lift off from the turning ground: fly on in the inertial frame with its velocity.
+      if (fixed) return numericalStep({ ...inertialState(state, body), status: 'flying' }, controls, dt, body, surface, transaction);
     }
+    // Water drag acts on velocity relative to the water, which turns with the body.
+    const u0 = groundVelocity(omega, state.position);
     const halfV = {
-      x: dampedKick(state.velocity.x, g0.x * f0.gravityFactor + engine0.x, f0.drag, dt / 2),
-      y: dampedKick(state.velocity.y, g0.y * f0.gravityFactor + engine0.y, f0.drag, dt / 2),
+      x: relativeKick(state.velocity.x, g0.x * f0.gravityFactor + engine0.x, f0.drag, dt / 2, u0.x),
+      y: relativeKick(state.velocity.y, g0.y * f0.gravityFactor + engine0.y, f0.drag, dt / 2, u0.y),
     };
     const position = { x: state.position.x + halfV.x * dt, y: state.position.y + halfV.y * dt };
-    const sweep = surface ? (inWater ? sweepGroundSurface : sweepSurface)(surface, state.position, position) : undefined;
+    const theta1 = spinAngle(body, state.time + dt);
+    // Terrain is swept in the body-fixed frame, from where the ground was to where it is.
+    const local0 = rotate(state.position, -theta0), local1 = rotate(position, -theta1);
+    const sweep = surface ? (inWater ? sweepGroundSurface : sweepSurface)(surface, local0, local1) : undefined;
     if (sweep?.status === 'failed') throw new SurfaceContactError(sweep);
     const terrainHit = sweep?.status === 'hit' ? sweep : undefined;
     const hit = surface ? terrainHit?.fraction : contactFraction(state.position, position, body.radius);
     if (hit !== undefined) {
-      const point = {
+      const thetaHit = omega === 0 ? 0 : spinAngle(body, state.time + dt * hit);
+      const point = surface ? {
+        x: local0.x + (local1.x - local0.x) * hit,
+        y: local0.y + (local1.y - local0.y) * hit,
+      } : rotate({
         x: state.position.x + (position.x - state.position.x) * hit,
         y: state.position.y + (position.y - state.position.y) * hit,
-      };
+      }, -thetaHit);
       const r = magnitude(point);
       const waterHit = terrainHit?.surface.material === 'water' && !inWater;
       const groundRadius = (waterHit ? terrainHit.surface.firstContactRadius : terrainHit?.surface.groundRadius) ?? body.radius;
-      const contact = { x: point.x * groundRadius / r, y: point.y * groundRadius / r };
+      // Body-fixed contact point, and where it is in the inertial frame at the contact epoch.
+      const local = { x: point.x * groundRadius / r, y: point.y * groundRadius / r };
+      const contact = rotate(local, thetaHit);
       const gHit = gravity(contact, body);
-      const fHit = surface && inWater ? waterForces(surface, contact, querySurface) : { gravityFactor: 1, drag: 0 };
+      const fHit = surface && inWater ? waterForces(surface, local, querySurface) : { gravityFactor: 1, drag: 0 };
       const aHit = transaction?.acceleration(state.time + dt * hit, contact, halfV);
       const engineHit = aHit ? { x: engine.x + aHit.x, y: engine.y + aHit.y } : engine;
+      const uHit = groundVelocity(omega, contact);
       const impactV = {
-        x: dampedKick(dampedKick(state.velocity.x, g0.x * f0.gravityFactor + engine0.x, f0.drag, dt * hit / 2),
-          gHit.x * fHit.gravityFactor + engineHit.x, fHit.drag, dt * hit / 2),
-        y: dampedKick(dampedKick(state.velocity.y, g0.y * f0.gravityFactor + engine0.y, f0.drag, dt * hit / 2),
-          gHit.y * fHit.gravityFactor + engineHit.y, fHit.drag, dt * hit / 2),
+        x: relativeKick(relativeKick(state.velocity.x, g0.x * f0.gravityFactor + engine0.x, f0.drag, dt * hit / 2, u0.x),
+          gHit.x * fHit.gravityFactor + engineHit.x, fHit.drag, dt * hit / 2, uHit.x),
+        y: relativeKick(relativeKick(state.velocity.y, g0.y * f0.gravityFactor + engine0.y, f0.drag, dt * hit / 2, u0.y),
+          gHit.y * fHit.gravityFactor + engineHit.y, fHit.drag, dt * hit / 2, uHit.y),
       };
+      // Landing is judged against the ground, in its own frame.
+      const groundImpact = omega === 0 ? impactV : rotate({ x: impactV.x - uHit.x, y: impactV.y - uHit.y }, -thetaHit);
       const angle = dm.atan2(point.y, point.x);
-      if (waterHit && (state.godMode || Math.max(0, -(impactV.x * dm.cos(angle) + impactV.y * dm.sin(angle))) <= WATER_CRASH_SPEED)) {
+      if (waterHit && (state.godMode || Math.max(0, -(groundImpact.x * dm.cos(angle) + groundImpact.y * dm.sin(angle))) <= WATER_CRASH_SPEED)) {
         // Enter once, then sweep only seabed. Retain the fractional sea vertex so
         // the predictor draws the same two drifts as live motion.
         const entry: GhostSample = { time: state.time + dt * hit, position: contact, velocity: impactV, linear: true };
@@ -338,29 +389,33 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
           ...(result.contact ? { contact: { ...result.contact, fraction: (result.contact.time - state.time) / dt } } : {}) };
       }
       const safe = surface ? safeSurfaceLanding(surfaceSupport(surface, angle),
-        state.heading + turn * dt * hit, magnitude(impactV))
-        : magnitude(impactV) <= 5 && Math.abs(normalizeAngle(heading - angle)) <= Math.PI / 9;
-      return { ...next, position: contact, velocity: { x: 0, y: 0 },
+        state.heading + turn * dt * hit - thetaHit, magnitude(groundImpact))
+        : magnitude(groundImpact) <= 5 && Math.abs(normalizeAngle(heading - thetaHit - angle)) <= Math.PI / 9;
+      return { ...next, position: local, velocity: { x: 0, y: 0 },
+        ...(omega === 0 ? {} : { heading: normalizeAngle(heading - thetaHit) }),
         status: state.godMode || (!waterHit && safe) ? 'landed' : 'crashed',
         water: waterHit ? 'floating' : undefined,
         ...(terrainHit ? { contact: { time: state.time + dt * hit, fraction: hit,
           material: waterHit ? 'water' : 'rock',
-          surfaceIdentity: terrainHit.surfaceIdentity, impactVelocity: impactV, diagnostics: terrainHit.diagnostics } } : {}) };
+          surfaceIdentity: terrainHit.surfaceIdentity, impactVelocity: groundImpact, diagnostics: terrainHit.diagnostics } } : {}) };
     }
     const g1 = gravity(position, body);
-    const f1 = surface && sea !== undefined ? waterForces(surface, position, querySurface) : { gravityFactor: 1, drag: 0 };
+    const f1 = surface && sea !== undefined ? waterForces(surface, local1, querySurface) : { gravityFactor: 1, drag: 0 };
     const a1 = transaction?.acceleration(state.time + dt, position, halfV);
     const engine1 = a1 ? { x: engine.x + a1.x, y: engine.y + a1.y } : engine;
+    const u1 = groundVelocity(omega, position);
     const velocity = {
-      x: dampedKick(halfV.x, g1.x * f1.gravityFactor + engine1.x, f1.drag, dt / 2),
-      y: dampedKick(halfV.y, g1.y * f1.gravityFactor + engine1.y, f1.drag, dt / 2),
+      x: relativeKick(halfV.x, g1.x * f1.gravityFactor + engine1.x, f1.drag, dt / 2, u1.x),
+      y: relativeKick(halfV.y, g1.y * f1.gravityFactor + engine1.y, f1.drag, dt / 2, u1.y),
     };
     const wet = sea !== undefined && magnitude(position) <= sea;
     if (surface && wet && thrust === 0 && !a1?.x && !a1?.y) {
-      const angle = dm.atan2(position.y, position.x), equilibrium = waterFloatRadius(surface, angle, querySurface);
-      if (querySurface(surface, angle).waterDepth > 0 && Math.abs(magnitude(position) - equilibrium) < 1e-4 && magnitude(velocity) < .01) {
+      const angle = dm.atan2(local1.y, local1.x), equilibrium = waterFloatRadius(surface, angle, querySurface);
+      if (querySurface(surface, angle).waterDepth > 0 && Math.abs(magnitude(position) - equilibrium) < 1e-4
+        && dm.hypot(velocity.x - u1.x, velocity.y - u1.y) < .01) {
         return { ...next, position: { x: equilibrium * dm.cos(angle), y: equilibrium * dm.sin(angle) },
-          velocity: { x: 0, y: 0 }, status: 'landed', water: 'floating' };
+          velocity: { x: 0, y: 0 }, status: 'landed', water: 'floating',
+          ...(omega === 0 ? {} : { heading: normalizeAngle(heading - theta1) }) };
       }
     }
     return { ...next, position, velocity, status: 'flying', water: wet ? 'submerged' : undefined };
@@ -583,9 +638,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     for (let i = 0; i < GHOST_TERRAIN_MAX_STEPS; i++) {
       state = advance(state, IDLE, STEP, body, surface);
       if (state.waterEntry) yield state.waterEntry;
-      yield { time: state.contact?.time ?? state.time, position: state.position,
-        velocity: state.contact?.impactVelocity ?? state.velocity, linear: state.dynamics === 'numerical',
-        ...(state.contact?.material === 'water' ? { contactMaterial: 'water' as const } : {}) };
+      yield { ...ghostSample(state, body), linear: state.dynamics === 'numerical' };
       if (state.contact) return 'impact';
       if (state.status === 'landed') return state.water === 'floating' ? 'floating' : 'grounded';
       if (magnitude(state.position) > body.radius * GHOST_ESCAPE_RADII) return 'escape';
@@ -600,9 +653,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       for (let i = 0; i < GHOST_TERRAIN_MAX_STEPS; i++) {
         state = advance(state, IDLE, STEP, body, surface);
         if (state.waterEntry) yield state.waterEntry;
-        yield { time: state.contact?.time ?? state.time, position: state.position,
-          velocity: state.contact?.impactVelocity ?? state.velocity, linear: true,
-          ...(state.contact?.material === 'water' ? { contactMaterial: 'water' as const } : {}) };
+        yield ghostSample(state, body);
         if (state.contact) return 'impact';
         if (state.status !== 'flying') return state.water === 'floating' ? 'floating' : 'grounded';
         if (magnitude(state.position) > body.radius * GHOST_ESCAPE_RADII) return 'escape';

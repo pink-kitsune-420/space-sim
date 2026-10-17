@@ -39,6 +39,16 @@ export interface CelestialBodyDefinition {
   readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';
   readonly surface?: SurfaceDefinition;
   readonly ephemeris?: Ephemeris;
+  /** Sidereal spin; absent bodies do not rotate. */
+  readonly rotation?: RotationDefinition;
+}
+
+export interface RotationDefinition {
+  /** Seconds per turn. */
+  readonly period: number;
+  /** -1 (default) turns clockwise like default orbits, so a prograde launch gains the spin. */
+  readonly direction?: number;
+  readonly phaseRadiansAtEpoch?: number;
 }
 
 export interface PresetDefinition {

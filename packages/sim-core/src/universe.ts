@@ -1,4 +1,4 @@
-import type { Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
+import type { Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 import defaultUniverseJson from '../../../games/space-sim/universes/sandbox/default/universe.json';
 import type { State, Vec } from '../../game-api/src/index';
@@ -23,6 +23,19 @@ export function calculateLaplaceSOI(semiMajorAxis: number, bodyMass: number, par
 function bodySurfaceFeatures(b: Pick<CelestialBodyDefinition, 'id' | 'name' | 'parentId' | 'surfaceFeatures'>): ResolvedBody['surfaceFeatures'] {
   return b.surfaceFeatures ?? (b.id === 'sun' || b.name.toLowerCase().includes('sun') || b.name.toLowerCase().includes('star')
     ? 'star' : b.parentId === null ? 'globe-lines' : 'craters');
+}
+
+/** A spin whose ground outruns a surface orbit would fling resting ships off the equator. */
+function validateRotation(raw: unknown, radius: number, mu: number, where: string): RotationDefinition {
+  if (!raw || typeof raw !== 'object') throw new Error(`${where} must be an object`);
+  const r = raw as Record<string, unknown>;
+  const period = r.period, direction = r.direction ?? -1, phase = r.phaseRadiansAtEpoch ?? 0;
+  if (typeof period !== 'number' || !Number.isFinite(period) || period <= 0) throw new Error(`${where}: period must be a positive number of seconds`);
+  if (direction !== 1 && direction !== -1) throw new Error(`${where}: direction must be 1 or -1`);
+  if (typeof phase !== 'number' || !Number.isFinite(phase)) throw new Error(`${where}: phaseRadiansAtEpoch must be a finite number`);
+  const omega = 2 * Math.PI / period;
+  if (omega * omega * radius * radius * radius >= mu) throw new Error(`${where}: period is shorter than a surface orbit, so the body would break up`);
+  return { period, direction, phaseRadiansAtEpoch: phase };
 }
 
 /** Validate and normalize a universe definition */
@@ -112,6 +125,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
       if (b.surfaceFeatures !== undefined && !['globe-lines', 'craters', 'smooth', 'star'].includes(b.surfaceFeatures as string)) {
         throw new Error(`Body ${b.id} surfaceFeatures must be globe-lines, craters, smooth or star`);
       }
+      const rotation = b.rotation === undefined ? undefined : validateRotation(b.rotation, radius, mu, `Body ${b.id} rotation`);
       let surface: SurfaceDefinition | undefined;
       if (b.surface !== undefined) {
         if (bodySurfaceFeatures({ id: b.id, name: typeof b.name === 'string' ? b.name : b.id,
@@ -136,6 +150,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
         radiusMetres: radius,
         mass,
         mu,
+        ...(rotation ? { rotation } : {}),
       } as CelestialBodyDefinition);
     }
 
@@ -235,6 +250,11 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     const surface = b.surface === undefined ? undefined : validateSurfaceDefinition(b.surface, radius, `Body ${b.id} surface`);
     if (surface && surfaceFeatures === 'star') throw new Error(`Body ${b.id} surface: terrain settings are not supported on stars`);
 
+    // Typed callers skip validateUniverse, so check spin here too.
+    const spin = b.rotation === undefined ? undefined : validateRotation(b.rotation, radius, mu, `Body ${b.id} rotation`);
+    const rotation = spin && Object.freeze({ period: spin.period, direction: spin.direction === 1 ? 1 : -1,
+      phase: spin.phaseRadiansAtEpoch ?? 0 } as const);
+
     // Ephemeris
     let ephemeris: Ephemeris = b.ephemeris ?? { kind: 'fixed-inertial', position: [0, 0], velocity: [0, 0] };
     if (!b.parentId && ephemeris.kind !== 'fixed-inertial') {
@@ -283,6 +303,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
       skyColor: b.skyColor ?? b.atmosphereColor,
       surfaceFeatures,
       ephemeris,
+      ...(rotation ? { rotation } : {}),
     });
 
     bodiesMap.set(b.id, resolved);

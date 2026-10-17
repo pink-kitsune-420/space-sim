@@ -29,6 +29,10 @@
             "kind": "fixed-inertial",
             "position": [0, 0],
             "velocity": [0, 0]
+          },
+          "rotation": {
+            "period": 2000,
+            "direction": -1
           }
         },
         {
@@ -55,6 +59,10 @@
             "phaseRadiansAtEpoch": 2.0,
             "direction": -1,
             "period": 5086.5092
+          },
+          "rotation": {
+            "period": 240,
+            "direction": -1
           }
         },
         {
@@ -83,6 +91,10 @@
             "phaseRadiansAtEpoch": 4.0,
             "direction": -1,
             "period": 14386.8206
+          },
+          "rotation": {
+            "period": 900,
+            "direction": -1
           }
         },
         {
@@ -111,6 +123,10 @@
             "phaseRadiansAtEpoch": 4.71238898038469,
             "direction": -1,
             "period": 40692.0735
+          },
+          "rotation": {
+            "period": 600,
+            "direction": -1
           }
         },
         {
@@ -137,6 +153,10 @@
             "phaseRadiansAtEpoch": 0,
             "direction": -1,
             "period": 3297.8009
+          },
+          "rotation": {
+            "period": 3297.8009,
+            "direction": -1
           }
         },
         {
@@ -165,6 +185,10 @@
             "phaseRadiansAtEpoch": 0.6,
             "direction": -1,
             "period": 211442.2165
+          },
+          "rotation": {
+            "period": 400,
+            "direction": -1
           }
         },
         {
@@ -191,6 +215,10 @@
             "phaseRadiansAtEpoch": 0,
             "direction": -1,
             "period": 467.2257
+          },
+          "rotation": {
+            "period": 467.2257,
+            "direction": -1
           }
         },
         {
@@ -217,6 +245,10 @@
             "phaseRadiansAtEpoch": 3.0,
             "direction": -1,
             "period": 1321.5139
+          },
+          "rotation": {
+            "period": 1321.5139,
+            "direction": -1
           }
         }
       ],

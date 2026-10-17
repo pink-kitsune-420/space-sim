@@ -13,6 +13,7 @@ export * from './surface';
 export * from './surface-contact';
 export * from './surface-flight';
 export * from './water';
+export * from './spin';
 export * from './warp';
 export * as dmath from './dmath';
 

@@ -1,7 +1,7 @@
 import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, ModuleState } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
-import { createSimulationContext, magnitude, normalizeAngle, setGodMode } from './context';
+import { createSimulationContext, ghostSample, magnitude, normalizeAngle, setGodMode } from './context';
 import { motionCopy as motionRuleStateCopy, validateModuleState } from '../../game-runtime/src/motion';
 import { captureWorldRules, initialRuleState, stageWorldRules } from '../../game-runtime/src/rules';
 import { captureCommands } from '../../game-runtime/src/commands';
@@ -10,9 +10,14 @@ import * as dm from './dmath';
 import { BUILTIN_SERVICES } from './services';
 import { surfaceIdentity, type SurfaceProfile } from './surface';
 import { WakeQueue } from './rails';
+import { groundPreset } from './spin';
 import { type LoadedSystem, type ResolvedBody, type UniverseDefinition } from './universe';
 
 export type { Ship, WorldEvent } from '../../game-api/src/index';
+
+/** Everything about a body's ground that motion depends on: its surface and how it turns. */
+const physicalIdentity = (body: ResolvedBody): string => surfaceIdentity(body)
+  + (body.rotation ? `|spin:${body.rotation.period}:${body.rotation.direction}:${body.rotation.phase}` : '');
 
 export const MAX_SHIP_NAME = 32;
 export const SHIP_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/;
@@ -144,7 +149,7 @@ export class World {
     catch (error) { this.context.dispose(); throw error; }
 
     const geometries: Record<string, string> = Object.create(null);
-    for (const b of this.system.getAllBodies()) geometries[b.id] = surfaceIdentity(b);
+    for (const b of this.system.getAllBodies()) geometries[b.id] = physicalIdentity(b);
 
     if (options.lock && options.lock.format === 'space-sim-auth-lock/1') {
       const lock = options.lock as AuthoritativeLock;
@@ -268,11 +273,13 @@ export class World {
     return this.system.presets.find(p => p.id === id)?.id ?? this.system.presets[0]!.id;
   }
 
-  /** A preset start on the shared clock. */
+  /** A preset start on the shared clock. Presets are authored over the ground, so on a
+   * rotating body a flying start is turned to where that ground is now. */
   presetState(presetId?: string): { readonly state: State; readonly bodyId: string } {
     const p = this.system.presets.find(p => p.id === presetId) ?? this.system.presets[0]!;
     const start = this.system.initialState(p.id, this.surfaces.get(p.bodyId));
-    return { state: { ...start.state, time: this.time }, bodyId: start.body.id };
+    const state = { ...start.state, time: this.time };
+    return { state: groundPreset(state, this.body(start.body.id), p.kind === 'state'), bodyId: start.body.id };
   }
 
   spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean }): Ship {
@@ -529,7 +536,7 @@ export class World {
 
   private computeDefaultFingerprint(): string {
     const geometries: Record<string, string> = Object.create(null);
-    for (const b of this.system.getAllBodies()) geometries[b.id] = surfaceIdentity(b);
+    for (const b of this.system.getAllBodies()) geometries[b.id] = physicalIdentity(b);
     const manifests = new Map<string, any>([
       ['builtin.content', { id: 'builtin.content', name: 'builtin.content', version: '0.1.0', kind: 'provider', authority: 'authoritative', environments: ['browser', 'offline', 'node'], dependencies: [], provides: ['builtin.content/v1'], requires: [], slots: ['content'], before: [], after: [], settings: {}, license: 'LicenseRef-Project', format: 'space-sim-module/1', apiVersion: 'space-sim-game-api/1' }],
       ['builtin.motion', { id: 'builtin.motion', name: 'builtin.motion', version: '0.1.0', kind: 'provider', authority: 'authoritative', environments: ['browser', 'offline', 'node'], dependencies: [], provides: ['builtin.motion/v1'], requires: [], slots: ['motion', 'orbits', 'bodies', 'surfaces', 'rails'], before: [], after: [], settings: {}, license: 'LicenseRef-Project', format: 'space-sim-module/1', apiVersion: 'space-sim-game-api/1' }],
@@ -579,8 +586,7 @@ export class World {
       if (events.some(e => e.type === 'soi' && e.shipId === id)) return 'open';
       const s = ship.state;
       if (s.waterEntry) yield s.waterEntry;
-      yield { time: s.contact?.time ?? s.time, position: s.position, velocity: s.contact?.impactVelocity ?? s.velocity,
-        linear: true, ...(s.contact?.material === 'water' ? { contactMaterial: 'water' as const } : {}) };
+      yield ghostSample(s, this.body(ship.bodyId));
       if (s.contact) return 'impact';
       if (s.status !== 'flying') return s.water === 'floating' ? 'floating' : 'grounded';
     }

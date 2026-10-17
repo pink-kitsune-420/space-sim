@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { advance, setVehicle, step, type Controls, type State } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
-import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
+import { DEFAULT_UNIVERSE, validateUniverse, type UniverseDefinition } from '../../packages/sim-core/src/universe';
 import { OCEAN_UNIVERSE, SOLAR_UNIVERSE, TERRAIN_UNIVERSE } from '../../packages/scenarios/builtin';
 import * as reference from '../helpers/reference-advance';
 
@@ -9,6 +9,12 @@ import * as reference from '../helpers/reference-advance';
 function rng(seed: number): () => number {
   let s = seed >>> 0 || 1;
   return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+
+/** The original implementation predates body spin. */
+function withoutSpin(universe: UniverseDefinition): UniverseDefinition {
+  return validateUniverse({ ...universe, systems: universe.systems.map(system => ({ ...system,
+    bodies: system.bodies.map(({ rotation: _rotation, ...body }) => body) })) });
 }
 
 type Outcome = { ok: true; state: State } | { ok: false; error: string };
@@ -20,7 +26,7 @@ function run(fn: () => State): Outcome {
 describe('motion matches the original implementation bit for bit', () => {
   for (const [label, universe, systemId] of [
     ['circular bodies', SOLAR_UNIVERSE, 'solar-system'],
-    ['legacy planet', DEFAULT_UNIVERSE, 'primus-system'],
+    ['legacy planet', withoutSpin(DEFAULT_UNIVERSE), 'primus-system'],
     ['terrain', TERRAIN_UNIVERSE, undefined],
     ['ocean', OCEAN_UNIVERSE, undefined],
   ] as const) {
