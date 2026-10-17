@@ -1,0 +1,35 @@
+{
+  "generator": "space-sim radial generator version 1; regression fixture, not an independent geometry oracle",
+  "referenceRadius": 512,
+  "elevationsFloat64LESha256": "83f6eb47343e0371eb006a7e0f67150314ad62b1c8c73072c50e0a9c37a55d03",
+  "configuration": {
+    "kind": "radial", "generatorVersion": 1, "seed": 12345, "sampleCount": 2048,
+    "maxReliefMetres": 24, "minFeatureWidthMetres": 16, "orientationRadians": 0,
+    "mountainRangeCount": 3, "craterCount": 12
+  },
+  "samples": [
+    { "index": 0, "elevation": 6.736705339894426 },
+    { "index": 1, "elevation": 6.677066529621824 },
+    { "index": 17, "elevation": 5.663295625945533 },
+    { "index": 127, "elevation": 8.43553841722833 },
+    { "index": 512, "elevation": -0.3107906917194033 },
+    { "index": 1024, "elevation": -2.3376627922206175 },
+    { "index": 2047, "elevation": 6.796710776230713 }
+  ],
+  "bounds": {
+    "minRadius": 488, "maxRadius": 522.7402716370411,
+    "maxAbsDerivative": 573.4747814646518, "maxSlope": 1.1422115516274853
+  },
+  "features": [
+    { "id": "range-0", "kind": "mountain-range", "angleRadians": 6.155814257024092,
+      "widthMetres": 308.8724293356712, "heightMetres": 7.683812814239674 },
+    { "id": "crater-0", "kind": "crater", "angleRadians": 5.183769156518244,
+      "bowlRadiusMetres": 54.812496276725504, "rimWidthMetres": 27.406248138362752,
+      "centralPeakWidthMetres": 27.406248138362752, "depthMetres": 11.976909539252643,
+      "rimHeightMetres": 3.353534670990741, "centralPeakHeightMetres": 0 },
+    { "id": "crater-11", "kind": "crater", "angleRadians": 1.9192533440111943,
+      "bowlRadiusMetres": 32, "rimWidthMetres": 16, "centralPeakWidthMetres": 16,
+      "depthMetres": 11.392696764797272, "rimHeightMetres": 3.1899550941432366,
+      "centralPeakHeightMetres": 0 }
+  ]
+}

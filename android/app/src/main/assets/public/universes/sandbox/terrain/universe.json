@@ -1,0 +1,113 @@
+{
+  "$schema": "../../universe.schema.json",
+  "schemaVersion": 1,
+  "id": "dry-terrain-examples",
+  "name": "Dry terrain flights",
+  "defaultSystemId": "rugged",
+  "systems": [
+    {
+      "id": "rugged",
+      "name": "Mountainous dry planet",
+      "bodies": [
+        {
+          "id": "dry-planet",
+          "name": "Dry Planet",
+          "parentId": null,
+          "radius": 512,
+          "mu": 13107200,
+          "surfaceFeatures": "smooth",
+          "color": "#a87954",
+          "accentColor": "#e0bb8a",
+          "surface": {
+            "kind": "radial",
+            "generatorVersion": 1,
+            "seed": 8591,
+            "sampleCount": 4096,
+            "maxReliefMetres": 40,
+            "minFeatureWidthMetres": 12,
+            "orientationRadians": 0.3,
+            "mountainRangeCount": 5,
+            "craterCount": 3,
+            "pads": [
+              {
+                "id": "north-pad",
+                "angleRadians": 1.5707963267948966,
+                "widthMetres": 32,
+                "elevationMetres": 8
+              }
+            ]
+          }
+        }
+      ],
+      "presets": [
+        {
+          "id": "pad",
+          "name": "North pad · terrain launch",
+          "bodyId": "dry-planet",
+          "kind": "landed"
+        },
+        {
+          "id": "orbit",
+          "name": "Survey orbit",
+          "bodyId": "dry-planet",
+          "kind": "circular-orbit",
+          "radiusMetres": 900,
+          "direction": -1
+        }
+      ]
+    },
+    {
+      "id": "cratered",
+      "name": "Cratered moon",
+      "bodies": [
+        {
+          "id": "crater-moon",
+          "name": "Crater Moon",
+          "parentId": null,
+          "radius": 160,
+          "mu": 204800,
+          "surfaceFeatures": "craters",
+          "color": "#9e9991",
+          "accentColor": "#dad3c7",
+          "surface": {
+            "kind": "radial",
+            "generatorVersion": 1,
+            "seed": 12345,
+            "sampleCount": 2048,
+            "maxReliefMetres": 12,
+            "minFeatureWidthMetres": 4,
+            "orientationRadians": 0,
+            "mountainRangeCount": 0,
+            "craterCount": 18
+          }
+        }
+      ],
+      "presets": [
+        {
+          "id": "orbit",
+          "name": "Survey orbit",
+          "bodyId": "crater-moon",
+          "kind": "circular-orbit",
+          "radiusMetres": 260,
+          "direction": -1
+        },
+        {
+          "id": "crater-descent",
+          "name": "Crater floor · gentle descent",
+          "bodyId": "crater-moon",
+          "kind": "state",
+          "position": [
+            148.3266325682971,
+            -14.149560804116282
+          ],
+          "velocity": [
+            0,
+            0
+          ],
+          "headingRadians": 6.188078498330676,
+          "zoom": 6
+        }
+      ]
+    }
+  ]
+}

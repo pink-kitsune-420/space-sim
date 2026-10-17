@@ -1,0 +1,40 @@
+{
+  "format": "space-lab-universe-catalog/1",
+  "universes": [
+    {
+      "id": "default-universe",
+      "name": "Default Universe",
+      "alias": "default",
+      "category": "sandbox",
+      "file": "sandbox/default/universe.json"
+    },
+    {
+      "id": "dry-terrain-examples",
+      "name": "Dry terrain flights",
+      "alias": "terrain",
+      "category": "sandbox",
+      "file": "sandbox/terrain/universe.json"
+    },
+    {
+      "id": "ocean-example",
+      "name": "Ocean flights",
+      "alias": "ocean",
+      "category": "sandbox",
+      "file": "sandbox/ocean/universe.json"
+    },
+    {
+      "id": "solar-system-universe",
+      "name": "Solar System Universe (1/10 Scale)",
+      "alias": "solar",
+      "category": "astronomy",
+      "file": "astronomy/solar-system/universe.json"
+    },
+    {
+      "id": "full-solar-system",
+      "name": "Full Solar System (1:1 scale, every known moon)",
+      "alias": "full",
+      "category": "astronomy",
+      "file": "astronomy/full-solar-system/universe.json"
+    }
+  ]
+}

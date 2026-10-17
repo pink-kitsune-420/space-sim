@@ -1,0 +1,365 @@
+{
+  "$schema": "../../universe.schema.json",
+  "schemaVersion": 1,
+  "id": "default-universe",
+  "name": "Default Universe",
+  "description": "The default universe containing the compact Primus System, the 1/10 scale Solar System (Sun, Earth, Moon), and the distant Outer Reach System.",
+  "author": "Space Sim Team",
+  "defaultSystemId": "primus-system",
+  "systems": [
+    {
+      "id": "primus-system",
+      "name": "Primus System",
+      "description": "A compact fictional planetary system with Primus and its orbiting moon Secundus.",
+      "centralBodyId": "planet",
+      "bodies": [
+        {
+          "id": "planet",
+          "name": "Primus",
+          "parentId": null,
+          "radius": 512,
+          "radiusMetres": 512,
+          "mass": 1.963829914747614e17,
+          "mu": 13107200,
+          "color": "#233c47",
+          "accentColor": "#659497",
+          "atmosphereColor": "#29495380",
+          "horizonColor": "#659497",
+          "skyColor": "#29495380",
+          "surfaceFeatures": "globe-lines",
+          "ephemeris": {
+            "kind": "fixed-inertial",
+            "position": [0, 0],
+            "velocity": [0, 0]
+          }
+        },
+        {
+          "id": "moon",
+          "name": "Secundus",
+          "parentId": "planet",
+          "radius": 128,
+          "radiusMetres": 128,
+          "mass": 3.068484241793147e15,
+          "mu": 204800,
+          "color": "#3f4651",
+          "accentColor": "#8d98a7",
+          "atmosphereColor": "#44525d40",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 2910,
+            "entryMetres": 2910,
+            "exitMetres": 3000
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 15360,
+            "radiusMetres": 15360,
+            "phaseRadiansAtEpoch": 0,
+            "direction": -1,
+            "period": 3297.8009
+          }
+        }
+      ],
+      "vehicleDefaults": {
+        "acceleration": 125,
+        "turnRate": 1.227184630308513,
+        "initialThrottle": 0.5
+      },
+      "presets": [
+        {
+          "id": "pad",
+          "name": "North pad · ready to launch",
+          "bodyId": "planet",
+          "kind": "landed",
+          "position": [0, 512],
+          "velocity": [0, 0],
+          "headingRadians": 1.5707963267948966
+        },
+        {
+          "id": "planet-orbit",
+          "name": "Circular orbit · 128 m altitude",
+          "bodyId": "planet",
+          "kind": "circular-orbit",
+          "radius": 640,
+          "radiusMetres": 640,
+          "altitude": 128,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0
+        },
+        {
+          "id": "moon-orbit",
+          "name": "Secundus circular orbit · 128 m altitude",
+          "bodyId": "moon",
+          "kind": "circular-orbit",
+          "radius": 256,
+          "radiusMetres": 256,
+          "altitude": 128,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0
+        }
+      ]
+    },
+    {
+      "id": "solar-system",
+      "name": "Solar System (1/10 Scale)",
+      "description": "Real solar system scaled to 1/10 dimensions, featuring the Sun, Earth, and Moon with authentic surface gravities and orbital periods.",
+      "centralBodyId": "sun",
+      "bodies": [
+        {
+          "id": "sun",
+          "name": "Sun",
+          "parentId": null,
+          "radius": 69570000,
+          "radiusMetres": 69570000,
+          "mass": 1.98841e+28,
+          "mu": 1.3271244e+18,
+          "color": "#ffd000",
+          "accentColor": "#ff7700",
+          "atmosphereColor": "#ffaa0060",
+          "surfaceFeatures": "star",
+          "ephemeris": {
+            "kind": "fixed-inertial",
+            "position": [0, 0],
+            "velocity": [0, 0]
+          }
+        },
+        {
+          "id": "earth",
+          "name": "Earth",
+          "parentId": "sun",
+          "radius": 637100,
+          "radiusMetres": 637100,
+          "mass": 5.972168e+22,
+          "mu": 3.986004418e+12,
+          "color": "#1b4965",
+          "accentColor": "#62b6cb",
+          "atmosphereColor": "#48cae480",
+          "surfaceFeatures": "globe-lines",
+          "soi": {
+            "radius": 89205000,
+            "entryMetres": 89000000,
+            "exitMetres": 92000000
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 14959787070,
+            "radiusMetres": 14959787070,
+            "phaseRadiansAtEpoch": 1.5707963267948966,
+            "direction": -1,
+            "period": 9979788
+          }
+        },
+        {
+          "id": "moon",
+          "name": "Moon",
+          "parentId": "earth",
+          "radius": 173740,
+          "radiusMetres": 173740,
+          "mass": 7.34889e+20,
+          "mu": 4.9048695e+10,
+          "color": "#4a4e54",
+          "accentColor": "#9aa0a6",
+          "atmosphereColor": "#50555c20",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 6608600,
+            "entryMetres": 6600000,
+            "exitMetres": 6800000
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 38440000,
+            "radiusMetres": 38440000,
+            "phaseRadiansAtEpoch": 0,
+            "direction": -1,
+            "period": 749997
+          }
+        }
+      ],
+      "vehicleDefaults": {
+        "acceleration": 40,
+        "turnRate": 1.22718463,
+        "initialThrottle": 0.5
+      },
+      "presets": [
+        {
+          "id": "earth-pad",
+          "name": "Earth · North pad · ready to launch",
+          "bodyId": "earth",
+          "kind": "landed",
+          "position": [0, 637100],
+          "velocity": [0, 0],
+          "headingRadians": 1.5707963267948966,
+          "zoom": 1
+        },
+        {
+          "id": "earth-orbit",
+          "name": "Earth low orbit · 100 km altitude",
+          "bodyId": "earth",
+          "kind": "circular-orbit",
+          "radius": 737100,
+          "radiusMetres": 737100,
+          "altitude": 100000,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.0007
+        },
+        {
+          "id": "moon-orbit",
+          "name": "Moon low orbit · 50 km altitude",
+          "bodyId": "moon",
+          "kind": "circular-orbit",
+          "radius": 223740,
+          "radiusMetres": 223740,
+          "altitude": 50000,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.002
+        },
+        {
+          "id": "moon-pad",
+          "name": "Moon · Tranquility Base · surface landing",
+          "bodyId": "moon",
+          "kind": "landed",
+          "position": [0, 173740],
+          "velocity": [0, 0],
+          "headingRadians": 1.5707963267948966,
+          "zoom": 1
+        },
+        {
+          "id": "sun-orbit",
+          "name": "Sun orbit · 0.5 AU (Inner solar transfer)",
+          "bodyId": "sun",
+          "kind": "circular-orbit",
+          "radius": 7479893535,
+          "radiusMetres": 7479893535,
+          "altitude": 7410323535,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.00000008
+        }
+      ]
+    },
+    {
+      "id": "outer-reach-system",
+      "name": "Outer Reach System",
+      "description": "Gas giant Kronos accompanied by icy moon Titan Alpha and outer satellite Titan Beta.",
+      "centralBodyId": "kronos",
+      "bodies": [
+        {
+          "id": "kronos",
+          "name": "Kronos",
+          "parentId": null,
+          "radius": 1024,
+          "radiusMetres": 1024,
+          "mass": 7.855319658990456e17,
+          "mu": 52428800,
+          "color": "#4a3c28",
+          "accentColor": "#b89758",
+          "atmosphereColor": "#614e3680",
+          "surfaceFeatures": "globe-lines",
+          "ephemeris": {
+            "kind": "fixed-inertial",
+            "position": [0, 0],
+            "velocity": [0, 0]
+          }
+        },
+        {
+          "id": "titan-alpha",
+          "name": "Titan Alpha",
+          "parentId": "kronos",
+          "radius": 256,
+          "radiusMetres": 256,
+          "mass": 1.2273936967172588e16,
+          "mu": 819200,
+          "color": "#334d5c",
+          "accentColor": "#6cb0c8",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 4500,
+            "entryMetres": 4500,
+            "exitMetres": 4700
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 24000,
+            "radiusMetres": 24000,
+            "phaseRadiansAtEpoch": 0.5,
+            "direction": -1,
+            "period": 3223.7388
+          }
+        },
+        {
+          "id": "titan-beta",
+          "name": "Titan Beta",
+          "parentId": "kronos",
+          "radius": 160,
+          "radiusMetres": 160,
+          "mass": 4.091312322394196e15,
+          "mu": 273066.67,
+          "color": "#5c4040",
+          "accentColor": "#b88080",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 3200,
+            "entryMetres": 3200,
+            "exitMetres": 3400
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 36000,
+            "radiusMetres": 36000,
+            "phaseRadiansAtEpoch": 3.14159,
+            "direction": -1,
+            "period": 5922.3789
+          }
+        }
+      ],
+      "vehicleDefaults": {
+        "acceleration": 150,
+        "turnRate": 1.22718463,
+        "initialThrottle": 0.5
+      },
+      "presets": [
+        {
+          "id": "kronos-low-orbit",
+          "name": "Kronos low orbit · 256 m altitude",
+          "bodyId": "kronos",
+          "kind": "circular-orbit",
+          "radius": 1280,
+          "radiusMetres": 1280,
+          "altitude": 256,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0
+        },
+        {
+          "id": "titan-alpha-pad",
+          "name": "Titan Alpha surface · landing outpost",
+          "bodyId": "titan-alpha",
+          "kind": "landed",
+          "position": [0, 256],
+          "velocity": [0, 0],
+          "headingRadians": 1.5707963267948966
+        },
+        {
+          "id": "titan-alpha-orbit",
+          "name": "Titan Alpha orbit · 128 m altitude",
+          "bodyId": "titan-alpha",
+          "kind": "circular-orbit",
+          "radius": 384,
+          "radiusMetres": 384,
+          "altitude": 128,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0
+        }
+      ]
+    }
+  ]
+}

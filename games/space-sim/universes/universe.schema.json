@@ -1,0 +1,470 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://space-sim.local/schemas/universe-v1.json",
+  "title": "Space Sim Universe Format",
+  "description": "Schema for a universe containing one or more planetary systems.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "defaultSystemId",
+    "systems"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version of the universe format schema."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+$",
+      "description": "Unique identifier for this universe."
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the universe."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional description of the universe."
+    },
+    "author": {
+      "type": "string",
+      "description": "Author or source of this universe."
+    },
+    "defaultSystemId": {
+      "type": "string",
+      "description": "ID of the default system to load upon startup."
+    },
+    "systems": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Planetary systems available in this universe. Only one is loaded at a time.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "bodies",
+          "presets"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_-]+$",
+            "description": "Unique system identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of this system."
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description of the system."
+          },
+          "centralBodyId": {
+            "type": "string",
+            "description": "ID of the primary/central celestial body (e.g. star or main planet)."
+          },
+          "bodies": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Planets, moons and stars in this system.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name"
+              ],
+              "anyOf": [
+                {
+                  "required": [
+                    "radius"
+                  ]
+                },
+                {
+                  "required": [
+                    "radiusMetres"
+                  ]
+                }
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "required": [
+                      "surfaceFeatures"
+                    ],
+                    "properties": {
+                      "surfaceFeatures": {
+                        "const": "star"
+                      }
+                    }
+                  },
+                  "then": {
+                    "not": {
+                      "required": [
+                        "surface"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9_-]+$",
+                  "description": "Unique celestial body identifier."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Display name of this celestial body."
+                },
+                "parentId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ID of parent body this body orbits, or null if central."
+                },
+                "radius": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "Reference radius in metres; circular ground radius when surface is absent."
+                },
+                "radiusMetres": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "Alternative alias for radius in metres."
+                },
+                "mass": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "Mass of the body in kilograms. Used to compute mu if mu is omitted."
+                },
+                "mu": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "description": "Standard gravitational parameter (G*M) in m^3/s^2."
+                },
+                "color": {
+                  "type": "string",
+                  "description": "Primary rendering color (hex/rgb)."
+                },
+                "accentColor": {
+                  "type": "string",
+                  "description": "Secondary/accent rendering color."
+                },
+                "atmosphereColor": {
+                  "type": "string",
+                  "description": "Atmosphere glow color."
+                },
+                "horizonColor": {
+                  "type": "string",
+                  "description": "Horizon line and surface edge color when viewed in close-up or horizon camera."
+                },
+                "skyColor": {
+                  "type": "string",
+                  "description": "Sky and atmospheric horizon glow color when viewed near the surface (alias or override for atmosphereColor)."
+                },
+                "surface": {
+                  "$ref": "#/$defs/surface"
+                },
+                "surfaceFeatures": {
+                  "type": "string",
+                  "enum": [
+                    "globe-lines",
+                    "craters",
+                    "smooth",
+                    "star"
+                  ],
+                  "description": "Visual surface style."
+                },
+                "soi": {
+                  "type": "object",
+                  "required": [
+                    "radius"
+                  ],
+                  "properties": {
+                    "radius": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "Radius of sphere of influence in metres."
+                    },
+                    "entryMetres": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "Entry boundary for patched-conic SOI transition."
+                    },
+                    "exitMetres": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "Exit boundary for patched-conic SOI transition."
+                    }
+                  }
+                },
+                "ephemeris": {
+                  "type": "object",
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "fixed-inertial",
+                        "circular-kepler"
+                      ]
+                    },
+                    "position": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "velocity": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "radius": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "Orbital radius (semi-major axis) around parent in metres."
+                    },
+                    "radiusMetres": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "phaseRadiansAtEpoch": {
+                      "type": "number",
+                      "description": "Orbital phase angle at epoch t=0 in radians."
+                    },
+                    "direction": {
+                      "type": "number",
+                      "enum": [
+                        -1,
+                        1
+                      ],
+                      "description": "Direction of orbit: 1 for counterclockwise, -1 for clockwise."
+                    },
+                    "period": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "description": "Orbital period in seconds. Computed from Kepler's third law if omitted."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "vehicleDefaults": {
+            "type": "object",
+            "properties": {
+              "acceleration": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "turnRate": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "initialThrottle": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          },
+          "presets": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Vessel starting scenarios in this system.",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "name",
+                "bodyId",
+                "kind"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "bodyId": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "landed",
+                    "circular-orbit",
+                    "state"
+                  ]
+                },
+                "radius": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "radiusMetres": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "altitude": {
+                  "type": "number"
+                },
+                "phaseRadians": {
+                  "type": "number"
+                },
+                "direction": {
+                  "type": "number",
+                  "enum": [
+                    -1,
+                    1
+                  ]
+                },
+                "headingRadians": {
+                  "type": "number"
+                },
+                "zoom": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "position": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "velocity": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "surface": {
+      "type": "object",
+      "description": "Optional physical terrain shared by rendering, browser flight and prediction. Runtime also checks radius/relief, width/resolution, pads, finite slope and aggregate budgets. Stars cannot define terrain.",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "generatorVersion",
+        "seed",
+        "sampleCount",
+        "maxReliefMetres",
+        "minFeatureWidthMetres",
+        "orientationRadians",
+        "mountainRangeCount",
+        "craterCount"
+      ],
+      "properties": {
+        "kind": {
+          "const": "radial",
+          "type": "string"
+        },
+        "generatorVersion": {
+          "const": 1,
+          "type": "integer",
+          "description": "Generator contract version, independent of universe schemaVersion."
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "sampleCount": {
+          "type": "integer",
+          "minimum": 32,
+          "maximum": 65536,
+          "description": "Number of unique periodic samples; no duplicated seam endpoint."
+        },
+        "maxReliefMetres": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Absolute bound on signed elevation above/below reference radius; must be strictly less than radius."
+        },
+        "minFeatureWidthMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Smallest authored feature width as reference-circle arc length; at least 4 sample intervals and at most one circumference."
+        },
+        "orientationRadians": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 6.283185307179586,
+          "description": "Counterclockwise angle from inertial +X to sample zero; fixed, non-rotating local frame."
+        },
+        "mountainRangeCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "craterCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "pads": {
+          "type": "array",
+          "maxItems": 64,
+          "description": "Optional level radial pads. Runtime checks unique IDs, widths, relief and nonoverlapping shoulders, including across the seam.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "angleRadians",
+              "widthMetres",
+              "elevationMetres"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "angleRadians": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 6.283185307179586
+              },
+              "widthMetres": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "elevationMetres": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "seaRadiusMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Optional fixed sea radius in metres. Runtime requires it at most radius + maxReliefMetres; all pads must be strictly above it. Ground remains seabed."
+        }
+      }
+    }
+  }
+}

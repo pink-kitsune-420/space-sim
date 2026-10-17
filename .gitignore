@@ -1,0 +1,34 @@
+node_modules/
+dist/
+dist-server/
+dist-desktop/
+space-sim-data/
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+__pycache__/
+*.pyc
+.claude/
+.vscode/
+src-tauri/target/
+
+# Android build outputs
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+
+# Local-only background material (working documents, benchmarks, private notes); never committed.
+private-docs/
+docs/
+references/
+
+# Local credentials, agent state and private working notes.
+.aws/
+.codex/
+.agents/
+/ACTION_PLAN.md
+/apps/orbit-sandbox/FULL_BODY_PHYSICS_MOD_PLAN.md
+/apps/orbit-sandbox/SPACELAB_SUGGESTIONS.md

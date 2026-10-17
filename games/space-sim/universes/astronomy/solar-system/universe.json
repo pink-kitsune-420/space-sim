@@ -1,0 +1,157 @@
+{
+  "$schema": "../../universe.schema.json",
+  "schemaVersion": 1,
+  "id": "solar-system-universe",
+  "name": "Solar System Universe (1/10 Scale)",
+  "description": "Authentic representation of our solar system scaled to 1/10 physical dimensions, featuring the Sun, Earth, and Moon with real surface gravity and orbital periods.",
+  "author": "Space Sim Team",
+  "defaultSystemId": "solar-system",
+  "systems": [
+    {
+      "id": "solar-system",
+      "name": "Solar System (1/10 Scale)",
+      "description": "Real solar system scaled to 1/10 dimensions, featuring the Sun, Earth, and Moon with authentic surface gravities and orbital periods.",
+      "centralBodyId": "sun",
+      "bodies": [
+        {
+          "id": "sun",
+          "name": "Sun",
+          "parentId": null,
+          "radius": 69570000,
+          "radiusMetres": 69570000,
+          "mass": 1.98841e+28,
+          "mu": 1.3271244e+18,
+          "color": "#ffd000",
+          "accentColor": "#ff7700",
+          "atmosphereColor": "#ffaa0060",
+          "surfaceFeatures": "star",
+          "ephemeris": {
+            "kind": "fixed-inertial",
+            "position": [0, 0],
+            "velocity": [0, 0]
+          }
+        },
+        {
+          "id": "earth",
+          "name": "Earth",
+          "parentId": "sun",
+          "radius": 637100,
+          "radiusMetres": 637100,
+          "mass": 5.972168e+22,
+          "mu": 3.986004418e+12,
+          "color": "#1b4965",
+          "accentColor": "#62b6cb",
+          "atmosphereColor": "#48cae480",
+          "horizonColor": "#62b6cb",
+          "skyColor": "#48cae480",
+          "surfaceFeatures": "globe-lines",
+          "soi": {
+            "radius": 89205000,
+            "entryMetres": 89000000,
+            "exitMetres": 92000000
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 14959787070,
+            "radiusMetres": 14959787070,
+            "phaseRadiansAtEpoch": 1.5707963267948966,
+            "direction": -1,
+            "period": 9979788
+          }
+        },
+        {
+          "id": "moon",
+          "name": "Moon",
+          "parentId": "earth",
+          "radius": 173740,
+          "radiusMetres": 173740,
+          "mass": 7.34889e+20,
+          "mu": 4.9048695e+10,
+          "color": "#4a4e54",
+          "accentColor": "#9aa0a6",
+          "atmosphereColor": "#50555c20",
+          "surfaceFeatures": "craters",
+          "soi": {
+            "radius": 6608600,
+            "entryMetres": 6600000,
+            "exitMetres": 6800000
+          },
+          "ephemeris": {
+            "kind": "circular-kepler",
+            "radius": 38440000,
+            "radiusMetres": 38440000,
+            "phaseRadiansAtEpoch": 0,
+            "direction": -1,
+            "period": 749997
+          }
+        }
+      ],
+      "vehicleDefaults": {
+        "acceleration": 40,
+        "turnRate": 1.22718463,
+        "initialThrottle": 0.5
+      },
+      "presets": [
+        {
+          "id": "earth-pad",
+          "name": "Earth · North pad · ready to launch",
+          "bodyId": "earth",
+          "kind": "landed",
+          "position": [0, 637100],
+          "velocity": [0, 0],
+          "headingRadians": 1.5707963267948966,
+          "zoom": 1
+        },
+        {
+          "id": "earth-orbit",
+          "name": "Earth low orbit · 100 km altitude",
+          "bodyId": "earth",
+          "kind": "circular-orbit",
+          "radius": 737100,
+          "radiusMetres": 737100,
+          "altitude": 100000,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.0007
+        },
+        {
+          "id": "moon-orbit",
+          "name": "Moon low orbit · 50 km altitude",
+          "bodyId": "moon",
+          "kind": "circular-orbit",
+          "radius": 223740,
+          "radiusMetres": 223740,
+          "altitude": 50000,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.002
+        },
+        {
+          "id": "moon-pad",
+          "name": "Moon · Tranquility Base · surface landing",
+          "bodyId": "moon",
+          "kind": "landed",
+          "position": [0, 173740],
+          "velocity": [0, 0],
+          "headingRadians": 1.5707963267948966,
+          "zoom": 1
+        },
+        {
+          "id": "sun-orbit",
+          "name": "Sun orbit · 0.5 AU (Inner solar transfer)",
+          "bodyId": "sun",
+          "kind": "circular-orbit",
+          "radius": 7479893535,
+          "radiusMetres": 7479893535,
+          "altitude": 7410323535,
+          "phaseRadians": 1.5707963267948966,
+          "direction": -1,
+          "headingRadians": 0,
+          "zoom": 0.00000008
+        }
+      ]
+    }
+  ]
+}

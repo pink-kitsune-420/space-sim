@@ -1,0 +1,97 @@
+name: Auto Package Releases
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  package-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            platform: linux
+            game_bin: dist-desktop/space-sim
+            server_bin: dist-server/space-sim-server
+          - os: windows-2025
+            platform: windows
+            game_bin: dist-desktop/space-sim.exe
+            server_bin: dist-server/space-sim-server.exe
+          - os: macos-15
+            platform: macos
+            game_bin: dist-desktop/space-sim
+            server_bin: dist-server/space-sim-server
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run package -- --target=desktop-exe
+      - run: npm run package -- --target=server-exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: space-sim-${{ matrix.platform }}
+          path: |
+            ${{ matrix.game_bin }}
+            ${{ matrix.server_bin }}
+            dist-desktop/NODE-LICENSE.txt
+          if-no-files-found: error
+
+  package-web-offline:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: space-sim-offline-html
+          path: |
+            dist/space-lab-offline.html
+            dist/space-sim-offline.html
+            dist/space-sim.spacegame
+            dist/space-sim.spaceuniverse
+            dist/universes/
+
+  package-android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run build
+      - name: Initialize & Build Android via Capacitor
+        run: |
+          npm install --no-save @capacitor/core@^6.0.0 @capacitor/cli@^6.0.0 @capacitor/android@^6.0.0
+          npx cap add android
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: space-sim-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn

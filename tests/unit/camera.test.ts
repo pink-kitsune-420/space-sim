@@ -1,0 +1,397 @@
+import { expect, it } from 'vitest';
+import { advance, initialState } from '../../packages/sim-core/src/index';
+import { CanvasRenderer, WebGLRenderer, blendAngle, dragCamera, drawPlanetHorizon, hermiteControls, interpolateState, parallelArcs, pathFromShip, project } from '../../packages/render-2d/src/index';
+
+it('projects a shared world transform with +Y up and camera-relative subtraction', () => {
+  const center = { x: 1e12, y: -1e12 };
+  const camera = { center, rotation: 0, scale: 2 };
+  expect(project({ x: center.x + 2, y: center.y + 3 }, camera, 800, 600)).toEqual({ x: 404, y: 294 });
+  const p = project({ x: 1, y: 0 }, { center: { x: 0, y: 0 }, rotation: Math.PI / 2, scale: 1 }, 800, 600);
+  expect(p.x).toBeCloseTo(400); expect(p.y).toBeCloseTo(299);
+});
+
+it('pans in screen coordinates at every camera rotation and zoom', () => {
+  for (const rotation of [0, .7, Math.PI / 2, -Math.PI]) for (const scale of [.2, 1, 4]) {
+    const camera = { center: { x: 120, y: -50 }, rotation, scale };
+    const point = { x: 200, y: 300 }, delta = { x: 80, y: -30 };
+    const before = project(point, camera, 800, 600);
+    const after = project(point, dragCamera(camera, delta), 800, 600);
+    expect(after.x - before.x).toBeCloseTo(delta.x, 10);
+    expect(after.y - before.y).toBeCloseTo(delta.y, 10);
+  }
+});
+
+it('blends the shortest angular path through wraparound and allows retargeting', () => {
+  const degrees = Math.PI / 180;
+  expect(Math.abs(blendAngle(179 * degrees, -179 * degrees, .5))).toBeCloseTo(Math.PI);
+  expect(blendAngle(0, Math.PI / 2, .5)).toBeCloseTo(Math.PI / 4);
+  expect(blendAngle(Math.PI / 4, 0, 1)).toBe(0);
+});
+
+it('builds Hermite Bézier controls that reproduce cubic motion exactly', () => {
+  // x(t)=t^3-t, y(t)=2t^2 sampled with exact positions/velocities at t=1 and t=3.
+  const at = (t: number) => ({ time: t, position: { x: t ** 3 - t, y: 2 * t * t }, velocity: { x: 3 * t * t - 1, y: 4 * t } });
+  const [c1, c2] = hermiteControls(at(1), at(3));
+  const bezier = (u: number, a: number, b: number, c: number, d: number): number =>
+    (1 - u) ** 3 * a + 3 * (1 - u) ** 2 * u * b + 3 * (1 - u) * u * u * c + u ** 3 * d;
+  for (const u of [0, .25, .5, .9, 1]) {
+    const exact = at(1 + 2 * u).position;
+    expect(bezier(u, 0, c1.x, c2.x, 24)).toBeCloseTo(exact.x, 10);
+    expect(bezier(u, 2, c1.y, c2.y, 18)).toBeCloseTo(exact.y, 10);
+  }
+});
+
+it('starts open paths at the ship with world-fixed dash length, and keeps closed loops whole', () => {
+  const sample = (time: number, x: number) => ({ time, position: { x, y: 0 }, velocity: { x: 1, y: 0 } });
+  const path = [sample(0, 0), sample(1, 10), sample(2, 30), sample(3, 60)];
+  const ship = sample(1.5, 18);
+  const open = pathFromShip(path, false, ship);
+  expect(open.points).toEqual([ship, path[2], path[3]]);
+  expect(open.flown).toBeCloseTo(18, 12); // 10 m of passed chords + 8 m into the next one
+  expect(pathFromShip(path, false, sample(-1, -5)).points[0]).toEqual(sample(-1, -5));
+  expect(pathFromShip(path, false, sample(4, 70)).points).toEqual([]);
+  expect(pathFromShip(path, true, ship)).toEqual({ points: path, flown: 0 });
+});
+
+it('interpolates presentation states between fixed steps without touching physics fields', () => {
+  const a = { ...initialState('planet-orbit'), heading: Math.PI - .1 };
+  const b = { ...advance(a), heading: -Math.PI + .1, throttle: .9 };
+  const mid = interpolateState(a, b, .5);
+  expect(mid.time).toBeCloseTo((a.time + b.time) / 2, 12);
+  expect(mid.position.x).toBeCloseTo((a.position.x + b.position.x) / 2, 12);
+  expect(Math.abs(mid.heading)).toBeCloseTo(Math.PI, 12); // shortest way through the wrap
+  expect(mid.throttle).toBe(.9);
+  expect(mid.coast).toBe(b.coast);
+  expect(interpolateState(a, b, 1)).toBe(b);
+  expect(interpolateState(a, b, 0).position).toEqual(a.position);
+  expect(interpolateState(b, b, .3)).toBe(b);
+});
+
+it('cuts latitude lines analytically to the planet disc instead of clipping', () => {
+  const k = .13;
+  const point = (offset: number, angle: number) => ({ x: Math.cos(angle), y: offset + k * Math.sin(angle) });
+  for (const offset of [-2 / 3, -1 / 3, 1 / 3, 2 / 3]) {
+    const arcs = parallelArcs(offset);
+    expect(arcs).toHaveLength(2);
+    for (const [start, end] of arcs) {
+      for (const edge of [start, end]) expect(Math.hypot(point(offset, edge).x, point(offset, edge).y)).toBeCloseTo(1, 12);
+      for (let f = .02; f < 1; f += .07) {
+        const p = point(offset, start + (end - start) * f);
+        expect(Math.hypot(p.x, p.y)).toBeLessThan(1);
+      }
+      for (const outside of [start - .01, end + .01]) {
+        const p = point(offset, outside);
+        expect(Math.hypot(p.x, p.y)).toBeGreaterThan(1);
+      }
+    }
+  }
+  expect(parallelArcs(0)).toEqual([[0, 2 * Math.PI]]);
+});
+
+it('draws a clipped horizon polygon without canvas arc overflow when planet radius is huge', () => {
+  const operations: string[] = [];
+  const fakeCtx = {
+    save: () => operations.push('save'),
+    restore: () => operations.push('restore'),
+    beginPath: () => operations.push('beginPath'),
+    closePath: () => operations.push('closePath'),
+    moveTo: (x: number, y: number) => operations.push(`moveTo(${Math.round(x)},${Math.round(y)})`),
+    lineTo: (x: number, y: number) => operations.push(`lineTo(${Math.round(x)},${Math.round(y)})`),
+    fill: () => operations.push('fill'),
+    stroke: () => operations.push('stroke'),
+    fillRect: (x: number, y: number, w: number, h: number) => operations.push(`fillRect(${x},${y},${w},${h})`),
+    createLinearGradient: () => ({
+      addColorStop: () => {},
+    }),
+    createRadialGradient: () => ({
+      addColorStop: () => {},
+    }),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+  } as unknown as CanvasRenderingContext2D;
+
+  // 1. Horizon passes through center of 800x600 screen with 4.5 million pixel radius
+  drawPlanetHorizon(fakeCtx, 800, 600, 400, 300 + 4500000, 4500000);
+  expect(operations).toContain('fill');
+  expect(operations).toContain('stroke');
+  expect(operations.some(op => op.startsWith('moveTo(400,300)'))).toBe(false); // starts at -sMax
+
+  // 2. Offscreen planet is culled
+  operations.length = 0;
+  drawPlanetHorizon(fakeCtx, 800, 600, 400, 300 + 10000000, 4500000);
+  expect(operations).toHaveLength(0);
+
+  // 3. Viewport entirely underground fills screen
+  operations.length = 0;
+  drawPlanetHorizon(fakeCtx, 800, 600, 400, 300, 4500000);
+  expect(operations).toContain('fillRect(0,0,800,600)');
+});
+
+it('traces curved atmosphere ribbon backwards without cutting flat chords across the sky', () => {
+  const lineTos: { x: number; y: number }[] = [];
+  const fakeCtx = {
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: (x: number, y: number) => lineTos.push({ x, y }),
+    fill: () => {},
+    stroke: () => {},
+    fillRect: () => {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    createRadialGradient: () => ({ addColorStop: () => {} }),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+  } as unknown as CanvasRenderingContext2D;
+
+  // Viewport 907x480, planet radius 1826 (exact values from diagnostic log)
+  drawPlanetHorizon(fakeCtx, 907, 480, 453.5, 240 + 1826, 1826);
+  // Total lineTo calls should include forward surface arc (48), backward atmosphere arc (49),
+  // plus ground polygon (48 + 2 corners), plus horizon stroke (48)
+  expect(lineTos.length).toBeGreaterThan(100);
+
+  // All screen coordinates generated must stay near the visible viewport (bounded within [-500, 1500])
+  for (const pt of lineTos) {
+    expect(pt.x).toBeGreaterThan(-500);
+    expect(pt.x).toBeLessThan(1500);
+    expect(pt.y).toBeGreaterThan(-500);
+    expect(pt.y).toBeLessThan(2500);
+  }
+});
+
+it('applies custom horizonColor and skyColor when drawing horizon', () => {
+  let appliedStroke = '';
+  const addedStops: { offset: number; color: string }[] = [];
+  const fakeCtx = {
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    fill: () => {},
+    stroke: () => { appliedStroke = String(fakeCtx.strokeStyle); },
+    fillRect: () => {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    createRadialGradient: () => ({
+      addColorStop: (offset: number, color: string) => addedStops.push({ offset, color }),
+    }),
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+  } as unknown as CanvasRenderingContext2D;
+
+  drawPlanetHorizon(
+    fakeCtx,
+    800,
+    600,
+    400,
+    300 + 4500000,
+    4500000,
+    '#233c47',
+    '#659497',
+    '#29495380',
+    false,
+    '#00ffcc',
+    '#ff00ff80',
+  );
+
+  expect(appliedStroke).toBe('#00ffcc');
+  expect(addedStops.some(s => s.offset === 0 && s.color === '#ff00ff80')).toBe(true);
+});
+
+it('renders consistent body, vessel, scale bar, and radial distance labels across CanvasRenderer and WebGLRenderer', () => {
+  const c2dLabels: Array<{ text: string; x: number; y: number; align: string; color: string }> = [];
+  const fake2dCtx = {
+    setTransform: () => {},
+    save: () => {},
+    restore: () => {},
+    translate: () => {},
+    rotate: () => {},
+    beginPath: () => {},
+    closePath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    arc: () => {},
+    ellipse: () => {},
+    rect: () => {},
+    bezierCurveTo: () => {},
+    fill: () => {},
+    stroke: () => {},
+    fillRect: () => {},
+    setLineDash: () => {},
+    createLinearGradient: () => ({ addColorStop: () => {} }),
+    createRadialGradient: () => ({ addColorStop: () => {} }),
+    fillText: (text: string, x: number, y: number) => {
+      c2dLabels.push({
+        text,
+        x: Math.round(x),
+        y: Math.round(y),
+        align: String(fake2dCtx.textAlign),
+        color: String(fake2dCtx.fillStyle),
+      });
+    },
+    font: '',
+    fillStyle: '',
+    strokeStyle: '',
+    textAlign: 'start',
+    lineWidth: 1,
+    lineDashOffset: 0,
+  } as unknown as CanvasRenderingContext2D;
+
+  const glLabels: string[] = [];
+  let uploadedVertices: Float32Array = new Float32Array();
+  let drawingStyle = 0;
+  const vesselTips: number[][] = [];
+  const fakeLabelCtx = {
+    setTransform: () => {},
+    clearRect: () => {},
+    measureText: (text: string) => ({ width: text.length * 7 }),
+    fillText: (text: string) => { glLabels.push(text); },
+    font: '',
+    fillStyle: '',
+    textAlign: 'left',
+    textBaseline: 'alphabetic',
+  } as unknown as CanvasRenderingContext2D;
+
+  const fakeGl = {
+    VERTEX_SHADER: 35633,
+    FRAGMENT_SHADER: 35632,
+    COMPILE_STATUS: 35713,
+    LINK_STATUS: 35714,
+    ACTIVE_UNIFORMS: 35718,
+    ACTIVE_ATTRIBUTES: 35721,
+    ACTIVE_UNIFORM_BLOCKS: 35382,
+    ARRAY_BUFFER: 34962,
+    STATIC_DRAW: 35044,
+    DYNAMIC_DRAW: 35048,
+    FLOAT: 5126,
+    TRIANGLES: 4,
+    TRIANGLE_FAN: 6,
+    LINES: 1,
+    LINE_LOOP: 2,
+    LINE_STRIP: 3,
+    BLEND: 3042,
+    SRC_ALPHA: 770,
+    ONE_MINUS_SRC_ALPHA: 771,
+    TEXTURE_2D: 3553,
+    TEXTURE0: 33984,
+    RGBA: 6408,
+    UNSIGNED_BYTE: 5121,
+    TEXTURE_MIN_FILTER: 10241,
+    TEXTURE_MAG_FILTER: 10240,
+    TEXTURE_WRAP_S: 10242,
+    TEXTURE_WRAP_T: 10243,
+    LINEAR: 9729,
+    CLAMP_TO_EDGE: 33071,
+    createShader: () => ({}),
+    shaderSource: () => {},
+    compileShader: () => {},
+    getShaderParameter: () => true,
+    createProgram: () => ({}),
+    attachShader: () => {},
+    detachShader: () => {},
+    deleteShader: () => {},
+    deleteProgram: () => {},
+    bindAttribLocation: () => {},
+    linkProgram: () => {},
+    getProgramParameter: (_program: unknown, parameter: number) => parameter === 35714 ? true : 0,
+    getFragDataLocation: () => 0,
+    getUniformLocation: () => ({}),
+    getAttribLocation: () => 0,
+    createVertexArray: () => ({}),
+    bindVertexArray: () => {},
+    createBuffer: () => ({}),
+    bindBuffer: () => {},
+    bufferData: () => {},
+    bufferSubData: (_target: number, _offset: number, data: Float32Array) => { uploadedVertices = data; },
+    enableVertexAttribArray: () => {},
+    vertexAttribPointer: () => {},
+    viewport: () => {},
+    useProgram: () => {},
+    uniform1i: (_location: unknown, value: number) => { drawingStyle = value; },
+    uniform1f: () => {},
+    uniform2f: () => {},
+    uniform3f: () => {},
+    uniform4f: () => {},
+    drawArrays: (mode: number) => {
+      if (mode === 6 && drawingStyle === 5) vesselTips.push([uploadedVertices[0]!, uploadedVertices[1]!]);
+    },
+    enable: () => {},
+    disable: () => {},
+    blendFunc: () => {},
+    activeTexture: () => {},
+    createTexture: () => ({}),
+    bindTexture: () => {},
+    texImage2D: () => {},
+    texParameteri: () => {},
+  } as unknown as WebGL2RenderingContext;
+
+  const prevWindow = (globalThis as { window?: unknown }).window;
+  (globalThis as { window?: unknown }).window = { devicePixelRatio: 1 };
+  try {
+    const c2dCanvas = {
+      clientWidth: 800,
+      clientHeight: 600,
+      width: 800,
+      height: 600,
+      getContext: () => fake2dCtx,
+    } as unknown as HTMLCanvasElement;
+
+    const glCanvas = {
+      clientWidth: 800,
+      clientHeight: 600,
+      width: 800,
+      height: 600,
+      ownerDocument: {
+        createElement: () => ({
+          width: 0,
+          height: 0,
+          getContext: () => fakeLabelCtx,
+        }),
+      },
+      getContext: () => fakeGl,
+    } as unknown as HTMLCanvasElement;
+
+    const state = initialState('planet-orbit');
+    const frame = {
+      state,
+      path: [],
+      pathClosed: false,
+      camera: { center: { x: 0, y: 0 }, rotation: 0, scale: 0.4 },
+      engine: false,
+    };
+
+    new CanvasRenderer(c2dCanvas).draw(frame);
+    const gpuRenderer = new WebGLRenderer(glCanvas);
+    gpuRenderer.draw(frame);
+
+    expect(c2dLabels.map(l => l.text)).toEqual(['PRIMUS', 'VESSEL 01', '100 m', 'R 640.0 m']);
+    expect(glLabels).toEqual(['PRIMUS', 'VESSEL 01', '100 m', 'R 640.0 m']);
+
+    // A long path grows the shared GPU staging buffer. The later vessel draw must
+    // write into that new buffer, rather than uploading leftover path coordinates.
+    const path = Array.from({ length: 400 }, (_, i) => ({
+      time: i, position: { x: i, y: 640 }, velocity: { x: 1, y: 0 },
+    }));
+    gpuRenderer.draw({ ...frame, path, pathClosed: true });
+    expect(vesselTips).toEqual([[411, 44], [411, 44]]);
+
+    // Verify scale bar label stays left-aligned with #95a9b5 even when the ship is offscreen
+    c2dLabels.length = 0;
+    new CanvasRenderer(c2dCanvas).draw({
+      ...frame,
+      shipWorldPosition: { x: 100000, y: 100000 },
+    });
+    const scaleLabel = c2dLabels.find(l => l.text === '100 m');
+    expect(scaleLabel?.align).toBe('left');
+    expect(scaleLabel?.color).toBe('#95a9b5');
+  } finally {
+    (globalThis as { window?: unknown }).window = prevWindow;
+  }
+});
+
+

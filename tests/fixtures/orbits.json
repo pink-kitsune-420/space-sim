@@ -1,0 +1,1577 @@
+{
+  "schemaVersion": 1,
+  "units": {
+    "position": "m",
+    "velocity": "m/s",
+    "time": "s",
+    "mu": "m^3/s^2"
+  },
+  "model": "ideal-two-body-v1",
+  "generator": {
+    "path": "scripts/generate_orbit_fixtures.py",
+    "sha256": "0f3d0fa36941e05ccec73fd208d96f6bc6fd027a3414dedbd5ed2ae0cb365a41",
+    "method": "Independent RK4 at h=.0005,.00025,.000125 normalized seconds; Richardson extrapolation"
+  },
+  "fixtures": [
+    {
+      "id": "e0-dir-1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "velocity": {
+          "x": 0.0,
+          "y": -1.0
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.7648421872844976,
+          "y": 0.6442176872376927
+        },
+        "velocity": {
+          "x": 0.6442176872376868,
+          "y": -0.7648421872844995
+        }
+      },
+      "refinementDifference": 1.0547118733938987e-14,
+      "coarseFineDifference": 1.2212453270876722e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0-dir-1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": 1.0,
+          "y": 0.0
+        },
+        "velocity": {
+          "x": 0.0,
+          "y": -1.0
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.7648421872844976,
+          "y": -0.6442176872376927
+        },
+        "velocity": {
+          "x": -0.6442176872376868,
+          "y": -0.7648421872844995
+        }
+      },
+      "refinementDifference": 1.0547118733938987e-14,
+      "coarseFineDifference": 1.2212453270876722e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0-dir1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 596.6895011878621,
+          "y": 231.43387645757568
+        },
+        "velocity": {
+          "x": -51.750188005542746,
+          "y": 133.42382861165012
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 605.4670998581736,
+          "y": -207.38753817271459
+        },
+        "velocity": {
+          "x": 46.37326330405136,
+          "y": 135.3865593422529
+        }
+      },
+      "refinementDifference": 1.0547118733938987e-14,
+      "coarseFineDifference": 1.2212453270876722e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0-dir1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 596.6895011878621,
+          "y": 231.43387645757568
+        },
+        "velocity": {
+          "x": -51.750188005542746,
+          "y": 133.42382861165012
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 307.27950657826693,
+          "y": 561.4083227357993
+        },
+        "velocity": {
+          "x": -125.53471727713811,
+          "y": 68.70978648016045
+        }
+      },
+      "refinementDifference": 1.0547118733938987e-14,
+      "coarseFineDifference": 1.2212453270876722e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1e-10-dir-1-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -404.14518843273805,
+      "input": {
+        "position": {
+          "x": 738468.5587295879,
+          "y": 674287.911628145
+        },
+        "velocity": {
+          "x": 1167.9009219278553,
+          "y": -1279.0650635757609
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 130423.70871757131,
+          "y": 991458.3482181083
+        },
+        "velocity": {
+          "x": 1717.2562326926288,
+          "y": -225.9004901216999
+        }
+      },
+      "refinementDifference": 2.55351295663786e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1e-10-dir-1-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 404.14518843273805,
+      "input": {
+        "position": {
+          "x": 738468.5587295879,
+          "y": 674287.911628145
+        },
+        "velocity": {
+          "x": 1167.9009219278553,
+          "y": -1279.0650635757609
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 999200.1066854255,
+          "y": 39989.334163749
+        },
+        "velocity": {
+          "x": 69.26355864416382,
+          "y": -1730.6653517080797
+        }
+      },
+      "refinementDifference": 2.55351295663786e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1e-10-dir1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": 0.44466151674170695,
+          "y": 0.8956986856800476
+        },
+        "velocity": {
+          "x": -0.8956986857248326,
+          "y": 0.44466151676394006
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.9171208228476738,
+          "y": 0.39860932797192694
+        },
+        "velocity": {
+          "x": -0.39860932803219523,
+          "y": 0.9171208228247194
+        }
+      },
+      "refinementDifference": 2.55351295663786e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1e-10-dir1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": 0.44466151674170695,
+          "y": 0.8956986856800476
+        },
+        "velocity": {
+          "x": -0.8956986857248326,
+          "y": 0.44466151676394006
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -0.23692904871341092,
+          "y": 0.9715269558395092
+        },
+        "velocity": {
+          "x": -0.9715269558576598,
+          "y": -0.23692904865152614
+        }
+      },
+      "refinementDifference": 2.55351295663786e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.1-dir-1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 58.02983965715819,
+          "y": 637.3637405040896
+        },
+        "velocity": {
+          "x": 149.47504666001964,
+          "y": -13.609203723398073
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -386.8736614144008,
+          "y": 528.3976681118885
+        },
+        "velocity": {
+          "x": 123.68272793608132,
+          "y": 79.36970850323632
+        }
+      },
+      "refinementDifference": 4.107825191113079e-15,
+      "coarseFineDifference": 1.5543122344752192e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.1-dir-1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 58.02983965715819,
+          "y": 637.3637405040896
+        },
+        "velocity": {
+          "x": 149.47504666001964,
+          "y": -13.609203723398073
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 475.9390657293986,
+          "y": 449.8414512635458
+        },
+        "velocity": {
+          "x": 107.31517841799055,
+          "y": -100.4012962999695
+        }
+      },
+      "refinementDifference": 4.107825191113079e-15,
+      "coarseFineDifference": 1.5543122344752192e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.1-dir1-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -404.14518843273805,
+      "input": {
+        "position": {
+          "x": -275590.24682451296,
+          "y": 961275.2029752999
+        },
+        "velocity": {
+          "x": -1746.243125203983,
+          "y": -500.634545030431
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 439158.4298551463,
+          "y": 924228.7453794453
+        },
+        "velocity": {
+          "x": -1650.369383154682,
+          "y": 663.2489968343702
+        }
+      },
+      "refinementDifference": 4.107825191113079e-15,
+      "coarseFineDifference": 1.5543122344752192e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.1-dir1-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 404.14518843273805,
+      "input": {
+        "position": {
+          "x": -275590.24682451296,
+          "y": 961275.2029752999
+        },
+        "velocity": {
+          "x": -1746.243125203983,
+          "y": -500.634545030431
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -862140.0700545863,
+          "y": 551156.4205420942
+        },
+        "velocity": {
+          "x": -1048.26503724322,
+          "y": -1436.926840291333
+        }
+      },
+      "refinementDifference": 4.107825191113079e-15,
+      "coarseFineDifference": 1.5543122344752192e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9-dir-1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": -0.6045522710579293,
+          "y": 0.7965654722360868
+        },
+        "velocity": {
+          "x": 1.097989730353399,
+          "y": 0.833317797744936
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -1.1910592772978816,
+          "y": 0.08108686862197267
+        },
+        "velocity": {
+          "x": 0.5693764881730284,
+          "y": 1.1185303234768413
+        }
+      },
+      "refinementDifference": 5.995204332975845e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9-dir-1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": -0.6045522710579293,
+          "y": 0.7965654722360868
+        },
+        "velocity": {
+          "x": 1.097989730353399,
+          "y": 0.833317797744936
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.24233710213505988,
+          "y": 1.1689610819993326
+        },
+        "velocity": {
+          "x": 1.2304722747800003,
+          "y": 0.247462423044772
+        }
+      },
+      "refinementDifference": 5.995204332975845e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9-dir1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": -545.082228151402,
+          "y": 335.3883786798567
+        },
+        "velocity": {
+          "x": -103.37364089835852,
+          "y": -168.00562599930166
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -125.93719004286672,
+          "y": 753.5918198828176
+        },
+        "velocity": {
+          "x": -151.36809498475986,
+          "y": -96.69455547562221
+        }
+      },
+      "refinementDifference": 5.995204332975845e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9-dir1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": -545.082228151402,
+          "y": 335.3883786798567
+        },
+        "velocity": {
+          "x": -103.37364089835852,
+          "y": -168.00562599930166
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -729.4588143910378,
+          "y": -227.26778244487684
+        },
+        "velocity": {
+          "x": -18.084236443674264,
+          "y": -178.70393848539754
+        }
+      },
+      "refinementDifference": 5.995204332975845e-15,
+      "coarseFineDifference": 2.6645352591003757e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.999-dir-1-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -404.14518843273805,
+      "input": {
+        "position": {
+          "x": -983557.3130340064,
+          "y": 180596.2678942329
+        },
+        "velocity": {
+          "x": 442.2580997879194,
+          "y": 2408.611171022002
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -940385.4484316165,
+          "y": -766707.1541104211
+        },
+        "velocity": {
+          "x": -553.0966952178513,
+          "y": 2153.174641335029
+        }
+      },
+      "refinementDifference": 8.215650382226158e-15,
+      "coarseFineDifference": 9.325873406851315e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.999-dir-1-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 404.14518843273805,
+      "input": {
+        "position": {
+          "x": -983557.3130340064,
+          "y": 180596.2678942329
+        },
+        "velocity": {
+          "x": 442.2580997879194,
+          "y": 2408.611171022002
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -606668.6371377889,
+          "y": 1050770.1063978795
+        },
+        "velocity": {
+          "x": 1281.9411411497983,
+          "y": 1816.2334379084348
+        }
+      },
+      "refinementDifference": 8.215650382226158e-15,
+      "coarseFineDifference": 9.325873406851315e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.999-dir1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": -0.9823037763382317,
+          "y": -0.18729466354290317
+        },
+        "velocity": {
+          "x": 0.26480842639974084,
+          "y": -1.3888399826141575
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -0.9455884460460436,
+          "y": 0.7602809628619291
+        },
+        "velocity": {
+          "x": -0.31085158691656056,
+          "y": -1.2452832158567395
+        }
+      },
+      "refinementDifference": 8.215650382226158e-15,
+      "coarseFineDifference": 9.325873406851315e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.999-dir1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": -0.9823037763382317,
+          "y": -0.18729466354290317
+        },
+        "velocity": {
+          "x": 0.26480842639974084,
+          "y": -1.3888399826141575
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -0.5994939302585228,
+          "y": -1.0548799359970893
+        },
+        "velocity": {
+          "x": 0.7472577282851035,
+          "y": -1.0435348026305753
+        }
+      },
+      "refinementDifference": 8.215650382226158e-15,
+      "coarseFineDifference": 9.325873406851315e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9999999999-dir-1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": -542.7840202946611,
+          "y": -339.09513018143576
+        },
+        "velocity": {
+          "x": -107.23129548178349,
+          "y": 171.64337816312764
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -113.5046565027389,
+          "y": -768.31616158713
+        },
+        "velocity": {
+          "x": -153.72203521155132,
+          "y": 100.61057637650556
+        }
+      },
+      "refinementDifference": 3.552713678800501e-15,
+      "coarseFineDifference": 3.774758283725532e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9999999999-dir-1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": -542.7840202946611,
+          "y": -339.09513018143576
+        },
+        "velocity": {
+          "x": -107.23129548178349,
+          "y": 171.64337816312764
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -740.2691183377931,
+          "y": 234.93544568491998
+        },
+        "velocity": {
+          "x": -23.00515178251742,
+          "y": 182.27373694489674
+        }
+      },
+      "refinementDifference": 3.552713678800501e-15,
+      "coarseFineDifference": 3.774758283725532e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9999999999-dir1-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -404.14518843273805,
+      "input": {
+        "position": {
+          "x": -599109.926407685,
+          "y": -800666.7821758176
+        },
+        "velocity": {
+          "x": 1961.2250702778474,
+          "y": -1467.5136194985212
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -1211139.7262644174,
+          "y": -76024.99458414147
+        },
+        "velocity": {
+          "x": 1057.3405290322276,
+          "y": -1956.0958850188392
+        }
+      },
+      "refinementDifference": 3.552713678800501e-15,
+      "coarseFineDifference": 3.774758283725532e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e0.9999999999-dir1-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 404.14518843273805,
+      "input": {
+        "position": {
+          "x": -599109.926407685,
+          "y": -800666.7821758176
+        },
+        "velocity": {
+          "x": 1961.2250702778474,
+          "y": -1467.5136194985212
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 268767.9461669817,
+          "y": -1183386.2545469035
+        },
+        "velocity": {
+          "x": 2174.9415037007416,
+          "y": -462.5035796637094
+        }
+      },
+      "refinementDifference": 3.552713678800501e-15,
+      "coarseFineDifference": 3.774758283725532e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1-dir-1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": -0.2690331031173999,
+          "y": -0.9631309305733164
+        },
+        "velocity": {
+          "x": -1.362072824357804,
+          "y": 0.3804702631559464
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.678510437475997,
+          "y": -1.006112728585102
+        },
+        "velocity": {
+          "x": -1.267287230375812,
+          "y": -0.2051254357064255
+        }
+      },
+      "refinementDifference": 1.6209256159527285e-14,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1-dir-1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": -0.2690331031173999,
+          "y": -0.9631309305733164
+        },
+        "velocity": {
+          "x": -1.362072824357804,
+          "y": 0.3804702631559464
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -1.1016868749131865,
+          "y": -0.5088469966786137
+        },
+        "velocity": {
+          "x": -0.9775359590630639,
+          "y": 0.8321759533812564
+        }
+      },
+      "refinementDifference": 1.6209256159527285e-14,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1-dir1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 62.37189669663087,
+          "y": -636.9534884922641
+        },
+        "velocity": {
+          "x": 201.4223787225404,
+          "y": 19.723725554608574
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -539.600558892037,
+          "y": -558.5913247326948
+        },
+        "velocity": {
+          "x": 173.49185230492705,
+          "y": -60.44443211498517
+        }
+      },
+      "refinementDifference": 1.6209256159527285e-14,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1-dir1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 62.37189669663087,
+          "y": -636.9534884922641
+        },
+        "velocity": {
+          "x": 201.4223787225404,
+          "y": 19.723725554608574
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 637.7086234180696,
+          "y": -443.3066013962077
+        },
+        "velocity": {
+          "x": 158.4710343648687,
+          "y": 92.95097340655602
+        }
+      },
+      "refinementDifference": 1.6209256159527285e-14,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.0000000001-dir-1-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -404.14518843273805,
+      "input": {
+        "position": {
+          "x": 450755.05589109875,
+          "y": -892647.6794282347
+        },
+        "velocity": {
+          "x": -2186.531334733331,
+          "y": -1104.1198859405076
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 1179468.2754883948,
+          "y": -285471.2306848636
+        },
+        "velocity": {
+          "x": -1381.3766364087412,
+          "y": -1742.4347030940762
+        }
+      },
+      "refinementDifference": 2.9976021664879227e-15,
+      "coarseFineDifference": 4.884981308350689e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.0000000001-dir-1-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 404.14518843273805,
+      "input": {
+        "position": {
+          "x": 450755.05589109875,
+          "y": -892647.6794282347
+        },
+        "velocity": {
+          "x": -2186.531334733331,
+          "y": -1104.1198859405076
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -470451.73998051614,
+          "y": -1118621.6504169777
+        },
+        "velocity": {
+          "x": -2222.2311567238453,
+          "y": -77.25795912570945
+        }
+      },
+      "refinementDifference": 2.9976021664879227e-15,
+      "coarseFineDifference": 4.884981308350689e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.0000000001-dir1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": 0.7430464409664099,
+          "y": -0.669239857276262
+        },
+        "velocity": {
+          "x": 0.9464480826643854,
+          "y": 1.050826354314027
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -0.03410417065088056,
+          "y": -1.2130441632424245
+        },
+        "velocity": {
+          "x": 1.1800515299422685,
+          "y": 0.5055410521428845
+        }
+      },
+      "refinementDifference": 2.9976021664879227e-15,
+      "coarseFineDifference": 4.884981308350689e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.0000000001-dir1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": 0.7430464409664099,
+          "y": -0.669239857276262
+        },
+        "velocity": {
+          "x": 0.9464480826643854,
+          "y": 1.050826354314027
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 1.2028813289102982,
+          "y": 0.16036129517839803
+        },
+        "velocity": {
+          "x": 0.3797832788741046,
+          "y": 1.2263188940110388
+        }
+      },
+      "refinementDifference": 2.9976021664879227e-15,
+      "coarseFineDifference": 4.884981308350689e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.1-dir-1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 598.2527846690233,
+          "y": -227.3622783923473
+        },
+        "velocity": {
+          "x": -73.67379854300117,
+          "y": -193.85605847701868
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 687.1193225112747,
+          "y": 387.9506983216109
+        },
+        "velocity": {
+          "x": 9.961709937170225,
+          "y": -187.5379034689814
+        }
+      },
+      "refinementDifference": 8.770761894538737e-15,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.1-dir-1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 598.2527846690233,
+          "y": -227.3622783923473
+        },
+        "velocity": {
+          "x": -73.67379854300117,
+          "y": -193.85605847701868
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 256.02179155800866,
+          "y": -746.385657648917
+        },
+        "velocity": {
+          "x": -132.00258255668246,
+          "y": -133.5852503114754
+        }
+      },
+      "refinementDifference": 8.770761894538737e-15,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.1-dir1-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -404.14518843273805,
+      "input": {
+        "position": {
+          "x": 999976.780070743,
+          "y": 6814.6400747701755
+        },
+        "velocity": {
+          "x": -17.104610837332167,
+          "y": 2509.921798042342
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 794688.5770996017,
+          "y": -942647.3878867755
+        },
+        "velocity": {
+          "x": 904.8636097677033,
+          "y": 2085.109575261
+        }
+      },
+      "refinementDifference": 8.770761894538737e-15,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e1.1-dir1-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 404.14518843273805,
+      "input": {
+        "position": {
+          "x": 999976.780070743,
+          "y": 6814.6400747701755
+        },
+        "velocity": {
+          "x": -17.104610837332167,
+          "y": 2509.921798042342
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 781767.4604951179,
+          "y": 953390.6178337211
+        },
+        "velocity": {
+          "x": -933.197449934595,
+          "y": 2072.5835598504864
+        }
+      },
+      "refinementDifference": 8.770761894538737e-15,
+      "coarseFineDifference": 4.218847493575595e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e2-dir-1-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.7,
+      "input": {
+        "position": {
+          "x": 0.9298414180167014,
+          "y": 0.36796051057238466
+        },
+        "velocity": {
+          "x": 0.6373262994903552,
+          "y": -1.6105325789868175
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.32534860805375765,
+          "y": 1.357499177573114
+        },
+        "velocity": {
+          "x": 0.986334589762333,
+          "y": -1.2082498692898767
+        }
+      },
+      "refinementDifference": 2.6645352591003757e-15,
+      "coarseFineDifference": 2.220446049250313e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e2-dir-1-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.7,
+      "input": {
+        "position": {
+          "x": 0.9298414180167014,
+          "y": 0.36796051057238466
+        },
+        "velocity": {
+          "x": 0.6373262994903552,
+          "y": -1.6105325789868175
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 1.1661704022135178,
+          "y": -0.7672693965455422
+        },
+        "velocity": {
+          "x": 0.10754794699742959,
+          "y": -1.5560067829856246
+        }
+      },
+      "refinementDifference": 2.6645352591003757e-15,
+      "coarseFineDifference": 2.220446049250313e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e2-dir1-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 469.6680845551241,
+          "y": 434.7549773726815
+        },
+        "velocity": {
+          "x": -168.37987870451778,
+          "y": 181.90166697271323
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 873.4137663266322,
+          "y": -187.93025670710676
+        },
+        "velocity": {
+          "x": -94.87310240512569,
+          "y": 202.04275585491186
+        }
+      },
+      "refinementDifference": 2.6645352591003757e-15,
+      "coarseFineDifference": 2.220446049250313e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "e2-dir1-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 3.1304951684997055,
+      "input": {
+        "position": {
+          "x": 469.6680845551241,
+          "y": 434.7549773726815
+        },
+        "velocity": {
+          "x": -168.37987870451778,
+          "y": 181.90166697271323
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -120.03919830195478,
+          "y": 885.3021966909919
+        },
+        "velocity": {
+          "x": -194.12769515161534,
+          "y": 110.16632302361052
+        }
+      },
+      "refinementDifference": 2.6645352591003757e-15,
+      "coarseFineDifference": 2.220446049250313e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "radial-in-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -173.20508075688775,
+      "input": {
+        "position": {
+          "x": 438547.32757439034,
+          "y": 898708.0958116269
+        },
+        "velocity": {
+          "x": -227.87587586471872,
+          "y": -466.98242493576487
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 459139.4764511461,
+          "y": 940907.2605130911
+        },
+        "velocity": {
+          "x": -13.180910215679488,
+          "y": -27.011430639690634
+        }
+      },
+      "refinementDifference": 2.886579864025407e-15,
+      "coarseFineDifference": 2.220446049250313e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "radial-in-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 173.20508075688775,
+      "input": {
+        "position": {
+          "x": 438547.32757439034,
+          "y": 898708.0958116269
+        },
+        "velocity": {
+          "x": -227.87587586471872,
+          "y": -466.98242493576487
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 377694.6460565313,
+          "y": 774003.6589280852
+        },
+        "velocity": {
+          "x": -487.6946968638866,
+          "y": -999.4250216508833
+        }
+      },
+      "refinementDifference": 7.771561172376096e-16,
+      "coarseFineDifference": 3.552713678800501e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "radial-out-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -0.2,
+      "input": {
+        "position": {
+          "x": 0.08388294956272228,
+          "y": 0.9964756147406005
+        },
+        "velocity": {
+          "x": 0.1509893092129001,
+          "y": 1.793656106533081
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.051421088171642405,
+          "y": 0.6108495315624793
+        },
+        "velocity": {
+          "x": 0.1779937968258507,
+          "y": 2.1144520911181104
+        }
+      },
+      "refinementDifference": 7.105427357601002e-15,
+      "coarseFineDifference": 9.992007221626409e-14,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "radial-out-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 0.2,
+      "input": {
+        "position": {
+          "x": 0.08388294956272228,
+          "y": 0.9964756147406005
+        },
+        "velocity": {
+          "x": 0.1509893092129001,
+          "y": 1.793656106533081
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 0.11271552759225986,
+          "y": 1.33898814042446
+        },
+        "velocity": {
+          "x": 0.13855678245737482,
+          "y": 1.6459656663891333
+        }
+      },
+      "refinementDifference": 4.218847493575595e-15,
+      "coarseFineDifference": 5.773159728050814e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "radial-rest-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -1.7888543819998317,
+      "input": {
+        "position": {
+          "x": -180.5661389821162,
+          "y": 613.999893691433
+        },
+        "velocity": {
+          "x": -0.0,
+          "y": 0.0
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -165.71116378235146,
+          "y": 563.4868061055718
+        },
+        "velocity": {
+          "x": -17.096074179673117,
+          "y": 58.133755243555385
+        }
+      },
+      "refinementDifference": 2.7755575615628914e-15,
+      "coarseFineDifference": 2.55351295663786e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "radial-rest-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 1.7888543819998317,
+      "input": {
+        "position": {
+          "x": -180.5661389821162,
+          "y": 613.999893691433
+        },
+        "velocity": {
+          "x": -0.0,
+          "y": 0.0
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -165.71116378235146,
+          "y": 563.4868061055718
+        },
+        "velocity": {
+          "x": 17.096074179673117,
+          "y": -58.133755243555385
+        }
+      },
+      "refinementDifference": 2.7755575615628914e-15,
+      "coarseFineDifference": 2.55351295663786e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "general-in-time-1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": -173.20508075688775,
+      "input": {
+        "position": {
+          "x": -609966.5403862415,
+          "y": 792427.1699085283
+        },
+        "velocity": {
+          "x": -83.9693445415632,
+          "y": -1594.6627070253007
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -572797.0602716135,
+          "y": 1035866.1839876317
+        },
+        "velocity": {
+          "x": -322.67786696313897,
+          "y": -1230.766431480382
+        }
+      },
+      "refinementDifference": 3.219646771412954e-15,
+      "coarseFineDifference": 2.9976021664879227e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "general-in-time1",
+      "mu": 3000000000000.0,
+      "lengthScale": 1000000.0,
+      "speedScale": 1732.0508075688772,
+      "seconds": 173.20508075688775,
+      "input": {
+        "position": {
+          "x": -609966.5403862415,
+          "y": 792427.1699085283
+        },
+        "velocity": {
+          "x": -83.9693445415632,
+          "y": -1594.6627070253007
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -589058.8675967347,
+          "y": 476641.80760779866
+        },
+        "velocity": {
+          "x": 387.72773144534676,
+          "y": -2077.9548507791555
+        }
+      },
+      "refinementDifference": 2.220446049250313e-15,
+      "coarseFineDifference": 4.884981308350689e-15,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "general-out-time-1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": -2.0,
+      "input": {
+        "position": {
+          "x": -0.855242378854045,
+          "y": 0.5182282059209767
+        },
+        "velocity": {
+          "x": -0.96397079864679,
+          "y": -0.8189995722564632
+        }
+      },
+      "expected": {
+        "position": {
+          "x": 1.3910635813806662,
+          "y": 0.3033319620545867
+        },
+        "velocity": {
+          "x": -0.7096566323023991,
+          "y": 0.7079032723732728
+        }
+      },
+      "refinementDifference": 2.1094237467877974e-14,
+      "coarseFineDifference": 1.4072076837123859e-14,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "general-out-time1",
+      "mu": 1,
+      "lengthScale": 1,
+      "speedScale": 1.0,
+      "seconds": 2.0,
+      "input": {
+        "position": {
+          "x": -0.855242378854045,
+          "y": 0.5182282059209767
+        },
+        "velocity": {
+          "x": -0.96397079864679,
+          "y": -0.8189995722564632
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -1.603654190243685,
+          "y": -1.236868073222485
+        },
+        "velocity": {
+          "x": -0.02317211472889391,
+          "y": -0.7661632142217111
+        }
+      },
+      "refinementDifference": 9.992007221626409e-15,
+      "coarseFineDifference": 1.3100631690576847e-14,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "tiny-time-time-1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": -4.4721359549995793e-10,
+      "input": {
+        "position": {
+          "x": -630.2497110190872,
+          "y": 111.28927064347748
+        },
+        "velocity": {
+          "x": -86.23329278455357,
+          "y": -159.15972862358575
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -630.2497109805224,
+          "y": 111.28927071465588
+        },
+        "velocity": {
+          "x": -86.23329279864639,
+          "y": -159.15972862109723
+        }
+      },
+      "refinementDifference": 0.0,
+      "coarseFineDifference": 0.0,
+      "normalizedTolerance": 1e-10
+    },
+    {
+      "id": "tiny-time-time1",
+      "mu": 13107200,
+      "lengthScale": 640,
+      "speedScale": 143.10835055998655,
+      "seconds": 4.4721359549995793e-10,
+      "input": {
+        "position": {
+          "x": -630.2497110190872,
+          "y": 111.28927064347748
+        },
+        "velocity": {
+          "x": -86.23329278455357,
+          "y": -159.15972862358575
+        }
+      },
+      "expected": {
+        "position": {
+          "x": -630.2497110576518,
+          "y": 111.28927057229907
+        },
+        "velocity": {
+          "x": -86.23329277046076,
+          "y": -159.15972862607424
+        }
+      },
+      "refinementDifference": 0.0,
+      "coarseFineDifference": 0.0,
+      "normalizedTolerance": 1e-10
+    }
+  ]
+}

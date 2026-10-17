@@ -1,0 +1,38 @@
+{
+  "manifest": {
+    "format": "space-sim-module/1",
+    "apiVersion": "space-sim-game-api/1",
+    "version": "0.1.0",
+    "kind": "provider",
+    "authority": "authoritative",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "dependencies": [
+      {
+        "id": "builtin.motion",
+        "version": "^0.1.0"
+      }
+    ],
+    "provides": [],
+    "requires": [
+      "builtin.motion/v1"
+    ],
+    "slots": [],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT",
+    "id": "local.flight-clock",
+    "name": "Flight clock with state migration"
+  },
+  "entry": "main.ts",
+  "assets": [],
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "attribution": "Space Sim first-party authoring example. Licensed under MIT."
+}

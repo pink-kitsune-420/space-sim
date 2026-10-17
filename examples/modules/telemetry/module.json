@@ -1,0 +1,32 @@
+{
+  "manifest": {
+    "format": "space-sim-module/1",
+    "apiVersion": "space-sim-game-api/1",
+    "version": "0.1.0",
+    "kind": "provider",
+    "authority": "presentation",
+    "environments": [
+      "browser",
+      "offline"
+    ],
+    "dependencies": [],
+    "provides": [],
+    "requires": [],
+    "slots": [],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT",
+    "id": "local.telemetry",
+    "name": "Local telemetry"
+  },
+  "entry": "main.ts",
+  "assets": [
+    "color.txt"
+  ],
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "attribution": "Space Sim first-party authoring example. Licensed under MIT."
+}

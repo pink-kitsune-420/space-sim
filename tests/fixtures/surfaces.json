@@ -1,0 +1,28 @@
+{
+  "model": "radial linear-in-polar-radius; SI metres and radians",
+  "generator": "Hand-authored independent geometry, no production generator",
+  "fixtures": [
+    { "id": "circle", "referenceRadius": 10, "orientationRadians": 0,
+      "elevations": [0, 0, 0, 0],
+      "queries": [
+        { "angle": 0, "radius": 10, "interval": 0, "derivative": 0 },
+        { "angle": 0.7853981633974483, "radius": 10, "interval": 0, "derivative": 0 }
+      ] },
+    { "id": "mountain-valley-seam", "referenceRadius": 10, "orientationRadians": 0,
+      "elevations": [0, 2, -2, 0],
+      "queries": [
+        { "angle": 0.7853981633974483, "radius": 11, "interval": 0, "derivative": 1.2732395447351628 },
+        { "angle": 1.5707963267948966, "radius": 12, "interval": 1, "derivative": -2.5464790894703255 },
+        { "angle": 2.356194490192345, "radius": 10, "interval": 1, "derivative": -2.5464790894703255 },
+        { "angle": 3.141592653589793, "radius": 8, "interval": 2, "derivative": 1.2732395447351628 },
+        { "angle": 5.497787143782138, "radius": 10, "interval": 3, "derivative": 0 }
+      ] },
+    { "id": "rotated-crater", "referenceRadius": 100, "orientationRadians": 1.5707963267948966,
+      "elevations": [-4, 2, 0, 2],
+      "queries": [
+        { "angle": 0, "radius": 102, "interval": 3, "derivative": -3.819718634205488 },
+        { "angle": 0.7853981633974483, "radius": 99, "interval": 3, "derivative": -3.819718634205488 },
+        { "angle": 1.5707963267948966, "radius": 96, "interval": 0, "derivative": 3.819718634205488 }
+      ] }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "manifest": {
+    "format": "space-sim-module/1",
+    "apiVersion": "space-sim-game-api/1",
+    "version": "0.1.0",
+    "kind": "provider",
+    "authority": "authoritative",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "dependencies": [
+      {
+        "id": "builtin.motion",
+        "version": "^0.1.0"
+      }
+    ],
+    "provides": [],
+    "requires": [
+      "builtin.motion/v1"
+    ],
+    "slots": [],
+    "before": [],
+    "after": [],
+    "settings": {
+      "acceleration": {
+        "type": "number",
+        "default": 2,
+        "minimum": -10,
+        "maximum": 10
+      }
+    },
+    "license": "MIT",
+    "id": "local.steady-lift",
+    "name": "Steady lift"
+  },
+  "entry": "main.ts",
+  "assets": [],
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "attribution": "Space Sim first-party authoring example. Licensed under MIT."
+}

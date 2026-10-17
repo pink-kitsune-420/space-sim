@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080f19" />
+    <meta name="description" content="Launch, coast, and find your orbit in a compact fictional solar system." />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>Space Lab · Space Sim</title>
+    <script type="module" crossorigin src="./assets/index-mfVYBdsh.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-zqd3yTgs.css">
+  </head>
+  <body>
+    <div id="app">
+      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACE LAB</a><nav class="workspace-nav" aria-label="Workspace sections"><a href="#flight-console">Flight</a><a href="#lab-manager">Games & plugins</a><a href="#flight-manual">Manual</a></nav><span class="connection"><i></i> LOCAL FLIGHT</span></header>
+      <main>
+        <div class="intro"><div><p class="eyebrow">FLIGHT WORKSPACE</p><h1 id="active-game">Space Sim</h1></div><a class="lab-shortcut" href="#lab-manager">Open games & plugins ↗</a></div>
+        <div id="flight-console" class="workspace">
+          <section class="flight-panel" aria-label="Flight view">
+            <div class="view-toolbar"><span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span><div><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button">Pause</button><button id="reset" type="button" aria-label="Reset flight" title="Reset flight">Reset</button><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog">Controls ⚙</button><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler">Profiler</button><button id="fullscreen" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">North up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
+            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas><div class="view-label"><span id="system-label">PRIMUS SYSTEM</span> <span>BODY-RELATIVE / METRES</span></div><div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div><div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span></div><section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section></div>
+            <p id="terrain-notice" class="control-note" role="note" hidden>Physical terrain · Clearance is above local ground or sea level. Gentle water entry sinks and floats; inward thrust dives, and water hits above 5 m/s inward crash. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less.</p>
+            <div class="telemetry"><div><span>GROUND / SEA CLEARANCE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
+          </section>
+          <aside>
+            <section class="card setup-card"><p class="eyebrow">UNIVERSE & FLIGHT SETUP</p><h2>Choose your starting point</h2>
+              <div class="universe-group">
+                <div class="universe-row">
+                  <label for="universe-select">Universe</label>
+                  <div class="universe-actions">
+                    <button id="load-universe" type="button" title="Import a universe from JSON, .spaceuniverse or .json.gz">Import…</button>
+                    <input id="universe-file" type="file" accept=".spaceuniverse,.json,.gz,application/gzip,application/json" hidden />
+                    <button id="export-universe" type="button" title="Download this universe with all its planets as a losslessly compressed .spaceuniverse file">Export</button>
+                    <button id="export-universe-json" type="button" title="Download editable, uncompressed universe JSON">JSON</button>
+                  </div>
+                </div>
+                <select id="universe-select"><option value="default-universe">Default Universe</option></select>
+                <p id="universe-status" class="control-note" role="status"></p>
+
+
+              </div>
+              <div class="setup-fields"><div><label for="system-select">System</label>
+              <select id="system-select"><option value="primus-system">Primus System</option></select>
+              </div><div><label for="preset">Scenario</label>
+              <select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option><option value="moon-orbit">Secundus circular orbit · 128 m altitude</option></select></div></div>
+              <div class="setup-run-controls">
+              <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode</span></label></div></section>
+            <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
+            <section class="card path-card"><p class="eyebrow">TRAJECTORY</p><h2><span class="path-key"></span> If you coast now</h2><div class="flight-state"><span>Radial periapsis · ref. radius</span><output id="periapsis">—</output></div><div class="flight-state"><span>Radial apoapsis · ref. radius</span><output id="apoapsis">—</output></div><div class="flight-state"><span>Prediction</span><output id="prediction">Preparing…</output></div><details class="panel-note"><summary>About predictions</summary><p>Engine-off trajectory. Safe orbits use exact coast; near terrain, shared flight steps stop at first contact or show a partial path. Predictions use the active body until a sphere-of-influence change.</p></details></section>
+            <section class="card instruments-card" aria-labelledby="instruments-title"><p class="eyebrow">INSTRUMENTS</p><h2 id="instruments-title">Flight information</h2>
+              <div id="instruments" class="instruments" role="group" aria-label="Instruments"></div>
+              <p class="control-note">Velocity and orbit markers draw on the view; Telemetry adds the panel below. They only change what you see, never the flight, saves or multiplayer.</p></section>
+            <div id="module-panels" class="module-panels" hidden></div>
+            <section class="card fleet-card" aria-labelledby="fleet-title"><p class="eyebrow">FLEET</p><h2 id="fleet-title">Ships in this world</h2>
+              <ul id="ship-list" class="ship-list" aria-label="Ships"></ul>
+              <div class="actions"><button id="remove-ship" type="button">Remove ship</button><button id="spawn-ship" type="button">Launch another</button></div>
+              <p class="control-note">New ships start at the selected scenario. Unpiloted ships keep flying. Switch with <kbd>\</kbd> or click below.</p>
+              <div class="world-files"><button id="save-world" type="button" title="Download the whole world: clock, every ship and pilot">Save world</button><button id="load-world" type="button" title="Continue a saved world">Load world…</button><input id="world-file" type="file" accept=".json,application/json" hidden /></div>
+            </section>
+            <section class="card multiplayer" aria-labelledby="mp-title"><p class="eyebrow">MULTIPLAYER</p><h2 id="mp-title">Fly together</h2>
+              <label for="player-name">Pilot name</label>
+              <input id="player-name" type="text" maxlength="24" autocomplete="nickname" placeholder="Pilot" spellcheck="false" />
+              <div id="mp-offline">
+                <label for="join-address">Server address or invite code</label>
+                <div class="join-row"><input id="join-address" type="text" placeholder="192.168.1.20:6464" autocomplete="off" spellcheck="false" /><button id="join-game" type="button">Join</button></div>
+                <div id="password-row" hidden><label for="join-password">Server password</label><input id="join-password" type="password" autocomplete="off" /></div>
+                <div class="actions"><button id="host-game" type="button">Host this world</button></div>
+              </div>
+              <div id="mp-reply" hidden>
+                <label for="reply-code">Send this reply code back to the host</label>
+                <textarea id="reply-code" readonly rows="3"></textarea>
+                <div class="actions"><button id="cancel-join" type="button">Cancel</button><button id="copy-reply" type="button">Copy reply</button></div>
+              </div>
+              <div id="mp-hosting" hidden>
+                <div class="actions"><button id="stop-hosting" type="button">Stop hosting</button><button id="create-invite" type="button">Create invite</button></div>
+                <div id="invite-panel" hidden>
+                  <label for="invite-code">1 · Send this invite to one player</label>
+                  <textarea id="invite-code" readonly rows="3"></textarea>
+                  <div class="actions"><button id="cancel-invite" type="button">Cancel</button><button id="copy-invite" type="button">Copy invite</button></div>
+                  <label for="host-reply">2 · Paste their reply code</label>
+                  <textarea id="host-reply" rows="3" spellcheck="false"></textarea>
+                  <div class="actions"><button id="accept-reply" type="button">Connect player</button></div>
+                </div>
+              </div>
+              <div id="mp-online" hidden><div class="actions"><button id="leave-game" type="button">Leave game</button></div></div>
+              <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" /><span>Internet play<small>Invite codes also use a public STUN server (Google) to find your address. Off: same network only.</small></span></label>
+              <p id="mp-status" class="control-note" role="status">Single player. Host this world for friends, or join a server.</p>
+              <ul id="player-list" class="player-list" aria-label="Players"></ul>
+            </section>
+          </aside>
+        </div>
+        <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
+          <div class="lab-heading"><div><p class="eyebrow">SPACE LAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
+          <p id="lab-status" role="status">Space Sim is ready to fly. Import a game, or build a remix with plugins.</p>
+          <details class="library-settings" open><summary>Game library</summary>
+            <p id="library-storage" class="control-note">Opening your local library…</p>
+            <p class="control-note">Play enables a game’s plugins. Only play code plugins you trust; they run with this page’s privileges.</p>
+            <div class="library-tools"><label>Find a game or collection<input id="game-search" type="text" placeholder="Search your library" /></label><label>Sort<select id="game-sort"><option value="name">Name</option><option value="folder">Collection</option></select></label><label class="favorite-filter"><input id="game-favorites" type="checkbox" /> Favorites only</label></div>
+            <ul id="game-list" class="game-list" aria-label="Game library"></ul><p id="game-empty" hidden>No games match your search.</p>
+            <div class="game-save"><h3>Make a game from this world’s setup</h3><p>Bundle selected plugins, data and settings. Use Save world in Fleet to keep your flight progress.</p><div class="library-tools"><label>Game name<input id="game-name" type="text" value="Space Sim remix" maxlength="256" /></label><label>Collection<input id="game-folder" type="text" placeholder="My experiments" maxlength="80" /></label></div><div class="lab-actions"><button id="lab-save" type="button">Save as game</button><button id="lab-export" type="button">Export .spacegame</button></div></div>
+            <p class="control-note">Explore a built-in world</p><div class="surface-worlds" aria-label="Explore planet surfaces"><button id="try-terrain" type="button">Terrain worlds</button><button id="try-ocean" type="button">Ocean world</button></div>
+          </details>
+          <section id="plugin-manager" aria-label="Plugin configuration">
+        <details class="code-module-settings"><summary>Plugins · simulation, data & settings</summary>
+          <p>Only import code from sources you trust. Do not import untrustworthy code: code modules run with this page’s privileges and can access its data or make network requests. Installation does not enable code. Authoritative changes start a new world.</p>
+          <button id="install-code-module" type="button" hidden>Install code artifact…</button><input id="code-module-file" type="file" accept=".json,application/json" hidden />
+          <ul id="installed-code-modules" class="module-list"></ul>
+          <details><summary>Simulation setup & exposed settings</summary>
+            <div class="library-tools"><label>Starting universe<select id="plugin-universe"></select></label><label>Starting system<select id="plugin-system"></select></label></div>
+            <p>Choosing an added universe also enables its content plugin when you apply.</p>
+            <ul id="authoritative-module-list" class="module-list"></ul>
+            <div id="authoritative-providers"></div>
+            <button id="apply-code-modules" type="button">Apply plugins · new world</button>
+          </details>
+          <p>Enable display plugins below. Save or export a game to bundle your active plugins and settings into one file.</p>
+          <p id="code-module-status" role="status">No imported code installed.</p>
+        </details>
+        <details class="presentation-settings"><summary>Instruments & display</summary><p class="manager-current">Enabled: <output id="presentation-name">Built-in</output></p>
+          <ul id="presentation-list" class="presentation-list" aria-label="Installed presentation modules"></ul>
+          <p>Optional overlays, panels and camera modes change only what you see. The world, its saves and multiplayer are unaffected, and each one can be switched off at any time. Display choices are remembered in this browser; exported games include the full selection.</p>
+          <p id="presentation-status" role="status">Using the built-in presentation.</p>
+        </details>
+        <details class="module-settings"><summary>Data & legacy profiles</summary><p class="manager-current">Current: <output id="module-name">Built-in default</output></p>
+          <div class="shader-actions"><button id="load-module" type="button">Load module/profile…</button><input id="module-file" type="file" accept=".json,application/json" hidden /><button id="export-module" type="button" disabled>Export module</button><button id="export-profile" type="button">Export profile</button><button id="reset-modules" type="button">Use built-in default</button></div>
+          <p>Loading a data module starts a new world. Edit vehicle settings, universes, presets or body colors in JSON. Compatible profiles support world saves and multiplayer. Profiles may enable installed code; only enable code from sources you trust.</p>
+          <button id="enable-imported-profile" type="button" hidden>Enable imported trusted code profile · new world</button>
+          <p id="module-status" role="status">Using the built-in default profile.</p>
+        </details>
+          </section>
+        </section>
+        <div class="utility-grid" aria-label="Additional tools">
+        <details class="shader-settings"><summary>Shaders</summary><p class="manager-current">Current: <output id="shader-name">Default</output></p>
+          <div class="shader-actions"><button id="load-shader" type="button">Load shader…</button><input id="shader-file" type="file" accept=".json,.frag,.glsl,application/json,text/plain" hidden /><button id="export-shader" type="button">Export shaders</button><button id="reset-shader" type="button">Restore default</button></div>
+          <p>Change the look with a local shader file. Export the current shaders as a starting point, edit the GLSL, then load your copy. A .frag or .glsl file changes the scene; a JSON pack can also change the ship, paths and labels. Requires WebGL 2.</p>
+          <p id="shader-status" role="status">Using Default. Shader choices last for this session; export to keep a copy.</p>
+        </details>
+        <details class="stress-test"><summary>Stress test · <output id="stress-count">0 extra objects</output></summary>
+          <div class="stress-fields"><label>Ships <input id="stress-ships" type="number" min="0" max="20000" step="100" value="500" /></label><label>Asteroids <input id="stress-asteroids" type="number" min="0" max="200000" step="1000" value="5000" /></label></div>
+          <div class="stress-actions"><button id="stress-spawn" type="button">Spawn</button><button id="stress-burn" type="button">All engines on</button><button id="stress-cut" type="button">All engines off</button><button id="stress-clear" type="button">Clear</button></div>
+          <p>Launches ships on every scenario of this system and scatters asteroids on belt, planet-crossing, escaping, impacting, near-parabolic and near-radial orbits. Coasting objects sleep until they could change sphere of influence, so only burning ships and close passes cost time. Solo worlds only. The profiler (<kbd>`</kbd>) shows the cost.</p>
+          <p id="stress-status" role="status"></p>
+        </details>
+        <details id="flight-manual" class="help"><summary>Flight manual <span>KEYBOARD, JOYSTICK & TOUCH</span></summary><div class="help-grid"><p><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> Turn</p><p><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>W</kbd> <kbd>S</kbd> Throttle</p><p><kbd>Space</kbd> Hold to burn</p><p><kbd>[</kbd> <kbd>]</kbd> Time warp</p><p><kbd>/</kbd> Reset warp (1×)</p><p><kbd>\</kbd> Next ship</p><p><kbd>+</kbd> <kbd>−</kbd> Zoom</p><p><kbd>C</kbd> Camera <kbd>H</kbd> Horizon</p><p><kbd>P</kbd> Pause <kbd>R</kbd> Reset</p><p><kbd>F</kbd> Fullscreen</p><p>Joystick / Gamepad supported</p><p><kbd>`</kbd> Performance profiler</p></div><p class="tip">Configure all controls and gamepad axes via <b>Controls ⚙</b> in the top toolbar. Launch tip: climb, then turn gradually to build sideways speed. Land upright at 5 m/s or less. This compact fictional planet has strong gravity.</p></details>
+        </div>
+        <details class="debug"><summary>Flight diagnostics</summary><button id="export-log-diagnostics" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button><output id="debug"></output></details>
+        <dialog id="controls-dialog" class="controls-dialog" aria-labelledby="controls-dialog-title">
+          <div class="controls-modal">
+            <div class="controls-modal-header">
+              <h2 id="controls-dialog-title">Flight Controls & Keybindings</h2>
+              <button id="controls-close" type="button" class="close-button" aria-label="Close controls settings">✕</button>
+            </div>
+            <div class="controls-tabs" role="tablist">
+              <button id="tab-keyboard-btn" type="button" role="tab" aria-selected="true" aria-controls="tab-keyboard" class="active">Keyboard</button>
+              <button id="tab-gamepad-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-gamepad">Controller (Steam Deck / Xbox / PS)</button>
+              <button id="tab-touch-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-touch">Touchscreen Overlay</button>
+            </div>
+            <div id="tab-keyboard" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-keyboard-btn">
+              <p class="control-note">Click any key badge to remap it. Press your desired key, or <kbd>Esc</kbd> to cancel.</p>
+              <div id="keybindings-list" class="keybindings-list"></div>
+              <div class="controls-modal-actions">
+                <button id="reset-keybindings" type="button">Reset Keyboard to Defaults</button>
+              </div>
+            </div>
+            <div id="tab-gamepad" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-gamepad-btn" hidden>
+              <div id="gamepad-status" class="gamepad-status-banner">No controller detected. Connect a Steam Deck, Xbox, PlayStation (DualSense / DualShock), or joystick and press any button.</div>
+              <div class="gamepad-options">
+                <label class="gamepad-checkbox-label"><input id="gamepad-enabled" type="checkbox" checked /> Enable Gamepad / Controller Flight Support</label>
+                <div class="gamepad-setting-row">
+                  <label for="gamepad-deadzone">Analog Stick Deadzone: <span id="deadzone-value">15%</span></label>
+                  <input id="gamepad-deadzone" type="range" min="0" max="40" value="15" step="1" />
+                </div>
+                <div class="gamepad-axis-grid">
+                  <div class="gamepad-axis-col">
+                    <label for="gamepad-turn-axis">Turn / Steering Axis</label>
+                    <select id="gamepad-turn-axis">
+                      <option value="0">Axis 0 (Left Stick X / Roll)</option>
+                      <option value="2">Axis 2 (Right Stick X)</option>
+                    </select>
+                    <label class="checkbox-inline"><input id="gamepad-turn-invert" type="checkbox" /> Invert Turn Direction</label>
+                  </div>
+                  <div class="gamepad-axis-col">
+                    <label for="gamepad-throttle-axis">Throttle / Pitch Axis</label>
+                    <select id="gamepad-throttle-axis">
+                      <option value="1">Axis 1 (Left Stick Y / Pitch)</option>
+                      <option value="3">Axis 3 (Right Stick Y)</option>
+                    </select>
+                    <label class="checkbox-inline"><input id="gamepad-throttle-invert" type="checkbox" checked /> Invert Throttle (Forward = Increase)</label>
+                  </div>
+                </div>
+                <div class="gamepad-diagnostics">
+                  <h3>Live Controller Diagnostics</h3>
+                  <div id="gamepad-axes-display" class="gamepad-axes-display"></div>
+                  <div id="gamepad-buttons-display" class="gamepad-buttons-display"></div>
+                </div>
+              </div>
+              <div class="controls-modal-actions">
+                <button id="reset-gamepad" type="button">Reset Gamepad to Defaults</button>
+              </div>
+            </div>
+            <div id="tab-touch" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-touch-btn" hidden>
+              <div class="gamepad-options">
+                <div class="gamepad-setting-row">
+                  <label for="touch-overlay-mode">On-Screen Touch Controller</label>
+                  <select id="touch-overlay-mode">
+                    <option value="auto">Auto-detect (Active on mobile phones & touchscreens)</option>
+                    <option value="always">Always Show Overlay</option>
+                    <option value="never">Never Show Overlay (Disabled)</option>
+                  </select>
+                </div>
+                <p class="control-note">The mobile touch overlay provides a smooth virtual analog thumbstick on the left for proportional steering and throttle, plus a large tactile BURN button with quick time warp and camera switches on the right.</p>
+              </div>
+            </div>
+          </div>
+        </dialog>
+      </main><footer><span>SPACE LAB / SPACE SIM</span><span>Explore a little. Learn a lot.</span></footer>
+    </div>
+  </body>
+</html>

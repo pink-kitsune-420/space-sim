@@ -1,0 +1,42 @@
+{
+  "name": "space-lab",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build && node scripts/build_offline.mjs && vite build --config vite.server.config.ts && vite build --config vite.desktop.config.ts",
+    "build:server-exe": "node scripts/build_server_exe.mjs",
+    "build:game-exe": "node scripts/build_game_exe.mjs",
+    "package": "node scripts/package.mjs",
+    "desktop": "node dist-desktop/space-sim-desktop.cjs",
+    "server": "node dist-server/space-sim-server.cjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "test:browser": "playwright test",
+    "measure": "node scripts/measure_browser.mjs",
+    "measure:modules": "node scripts/measure_module_baseline.mjs",
+    "measure:orbits": "node --experimental-strip-types scripts/measure_orbits.mjs",
+    "measure:tables": "node scripts/benchmark_orbit_tables.mjs",
+    "measure:surfaces": "node --expose-gc --experimental-strip-types scripts/measure_surfaces.mjs",
+    "check:licenses": "node scripts/check_licenses.mjs",
+    "check": "npm run check:modules && npm run build && npm test && node scripts/check_licenses.mjs && python3 scripts/verify_project.py",
+    "check:modules": "node packages/module-tools/check-boundaries.mjs",
+    "module:build": "node packages/module-tools/author.mjs build",
+    "module:validate": "node packages/module-tools/author.mjs validate",
+    "measure:code-modules": "node scripts/measure_code_modules.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "22.20.5",
+    "postject": "1.0.0-alpha.6",
+    "rolldown": "1.2.14",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}

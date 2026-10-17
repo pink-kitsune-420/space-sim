@@ -1,0 +1,22 @@
+{
+  "format": "space-sim-data-module/1",
+  "manifest": {
+    "format": "space-sim-module/1",
+    "apiVersion": "space-sim-game-api/1",
+    "id": "example.gentle-flight",
+    "name": "Gentle flight",
+    "version": "0.1.0",
+    "kind": "data",
+    "authority": "authoritative",
+    "environments": ["browser", "offline", "node"],
+    "dependencies": [
+      { "id": "builtin.motion", "version": "0.1.0" },
+      { "id": "builtin.content", "version": "0.1.0" }
+    ],
+    "provides": [], "requires": [], "slots": [], "before": [], "after": [], "settings": {},
+    "license": "LicenseRef-Project"
+  },
+  "data": {
+    "vehicle": { "override": true, "settings": { "acceleration": 75, "turnRate": 0.6 } }
+  }
+}

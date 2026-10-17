@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.SpaceSim" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#080f19</item>
+        <item name="android:statusBarColor">#080f19</item>
+        <item name="android:navigationBarColor">#080f19</item>
+    </style>
+    <style name="Theme.SpaceSim.Fullscreen" parent="Theme.SpaceSim">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>

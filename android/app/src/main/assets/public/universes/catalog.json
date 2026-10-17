@@ -1,0 +1,55 @@
+{
+  "format": "space-lab-universe-catalog/1",
+  "universes": [
+    {
+      "id": "default-universe",
+      "name": "Default Universe",
+      "alias": "default",
+      "category": "sandbox",
+      "file": "sandbox/default/universe.spaceuniverse",
+      "json": "sandbox/default/universe.json",
+      "bytes": 1836,
+      "expandedBytes": 6642
+    },
+    {
+      "id": "dry-terrain-examples",
+      "name": "Dry terrain flights",
+      "alias": "terrain",
+      "category": "sandbox",
+      "file": "sandbox/terrain/universe.spaceuniverse",
+      "json": "sandbox/terrain/universe.json",
+      "bytes": 698,
+      "expandedBytes": 1613
+    },
+    {
+      "id": "ocean-example",
+      "name": "Ocean flights",
+      "alias": "ocean",
+      "category": "sandbox",
+      "file": "sandbox/ocean/universe.spaceuniverse",
+      "json": "sandbox/ocean/universe.json",
+      "bytes": 612,
+      "expandedBytes": 1359
+    },
+    {
+      "id": "solar-system-universe",
+      "name": "Solar System Universe (1/10 Scale)",
+      "alias": "solar",
+      "category": "astronomy",
+      "file": "astronomy/solar-system/universe.spaceuniverse",
+      "json": "astronomy/solar-system/universe.json",
+      "bytes": 1088,
+      "expandedBytes": 3064
+    },
+    {
+      "id": "full-solar-system",
+      "name": "Full Solar System (1:1 scale, every known moon)",
+      "alias": "full",
+      "category": "astronomy",
+      "file": "astronomy/full-solar-system/universe.spaceuniverse",
+      "json": "astronomy/full-solar-system/universe.json",
+      "bytes": 14905,
+      "expandedBytes": 138429
+    }
+  ]
+}

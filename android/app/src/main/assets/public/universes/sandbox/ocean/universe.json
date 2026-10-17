@@ -1,0 +1,109 @@
+{
+  "$schema": "../../universe.schema.json",
+  "schemaVersion": 1,
+  "id": "ocean-example",
+  "name": "Ocean flights",
+  "defaultSystemId": "ocean",
+  "systems": [
+    {
+      "id": "ocean",
+      "name": "Ocean planet",
+      "bodies": [
+        {
+          "id": "ocean-planet",
+          "name": "Ocean Planet",
+          "parentId": null,
+          "radius": 512,
+          "mu": 13107200,
+          "surfaceFeatures": "smooth",
+          "color": "#a87954",
+          "accentColor": "#e0bb8a",
+          "surface": {
+            "kind": "radial",
+            "generatorVersion": 1,
+            "seed": 8591,
+            "sampleCount": 4096,
+            "maxReliefMetres": 40,
+            "minFeatureWidthMetres": 12,
+            "orientationRadians": 0.3,
+            "mountainRangeCount": 5,
+            "craterCount": 3,
+            "pads": [
+              {
+                "id": "north-pad",
+                "angleRadians": 1.5707963267948966,
+                "widthMetres": 32,
+                "elevationMetres": 8
+              }
+            ],
+            "seaRadiusMetres": 514
+          }
+        }
+      ],
+      "presets": [
+        {
+          "id": "pad",
+          "name": "Island pad · dry launch",
+          "bodyId": "ocean-planet",
+          "kind": "landed"
+        },
+        {
+          "id": "splash",
+          "name": "Gentle splash · sink and float",
+          "bodyId": "ocean-planet",
+          "kind": "state",
+          "position": [
+            514.02,
+            0
+          ],
+          "velocity": [
+            -1,
+            0
+          ],
+          "headingRadians": 0,
+          "zoom": 12
+        },
+        {
+          "id": "heavy",
+          "name": "Heavy water impact",
+          "bodyId": "ocean-planet",
+          "kind": "state",
+          "position": [
+            514.02,
+            0
+          ],
+          "velocity": [
+            -8,
+            0
+          ],
+          "headingRadians": 0,
+          "zoom": 12
+        },
+        {
+          "id": "submerged",
+          "name": "Underwater · buoyancy ascent",
+          "bodyId": "ocean-planet",
+          "kind": "state",
+          "position": [
+            512,
+            0
+          ],
+          "velocity": [
+            0,
+            0
+          ],
+          "headingRadians": 0,
+          "zoom": 12
+        },
+        {
+          "id": "orbit",
+          "name": "Ocean survey orbit",
+          "bodyId": "ocean-planet",
+          "kind": "circular-orbit",
+          "radiusMetres": 900,
+          "direction": -1
+        }
+      ]
+    }
+  ]
+}

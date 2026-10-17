@@ -1,0 +1,8 @@
+{
+  "appId": "com.spacelab.spacesim",
+  "appName": "Space Sim",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

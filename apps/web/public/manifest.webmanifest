@@ -1,0 +1,20 @@
+{
+  "name": "Space Lab · Space Sim",
+  "short_name": "Space Sim",
+  "description": "A browser-first modular 2D space simulation game.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#080f19",
+  "background_color": "#080f19",
+  "categories": ["games", "simulation"],
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
