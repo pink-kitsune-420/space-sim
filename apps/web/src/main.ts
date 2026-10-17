@@ -664,18 +664,107 @@ const endCameraDrag = (event: PointerEvent): void => {
 };
 
 function attachCanvasListeners(target: HTMLCanvasElement): void {
+  // Wheel & Trackpad pinch zoom
   target.addEventListener('wheel', event => {
-    if (event.ctrlKey || event.metaKey || !Number.isFinite(event.deltaY)) return;
+    if (!Number.isFinite(event.deltaY)) return;
     event.preventDefault();
+    if (event.ctrlKey) {
+      // Trackpad pinch gesture (browsers synthesize ctrlKey + wheel for trackpad pinch gestures)
+      const factor = Math.exp(-event.deltaY * 0.015);
+      changeZoom(factor);
+      return;
+    }
+    // Standard mouse wheel
     const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? target.clientHeight : 1;
     const pixels = Math.max(-500, Math.min(500, event.deltaY * unit));
     changeZoom(Math.exp(-pixels * .002));
   }, { passive: false });
+
+  // Native Touch Events: 2-finger pinch-to-zoom and 1-finger vertical drag-to-zoom
+  let touchPinchDist: number | undefined;
+  let singleTouchLastY: number | undefined;
+  let isPinching = false;
+  let lastTouchZoomTime = -Infinity;
+
+  target.addEventListener('touchstart', event => {
+    if (event.touches.length >= 2) {
+      isPinching = true;
+      const t0 = event.touches[0]!;
+      const t1 = event.touches[1]!;
+      touchPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      singleTouchLastY = undefined;
+    } else if (event.touches.length === 1 && !isPinching) {
+      singleTouchLastY = event.touches[0]!.clientY;
+    }
+  }, { passive: false });
+
+  target.addEventListener('touchmove', event => {
+    if (event.touches.length >= 2) {
+      event.preventDefault();
+      isPinching = true;
+      const t0 = event.touches[0]!;
+      const t1 = event.touches[1]!;
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+      if (touchPinchDist !== undefined && touchPinchDist > 5 && dist > 5) {
+        const factor = dist / touchPinchDist;
+        if (Number.isFinite(factor) && factor > 0.05 && factor < 20) {
+          lastTouchZoomTime = performance.now();
+          changeZoom(factor);
+        }
+      }
+      touchPinchDist = dist;
+    } else if (event.touches.length === 1 && !isPinching && singleTouchLastY !== undefined) {
+      const clientY = event.touches[0]!.clientY;
+      const dy = clientY - singleTouchLastY;
+      singleTouchLastY = clientY;
+      if (Math.abs(dy) >= 1) {
+        event.preventDefault();
+        lastTouchZoomTime = performance.now();
+        changeZoom(Math.exp(-dy * 0.009));
+      }
+    }
+  }, { passive: false });
+
+  const endTouch = (event: TouchEvent) => {
+    if (event.touches.length >= 2) {
+      const t0 = event.touches[0]!;
+      const t1 = event.touches[1]!;
+      touchPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    } else {
+      touchPinchDist = undefined;
+      singleTouchLastY = undefined;
+      if (event.touches.length === 0) {
+        isPinching = false;
+      }
+    }
+  };
+
+  target.addEventListener('touchend', endTouch);
+  target.addEventListener('touchcancel', endTouch);
+
+  // Safari gesture events for iOS
+  let lastGestureScale = 1;
+  target.addEventListener('gesturestart', event => {
+    (event as Event).preventDefault();
+    lastGestureScale = 1;
+  }, { passive: false });
+  target.addEventListener('gesturechange', event => {
+    (event as Event).preventDefault();
+    const e = event as unknown as { scale: number };
+    if (Number.isFinite(e.scale) && e.scale > 0) {
+      const deltaScale = e.scale / lastGestureScale;
+      lastGestureScale = e.scale;
+      changeZoom(deltaScale);
+    }
+  }, { passive: false });
+  target.addEventListener('gestureend', event => {
+    (event as Event).preventDefault();
+    lastGestureScale = 1;
+  }, { passive: false });
+
+  // Pointer events: mouse drag panning and fallback for pointer-only touchscreen devices
   target.addEventListener('pointerdown', event => {
     if (event.pointerType === 'touch') {
-      event.preventDefault();
-      target.focus();
-      try { target.setPointerCapture(event.pointerId); } catch { /* Ignore */ }
       canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (canvasTouches.size === 2) {
         const [a, b] = [...canvasTouches.values()];
@@ -689,22 +778,25 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     try { target.setPointerCapture(event.pointerId); } catch { /* Ignore */ }
     cameraDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
   });
+
   target.addEventListener('pointermove', event => {
-    if (event.pointerType === 'touch' && canvasTouches.has(event.pointerId)) {
-      const prev = canvasTouches.get(event.pointerId)!;
-      const dx = event.clientX - prev.x;
-      const dy = event.clientY - prev.y;
-      canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
-      if (canvasTouches.size >= 2) {
-        const [a, b] = [...canvasTouches.values()];
-        const dist = Math.hypot(b!.x - a!.x, b!.y - a!.y);
-        if (lastPinchDistance && lastPinchDistance > 8 && dist > 8) {
-          changeZoom(dist / lastPinchDistance);
+    if (event.pointerType === 'touch') {
+      if (performance.now() - lastTouchZoomTime < 80) return;
+      if (canvasTouches.has(event.pointerId)) {
+        const prev = canvasTouches.get(event.pointerId)!;
+        const dx = event.clientX - prev.x;
+        const dy = event.clientY - prev.y;
+        canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (canvasTouches.size >= 2) {
+          const [a, b] = [...canvasTouches.values()];
+          const dist = Math.hypot(b!.x - a!.x, b!.y - a!.y);
+          if (lastPinchDistance && lastPinchDistance > 5 && dist > 5) {
+            changeZoom(dist / lastPinchDistance);
+          }
+          lastPinchDistance = dist;
+        } else if (Math.hypot(dx, dy) >= 1) {
+          changeZoom(Math.exp(-dy * 0.009));
         }
-        lastPinchDistance = dist;
-      } else if (Math.hypot(dx, dy) >= 1) {
-        // 1-finger touch drag on the flight canvas zooms in (drag up) and unzooms (drag down)
-        changeZoom(Math.exp(-dy * 0.009));
       }
       return;
     }
@@ -717,6 +809,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     cameraDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: true };
     target.classList.add('dragging');
   });
+
   target.addEventListener('pointerup', endCameraDrag);
   target.addEventListener('pointercancel', endCameraDrag);
   target.addEventListener('lostpointercapture', endCameraDrag);

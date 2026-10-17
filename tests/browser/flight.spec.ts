@@ -383,6 +383,7 @@ test('run in background option prevents auto-pausing on blur and persists in loc
 });
 
 test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, and canvas touch zoom', async ({ page }) => {
+  test.slow();
   await page.addInitScript(() => {
     localStorage.setItem('space-sim:touch-controls:v1', 'always');
   });
@@ -453,4 +454,70 @@ test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, an
     canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 460, bubbles: true }));
   });
   await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(canvasZoomed);
+
+  // 2-finger multi-touch pinch to zoom in (spread fingers) and zoom out (pinch fingers)
+  const pinchStartScale = ((await diagnostics(page)).camera as { scale: number }).scale;
+  // Spread fingers apart: initial distance 100px (150 to 250), moving apart to 180px (110 to 290) -> zooms in
+  await page.evaluate(() => {
+    const canvas = document.querySelector('#flight-view')!;
+    if (typeof Touch !== 'undefined') {
+      const t0 = new Touch({ identifier: 1, target: canvas, clientX: 150, clientY: 400 });
+      const t1 = new Touch({ identifier: 2, target: canvas, clientX: 250, clientY: 400 });
+      canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [t0, t1], targetTouches: [t0, t1], changedTouches: [t0, t1], bubbles: true }));
+
+      const t0Spread = new Touch({ identifier: 1, target: canvas, clientX: 110, clientY: 400 });
+      const t1Spread = new Touch({ identifier: 2, target: canvas, clientX: 290, clientY: 400 });
+      canvas.dispatchEvent(new TouchEvent('touchmove', { touches: [t0Spread, t1Spread], targetTouches: [t0Spread, t1Spread], changedTouches: [t0Spread, t1Spread], bubbles: true }));
+      canvas.dispatchEvent(new TouchEvent('touchend', { touches: [], targetTouches: [], changedTouches: [t0Spread, t1Spread], bubbles: true }));
+    } else {
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 21, pointerType: 'touch', clientX: 150, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 22, pointerType: 'touch', clientX: 250, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 21, pointerType: 'touch', clientX: 110, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 22, pointerType: 'touch', clientX: 290, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 21, pointerType: 'touch', clientX: 110, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 22, pointerType: 'touch', clientX: 290, clientY: 400, bubbles: true }));
+    }
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeGreaterThan(pinchStartScale);
+
+  // Pinch fingers together: initial distance 200px (100 to 300), moving to 100px (150 to 250) -> unzooms (zooms out)
+  const pinchZoomedScale = ((await diagnostics(page)).camera as { scale: number }).scale;
+  await page.evaluate(() => {
+    const canvas = document.querySelector('#flight-view')!;
+    if (typeof Touch !== 'undefined') {
+      const t0 = new Touch({ identifier: 1, target: canvas, clientX: 100, clientY: 400 });
+      const t1 = new Touch({ identifier: 2, target: canvas, clientX: 300, clientY: 400 });
+      canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [t0, t1], targetTouches: [t0, t1], changedTouches: [t0, t1], bubbles: true }));
+
+      const t0Pinch = new Touch({ identifier: 1, target: canvas, clientX: 150, clientY: 400 });
+      const t1Pinch = new Touch({ identifier: 2, target: canvas, clientX: 250, clientY: 400 });
+      canvas.dispatchEvent(new TouchEvent('touchmove', { touches: [t0Pinch, t1Pinch], targetTouches: [t0Pinch, t1Pinch], changedTouches: [t0Pinch, t1Pinch], bubbles: true }));
+      canvas.dispatchEvent(new TouchEvent('touchend', { touches: [], targetTouches: [], changedTouches: [t0Pinch, t1Pinch], bubbles: true }));
+    } else {
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 31, pointerType: 'touch', clientX: 100, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 32, pointerType: 'touch', clientX: 300, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 31, pointerType: 'touch', clientX: 150, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 32, pointerType: 'touch', clientX: 250, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', clientX: 150, clientY: 400, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 32, pointerType: 'touch', clientX: 250, clientY: 400, bubbles: true }));
+    }
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(pinchZoomedScale);
+
+  // Laptop/Trackpad pinch zoom via wheel event with ctrlKey
+  const trackpadStartScale = ((await diagnostics(page)).camera as { scale: number }).scale;
+  // deltaY < 0 with ctrlKey is trackpad pinch-to-zoom in
+  await page.evaluate(() => {
+    const canvas = document.querySelector('#flight-view')!;
+    canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -50, ctrlKey: true, bubbles: true, cancelable: true }));
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeGreaterThan(trackpadStartScale);
+
+  // deltaY > 0 with ctrlKey is trackpad pinch-to-zoom out
+  const trackpadZoomedScale = ((await diagnostics(page)).camera as { scale: number }).scale;
+  await page.evaluate(() => {
+    const canvas = document.querySelector('#flight-view')!;
+    canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 50, ctrlKey: true, bubbles: true, cancelable: true }));
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(trackpadZoomedScale);
 });

@@ -1,6 +1,6 @@
 [package]
 name = "space-sim"
-version = "0.2.5"
+version = "0.3.0"
 description = "Spacelab - Modular 2D Space Simulation"
 authors = ["Spacelab contributors"]
 edition = "2021"
