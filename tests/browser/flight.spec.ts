@@ -326,3 +326,131 @@ test('suborbital coast on Earth finishes tracing to impact without restarting ev
   expect(after.predictionPasses).toBe(before.predictionPasses);
   expect(after.samples).toBe(before.samples);
 });
+
+test('auto-resume restores flight when window regains focus or visibility', async ({ page }) => {
+  await page.goto('/');
+  await openPanel(page, 'setup');
+  await page.locator('#preset').selectOption('planet-orbit');
+  await expect(page.locator('#status')).toHaveText('FLYING');
+  await closePanel(page);
+
+  // Trigger blur -> should auto-pause
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.locator('#status')).toHaveText('PAUSED');
+
+  // Trigger focus -> should auto-resume
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(page.locator('#status')).toHaveText('FLYING');
+
+  // Tab hidden -> should auto-pause
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.locator('#status')).toHaveText('PAUSED');
+
+  // Tab shown -> should auto-resume
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.locator('#status')).toHaveText('FLYING');
+});
+
+test('run in background option prevents auto-pausing on blur and persists in localStorage', async ({ page }) => {
+  await page.goto('/');
+  await openPanel(page, 'setup');
+  const bgCheck = page.locator('#run-in-background');
+  await expect(bgCheck).toBeVisible();
+  await expect(bgCheck).not.toBeChecked();
+
+  // Check the option
+  await bgCheck.check();
+  await expect(bgCheck).toBeChecked();
+
+  await page.locator('#preset').selectOption('planet-orbit');
+  await expect(page.locator('#status')).toHaveText('FLYING');
+  await closePanel(page);
+
+  // Trigger blur -> should NOT pause because run in background is active
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await expect(page.locator('#status')).toHaveText('FLYING');
+
+  // Reload page and verify setting persisted
+  await page.reload();
+  await openPanel(page, 'setup');
+  await expect(page.locator('#run-in-background')).toBeChecked();
+});
+
+test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, and canvas touch zoom', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('space-sim:touch-controls:v1', 'always');
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await openPanel(page, 'setup');
+  await page.locator('#preset').selectOption('planet-orbit');
+  await closePanel(page);
+
+  const zoomStrip = page.locator('#touch-zoom-strip');
+  await expect(zoomStrip).toBeVisible();
+  const zoomIn = page.locator('#touch-zoom-in');
+  const zoomOut = page.locator('#touch-zoom-out');
+  await expect(zoomIn).toBeVisible();
+  await expect(zoomOut).toBeVisible();
+
+  const scaleBefore = ((await diagnostics(page)).camera as { scale: number }).scale;
+
+  // Tap zoom in button
+  await zoomIn.dispatchEvent('pointerdown', { pointerId: 1 });
+  await zoomIn.dispatchEvent('pointerup', { pointerId: 1 });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeGreaterThan(scaleBefore);
+
+  const scaleAfterIn = ((await diagnostics(page)).camera as { scale: number }).scale;
+
+  // Tap zoom out button
+  await zoomOut.dispatchEvent('pointerdown', { pointerId: 2 });
+  await zoomOut.dispatchEvent('pointerup', { pointerId: 2 });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(scaleAfterIn);
+
+  // Drag on zoom strip: drag up (dy < 0) zooms in
+  const currentScale = ((await diagnostics(page)).camera as { scale: number }).scale;
+  await page.evaluate(() => {
+    const strip = document.querySelector('#touch-zoom-strip')!;
+    strip.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 3, clientY: 200, bubbles: true }));
+    strip.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientY: 150, bubbles: true }));
+    strip.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3, clientY: 150, bubbles: true }));
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeGreaterThan(currentScale);
+
+  // Drag on zoom strip: drag down (dy > 0) zooms out / unzooms
+  const scaleZoomed = ((await diagnostics(page)).camera as { scale: number }).scale;
+  await page.evaluate(() => {
+    const strip = document.querySelector('#touch-zoom-strip')!;
+    strip.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 4, clientY: 200, bubbles: true }));
+    strip.dispatchEvent(new PointerEvent('pointermove', { pointerId: 4, clientY: 270, bubbles: true }));
+    strip.dispatchEvent(new PointerEvent('pointerup', { pointerId: 4, clientY: 270, bubbles: true }));
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(scaleZoomed);
+
+  // Canvas 1-finger vertical touch drag to zoom/unzoom in Follow ship mode
+  const canvasScale = ((await diagnostics(page)).camera as { scale: number }).scale;
+  // Drag up on canvas -> zooms in
+  await page.evaluate(() => {
+    const canvas = document.querySelector('#flight-view')!;
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 10, pointerType: 'touch', clientX: 195, clientY: 400, bubbles: true }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 10, pointerType: 'touch', clientX: 195, clientY: 350, bubbles: true }));
+    canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 10, pointerType: 'touch', clientX: 195, clientY: 350, bubbles: true }));
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeGreaterThan(canvasScale);
+
+  // Drag down on canvas -> unzooms (zooms out)
+  const canvasZoomed = ((await diagnostics(page)).camera as { scale: number }).scale;
+  await page.evaluate(() => {
+    const canvas = document.querySelector('#flight-view')!;
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 400, bubbles: true }));
+    canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 460, bubbles: true }));
+    canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 460, bubbles: true }));
+  });
+  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(canvasZoomed);
+});

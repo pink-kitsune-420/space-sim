@@ -63,7 +63,12 @@ const presentation = new Presentation(canvas, {
 const profiler = new Profiler(() => presentation.rendering.renderer?.features?.flush?.());
 const keys = new Set<string>();
 const pointers = new Map<number, string>();
-new Workspace(() => release());
+let restoreFullscreenOnResume = false;
+const workspace = new Workspace(() => release(), () => {
+  if (restoreFullscreenOnResume && !document.fullscreenElement) {
+    requestAppFullscreen(true);
+  }
+});
 
 const universes = builtinUniverses();
 const terrainUniverse = TERRAIN_UNIVERSE;
@@ -98,6 +103,11 @@ graphicsButton.addEventListener('click', () => {
   profiler.event('graphics', { quality: graphicsQuality });
 });
 const godModeToggle = element<HTMLInputElement>('god-mode');
+const runInBackgroundToggle = element<HTMLInputElement>('run-in-background');
+const RUN_IN_BACKGROUND_KEY = 'space-sim:run-in-background:v1';
+try {
+  runInBackgroundToggle.checked = localStorage.getItem(RUN_IN_BACKGROUND_KEY) === 'true';
+} catch { /* ignore */ }
 const profilerPanel = element<HTMLElement>('profiler');
 const profilerButton = element<HTMLButtonElement>('profiler-toggle');
 const fullscreenButton = element<HTMLButtonElement>('fullscreen');
@@ -473,16 +483,19 @@ function controls(): Controls {
 }
 function release(): void {
   keys.clear(); pointers.clear();
-  cameraDrag = undefined; canvas.classList.remove('dragging');
+  cameraDrag = undefined; canvasTouches.clear(); lastPinchDistance = undefined;
+  canvas.classList.remove('dragging');
   for (const button of document.querySelectorAll('[data-hold]')) button.setAttribute('aria-pressed', 'false');
   element('burn').setAttribute('aria-pressed', 'false'); shown.set('burn', 'false');
 }
 function invalidatePrediction(): void {
   prediction.invalidate();
 }
+let autoPaused = false;
 /** Pausing is the world's owner's call: here, or the host for everyone. */
 function setPaused(value: boolean, reason = ''): void {
   if (session !== local) return;
+  if (!value || !reason) autoPaused = false;
   if (value !== local.paused) profiler.event(value ? 'pause' : 'resume', { reason: reason || 'user', time: state.time });
   local.setPaused(value, value ? reason : '');
   const ship = selectedShip();
@@ -544,11 +557,25 @@ function syncWarpUI(): void {
   }
   lastWarp = session.warp;
 }
-/** Losing focus pauses a solo flight; shared worlds keep running, so only release input. */
+/** Losing focus pauses a solo flight (unless Run in background is enabled) and auto-resumes on focus; shared worlds keep running. */
 function autoPause(reason: string): void {
-  if (isSolo()) { setPaused(true, reason); return; }
+  if (isSolo() && !runInBackgroundToggle.checked) {
+    if (!local.paused) {
+      autoPaused = true;
+      setPaused(true, reason);
+    } else {
+      release();
+    }
+    return;
+  }
   release();
   handleEvents(session.update(0, selectedShipId, IDLE));
+}
+function autoResume(reason: string): void {
+  if (isSolo() && autoPaused && local.paused) {
+    autoPaused = false;
+    setPaused(false, reason);
+  }
 }
 function fitZoom(start: State, presetId = preset.value): void {
   const selectedPreset = session.world.system.presets.find(p => p.id === presetId);
@@ -622,7 +649,15 @@ function bodyWorldPosition(bodyId: string, time: number, pos: Vec): Vec {
   return { x: bodyPos.x + pos.x, y: bodyPos.y + pos.y };
 }
 
+const canvasTouches = new Map<number, { x: number; y: number }>();
+let lastPinchDistance: number | undefined;
+
 const endCameraDrag = (event: PointerEvent): void => {
+  if (canvasTouches.has(event.pointerId)) {
+    canvasTouches.delete(event.pointerId);
+    if (canvasTouches.size < 2) lastPinchDistance = undefined;
+    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  }
   if (cameraDrag?.id !== event.pointerId) return;
   cameraDrag = undefined; canvas.classList.remove('dragging');
   if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
@@ -637,12 +672,42 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     changeZoom(Math.exp(-pixels * .002));
   }, { passive: false });
   target.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'touch') {
+      event.preventDefault();
+      target.focus();
+      try { target.setPointerCapture(event.pointerId); } catch { /* Ignore */ }
+      canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (canvasTouches.size === 2) {
+        const [a, b] = [...canvasTouches.values()];
+        lastPinchDistance = Math.hypot(b!.x - a!.x, b!.y - a!.y);
+      }
+      return;
+    }
     if (event.pointerType !== 'mouse' || (event.button !== 0 && event.button !== 1)) return;
     event.preventDefault();
-    target.focus(); target.setPointerCapture(event.pointerId);
+    target.focus();
+    try { target.setPointerCapture(event.pointerId); } catch { /* Ignore */ }
     cameraDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
   });
   target.addEventListener('pointermove', event => {
+    if (event.pointerType === 'touch' && canvasTouches.has(event.pointerId)) {
+      const prev = canvasTouches.get(event.pointerId)!;
+      const dx = event.clientX - prev.x;
+      const dy = event.clientY - prev.y;
+      canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (canvasTouches.size >= 2) {
+        const [a, b] = [...canvasTouches.values()];
+        const dist = Math.hypot(b!.x - a!.x, b!.y - a!.y);
+        if (lastPinchDistance && lastPinchDistance > 8 && dist > 8) {
+          changeZoom(dist / lastPinchDistance);
+        }
+        lastPinchDistance = dist;
+      } else if (Math.hypot(dx, dy) >= 1) {
+        // 1-finger touch drag on the flight canvas zooms in (drag up) and unzooms (drag down)
+        changeZoom(Math.exp(-dy * 0.009));
+      }
+      return;
+    }
     if (!cameraDrag || cameraDrag.id !== event.pointerId) return;
     const delta = { x: event.clientX - cameraDrag.x, y: event.clientY - cameraDrag.y };
     if (!cameraDrag.moved && Math.hypot(delta.x, delta.y) < 3) return;
@@ -841,12 +906,26 @@ godModeToggle.addEventListener('change', () => {
   profiler.event('god-mode', { enabled: godModeToggle.checked });
   lastHud = -Infinity;
 });
+runInBackgroundToggle.addEventListener('change', () => {
+  try { localStorage.setItem(RUN_IN_BACKGROUND_KEY, String(runInBackgroundToggle.checked)); } catch { /* ignore */ }
+  if (runInBackgroundToggle.checked && autoPaused && isSolo() && local.paused) {
+    autoPaused = false;
+    setPaused(false, 'Run in background enabled');
+  }
+  updateBackground();
+});
 cameraButton.addEventListener('click', toggleCamera);
 orientationButton.addEventListener('click', toggleOrientation);
 interface KeyboardLock {
   lock?(keyCodes?: readonly string[]): Promise<void>;
   unlock?(): void;
 }
+interface ExtendedFullscreenOptions extends FullscreenOptions {
+  /** Firefox FullscreenOptions extension (dom.fullscreen.keyboard_lock.enabled). */
+  keyboardLock?: 'browser' | 'none';
+}
+let wasFullscreen = false;
+let exitingFullscreenIntentionally = false;
 function syncFullscreenKeyboardLock(active: boolean): void {
   const keyboard = (navigator as Navigator & { readonly keyboard?: KeyboardLock }).keyboard;
   if (!keyboard) return;
@@ -856,22 +935,75 @@ function syncFullscreenKeyboardLock(active: boolean): void {
     keyboard.unlock?.();
   }
 }
+function syncFullscreenButton(): void {
+  const isFs = !!document.fullscreenElement || restoreFullscreenOnResume;
+  fullscreenButton.setAttribute('aria-pressed', String(isFs));
+  fullscreenButton.textContent = isFs ? 'Exit fullscreen' : 'Fullscreen';
+}
+function requestAppFullscreen(keepRestoreOnError = false): void {
+  if (document.fullscreenElement) {
+    restoreFullscreenOnResume = false;
+    syncFullscreenButton();
+    return;
+  }
+  const userActivation = (navigator as Navigator & { readonly userActivation?: { readonly isActive: boolean } }).userActivation;
+  if (keepRestoreOnError && userActivation && !userActivation.isActive) {
+    syncFullscreenButton();
+    return;
+  }
+  syncFullscreenKeyboardLock(true);
+  const options: ExtendedFullscreenOptions = { navigationUI: 'hide', keyboardLock: 'browser' };
+  const promise = document.documentElement.requestFullscreen?.(options);
+  if (!promise) {
+    if (!keepRestoreOnError) restoreFullscreenOnResume = false;
+    syncFullscreenButton();
+    return;
+  }
+  void promise.then(() => {
+    restoreFullscreenOnResume = false;
+    syncFullscreenKeyboardLock(true);
+    syncFullscreenButton();
+  }).catch(() => {
+    if (!keepRestoreOnError) restoreFullscreenOnResume = false;
+    syncFullscreenButton();
+  });
+}
 function toggleFullscreen(): void {
-  if (!document.fullscreenElement) {
-    void document.documentElement.requestFullscreen?.().then(() => {
-      syncFullscreenKeyboardLock(true);
-    }).catch(() => {});
+  if (!document.fullscreenElement && (!restoreFullscreenOnResume || !workspace.isOpen)) {
+    exitingFullscreenIntentionally = false;
+    requestAppFullscreen(false);
   } else {
+    exitingFullscreenIntentionally = true;
+    restoreFullscreenOnResume = false;
     syncFullscreenKeyboardLock(false);
-    void document.exitFullscreen?.().catch(() => {});
+    syncFullscreenButton();
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => {
+        exitingFullscreenIntentionally = false;
+      });
+    } else {
+      exitingFullscreenIntentionally = false;
+    }
   }
 }
 fullscreenButton.addEventListener('click', toggleFullscreen);
 document.addEventListener('fullscreenchange', () => {
   const isFs = !!document.fullscreenElement;
-  syncFullscreenKeyboardLock(isFs);
-  fullscreenButton.setAttribute('aria-pressed', String(isFs));
-  fullscreenButton.textContent = isFs ? 'Exit fullscreen' : 'Fullscreen';
+  const exitedViaBrowserEscape = wasFullscreen && !isFs && !exitingFullscreenIntentionally;
+  wasFullscreen = isFs;
+  if (isFs) {
+    exitingFullscreenIntentionally = false;
+    restoreFullscreenOnResume = false;
+    syncFullscreenKeyboardLock(true);
+  } else {
+    exitingFullscreenIntentionally = false;
+    syncFullscreenKeyboardLock(false);
+    if (exitedViaBrowserEscape) {
+      restoreFullscreenOnResume = true;
+      workspace.handleFullscreenEscape();
+    }
+  }
+  syncFullscreenButton();
   profiler.event('fullscreen', { active: isFs });
 });
 profilerButton.addEventListener('click', toggleProfiler);
@@ -1309,10 +1441,11 @@ function executeAction(action: ActionId): void {
 
 gamepadManager.onShortcut(action => executeAction(action));
 touchControls.onShortcut(action => executeAction(action));
+touchControls.onZoom(factor => changeZoom(factor));
 touchControls.attach(element('flight-view').parentElement!);
 
 bindFlightInput({
-  keys, pointers, paused: () => session.paused, autoPause, visibility: updateBackground,
+  keys, pointers, paused: () => session.paused, autoPause, autoResume, visibility: updateBackground,
   isFlightKey(code) {
     const actions = keyLookup.get(code);
     return actions ? actions.some(isFlightAction) : false;
@@ -1625,12 +1758,12 @@ window.addEventListener('error', event => profiler.event('error',
   { message: event.message, source: event.filename, line: event.lineno, column: event.colno }));
 window.addEventListener('unhandledrejection', event => profiler.event('error', { message: String(event.reason) }));
 
-/** Hidden tabs get no animation frames; a hosting tab keeps its players' world moving on
- * a timer, which browsers slow to about once a second. */
+/** Hidden tabs get no animation frames; a hosting tab (or solo flight with Run in background enabled)
+ * keeps the world moving on a timer, which browsers slow to about once a second. */
 let background: ReturnType<typeof setInterval> | undefined;
 let backgroundAt = 0;
 function updateBackground(): void {
-  const wanted = document.hidden && isHosting();
+  const wanted = document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
   if (wanted && !background) {
     backgroundAt = performance.now();
     background = setInterval(() => {

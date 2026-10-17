@@ -15,6 +15,7 @@ export function bindFlightInput(options: {
   /** A module command key; true when one is bound to `code`. */
   readonly command: (code: string) => boolean;
   readonly autoPause: (reason: string) => void;
+  readonly autoResume?: (reason: string) => void;
   readonly visibility: () => void;
   readonly isFlightKey?: (code: string) => boolean;
   readonly isShortcutKey?: (code: string) => boolean;
@@ -38,11 +39,14 @@ export function bindFlightInput(options: {
   });
   window.addEventListener('keyup', event => { options.keys.delete(event.code); });
   window.addEventListener('blur', () => options.autoPause('Window lost focus'));
+  window.addEventListener('focus', () => options.autoResume?.('Window focused'));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) options.autoPause('Tab was hidden');
+    else options.autoResume?.('Tab was shown');
     options.visibility();
   });
   window.addEventListener('pagehide', () => options.autoPause('Page was hidden'));
+  window.addEventListener('pageshow', () => options.autoResume?.('Page was shown'));
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-hold]')) {
     button.setAttribute('aria-pressed', 'false');
     button.addEventListener('pointerdown', event => {

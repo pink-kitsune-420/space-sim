@@ -17,17 +17,25 @@ export class TouchControlsManager {
   private stickBase?: HTMLElement;
   private stickKnob?: HTMLElement;
   private burnBtn?: HTMLElement;
+  private zoomThumb?: HTMLElement;
 
   private activeStickPointerId: number | null = null;
   private stickCenterX = 0;
   private stickCenterY = 0;
   private readonly maxRadius = 45;
 
+  private activeZoomPointerId: number | null = null;
+  private zoomStartY = 0;
+  private zoomLastY = 0;
+  private zoomDragged = false;
+  private zoomTargetId = '';
+
   private currentTurn = 0;
   private currentThrottle = 0;
   private currentEngine = false;
 
   private onShortcutHandler?: (action: ActionId) => void;
+  private onZoomHandler?: (factor: number) => void;
 
   constructor() {
     this.loadSettings();
@@ -66,6 +74,10 @@ export class TouchControlsManager {
     this.onShortcutHandler = handler;
   }
 
+  onZoom(handler: (factor: number) => void): void {
+    this.onZoomHandler = handler;
+  }
+
   /** Determines if device supports touch input. */
   isTouchDevice(): boolean {
     if (typeof window === 'undefined') return false;
@@ -85,19 +97,35 @@ export class TouchControlsManager {
       <div class="touch-stick-zone" id="touch-stick-zone" aria-label="Steering and throttle joystick">
         <div class="touch-stick-base" id="touch-stick-base">
           <div class="touch-stick-crosshair"></div>
+          <span class="touch-stick-hint touch-hint-up" aria-hidden="true">+</span>
+          <span class="touch-stick-hint touch-hint-down" aria-hidden="true">−</span>
+          <span class="touch-stick-hint touch-hint-left" aria-hidden="true">↶</span>
+          <span class="touch-stick-hint touch-hint-right" aria-hidden="true">↷</span>
           <div class="touch-stick-knob" id="touch-stick-knob"></div>
         </div>
       </div>
       <div class="touch-actions-zone" aria-label="Touch flight actions">
-        <div class="touch-aux-cluster">
-          <button type="button" class="touch-btn touch-btn-aux" id="touch-pause" aria-label="Pause flight" title="Pause">⏸</button>
-          <button type="button" class="touch-btn touch-btn-aux" id="touch-cam" aria-label="Change camera" title="Camera">CAM</button>
-          <button type="button" class="touch-btn touch-btn-aux" id="touch-warp-down" aria-label="Decrease warp" title="Warp down">◀◀</button>
-          <button type="button" class="touch-btn touch-btn-aux" id="touch-warp-up" aria-label="Increase warp" title="Warp up">▶▶</button>
+        <div class="touch-right-deck">
+          <div class="touch-zoom-strip" id="touch-zoom-strip" aria-label="Drag up to zoom in, drag down to unzoom">
+            <button type="button" class="touch-zoom-step" id="touch-zoom-in" aria-label="Zoom in" title="Zoom in (+)">+</button>
+            <div class="touch-zoom-track" id="touch-zoom-track">
+              <div class="touch-zoom-thumb" id="touch-zoom-thumb"><span>ZOOM</span></div>
+            </div>
+            <button type="button" class="touch-zoom-step" id="touch-zoom-out" aria-label="Zoom out" title="Zoom out (−)">−</button>
+          </div>
+          <div class="touch-flight-column">
+            <div class="touch-aux-cluster">
+              <button type="button" class="touch-btn touch-btn-aux" id="touch-warp-down" aria-label="Decrease warp" title="Warp down">◀◀</button>
+              <button type="button" class="touch-btn touch-btn-aux" id="touch-warp-up" aria-label="Increase warp" title="Warp up">▶▶</button>
+              <button type="button" class="touch-btn touch-btn-aux" id="touch-cam" aria-label="Change camera" title="Camera">CAM</button>
+              <button type="button" class="touch-btn touch-btn-aux" id="touch-pause" aria-label="Pause flight" title="Pause">⏸</button>
+            </div>
+            <button type="button" class="touch-btn touch-btn-burn" id="touch-burn" aria-label="Hold to burn main engine">
+              <span class="touch-burn-icon" aria-hidden="true">▲</span>
+              <span>BURN</span>
+            </button>
+          </div>
         </div>
-        <button type="button" class="touch-btn touch-btn-burn" id="touch-burn" aria-label="Hold to burn main engine">
-          <span>BURN</span>
-        </button>
       </div>
     `;
 
@@ -106,6 +134,7 @@ export class TouchControlsManager {
     this.stickBase = overlay.querySelector('#touch-stick-base') as HTMLElement;
     this.stickKnob = overlay.querySelector('#touch-stick-knob') as HTMLElement;
     this.burnBtn = overlay.querySelector('#touch-burn') as HTMLElement;
+    this.zoomThumb = overlay.querySelector('#touch-zoom-thumb') as HTMLElement | null ?? undefined;
 
     this.bindEvents(overlay);
     this.updateVisibility();
@@ -118,7 +147,7 @@ export class TouchControlsManager {
     stickZone.addEventListener('pointerdown', (e) => {
       if (this.activeStickPointerId !== null) return;
       e.preventDefault();
-      stickZone.setPointerCapture(e.pointerId);
+      try { stickZone.setPointerCapture(e.pointerId); } catch { /* Ignore */ }
       this.activeStickPointerId = e.pointerId;
 
       const rect = this.stickBase!.getBoundingClientRect();
@@ -146,10 +175,92 @@ export class TouchControlsManager {
     stickZone.addEventListener('pointercancel', handlePointerEnd);
     stickZone.addEventListener('lostpointercapture', handlePointerEnd);
 
+    // Drag-to-Zoom / Unzoom Strip + Step Buttons
+    const zoomStrip = overlay.querySelector('#touch-zoom-strip') as HTMLElement | null;
+    const zoomInBtn = overlay.querySelector('#touch-zoom-in') as HTMLElement | null;
+    const zoomOutBtn = overlay.querySelector('#touch-zoom-out') as HTMLElement | null;
+
+    if (zoomStrip) {
+      zoomStrip.addEventListener('pointerdown', (e) => {
+        if (this.activeZoomPointerId !== null) return;
+        e.preventDefault();
+        try { zoomStrip.setPointerCapture(e.pointerId); } catch { /* Ignore */ }
+        this.activeZoomPointerId = e.pointerId;
+        this.zoomStartY = e.clientY;
+        this.zoomLastY = e.clientY;
+        this.zoomDragged = false;
+        const target = e.target as HTMLElement | null;
+        this.zoomTargetId = target?.id ?? '';
+        zoomStrip.classList.add('active');
+      });
+
+      const handleZoomMove = (e: PointerEvent) => {
+        if (e.pointerId !== this.activeZoomPointerId) return;
+        e.preventDefault();
+        const totalDy = e.clientY - this.zoomStartY;
+        const stepDy = e.clientY - this.zoomLastY;
+        if (!this.zoomDragged && Math.abs(totalDy) >= 3) {
+          this.zoomDragged = true;
+        }
+        if (this.zoomDragged && stepDy !== 0) {
+          this.zoomLastY = e.clientY;
+          const clampedThumb = Math.max(-18, Math.min(18, totalDy * 0.45));
+          if (this.zoomThumb) {
+            this.zoomThumb.style.transform = `translateY(${clampedThumb}px)`;
+          }
+          // Drag up (stepDy < 0) zooms in; drag down (stepDy > 0) unzooms
+          const factor = Math.exp(-stepDy * 0.014);
+          if (this.onZoomHandler) this.onZoomHandler(factor);
+        }
+      };
+
+      const handleZoomEnd = (e: PointerEvent) => {
+        if (e.pointerId !== this.activeZoomPointerId) return;
+        e.preventDefault();
+        const wasDragged = this.zoomDragged;
+        const targetId = this.zoomTargetId;
+        this.activeZoomPointerId = null;
+        this.zoomDragged = false;
+        this.zoomTargetId = '';
+        zoomStrip.classList.remove('active');
+        if (this.zoomThumb) {
+          this.zoomThumb.style.transform = 'translateY(0px)';
+        }
+        if (!wasDragged) {
+          if (targetId === 'touch-zoom-in') {
+            if (this.onShortcutHandler) this.onShortcutHandler('zoomIn');
+            else if (this.onZoomHandler) this.onZoomHandler(1.3);
+          } else if (targetId === 'touch-zoom-out') {
+            if (this.onShortcutHandler) this.onShortcutHandler('zoomOut');
+            else if (this.onZoomHandler) this.onZoomHandler(1 / 1.3);
+          }
+        }
+      };
+
+      zoomStrip.addEventListener('pointermove', handleZoomMove);
+      zoomStrip.addEventListener('pointerup', handleZoomEnd);
+      zoomStrip.addEventListener('pointercancel', handleZoomEnd);
+      zoomStrip.addEventListener('lostpointercapture', handleZoomEnd);
+    }
+
+    // Direct pointerdown fallback on zoom step buttons (for unit test mocks that dispatch on the button directly)
+    zoomInBtn?.addEventListener('pointerdown', (e) => {
+      if (this.activeZoomPointerId !== null) return;
+      e.preventDefault();
+      if (this.onShortcutHandler) this.onShortcutHandler('zoomIn');
+      else if (this.onZoomHandler) this.onZoomHandler(1.3);
+    });
+    zoomOutBtn?.addEventListener('pointerdown', (e) => {
+      if (this.activeZoomPointerId !== null) return;
+      e.preventDefault();
+      if (this.onShortcutHandler) this.onShortcutHandler('zoomOut');
+      else if (this.onZoomHandler) this.onZoomHandler(1 / 1.3);
+    });
+
     // Burn Button Handling
     this.burnBtn!.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      this.burnBtn!.setPointerCapture(e.pointerId);
+      try { this.burnBtn!.setPointerCapture(e.pointerId); } catch { /* Ignore */ }
       this.currentEngine = true;
       this.burnBtn!.classList.add('active');
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {

@@ -16,6 +16,7 @@ import {
   formatControllerButton,
   getControllerFamilyDisplayName,
 } from '../../apps/web/src/gamepad';
+import { bindFlightInput } from '../../apps/web/src/input';
 
 describe('input configuration and keybindings', () => {
   let mockStorage: Record<string, string> = {};
@@ -248,6 +249,66 @@ describe('gamepad manager', () => {
     expect(formatControllerButton(4, 'playstation')).toBe('L1');
     expect(formatControllerButton(5, 'playstation')).toBe('R1');
     expect(formatControllerButton(7, 'playstation')).toBe('R2 Trigger');
+  });
+});
+
+describe('bindFlightInput lifecycle events', () => {
+  it('calls autoPause on blur and pagehide, and autoResume on focus and pageshow', () => {
+    const windowListeners: Record<string, Function[]> = {};
+    const docListeners: Record<string, Function[]> = {};
+
+    const mockWindow = {
+      addEventListener: (type: string, fn: Function) => {
+        windowListeners[type] = windowListeners[type] || [];
+        windowListeners[type].push(fn);
+      },
+    };
+    const mockDocument = {
+      addEventListener: (type: string, fn: Function) => {
+        docListeners[type] = docListeners[type] || [];
+        docListeners[type].push(fn);
+      },
+      querySelectorAll: () => [],
+      hidden: false,
+    };
+
+    vi.stubGlobal('window', mockWindow);
+    vi.stubGlobal('document', mockDocument);
+
+    const pauses: string[] = [];
+    const resumes: string[] = [];
+    bindFlightInput({
+      keys: new Set(),
+      pointers: new Map(),
+      paused: () => false,
+      shortcut: () => {},
+      command: () => false,
+      autoPause: (reason) => pauses.push(reason),
+      autoResume: (reason) => resumes.push(reason),
+      visibility: () => {},
+    });
+
+    // blur triggers autoPause
+    for (const h of windowListeners['blur'] || []) h();
+    expect(pauses).toContain('Window lost focus');
+
+    // focus triggers autoResume
+    for (const h of windowListeners['focus'] || []) h();
+    expect(resumes).toContain('Window focused');
+
+    // visibility change hidden triggers autoPause
+    mockDocument.hidden = true;
+    for (const h of docListeners['visibilitychange'] || []) h();
+    expect(pauses).toContain('Tab was hidden');
+
+    // visibility change visible triggers autoResume
+    mockDocument.hidden = false;
+    for (const h of docListeners['visibilitychange'] || []) h();
+    expect(resumes).toContain('Tab was shown');
+
+    // pageshow triggers autoResume
+    for (const h of windowListeners['pageshow'] || []) h();
+    expect(resumes).toContain('Page was shown');
   });
 });
 

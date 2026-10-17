@@ -30,6 +30,9 @@ packages/tile-core/
 games/space-sim-nextgen/
 tests/unit/tile-core.test.ts
 
+# Idea tracker
+game-ideas.md
+
 # Local credentials, agent state and private working notes.
 .aws/
 .codex/

@@ -181,4 +181,59 @@ describe('touchscreen overlay controller', () => {
     pauseBtn.dispatchEvent(new MockPointerEvent('pointerdown', { pointerId: 4 }));
     expect(lastShortcut).toBe('pause');
   });
+
+  it('triggers onZoom on zoom in and zoom out button taps', () => {
+    const container = createMockElement('div');
+    const manager = new TouchControlsManager();
+    manager.saveMode('always');
+    manager.attach(container);
+
+    const zoomFactors: number[] = [];
+    manager.onZoom((factor) => {
+      zoomFactors.push(factor);
+    });
+
+    const zoomInBtn = container.querySelector('#touch-zoom-in') as any;
+    expect(zoomInBtn).not.toBeNull();
+    zoomInBtn.dispatchEvent(new MockPointerEvent('pointerdown', { pointerId: 5 }));
+    expect(zoomFactors.length).toBe(1);
+    expect(zoomFactors[0]).toBeGreaterThan(1); // Zoom in factor > 1
+
+    const zoomOutBtn = container.querySelector('#touch-zoom-out') as any;
+    expect(zoomOutBtn).not.toBeNull();
+    zoomOutBtn.dispatchEvent(new MockPointerEvent('pointerdown', { pointerId: 6 }));
+    expect(zoomFactors.length).toBe(2);
+    expect(zoomFactors[1]).toBeLessThan(1); // Zoom out factor < 1
+  });
+
+  it('triggers onZoom on vertical drag on touch zoom strip', () => {
+    const container = createMockElement('div');
+    const manager = new TouchControlsManager();
+    manager.saveMode('always');
+    manager.attach(container);
+
+    const zoomFactors: number[] = [];
+    manager.onZoom((factor) => {
+      zoomFactors.push(factor);
+    });
+
+    const zoomStrip = container.querySelector('#touch-zoom-strip') as any;
+    expect(zoomStrip).not.toBeNull();
+
+    // Pointer down at y=100
+    zoomStrip.dispatchEvent(new MockPointerEvent('pointerdown', { pointerId: 7, clientY: 100 }));
+    // Drag up to y=70 (dy = -30, should zoom in)
+    zoomStrip.dispatchEvent(new MockPointerEvent('pointermove', { pointerId: 7, clientY: 70 }));
+    expect(zoomFactors.length).toBe(1);
+    expect(zoomFactors[0]).toBeGreaterThan(1);
+
+    // Drag down to y=110 (dy = +40, should zoom out / unzoom)
+    zoomStrip.dispatchEvent(new MockPointerEvent('pointermove', { pointerId: 7, clientY: 110 }));
+    expect(zoomFactors.length).toBe(2);
+    expect(zoomFactors[1]).toBeLessThan(1);
+
+    // Release
+    zoomStrip.dispatchEvent(new MockPointerEvent('pointerup', { pointerId: 7, clientY: 110 }));
+  });
 });
+

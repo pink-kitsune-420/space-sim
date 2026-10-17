@@ -2,10 +2,13 @@ import { element } from './ui';
 
 export type Panel = 'setup' | 'data' | 'fleet' | 'multiplayer' | 'library' | 'tools';
 
+const ESCAPE_TOGGLE_WAIT_MS = 300;
+
 /** Keep flight in one full-bleed viewport; all settings and tools share one tabbed menu drawer. */
 export class Workspace {
   private active: Panel | undefined;
   private lastPanel: Panel = 'setup';
+  private lastEscapeToggleAt = -Infinity;
   private readonly drawer = document.createElement('section');
   private readonly title = document.createElement('h2');
   private readonly content = document.createElement('div');
@@ -13,7 +16,10 @@ export class Workspace {
   private readonly panels = new Map<Panel, HTMLElement>();
   private readonly titles = new Map<Panel, string>();
 
-  constructor(private readonly release: () => void) {
+  constructor(
+    private readonly release: () => void,
+    private readonly onClose?: () => void,
+  ) {
     const take = (selector: string): HTMLElement => document.querySelector<HTMLElement>(selector)!;
     const viewport = take('.viewport');
     const setup = take('.setup-card');
@@ -38,7 +44,7 @@ export class Workspace {
     this.menuButton.setAttribute('aria-expanded', 'false');
     this.menuButton.setAttribute('aria-pressed', 'false');
     this.menuButton.innerHTML = '<span class="menu-icon" aria-hidden="true">☰</span><span>Menu</span><kbd>Esc</kbd>';
-    this.menuButton.onclick = () => this.active ? this.close(true) : this.open(this.lastPanel);
+    this.menuButton.onclick = () => this.toggle(false);
 
     const hudStatus = document.createElement('div');
     hudStatus.className = 'hud-status';
@@ -89,7 +95,7 @@ export class Workspace {
     close.className = 'drawer-close';
     close.textContent = 'Close ×';
     close.setAttribute('aria-label', 'Close panel');
-    close.onclick = () => this.close(true);
+    close.onclick = () => this.close(true, false);
     topBar.append(brand, close);
 
     const nav = take('.workspace-nav');
@@ -98,7 +104,7 @@ export class Workspace {
     flight.type = 'button';
     flight.textContent = 'Flight';
     flight.dataset.workspace = 'flight';
-    flight.onclick = () => this.close(true);
+    flight.onclick = () => this.close(true, false);
     nav.append(flight);
 
     for (const [id, title, nodes] of groups) {
@@ -137,15 +143,17 @@ export class Workspace {
     document.querySelector('footer')?.remove();
 
     document.addEventListener('keydown', event => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (event.key !== 'Escape' || event.repeat || event.defaultPrevented) return;
       const controlsModal = document.getElementById('controls-dialog') as HTMLDialogElement | null;
       if (controlsModal?.open || (event.target instanceof Node && controlsModal?.contains(event.target))) return;
       event.preventDefault();
-      if (this.active) this.close(true);
-      else this.open(this.lastPanel);
+      const now = performance.now();
+      if (now - this.lastEscapeToggleAt < ESCAPE_TOGGLE_WAIT_MS) return;
+      this.lastEscapeToggleAt = now;
+      this.toggle(true);
     });
     document.addEventListener('pointerdown', event => {
-      if (event.target instanceof HTMLCanvasElement && event.target.id === 'flight-view') this.close();
+      if (event.target instanceof HTMLCanvasElement && event.target.id === 'flight-view') this.close(false, false);
     }, true);
     // Imports remain reviewable even when initiated through a hidden file input.
     document.addEventListener('change', event => {
@@ -159,6 +167,29 @@ export class Workspace {
     this.updateButtons();
   }
 
+  get isOpen(): boolean {
+    return this.active !== undefined;
+  }
+
+  toggle(fromEscape = false): void {
+    if (this.active) this.close(true, fromEscape);
+    else this.open(this.lastPanel);
+  }
+
+  /** When a browser (such as Firefox) intercepts Escape to exit DOM fullscreen, toggle the menu if keydown hasn't just toggled it. */
+  handleFullscreenEscape(): void {
+    const now = performance.now();
+    if (now - this.lastEscapeToggleAt < ESCAPE_TOGGLE_WAIT_MS) return;
+    const controlsModal = document.getElementById('controls-dialog') as HTMLDialogElement | null;
+    if (controlsModal?.open) {
+      this.lastEscapeToggleAt = now;
+      controlsModal.close();
+      return;
+    }
+    this.lastEscapeToggleAt = now;
+    this.toggle(true);
+  }
+
   open(panel: Panel = this.lastPanel): void {
     this.release();
     this.active = panel;
@@ -170,11 +201,13 @@ export class Workspace {
     this.updateButtons();
   }
 
-  private close(focus = false): void {
+  private close(focus = false, fromEscape = false): void {
+    const wasOpen = this.active !== undefined;
     this.active = undefined;
     this.drawer.hidden = true;
     this.updateButtons();
     if (focus) element('flight-view').focus({ preventScroll: true });
+    if (wasOpen && !fromEscape) this.onClose?.();
   }
 
   private updateButtons(): void {
