@@ -131,10 +131,20 @@ function visibleAngles(body: RenderBody, camera: Camera, width: number, height: 
   return [theta + low, theta + high];
 }
 
+/** The same view from the body's turning frame: terrain is generated and cached there. */
+function bodyFrameCamera(body: RenderBody, camera: Camera): Camera {
+  const angle = body.rotation ?? 0;
+  if (!angle) return camera;
+  const x = camera.center.x - body.position.x, y = camera.center.y - body.position.y;
+  const c = Math.cos(angle), s = Math.sin(angle);
+  return { ...camera, center: { x: body.position.x + x * c + y * s, y: body.position.y - x * s + y * c },
+    rotation: camera.rotation + angle };
+}
+
 const LAST_GEOMETRY = new WeakMap<SurfaceProfile, { key: string; geometry: TerrainGeometry }>();
 /** One last view per immutable profile; no growing history of zoom levels or universes. */
-export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, camera: Camera, width: number, height: number): TerrainGeometry {
-  const profile = body.surface;
+export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, view: Camera, width: number, height: number): TerrainGeometry {
+  const profile = body.surface, camera = bodyFrameCamera(body, view);
   const key = JSON.stringify([camera.center.x - body.position.x, camera.center.y - body.position.y,
     camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor]);
   const cached = LAST_GEOMETRY.get(profile);

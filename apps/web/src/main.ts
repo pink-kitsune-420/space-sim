@@ -24,10 +24,11 @@ import { CameraController } from './camera';
 import { CommandBar } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
 import { Prediction } from './prediction';
+import { SpinView } from './spin-view';
 import './style.css';
 import {
   DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
-  magnitude, querySurface, nextWarpFactor,
+  magnitude, querySurface, nextWarpFactor, rotate, spinAngle,
   type Controls, type ResolvedBody, type State,
   type UniverseDefinition, type Vec, type SurfaceContactEvent
 } from '../../../packages/sim-core/src/index';
@@ -37,7 +38,7 @@ import { ClientSession } from '../../../packages/net/src/client';
 import type { Connection } from '../../../packages/net/src/connection';
 import { connectWebSocket, serverUrl } from '../../../packages/net/src/websocket';
 import { OCEAN_UNIVERSE, TERRAIN_UNIVERSE } from '../../../packages/scenarios/builtin';
-import { interpolateState, type Camera, type RenderShip } from '../../../packages/render-2d/src/index';
+import { type Camera, type RenderShip } from '../../../packages/render-2d/src/index';
 import type { CommandExtension, PresentationSnapshot } from '../../../packages/game-api/src/index';
 import { Profiler, createRows } from './profiler';
 import { FleetView } from './fleet-view';
@@ -192,6 +193,7 @@ function preparePads(world: World): void {
 }
 
 const prediction = new Prediction(pass => profiler.event('prediction', pass));
+const spinView = new SpinView();
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
 const isHosting = (): boolean => session === local && local.hosting;
@@ -512,7 +514,7 @@ function syncWarpUI(): void {
   warpUpButton.title = canWarp ? 'Increase time warp (] or .)' : 'Only the host controls time warp';
   const warpText = `${session.warp}×`;
   if (warpFactorSpan.textContent !== warpText) warpFactorSpan.textContent = warpText;
-  show('warp-rate', session.warp > 1 ? `WARP · ${session.warp}×` : 'REAL TIME · 1×');
+  show('warp-rate', session.warp > 1 ? `WARP · ${session.warp}×${spinView.holding.has(activeBody.id) ? ' · SPIN HELD' : ''}` : 'REAL TIME · 1×');
   if (lastWarp > 1 && session.warp === 1 && session.warpReason) {
     notify(`Warp dropped: ${session.warpReason}`);
     profiler.event('warp-drop', { reason: session.warpReason, time: state.time });
@@ -1609,7 +1611,9 @@ function activeOrbitSource(): { readonly position: Vec; readonly velocity: Vec }
 
 function groundClearance(): number {
   const surface = session.world.surface(activeBody.id);
-  const ground = surface ? querySurface(surface, Math.atan2(state.position.y, state.position.x)).firstContactRadius : activeBody.radius;
+  // Terrain turns with the body; a flying state is inertial.
+  const local = state.status === 'flying' ? rotate(state.position, -spinAngle(activeBody, state.time)) : state.position;
+  const ground = surface ? querySurface(surface, Math.atan2(local.y, local.x)).firstContactRadius : activeBody.radius;
   return magnitude(state.position) - ground;
 }
 
@@ -1747,6 +1751,8 @@ function otherShips(time: number, alpha: number, camera: Camera): RenderShip[] {
     playerId: session.playerId, camera, width: canvas.clientWidth, height: canvas.clientHeight,
     previous: id => session.previous(id), displayOffset: id => session.displayOffset(id),
     playerName: id => session.playerName(id),
+    display: (s, bodyId) => spinView.state(s, session.world.body(bodyId)),
+    interpolate: (from, to, alpha, bodyId) => spinView.interpolate(from, to, alpha, session.world.body(bodyId)),
     isRock: ship => ship.ownerId === STRESS_OWNER && ship.id.startsWith(STRESS_ROCK_PREFIX) });
 }
 
@@ -1787,7 +1793,9 @@ function frame(now: number): void {
   updatePrediction(elapsed, engine);
   profiler.lap('prediction');
   const before = selectedShipId ? session.previous(selectedShipId) : undefined;
-  view = session.paused || !before || before.bodyId !== activeBody.id ? state : interpolateState(before.state, state, session.alpha);
+  spinView.update(session.world.system.getAllBodies(), state.time, elapsed, reducedMotion.matches);
+  view = session.paused || !before || before.bodyId !== activeBody.id ? spinView.state(state, activeBody)
+    : spinView.interpolate(before.state, state, session.alpha, activeBody);
   if (ship) {
     const offset = session.displayOffset(ship.id);
     if (offset.x || offset.y) view = { ...view, position: { x: view.position.x + offset.x, y: view.position.y + offset.y } };
@@ -1814,13 +1822,15 @@ function frame(now: number): void {
       surfaceFeatures: b.surfaceFeatures,
       parentPosition: parentPos,
       orbitRadius: orbitR,
+      ...(b.rotation ? { rotation: spinView.angle(b, view.time) } : {}),
     };
   });
 
   const activeBodyPos = world.system.getBodyPosition(activeBody.id, view.time);
   const shipWorld = ship ? bodyWorldPosition(activeBody.id, view.time, view.position) : { x: 1e30, y: 1e30 };
   const pad = padSites.get(world)!.get(activeBody.id);
-  const padWorld = pad ? { x: activeBodyPos.x + pad.position.x, y: activeBodyPos.y + pad.position.y } : { x: 1e30, y: 1e30 };
+  const padAt = pad && spinView.point(activeBody, view.time, pad.position);
+  const padWorld = padAt ? { x: activeBodyPos.x + padAt.x, y: activeBodyPos.y + padAt.y } : { x: 1e30, y: 1e30 };
 
   // Presentation hooks share one frozen snapshot, built only when a module needs it.
   const width = canvas.clientWidth, height = canvas.clientHeight;
@@ -1844,7 +1854,7 @@ function frame(now: number): void {
     shipWorldPosition: shipWorld,
     pathOrigin: activeBodyPos,
     padPosition: padWorld,
-    padNormal: pad?.normal,
+    padNormal: pad && spinView.point(activeBody, view.time, pad.normal),
     shipLabel: ship?.name.toUpperCase(),
     ships: others,
     ...(overlays ? { overlays } : {}),

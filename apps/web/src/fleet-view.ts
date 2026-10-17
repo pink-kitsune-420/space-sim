@@ -18,6 +18,10 @@ export interface FleetViewInput {
   isRock?(ship: Ship): boolean;
   displayOffset(shipId: string): Vec;
   playerName(id: string): string | undefined;
+  /** A state in the drawn frame (a ship resting on a turning body); as is when absent. */
+  display?(state: State, bodyId: string): State;
+  /** Blend two steps in the drawn frame; `interpolateState` when absent. */
+  interpolate?(from: State, to: State, alpha: number, bodyId: string): State;
 }
 
 export interface FleetViewStats {
@@ -83,8 +87,8 @@ export class FleetView {
       } else {
         this.placed.delete(ship.id);
         const before = input.previous(ship.id);
-        state = input.paused || !before || before.bodyId !== ship.bodyId ? ship.state
-          : interpolateState(before.state, ship.state, input.alpha);
+        state = input.paused || !before || before.bodyId !== ship.bodyId ? input.display?.(ship.state, ship.bodyId) ?? ship.state
+          : input.interpolate?.(before.state, ship.state, input.alpha, ship.bodyId) ?? interpolateState(before.state, ship.state, input.alpha);
       }
       const offset = input.displayOffset(ship.id);
       const x = bodyAt.x + state.position.x + offset.x, y = bodyAt.y + state.position.y + offset.y;

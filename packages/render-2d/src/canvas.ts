@@ -469,9 +469,9 @@ export class CanvasRenderer implements Renderer {
           drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.skyColor ?? b.atmosphereColor);
           if (r >= 18) {
             if (b.surfaceFeatures === 'craters') {
-              drawCraterLines(ctx, pos.x, pos.y, r, -camera.rotation);
+              drawCraterLines(ctx, pos.x, pos.y, r, -camera.rotation - (b.rotation ?? 0));
             } else if (b.surfaceFeatures !== 'smooth') {
-              drawPlanetLines(ctx, pos.x, pos.y, r, -camera.rotation);
+              drawPlanetLines(ctx, pos.x, pos.y, r, -camera.rotation - (b.rotation ?? 0));
             }
           }
         }

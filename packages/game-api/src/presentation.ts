@@ -25,6 +25,8 @@ export interface RenderBody {
   readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';
   readonly parentPosition?: Vec;
   readonly orbitRadius?: number;
+  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */
+  readonly rotation?: number;
 }
 /** Another vessel in the same world: one of this player's fleet, or someone else's. */
 export interface RenderShip {
