@@ -104,59 +104,54 @@ jobs:
       - name: Prepare Release Distribution Files
         run: |
           mkdir -p release-files
+          TAG="${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}"
 
           # Linux Standalone Executables
           if [ -f all-artifacts/space-sim-linux/dist-desktop/space-sim ]; then
-            cp all-artifacts/space-sim-linux/dist-desktop/space-sim release-files/space-sim-linux-x64
-            chmod +x release-files/space-sim-linux-x64
-            tar -czf release-files/space-sim-linux-x64.tar.gz -C all-artifacts/space-sim-linux/dist-desktop space-sim
+            tar -czf "release-files/space-sim-${TAG}-linux-x64.tar.gz" -C all-artifacts/space-sim-linux/dist-desktop space-sim NODE-LICENSE.txt
           elif [ -f all-artifacts/space-sim-linux/space-sim ]; then
-            cp all-artifacts/space-sim-linux/space-sim release-files/space-sim-linux-x64
-            chmod +x release-files/space-sim-linux-x64
-            tar -czf release-files/space-sim-linux-x64.tar.gz -C all-artifacts/space-sim-linux space-sim
+            tar -czf "release-files/space-sim-${TAG}-linux-x64.tar.gz" -C all-artifacts/space-sim-linux space-sim
           fi
 
           # Linux Dedicated Server
           if [ -f all-artifacts/space-sim-linux/dist-server/space-sim-server ]; then
-            cp all-artifacts/space-sim-linux/dist-server/space-sim-server release-files/space-sim-server-linux-x64
-            chmod +x release-files/space-sim-server-linux-x64
-            tar -czf release-files/space-sim-server-linux-x64.tar.gz -C all-artifacts/space-sim-linux/dist-server space-sim-server
+            tar -czf "release-files/space-sim-server-${TAG}-linux-x64.tar.gz" -C all-artifacts/space-sim-linux/dist-server space-sim-server
           elif [ -f all-artifacts/space-sim-linux/space-sim-server ]; then
-            cp all-artifacts/space-sim-linux/space-sim-server release-files/space-sim-server-linux-x64
-            chmod +x release-files/space-sim-server-linux-x64
-            tar -czf release-files/space-sim-server-linux-x64.tar.gz -C all-artifacts/space-sim-linux space-sim-server
+            tar -czf "release-files/space-sim-server-${TAG}-linux-x64.tar.gz" -C all-artifacts/space-sim-linux space-sim-server
           fi
 
           # Windows Standalone Executables
           if [ -f all-artifacts/space-sim-windows/dist-desktop/space-sim.exe ]; then
-            (cd all-artifacts/space-sim-windows/dist-desktop && zip -j ../../../release-files/space-sim-windows-x64.zip space-sim.exe)
+            (cd all-artifacts/space-sim-windows/dist-desktop && zip -j "../../../release-files/space-sim-${TAG}-windows-x64.zip" space-sim.exe NODE-LICENSE.txt)
           elif [ -f all-artifacts/space-sim-windows/space-sim.exe ]; then
-            (cd all-artifacts/space-sim-windows && zip -j ../../release-files/space-sim-windows-x64.zip space-sim.exe)
+            (cd all-artifacts/space-sim-windows && zip -j "../../release-files/space-sim-${TAG}-windows-x64.zip" space-sim.exe)
           fi
 
           # Windows Dedicated Server
           if [ -f all-artifacts/space-sim-windows/dist-server/space-sim-server.exe ]; then
-            (cd all-artifacts/space-sim-windows/dist-server && zip -j ../../../release-files/space-sim-server-windows-x64.zip space-sim-server.exe)
+            (cd all-artifacts/space-sim-windows/dist-server && zip -j "../../../release-files/space-sim-server-${TAG}-windows-x64.zip" space-sim-server.exe)
           elif [ -f all-artifacts/space-sim-windows/space-sim-server.exe ]; then
-            (cd all-artifacts/space-sim-windows && zip -j ../../release-files/space-sim-server-windows-x64.zip space-sim-server.exe)
+            (cd all-artifacts/space-sim-windows && zip -j "../../release-files/space-sim-server-${TAG}-windows-x64.zip" space-sim-server.exe)
           fi
 
           # macOS Standalone Executables
           if [ -f all-artifacts/space-sim-macos/dist-desktop/space-sim ]; then
-            tar -czf release-files/space-sim-macos-arm64.tar.gz -C all-artifacts/space-sim-macos/dist-desktop space-sim
+            tar -czf "release-files/space-sim-${TAG}-macos-arm64.tar.gz" -C all-artifacts/space-sim-macos/dist-desktop space-sim NODE-LICENSE.txt
           elif [ -f all-artifacts/space-sim-macos/space-sim ]; then
-            tar -czf release-files/space-sim-macos-arm64.tar.gz -C all-artifacts/space-sim-macos space-sim
+            tar -czf "release-files/space-sim-${TAG}-macos-arm64.tar.gz" -C all-artifacts/space-sim-macos space-sim
           fi
 
           # macOS Dedicated Server
           if [ -f all-artifacts/space-sim-macos/dist-server/space-sim-server ]; then
-            tar -czf release-files/space-sim-server-macos-arm64.tar.gz -C all-artifacts/space-sim-macos/dist-server space-sim-server
+            tar -czf "release-files/space-sim-server-${TAG}-macos-arm64.tar.gz" -C all-artifacts/space-sim-macos/dist-server space-sim-server
           elif [ -f all-artifacts/space-sim-macos/space-sim-server ]; then
-            tar -czf release-files/space-sim-server-macos-arm64.tar.gz -C all-artifacts/space-sim-macos space-sim-server
+            tar -czf "release-files/space-sim-server-${TAG}-macos-arm64.tar.gz" -C all-artifacts/space-sim-macos space-sim-server
           fi
 
           # Offline Web & Bundles
-          find all-artifacts/space-sim-offline-html -name "*.html" -exec cp {} release-files/ \;
+          if [ -f all-artifacts/space-sim-offline-html/space-sim-offline.html ]; then
+            cp all-artifacts/space-sim-offline-html/space-sim-offline.html "release-files/space-sim-${TAG}-offline.html"
+          fi
           find all-artifacts/space-sim-offline-html -name "*.spacegame" -exec cp {} release-files/ \;
           find all-artifacts/space-sim-offline-html -name "*.spaceuniverse" -exec cp {} release-files/ \;
 
