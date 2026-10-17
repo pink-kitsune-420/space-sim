@@ -30,12 +30,13 @@ export class CameraController {
   setZoom(zoom: number, maximum = 10): void { this.zoom = Math.max(MIN_ZOOM, Math.min(maximum, zoom)); }
   changeZoom(factor: number): void { this.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoom * factor)); }
 
-  followShip(): void { this.mode = 'follow'; this.pan = { x: 0, y: 0 }; this.dragged = false; }
-  planetView(): void { this.mode = 'free'; this.pan = { x: 0, y: 0 }; this.dragged = false; }
+  followShip(): void { this.mode = 'follow'; this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); }
+  planetView(): void { this.mode = 'free'; this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); }
   /** Recentre a free view on the active body; other modes are unchanged. */
-  recenter(): void { this.pan = { x: 0, y: 0 }; this.dragged = false; }
+  recenter(): void { this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); }
   /** Follow ship → planet view → each module mode → follow ship. A dragged view returns to following. */
   cycle(cameras: readonly CameraExtension[]): void {
+    this.stopFling();
     if (this.mode === 'follow') { this.planetView(); return; }
     const next = this.mode === 'free' ? (this.dragged ? undefined : cameras[0])
       : cameras[cameras.findIndex(c => c.id === this.mode) + 1];
@@ -51,10 +52,30 @@ export class CameraController {
   }
   /** Screen-space drag (CSS pixels) from whichever mode is active into a free view. */
   drag(delta: Vec, body: Vec, ship: Vec, width: number, height: number): void {
+    this.stopFling();
     const relative = this.mode === 'free' ? this.pan : this.mode === 'follow' ? ship
       : { x: this.last.center.x - body.x, y: this.last.center.y - body.y };
     this.pan = dragCamera({ center: relative, rotation: this.rotation, scale: this.scale(width, height) }, delta).center;
     this.mode = 'free'; this.dragged = true;
+  }
+
+  /** Inertial pan velocity (world metres per second). */
+  panVelocity: Vec = { x: 0, y: 0 };
+
+  stopFling(): void {
+    this.panVelocity = { x: 0, y: 0 };
+  }
+
+  /** Throw the camera with screen-space velocity (CSS pixels/sec), allowing it to coast and decelerate. */
+  fling(screenVelocity: Vec, width: number, height: number): void {
+    if (this.mode !== 'free') return;
+    const c = Math.cos(this.rotation), s = Math.sin(this.rotation);
+    const scale = this.scale(width, height);
+    if (scale <= 0) return;
+    this.panVelocity = {
+      x: (-c * screenVelocity.x + s * screenVelocity.y) / scale,
+      y: (s * screenVelocity.x + c * screenVelocity.y) / scale,
+    };
   }
 
   /** This frame's camera. `ship` is body-relative; `target` comes from the selected module
@@ -63,6 +84,24 @@ export class CameraController {
     readonly width: number; readonly height: number; readonly target?: CameraTarget }): Camera {
     const { body, ship } = options;
     if (this.mode !== 'follow' && this.mode !== 'free' && !options.target) this.followShip();
+
+    // Advance inertial fling drift if active
+    if (this.mode === 'free' && (this.panVelocity.x !== 0 || this.panVelocity.y !== 0)) {
+      this.pan = {
+        x: this.pan.x + this.panVelocity.x * options.elapsed,
+        y: this.pan.y + this.panVelocity.y * options.elapsed,
+      };
+      // Exponential friction deceleration
+      const friction = Math.exp(-options.elapsed * 3.5);
+      this.panVelocity = {
+        x: this.panVelocity.x * friction,
+        y: this.panVelocity.y * friction,
+      };
+      if (Math.hypot(this.panVelocity.x, this.panVelocity.y) * this.scale(options.width, options.height) < 0.5) {
+        this.panVelocity = { x: 0, y: 0 };
+      }
+    }
+
     const relative = this.mode === 'follow' ? ship : this.mode === 'free' ? this.pan : undefined;
     const center = relative ? { x: body.x + relative.x, y: body.y + relative.y } : options.target!.center;
     const goal = this.mode !== 'follow' && this.mode !== 'free' && options.target?.rotation !== undefined ? options.target.rotation

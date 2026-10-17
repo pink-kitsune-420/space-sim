@@ -483,6 +483,7 @@ function controls(): Controls {
 }
 function release(): void {
   keys.clear(); pointers.clear();
+  cameraControl.stopFling();
   cameraDrag = undefined; canvasTouches.clear(); lastPinchDistance = undefined;
   canvas.classList.remove('dragging');
   for (const button of document.querySelectorAll('[data-hold]')) button.setAttribute('aria-pressed', 'false');
@@ -649,6 +650,43 @@ function bodyWorldPosition(bodyId: string, time: number, pos: Vec): Vec {
   return { x: bodyPos.x + pos.x, y: bodyPos.y + pos.y };
 }
 
+class VelocityTracker {
+  private samples: Array<{ x: number; y: number; time: number }> = [];
+
+  reset(): void {
+    this.samples.length = 0;
+  }
+
+  add(x: number, y: number): void {
+    const now = performance.now();
+    this.samples.push({ x, y, time: now });
+    while (this.samples.length > 1 && now - this.samples[0]!.time > 120) {
+      this.samples.shift();
+    }
+  }
+
+  getVelocity(): Vec {
+    const now = performance.now();
+    while (this.samples.length > 1 && now - this.samples[0]!.time > 120) {
+      this.samples.shift();
+    }
+    if (this.samples.length < 2) return { x: 0, y: 0 };
+    const latest = this.samples[this.samples.length - 1]!;
+    if (now - latest.time > 80) return { x: 0, y: 0 }; // held stationary before release
+    const oldest = this.samples[0]!;
+    const dt = (latest.time - oldest.time) / 1000;
+    if (dt < 0.005) return { x: 0, y: 0 };
+    const vx = (latest.x - oldest.x) / dt;
+    const vy = (latest.y - oldest.y) / dt;
+    const speed = Math.hypot(vx, vy);
+    const maxSpeed = 4500;
+    const factor = speed > maxSpeed ? maxSpeed / speed : 1;
+    return { x: vx * factor, y: vy * factor };
+  }
+}
+
+const touchVelocityTracker = new VelocityTracker();
+const pointerVelocityTracker = new VelocityTracker();
 const canvasTouches = new Map<number, { x: number; y: number }>();
 let lastPinchDistance: number | undefined;
 
@@ -656,11 +694,24 @@ const endCameraDrag = (event: PointerEvent): void => {
   if (canvasTouches.has(event.pointerId)) {
     canvasTouches.delete(event.pointerId);
     if (canvasTouches.size < 2) lastPinchDistance = undefined;
-    if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    if (canvas.hasPointerCapture(event.pointerId)) {
+      try { canvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+    }
   }
-  if (cameraDrag?.id !== event.pointerId) return;
-  cameraDrag = undefined; canvas.classList.remove('dragging');
-  if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+  if (cameraDrag?.id === event.pointerId) {
+    if (cameraDrag.moved) {
+      const vel = pointerVelocityTracker.getVelocity();
+      if (Math.hypot(vel.x, vel.y) > 25) {
+        cameraControl.fling(vel, canvas.clientWidth, canvas.clientHeight);
+      }
+    }
+    pointerVelocityTracker.reset();
+    cameraDrag = undefined;
+    canvas.classList.remove('dragging');
+    if (canvas.hasPointerCapture(event.pointerId)) {
+      try { canvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+    }
+  }
 };
 
 function attachCanvasListeners(target: HTMLCanvasElement): void {
@@ -680,21 +731,24 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     changeZoom(Math.exp(-pixels * .002));
   }, { passive: false });
 
-  // Native Touch Events: 2-finger pinch-to-zoom and 1-finger vertical drag-to-zoom
+  // Native Touch Events: 2-finger pinch-to-zoom and 1-finger drag to move/throw the camera
   let touchPinchDist: number | undefined;
-  let singleTouchLastY: number | undefined;
+  let singleTouchLast: { x: number; y: number } | undefined;
   let isPinching = false;
   let lastTouchZoomTime = -Infinity;
 
   target.addEventListener('touchstart', event => {
+    cameraControl.stopFling();
     if (event.touches.length >= 2) {
       isPinching = true;
       const t0 = event.touches[0]!;
       const t1 = event.touches[1]!;
       touchPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
-      singleTouchLastY = undefined;
+      singleTouchLast = undefined;
     } else if (event.touches.length === 1 && !isPinching) {
-      singleTouchLastY = event.touches[0]!.clientY;
+      singleTouchLast = { x: event.touches[0]!.clientX, y: event.touches[0]!.clientY };
+      touchVelocityTracker.reset();
+      touchVelocityTracker.add(event.touches[0]!.clientX, event.touches[0]!.clientY);
     }
   }, { passive: false });
 
@@ -713,14 +767,17 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
         }
       }
       touchPinchDist = dist;
-    } else if (event.touches.length === 1 && !isPinching && singleTouchLastY !== undefined) {
-      const clientY = event.touches[0]!.clientY;
-      const dy = clientY - singleTouchLastY;
-      singleTouchLastY = clientY;
-      if (Math.abs(dy) >= 1) {
+    } else if (event.touches.length === 1 && !isPinching && singleTouchLast) {
+      const t = event.touches[0]!;
+      touchVelocityTracker.add(t.clientX, t.clientY);
+      const delta = { x: t.clientX - singleTouchLast.x, y: t.clientY - singleTouchLast.y };
+      if (Math.hypot(delta.x, delta.y) >= 1) {
         event.preventDefault();
-        lastTouchZoomTime = performance.now();
-        changeZoom(Math.exp(-dy * 0.009));
+        cameraControl.drag(delta, session.world.system.getBodyPosition(activeBody.id, view.time), view.position,
+          target.clientWidth, target.clientHeight);
+        syncCameraButton();
+        target.classList.add('dragging');
+        singleTouchLast = { x: t.clientX, y: t.clientY };
       }
     }
   }, { passive: false });
@@ -732,9 +789,17 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       touchPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
     } else {
       touchPinchDist = undefined;
-      singleTouchLastY = undefined;
       if (event.touches.length === 0) {
+        target.classList.remove('dragging');
+        singleTouchLast = undefined;
+        if (!isPinching) {
+          const vel = touchVelocityTracker.getVelocity();
+          if (Math.hypot(vel.x, vel.y) > 25) {
+            cameraControl.fling(vel, target.clientWidth, target.clientHeight);
+          }
+        }
         isPinching = false;
+        touchVelocityTracker.reset();
       }
     }
   };
@@ -762,13 +827,18 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     lastGestureScale = 1;
   }, { passive: false });
 
-  // Pointer events: mouse drag panning and fallback for pointer-only touchscreen devices
+  // Pointer events: mouse drag/throw and fallback for pointer-only touchscreen devices
   target.addEventListener('pointerdown', event => {
+    cameraControl.stopFling();
     if (event.pointerType === 'touch') {
       canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (canvasTouches.size === 2) {
         const [a, b] = [...canvasTouches.values()];
         lastPinchDistance = Math.hypot(b!.x - a!.x, b!.y - a!.y);
+      } else if (canvasTouches.size === 1) {
+        cameraDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+        pointerVelocityTracker.reset();
+        pointerVelocityTracker.add(event.clientX, event.clientY);
       }
       return;
     }
@@ -777,15 +847,14 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     target.focus();
     try { target.setPointerCapture(event.pointerId); } catch { /* Ignore */ }
     cameraDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    pointerVelocityTracker.reset();
+    pointerVelocityTracker.add(event.clientX, event.clientY);
   });
 
   target.addEventListener('pointermove', event => {
     if (event.pointerType === 'touch') {
       if (performance.now() - lastTouchZoomTime < 80) return;
       if (canvasTouches.has(event.pointerId)) {
-        const prev = canvasTouches.get(event.pointerId)!;
-        const dx = event.clientX - prev.x;
-        const dy = event.clientY - prev.y;
         canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
         if (canvasTouches.size >= 2) {
           const [a, b] = [...canvasTouches.values()];
@@ -794,13 +863,23 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
             changeZoom(dist / lastPinchDistance);
           }
           lastPinchDistance = dist;
-        } else if (Math.hypot(dx, dy) >= 1) {
-          changeZoom(Math.exp(-dy * 0.009));
+          return;
+        } else if (cameraDrag && cameraDrag.id === event.pointerId) {
+          pointerVelocityTracker.add(event.clientX, event.clientY);
+          const delta = { x: event.clientX - cameraDrag.x, y: event.clientY - cameraDrag.y };
+          if (Math.hypot(delta.x, delta.y) >= 1) {
+            cameraControl.drag(delta, session.world.system.getBodyPosition(activeBody.id, view.time), view.position,
+              target.clientWidth, target.clientHeight);
+            syncCameraButton();
+            cameraDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: true };
+            target.classList.add('dragging');
+          }
         }
       }
       return;
     }
     if (!cameraDrag || cameraDrag.id !== event.pointerId) return;
+    pointerVelocityTracker.add(event.clientX, event.clientY);
     const delta = { x: event.clientX - cameraDrag.x, y: event.clientY - cameraDrag.y };
     if (!cameraDrag.moved && Math.hypot(delta.x, delta.y) < 3) return;
     cameraControl.drag(delta, session.world.system.getBodyPosition(activeBody.id, view.time), view.position,

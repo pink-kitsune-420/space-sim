@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { advance, initialState } from '../../packages/sim-core/src/index';
 import { CanvasRenderer, WebGLRenderer, blendAngle, dragCamera, drawPlanetHorizon, hermiteControls, interpolateState, parallelArcs, pathFromShip, project } from '../../packages/render-2d/src/index';
+import { CameraController } from '../../apps/web/src/camera';
 
 it('projects a shared world transform with +Y up and camera-relative subtraction', () => {
   const center = { x: 1e12, y: -1e12 };
@@ -395,6 +396,49 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
   } finally {
     (globalThis as { window?: unknown }).window = prevWindow;
   }
+});
+
+it('throws camera into inertial free pan, coasts over time, and slows down with friction', () => {
+  const camera = new CameraController();
+  // Drag into free mode
+  camera.drag({ x: 50, y: 0 }, { x: 0, y: 0 }, { x: 100, y: 100 }, 800, 600);
+  expect(camera.mode).toBe('free');
+
+  // Fling with screen velocity of 300 px/sec to the right
+  camera.fling({ x: 300, y: 0 }, 800, 600);
+  expect(Math.hypot(camera.panVelocity.x, camera.panVelocity.y)).toBeGreaterThan(0);
+
+  const initialPanX = camera.pan.x;
+  // Advance 0.1s
+  camera.update({
+    body: { x: 0, y: 0 },
+    ship: { x: 100, y: 100 },
+    elapsed: 0.1,
+    instant: false,
+    width: 800,
+    height: 600,
+  });
+
+  // Pan advanced in direction of throw
+  expect(camera.pan.x).not.toBe(initialPanX);
+  const velAfter01 = Math.hypot(camera.panVelocity.x, camera.panVelocity.y);
+
+  // Advance another 0.5s
+  camera.update({
+    body: { x: 0, y: 0 },
+    ship: { x: 100, y: 100 },
+    elapsed: 0.5,
+    instant: false,
+    width: 800,
+    height: 600,
+  });
+  const velAfter06 = Math.hypot(camera.panVelocity.x, camera.panVelocity.y);
+  // Velocity decelerates due to friction
+  expect(velAfter06).toBeLessThan(velAfter01);
+
+  // Calling stopFling halts drift immediately
+  camera.stopFling();
+  expect(camera.panVelocity).toEqual({ x: 0, y: 0 });
 });
 
 

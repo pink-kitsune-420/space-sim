@@ -434,26 +434,24 @@ test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, an
   });
   await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(scaleZoomed);
 
-  // Canvas 1-finger vertical touch drag to zoom/unzoom in Follow ship mode
-  const canvasScale = ((await diagnostics(page)).camera as { scale: number }).scale;
-  // Drag up on canvas -> zooms in
+  // Canvas 1-finger touch drag moves the camera and throws it with inertia
+  const camBefore = ((await diagnostics(page)).camera as { center: { x: number; y: number } }).center;
   await page.evaluate(() => {
     const canvas = document.querySelector('#flight-view')!;
-    canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 10, pointerType: 'touch', clientX: 195, clientY: 400, bubbles: true }));
-    canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 10, pointerType: 'touch', clientX: 195, clientY: 350, bubbles: true }));
-    canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 10, pointerType: 'touch', clientX: 195, clientY: 350, bubbles: true }));
+    if (typeof Touch !== 'undefined') {
+      const t0 = new Touch({ identifier: 5, target: canvas, clientX: 200, clientY: 300 });
+      canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [t0], targetTouches: [t0], changedTouches: [t0], bubbles: true }));
+      const t1 = new Touch({ identifier: 5, target: canvas, clientX: 260, clientY: 340 });
+      canvas.dispatchEvent(new TouchEvent('touchmove', { touches: [t1], targetTouches: [t1], changedTouches: [t1], bubbles: true }));
+      canvas.dispatchEvent(new TouchEvent('touchend', { touches: [], targetTouches: [], changedTouches: [t1], bubbles: true }));
+    } else {
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 10, pointerType: 'touch', clientX: 200, clientY: 300, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 10, pointerType: 'touch', clientX: 260, clientY: 340, bubbles: true }));
+      canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 10, pointerType: 'touch', clientX: 260, clientY: 340, bubbles: true }));
+    }
   });
-  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeGreaterThan(canvasScale);
-
-  // Drag down on canvas -> unzooms (zooms out)
-  const canvasZoomed = ((await diagnostics(page)).camera as { scale: number }).scale;
-  await page.evaluate(() => {
-    const canvas = document.querySelector('#flight-view')!;
-    canvas.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 400, bubbles: true }));
-    canvas.dispatchEvent(new PointerEvent('pointermove', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 460, bubbles: true }));
-    canvas.dispatchEvent(new PointerEvent('pointerup', { pointerId: 11, pointerType: 'touch', clientX: 195, clientY: 460, bubbles: true }));
-  });
-  await expect.poll(async () => ((await diagnostics(page)).camera as { scale: number }).scale).toBeLessThan(canvasZoomed);
+  // Camera moved away from its original center
+  await expect.poll(async () => ((await diagnostics(page)).camera as { center: { x: number; y: number } }).center).not.toEqual(camBefore);
 
   // 2-finger multi-touch pinch to zoom in (spread fingers) and zoom out (pinch fingers)
   const pinchStartScale = ((await diagnostics(page)).camera as { scale: number }).scale;
