@@ -43,16 +43,19 @@ export function checkWarpSafety(world: World): WarpSafety {
     }
   }
 
-  // Check if any ship is awake in the simulation (e.g. near surface, ocean, contact)
-  if (world.awakeCount > 0) {
-    for (const ship of world.awakeShips()) {
-      const state = ship.state;
-      if (state.contact || state.waterEntry || state.status !== 'flying') {
-        return { maxGranted: 1, reason: `Surface contact or ocean flight on ${ship.name || ship.id}`, railsEligible: false };
-      }
-      return { maxGranted: PHYSICAL_WARP_MAX, reason: `Numerical flight active on ${ship.name || ship.id}`, railsEligible: false };
-    }
+  // Check if any ship is awake in the simulation (e.g. near surface, ocean, contact).
+  // The most restrictive one decides; a ship resting on the ground sleeps on its next step.
+  let numerical: WarpSafety | undefined;
+  for (const ship of world.awakeShips()) {
+    const state = ship.state, name = ship.name || ship.id;
+    if (state.contact) return { maxGranted: 1, reason: `Surface contact on ${name}`, railsEligible: false };
+    if (state.waterEntry) return { maxGranted: 1, reason: `Water entry on ${name}`, railsEligible: false };
+    if (world.settles(ship.id)) continue;
+    numerical ??= { maxGranted: PHYSICAL_WARP_MAX, railsEligible: false,
+      reason: state.status === 'flying' ? `Numerical flight active on ${name}`
+        : state.water !== undefined ? `${name} is afloat` : `${name} is settling on the surface` };
   }
+  if (numerical) return numerical;
 
   // Sanity check: flying ships on rails near surface or in fast orbital periods
   for (const ship of world.records()) {

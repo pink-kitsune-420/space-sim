@@ -160,10 +160,7 @@ export class HostSession {
     this.paused = paused;
     this.pauseReason = paused ? reason : '';
     this.warpAccumulator = 0;
-    if (paused && this.warp > 1) {
-      this.warp = 1;
-      this.warpReason = 'Simulation paused';
-    }
+    if (paused && this.warp > 1) this.stopWarp('Simulation paused', false);
     // Clients run ahead of the host; a complete snapshot lets them rewind to the pause.
     for (const peer of this.peers) peer.needsFull = true;
     this.broadcastSnapshot();
@@ -180,19 +177,10 @@ export class HostSession {
     if (!this.canWarp(playerId)) {
       throw new SessionError('Only the host can activate time warp.');
     }
-    const requested = clampWarpFactor(factor);
-    this.requestedWarp = requested;
+    this.requestedWarp = clampWarpFactor(factor);
     const safety = checkWarpSafety(this.world);
-    const granted = Math.min(requested, safety.maxGranted);
-    const changed = this.warp !== granted;
-    this.warp = granted;
-    this.warpReason = safety.reason ?? '';
-    if (changed) {
-      this.warpAccumulator = 0;
-      for (const peer of this.peers) peer.needsFull = true;
-      this.broadcastSnapshot();
-    }
-    return { granted: this.warp, reason: this.warpReason };
+    this.regulateWarp(safety, false);
+    return { granted: this.warp, reason: this.warp < clampWarpFactor(factor) ? safety.reason ?? '' : '' };
   }
 
   // Commands, shared by remote players and the host seat. Each throws a SessionError to refuse.
@@ -233,24 +221,44 @@ export class HostSession {
   setControls(playerId: string, shipId: string, controls: Controls): void {
     this.owned(playerId, shipId);
     this.world.setControls(shipId, controls);
-    if (this.warp > 1) this.enforceWarpSafety();
+    if (this.requestedWarp > 1) this.regulateWarp();
   }
 
-  private enforceWarpSafety(): boolean {
-    if (this.warp <= 1) return false;
-    const safety = checkWarpSafety(this.world);
-    if (this.warp > safety.maxGranted) {
-      this.warpAccumulator = 0;
-      const dropReason = safety.reason ?? 'Flight condition requires normal time';
-      this.warp = safety.maxGranted;
-      this.warpReason = dropReason;
-      this.log(`Time warp reduced to ${this.warp}x: ${dropReason}`);
-      for (const peer of this.peers) peer.needsFull = true;
-      this.broadcastSnapshot();
-      return true;
+  /** Holds warp at the requested factor within what is safe now. A ceiling above 1x (steering
+   * held, low orbit, numerical flight) lifts by itself once it clears; a condition that allows
+   * only 1x stops warp until the host asks again. Returns true when the factor changed. */
+  private regulateWarp(safety = checkWarpSafety(this.world), log = true): boolean {
+    const granted = Math.min(this.requestedWarp, safety.maxGranted);
+    const reason = granted < this.requestedWarp ? safety.reason ?? 'Flight condition requires normal time' : '';
+    if (granted <= 1 && this.requestedWarp > 1) return this.stopWarp(reason, log);
+    if (granted === this.warp) {
+      this.warpReason = reason;
+      return false;
     }
-    return false;
+    if (log && granted < this.warp) this.log(`Time warp reduced to ${granted}x: ${reason}`);
+    this.warp = granted;
+    this.warpReason = reason;
+    this.warpChanged();
+    return true;
   }
+
+  /** Ends warp outright: it stays at 1x until requested again. */
+  private stopWarp(reason: string, log = true): boolean {
+    const changed = this.warp !== 1;
+    if (log && changed) this.log(`Time warp stopped: ${reason}`);
+    this.warp = 1;
+    this.requestedWarp = 1;
+    this.warpReason = reason;
+    if (changed) this.warpChanged();
+    return changed;
+  }
+
+  private warpChanged(): void {
+    this.warpAccumulator = 0;
+    for (const peer of this.peers) peer.needsFull = true;
+    this.broadcastSnapshot();
+  }
+
   setThrottle(playerId: string, shipId: string, throttle: number): void {
     this.owned(playerId, shipId);
     this.world.setThrottle(shipId, throttle);
@@ -309,7 +317,7 @@ export class HostSession {
   step(): WorldEvent[] {
     if (this.paused) return [];
     this.applyDueInputs(this.world.tick);
-    if (this.warp > 1) this.enforceWarpSafety();
+    if (this.requestedWarp > 1) this.regulateWarp();
     const events = this.world.step();
     this.handleFaults(events);
     if (this.world.tick % this.settings.snapshotEveryTicks === 0) this.broadcastSnapshot();
@@ -325,7 +333,7 @@ export class HostSession {
     if (this.paused) return [];
     if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Invalid elapsed time');
 
-    if (this.warp > 1) this.enforceWarpSafety();
+    if (this.requestedWarp > 1) this.regulateWarp();
 
     if (this.warp === 1) {
       const events: WorldEvent[] = [];
@@ -368,12 +376,9 @@ export class HostSession {
           events.push(...stepEvents);
           this.handleFaults(stepEvents);
           if (stepEvents.length > 0 || this.world.awakeCount > 0) {
-            this.warp = 1;
-            this.warpReason = stepEvents.some(e => e.type === 'soi')
-              ? 'Sphere of influence transition'
-              : 'Ship woke from rails';
-            for (const peer of this.peers) peer.needsFull = true;
-            this.broadcastSnapshot();
+            this.stopWarp(stepEvents.some(e => e.type === 'soi') ? 'Sphere of influence transition'
+              : stepEvents.some(e => e.type === 'contact') ? 'Surface contact'
+              : 'Ship woke from rails');
             break;
           }
         } else {
@@ -384,10 +389,7 @@ export class HostSession {
             steps++;
           }
           if (steps >= maxSteps && this.world.tick < nextBound) {
-            this.warp = 1;
-            this.warpReason = 'Numerical stepping budget exceeded';
-            for (const peer of this.peers) peer.needsFull = true;
-            this.broadcastSnapshot();
+            this.stopWarp('Numerical stepping budget exceeded');
             break;
           }
         }
@@ -395,14 +397,7 @@ export class HostSession {
 
       if (this.world.tick === earliestInputTick) {
         this.applyDueInputs(this.world.tick);
-        const postSafety = checkWarpSafety(this.world);
-        if (this.warp > postSafety.maxGranted) {
-          this.warp = postSafety.maxGranted;
-          this.warpReason = postSafety.reason ?? '';
-          for (const peer of this.peers) peer.needsFull = true;
-          this.broadcastSnapshot();
-          break;
-        }
+        if (this.regulateWarp()) break;
         events.push(...this.step());
       }
     }

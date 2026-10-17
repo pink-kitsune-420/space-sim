@@ -208,6 +208,13 @@ export class World {
   /** Ships advanced by every step (neither asleep nor stopped by a fault). */
   *awakeShips(): IterableIterator<Ship> { for (const id of this.awake) yield this.fleet.get(id)!; }
   isAsleep(id: string): boolean { return this.asleepRails.has(id); }
+  /** An awake landed ship or wreck the next step puts to sleep without advancing it: every
+   * idle step from it only moves its clock, so time warp may treat it as on rails already. */
+  settles(id: string): boolean {
+    const ship = this.fleet.get(id);
+    return !!ship && this.awake.has(id) && this.rails && !this.rules.length && this.context.capabilities.rails
+      && this.restingState(ship) !== undefined;
+  }
   /** Ships changed by a command, replacement or fault, and ships removed, since the last
    * call (only while `trackChanges`). Stepping is not a change: every peer that knows a
    * ship's record and controls reproduces its steps exactly. */
@@ -693,13 +700,17 @@ export class World {
   private sleepNow(ship: Ship, tick: number, need: number): boolean {
     if (this.rules.length || !this.context.capabilities.rails) return false;
     const { state, controls } = ship;
-    if (ship.fault || state.status !== 'flying' || state.water !== undefined || state.contact || state.waterEntry
-      || controls.turn !== 0 || controls.throttle !== 0 || controls.engine
-      || !Number.isFinite(state.time) || !Number.isFinite(state.heading) || !Number.isFinite(state.throttle)) return false;
-    // Sleeping records keep heading and throttle: they must be exact fixed points of the
-    // idle step (a step turns a heading of -0 into +0).
-    if (!Object.is(normalizeAngle(state.heading + Math.max(-1, Math.min(1, controls.turn)) * this.context.vehicle.turnRate * STEP), state.heading)
-      || !Object.is(Math.max(0, Math.min(1, state.throttle + controls.throttle * STEP * .78125)), state.throttle)) return false;
+    if (state.status !== 'flying') {
+      // Resting on the ground: asleep until a command wakes it.
+      const rest = this.restingState(ship);
+      if (!rest) return false;
+      this.asleepRails.set(ship.id, { tick, wake: Infinity, generation: ++this.generation });
+      this.awake.delete(ship.id);
+      this.fleet.set(ship.id, rest === state ? ship : { ...ship, state: rest });
+      return true;
+    }
+    if (ship.fault || state.water !== undefined || state.contact || state.waterEntry
+      || controls.turn !== 0 || controls.throttle !== 0 || controls.engine || !this.idleFixedPoint(state)) return false;
     const body = this.body(ship.bodyId), surface = this.surfaces.get(ship.bodyId);
     let coast: Coast | undefined;
     try {
@@ -719,6 +730,36 @@ export class World {
     this.fleet.set(ship.id, state.coast === coast && state.dynamics === 'kepler' ? ship
       : { ...ship, state: { ...state, coast, dynamics: 'kepler' } });
     return true;
+  }
+
+  /** Sleeping records keep heading and throttle: they must be exact fixed points of the
+   * idle step (a step turns a heading of -0 into +0). */
+  private idleFixedPoint(state: State): boolean {
+    return Number.isFinite(state.time) && Number.isFinite(state.heading) && Number.isFinite(state.throttle)
+      && Object.is(normalizeAngle(state.heading + 0), state.heading) && Object.is(Math.max(0, Math.min(1, state.throttle + 0)), state.throttle);
+  }
+
+  /** The record a landed ship or wreck keeps asleep when every idle step from it only moves
+   * its clock (a supported dry landing with idle controls, or any wreck): the state its next
+   * numerical step makes, field for field. Undefined when it must be stepped. */
+  private restingState(ship: Ship): State | undefined {
+    const { state, controls } = ship;
+    if (ship.fault || state.status === 'flying' || state.contact || state.waterEntry) return undefined;
+    if (state.status === 'landed') {
+      if (controls.turn !== 0 || controls.throttle !== 0 || controls.engine || state.water !== undefined
+        || !this.idleFixedPoint(state)) return undefined;
+      // Below sea level a seabed landing can start to float.
+      const sea = this.surfaces.get(ship.bodyId)?.seaRadiusMetres;
+      if (sea !== undefined && magnitude(state.position) < sea) return undefined;
+    }
+    try { this.context.validateState(state, this.body(ship.bodyId), this.surfaces.get(ship.bodyId)); } catch { return undefined; }
+    if (state.dynamics === 'numerical' && !state.coast && !state.solver && !state.moduleState) return state;
+    const rest: { -readonly [K in keyof State]: State[K] } = { time: state.time, position: state.position,
+      velocity: state.velocity, heading: state.heading, throttle: state.throttle, status: state.status,
+      revision: state.revision, dynamics: 'numerical' };
+    if (state.godMode !== undefined) rest.godMode = state.godMode;
+    if (state.water !== undefined) rest.water = state.water;
+    return rest;
   }
 
   /** Bring a sleeping record up to the current tick without waking it. Mirrors what the
