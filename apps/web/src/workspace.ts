@@ -122,7 +122,7 @@ export class Workspace {
       button.append(longSpan, shortSpan);
       button.setAttribute('aria-controls', this.drawer.id);
       button.setAttribute('aria-expanded', 'false');
-      button.onclick = () => this.active === id ? this.close(true) : this.open(id);
+      button.onclick = () => this.open(id);
       nav.append(button);
     }
 

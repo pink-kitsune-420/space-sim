@@ -243,29 +243,166 @@ vec3 strata(Body b, float depthMetres, vec2 q) {
 }
 #endif
 
+float bodySd(Body b, vec2 pixelPos) {
+  float r = b.radius;
+  if (r > 2048.0 && dot(b.horizonNormal, b.horizonNormal) > 0.5) {
+    vec2 relH = pixelPos - b.horizonPoint;
+    float u = dot(relH, b.horizonNormal);
+    float v = relH.x * (-b.horizonNormal.y) + relH.y * b.horizonNormal.x;
+    float ru = r + u;
+    return u + (v * v) / (sqrt(ru * ru + v * v) + max(1.0, ru));
+  }
+  return length(pixelPos - b.screenPos) - r;
+}
+
 void main() {
   vec2 pixelPos = vec2(v_uv.x * u_resolution.x, (1.0 - v_uv.y) * u_resolution.y);
   vec3 col = vec3(0.031, 0.059, 0.098); // #080f19
 
-  // Procedural background stars
-  vec2 gridCoord = floor(pixelPos / 60.0);
-  float starVal = hash(gridCoord * 17.13);
-  vec2 starPos = (gridCoord + vec2(hash(gridCoord + 1.0), hash(gridCoord + 2.0))) * 60.0;
-  float starDist = length(pixelPos - starPos);
-  if (starDist < 1.2) {
-    float b = 1.0 - starDist / 1.2;
-    col += (starVal > 0.8 ? vec3(0.47, 0.53, 0.61) : vec3(0.16, 0.22, 0.29)) * b;
-  }
-
-  // Grid lines
-  vec2 gridMod = mod(pixelPos - u_resolution * 0.5, 80.0);
-  if (gridMod.x < 1.0 || gridMod.y < 1.0) {
-    col = mix(col, vec3(0.082, 0.137, 0.196), 0.4);
-  }
-
-  // Draw celestial bodies
+  // Find the topmost opaque body disc (if any) so its procedural surface is shaded once outside the loop.
+  int hitIdx = -1;
+  Body hitBody;
+  float hitSd = 0.0;
   for (int i = 0; i < 8; i++) {
     if (i >= u_bodyCount) break;
+    if (u_bodies[i].radius >= 2.5) {
+      float sd = bodySd(u_bodies[i], pixelPos);
+      if (sd <= 0.0) {
+        hitIdx = i;
+        hitBody = u_bodies[i];
+        hitSd = sd;
+      }
+    }
+  }
+
+  if (hitIdx < 0) {
+    // Procedural background stars
+    vec2 gridCoord = floor(pixelPos / 60.0);
+    float starVal = hash(gridCoord * 17.13);
+    vec2 starPos = (gridCoord + vec2(hash(gridCoord + 1.0), hash(gridCoord + 2.0))) * 60.0;
+    float starDist = length(pixelPos - starPos);
+    if (starDist < 1.2) {
+      float b = 1.0 - starDist / 1.2;
+      col += (starVal > 0.8 ? vec3(0.47, 0.53, 0.61) : vec3(0.16, 0.22, 0.29)) * b;
+    }
+
+    // Grid lines
+    vec2 gridMod = mod(pixelPos - u_resolution * 0.5, 80.0);
+    if (gridMod.x < 1.0 || gridMod.y < 1.0) {
+      col = mix(col, vec3(0.082, 0.137, 0.196), 0.4);
+    }
+  } else {
+    Body b = hitBody;
+    float r = b.radius;
+    float sd = hitSd;
+    vec2 relCenter = pixelPos - b.screenPos;
+
+    if (b.isStar == 1) {
+#ifndef SCENE_LITE
+      if (b.style == 8) {
+        // Limb darkening and boiling granulation.
+        vec2 v = vec2(relCenter.x, -relCenter.y) / r;
+        float z = sqrt(max(0.0, 1.0 - dot(v, v)));
+        float c = cos(b.spin), s = sin(b.spin);
+        vec3 p = vec3(c * v.x + s * v.y, -s * v.x + c * v.y, z);
+        float px = 1.0 / (r * max(z, 0.15));
+        float granules = fbm(p * 24.0 + b.seed, px * 24.0);
+        vec3 core = mix(b.c1, b.color, smoothstep(0.0, 0.9, z));
+        core = mix(b.c2, core, smoothstep(0.0, 0.35, z));
+        core *= 0.88 + 0.24 * granules;
+        vec2 spots = craters(p.xy * 5.0, px * 5.0, b.seed, 0.55);
+        col = mix(core, b.c3, smoothstep(0.3, 0.7, spots.x) * 0.7 * step(0.25, z));
+      } else
+#endif
+      {
+        float depthScale = max(1.0, min(r, 350.0));
+        float t = clamp(1.0 + sd / depthScale, 0.0, 1.0);
+        vec3 core = mix(vec3(1.0, 1.0, 1.0), b.color, smoothstep(0.0, 0.75, t));
+        core = mix(core, b.accent, smoothstep(0.75, 1.0, t));
+        col = core;
+      }
+      if (abs(sd) <= 1.5) {
+        col = mix(col, vec3(1.0, 0.97, 0.86), 0.8);
+      }
+#ifndef SCENE_LITE
+    } else if (b.style > 0) {
+      // ---- Procedural planet ----
+      bool lit = dot(b.sunDir, b.sunDir) > 0.5;
+      // Light from the star, tipped a little towards the viewer (an axial tilt), else from the upper left.
+      vec3 light = lit ? normalize(vec3(b.sunDir.x, -b.sunDir.y, 0.25)) : normalize(vec3(-0.5, 0.55, 0.65));
+      vec2 rim = normalize(vec2(relCenter.x, -relCenter.y));
+      float cosRim = lit ? dot(rim, normalize(light.xy)) : 1.0; // day/night at the equator, where ships land
+      // Close to the ground the view becomes a side-on cross-section.
+      float near = smoothstep(1000.0, 2000.0, r);
+      vec2 v = vec2(relCenter.x, -relCenter.y) / r;
+      float z = sqrt(max(0.0, 1.0 - dot(v, v)));
+      float c = cos(b.spin), s = sin(b.spin);
+      vec2 q = vec2(c * v.x + s * v.y, -s * v.x + c * v.y);
+      vec3 shaded = b.color;
+      if (near < 1.0) {
+        // The seed moves every noise layer to its own part of the lattice, so each seed is a different world.
+        vec3 p = vec3(q, z) + fract(vec3(b.seed) * vec3(0.1031, 0.1030, 0.0973)) * 64.0;
+        float px = 1.0 / (r * max(z, 0.12)); // one pixel on the sphere, for level of detail
+        vec3 surface = b.color;
+        float water = 0.0, glow = 0.0;
+        if (b.style == 1) surface = rocky(b, p, px, z);
+        else if (b.style == 2) surface = arid(b, p, px, z);
+        else if (b.style == 3) surface = oceanic(b, p, px, z, water);
+        else if (b.style == 4) surface = banded(b, p, px, z, q);
+        else if (b.style == 5) surface = icy(b, p, px, z);
+        else if (b.style == 6) surface = hazy(b, p, px, z);
+        else if (b.style == 7) surface = volcanic(b, p, px, z, glow);
+        // Sphere shading with a soft terminator; the night side keeps a faint blue ambient.
+        vec3 normal = vec3(v, z);
+        float diffuse = dot(normal, light);
+        float ambient = lit ? 0.1 : 0.32;
+        float day = lit ? smoothstep(-0.05, 0.15, diffuse) : 1.0;
+        shaded = surface * (ambient * vec3(0.8, 0.88, 1.15) + (1.0 - ambient) * day * (0.3 + 0.7 * clamp(diffuse, 0.0, 1.0)));
+        // Sun glint on open water.
+        if (lit && water > 0.0) {
+          float glint = pow(max(dot(reflect(-light, normal), vec3(0.0, 0.0, 1.0)), 0.0), 40.0);
+          shaded += vec3(1.0, 0.95, 0.85) * glint * water * 0.6 * day;
+        }
+        shaded += b.c2 * glow * 1.3; // lava glows by day and night
+        // Atmosphere scattering at the rim, warm at the terminator.
+        float scatter = pow(1.0 - z, 3.0) * b.atmosphere.a * 1.8;
+        vec3 airCol = lit ? mix(b.atmosphere.rgb, vec3(1.0, 0.55, 0.3), (1.0 - smoothstep(0.0, 0.3, abs(cosRim))) * 0.7) : b.atmosphere.rgb;
+        shaded = mix(shaded, airCol * (lit ? smoothstep(-0.2, 0.2, cosRim) : 1.0), clamp(scatter, 0.0, 1.0));
+      }
+      // Up close: the cross-section, lit by the time of day at that spot on the surface.
+      if (near > 0.0) {
+        float depth = -sd / r * b.metres;
+        vec3 cut = strata(b, depth, q) * (lit ? daylight(cosRim) : 1.0);
+        shaded = mix(shaded, cut, near);
+      }
+      col = shaded;
+      float dayEdge = lit ? daylight(cosRim) : 1.0;
+      float edge = smoothstep(0.0, -2.0, sd) - smoothstep(-1.5, -3.5, sd);
+      if (edge > 0.0) col = mix(col, b.accent * dayEdge, edge * 0.6);
+#endif
+    } else {
+      bool lit = dot(b.sunDir, b.sunDir) > 0.5;
+      float cosSun = lit ? dot(normalize(relCenter), b.sunDir) : 1.0;
+      float gradT;
+      if (r > 2048.0) {
+        gradT = clamp(-sd / 350.0, 0.0, 1.0);
+      } else {
+        vec2 dir = relCenter / max(1.0, r);
+        // Shade away from the star when lit, else from a fixed upper-left light.
+        gradT = lit ? clamp(0.5 - 0.5 * cosSun, 0.0, 1.0) * 0.6 : clamp((dir.x + dir.y) * 0.5 + 0.5, 0.0, 1.0);
+      }
+      vec3 bodyCol = mix(b.color, vec3(0.063, 0.118, 0.169), gradT);
+      float day = lit ? daylight(cosSun) : 1.0;
+      col = bodyCol * day;
+      float edge = smoothstep(0.0, -2.0, sd) - smoothstep(-1.5, -3.5, sd);
+      if (edge > 0.0) col = mix(col, b.accent * day, edge);
+    }
+  }
+
+  // Draw atmospheres, coronas and distant body dots in front of the background / topmost disc
+  for (int i = 0; i < 8; i++) {
+    if (i >= u_bodyCount) break;
+    if (i <= hitIdx) continue;
     Body b = u_bodies[i];
     float r = b.radius;
 
@@ -281,16 +418,7 @@ void main() {
     }
 
     vec2 relCenter = pixelPos - b.screenPos;
-    float sd;
-    if (r > 2048.0 && dot(b.horizonNormal, b.horizonNormal) > 0.5) {
-      vec2 relH = pixelPos - b.horizonPoint;
-      float u = dot(relH, b.horizonNormal);
-      float v = relH.x * (-b.horizonNormal.y) + relH.y * b.horizonNormal.x;
-      float ru = r + u;
-      sd = u + (v * v) / (sqrt(ru * ru + v * v) + max(1.0, ru));
-    } else {
-      sd = length(relCenter) - r;
-    }
+    float sd = bodySd(b, pixelPos);
 
     if (b.isStar == 1) {
       float coronaSpan = r > 2048.0 ? min(200.0, max(60.0, r * 0.15)) : r * 0.85;
@@ -300,49 +428,20 @@ void main() {
         vec4 coronaCol = vec4(b.atmosphere.rgb, b.atmosphere.a * (1.0 - t));
         col = mix(col, coronaCol.rgb, coronaCol.a);
       }
-      if (sd <= 0.0) {
-#ifndef SCENE_LITE
-        if (b.style == 8) {
-          // Limb darkening and boiling granulation.
-          vec2 v = vec2(relCenter.x, -relCenter.y) / r;
-          float z = sqrt(max(0.0, 1.0 - dot(v, v)));
-          float c = cos(b.spin), s = sin(b.spin);
-          vec3 p = vec3(c * v.x + s * v.y, -s * v.x + c * v.y, z);
-          float px = 1.0 / (r * max(z, 0.15));
-          float granules = fbm(p * 24.0 + b.seed, px * 24.0);
-          vec3 core = mix(b.c1, b.color, smoothstep(0.0, 0.9, z));
-          core = mix(b.c2, core, smoothstep(0.0, 0.35, z));
-          core *= 0.88 + 0.24 * granules;
-          vec2 spots = craters(p.xy * 5.0, px * 5.0, b.seed, 0.55);
-          col = mix(core, b.c3, smoothstep(0.3, 0.7, spots.x) * 0.7 * step(0.25, z));
-        } else
-#endif
-        {
-          float depthScale = max(1.0, min(r, 350.0));
-          float t = clamp(1.0 + sd / depthScale, 0.0, 1.0);
-          vec3 core = mix(vec3(1.0, 1.0, 1.0), b.color, smoothstep(0.0, 0.75, t));
-          core = mix(core, b.accent, smoothstep(0.75, 1.0, t));
-          col = core;
-        }
-      }
       if (abs(sd) <= 1.5) {
         col = mix(col, vec3(1.0, 0.97, 0.86), 0.8);
       }
 #ifndef SCENE_LITE
     } else if (b.style > 0) {
-      // ---- Procedural planet ----
-      bool lit = dot(b.sunDir, b.sunDir) > 0.5;
-      // Light from the star, tipped a little towards the viewer (an axial tilt), else from the upper left.
-      vec3 light = lit ? normalize(vec3(b.sunDir.x, -b.sunDir.y, 0.25)) : normalize(vec3(-0.5, 0.55, 0.65));
-      vec2 rim = normalize(vec2(relCenter.x, -relCenter.y));
-      float cosRim = lit ? dot(rim, normalize(light.xy)) : 1.0; // day/night at the equator, where ships land
-      // Close to the ground the view becomes a side-on cross-section.
-      float near = smoothstep(1500.0, 5000.0, r);
-      if (sd > 0.0) {
-        // Air thins exponentially with altitude, over a scale height of 6% of the radius (in
-        // metres, so it scales with zoom): a deep sky from the ground that fades as you climb,
-        // a thin glowing rim from orbit. Never thinner than a few pixels on a small disc.
-        float scaleHeight = max(0.06 * r, min(12.0, 0.12 * r));
+      // Air thins exponentially with altitude, over a scale height of 6% of the radius (in
+      // metres, so it scales with zoom): a deep sky from the ground that fades as you climb,
+      // a thin glowing rim from orbit. Never thinner than a few pixels on a small disc.
+      float scaleHeight = max(0.06 * r, min(12.0, 0.12 * r));
+      if (sd < scaleHeight * 6.0) {
+        bool lit = dot(b.sunDir, b.sunDir) > 0.5;
+        vec3 light = lit ? normalize(vec3(b.sunDir.x, -b.sunDir.y, 0.25)) : normalize(vec3(-0.5, 0.55, 0.65));
+        vec2 rim = normalize(vec2(relCenter.x, -relCenter.y));
+        float cosRim = lit ? dot(rim, normalize(light.xy)) : 1.0;
         float alpha = b.atmosphere.a * 1.6 * exp(-sd / scaleHeight);
         vec3 airCol = b.atmosphere.rgb * 1.2;
         if (lit) {
@@ -350,58 +449,13 @@ void main() {
           airCol = mix(airCol, vec3(1.0, 0.55, 0.3), (1.0 - smoothstep(0.0, 0.3, abs(cosRim))) * 0.75);
         }
         col = mix(col, airCol, clamp(alpha, 0.0, 1.0));
-        continue;
       }
-      vec2 v = vec2(relCenter.x, -relCenter.y) / r;
-      float z = sqrt(max(0.0, 1.0 - dot(v, v)));
-      float c = cos(b.spin), s = sin(b.spin);
-      vec2 q = vec2(c * v.x + s * v.y, -s * v.x + c * v.y);
-      // The seed moves every noise layer to its own part of the lattice, so each seed is a different world.
-      vec3 p = vec3(q, z) + fract(vec3(b.seed) * vec3(0.1031, 0.1030, 0.0973)) * 64.0;
-      float px = 1.0 / (r * max(z, 0.12)); // one pixel on the sphere, for level of detail
-      vec3 surface = b.color;
-      float water = 0.0, glow = 0.0;
-      if (near < 1.0) {
-        if (b.style == 1) surface = rocky(b, p, px, z);
-        else if (b.style == 2) surface = arid(b, p, px, z);
-        else if (b.style == 3) surface = oceanic(b, p, px, z, water);
-        else if (b.style == 4) surface = banded(b, p, px, z, q);
-        else if (b.style == 5) surface = icy(b, p, px, z);
-        else if (b.style == 6) surface = hazy(b, p, px, z);
-        else if (b.style == 7) surface = volcanic(b, p, px, z, glow);
-      }
-      // Sphere shading with a soft terminator; the night side keeps a faint blue ambient.
-      vec3 normal = vec3(v, z);
-      float diffuse = dot(normal, light);
-      float ambient = lit ? 0.1 : 0.32;
-      float day = lit ? smoothstep(-0.05, 0.15, diffuse) : 1.0;
-      vec3 shaded = surface * (ambient * vec3(0.8, 0.88, 1.15) + (1.0 - ambient) * day * (0.3 + 0.7 * clamp(diffuse, 0.0, 1.0)));
-      // Sun glint on open water.
-      if (lit && water > 0.0) {
-        float glint = pow(max(dot(reflect(-light, normal), vec3(0.0, 0.0, 1.0)), 0.0), 40.0);
-        shaded += vec3(1.0, 0.95, 0.85) * glint * water * 0.6 * day;
-      }
-      shaded += b.c2 * glow * 1.3; // lava glows by day and night
-      // Atmosphere scattering at the rim, warm at the terminator.
-      float scatter = pow(1.0 - z, 3.0) * b.atmosphere.a * 1.8;
-      vec3 airCol = lit ? mix(b.atmosphere.rgb, vec3(1.0, 0.55, 0.3), (1.0 - smoothstep(0.0, 0.3, abs(cosRim))) * 0.7) : b.atmosphere.rgb;
-      shaded = mix(shaded, airCol * (lit ? smoothstep(-0.2, 0.2, cosRim) : 1.0), clamp(scatter, 0.0, 1.0));
-      // Up close: the cross-section, lit by the time of day at that spot on the surface.
-      if (near > 0.0) {
-        float depth = -sd / r * b.metres;
-        vec3 cut = strata(b, depth, q) * (lit ? daylight(cosRim) : 1.0);
-        shaded = mix(shaded, cut, near);
-      }
-      col = shaded;
-      float dayEdge = lit ? daylight(cosRim) : 1.0;
-      float edge = smoothstep(0.0, -2.0, sd) - smoothstep(-1.5, -3.5, sd);
-      if (edge > 0.0) col = mix(col, b.accent * dayEdge, edge * 0.6);
 #endif
     } else {
-      bool lit = dot(b.sunDir, b.sunDir) > 0.5;
-      float cosSun = lit ? dot(normalize(relCenter), b.sunDir) : 1.0;
       float atmoThickness = max(0.08 * r, min(25.0, 0.25 * r)); // 8% of the radius: thick near the ground
       if (sd > 0.0 && sd <= atmoThickness) {
+        bool lit = dot(b.sunDir, b.sunDir) > 0.5;
+        float cosSun = lit ? dot(normalize(relCenter), b.sunDir) : 1.0;
         float atmoT = 1.0 - sd / atmoThickness;
         float atmoAlpha = b.atmosphere.a * pow(atmoT, 1.5);
         vec3 atmoCol = b.atmosphere.rgb;
@@ -411,21 +465,6 @@ void main() {
           atmoCol = mix(atmoCol, vec3(1.0, 0.6, 0.35), (1.0 - smoothstep(0.0, 0.3, abs(cosSun))) * 0.7);
         }
         col = mix(col, atmoCol, atmoAlpha);
-      }
-      if (sd <= 0.0) {
-        float gradT;
-        if (r > 2048.0) {
-          gradT = clamp(-sd / 350.0, 0.0, 1.0);
-        } else {
-          vec2 dir = relCenter / max(1.0, r);
-          // Shade away from the star when lit, else from a fixed upper-left light.
-          gradT = lit ? clamp(0.5 - 0.5 * cosSun, 0.0, 1.0) * 0.6 : clamp((dir.x + dir.y) * 0.5 + 0.5, 0.0, 1.0);
-        }
-        vec3 bodyCol = mix(b.color, vec3(0.063, 0.118, 0.169), gradT);
-        float day = lit ? daylight(cosSun) : 1.0;
-        col = bodyCol * day;
-        float edge = smoothstep(0.0, -2.0, sd) - smoothstep(-1.5, -3.5, sd);
-        if (edge > 0.0) col = mix(col, b.accent * day, edge);
       }
     }
   }

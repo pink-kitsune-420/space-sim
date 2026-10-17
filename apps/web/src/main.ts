@@ -323,7 +323,11 @@ function replaceLocalWorld(world: World, options: { readonly players?: readonly 
   catch (error) { world.dispose(); throw error; }
   local.world.dispose();
   local = next;
-  if (session.kind === 'local') useSession(local, false);
+  if (session.kind === 'local') {
+    cameraControl.followShip();
+    cameraControl.horizon = true;
+    useSession(local, true);
+  }
 }
 
 /** Pilot another of this player's ships. Held input is released first. */
@@ -379,11 +383,20 @@ function syncSelected(): void {
   state = ship.state;
 }
 
+function focusOnShipForNewWorld(): void {
+  cameraControl.followShip();
+  cameraControl.horizon = true;
+  cameraControl.rotation = Math.PI / 2 - Math.atan2(state.position.y, state.position.x);
+  if (cameraControl.zoom < 10) cameraControl.zoom = 10;
+  syncCameraButton();
+}
+
 function setUniverse(u: UniverseDefinition, preferredSystemId?: string): void {
   const world = createLocalWorld(u, preferredSystemId);
   universes.set(u.id, u);
   replaceLocalWorld(world);
   reset();
+  focusOnShipForNewWorld();
   profiler.event('universe-load', { universe: u.id, system: world.systemId });
 }
 
@@ -401,6 +414,7 @@ function importUniverse(universe: UniverseDefinition): void {
   replaceLocalWorld(prepared.world);
   prepared.runtime.activate(prepared.candidate);
   reset();
+  focusOnShipForNewWorld();
 }
 
 function switchSystem(systemId: string): void {
@@ -410,22 +424,14 @@ function switchSystem(systemId: string): void {
   replaceLocalWorld(world);
   prepared.runtime.activate(prepared.candidate);
   reset();
+  focusOnShipForNewWorld();
   profiler.event('system-switch', { system: world.systemId });
 }
 
 /** Make the opt-in surface examples visible immediately on selection. */
 function showSurfaceWorld(u: UniverseDefinition): void {
   setUniverse(u);
-  showSurfaceOverview();
   element('flight-console').scrollIntoView({ block: 'start' });
-}
-function showSurfaceOverview(): void {
-  const profile = session.world.surface(activeBody.id);
-  if (!profile) return;
-  cameraControl.planetView(); cameraControl.horizon = false; cameraControl.rotation = 0;
-  cameraControl.zoom = 1500 / (2.8 * profile.bounds.maxRadius);
-  syncCameraButton();
-  orientationButton.textContent = 'North up';
 }
 
 function controls(): Controls {
@@ -546,10 +552,12 @@ function autoPause(reason: string): void {
 }
 function fitZoom(start: State, presetId = preset.value): void {
   const selectedPreset = session.world.system.presets.find(p => p.id === presetId);
-  if (selectedPreset && typeof selectedPreset.zoom === 'number') {
+  if (start.status === 'landed') {
+    cameraControl.zoom = selectedPreset && typeof selectedPreset.zoom === 'number'
+      ? Math.max(10, selectedPreset.zoom)
+      : 10;
+  } else if (selectedPreset && typeof selectedPreset.zoom === 'number') {
     cameraControl.zoom = selectedPreset.zoom;
-  } else if (start.status === 'landed') {
-    cameraControl.zoom = 10;
   } else {
     cameraControl.setZoom(1500 / (magnitude(start.position) * 2.8));
   }
@@ -697,7 +705,6 @@ element('try-ocean').addEventListener('click', () => showSurfaceWorld(oceanUnive
 systemSelect.addEventListener('change', () => {
   try {
     switchSystem(systemSelect.value);
-    if (session.world.universe === terrainUniverse || session.world.universe === oceanUniverse) showSurfaceOverview();
   }
   catch (error) { systemSelect.value = session.world.systemId; alert(String(error)); }
 });
@@ -772,6 +779,7 @@ function loadModuleText(text: string): void {
     replaceLocalWorld(prepared.world);
     prepared.runtime.activate(prepared.candidate);
     reset();
+    focusOnShipForNewWorld();
     show('module-status', local.world.soloPreview ? 'Module loaded into a new solo preview. World saves and hosting are unavailable; export the module/profile to keep it.' : 'Module profile loaded into a new world.');
   };
   const enable = element<HTMLButtonElement>('enable-imported-profile');
@@ -835,16 +843,33 @@ godModeToggle.addEventListener('change', () => {
 });
 cameraButton.addEventListener('click', toggleCamera);
 orientationButton.addEventListener('click', toggleOrientation);
+interface KeyboardLock {
+  lock?(keyCodes?: readonly string[]): Promise<void>;
+  unlock?(): void;
+}
+function syncFullscreenKeyboardLock(active: boolean): void {
+  const keyboard = (navigator as Navigator & { readonly keyboard?: KeyboardLock }).keyboard;
+  if (!keyboard) return;
+  if (active) {
+    void keyboard.lock?.(['Escape'])?.catch(() => {});
+  } else {
+    keyboard.unlock?.();
+  }
+}
 function toggleFullscreen(): void {
   if (!document.fullscreenElement) {
-    void document.documentElement.requestFullscreen?.().catch(() => {});
+    void document.documentElement.requestFullscreen?.().then(() => {
+      syncFullscreenKeyboardLock(true);
+    }).catch(() => {});
   } else {
+    syncFullscreenKeyboardLock(false);
     void document.exitFullscreen?.().catch(() => {});
   }
 }
 fullscreenButton.addEventListener('click', toggleFullscreen);
 document.addEventListener('fullscreenchange', () => {
   const isFs = !!document.fullscreenElement;
+  syncFullscreenKeyboardLock(isFs);
   fullscreenButton.setAttribute('aria-pressed', String(isFs));
   fullscreenButton.textContent = isFs ? 'Exit fullscreen' : 'Fullscreen';
   profiler.event('fullscreen', { active: isFs });
@@ -1926,6 +1951,7 @@ moduleManager = new ModuleManager(presentation, {
     replaceLocalWorld(prepared.world);
     prepared.runtime.activate(prepared.candidate);
     reset();
+    focusOnShipForNewWorld();
   },
 });
 labManager = new LabManager({
@@ -1961,8 +1987,9 @@ labManager = new LabManager({
     local.world.dispose();
     local = next;
     activeGameInfo = { ...game.info };
-    useSession(local, false);
+    useSession(local, true);
     reset();
+    focusOnShipForNewWorld();
   },
 });
 void labManager.start();
