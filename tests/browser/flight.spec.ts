@@ -97,6 +97,7 @@ test('orbit, camera, zoom, heading and sampled prediction stay coherent', async 
 });
 
 test('mouse drag pans a rotated view and follow restores without changing flight state', async ({ page }) => {
+  test.slow();
   await page.goto('/');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');

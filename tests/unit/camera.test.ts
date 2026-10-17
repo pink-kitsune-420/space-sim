@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { advance, initialState } from '../../packages/sim-core/src/index';
 import { CanvasRenderer, WebGLRenderer, blendAngle, dragCamera, drawPlanetHorizon, hermiteControls, interpolateState, parallelArcs, pathFromShip, project } from '../../packages/render-2d/src/index';
-import { CameraController } from '../../apps/web/src/camera';
+import { CameraController, findSmartThrowTarget, type SmartCandidate } from '../../apps/web/src/camera';
 
 it('projects a shared world transform with +Y up and camera-relative subtraction', () => {
   const center = { x: 1e12, y: -1e12 };
@@ -439,6 +439,176 @@ it('throws camera into inertial free pan, coasts over time, and slows down with 
   // Calling stopFling halts drift immediately
   camera.stopFling();
   expect(camera.panVelocity).toEqual({ x: 0, y: 0 });
+});
+
+it('findSmartThrowTarget prioritizes ships over bodies and selects the closest candidate', () => {
+  const bodies: SmartCandidate[] = [
+    { kind: 'body', id: 'moon', name: 'Moon', position: { x: 500, y: 0 } },
+    { kind: 'body', id: 'mars', name: 'Mars', position: { x: 1200, y: 0 } },
+  ];
+  const ships: SmartCandidate[] = [
+    { kind: 'ship', id: 'probe', name: 'Probe', position: { x: 700, y: 0 } },
+    { kind: 'ship', id: 'lander', name: 'Lander', position: { x: 900, y: 0 } },
+  ];
+
+  // Swiping left (screen -X) throws the camera to the right (+X world)
+  // Scale is 1 px/m, center at {0, 0}
+  // Even though Moon is closer (500m vs 700m), probe is a ship, so probe MUST take priority!
+  const target = findSmartThrowTarget({
+    currentCenter: { x: 0, y: 0 },
+    screenVelocity: { x: -800, y: 0 },
+    cameraRotation: 0,
+    scale: 1,
+    bodies,
+    ships,
+  });
+  expect(target).toEqual({
+    kind: 'ship',
+    id: 'probe',
+    name: 'Probe',
+    isPilotedShip: undefined,
+  });
+});
+
+it('findSmartThrowTarget selects closest body when no ships are in throw path', () => {
+  const bodies: SmartCandidate[] = [
+    { kind: 'body', id: 'moon', name: 'Moon', position: { x: 400, y: 0 } },
+    { kind: 'body', id: 'mars', name: 'Mars', position: { x: 1000, y: 0 } },
+  ];
+  const target = findSmartThrowTarget({
+    currentCenter: { x: 0, y: 0 },
+    screenVelocity: { x: -800, y: 0 },
+    cameraRotation: 0,
+    scale: 1,
+    bodies,
+    ships: [],
+  });
+  expect(target).toEqual({
+    kind: 'body',
+    id: 'moon',
+    name: 'Moon',
+  });
+});
+
+it('findSmartThrowTarget eases up and returns undefined for slow drags or opposite directions', () => {
+  const bodies: SmartCandidate[] = [
+    { kind: 'body', id: 'moon', name: 'Moon', position: { x: 400, y: 0 } },
+  ];
+  // Slow / moderate drag (< 650 px/s): eases up, no auto-focus
+  const slow = findSmartThrowTarget({
+    currentCenter: { x: 0, y: 0 },
+    screenVelocity: { x: -400, y: 0 },
+    cameraRotation: 0,
+    scale: 1,
+    bodies,
+    ships: [],
+  });
+  expect(slow).toBeUndefined();
+
+  // Thrown in opposite direction (swiping right throws away from Moon at +X)
+  const opposite = findSmartThrowTarget({
+    currentCenter: { x: 0, y: 0 },
+    screenVelocity: { x: 800, y: 0 },
+    cameraRotation: 0,
+    scale: 1,
+    bodies,
+    ships: [],
+  });
+  expect(opposite).toBeUndefined();
+
+  // Target in local vicinity of camera center (< 150 screen px away)
+  const tooClose = findSmartThrowTarget({
+    currentCenter: { x: 0, y: 0 },
+    screenVelocity: { x: -800, y: 0 },
+    cameraRotation: 0,
+    scale: 1,
+    bodies: [{ kind: 'body', id: 'earth', name: 'Earth', position: { x: 100, y: 0 } }],
+    ships: [],
+  });
+  expect(tooClose).toBeUndefined();
+});
+
+it('smart fling smoothly guides camera to target, locks focus, and tracks moving bodies', () => {
+  const camera = new CameraController();
+  camera.drag({ x: 50, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, 800, 600);
+  expect(camera.mode).toBe('free');
+
+  const moonPos = { x: 500, y: 0 };
+  const smartTarget = { kind: 'body' as const, id: 'moon', name: 'Moon' };
+  camera.fling({ x: -800, y: 0 }, 800, 600, smartTarget);
+  expect(camera.smartTarget).toEqual(smartTarget);
+
+  // Advance time: camera glides towards moon
+  for (let i = 0; i < 25; i++) {
+    camera.update({
+      body: { x: 0, y: 0 },
+      ship: { x: 0, y: 0 },
+      elapsed: 0.1,
+      instant: false,
+      width: 800,
+      height: 600,
+      focusPosition: moonPos,
+    });
+    if (!camera.smartTarget) break; // arrived
+  }
+
+  // Camera arrived and locked onto Moon
+  expect(camera.smartTarget).toBeUndefined();
+  expect(camera.focusTarget).toEqual(smartTarget);
+  expect(camera.label([])).toBe('Moon view');
+  expect(camera.last.center.x).toBeCloseTo(moonPos.x, 1);
+
+  // If Moon moves in its orbit, camera continues tracking it
+  const moonNewPos = { x: 510, y: 30 };
+  camera.update({
+    body: { x: 0, y: 0 },
+    ship: { x: 0, y: 0 },
+    elapsed: 0.1,
+    instant: false,
+    width: 800,
+    height: 600,
+    focusPosition: moonNewPos,
+  });
+  expect(camera.last.center.x).toBeCloseTo(moonNewPos.x, 1);
+  expect(camera.last.center.y).toBeCloseTo(moonNewPos.y, 1);
+
+  // Dragging breaks focus and continues manually
+  camera.drag({ x: 10, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, 800, 600);
+  expect(camera.focusTarget).toBeUndefined();
+  expect(camera.label([])).toBe('Free camera');
+
+  // Clicking cycle clears focus and returns to following ship
+  camera.cycle([]);
+  expect(camera.mode).toBe('follow');
+  expect(camera.label([])).toBe('Follow ship');
+});
+
+it('smart fling targeting piloted ship smoothly returns camera to follow mode on arrival', () => {
+  const camera = new CameraController();
+  camera.drag({ x: -200, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 }, 800, 600);
+  expect(camera.mode).toBe('free');
+
+  const shipPos = { x: 0, y: 0 };
+  const smartTarget = { kind: 'ship' as const, id: 'ship-1', name: 'Alpha', isPilotedShip: true };
+  camera.fling({ x: 800, y: 0 }, 800, 600, smartTarget);
+
+  // Advance time: camera glides towards ship and arrives
+  for (let i = 0; i < 25; i++) {
+    camera.update({
+      body: { x: 0, y: 0 },
+      ship: shipPos,
+      elapsed: 0.1,
+      instant: false,
+      width: 800,
+      height: 600,
+      focusPosition: shipPos,
+    });
+    if (!camera.smartTarget) break;
+  }
+
+  expect(camera.smartTarget).toBeUndefined();
+  expect(camera.mode).toBe('follow');
+  expect(camera.label([])).toBe('Follow ship');
 });
 
 

@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:sandbox": "vite apps/orbit-sandbox --port 5174",
     "build": "tsc --noEmit && vite build && node scripts/build_offline.mjs && vite build --config vite.server.config.ts && vite build --config vite.desktop.config.ts",
     "build:server-exe": "node scripts/build_server_exe.mjs",
     "build:game-exe": "node scripts/build_game_exe.mjs",
@@ -18,6 +19,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:browser": "playwright test",
+    "test:sandbox": "vitest run --config apps/orbit-sandbox/vitest.config.ts",
     "measure": "node scripts/measure_browser.mjs",
     "measure:modules": "node scripts/measure_module_baseline.mjs",
     "measure:orbits": "node --experimental-strip-types scripts/measure_orbits.mjs",

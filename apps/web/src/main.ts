@@ -20,7 +20,7 @@ import { GamepadManager } from './gamepad';
 import { TouchControlsManager, type TouchMode } from './touch-controls';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
-import { CameraController } from './camera';
+import { CameraController, findSmartThrowTarget, type SmartCandidate } from './camera';
 import { CommandBar } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
 import { Prediction } from './prediction';
@@ -690,6 +690,51 @@ const pointerVelocityTracker = new VelocityTracker();
 const canvasTouches = new Map<number, { x: number; y: number }>();
 let lastPinchDistance: number | undefined;
 
+function initiateCameraFling(vel: Vec, width: number, height: number): void {
+  const world = session.world;
+  const bodies: SmartCandidate[] = world.system.getAllBodies().map(b => ({
+    kind: 'body',
+    id: b.id,
+    name: b.name,
+    position: world.system.getBodyPosition(b.id, view.time),
+  }));
+
+  const ships: SmartCandidate[] = [];
+  const piloted = selectedShip();
+  if (piloted) {
+    ships.push({
+      kind: 'ship',
+      id: piloted.id,
+      name: piloted.name,
+      position: bodyWorldPosition(activeBody.id, view.time, view.position),
+      isPilotedShip: true,
+    });
+  }
+  for (const s of world.records()) {
+    if (piloted && s.id === piloted.id) continue;
+    ships.push({
+      kind: 'ship',
+      id: s.id,
+      name: s.name,
+      position: bodyWorldPosition(s.bodyId, view.time, s.state.position),
+      isPilotedShip: false,
+    });
+  }
+
+  const smartTarget = findSmartThrowTarget({
+    currentCenter: cameraControl.last.center,
+    screenVelocity: vel,
+    cameraRotation: cameraControl.rotation,
+    scale: cameraControl.scale(width, height),
+    bodies,
+    ships,
+    currentFocusId: cameraControl.focusTarget?.id,
+  });
+
+  cameraControl.fling(vel, width, height, smartTarget);
+  syncCameraButton();
+}
+
 const endCameraDrag = (event: PointerEvent): void => {
   if (canvasTouches.has(event.pointerId)) {
     canvasTouches.delete(event.pointerId);
@@ -702,7 +747,7 @@ const endCameraDrag = (event: PointerEvent): void => {
     if (cameraDrag.moved) {
       const vel = pointerVelocityTracker.getVelocity();
       if (Math.hypot(vel.x, vel.y) > 25) {
-        cameraControl.fling(vel, canvas.clientWidth, canvas.clientHeight);
+        initiateCameraFling(vel, canvas.clientWidth, canvas.clientHeight);
       }
     }
     pointerVelocityTracker.reset();
@@ -795,7 +840,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
         if (!isPinching) {
           const vel = touchVelocityTracker.getVelocity();
           if (Math.hypot(vel.x, vel.y) > 25) {
-            cameraControl.fling(vel, target.clientWidth, target.clientHeight);
+            initiateCameraFling(vel, target.clientWidth, target.clientHeight);
           }
         }
         isPinching = false;
@@ -2193,11 +2238,33 @@ function frame(now: number): void {
   let snapshot: PresentationSnapshot | undefined;
   const base = (): PresentationSnapshot => snapshot ??= presentationView(elapsed, activeBodyPos);
   const mode = cameraControl.mode;
+  const lastFocusTarget = cameraControl.focusTarget;
   const target = mode !== 'follow' && mode !== 'free'
     ? presentation.camera(mode, () => Object.freeze({ ...base(), scale: cameraControl.scale(width, height) })) : undefined;
+
+  let focusPosition: Vec | undefined;
+  const focus = cameraControl.smartTarget ?? cameraControl.focusTarget;
+  if (focus) {
+    if (focus.kind === 'body') {
+      const has = world.system.getAllBodies().some(b => b.id === focus.id);
+      if (has) {
+        focusPosition = world.system.getBodyPosition(focus.id, view.time);
+      } else {
+        cameraControl.clearFocus();
+      }
+    } else if (focus.kind === 'ship') {
+      const targetShip = world.ship(focus.id);
+      if (targetShip) {
+        focusPosition = bodyWorldPosition(targetShip.bodyId, view.time, targetShip.state.position);
+      } else {
+        cameraControl.clearFocus();
+      }
+    }
+  }
+
   const camera = cameraControl.update({ body: activeBodyPos, ship: view.position, elapsed, instant: reducedMotion.matches,
-    width, height, ...(target ? { target } : {}) });
-  if (mode !== cameraControl.mode) syncCameraButton();
+    width, height, ...(target ? { target } : {}), ...(focusPosition ? { focusPosition } : {}) });
+  if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
   const overlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   const others = otherShips(view.time, session.alpha, camera);
   presentation.rendering.renderer!.draw({

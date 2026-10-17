@@ -30,8 +30,13 @@ packages/tile-core/
 games/space-sim-nextgen/
 tests/unit/tile-core.test.ts
 
-# Idea tracker
+# Experimental Orbit Sandbox
+apps/orbit-sandbox/
+dist-orbit-sandbox/
+
+# Idea & Bug trackers
 game-ideas.md
+bugs.md
 
 # Local archive for sidetracked and retired plans
 archive/
