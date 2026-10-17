@@ -90,15 +90,17 @@ describe('renderer features', () => {
   it('draw WebGL overlays through private passes, compiling the label pass only when needed', () => {
     const { stats, canvas } = fakeGl();
     const renderer = new WebGLRenderer(canvas);
-    expect(stats.programs).toBe(4); // Three pack programs and the private colored pass.
+    // Three pack programs (the scene in its lite build), the private colored pass, and the full
+    // scene linking in the background.
+    expect(stats.programs).toBe(5);
     renderer.draw(frame(OVERLAYS.slice(0, 2)));
-    expect(stats.programs).toBe(4);
+    expect(stats.programs).toBe(4); // the full scene replaced the lite one
     renderer.draw(frame(OVERLAYS));
     expect(stats.programs).toBe(5);
     // Exact module color whatever the shader pack: #3366ff as linear RGBA.
     expect(stats.colors).toContainEqual([.2, .4, 1, 1]);
     renderer.draw(frame(OVERLAYS));
-    expect(stats.created).toBe(5);
+    expect(stats.created).toBe(6); // the lite scene, then the full one
     renderer.dispose(); renderer.dispose();
     expect(stats.programs).toBe(0);
   });

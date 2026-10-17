@@ -327,6 +327,9 @@ it('renders consistent body, vessel, scale bar, and radial distance labels acros
     createTexture: () => ({}),
     bindTexture: () => {},
     texImage2D: () => {},
+    texImage3D: () => {},
+    pixelStorei: () => {},
+    getExtension: () => null,
     texParameteri: () => {},
   } as unknown as WebGL2RenderingContext;
 

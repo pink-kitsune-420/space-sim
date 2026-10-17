@@ -142,7 +142,8 @@ export class PlanetDesigner {
       // Only while the designer can be seen.
       if (!this.root.isConnected || !this.root.closest('details')?.open || this.root.offsetParent === null) return;
       this.draw();
-      if (this.ui.spin.checked) this.frame = requestAnimationFrame(tick);
+      if (this.preview?.error) { this.ui.status.textContent = `Preview unavailable: ${this.preview.error} Designs still apply in flight.`; return; }
+      if (this.ui.spin.checked || !this.preview?.ready) this.frame = requestAnimationFrame(tick);
     };
     tick();
   }

@@ -18,7 +18,7 @@ function compile(gl: WebGL2RenderingContext, type: number, source: string): WebG
 /** Inspect once at load time. Reject incompatible inputs before they can break drawing. */
 function checkInterface(gl: WebGL2RenderingContext, program: WebGLProgram, pass: ShaderPass): void {
   const uniforms: Record<string, number> = { u_resolution: gl.FLOAT_VEC2, u_time: gl.FLOAT };
-  if (pass === 'scene') uniforms.u_bodyCount = gl.INT;
+  if (pass === 'scene') { uniforms.u_bodyCount = gl.INT; uniforms.u_noise = gl.SAMPLER_3D; }
   else uniforms.u_style = gl.INT;
   if (pass === 'text') uniforms.u_tex = gl.SAMPLER_2D;
   const bodyTypes: Record<string, number> = {
@@ -77,6 +77,66 @@ function link(gl: WebGL2RenderingContext, pack: ShaderPack, pass: ShaderPass): W
     if (fragment) gl.deleteShader(fragment);
     if (program && !linked) gl.deleteProgram(program);
   }
+}
+
+/** A program linking in the background: poll `ready` each frame, then `finish` to use it. */
+export interface PendingProgram {
+  ready(): boolean;
+  /** The checked program; throws (and frees it) when it failed to compile, link or fit the interface. */
+  finish(): WebGLProgram;
+  cancel(): void;
+}
+
+/** Start one pass without waiting on the driver. With KHR_parallel_shader_compile the GPU
+ * driver compiles on its own threads and `ready` turns true later; without it, `finish`
+ * simply waits as an ordinary link would. */
+export function startProgram(gl: WebGL2RenderingContext, pack: ShaderPack, pass: ShaderPass): PendingProgram {
+  const parallel = gl.getExtension('KHR_parallel_shader_compile');
+  const vertex = gl.createShader(gl.VERTEX_SHADER)!, fragment = gl.createShader(gl.FRAGMENT_SHADER)!;
+  gl.shaderSource(vertex, pack.passes[pass].vertex); gl.compileShader(vertex);
+  gl.shaderSource(fragment, pack.passes[pass].fragment); gl.compileShader(fragment);
+  const program = gl.createProgram()!;
+  gl.attachShader(program, vertex); gl.attachShader(program, fragment);
+  gl.bindAttribLocation(program, 0, 'a_position');
+  gl.bindAttribLocation(program, 1, 'a_uv');
+  gl.linkProgram(program);
+  let open = true;
+  const release = (keep: boolean): void => {
+    if (!open) return;
+    open = false;
+    gl.detachShader(program, vertex); gl.detachShader(program, fragment);
+    gl.deleteShader(vertex); gl.deleteShader(fragment);
+    if (!keep) gl.deleteProgram(program);
+  };
+  return {
+    ready: () => !parallel || gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR) === true,
+    finish: () => {
+      try {
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          const log = [vertex, fragment].map(s => gl.getShaderInfoLog(s)).filter(Boolean).join('\n') || gl.getProgramInfoLog(program);
+          throw new Error(`Link failed:\n${log}`);
+        }
+        checkInterface(gl, program, pass);
+      } catch (error) {
+        release(false);
+        throw new Error(`${pass}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      release(true);
+      return program;
+    },
+    cancel: () => release(false),
+  };
+}
+
+/** The same pack with procedural surfaces compiled out (`#define SCENE_LITE`), when its scene
+ * shader offers that build: it compiles in a few milliseconds, so a renderer can start drawing
+ * at once and switch to the full scene once it is ready. */
+export function liteShaderPack(pack: ShaderPack): ShaderPack | undefined {
+  const fragment = pack.passes.scene.fragment;
+  if (!fragment.includes('SCENE_LITE')) return undefined;
+  const lite = fragment.replace(/^(\s*#version[^\n]*\n)/, '$1#define SCENE_LITE 1\n');
+  if (lite === fragment) return undefined;
+  return { ...pack, passes: { ...pack.passes, scene: { ...pack.passes.scene, fragment: lite } } };
 }
 
 /** Build every stage before committing; a failed load keeps the previous pack live. */

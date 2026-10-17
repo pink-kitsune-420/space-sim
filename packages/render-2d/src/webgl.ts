@@ -4,10 +4,12 @@ import {
   createProjector, hermiteControls, pathFromShip
 } from './frame';
 import { DEFAULT_SHADERS, ShaderStyle, validateShaderPack, type ShaderPack } from './shaders';
-import { compileOverlayTextProgram, compileShaderPack, compileTerrainProgram, type ShaderPrograms } from './shader-program';
+import { compileOverlayTextProgram, compileShaderPack, compileTerrainProgram, liteShaderPack, startProgram,
+  type PendingProgram, type ShaderPrograms } from './shader-program';
 import { overlayRgba, screenOverlays, type ScreenOverlay } from './overlay';
 import { terrainGeometry, terrainFaceColor, type TerrainGeometry } from './terrain';
 import { bodyUniformLocations, parseHex, setBodyUniforms, type BodyUniformLocations } from './scene-bodies';
+import { createNoiseTexture } from './noise-texture';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
 
 /** Unit circle vertex tables, built once per segment count. */
@@ -91,6 +93,9 @@ export class WebGLRenderer implements Renderer {
   private readonly textBuffer!: WebGLBuffer;
   private quadResolutionLoc: WebGLUniformLocation | null = null;
   private quadBodyCountLoc: WebGLUniformLocation | null = null;
+  private quadNoiseLoc: WebGLUniformLocation | null = null;
+  private pendingScene: PendingProgram | undefined;
+  private readonly noise!: WebGLTexture;
   private bodyUniforms: readonly BodyUniformLocations[] = [];
   private vecResolutionLoc: WebGLUniformLocation | null = null;
   private vecStyleLoc: WebGLUniformLocation | null = null;
@@ -153,6 +158,8 @@ export class WebGLRenderer implements Renderer {
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 24, 0);
     gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 24, 8);
 
+    this.noise = createNoiseTexture(gl);
+
     const labelCanvas = canvas.ownerDocument.createElement('canvas');
     const labelCtx = labelCanvas.getContext('2d');
     if (!labelCtx) throw new Error('Canvas 2D is unavailable for WebGL text labels.');
@@ -165,6 +172,7 @@ export class WebGLRenderer implements Renderer {
       gl.deleteProgram(this.terrainProgram);
       gl.deleteBuffer(this.terrainBuffer);
       gl.deleteVertexArray(this.terrainVao);
+      gl.deleteTexture(this.noise);
       gl.getExtension('WEBGL_lose_context')?.loseContext();
       throw error;
     }
@@ -217,28 +225,55 @@ export class WebGLRenderer implements Renderer {
     if (this.disposed) throw new Error('Renderer has been disposed.');
     const pack = validateShaderPack(value);
     const { gl } = this;
-    const next = compileShaderPack(gl, pack);
+    // A big procedural scene can take a noticeable time to compile. Start drawing with its lite
+    // build (plain discs) and switch to the full scene when the driver has finished it.
+    const lite = liteShaderPack(pack);
+    const next = compileShaderPack(gl, lite ?? pack);
     const previous = this.programs;
+    this.pendingScene?.cancel();
+    this.pendingScene = lite ? startProgram(gl, pack, 'scene') : undefined;
     this.programs = next;
-    this.quadProgram = next.scene;
+    this.useScene(next.scene);
     this.vectorProgram = next.vector;
     this.textProgram = next.text;
-    this.quadResolutionLoc = gl.getUniformLocation(this.quadProgram, 'u_resolution');
-    this.quadBodyCountLoc = gl.getUniformLocation(this.quadProgram, 'u_bodyCount');
-    const bodyUniforms: BodyUniformLocations[] = [];
-    for (let i = 0; i < 8; i++) bodyUniforms.push(bodyUniformLocations(gl, this.quadProgram, i));
-    this.bodyUniforms = bodyUniforms;
     this.vecResolutionLoc = gl.getUniformLocation(this.vectorProgram, 'u_resolution');
     this.vecStyleLoc = gl.getUniformLocation(this.vectorProgram, 'u_style');
     this.textResolutionLoc = gl.getUniformLocation(this.textProgram, 'u_resolution');
     this.textStyleLoc = gl.getUniformLocation(this.textProgram, 'u_style');
     this.textTexLoc = gl.getUniformLocation(this.textProgram, 'u_tex');
 
-    this.sceneTimeLoc = gl.getUniformLocation(next.scene, 'u_time');
     this.vectorTimeLoc = gl.getUniformLocation(next.vector, 'u_time');
     this.textTimeLoc = gl.getUniformLocation(next.text, 'u_time');
     this.activeShaders = pack;
     if (previous) for (const program of Object.values(previous)) gl.deleteProgram(program);
+  }
+
+  private useScene(program: WebGLProgram): void {
+    const { gl } = this;
+    this.quadProgram = program;
+    this.quadResolutionLoc = gl.getUniformLocation(program, 'u_resolution');
+    this.quadBodyCountLoc = gl.getUniformLocation(program, 'u_bodyCount');
+    this.quadNoiseLoc = gl.getUniformLocation(program, 'u_noise');
+    this.sceneTimeLoc = gl.getUniformLocation(program, 'u_time');
+    const bodyUniforms: BodyUniformLocations[] = [];
+    for (let i = 0; i < 8; i++) bodyUniforms.push(bodyUniformLocations(gl, program, i));
+    this.bodyUniforms = bodyUniforms;
+  }
+
+  /** Swap in the full scene once its background compile is done; on failure keep the lite one. */
+  private upgradeScene(): void {
+    const pending = this.pendingScene;
+    if (!pending?.ready()) return;
+    this.pendingScene = undefined;
+    try {
+      const program = pending.finish();
+      const lite = this.programs.scene;
+      this.programs = { ...this.programs, scene: program };
+      this.useScene(program);
+      this.gl.deleteProgram(lite);
+    } catch (error) {
+      console.warn(`Detailed planets are unavailable: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   dispose(): void {
@@ -247,6 +282,7 @@ export class WebGLRenderer implements Renderer {
     const { gl } = this;
     gl.bindVertexArray(null);
     gl.useProgram(null);
+    this.pendingScene?.cancel();
     for (const program of Object.values(this.programs)) gl.deleteProgram(program);
     gl.deleteProgram(this.terrainProgram);
     if (this.overlayText) gl.deleteProgram(this.overlayText.program);
@@ -254,11 +290,13 @@ export class WebGLRenderer implements Renderer {
     for (const buffer of [this.quadBuffer, this.vectorBuffer, this.textBuffer, this.terrainBuffer, this.colorBuffer]) gl.deleteBuffer(buffer);
     for (const entry of this.labelCache.values()) gl.deleteTexture(entry.texture);
     this.labelCache.clear();
+    gl.deleteTexture(this.noise);
     gl.getExtension('WEBGL_lose_context')?.loseContext();
   }
 
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) return;
+    this.upgradeScene();
     const { canvas, gl } = this;
     const { state, camera, engine, bodies } = frame;
     const width = canvas.clientWidth, height = canvas.clientHeight;
@@ -331,6 +369,11 @@ export class WebGLRenderer implements Renderer {
       count++;
     }
     gl.uniform1i(this.quadBodyCountLoc, count);
+    // Unit 1 keeps the noise lattice clear of the label textures on unit 0.
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_3D, this.noise);
+    gl.uniform1i(this.quadNoiseLoc, 1);
+    gl.activeTexture(gl.TEXTURE0);
 
     gl.bindVertexArray(this.quadVao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);

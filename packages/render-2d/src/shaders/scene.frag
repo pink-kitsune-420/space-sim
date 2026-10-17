@@ -32,6 +32,7 @@ struct Body {
 
 uniform int u_bodyCount;
 uniform Body u_bodies[8];
+uniform highp sampler3D u_noise; // optional for shader packs: random lattice for the procedural surfaces
 
 // Day/night: 1 by day, 0.35 at night, smooth across the terminator (see lighting.ts).
 float daylight(float c) { return 0.35 + 0.65 * smoothstep(-0.18, 0.18, c); }
@@ -42,28 +43,23 @@ float hash(vec2 p) {
   return fract(p.x * p.y);
 }
 
+#ifndef SCENE_LITE // the lite build (compiled first, for a fast start) leaves out procedural surfaces
 // ---------------------------------------------------------------------------------------
 // Procedural surfaces. A 2D planet is seen from above its pole: its spin axis points out of
 // the screen, so the disc is the northern hemisphere (pole at the centre, equator at the
 // rim, where ships land). Detail lives on the unit sphere in the body-fixed frame, so it
 // turns with the planet and foreshortens towards the rim like a real globe.
 
-float hash13(vec3 p) {
-  p = fract(p * 0.1031);
-  p += dot(p, p.zyx + 31.32);
-  return fract((p.x + p.y) * p.z);
-}
 vec2 hash22(vec2 p) {
   vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
   q += dot(q, q.yzx + 33.33);
   return fract((q.xx + q.yz) * q.zy);
 }
+// Smooth value noise from the shared 64^3 random lattice (u_noise): the hardware's trilinear
+// filter does the blend, and moving the sample point by the smoothstep weights makes it smooth.
 float noise3(vec3 p) {
   vec3 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(mix(hash13(i), hash13(i + vec3(1, 0, 0)), u.x),
-                 mix(hash13(i + vec3(0, 1, 0)), hash13(i + vec3(1, 1, 0)), u.x), u.y),
-             mix(mix(hash13(i + vec3(0, 0, 1)), hash13(i + vec3(1, 0, 1)), u.x),
-                 mix(hash13(i + vec3(0, 1, 1)), hash13(i + vec3(1, 1, 1)), u.x), u.y), u.z);
+  return texture(u_noise, (i + u + 0.5) / 64.0).r;
 }
 // Level of detail: an octave smaller than about two pixels (`px`, in the same units as `p`)
 // fades to its mean, so zoomed-out planets cost little and never shimmer.
@@ -244,6 +240,7 @@ vec3 strata(Body b, float depthMetres, vec2 q) {
   col *= 0.88 + 0.24 * noise3(vec3(p * 3.0, depthMetres * 0.8));
   return col;
 }
+#endif
 
 void main() {
   vec2 pixelPos = vec2(v_uv.x * u_resolution.x, (1.0 - v_uv.y) * u_resolution.y);
@@ -303,6 +300,7 @@ void main() {
         col = mix(col, coronaCol.rgb, coronaCol.a);
       }
       if (sd <= 0.0) {
+#ifndef SCENE_LITE
         if (b.style == 8) {
           // Limb darkening and boiling granulation.
           vec2 v = vec2(relCenter.x, -relCenter.y) / r;
@@ -316,7 +314,9 @@ void main() {
           core *= 0.88 + 0.24 * granules;
           vec2 spots = craters(p.xy * 5.0, px * 5.0, b.seed, 0.55);
           col = mix(core, b.c3, smoothstep(0.3, 0.7, spots.x) * 0.7 * step(0.25, z));
-        } else {
+        } else
+#endif
+        {
           float depthScale = max(1.0, min(r, 350.0));
           float t = clamp(1.0 + sd / depthScale, 0.0, 1.0);
           vec3 core = mix(vec3(1.0, 1.0, 1.0), b.color, smoothstep(0.0, 0.75, t));
@@ -327,6 +327,7 @@ void main() {
       if (abs(sd) <= 1.5) {
         col = mix(col, vec3(1.0, 0.97, 0.86), 0.8);
       }
+#ifndef SCENE_LITE
     } else if (b.style > 0) {
       // ---- Procedural planet ----
       bool lit = dot(b.sunDir, b.sunDir) > 0.5;
@@ -394,6 +395,7 @@ void main() {
       float dayEdge = lit ? daylight(cosRim) : 1.0;
       float edge = smoothstep(0.0, -2.0, sd) - smoothstep(-1.5, -3.5, sd);
       if (edge > 0.0) col = mix(col, b.accent * dayEdge, edge * 0.6);
+#endif
     } else {
       bool lit = dot(b.sunDir, b.sunDir) > 0.5;
       float cosSun = lit ? dot(normalize(relCenter), b.sunDir) : 1.0;
