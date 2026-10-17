@@ -104,6 +104,33 @@ describe('universal-variable kernel under Node', () => {
       }
     }
   });
+  it('converges on hyperbolic arcs whose cancellation residual floor sits above the tolerance', () => {
+    // Inbound escape arc that used to spin to the iteration limit (bugs.md B18).
+    const s = { position: { x: -95075400.73535405, y: 84571443.31614678 },
+      velocity: { x: 381.75955921210385, y: -335.5154437488568 } };
+    const mu = 4288033571153.716, dt = 975613.8541723267;
+    const final = solved(s, mu, dt);
+    const before = elements(s, mu), after = elements(final, mu);
+    expect(before.kind).toBe('hyperbolic');
+    expect(Math.abs(after.energy / before.energy - 1)).toBeLessThan(1e-10);
+    expect(error(solved(final, mu, -dt), s, magnitude(s.position), magnitude(s.velocity))).toBeLessThan(1e-9);
+    // Sweep both directions through periapsis: inbound forward and outbound backward.
+    for (let i = 0; i < 400; i++) {
+      const tilt = 10 ** (-2 - (i % 14)), k = 1.5 + (i % 7) * .2, out = i % 2 ? 1 : -1;
+      const v = k * Math.sqrt(1 / 1e3);
+      const state = { position: { x: 1e3, y: 0 }, velocity: { x: out * v, y: v * tilt } };
+      const result = propagate(state, 1, -out * 10 ** (1 + (i % 9)) * (1 + i / 400));
+      expect(result.ok, JSON.stringify({ i, ...result.diagnostics })).toBe(true);
+    }
+    // An ordinary e≈1.9 flyby of the home planet; a sleeping ship read during warp used to
+    // fault at scattered instants on its outbound leg.
+    const v = 2.05 * Math.sqrt(2 * planet.mu / 4500);
+    const flyby = { position: { x: 4500, y: 0 }, velocity: { x: -v, y: v * .251188643150958 } };
+    for (let t = 100; t < 210; t += .01) {
+      const result = propagate(flyby, planet.mu, t);
+      expect(result.ok, JSON.stringify({ t, ...result.diagnostics })).toBe(true);
+    }
+  });
   it('bounds work, exercises bracketed fallback and publishes diagnostics without invalid states', () => {
     const s = { position: { x: 1, y: 0 }, velocity: { x: 0, y: 1.2 } };
     const fallback = propagate(s, 1, .7, { maxNewtonIterations: 0 });

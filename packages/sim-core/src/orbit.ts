@@ -141,7 +141,8 @@ export function stumpff(z: number): { c: number; s: number } {
 }
 
 /** Universal-variable f/g propagation, normalized to initial L,V,T for conditioning.
- * Every solve has bounded bracketing and guarded Newton/bisection work. */
+ * Every solve has bounded bracketing and guarded Newton/bisection work; it converges on a
+ * residual tolerance or, when roundoff floors the residual, on chi reaching double precision. */
 export function propagate(s: OrbitalState, mu: number, seconds: number, options: SolverOptions = {}): Propagation {
   let iterations = 0, bracketIterations = 0, usedBisection = false, residualSeconds: number | null = null;
   const diagnostics = (converged: boolean, reason: string | null): SolverDiagnostics =>
@@ -201,27 +202,34 @@ export function propagate(s: OrbitalState, mu: number, seconds: number, options:
     const startAtLo = Math.abs(qLo.f) < Math.abs(qHi.f);
     let chi = startAtLo ? lo : hi;
     let q: EvalResult = startAtLo ? qLo : qHi;
+    const solution = (): Propagation => {
+      const f = 1 - chi * chi * q.c;
+      const g = dt - chi * chi * chi * q.s;
+      const r = { x: f * p.x + g * v.x, y: f * p.y + g * v.y };
+      const radius = norm(r);
+      const fdot = (alpha * (chi * chi * chi) * q.s - chi) / radius;
+      const gdot = 1 - chi * chi * q.c / radius;
+      const state = { position: { x: r.x * L, y: r.y * L }, velocity: {
+        x: direction * V * (fdot * p.x + gdot * v.x), y: direction * V * (fdot * p.y + gdot * v.y),
+      } };
+      validate(state, mu);
+      return { ok: true, state, diagnostics: diagnostics(true, null) };
+    };
     for (; iterations < limit; iterations++) {
       if (iterations > 0) q = evaluate(chi);
       residualSeconds = q.f * T;
       if (!Number.isFinite(q.f + q.derivative)) return fail('Equation overflow');
-      if (Math.abs(q.f) <= 8e-15 * Math.max(Math.abs(dt), 1e-12)) {
-        const f = 1 - chi * chi * q.c;
-        const g = dt - chi * chi * chi * q.s;
-        const r = { x: f * p.x + g * v.x, y: f * p.y + g * v.y };
-        const radius = norm(r);
-        const fdot = (alpha * (chi * chi * chi) * q.s - chi) / radius;
-        const gdot = 1 - chi * chi * q.c / radius;
-        const state = { position: { x: r.x * L, y: r.y * L }, velocity: {
-          x: direction * V * (fdot * p.x + gdot * v.x), y: direction * V * (fdot * p.y + gdot * v.y),
-        } };
-        validate(state, mu);
-        return { ok: true, state, diagnostics: diagnostics(true, null) };
-      }
+      if (Math.abs(q.f) <= 8e-15 * Math.max(Math.abs(dt), 1e-12)) return solution();
       if (q.f > 0) hi = chi; else lo = chi;
       const candidate = chi - q.f / q.derivative;
-      if (iterations < newtonLimit && q.derivative > 0 && candidate > lo && candidate < hi) chi = candidate;
-      else { chi = (lo + hi) / 2; usedBisection = true; }
+      let next: number;
+      if (iterations < newtonLimit && q.derivative > 0 && candidate > lo && candidate < hi) next = candidate;
+      else { next = (lo + hi) / 2; usedBisection = true; }
+      // On hyperbolic arcs the Kepler terms can nearly cancel, so the residual floor can sit
+      // above the tolerance. A midpoint that rounds onto an end
+      // means the bracket is two adjacent doubles: chi is already the root to full precision.
+      if (next === lo || next === hi) return solution();
+      chi = next;
     }
     return fail('Iteration limit reached');
   } catch (error) {
