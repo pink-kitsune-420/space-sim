@@ -1,140 +1,81 @@
 import { element } from './ui';
+import { FloatingWindow } from './floating-window';
+import { icon, type IconName } from './ui-icons';
 
-export type Panel = 'setup' | 'data' | 'fleet' | 'multiplayer' | 'library' | 'tools';
+export type Panel = 'setup' | 'ship' | 'fleet' | 'multiplayer' | 'data' | 'settings' | 'tools' | 'manual' | 'library';
 
 const ESCAPE_TOGGLE_WAIT_MS = 300;
 
-/** Keep flight in one full-bleed viewport; all settings and tools share one tabbed menu drawer. */
+interface PanelSpec {
+  readonly id: Panel;
+  readonly title: string;
+  readonly label: string;
+  readonly icon: IconName;
+  readonly hint: string;
+  readonly sources: readonly string[];
+}
+
+/** Dock groups, top to bottom. Instrument windows join the second group as they are created. */
+const GROUPS: readonly (readonly PanelSpec[])[] = [[
+  { id: 'setup', title: 'Flight setup', label: 'Setup', icon: 'setup', hint: 'Universe, system, scenario and reset', sources: ['.setup-card'] },
+  { id: 'ship', title: 'Ship controls', label: 'Ship', icon: 'ship', hint: 'Throttle, steering and engine', sources: ['.controls'] },
+  { id: 'fleet', title: 'Fleet', label: 'Fleet', icon: 'fleet', hint: 'Ships in this world, saves', sources: ['.fleet-card'] },
+  { id: 'multiplayer', title: 'Multiplayer', label: 'Online', icon: 'online', hint: 'Host or join a shared world', sources: ['.multiplayer'] },
+], [
+  { id: 'data', title: 'Instruments', label: 'Instruments', icon: 'instruments', hint: 'Choose what the flight view shows', sources: ['.instruments-card', '#module-panels'] },
+], [
+  { id: 'settings', title: 'Settings', label: 'Settings', icon: 'settings', hint: 'Display, controls, gameplay and diagnostics', sources: ['.settings-card'] },
+  { id: 'tools', title: 'Tools', label: 'Tools', icon: 'tools', hint: 'Planet designer, shaders, stress test and diagnostics', sources: ['.utility-grid', '.debug'] },
+  { id: 'manual', title: 'Manual', label: 'Manual', icon: 'manual', hint: 'How to play, and how to make your own content', sources: ['#game-manual'] },
+  { id: 'library', title: 'Load game & plugins', label: 'Library', icon: 'library', hint: 'Games, plugins and universes', sources: ['#lab-manager'] },
+]];
+
+/**
+ * Keeps flight in one full-bleed viewport. A dock along the right edge opens every section as its own
+ * floating window. Unpinned windows behave like tabs (one at a time, closed by returning to the flight
+ * view or Esc); pinned windows stay open while flying.
+ */
 export class Workspace {
-  private active: Panel | undefined;
   private lastPanel: Panel = 'setup';
   private lastEscapeToggleAt = -Infinity;
-  private readonly drawer = document.createElement('section');
-  private readonly title = document.createElement('h2');
-  private readonly content = document.createElement('div');
-  private readonly menuButton = document.createElement('button');
-  private readonly panels = new Map<Panel, HTMLElement>();
-  private readonly titles = new Map<Panel, string>();
+  private readonly dock = document.createElement('nav');
+  private readonly instrumentGroup: HTMLElement;
+  private readonly chatItem: HTMLElement | undefined;
+  private readonly windows = new Map<Panel, FloatingWindow>();
+  private readonly viewport: HTMLElement;
 
   constructor(
     private readonly release: () => void,
     private readonly onClose?: () => void,
   ) {
-    const take = (selector: string): HTMLElement => document.querySelector<HTMLElement>(selector)!;
-    const viewport = take('.viewport');
-    const setup = take('.setup-card');
-    const controls = take('.controls');
-    const toolbar = take('.view-toolbar');
-    const viewTitle = take('.view-title');
-    const viewLabel = take('.view-label');
-    const viewTime = take('.view-time');
-    const connection = take('.connection');
-    const telemetry = take('.telemetry');
-    const terrainNotice = element('terrain-notice');
+    this.viewport = document.querySelector<HTMLElement>('#flight-console .viewport')!;
+    const layer = document.createElement('div');
+    layer.id = 'window-layer';
+    layer.className = 'window-layer';
+    document.body.append(layer);
 
-    // Minimal overlaid HUD in the full-bleed viewport
-    const hudTopLeft = document.createElement('div');
-    hudTopLeft.className = 'hud-top-left';
-    this.menuButton.id = 'menu-toggle';
-    this.menuButton.className = 'menu-toggle';
-    this.menuButton.type = 'button';
-    this.menuButton.title = 'Open menu (Esc)';
-    this.menuButton.setAttribute('aria-label', 'Menu');
-    this.menuButton.setAttribute('aria-controls', 'workspace-drawer');
-    this.menuButton.setAttribute('aria-expanded', 'false');
-    this.menuButton.setAttribute('aria-pressed', 'false');
-    this.menuButton.innerHTML = '<span class="menu-icon" aria-hidden="true">☰</span><span>Menu</span><kbd>Esc</kbd>';
-    this.menuButton.onclick = () => this.toggle(false);
-
-    const hudStatus = document.createElement('div');
-    hudStatus.className = 'hud-status';
-    hudStatus.append(viewTitle, viewLabel);
-    hudTopLeft.append(this.menuButton, hudStatus);
-
-    viewTime.append(connection);
-    viewport.append(hudTopLeft, terrainNotice, telemetry);
-
-    controls.append(take('.instruments-card'));
-    toolbar.classList.add('card');
-
-    const groups: [Panel, string, HTMLElement[]][] = [
-      ['setup', 'Flight & setup', [toolbar, setup, controls]],
-      ['data', 'Flight data', [element('module-panels')]],
-      ['fleet', 'Fleet', [take('.fleet-card')]],
-      ['multiplayer', 'Multiplayer', [take('.multiplayer')]],
-      ['library', 'Load game & plugins', [element('lab-manager')]],
-      ['tools', 'Tools & manual', [take('.utility-grid'), take('.debug')]],
-    ];
-    const shortLabels: Record<Panel, string> = {
-      setup: 'Setup',
-      data: 'Data',
-      fleet: 'Fleet',
-      multiplayer: 'Online',
-      library: 'Load Game',
-      tools: 'Tools',
-    };
-
-    this.drawer.className = 'workspace-drawer';
-    this.drawer.id = 'workspace-drawer';
-    this.drawer.hidden = true;
-    this.drawer.setAttribute('role', 'dialog');
-    this.drawer.setAttribute('aria-modal', 'false');
-    this.drawer.setAttribute('aria-labelledby', 'drawer-title');
-    this.title.id = 'drawer-title';
-
-    const heading = document.createElement('div');
-    heading.className = 'drawer-heading';
-    const topBar = document.createElement('div');
-    topBar.className = 'drawer-top-bar';
-    const brand = document.createElement('div');
-    brand.className = 'drawer-brand';
-    brand.append(take('header .wordmark'), element('active-game'), this.title);
-
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.className = 'drawer-close';
-    close.textContent = 'Close ×';
-    close.setAttribute('aria-label', 'Close panel');
-    close.onclick = () => this.close(true, false);
-    topBar.append(brand, close);
-
-    const nav = take('.workspace-nav');
-    nav.replaceChildren();
-
-    for (const [id, title, nodes] of groups) {
-      this.titles.set(id, title);
-      const panel = document.createElement('div');
-      panel.dataset.workspacePanel = id;
-      panel.hidden = true;
-      panel.append(...nodes);
-      this.panels.set(id, panel);
-      this.content.append(panel);
-
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.workspace = id;
-      const longSpan = document.createElement('span');
-      longSpan.className = 'nav-long';
-      longSpan.textContent = title;
-      const shortSpan = document.createElement('span');
-      shortSpan.className = 'nav-short';
-      shortSpan.textContent = shortLabels[id];
-      button.append(longSpan, shortSpan);
-      button.setAttribute('aria-controls', this.drawer.id);
-      button.setAttribute('aria-expanded', 'false');
-      button.onclick = () => this.open(id);
-      nav.append(button);
+    this.dock.className = 'hud-dock';
+    this.dock.setAttribute('aria-label', 'Windows');
+    const groups = GROUPS.map(specs => {
+      const group = document.createElement('div');
+      group.className = 'dock-group';
+      group.setAttribute('role', 'group');
+      for (const spec of specs) group.append(this.createPanel(spec, spec.id === 'library' ? layer : this.viewport));
+      this.dock.append(group);
+      return group;
+    });
+    this.instrumentGroup = groups[1]!;
+    // Chat keeps its own window; its toggle joins the dock beside the other instruments.
+    const chat = document.getElementById('chat-toggle');
+    if (chat) {
+      chat.className = 'dock-item';
+      chat.innerHTML = `${icon('chat')}<span>Chat</span>`;
+      chat.setAttribute('aria-label', 'Chat');
+      this.instrumentGroup.append(chat);
+      this.chatItem = chat;
     }
-
-    heading.append(topBar, nav);
-    this.content.className = 'drawer-content';
-    this.drawer.append(heading, this.content);
-    document.body.append(this.drawer);
-
+    this.viewport.append(this.dock);
     document.querySelector('.workspace > aside')?.remove();
-    document.querySelector('.intro')?.remove();
-    document.querySelector('header')?.remove();
-    document.querySelector('footer')?.remove();
 
     document.addEventListener('keydown', event => {
       if (event.key !== 'Escape' || event.repeat || event.defaultPrevented) return;
@@ -146,9 +87,6 @@ export class Workspace {
       this.lastEscapeToggleAt = now;
       this.toggle(true);
     });
-    document.addEventListener('pointerdown', event => {
-      if (event.target instanceof HTMLCanvasElement && event.target.id === 'flight-view') this.close(false, false);
-    }, true);
     // Imports remain reviewable even when initiated through a hidden file input.
     document.addEventListener('change', event => {
       const input = event.target;
@@ -158,15 +96,27 @@ export class Workspace {
       if (input.id === 'shader-file') this.open('tools');
       if (input.id === 'world-file') this.open('fleet');
     }, true);
-    this.updateButtons();
   }
 
+  /** Whether a temporary (unpinned) window is open; Esc closes these. */
   get isOpen(): boolean {
-    return this.active !== undefined;
+    for (const window of this.windows.values()) if (window.isOpen && !window.pinned) return true;
+    return false;
+  }
+
+  /** Add an instrument window's toggle to the dock. */
+  addInstrument(window: FloatingWindow, label: string, hint: string): void {
+    const item = this.dockItem(window.element.id, label, window, hint, () => {
+      if (window.isFront) window.close();
+      else window.open();
+    });
+    this.instrumentGroup.insertBefore(item, this.chatItem ?? null);
+    // Existing id kept for saved scripts and tests that open these windows.
+    item.id = `${window.element.id.replace(/-window$/, '')}-toast`;
   }
 
   toggle(fromEscape = false): void {
-    if (this.active) this.close(true, fromEscape);
+    if (this.isOpen) this.close(true, fromEscape);
     else this.open(this.lastPanel);
   }
 
@@ -192,41 +142,83 @@ export class Workspace {
     this.toggle(true);
   }
 
+  /** Open a section window, replacing any other temporary window. */
   open(panel: Panel = this.lastPanel): void {
     this.release();
-    this.active = panel;
     this.lastPanel = panel;
-    for (const [id, content] of this.panels) content.hidden = id !== panel;
-    this.drawer.hidden = false;
-    this.drawer.classList.toggle('wide', panel === 'library' || panel === 'tools');
-    this.title.textContent = this.titles.get(panel) ?? '';
-    this.updateButtons();
+    for (const [id, window] of this.windows) if (id !== panel && !window.pinned) window.close();
+    this.windows.get(panel)!.open();
   }
 
+  /** Close temporary windows; pinned windows stay. */
   close(focus = false, fromEscape = false): void {
-    const wasOpen = this.active !== undefined;
-    this.active = undefined;
-    this.drawer.hidden = true;
-    this.updateButtons();
-    if (focus) {
-      const isOrbitActive = !document.getElementById('orbit-sandbox-workspace')?.hidden;
-      if (isOrbitActive) {
-        document.getElementById('orbit-canvas')?.focus({ preventScroll: true });
-      } else {
-        element('flight-view').focus({ preventScroll: true });
-      }
+    let closed = false;
+    for (const window of this.windows.values()) {
+      if (!window.isOpen || window.pinned) continue;
+      window.close();
+      closed = true;
     }
-    if (wasOpen && !fromEscape) this.onClose?.();
+    if (focus) this.focusView();
+    if (closed && !fromEscape) this.onClose?.();
   }
 
-  private updateButtons(): void {
-    const isOpen = this.active !== undefined;
-    this.menuButton.setAttribute('aria-expanded', String(isOpen));
-    this.menuButton.setAttribute('aria-pressed', String(isOpen));
-    for (const button of document.querySelectorAll<HTMLButtonElement>('[data-workspace]')) {
-      const active = button.dataset.workspace === (this.active ?? 'flight');
-      button.setAttribute('aria-pressed', String(active));
-      if (button.dataset.workspace !== 'flight') button.setAttribute('aria-expanded', String(active));
-    }
+  private createPanel(spec: PanelSpec, container: HTMLElement): HTMLElement {
+    const window = new FloatingWindow({
+      id: spec.id,
+      title: spec.title,
+      icon: spec.icon,
+      container,
+      className: `panel-window panel-${spec.id}`,
+      place: (parent, panel) => spec.id === 'library'
+        ? { x: (parent.clientWidth - panel.offsetWidth) / 2, y: Math.max(12, (parent.clientHeight - panel.offsetHeight) / 2) }
+        : this.besideDock(parent, panel),
+      onCloseButton: () => {
+        this.focusView();
+        if (![...this.windows.values()].some(other => other.isOpen)) this.onClose?.();
+      },
+    });
+    window.body.dataset.workspacePanel = spec.id;
+    for (const selector of spec.sources) window.body.append(document.querySelector<HTMLElement>(selector)!);
+    this.windows.set(spec.id, window);
+    return this.dockItem(`${spec.id}-window`, spec.label, window, spec.hint, () => {
+      if (window.isFront) {
+        window.close();
+        if (!this.isOpen) this.onClose?.();
+      } else this.open(spec.id);
+    }, spec.id);
+  }
+
+  private dockItem(controls: string, label: string, window: FloatingWindow, hint: string, activate: () => void, panel?: Panel): HTMLButtonElement {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'dock-item';
+    if (panel) item.dataset.workspace = panel;
+    item.title = `${label}: ${hint}`;
+    item.setAttribute('aria-label', label);
+    item.setAttribute('aria-controls', controls);
+    item.innerHTML = `${icon(window.icon)}<span>${label}</span>`;
+    item.addEventListener('click', activate);
+    const sync = (): void => {
+      item.setAttribute('aria-expanded', String(window.isOpen));
+      item.classList.toggle('front', window.isFront);
+    };
+    window.onChange(sync);
+    document.addEventListener('hud-window-raise', sync);
+    sync();
+    return item;
+  }
+
+  /** Temporary windows open beside the dock (or below it, when it runs along the top on phones). */
+  private besideDock(parent: HTMLElement, panel: HTMLElement): { x: number; y: number } {
+    const dock = this.dock.getBoundingClientRect(), bounds = parent.getBoundingClientRect();
+    if (dock.width === 0) return { x: parent.clientWidth - panel.offsetWidth - 8, y: 64 };
+    if (dock.width > dock.height) return { x: (parent.clientWidth - panel.offsetWidth) / 2, y: dock.bottom - bounds.top + 8 };
+    return { x: dock.left - bounds.left - 10 - panel.offsetWidth, y: dock.top - bounds.top };
+  }
+
+  private focusView(): void {
+    const isOrbitActive = !document.getElementById('orbit-sandbox-workspace')?.hidden;
+    if (isOrbitActive) document.getElementById('orbit-canvas')?.focus({ preventScroll: true });
+    else element('flight-view').focus({ preventScroll: true });
   }
 }

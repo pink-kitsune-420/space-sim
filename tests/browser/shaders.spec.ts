@@ -39,7 +39,7 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   await load(page, pack({ scene: { fragment: scene } }));
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
   await expect(page.locator('#shader-status')).toContainText('Canvas 2D');
   await page.locator('#renderer-toggle').click();
@@ -56,7 +56,7 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
   await load(page, JSON.stringify(defaults));
   expect(await pixel(page)).toEqual(original);
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
   await load(page, scene, 'blue.frag');
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
@@ -110,13 +110,13 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
     expect((await stats()).livePrograms).toBe(4);
     expect((await stats()).liveShaders).toBe(0);
   }
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
   expect((await stats()).livePrograms).toBe(0);
   await openPanel(page, 'tools');
   await page.locator('#reset-shader').click(); // Reset also works while using Canvas.
   await expect(page.locator('#shader-name')).toHaveText('Default');
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
   expect((await stats()).livePrograms).toBe(4);
   expect((await stats()).liveShaders).toBe(0);

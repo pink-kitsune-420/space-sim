@@ -9,7 +9,7 @@ The bundled default game is **Space Sim** (`space-sim`).
 ## 🌟 Key Features
 
 - **Double-Precision Orbital Mechanics:** Real double-precision Keplerian conic propagation, patched conics, and numerical solvers for rocket burns and surface contacts.
-- **Flight Console & Telemetry:** Real-time trajectory prediction, apoapsis/periapsis markers, velocity vectors, altitude telemetry, and time warp up to 10,000×.
+- **Flight Console & Telemetry:** Real-time trajectory prediction, apoapsis/periapsis markers, velocity vectors, altitude telemetry, and time warp up to 100,000×.
 - **Physical Surfaces & Terrains:** Land on pads, explore rugged terrain worlds, or navigate oceanic splashdowns with hydrostatic buoyancy.
 - **Fleets & Multiplayer:** Command fleets of ships, swap pilot control, host peer-to-peer WebRTC sessions, or connect to the standalone dedicated server.
 - **Extensible & Modular:** Built-in Lab Manager to create, customize, and remix game packages (`.spacegame`), universes (`.spaceuniverse`), custom GLSL shader packs, and code modules.
@@ -41,10 +41,12 @@ Download self-contained single-file executables for Windows, macOS, or Linux fro
 | **Attitude (Turn)** | <kbd>←</kbd> / <kbd>→</kbd> or <kbd>A</kbd> / <kbd>D</kbd> | Hold turn buttons (↶ / ↷) |
 | **Throttle** | <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>W</kbd> / <kbd>S</kbd> | Drag throttle slider |
 | **Time Warp** | <kbd>[</kbd> / <kbd>]</kbd> or <kbd>,</kbd> / <kbd>.</kbd> | Click warp buttons (◀◀ / ▶▶) |
-| **Switch Vessel** | <kbd>1</kbd>–<kbd>9</kbd> | Select vessel in Fleet panel |
+| **Switch Vessel** | <kbd>\</kbd> (next) / <kbd>Backspace</kbd> (previous) | Select vessel in Fleet panel |
 | **Camera View** | <kbd>C</kbd> (Follow) / <kbd>H</kbd> (Horizon) | Click camera toolbar buttons |
 | **Zoom** | <kbd>+</kbd> / <kbd>−</kbd> or Mouse Wheel | Click Zoom in/out buttons |
 | **Pause / Reset** | <kbd>P</kbd> / <kbd>R</kbd> | Click Pause / Reset buttons |
+
+Every key can be remapped in **Settings → Controls & keybindings…**. For more help, open **Manual** in the game's dock. It covers flying, orbital mechanics, multiplayer and making your own content.
 
 ---
 

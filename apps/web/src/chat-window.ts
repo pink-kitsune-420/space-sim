@@ -21,7 +21,11 @@ export function initChatWindow(): void {
     panel.classList.toggle('user-sized', !!layout.width || !!layout.height);
     panel.style.width = !minimized && layout.width ? `${Math.min(layout.width, viewport.clientWidth - 16)}px` : '';
     panel.style.height = !minimized && layout.height ? `${Math.min(layout.height, viewport.clientHeight - 16)}px` : '';
-    if (layout.x === undefined || layout.y === undefined) return;
+    // Minimized chat drops back to its home at the bottom of the screen; restoring returns it to the saved spot.
+    if (minimized || layout.x === undefined || layout.y === undefined) {
+      panel.style.left = panel.style.top = panel.style.bottom = '';
+      return;
+    }
     layout.x = Math.max(8, Math.min(layout.x, viewport.clientWidth - panel.offsetWidth - 8));
     layout.y = Math.max(8, Math.min(layout.y, viewport.clientHeight - panel.offsetHeight - 8));
     panel.style.left = `${layout.x}px`;
@@ -34,8 +38,8 @@ export function initChatWindow(): void {
     layout.y = bounds.top - container.top;
     position();
   }
-  panel.addEventListener('pointerdown', () => raiseWindow(panel, viewport));
-  for (const handle of panel.querySelectorAll<HTMLElement>('.chat-title-wrap,#chat-min-pill')) {
+  panel.addEventListener('pointerdown', () => raiseWindow(panel));
+  for (const handle of panel.querySelectorAll<HTMLElement>('.chat-title-wrap')) {
     let drag: { pointer: number; x: number; y: number; left: number; top: number } | undefined;
     let moved = false;
     handle.addEventListener('pointerdown', event => {
@@ -62,8 +66,7 @@ export function initChatWindow(): void {
     handle.addEventListener('click', event => {
       if (moved) { event.preventDefault(); event.stopImmediatePropagation(); moved = false; }
     }, true);
-    // The expanded title bar supports keyboard movement; the minimized pill keeps its expand action.
-    if (handle.classList.contains('chat-title-wrap')) handle.addEventListener('keydown', event => {
+    handle.addEventListener('keydown', event => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
       event.preventDefault();
       anchor();

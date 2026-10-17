@@ -29,7 +29,7 @@ test('the flight instruments are part of the default game and each switches off 
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBeGreaterThan(0);
   const before = await debug(page);
   expect(before.presentation.modules).toEqual(['builtin.flight-data', 'builtin.flight-vectors', 'builtin.navball', 'builtin.orbit-markers', 'builtin.telemetry']);
-  await openPanel(page, 'setup');
+  await openPanel(page, 'data');
   await instrument(page, 'Telemetry').click();
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'false');
   await expect(panel).toHaveCount(0);
@@ -46,7 +46,7 @@ test('the flight instruments are part of the default game and each switches off 
   await expect(page.locator('#save-world')).toBeEnabled();
   // A viewer's choices are remembered in this browser, relative to the defaults.
   await page.reload();
-  await openPanel(page, 'setup');
+  await openPanel(page, 'data');
   for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
   await instrument(page, 'Telemetry').click();
   await expect(page.locator('#presentation-status')).toContainText('Telemetry enabled with Flight data, which it needs');
@@ -95,6 +95,7 @@ test('renderer switches keep the instruments and never change the flight or its 
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
   const before = await debug(page);
+  await openPanel(page, 'settings');
   for (const [label, renderer] of [['Renderer: 2D', 'builtin.canvas'], ['Renderer: WebGL', 'builtin.webgl'], ['Renderer: 2D', 'builtin.canvas']]) {
     await page.locator('#renderer-toggle').click();
     await expect(page.locator('#renderer-toggle')).toHaveText(label!);
@@ -123,7 +124,7 @@ test('module commands bind keys and buttons and go through the host', async ({ p
   await expect(page.locator('#throttle-value')).toHaveText('0%');
   await page.keyboard.press('v');
   await expect(page.locator('#throttle-value')).toHaveText('10%');
-  await openPanel(page, 'setup');
+  await openPanel(page, 'ship');
   await commands.getByRole('button', { name: /Full throttle/ }).click();
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   expect((await debug(page)).commands).toEqual(['example.maneuvers/full-throttle', 'example.maneuvers/cut-throttle', 'example.maneuvers/trim-throttle']);
@@ -148,11 +149,13 @@ test('repeated presentation changes release GPU programs, panels and module reso
   const programs = () => page.evaluate(() => (window as unknown as { programStats: { live: number } }).programStats.live);
   // Three pack programs, the private colored pass and the private overlay-label pass.
   await expect.poll(programs).toBe(5);
+  await openPanel(page, 'data');
   for (let i = 0; i < 4; i++) {
     for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball']) await instrument(page, name).click();
     await expect.poll(async () => (await debug(page)).presentation.modules.length).toBe(i % 2 ? 5 : 0);
     expect(await page.locator('.module-panel').count()).toBeLessThanOrEqual(1);
   }
+  await openPanel(page, 'settings');
   for (let i = 0; i < 4; i++) await page.locator('#renderer-toggle').click();
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
   await expect.poll(programs).toBe(5);

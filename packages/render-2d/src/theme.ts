@@ -356,7 +356,7 @@ export function applyHudThemeToDom(settings: ThemeSettings, root?: HTMLElement):
 
   apply(scope);
   scope.querySelectorAll<HTMLElement>([
-    '#flight-console', '#workspace-drawer', 'dialog', '.chat-overlay',
+    '#flight-console', 'dialog', '.chat-overlay',
     '.modal-window', '.inspector-panel', '.flight-window', '#orbit-sandbox-workspace',
   ].join(',')).forEach(apply);
 }

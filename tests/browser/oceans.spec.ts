@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import ocean from '../../games/space-sim/universes/sandbox/ocean/universe.json' with { type: 'json' };
+import { openPanel } from '../helpers/workspace';
 
 let script: string;
 test.beforeAll(async () => {
@@ -112,13 +113,16 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   await expect(page.locator('#flight-message')).toContainText('Heavy water impact');
   await expect.poll(async () => (await debug(page)).contact?.material).toBe('water');
   expect((await debug(page)).contact.time).toBeCloseTo(predicted.time, 8);
+  await openPanel(page, 'settings');
   await page.locator('#god-mode').check();
   await expect(page.locator('#status')).toHaveText('FLOATING', { timeout: 20000 });
   await page.locator('#god-mode').uncheck();
+  await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('splash');
   await expect(page.locator('#status')).toHaveText('SUBMERGED');
   await expect(page.locator('#flight-message')).toContainText('depth');
   await expect(page.locator('#status')).toHaveText('FLOATING', { timeout: 20000 });
+  await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: 2D');
   // Turn inward and burn from rest to demonstrate powered sinking.
@@ -132,6 +136,7 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   await expect(page.locator('#status')).toHaveText('SUBMERGED');
   await page.keyboard.up('Space');
   await expect.poll(async () => (await debug(page)).waterDepth).toBeGreaterThan(.25);
+  await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Reset flight' }).click();
   await page.locator('#preset').selectOption('pad');
   await expect(page.locator('#status')).toHaveText('LANDED');

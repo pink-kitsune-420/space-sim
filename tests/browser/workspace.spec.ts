@@ -11,19 +11,19 @@ for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, 
     const report = await page.evaluate(() => {
       const scene = document.querySelector('#flight-view')!.getBoundingClientRect().toJSON();
       const telemetry = document.querySelector('.telemetry')!.getBoundingClientRect().toJSON();
-      const menuVisible = !document.getElementById('menu-toggle')!.hidden;
-      const drawerHiddenInitially = document.getElementById('workspace-drawer')!.hidden;
-      const panels = ['setup', 'data', 'fleet', 'multiplayer', 'library', 'tools'].map(panel => {
-        const drawer = document.getElementById('workspace-drawer')!;
-        if (drawer.hidden) document.getElementById('menu-toggle')!.click();
+      const dock = document.querySelector('.hud-dock')!.getBoundingClientRect().toJSON();
+      const nothingOpenInitially = [...document.querySelectorAll<HTMLElement>('.panel-window')].every(window => window.hidden);
+      const panels = ['setup', 'ship', 'fleet', 'multiplayer', 'data', 'settings', 'tools', 'manual', 'library'].map(panel => {
         document.querySelector<HTMLButtonElement>(`[data-workspace="${panel}"]`)!.click();
+        const window = document.getElementById(`${panel}-window`)!;
         return {
           panel,
-          drawerHidden: drawer.hidden,
+          hidden: window.hidden,
+          // Unpinned section windows behave like tabs: only the newest stays open.
+          open: [...document.querySelectorAll<HTMLElement>('.panel-window')].filter(other => !other.hidden).map(other => other.id),
+          expanded: document.querySelector(`[data-workspace="${panel}"]`)!.getAttribute('aria-expanded'),
           scene: document.querySelector('#flight-view')!.getBoundingClientRect().toJSON(),
-          bounds: drawer.getBoundingClientRect().toJSON(),
-          camera: document.getElementById('camera')?.textContent,
-          orientation: document.getElementById('orientation')?.textContent,
+          bounds: window.getBoundingClientRect().toJSON(),
         };
       });
       return {
@@ -31,31 +31,37 @@ for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, 
         scrollHeight: document.documentElement.scrollHeight,
         scene,
         telemetry,
-        menuVisible,
-        drawerHiddenInitially,
+        dock,
+        nothingOpenInitially,
+        camera: document.getElementById('camera')?.textContent,
+        orientation: document.getElementById('orientation')?.textContent,
         panels,
       };
     });
-    expect(report.menuVisible).toBe(true);
-    expect(report.drawerHiddenInitially).toBe(true);
+    expect(report.nothingOpenInitially).toBe(true);
+    expect(report.dock.width).toBeGreaterThan(0);
+    expect(report.dock.x + report.dock.width).toBeLessThanOrEqual(size.width);
+    expect(report.dock.y + report.dock.height).toBeLessThanOrEqual(size.height);
     expect(report.scrollWidth).toBeLessThanOrEqual(size.width);
     expect(report.scrollHeight).toBeLessThanOrEqual(size.height);
     expect(report.scene.width).toBe(size.width);
     expect(report.scene.height).toBe(size.height);
     expect(report.telemetry.bottom).toBeLessThanOrEqual(size.height);
+    expect(report.camera).toBe('Follow ship');
+    expect(report.orientation).toBe('Horizon up');
     for (const item of report.panels) {
-      expect(item.drawerHidden).toBe(false);
-      if (item.panel === 'setup') {
-        expect(item.camera).toBe('Follow ship');
-        expect(item.orientation).toBe('Horizon up');
-      }
+      expect(item.hidden).toBe(false);
+      expect(item.open).toEqual([`${item.panel}-window`]);
+      expect(item.expanded).toBe('true');
       expect(item.scene).toEqual(report.scene);
+      expect(item.bounds.x).toBeGreaterThanOrEqual(0);
+      expect(item.bounds.x + item.bounds.width).toBeLessThanOrEqual(size.width);
       expect(item.bounds.y).toBeGreaterThan(0);
       expect(item.bounds.y + item.bounds.height).toBeLessThan(size.height);
     }
-    // Pressing Escape closes the open drawer and returns focus to flight view
+    // Pressing Escape closes the open window and returns focus to flight view
     await page.keyboard.press('Escape');
-    await expect(page.locator('#workspace-drawer')).toBeHidden();
+    await expect(page.locator('#library-window')).toBeHidden();
     await page.screenshot({ path: info.outputPath('flight.png') });
     await page.keyboard.down('Space');
     await expect(page.locator('#status')).toHaveText('FLYING');
@@ -68,7 +74,7 @@ for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, 
   });
 }
 
-test('fullscreen button and F shortcut toggle fullscreen controls, lock Escape, and toggle menu with Escape', async ({ page }) => {
+test('fullscreen button and F shortcut toggle fullscreen controls, lock Escape, and toggle the last window with Escape', async ({ page }) => {
   await page.goto('/');
   await openPanel(page, 'setup');
   const btn = page.locator('#fullscreen');
@@ -123,34 +129,35 @@ test('fullscreen button and F shortcut toggle fullscreen controls, lock Escape, 
   expect(enterCalls).toContain('request:browser');
   expect(enterCalls).toContain('lock:Escape');
 
-  // Pressing Escape while in fullscreen with keyboard lock active toggles the menu drawer closed and open
+  // Pressing Escape while in fullscreen with keyboard lock active toggles the last window closed and open
+  const setup = page.locator('#setup-window');
   await page.keyboard.press('Escape');
-  await expect(page.locator('#workspace-drawer')).toBeHidden();
+  await expect(setup).toBeHidden();
   await page.waitForTimeout(350);
   await page.keyboard.press('Escape');
-  await expect(page.locator('#workspace-drawer')).toBeVisible();
+  await expect(setup).toBeVisible();
   await page.waitForTimeout(350);
   await page.keyboard.press('Escape');
-  await expect(page.locator('#workspace-drawer')).toBeHidden();
+  await expect(setup).toBeHidden();
 
   // Simulate Firefox default behavior where pressing Escape in fullscreen is intercepted by the browser
-  // (exits DOM fullscreen without firing keydown): Spacelab still opens the menu drawer and restores
-  // fullscreen automatically when closing the drawer.
+  // (exits DOM fullscreen without firing keydown): Spacelab still opens the window and restores
+  // fullscreen automatically when closing it.
   await page.waitForTimeout(350);
   await page.evaluate(() => (window as unknown as { __dropFsViaBrowserEscape: () => void }).__dropFsViaBrowserEscape());
-  await expect(page.locator('#workspace-drawer')).toBeVisible();
+  await expect(setup).toBeVisible();
   await expect(btn).toHaveAttribute('aria-pressed', 'true');
   await expect(btn).toHaveText('Exit fullscreen');
 
-  // Closing the drawer via Close × re-requests fullscreen automatically
-  await page.locator('.drawer-close').click();
-  await expect(page.locator('#workspace-drawer')).toBeHidden();
+  // Closing the window via × re-requests fullscreen automatically
+  await page.locator('#setup-close').click();
+  await expect(setup).toBeHidden();
   const restoreCalls = await page.evaluate(() => (window as unknown as { __fsCalls: string[] }).__fsCalls.splice(0));
   expect(restoreCalls).toContain('request:browser');
 
-  // Intentional fullscreen exit via the F shortcut exits cleanly without opening the menu drawer
+  // Intentional fullscreen exit via the F shortcut exits cleanly without opening a window
   await page.keyboard.press('KeyF');
-  await expect(page.locator('#workspace-drawer')).toBeHidden();
+  await expect(setup).toBeHidden();
   await expect(btn).toHaveAttribute('aria-pressed', 'false');
   await expect(btn).toHaveText('Fullscreen');
 

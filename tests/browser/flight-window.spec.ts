@@ -104,7 +104,7 @@ test('trajectory floats live readouts, drags, minimizes, persists and closes whi
   expect((await telemetry.boundingBox())!.width).toBeCloseTo(telemetryWidth + 8, 0);
   await page.locator('#trajectory-toast').click();
   await page.screenshot({ path: info.outputPath('both-flight-windows.png') });
-  await openPanel(page, 'setup');
+  await openPanel(page, 'data');
   const instrument = page.locator('#instruments').getByRole('button', { name: 'Telemetry', exact: true });
   await instrument.click();
   await expect(telemetry.locator('.flight-window-empty')).toBeVisible();
@@ -145,7 +145,7 @@ test('unpinned trajectory closes on flight interaction and chat occupies the bot
 });
 
 
-test('chat drags, resizes, persists its layout and stays draggable when minimized', async ({ page }, info) => {
+test('chat drags, resizes, persists its layout and drops back to the bottom when minimized', async ({ page }, info) => {
   await page.goto('/');
   const chat = page.locator('#chat-overlay');
   const start = (await chat.boundingBox())!;
@@ -170,19 +170,18 @@ test('chat drags, resizes, persists its layout and stays draggable when minimize
   expect((await chat.boundingBox())!.x).toBeCloseTo(resized.x, 0);
   await page.locator('#chat-minimize').click();
   await expect(page.getByRole('button', { name: 'Resize chat window', exact: true })).toBeHidden();
-  const pill = (await page.locator('#chat-min-pill').boundingBox())!;
-  await page.mouse.move(pill.x + 30, pill.y + 10);
-  await page.mouse.down();
-  await page.mouse.move(pill.x + 110, pill.y + 210, { steps: 6 });
-  await page.mouse.up();
-  await expect(chat).toHaveClass(/minimized/);
-  expect((await chat.boundingBox())!.x).toBeCloseTo(pill.x + 80, 0);
-  const minimizedPosition = (await chat.boundingBox())!;
+  const atBottom = async () => {
+    const bounds = (await chat.boundingBox())!, size = page.viewportSize()!;
+    return Math.abs(size.height - (bounds.y + bounds.height) - 12) < 1 && Math.abs(bounds.x - 12) < 1;
+  };
+  await expect.poll(atBottom).toBe(true);
   await page.reload();
   await expect(chat).toHaveClass(/minimized/);
-  expect((await chat.boundingBox())!.y).toBeCloseTo(minimizedPosition.y, 0);
+  await expect.poll(atBottom).toBe(true);
   await page.locator('#chat-min-pill').click();
   await expect(chat).not.toHaveClass(/minimized/);
   expect((await chat.boundingBox())!.width).toBeCloseTo(resized.width, 0);
+  expect((await chat.boundingBox())!.x).toBeCloseTo(resized.x, 0);
+  expect((await chat.boundingBox())!.y).toBeCloseTo(resized.y, 0);
   await page.screenshot({ path: info.outputPath('resized-chat.png') });
 });

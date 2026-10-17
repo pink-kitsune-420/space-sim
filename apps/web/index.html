@@ -14,13 +14,27 @@
   </head>
   <body>
     <div id="app">
-      <header><a class="wordmark" href="./"><span class="logo">✳</span> SPACELAB</a><nav class="workspace-nav" aria-label="Workspace sections"><a href="#flight-console">Flight</a><a href="#lab-manager">Load game</a><a href="#flight-manual">Manual</a></nav><span class="connection"><i></i> LOCAL FLIGHT</span></header>
       <main>
-        <div class="intro"><div><p class="eyebrow">FLIGHT WORKSPACE</p><h1 id="active-game">Space Sim</h1></div><a class="lab-shortcut" href="#lab-manager">Load game / library ↗</a></div>
         <div id="flight-console" class="workspace">
           <section class="flight-panel" aria-label="Flight view">
-            <div class="view-toolbar"><span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span><div><button id="throw-ship-toggle" type="button" title="Slingshot Throw / Teleport mode (T, or hold Alt and drag in space)">Throw 🚀</button><button id="chat-toggle" type="button" title="Toggle chat & command bar (Enter or /)">Chat 💬</button><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="theme-toggle" type="button" title="Customize Skybox, Procedural Nebulas, Grids & Timers" aria-haspopup="dialog">Theme 🎨</button><button id="grid-toggle" type="button" title="Toggle navigation grid on/off (G)" aria-pressed="false">Grid: Off</button><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button">Pause</button><button id="reset" type="button" aria-label="Reset flight" title="Reset flight">Reset</button><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog">Controls ⚙</button><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler">Profiler</button><button id="fullscreen" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button><button id="camera" type="button">Follow ship</button><button id="orientation" type="button">Horizon up</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div></div>
-            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas><div class="view-label"><span id="system-label">PRIMUS SYSTEM</span> <span>BODY-RELATIVE / METRES</span></div><div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div><div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span></div><section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section>
+            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas>
+              <div class="hud-top-left">
+                <div class="hud-status">
+                  <span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span>
+                  <div class="view-label"><span id="active-game">Space Sim</span><span id="system-label">PRIMUS SYSTEM</span></div>
+                </div>
+              </div>
+              <div class="hud-top-right">
+                <div class="hud-quickbar" role="toolbar" aria-label="Flight controls">
+                  <div class="qb-group qb-time" role="group" aria-label="Time"><button id="warp-down" type="button" aria-label="Decrease warp" title="Decrease time warp ([ or ,)">◀◀</button><span id="warp-factor" class="warp-indicator" title="Current time warp factor">1×</span><button id="warp-up" type="button" aria-label="Increase warp" title="Increase time warp (] or .)">▶▶</button><button id="pause" type="button" title="Pause or resume (P)">Pause</button></div>
+                  <div class="qb-group qb-camera" role="group" aria-label="Camera"><button id="camera" type="button" title="Change camera (C)">Follow ship</button><button id="orientation" type="button" title="Horizon or north up (H)">Horizon up</button></div>
+                  <div class="qb-group qb-zoom" role="group" aria-label="Zoom"><button id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out (−)">−</button><button id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in (+)">+</button></div>
+                  <div class="qb-group" role="group" aria-label="View"><button id="throw-ship-toggle" type="button" title="Slingshot Throw / Teleport mode (T, or hold Alt and drag in space)">Throw</button><button id="fullscreen" class="qb-icon" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button></div>
+                </div>
+                <div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span><span class="connection"><i></i> LOCAL FLIGHT</span></div>
+              </div>
+              <div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div>
+              <section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section>
               <!-- Flight Slingshot HUD (shown during Alt-drag or throw mode) -->
               <div id="flight-slingshot-hud" class="slingshot-hud hidden">
                 <div class="hud-stat"><span class="hud-label">Launch Vel:</span> <span id="fhud-vel" class="hud-val">0 m/s</span></div>
@@ -58,12 +72,12 @@
                   <span id="chat-unread-dot" class="chat-unread-dot" hidden></span>
                 </button>
               </div>
+              <p id="terrain-notice" class="control-note" role="note" hidden>Physical terrain · Clearance is above local ground or sea level. Gentle water entry sinks and floats; inward thrust dives, and water hits above 5 m/s inward crash. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less.</p>
+              <div class="telemetry"><div><span>GROUND / SEA CLEARANCE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
             </div>
-            <p id="terrain-notice" class="control-note" role="note" hidden>Physical terrain · Clearance is above local ground or sea level. Gentle water entry sinks and floats; inward thrust dives, and water hits above 5 m/s inward crash. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less.</p>
-            <div class="telemetry"><div><span>GROUND / SEA CLEARANCE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
           </section>
           <aside>
-            <section class="card setup-card"><p class="eyebrow">UNIVERSE & FLIGHT SETUP</p><h2>Choose your starting point</h2>
+            <section class="card setup-card"><p class="eyebrow">UNIVERSE & FLIGHT SETUP</p>
               <div class="universe-group">
                 <div class="universe-row">
                   <label for="universe-select">Universe</label>
@@ -83,15 +97,28 @@
               <select id="system-select"><option value="primus-system">Primus System</option></select>
               </div><div><label for="preset">Scenario</label>
               <select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option><option value="moon-orbit">Parvus circular orbit · 128 m altitude</option></select></div></div>
-              <div class="setup-run-controls">
-              <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode</span></label>
-              <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat</span></label>
-              <label class="god-mode" title="Keep the simulation running when the window or tab is in the background"><input id="run-in-background" type="checkbox"/><span>Run in background</span></label></div></section>
+              <div class="setup-run-controls"><button id="reset" type="button" aria-label="Reset flight" title="Restart this scenario (R)">Reset flight</button></div></section>
+            <section class="card settings-card" aria-label="Settings">
+              <div class="settings-group"><h3>Display</h3>
+                <div class="settings-buttons"><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="grid-toggle" type="button" title="Toggle navigation grid on/off (G)" aria-pressed="false">Grid: Off</button><button id="theme-toggle" type="button" title="Customize Skybox, Procedural Nebulas, Grids & Timers" aria-haspopup="dialog">Theme…</button></div>
+              </div>
+              <div class="settings-group"><h3>Controls</h3>
+                <div class="settings-buttons"><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog" class="wide">Controls &amp; keybindings…</button></div>
+              </div>
+              <div class="settings-group"><h3>Gameplay</h3>
+                <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode<small>Impacts stop the ship safely.</small></span></label>
+                <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat<small>Drag to sling your ship anywhere (T or Alt-drag).</small></span></label>
+                <label class="god-mode" title="Keep the simulation running when the window or tab is in the background"><input id="run-in-background" type="checkbox"/><span>Run in background<small>Keep flying when this tab is hidden.</small></span></label>
+              </div>
+              <div class="settings-group"><h3>Diagnostics</h3>
+                <div class="settings-buttons"><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler" title="Performance profiler (`)">Profiler</button><button id="chat-toggle" type="button" title="Toggle chat &amp; command bar (Enter or /)">Chat</button></div>
+              </div>
+            </section>
             <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
 
             <section class="card instruments-card" aria-labelledby="instruments-title"><p class="eyebrow">INSTRUMENTS</p><h2 id="instruments-title">Flight information</h2>
               <div id="instruments" class="instruments" role="group" aria-label="Instruments"></div>
-              <p class="control-note">Velocity and orbit markers draw on the view; Telemetry adds the panel below. They only change what you see, never the flight, saves or multiplayer.</p></section>
+              <p class="control-note">Velocity and orbit markers draw on the view; Telemetry fills the Telemetry window. They only change what you see, never the flight, saves or multiplayer.</p></section>
             <div id="module-panels" class="module-panels" hidden></div>
             <section class="card fleet-card" aria-labelledby="fleet-title"><p class="eyebrow">FLEET</p><h2 id="fleet-title">Ships in this world</h2>
               <ul id="ship-list" class="ship-list" aria-label="Ships"></ul>
@@ -521,9 +548,9 @@
           <p>Launches ships on every scenario of this system and scatters asteroids on belt, planet-crossing, escaping, impacting, near-parabolic and near-radial orbits. Coasting objects sleep until they could change sphere of influence, so only burning ships and close passes cost time. Solo worlds only. The profiler (<kbd>`</kbd>) shows the cost.</p>
           <p id="stress-status" role="status"></p>
         </details>
-        <details id="flight-manual" class="help"><summary>Flight manual <span>KEYBOARD, JOYSTICK & TOUCH</span></summary><div class="help-grid"><p><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> Turn</p><p><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>W</kbd> <kbd>S</kbd> Throttle</p><p><kbd>Space</kbd> Hold to burn</p><p><kbd>[</kbd> <kbd>]</kbd> Time warp</p><p><kbd>/</kbd> Reset warp (1×)</p><p><kbd>\</kbd> Next ship</p><p><kbd>+</kbd> <kbd>−</kbd> Zoom</p><p><kbd>C</kbd> Camera <kbd>H</kbd> Horizon</p><p><kbd>P</kbd> Pause <kbd>R</kbd> Reset</p><p><kbd>F</kbd> Fullscreen</p><p>Joystick / Gamepad supported</p><p><kbd>`</kbd> Performance profiler</p></div><p class="tip">Configure all controls and gamepad axes via <b>Controls ⚙</b> in the top toolbar. Launch tip: climb, then turn gradually to build sideways speed. Land upright at 5 m/s or less. This compact fictional planet has strong gravity.</p></details>
         </div>
         <details class="debug"><summary>Flight diagnostics</summary><button id="export-log-diagnostics" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button><output id="debug"></output></details>
+        <section id="game-manual" class="manual" aria-label="Manual"></section>
         <dialog id="controls-dialog" class="controls-dialog" aria-labelledby="controls-dialog-title">
           <div class="controls-modal">
             <div class="controls-modal-header">
@@ -593,7 +620,7 @@
             </div>
           </div>
         </dialog>
-      </main><footer><span>SPACELAB / SPACE SIM</span><span>Explore a little. Learn a lot.</span></footer>
+      </main>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

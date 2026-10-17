@@ -1,5 +1,26 @@
-export function raiseWindow(panel: HTMLElement, viewport: HTMLElement): void {
-  for (const window of viewport.querySelectorAll('.flight-window,.chat-overlay')) window.classList.toggle('front', window === panel);
+/** Every HUD window shares one stacking order, so clicking any window brings it in front of the rest. */
+const stack: HTMLElement[] = [];
+const BASE_Z = 26;
+
+export function raiseWindow(panel: HTMLElement): void {
+  const index = stack.indexOf(panel);
+  if (index >= 0) stack.splice(index, 1);
+  stack.push(panel);
+  stack.forEach((window, order) => {
+    window.style.zIndex = String(BASE_Z + order);
+    window.classList.toggle('front', order === stack.length - 1);
+  });
+  document.dispatchEvent(new Event('hud-window-raise'));
+}
+
+/** The topmost window that is currently shown. */
+export function isFrontWindow(panel: HTMLElement): boolean {
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const window = stack[i]!;
+    if (window.hidden || !window.isConnected || window.offsetParent === null) continue;
+    return window === panel;
+  }
+  return false;
 }
 
 /** Pointer/touch and keyboard resizing for the HUD's independent windows. */
@@ -29,7 +50,7 @@ export function attachWindowResize(panel: HTMLElement, viewport: HTMLElement, ti
     if (!event.isPrimary || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    raiseWindow(panel, viewport);
+    raiseWindow(panel);
     options.start?.();
     const bounds = panel.getBoundingClientRect();
     drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, width: bounds.width, height: bounds.height };

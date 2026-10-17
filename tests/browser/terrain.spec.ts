@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openPanel } from '../helpers/workspace';
 import { build } from 'vite';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -65,8 +66,10 @@ test('physical terrain imports offline and survives launch, renderer/system swit
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect(page.locator('#altitude')).toHaveText('0.0');
   await expect.poll(async () => JSON.parse(await page.locator('#debug').textContent() || '{}').position?.y).toBe(520);
+  await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: 2D');
+  await openPanel(page, 'setup');
   await page.locator('#flight-view').focus();
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('FLYING');

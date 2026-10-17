@@ -33,9 +33,10 @@ tests/unit/tile-core.test.ts
 # Orbit Sandbox build output
 dist-orbit-sandbox/
 
-# Idea & Bug trackers
+# Idea & Bug trackers, long-term roadmap (private)
 game-ideas.md
 bugs.md
+ROADMAP.md
 
 # Local archive for sidetracked and retired plans
 archive/
@@ -72,6 +73,7 @@ yarn-error.log*
 pnpm-debug.log*
 .eslintcache
 *.tsbuildinfo
+.aider*
 
 # Local credentials, agent state and private working notes.
 .aws/

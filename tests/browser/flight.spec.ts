@@ -130,6 +130,7 @@ test('pointer cancellation and focus loss release the engine and pause without c
   await page.goto('/');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
+  await openPanel(page, 'ship');
   const burn = page.locator('#burn');
   await burn.scrollIntoViewIfNeeded();
   await burn.evaluate(el => el.addEventListener('pointerdown', event => {
@@ -163,7 +164,7 @@ test('mobile viewport fits and pointer controls can launch', async ({ page, brow
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await openPanel(page, 'setup');
+  await openPanel(page, 'ship');
   await page.getByRole('slider', { name: 'Throttle' }).fill('100');
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   const burn = page.locator('#burn');
@@ -289,7 +290,7 @@ test('starts with WebGL 2 renderer by default and toggles cleanly to 2D and back
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await expect(page.getByRole('button', { name: 'Renderer: WebGL' })).toBeVisible();
   await page.getByRole('button', { name: 'Renderer: WebGL' }).click();
   await expect(page.getByRole('button', { name: 'Renderer: 2D' })).toBeVisible();
@@ -360,7 +361,7 @@ test('auto-resume restores flight when window regains focus or visibility', asyn
 
 test('run in background option prevents auto-pausing on blur and persists in localStorage', async ({ page }) => {
   await page.goto('/');
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   const bgCheck = page.locator('#run-in-background');
   await expect(bgCheck).toBeVisible();
   await expect(bgCheck).not.toBeChecked();
@@ -368,6 +369,7 @@ test('run in background option prevents auto-pausing on blur and persists in loc
   // Check the option
   await bgCheck.check();
   await expect(bgCheck).toBeChecked();
+  await openPanel(page, 'setup');
 
   await page.locator('#preset').selectOption('planet-orbit');
   await expect(page.locator('#status')).toHaveText('FLYING');
@@ -379,7 +381,7 @@ test('run in background option prevents auto-pausing on blur and persists in loc
 
   // Reload page and verify setting persisted
   await page.reload();
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await expect(page.locator('#run-in-background')).toBeChecked();
 });
 

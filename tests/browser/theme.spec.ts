@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function openTheme(page: Page): Promise<void> {
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await page.locator('#theme-toggle').click();
   await page.locator('[data-tab="tab-hud"]').click();
 }
@@ -41,11 +41,11 @@ test('window styles, custom accents, effects and reset stay synchronized across 
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
-  await openPanel(page, 'setup');
+  await openPanel(page, 'settings');
   await page.locator('#controls-toggle').click();
   await page.locator('#controls-close').click();
   await closePanel(page);
-  await expect(page.locator('#workspace-drawer')).toBeHidden();
+  await expect(page.locator('#settings-window')).toBeHidden();
   await openTheme(page);
   await expect(page.locator('.theme-preset-bar')).toHaveCount(0);
   await expect(page.locator('[data-backdrop="galactic"] strong')).toHaveText('Spacelab Default');
@@ -57,7 +57,7 @@ test('window styles, custom accents, effects and reset stay synchronized across 
     await page.locator(`[data-window-option="${style}"]`).click();
     await expect(page.locator('html')).toHaveAttribute('data-window-style', style!);
     await expect(page.locator('.theme-tab-btn.active')).toHaveCSS('color', accent!);
-    await expect(page.locator('.drawer-brand #active-game')).toHaveCSS('color', accent!);
+    await expect(page.locator('#active-game')).toHaveCSS('color', accent!);
     await expect(page.locator('.theme-option-card.active').first()).toHaveCSS('border-top-color', accent!);
     await expect(page.locator('#throttle')).toHaveCSS('accent-color', accent!);
     await expect(page.locator('.chat-msg.system').first()).toHaveCSS('color', accent!);
@@ -76,7 +76,7 @@ test('window styles, custom accents, effects and reset stay synchronized across 
   await page.locator('#btn-reset-window-color').click();
   await expect(page.locator('#inp-window-color')).toHaveValue('#ef4444');
   for (const id of ['chk-hud-glow', 'chk-hud-scanlines', 'chk-hud-chamfer']) await page.locator(`#${id}`).check();
-  for (const selector of ['html', '#theme-dialog', '#controls-dialog', '#workspace-drawer', '.chat-overlay', '.modal-window', '.inspector-panel']) {
+  for (const selector of ['html', '#theme-dialog', '#controls-dialog', '.panel-window', '.chat-overlay', '.modal-window', '.inspector-panel']) {
     const elements = page.locator(selector);
     for (let i = 0; i < await elements.count(); i++) {
       await expect(elements.nth(i)).toHaveClass(/hud-glow/);

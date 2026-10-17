@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { openPanel } from '../helpers/workspace';
 
 // Two authored level cores give independently known elevated and below-reference
 // contact radii without consulting the procedural generator in the browser.
@@ -29,7 +30,11 @@ for (const canvas of [false, true]) {
     page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
     await load(page);
-    if (canvas) await page.locator('#renderer-toggle').click();
+    if (canvas) {
+      await openPanel(page, 'settings');
+      await page.locator('#renderer-toggle').click();
+      await openPanel(page, 'setup');
+    }
     await expect(page.locator('#status')).toHaveText('LANDED');
     await expect(page.locator('#altitude')).toHaveText('0.0');
     await expect.poll(async () => (await diagnostics(page)).position?.y).toBe(12);
@@ -55,13 +60,16 @@ for (const canvas of [false, true]) {
     await expect(page.locator('#prediction')).toHaveText('—');
     await page.locator('#preset').selectOption('crash');
     await expect(page.locator('#status')).toHaveText('CRASHED');
+    await openPanel(page, 'settings');
     await page.locator('#god-mode').check();
     await expect(page.locator('#status')).toHaveText('LANDED');
+    await openPanel(page, 'setup');
     await page.getByRole('button', { name: 'Reset flight' }).click();
     await expect(page.locator('#status')).toHaveText('LANDED');
     await page.locator('#preset').selectOption('orbit');
     await expect.poll(async () => (await diagnostics(page)).predictionEnd).toBe('closed');
     expect((await diagnostics(page)).dynamics).toBe('kepler');
+    await openPanel(page, 'settings');
     await page.locator('#god-mode').uncheck();
     expect(errors).toEqual([]);
   });

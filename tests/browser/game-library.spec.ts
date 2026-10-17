@@ -56,7 +56,7 @@ test('a data plugin installs inertly, applies with code controls, and saves/expo
   await page.locator('#game-name').fill('Gentle explorer'); await page.locator('#game-folder').fill('Experiments');
   await page.locator('#lab-save').click();
   await expect(card(page, 'Gentle explorer')).toContainText('Experiments');
-  await page.locator('#workspace-drawer').screenshot({ path: testInfo.outputPath('space-lab-library.png') });
+  await page.locator('#library-window').screenshot({ path: testInfo.outputPath('space-lab-library.png') });
   await closePanel(page);
   await page.screenshot({ path: testInfo.outputPath('space-lab-desktop.png'), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });

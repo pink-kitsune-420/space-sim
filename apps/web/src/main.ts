@@ -7,6 +7,7 @@ import { Workspace } from './workspace';
 import { initHudLayout } from './hud-layout';
 import { initChatWindow } from './chat-window';
 import { initFlightWindows } from './flight-windows';
+import { initManual } from './manual';
 import { artifactModules, validatePackage, type GamePackage } from '../../../packages/game-library/src/archive';
 import { createPresentationRegistry, presentationProfile } from '../../../packages/modules/src/browser';
 import builtinGame from '../../../games/space-sim/game.json' with { type: 'json' };
@@ -81,7 +82,8 @@ const workspace = new Workspace(() => release(), () => {
 });
 
 initHudLayout();
-initFlightWindows();
+initFlightWindows(workspace);
+initManual();
 
 const universes = builtinUniverses();
 const terrainUniverse = TERRAIN_UNIVERSE;
@@ -363,7 +365,7 @@ function executeChatCommand(cmdStr: string): void {
       logChatMessage('system', '/warp [factor] — Set time warp rate (1-10000)');
       logChatMessage('system', '/spawn [preset] — Spawn a new vessel');
       logChatMessage('system', '/clear — Clear chat messages');
-      logChatMessage('system', 'Tip: Hold Alt and drag in space (or press T / click "Throw 🚀") to sling your ship into orbit!');
+      logChatMessage('system', 'Tip: Hold Alt and drag in space (or press T / click "Throw") to sling your ship into orbit!');
       break;
     }
     case 'clear': {
@@ -373,7 +375,7 @@ function executeChatCommand(cmdStr: string): void {
     }
     case 'orbit': {
       if (!throwCheatEnabled) {
-        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable it in Settings to unlock.');
         return;
       }
       if (!ship) {
@@ -425,7 +427,7 @@ function executeChatCommand(cmdStr: string): void {
         return;
       }
       if (!throwCheatEnabled) {
-        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable it in Settings to unlock.');
         return;
       }
       if (!ship) {
@@ -441,7 +443,7 @@ function executeChatCommand(cmdStr: string): void {
     case 'circ':
     case 'circularize': {
       if (!throwCheatEnabled) {
-        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable it in Settings to unlock.');
         return;
       }
       if (!ship) {
@@ -468,7 +470,7 @@ function executeChatCommand(cmdStr: string): void {
     case 'tp':
     case 'teleport': {
       if (!throwCheatEnabled) {
-        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable in setup to unlock.');
+        logChatMessage('error', 'Throw / orbit cheat is disabled. Type /throw on or enable it in Settings to unlock.');
         return;
       }
       if (!ship) {
@@ -1093,8 +1095,8 @@ function updateThrowCheatUI(): void {
 
 function setThrowMode(active: boolean): void {
   if (!throwCheatEnabled && active) {
-    notify('Throw cheat is disabled. Enable in setup or type /throw on in chat.');
-    logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable in setup to unlock.');
+    notify('Throw cheat is disabled. Enable it in Settings or type /throw on in chat.');
+    logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable it in Settings to unlock.');
     return;
   }
   isThrowModeActive = active;
@@ -1398,8 +1400,8 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     const wantsThrow = event.altKey || isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (wantsThrow) {
       if (!throwCheatEnabled) {
-        notify('Throw cheat is disabled. Enable in setup or type /throw on in chat.');
-        logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable in setup to unlock.');
+        notify('Throw cheat is disabled. Enable it in Settings or type /throw on in chat.');
+        logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable it in Settings to unlock.');
         return;
       }
       if (event.button !== 0 && event.pointerType === 'mouse') return;
@@ -2481,8 +2483,8 @@ window.addEventListener('keydown', event => {
   if (actions?.includes('throwShip')) {
     if (event.repeat) return;
     if (!throwCheatEnabled) {
-      notify('Throw cheat is disabled. Enable in setup or type /throw on in chat.');
-      logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable in setup to unlock.');
+      notify('Throw cheat is disabled. Enable it in Settings or type /throw on in chat.');
+      logChatMessage('error', 'Throw cheat is disabled. Type /throw on or enable it in Settings to unlock.');
       return;
     }
     isThrowKeyDown = true;
