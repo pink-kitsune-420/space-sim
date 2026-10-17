@@ -33,6 +33,9 @@ tests/unit/tile-core.test.ts
 # Idea tracker
 game-ideas.md
 
+# Local archive for sidetracked and retired plans
+archive/
+
 # Local credentials, agent state and private working notes.
 .aws/
 .codex/

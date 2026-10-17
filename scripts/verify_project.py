@@ -31,7 +31,7 @@ def main():
 
     # Dependencies contain intentional executable symlinks; validate owned sources only.
     excluded = {'.git', '.agents', '.codex', '.aws', 'node_modules', 'dist', 'dist-server', 'dist-desktop',
-                'space-sim-data', 'private-docs', 'coverage', 'playwright-report', 'test-results', '.gradle', 'build'}
+                'space-sim-data', 'private-docs', 'coverage', 'playwright-report', 'test-results', '.gradle', 'build', 'archive'}
     project_files = []
     for directory, folders, files in os.walk(ROOT):
         folders[:] = [name for name in folders if name not in excluded]
