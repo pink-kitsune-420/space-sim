@@ -7,6 +7,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSy
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inject } from 'postject';
+import { readNodeLicense } from './node_runtime_license.mjs';
 
 function removeSignatureWindows(exePath) {
   if (process.platform !== 'win32') return;
@@ -33,6 +34,9 @@ const script = join(out, 'space-sim-desktop.cjs');
 if (!existsSync(script)) {
   throw new Error('dist-desktop/space-sim-desktop.cjs is missing: run npm run build first.');
 }
+
+// Resolve first so a missing license cannot produce an apparently complete package.
+const nodeLicense = readNodeLicense();
 
 mkdirSync(out, { recursive: true });
 const exe = join(out, process.platform === 'win32' ? 'space-sim.exe' : 'space-sim');
@@ -81,15 +85,7 @@ if (process.platform === 'darwin') {
 rmSync(blob);
 rmSync(config);
 
-const nodeLicense = [
-  join(dirname(process.execPath), '..', 'LICENSE'),
-  join(dirname(process.execPath), 'LICENSE'),
-].find(existsSync);
-if (nodeLicense) {
-  copyFileSync(nodeLicense, join(out, 'NODE-LICENSE.txt'));
-} else {
-  console.warn(`Node.js LICENSE not found next to ${process.execPath}; add NODE-LICENSE.txt before distributing.`);
-}
+writeFileSync(join(out, 'NODE-LICENSE.txt'), nodeLicense);
 
 const version = execFileSync(exe, ['--version'], { encoding: 'utf8' }).trim();
 console.log(`Desktop game executable: ${exe} (${(statSync(exe).size / 1048576).toFixed(0)} MiB) · ${version}`);

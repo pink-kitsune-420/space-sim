@@ -7,6 +7,7 @@ import { chmodSync, copyFileSync, existsSync, readFileSync, readdirSync, rmSync,
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inject } from 'postject';
+import { readNodeLicense } from './node_runtime_license.mjs';
 
 function removeSignatureWindows(exePath) {
   if (process.platform !== 'win32') return;
@@ -32,6 +33,9 @@ const out = join(root, 'dist-server');
 const script = join(out, 'space-sim-server.cjs');
 if (!existsSync(script)) throw new Error('dist-server/space-sim-server.cjs is missing: run npm run build first.');
 
+// Resolve first so a missing license cannot produce an apparently complete package.
+const nodeLicense = readNodeLicense();
+
 const exe = join(out, process.platform === 'win32' ? 'space-sim-server.exe' : 'space-sim-server');
 const blob = join(out, 'sea-prep.blob');
 const config = join(out, 'sea-config.json');
@@ -50,11 +54,7 @@ await inject(exe, 'NODE_SEA_BLOB', readFileSync(blob), {
 if (process.platform === 'darwin') execFileSync('codesign', ['--sign', '-', exe]);
 rmSync(blob); rmSync(config);
 
-// The executable contains the Node.js runtime, so its license (which lists the
-// runtime's bundled components) must travel with it.
-const nodeLicense = [join(dirname(process.execPath), '..', 'LICENSE'), join(dirname(process.execPath), 'LICENSE')].find(existsSync);
-if (nodeLicense) copyFileSync(nodeLicense, join(out, 'NODE-LICENSE.txt'));
-else console.warn(`Node.js LICENSE not found next to ${process.execPath}; add NODE-LICENSE.txt before distributing.`);
+writeFileSync(join(out, 'NODE-LICENSE.txt'), nodeLicense);
 
 const version = execFileSync(exe, ['--version'], { encoding: 'utf8' }).trim();
 console.log(`Server executable: ${exe} (${(statSync(exe).size / 1048576).toFixed(0)} MiB) · ${version}`);

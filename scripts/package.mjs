@@ -39,6 +39,10 @@ Options:
   --check-env             Check prerequisites for Desktop, Android, and iOS
   -h, --help              Show this help message
 
+Environment:
+  NODE_LICENSE_PATH       Path to the LICENSE from the Node.js release/distribution
+                          being packaged (required if not installed beside Node)
+
 Platform Output Summary:
   • Windows:   dist-desktop/space-sim.exe
   • macOS:     dist-desktop/space-sim
