@@ -72,6 +72,11 @@ export class ServerWebSocket implements Connection {
   /** A close frame was sent; nothing else may follow. */
   private closing = false;
   private finished = false;
+  private closeReason = '';
+  private closeTimer?: ReturnType<typeof setTimeout>;
+  private resolveClosed!: () => void;
+  /** Resolves after TCP closes, including the bounded close-handshake grace period. */
+  readonly closed = new Promise<void>(resolve => { this.resolveClosed = resolve; });
   private alive = true;
   private readonly timer: ReturnType<typeof setInterval>;
   private readonly decoder = new TextDecoder('utf-8', { fatal: true });
@@ -81,7 +86,11 @@ export class ServerWebSocket implements Connection {
     (socket as Socket).setNoDelay?.(true);
     socket.on('data', (chunk: Buffer) => this.receive(chunk));
     socket.on('end', () => socket.end());
-    socket.on('close', () => this.finish('Connection closed.'));
+    socket.on('close', () => {
+      clearTimeout(this.closeTimer);
+      this.finish(this.closeReason || 'Connection closed.');
+      this.resolveClosed();
+    });
     this.timer = setInterval(() => this.keepAlive(), options.pingIntervalMs);
     this.timer.unref?.();
     if (head.length) this.receive(head);
@@ -104,14 +113,17 @@ export class ServerWebSocket implements Connection {
   private shutdown(code: number, reason: string): void {
     if (this.closing || this.finished) return;
     this.closing = true;
+    this.closeReason = reason || `Closed (${code}).`;
+    clearInterval(this.timer);
     const text = utf8Prefix(reason, 123);
     const payload = Buffer.alloc(2 + text.length);
     payload.writeUInt16BE(code, 0);
     text.copy(payload, 2);
     this.write(0x8, payload);
-    this.socket.end();
-    setTimeout(() => this.socket.destroy(), 2000).unref?.();
-    this.finish(reason || `Closed (${code}).`);
+    // Keep reading until the peer acknowledges Close. Ending TCP now can reset a
+    // connection with incoming controls and discard our goodbye (RFC 6455 §7.1).
+    this.closeTimer = setTimeout(() => this.socket.destroy(), 2000);
+    this.closeTimer.unref?.();
   }
 
   private fail(code: number, reason: string): undefined {
@@ -177,6 +189,7 @@ export class ServerWebSocket implements Connection {
   }
 
   private handle(fin: boolean, opcode: number, payload: Buffer, compressed: boolean): void {
+    if (this.closing && opcode !== 0x8) return;
     switch (opcode) {
       case 0x0:
         if (!this.fragmented) { this.fail(1002, 'Unexpected continuation frame.'); return; }
@@ -206,7 +219,7 @@ export class ServerWebSocket implements Connection {
           this.write(0x8, payload.subarray(0, Math.min(2, payload.length)));
         }
         this.socket.end();
-        this.finish(reason || 'Disconnected.');
+        this.finish(this.closeReason || reason || 'Disconnected.');
         return;
       }
       case 0x9: if (!this.closing) this.write(0xa, payload); return;

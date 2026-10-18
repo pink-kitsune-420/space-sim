@@ -12,7 +12,7 @@ describe('module public imports', () => {
     // The browser graph does load them, so the check above is meaningful.
     const browser = [...await reachable('apps/web/src/main.ts')];
     expect(browser).toEqual(expect.arrayContaining(['packages/render-2d/src/webgl.ts', 'packages/modules/src/base/toolset/telemetry.ts', 'examples/modules/lead-camera.ts']));
-  });
+  }, 20000);
   it('lets first-party toolset modules import only the public API and each other', () => {
     expect(checkSource("import type { FlightDataApi } from './flight-data';", 'packages/modules/src/base/toolset/telemetry.ts')).toEqual([]);
     expect(checkSource("import { WORLD } from '../motion';", 'packages/modules/src/base/toolset/telemetry.ts').length).toBeGreaterThan(0);

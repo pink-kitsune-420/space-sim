@@ -192,9 +192,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   };
 
   let sockets = 0;
+  let accepting = true;
+  const connections = new Set<NonNullable<ReturnType<typeof acceptWebSocket>>>();
   const server = createServer(serve);
   server.on('clientError', (_error, socket) => socket.destroy());
   server.on('upgrade', (request, socket, head) => {
+    if (!accepting) { socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return; }
     const path = (request.url ?? '').split('?')[0];
     if (path !== SOCKET_PATH) { socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return; }
     if (sockets >= MAX_SOCKETS) { socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return; }
@@ -202,7 +205,8 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     const ws = acceptWebSocket(request, socket, head, { maxMessageBytes: MAX_CLIENT_MESSAGE, pingIntervalMs: 15000, label: remote });
     if (!ws) return;
     sockets++;
-    socket.once('close', () => { sockets--; });
+    connections.add(ws);
+    socket.once('close', () => { sockets--; connections.delete(ws); });
     host.accept(ws);
   });
   await new Promise<void>((done, fail) => {
@@ -238,19 +242,21 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const stop = (reason = 'The server is shutting down.'): Promise<void> => {
     stopping ??= (async () => {
       clearInterval(ticker); clearInterval(autosave); clearInterval(backups);
+      accepting = false;
+      const drained = Promise.all([...connections].map(ws => ws.closed));
       host.close(reason);
       try {
         if (await save()) log('Saved (shutdown).');
         await store.idle();
       } catch (error) { log(`Save failed: ${(error as Error).message}`); }
-      await new Promise<void>(done => {
+      await Promise.all([drained, new Promise<void>(done => {
         server.close(() => done());
         // Players get a moment to read the goodbye and close politely: destroying a socket
         // with unread input resets it, and the reset can discard the goodbye before the
         // player reads it. No closeIdleConnections() here: Node counts upgraded WebSocket
         // sockets as idle HTTP connections and destroyed them mid-goodbye.
         setTimeout(() => server.closeAllConnections(), 500).unref();
-      });
+      })]);
       world.dispose();
       log('Stopped.');
     })();

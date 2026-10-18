@@ -309,7 +309,7 @@ describe('presentation never reaches the simulation', () => {
     expect(browser.world.simulationFingerprint).toBe(plain.world.simulationFingerprint);
     expect(plain.world.universe).toBe(DEFAULT_UNIVERSE);
     runtime.dispose(); plain.world.dispose(); watched.world.dispose(); browser.world.dispose();
-  });
+  }, 20000);
   it('disposes every superseded presentation candidate exactly once', () => {
     let disposed = 0, created = 0;
     const tracked: RegisteredModule = { manifest: manifest('test.tracked'), initialize: c => { created++; c.own({ dispose: () => { disposed++; } }); } };

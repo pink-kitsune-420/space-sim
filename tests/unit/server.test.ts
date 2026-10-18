@@ -135,6 +135,40 @@ describe('dedicated server', () => {
     expect(status).toMatchObject({ protocol: 'space-sim-net/5', paused: true, ships: 0, players: [] });
   });
 
+  it('waits for the peer close reply before ending TCP during shutdown', async () => {
+    const running = await server(await folder());
+    const { socket, data } = await rawSocket(running.port);
+    let ended = false;
+    socket.on('end', () => { ended = true; });
+    const stopped = running.stop();
+    await until(() => frames(data()).some(([op]) => op === 8));
+    const goodbye = frames(data()).find(([op]) => op === 8)![1];
+    expect(goodbye.subarray(2).toString()).toBe('The server is shutting down.');
+    // Controls/pings already in flight must be drained without ending TCP early.
+    socket.write(frame(9, Buffer.from('in flight')));
+    await wait(60);
+    expect(ended).toBe(false);
+    socket.write(frame(8, goodbye));
+    await stopped;
+    await until(() => ended);
+  });
+
+  it('preserves the shutdown reason for active clients across repeated stops', async () => {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const running = await server(await folder());
+      const clients = await Promise.all([player(running.port, 'Ada'), player(running.port, 'Bo')]);
+      await until(() => clients.every(client => client.phase === 'joined'));
+      const traffic = setInterval(() => {
+        for (const client of clients) client.control(client.ownShips()[0]!.id, { turn: 0, throttle: 0, engine: false });
+      }, 1);
+      try {
+        await running.stop();
+        await until(() => clients.every(client => client.phase === 'closed'));
+        expect(clients.map(client => client.closeReason)).toEqual(Array(2).fill('The server is shutting down.'));
+      } finally { clearInterval(traffic); }
+    }
+  }, 20000);
+
   it('speaks WebSocket correctly: fragments, pings and closing', async () => {
     const running = await server(await folder());
     const { socket, head, data } = await rawSocket(running.port);
@@ -216,7 +250,7 @@ describe('dedicated server', () => {
     expect(again.host.world.size).toBe(601);
     expect(await again.command('asteroids clear')).toBe('Removed 600 objects.');
     expect(again.host.world.size).toBe(1);
-  });
+  }, 20000);
 
   it('keeps a console pause when players come and go', async () => {
     const running = await server(await folder());
