@@ -6,7 +6,8 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 declare global {
-  interface Window { audioProbe: { contexts: AudioContext[]; meters: AnalyserNode[]; tones: OscillatorNode[]; peak: number } }
+  interface Window { audioProbe: { contexts: AudioContext[]; meters: AnalyserNode[]; tones: OscillatorNode[]; peak: number;
+    nativeConnect: typeof AudioNode.prototype.connect } }
 }
 
 test.afterEach(async ({ page }, info) => {
@@ -25,9 +26,9 @@ test.afterEach(async ({ page }, info) => {
 async function meter(page: Page): Promise<void> {
   await useCanvas(page);
   await page.addInitScript(() => {
-    window.audioProbe = { contexts: [], meters: [], tones: [], peak: 0 };
-    const meters = new Map<BaseAudioContext, AnalyserNode>();
     const connect = AudioNode.prototype.connect;
+    window.audioProbe = { contexts: [], meters: [], tones: [], peak: 0, nativeConnect: connect };
+    const meters = new Map<BaseAudioContext, AnalyserNode>();
     AudioNode.prototype.connect = function (this: AudioNode, target: AudioNode | AudioParam, ...rest: number[]) {
       const tap = meters.get(this.context);
       return Reflect.apply(connect, this, [target === this.context.destination && tap ? tap : target, ...rest]);
@@ -171,17 +172,34 @@ test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
   await expect.poll(() => page.evaluate(() => window.audioProbe.contexts.at(-1)?.state)).toBe('running');
   const before = await page.evaluate(() => window.audioProbe.tones.length);
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const tap = window.audioProbe.meters.at(-1)!;
-    const samples = new Float32Array(tap.fftSize);
+    // Latch the real signal in the audio thread: a short thud can finish while
+    // rendering blocks the main thread, leaving a polled analyser buffer silent.
+    const source = `class PeakMeter extends AudioWorkletProcessor {
+      constructor() { super(); this.peak = 0; }
+      process(inputs) {
+        const samples = inputs[0][0];
+        if (samples && samples.length) {
+          let sum = 0;
+          for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+          const level = Math.sqrt(sum / samples.length);
+          if (level > this.peak) { this.peak = level; this.port.postMessage(level); }
+        }
+        return true;
+      }
+    }
+    registerProcessor('flight-test-peak', PeakMeter);`;
+    const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
+    try { await tap.context.audioWorklet.addModule(url); }
+    finally { URL.revokeObjectURL(url); }
     window.audioProbe.peak = 0;
-    const sample = (): void => {
-      tap.getFloatTimeDomainData(samples);
-      const level = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
-      window.audioProbe.peak = Math.max(window.audioProbe.peak, level);
-    };
-    const timer = setInterval(sample, 10);
-    setTimeout(() => clearInterval(timer), 15000);
+    const meter = new AudioWorkletNode(tap.context, 'flight-test-peak', { outputChannelCount: [1] });
+    meter.port.onmessage = event => { window.audioProbe.peak = Math.max(window.audioProbe.peak, event.data); };
+    Reflect.apply(window.audioProbe.nativeConnect, tap, [meter]);
+    // The processor's output stays silent. Preserve the original audible route
+    // and bypass the probe's destination rerouting to avoid a feedback cycle.
+    Reflect.apply(window.audioProbe.nativeConnect, meter, [tap.context.destination]);
   });
   await page.locator('#preset').evaluate((select: HTMLSelectElement) => {
     select.value = 'descent'; select.dispatchEvent(new Event('change', { bubbles: true }));

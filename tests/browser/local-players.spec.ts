@@ -204,8 +204,11 @@ test('HUD edit mode moves only the selected guest navball in shared and split vi
     await page.locator('#controls-close').click(); await closePanel(page);
     await openPanel(page, 'settings'); await page.getByRole('button', { name: 'Edit HUD layout', exact: true }).click();
     const pane = mode === 'split' ? page.locator('.split-pane canvas') : page.locator('#flight-view');
+    await expect.poll(() => pane.evaluate(canvas => {
+      const d = JSON.parse(document.getElementById('debug')!.textContent!);
+      return Math.abs(d.hud.navballs[1].width - canvas.getBoundingClientRect().width);
+    })).toBeLessThan(.5);
     const box = (await pane.boundingBox())!;
-    await expect.poll(async () => (await debug(page)).hud.navballs[1].width).toBeCloseTo(box.width, 0);
     const center = (await debug(page)).hud.navballs[1];
     const primary = (await stored(page)).slots[0].navball;
     await page.mouse.move(box.x + center.x, box.y + center.y); await page.mouse.down();

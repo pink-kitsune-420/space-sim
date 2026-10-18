@@ -8,7 +8,11 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 test.beforeEach(async ({ page }, info) => {
-  if (info.title.includes('WebGL 2 renderer')) await useLowGraphics(page);
+  if (info.title.includes('horizon') || info.title.includes('transitions smoothly')) {
+    test.slow(); // These visual cases retain WebGL on software GPUs.
+    await useLowGraphics(page);
+    await page.setViewportSize({ width: 800, height: 600 });
+  } else if (info.title.includes('WebGL 2 renderer')) await useLowGraphics(page);
   else await useCanvas(page);
 });
 
@@ -255,6 +259,7 @@ test('the profiler overlay opens from the keyboard and exports a local JSON log'
 
 test('zooming in on Earth renders a clean smooth horizon without triangle tessellation bugs', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
   await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
@@ -274,6 +279,7 @@ test('zooming in on Earth renders a clean smooth horizon without triangle tessel
 
 test('Earth horizon at intermediate scale renders a smooth curved atmosphere without cutoff step', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
   await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
@@ -285,6 +291,7 @@ test('Earth horizon at intermediate scale renders a smooth curved atmosphere wit
 
 test('zooming out from Earth pad transitions smoothly between horizon and planet disc', async ({ page }) => {
   await page.goto('/');
+  await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
   await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
