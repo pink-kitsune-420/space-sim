@@ -64,7 +64,7 @@ test('window styles, custom accents, effects and reset stay synchronized across 
     await expect(page.locator('.key-chip').first()).toHaveCSS('color', accent!);
     const colors = await palette(page);
     await expect(page.locator('.key-action-row').first()).toHaveCSS('background-color', colors.card);
-    await expect(page.locator('.theme-checkbox-card').first()).toHaveCSS('border-top-color', colors.border);
+    await expect(page.locator('.theme-checkbox-card:visible').first()).toHaveCSS('border-top-color', colors.border);
     expect(await palette(page, '#controls-dialog')).toEqual(colors);
     expect(await palette(page, '#orbit-sandbox-workspace')).toEqual(colors);
   }

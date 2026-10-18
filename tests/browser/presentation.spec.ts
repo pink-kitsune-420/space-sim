@@ -174,6 +174,11 @@ test('repeated presentation changes release GPU programs, panels and module reso
   const programs = () => page.evaluate(() => (window as unknown as { programStats: { live: number } }).programStats.live);
   // Three pack programs, the private colored pass and the private overlay-label pass.
   await expect.poll(programs).toBe(5);
+  // Panel lifecycle is independent of the GPU backend. Keep its many pointer
+  // interactions responsive, then stress GPU disposal with renderer rebuilds.
+  await openPanel(page, 'settings');
+  await page.locator('#renderer-toggle').click();
+  await expect.poll(programs).toBe(0);
   await openPanel(page, 'data');
   for (let i = 0; i < 4; i++) {
     for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball', 'Maneuver planner']) await instrument(page, name).click();
@@ -181,6 +186,9 @@ test('repeated presentation changes release GPU programs, panels and module reso
     expect(await page.locator('.module-panel').count()).toBeLessThanOrEqual(1);
   }
   await openPanel(page, 'settings');
+  await page.locator('#renderer-toggle').click();
+  await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
+  await expect.poll(programs).toBe(5);
   for (let i = 0; i < 4; i++) await page.locator('#renderer-toggle').click();
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: WebGL');
   await expect.poll(programs).toBe(5);
