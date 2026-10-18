@@ -9,11 +9,11 @@ describe('persistent throttle ramp', () => {
     const t = new PilotThrottle();
     expect(t.update({ ...idle, throttle: 1 }, 0, .5, .5)).toBe(.01);
     expect(t.engine).toBe(true);
-    expect(t.update({ ...idle, throttle: 1 }, .1, .01, .5)).toBeCloseTo(.03025, 12);
+    expect(t.update({ ...idle, throttle: 1 }, .1, .01, .5)).toBeCloseTo(.0305, 12);
     expect(t.update(idle, .016, .03, .5)).toBeUndefined();
     expect(t.engine).toBe(true);
     expect(t.update({ ...idle, throttle: -.2 }, 0, .03, .5)).toBeCloseTo(.028);
-    expect(t.update({ ...idle, throttle: -.2 }, .1, .028, .5)).toBeCloseTo(.02395, 12);
+    expect(t.update({ ...idle, throttle: -.2 }, .1, .028, .5)).toBeCloseTo(.0239, 12);
     const takeover = new PilotThrottle();
     expect(takeover.update({ ...idle, throttle: 1 }, 0, .4, .5, true, true)).toBeCloseTo(.41);
   });
@@ -23,14 +23,14 @@ describe('persistent throttle ramp', () => {
       const t = new PilotThrottle();
       let value = t.update({ ...idle, throttle: 1 }, 0, 0, .5)!;
       for (let i = 0; i < frames; i++) value = t.update({ ...idle, throttle: 1 }, 1 / frames, value, .5)!;
-      expect(value).toBeCloseTo(.235, 12);
+      expect(value).toBeCloseTo(.26, 12);
       value = t.update({ ...idle, throttle: 1 }, 10, value, .5)!;
-      expect(value).toBeCloseTo(.2990625, 12);
+      expect(value).toBeCloseTo(.335, 12);
       expect(t.update({ ...idle, throttle: 1 }, -1, value, .5)).toBeUndefined();
       const longHold = new PilotThrottle();
       value = longHold.update({ ...idle, throttle: 1 }, 0, 0, .5)!;
       for (let i = 0; i < frames * 3; i++) value = longHold.update({ ...idle, throttle: 1 }, 1 / frames, value, .5)!;
-      expect(value).toBeCloseTo(.81, 12);
+      expect(value).toBeCloseTo(.86, 12);
     }
   });
 
@@ -40,19 +40,19 @@ describe('persistent throttle ramp', () => {
       let value = .5;
       // Stay away from the end stops while checking rates at and beyond the cap.
       t.update({ ...idle, throttle: sign }, 0, value, .5);
-      for (let i = 0; i < 8; i++) value = t.update({ ...idle, throttle: sign }, .25, .5, .5)!;
-      expect(value - .5).toBeCloseTo(sign * .0734375, 12);
+      for (let i = 0; i < 4; i++) value = t.update({ ...idle, throttle: sign }, .25, .5, .5)!;
+      expect(value - .5).toBeCloseTo(sign * .071875, 12);
       expect(t.update({ ...idle, throttle: sign }, .25, .5, .5)! - .5).toBeCloseTo(sign * .075, 12);
       expect(t.update({ ...idle, throttle: -sign }, 0, .5, .5)).toBeCloseTo(.5 - sign * .01, 12);
-      expect(t.update({ ...idle, throttle: -sign }, .1, .5, .5)).toBeCloseTo(.5 - sign * .02025, 12);
+      expect(t.update({ ...idle, throttle: -sign }, .1, .5, .5)).toBeCloseTo(.5 - sign * .0205, 12);
       for (let i = 0; i < 8; i++) t.update({ ...idle, throttle: -sign }, .25, .5, .5);
-      expect(t.update({ ...idle, throttle: -sign * .2 }, .1, .5, .5)).toBeCloseTo(.5 - sign * .00405, 12);
+      expect(t.update({ ...idle, throttle: -sign * .2 }, .1, .5, .5)).toBeCloseTo(.5 - sign * .0041, 12);
       t.update(idle, .1, .5, .5);
       expect(t.update({ ...idle, throttle: sign }, 0, .5, .5)).toBeCloseTo(.5 + sign * .01, 12);
-      expect(t.update({ ...idle, throttle: sign }, .1, .5, .5)).toBeCloseTo(.5 + sign * .02025, 12);
+      expect(t.update({ ...idle, throttle: sign }, .1, .5, .5)).toBeCloseTo(.5 + sign * .0205, 12);
       t.release();
       expect(t.update({ ...idle, throttle: 1 }, 0, 0, .5)).toBe(.01);
-      expect(t.update({ ...idle, throttle: 1 }, .1, .01, .5)).toBeCloseTo(.03025, 12);
+      expect(t.update({ ...idle, throttle: 1 }, .1, .01, .5)).toBeCloseTo(.0305, 12);
     }
   });
 
@@ -62,7 +62,7 @@ describe('persistent throttle ramp', () => {
     let value = t.update({ ...idle, throttle: 1 }, 0, 0, .5, true, false, 1.19)!;
     expect(value).toBe(.01);
     value = t.update({ ...idle, throttle: 1 }, .2, value, .5, false, false, 1.2)!;
-    expect(value).toBeCloseTo(.0120025, 12);
+    expect(value).toBeCloseTo(.012005, 12);
   });
 
   it('clamps at both ends, cuts at zero and handles opposing keys returning to neutral', () => {

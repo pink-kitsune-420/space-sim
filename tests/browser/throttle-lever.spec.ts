@@ -104,11 +104,11 @@ test('holds ramp continuously, opposing keys cancel, and remember saves active p
   await page.clock.pauseAt(10_000);
   await page.keyboard.down('ArrowUp');
   await page.clock.runFor(1000);
-  await page.keyboard.up('ArrowUp'); await power(page, 23.5);
-  await page.clock.runFor(500); await power(page, 23.5);
+  await page.keyboard.up('ArrowUp'); await power(page, 26);
+  await page.clock.runFor(500); await power(page, 26);
   await page.keyboard.down('ArrowDown');
   await page.clock.runFor(500);
-  await page.keyboard.up('ArrowDown'); await power(page, 11.9);
+  await page.keyboard.up('ArrowDown'); await power(page, 13.8);
   await page.keyboard.down('ArrowUp'); await page.keyboard.down('ArrowDown');
   await page.clock.runFor(32);
   const before = await track(page).getAttribute('aria-valuenow');

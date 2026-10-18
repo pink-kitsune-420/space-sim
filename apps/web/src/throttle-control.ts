@@ -51,10 +51,10 @@ export class PilotThrottle {
       if (fresh) delta = fine ? .002 : .01;
       else {
         const dt = Math.max(0, Math.min(.25, elapsed));
-        // Rise from 1× to 1.5× over two wall seconds. Integrating the average
+        // Rise from 1× to 1.5× over one wall second. Integrating the average
         // multiplier keeps the acceleration equal across frame rates, including the cap.
-        const growing = Math.min(dt, 2 - this.held);
-        const average = 1 + (this.held + growing / 2) / 4;
+        const growing = Math.min(dt, 1 - this.held);
+        const average = 1 + (this.held + growing / 2) / 2;
         this.held += growing;
         delta = (fine ? .04 : .2) * (growing * average + (dt - growing) * 1.5);
       }
