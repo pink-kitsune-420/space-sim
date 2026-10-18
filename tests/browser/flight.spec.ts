@@ -461,7 +461,11 @@ test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, an
   const camBefore = ((await diagnostics(page)).camera as { center: { x: number; y: number } }).center;
   await page.evaluate(() => {
     const canvas = document.querySelector('#flight-view')!;
-    if (typeof Touch !== 'undefined') {
+    // Some WebKit builds expose Touch without allowing its constructor.
+    const canConstructTouch = (() => {
+      try { return !!new Touch({ identifier: 0, target: canvas }); } catch { return false; }
+    })();
+    if (canConstructTouch) {
       const t0 = new Touch({ identifier: 5, target: canvas, clientX: 200, clientY: 300 });
       canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [t0], targetTouches: [t0], changedTouches: [t0], bubbles: true }));
       const t1 = new Touch({ identifier: 5, target: canvas, clientX: 260, clientY: 340 });
@@ -481,7 +485,11 @@ test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, an
   // Spread fingers apart: initial distance 100px (150 to 250), moving apart to 180px (110 to 290) -> zooms in
   await page.evaluate(() => {
     const canvas = document.querySelector('#flight-view')!;
-    if (typeof Touch !== 'undefined') {
+    // Some WebKit builds expose Touch without allowing its constructor.
+    const canConstructTouch = (() => {
+      try { return !!new Touch({ identifier: 0, target: canvas }); } catch { return false; }
+    })();
+    if (canConstructTouch) {
       const t0 = new Touch({ identifier: 1, target: canvas, clientX: 150, clientY: 400 });
       const t1 = new Touch({ identifier: 2, target: canvas, clientX: 250, clientY: 400 });
       canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [t0, t1], targetTouches: [t0, t1], changedTouches: [t0, t1], bubbles: true }));
@@ -505,7 +513,11 @@ test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, an
   const pinchZoomedScale = ((await diagnostics(page)).camera as { scale: number }).scale;
   await page.evaluate(() => {
     const canvas = document.querySelector('#flight-view')!;
-    if (typeof Touch !== 'undefined') {
+    // Some WebKit builds expose Touch without allowing its constructor.
+    const canConstructTouch = (() => {
+      try { return !!new Touch({ identifier: 0, target: canvas }); } catch { return false; }
+    })();
+    if (canConstructTouch) {
       const t0 = new Touch({ identifier: 1, target: canvas, clientX: 100, clientY: 400 });
       const t1 = new Touch({ identifier: 2, target: canvas, clientX: 300, clientY: 400 });
       canvas.dispatchEvent(new TouchEvent('touchstart', { touches: [t0, t1], targetTouches: [t0, t1], changedTouches: [t0, t1], bubbles: true }));

@@ -65,6 +65,7 @@ test('edits imported mixed games, replaces providers, previews reverse removals 
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/'); await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'mixed.spacegame', mimeType: 'application/zip', buffer: gameBytes });
+  await expect(page.locator('#lab-status')).toContainText('Added Phase 2 mixed');
   const card = page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Phase 2 mixed', exact: true }) });
   await card.getByRole('button', { name: 'Play · new world' }).click();
   await expect(page.locator('#lab-status')).toContainText('Playing Phase 2 mixed');
@@ -122,6 +123,7 @@ test('edits imported mixed games, replaces providers, previews reverse removals 
 test('restores progress without its game, requires consent, and preserves the active world on invalid identities or missing/tampered installed code', async ({ page }) => {
   await page.goto('/'); await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'mixed.spacegame', mimeType: 'application/zip', buffer: progressGameBytes });
+  await expect(page.locator('#lab-status')).toContainText('Added Phase 2 mixed');
   await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Phase 2 mixed', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
   await expect(page.locator('#lab-status')).toContainText('Playing Phase 2 mixed');
   await openPanel(page, 'fleet');
