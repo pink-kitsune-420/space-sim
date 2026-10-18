@@ -39,6 +39,14 @@ async function pilot(browser: Browser, url: string, name: string): Promise<Page>
 }
 const errorsOf = (page: Page): string[] => (page as Page & { errors?: string[] }).errors ?? [];
 
+async function hostWithInvites(page: Page): Promise<void> {
+  await page.getByRole('tab', { name: 'Invite code', exact: true }).click();
+  await expect(page.locator('#host-game')).toBeHidden();
+  await page.locator('.mp-browser-host summary').click();
+  await expect(page.locator('.mp-browser-host')).toContainText('Google’s STUN service');
+  await page.locator('#host-game').click();
+}
+
 /** Exercise actual clipboard-paste behavior without depending on system clipboard access. */
 async function paste(page: Page, selector: string, text: string): Promise<void> {
   await page.locator(selector).evaluate((input, value) => {
@@ -130,7 +138,9 @@ test('a browser host invites a player with codes and both fly in one world', asy
   test.setTimeout(150000);
   const host = await pilot(browser, '/', 'Hana');
   const guest = await pilot(browser, '/', 'Gus');
-  await host.getByRole('button', { name: 'Host this world' }).click();
+  await expect(host.locator('#host-game')).toBeHidden();
+  await expect(host.locator('#mp-panel-server')).toContainText('Host on this computer');
+  await hostWithInvites(host);
   await expect(host.locator('.connection')).toContainText('HOSTING');
   await host.locator('#internet-play').uncheck(); // Network smoke must not depend on public STUN availability.
   await host.getByRole('button', { name: 'Create invite' }).click();
@@ -172,7 +182,7 @@ test('an invite link prepares the reply and pasting it connects without another 
   const host = await pilot(browser, '/', 'Link host');
   const guest = await pilot(browser, '/', 'Link guest');
   try {
-    await host.getByRole('button', { name: 'Host this world' }).click();
+    await hostWithInvites(host);
     await host.locator('#internet-play').uncheck();
     await host.getByRole('button', { name: 'Create invite' }).click();
     await expect(host.locator('#invite-code')).toHaveValue(/^SSO1\./);
@@ -252,14 +262,20 @@ test('a second tab of the same browser joins a hosting tab in one click, and pil
   const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
   const host = await tab(context, 'Hana');
   const guest = await tab(context, 'Gus');
+  await expect(guest.getByRole('tab', { name: 'Server', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(guest.getByRole('tab', { name: 'This browser' })).toHaveCount(0);
+  for (const page of [host, guest]) {
+    await openPanel(page, 'tools');
+    await page.locator('#local-multiplayer summary').click();
+  }
   await expect(guest.locator('#local-empty')).toBeVisible();
   await host.getByRole('button', { name: 'Host this world' }).click();
   await expect(host.locator('.connection')).toContainText('HOSTING');
-  await guest.getByRole('tab', { name: 'This browser' }).click();
   await expect(guest.locator('#local-worlds')).toContainText('Hana');
   await guest.locator('#local-worlds').getByRole('button', { name: /^Join Hana/ }).click();
   await expect(guest.locator('.connection')).toContainText('ONLINE');
   await expect(host.locator('.connection')).toContainText('2 PILOTS');
+  await openPanel(guest, 'multiplayer');
   // Shared storage holds the host's seat; the guest takes a seat of its own.
   await expect(guest.locator('#player-list')).toContainText('Gus (you)');
   await expect(guest.locator('#player-list')).toContainText('Hana · host');
@@ -275,8 +291,14 @@ test('a second tab of the same browser joins a hosting tab in one click, and pil
   await expect(guest.locator('#status')).toHaveText('FLYING');
   await expect(host.locator('#ship-list .foreign')).toContainText('FLYING');
 
-  await guest.close();
+  await openPanel(guest, 'tools');
+  await guest.locator('#debug-leave-game').click();
+  await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
   await expect(host.locator('.connection')).toContainText('1 PILOT');
+  await openPanel(host, 'tools');
+  await host.locator('#debug-stop-hosting').click();
+  await expect(host.locator('.connection')).toContainText('LOCAL FLIGHT');
+  await expect(host.locator('#debug-host-game')).toBeVisible();
   expect([...errorsOf(host)]).toEqual([]);
   await context.close();
 });
@@ -288,8 +310,9 @@ test('other pilots get slow coast previews with automatic crowd control and an o
   const guest = await tab(context, 'Orbit guest');
   const stats = async (page: Page) => (await diagnostics(page)).otherOrbits as { paths: number; starts: number; enabled: boolean; workMs: number };
   try {
-    await host.getByRole('button', { name: 'Host this world' }).click();
-    await guest.getByRole('tab', { name: 'This browser' }).click();
+    await hostWithInvites(host);
+    await openPanel(guest, 'tools');
+    await guest.locator('#local-multiplayer summary').click();
     await guest.locator('#local-worlds').getByRole('button', { name: /^Join Orbit host/ }).click();
     await expect(guest.locator('.connection')).toContainText('ONLINE');
     await openPanel(guest, 'setup');
@@ -347,7 +370,7 @@ test('joining an address with no server explains how to start one', async ({ pag
   await page.locator('#join-address').fill('localhost:1');
   await page.getByRole('button', { name: 'Scan local network', exact: true }).click();
   await page.getByRole('button', { name: 'Join', exact: true }).click();
-  await expect(page.locator('#mp-status')).toContainText('Start the dedicated server first');
+  await expect(page.locator('#mp-status')).toContainText('Choose Host on this computer in the desktop game');
   await expect(page.getByRole('button', { name: 'Scan local network', exact: true })).toBeVisible();
 });
 

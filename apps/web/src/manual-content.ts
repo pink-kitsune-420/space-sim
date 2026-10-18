@@ -362,17 +362,24 @@ Reload a window to reconnect to that window's ships.</p>
 must reproduce its exact simulation identity; code and physics settings still need to match.
 Leaving returns you to your own paused world.</p>
 <dl>
-  <dt>This browser</dt><dd>Open the game in a second browser tab and choose <b>Join</b>. This is the quickest way to try it out.</dd>
+  <dt>Host on this computer (desktop)</dt><dd>In the desktop game, choose <b>Host on this computer</b>
+    to share your currently loaded world, including its ships, progress and local pilots. Send a displayed
+    game link to friends on the same network, or choose <b>Copy game link</b>. Guests need only a browser
+    with matching game modules. Keep the host game window open: the loaded world runs there, while the
+    executable handles network connections. <b>Stop hosting</b> disconnects guests and lets you continue
+    the same world solo. Internet play needs a reachable address and router/firewall setup; Google STUN
+    is not used for this mode.</dd>
   <dt>Server link</dt><dd>The easiest way to play on different devices. Open the host's game link and join automatically.
     If the world has a password, enter it and choose <b>Join</b>. Once connected, <b>Copy game link</b> invites more friends.
     Your password is never included in the link. A link to <code>localhost</code> only works on the same computer.</dd>
   <dt>Invite code</dt><dd>
     <ol>
-      <li>The host chooses <b>Host this world</b>, then <b>Create invite</b>, and sends <b>Copy invite link</b> to a friend.</li>
+      <li>The host opens <b>Online → Invite code → Host with browser invites · Google-assisted connection</b>, chooses <b>Host this world</b>, then <b>Create invite</b>, and sends <b>Copy invite link</b> to a friend.</li>
       <li>The friend opens the link; their reply code is prepared automatically. They choose <b>Copy reply</b> and send it back.</li>
       <li>The host pastes the reply and connects automatically. <b>Connect player</b> also works if the code was typed or filled another way.</li>
     </ol>
-    Make one invite per player. <b>Across the internet</b> is on by default; turn it off for local play without public address discovery.
+    Make one invite per player. <b>Use Google STUN for internet invites</b> is on by default; turn it off for same-network play without public address discovery.
+    Google STUN finds public addresses but does not relay connections, so some networks cannot connect directly.
     Offline HTML files use <b>Copy invite</b> instead of a web link; paste the code in your own copy of the game to prepare a reply.
     Reply codes last 10 minutes. Keep the host page open. If a direct link fails, use a server link.
     <b>Save connection report</b> downloads candidate counts and error codes without addresses or invite secrets.</dd>
@@ -381,6 +388,8 @@ Leaving returns you to your own paused world.</p>
     If a result says <b>other version</b>, the client and server use different multiplayer versions: choose
     <b>Open server game</b> to use its matching client, or update both together.</dd>
 </dl>
+<p>For testing across tabs of one browser, open <b>Tools → Multiplayer debugging</b>. Choose <b>Host this world</b>
+in one tab, then <b>Join</b> in the other.</p>
 <p class="manual-note">When a browser tab hosts, the world runs in that tab. Keep it visible, because browsers slow down hidden tabs.</p>
 <p><b>Other pilots’ orbits.</b> Faint amber lines preview their current coast, refreshed about once per second.
 They assume no future engine burn. Under <b>Online → Other pilots’ orbits</b>, <b>Auto</b> shows them with up to
@@ -390,6 +399,8 @@ Your own prediction keeps its normal refresh rate. Surface contact, a changed re
 ${deeper('running a dedicated server', `
 <p>Download the server program from the project's releases page and start it. It prints the address players
 should use, including a link that joins automatically. It also serves the game page itself, so guests need only a browser.
+The desktop game's <b>Host on this computer</b> shares its loaded world while the game window stays open.
+Use the separate server program for a world that runs and saves independently of a game window.
 From a source checkout with Node and dependencies installed, run <code>npm run host</code> to build the game, start the server and open it.
 Send friends on your Wi-Fi the LAN link printed by the server, not its localhost link.</p>
 <p>To build matching standalone game and server programs from source, run
@@ -404,7 +415,7 @@ After rebuilding, stop the old server and restart the new program, then reopen o
 </ul>
 <p><b>How sync works.</b> The simulation is deterministic: the same inputs always give the same result on
 every computer. Each world has a fingerprint of its physics, modules and settings, and a player whose setup
-doesn't match can't join. Invite codes use WebRTC, a direct browser-to-browser link. <b>Across the internet</b>
+doesn't match can't join. Invite codes use WebRTC, a direct browser-to-browser link. <b>Use Google STUN for internet invites</b>
 asks Google STUN for public addresses. STUN cannot relay traffic through a blocked direct path; a reachable dedicated server avoids that requirement.</p>
 <p><b>Optional self-hosted web setup.</b> With Docker installed, run from the repository root:</p>
 <pre><code>docker compose -f deploy/multiplayer/compose.yaml up -d --build</code></pre>

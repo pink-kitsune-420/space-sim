@@ -18,6 +18,7 @@
   },
   "include": [
     "apps/web/**/*.ts",
+    "apps/desktop/**/*.ts",
     "apps/orbit-sandbox/**/*.ts",
     "packages/**/*.ts",
     "examples/**/*.ts",

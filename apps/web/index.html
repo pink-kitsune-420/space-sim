@@ -135,29 +135,33 @@
               <label for="player-name">Pilot name</label>
               <input id="player-name" type="text" maxlength="24" autocomplete="nickname" placeholder="Pilot" spellcheck="false" />
               <div id="mp-offline">
-                <div class="mp-modes" role="tablist" aria-label="How to connect">
-                  <button id="mp-mode-tab" type="button" role="tab" data-mode="tab" aria-controls="mp-panel-tab" aria-selected="true">This browser</button>
-                  <button type="button" role="tab" data-mode="invite" aria-controls="mp-panel-invite" aria-selected="false" tabindex="-1">Invite code</button>
-                  <button type="button" role="tab" data-mode="server" aria-controls="mp-panel-server" aria-selected="false" tabindex="-1">Server</button>
+                <div id="mp-computer-host" hidden>
+                  <div class="actions"><button id="host-computer" type="button">Host on this computer</button></div>
+                  <p class="control-note">Share your currently loaded world with friends on the same network. Keep this game window open while hosting.</p>
                 </div>
-                <div id="mp-panel-tab" class="mp-panel" role="tabpanel" aria-label="This browser">
-                  <ul id="local-worlds" class="player-list mp-list" aria-label="Worlds hosted in other tabs"></ul>
-                  <p id="local-empty" class="control-note">No other tab of this browser is hosting. To try multiplayer on one computer, open the game in a second tab and choose Host this world there.</p>
+                <div class="mp-modes" role="tablist" aria-label="How to connect">
+                  <button type="button" role="tab" data-mode="server" aria-controls="mp-panel-server" aria-selected="true">Server</button>
+                  <button type="button" role="tab" data-mode="invite" aria-controls="mp-panel-invite" aria-selected="false" tabindex="-1">Invite code</button>
                 </div>
                 <div id="mp-panel-invite" class="mp-panel" role="tabpanel" aria-label="Invite code" hidden>
+                  <p class="control-note">Join a browser host using the code they sent you. Internet invites use Google’s STUN service to find public addresses; the connection is direct and may fail on some networks.</p>
                   <label for="invite-input">1 · Paste the invite code the host sent you</label>
                   <textarea id="invite-input" rows="3" spellcheck="false" autocomplete="off" placeholder="SSO1.…"></textarea>
                   <div class="actions"><button id="answer-invite" type="button">Make reply code</button></div>
+                  <details class="mp-browser-host"><summary>Host with browser invites · Google-assisted connection</summary>
+                    <p class="control-note">Internet hosting from this tab uses Google’s STUN service for address discovery. It does not relay the game, so some networks cannot connect. Same-network invites can work with Google STUN turned off. Keep this tab open while hosting.</p>
+                    <p class="control-note">In the desktop game, use Host on this computer to share your loaded world by game link. The separate Space Sim server program can also run a persistent world.</p>
+                    <div class="actions mp-host"><button id="host-game" type="button">Host this world</button></div>
+                  </details>
                 </div>
-                <div id="mp-panel-server" class="mp-panel" role="tabpanel" aria-label="Server" hidden>
+                <div id="mp-panel-server" class="mp-panel" role="tabpanel" aria-label="Server">
                   <label for="join-address">Server address</label>
                   <div class="join-row"><input id="join-address" type="text" placeholder="192.168.1.20:6464" autocomplete="off" spellcheck="false" /><button id="join-game" type="button">Join</button></div>
                   <div id="password-row" hidden><label for="join-password">Server password</label><input id="join-password" type="password" autocomplete="off" /></div>
                   <div class="actions"><button id="scan-lan" type="button">Scan local network</button></div>
                   <ul id="lan-servers" class="player-list mp-list" aria-label="Servers found" hidden></ul>
-                  <p class="control-note">For friends on other devices, the easiest option is a server link. The server runs separately and also serves the game. Open Manual → Multiplayer for setup.</p>
+                  <p class="control-note">To host your loaded world, open the desktop game and choose Host on this computer. For a persistent world, run the separate Space Sim server program. Open Manual → Multiplayer for setup.</p>
                 </div>
-                <div class="actions mp-host"><button id="host-game" type="button">Host this world</button></div>
               </div>
               <div id="mp-reply" hidden>
                 <label for="reply-code">2 · Send this reply code back to the host</label>
@@ -166,8 +170,13 @@
                 <p class="mp-warning" role="note"><b>Not connected yet.</b> Send the code above back to the host. You join automatically when they paste it. This reply lasts 10 minutes.</p>
               </div>
               <div id="mp-hosting" hidden>
+                <p id="mp-browser-host-note" class="control-note">This world runs in your browser tab. Internet invites use Google STUN for address discovery, then connect directly; some networks need the separate server program. Keep this tab open.</p>
+                <div id="mp-computer-hosting" hidden>
+                  <p class="control-note">Hosting your loaded world on this computer. Share a game link below with friends on the same network. Keep this game window open. Internet connections need a reachable address and router/firewall setup.</p>
+                  <ul id="mp-computer-links" class="player-list mp-list" aria-label="Game links"></ul>
+                </div>
                 <div class="actions"><button id="stop-hosting" type="button">Stop hosting</button><button id="create-invite" type="button">Create invite</button></div>
-                <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" checked /><span>Across the internet<small>Uses Google STUN to find public addresses. Some networks need a dedicated server instead. Off: same network only.</small></span></label>
+                <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" checked /><span>Use Google STUN for internet invites<small>Finds public addresses; does not relay connections. Off: same-network invites only.</small></span></label>
                 <div id="invite-panel" hidden>
                   <label for="invite-code">1 · Send this invite to one player</label>
                   <textarea id="invite-code" readonly rows="3"></textarea>
@@ -183,7 +192,7 @@
               <select id="other-orbit-mode"><option value="auto">Auto · small groups</option><option value="always">Always</option><option value="off">Off</option></select>
               <p id="other-orbit-status" class="control-note">Faint coast previews refresh about once a second. Auto hides them above 8 other pilots.</p>
               <textarea id="mp-share-link" readonly rows="3" aria-label="Link to share" hidden></textarea>
-              <p id="mp-status" class="control-note" role="status">Single player. Host this world for friends, or join a server.</p>
+              <p id="mp-status" class="control-note" role="status">Single player. Join a server by address or open a shared game link.</p>
               <ul id="player-list" class="player-list" aria-label="Players"></ul>
             </section>
           </aside>
@@ -547,6 +556,16 @@
           </section>
         </section>
         <div class="utility-grid" aria-label="Additional tools">
+        <details id="local-multiplayer" class="multiplayer-debug"><summary>Multiplayer debugging</summary>
+          <p>Test multiplayer in separate tabs of this browser. Open another tab of the game, host in one tab and join from the other. Use Online to set your pilot name or invite friends on other devices.</p>
+          <div id="local-browser-controls">
+            <div class="actions"><button id="debug-host-game" type="button">Host this world</button></div>
+            <ul id="local-worlds" class="player-list mp-list" aria-label="Worlds hosted in other tabs"></ul>
+            <p id="local-empty" class="control-note">No other tab of this browser is hosting.</p>
+          </div>
+          <div class="actions"><button id="debug-stop-hosting" type="button" hidden>Stop hosting</button><button id="debug-leave-game" type="button" hidden>Leave game</button></div>
+          <p id="local-mp-status" class="control-note" role="status">Single player. Host this world or join another tab for testing.</p>
+        </details>
         <details class="planet-designer"><summary>Planet designer</summary><div id="planet-designer"></div></details>
         <details class="shader-settings"><summary>Shaders</summary><p class="manager-current">Current: <output id="shader-name">Default</output></p>
           <div class="shader-actions"><button id="load-shader" type="button">Load shader…</button><input id="shader-file" type="file" accept=".spacedata,.spacemod,.json,.frag,.glsl,application/json,text/plain" hidden /><button id="export-shader" type="button">Export shaders</button><button id="reset-shader" type="button">Restore default</button></div>

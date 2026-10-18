@@ -473,7 +473,7 @@ input[type=range] {
   vertical-align:middle;
   margin-right:7px
 }
-.help,.shader-settings,.module-settings,.code-module-settings,.device-module-settings,.presentation-settings,.stress-test,.planet-designer {
+.help,.shader-settings,.module-settings,.code-module-settings,.device-module-settings,.presentation-settings,.stress-test,.planet-designer,.multiplayer-debug {
   border:1px solid var(--ui-win-border);
   border-radius:7px;
   margin-top:22px;
@@ -489,7 +489,7 @@ input[type=range] {
 .shader-actions button {
   font-size:11px
 }
-.shader-settings p,.module-settings p,.code-module-settings p,.presentation-settings p,.stress-test p {
+.shader-settings p,.module-settings p,.code-module-settings p,.presentation-settings p,.stress-test p,.multiplayer-debug p {
   font-size:11px;
   line-height:1.7;
   color:#8fa5b0
@@ -782,6 +782,14 @@ input:disabled,select:disabled {
 }
 .mp-panel .control-note {
   margin-top:0
+}
+.mp-browser-host {
+  margin-bottom:12px;
+  padding-top:10px;
+  border-top:1px solid var(--ui-win-border)
+}
+.mp-browser-host summary {
+  margin-bottom:10px
 }
 .mp-list {
   margin:0 0 10px

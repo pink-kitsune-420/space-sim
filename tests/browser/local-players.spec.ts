@@ -145,8 +145,9 @@ test('a hidden hosting tab releases guest thrust while its world keeps running',
   await players(page);
   await page.getByLabel('Player 2 input', { exact: true }).selectOption('pad:1');
   await page.locator('#controls-close').click();
-  await openPanel(page, 'multiplayer');
-  await page.getByRole('button', { name: 'Host this world', exact: true }).click();
+  await openPanel(page, 'tools');
+  await page.locator('#local-multiplayer summary').click();
+  await page.locator('#debug-host-game').click();
   await expect(page.locator('.connection')).toContainText('HOSTING');
   await closePanel(page);
   await button(page, 1, 0, true);

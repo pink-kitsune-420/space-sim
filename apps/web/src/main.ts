@@ -70,6 +70,7 @@ import { JoinIdentity, rememberToken, saveName, savedName, tokenFor } from './id
 import { verifyServerCandidate } from './multiplayer-candidate';
 import { answerInvite, createInvite, isInviteCode, isReplyCode, type ConnectionDiagnostics, type Invite, type Reply } from './webrtc';
 import { connectionRequest, inviteFromText, inviteLink, serverLink, serverAddressForPage } from './connection-links';
+import { desktopHostToken, hostOnComputer, type DesktopHost } from './desktop-host';
 
 let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
@@ -3109,9 +3110,9 @@ element('stress-clear').addEventListener('click', () => {
 /** Automation hook for scripts/stress/browser-bench.mjs (the same as the panel's buttons). */
 (window as unknown as { spaceSimStress?: (request: StressRequest) => string }).spaceSimStress = stressTest;
 
-// Multiplayer: three ways in. Tabs of this browser (no network), invite codes (WebRTC) and
-// dedicated servers (WebSocket, with a LAN scan). Hosting serves the first two at once.
-type MpMode = 'tab' | 'invite' | 'server';
+// Multiplayer transports share the loaded LocalSession: same-browser tabs, WebRTC
+// invites, and the desktop executable's LAN listener. Dedicated servers own their world.
+type MpMode = 'invite' | 'server';
 const MP_MODE_KEY = 'space-sim-mp-mode';
 let invite: Invite | undefined;
 let reply: Reply | undefined;
@@ -3123,6 +3124,10 @@ let discovery: LocalDiscovery | undefined;
 let scan: AbortController | undefined;
 let connectingServer = false;
 let serverShareAddress: string | undefined;
+let computerHost: DesktopHost | undefined;
+let computerHosting = false;
+let computerStarting = false;
+let computerGeneration = 0;
 let recentConnectionReport: (() => ConnectionDiagnostics) | undefined;
 let inviteGeneration = 0;
 let inviteGathering: AbortController | undefined;
@@ -3148,10 +3153,7 @@ nameInput.addEventListener('change', () => {
   }
 });
 
-function mpStatus(text: string): void { show('mp-status', text); }
-function mpMode(): MpMode {
-  return (document.querySelector<HTMLElement>('.mp-modes [aria-selected="true"]')?.dataset.mode as MpMode | undefined) ?? 'tab';
-}
+function mpStatus(text: string): void { show('mp-status', text); show('local-mp-status', text); }
 function setMpMode(mode: MpMode, remember = true): void {
   for (const tab of document.querySelectorAll<HTMLButtonElement>('.mp-modes [role="tab"]')) {
     const selected = tab.dataset.mode === mode;
@@ -3175,20 +3177,35 @@ for (const tab of mpTabs) {
 {
   let saved: string | null = null;
   try { saved = localStorage.getItem(MP_MODE_KEY); } catch { /* storage unavailable */ }
-  setMpMode(saved === 'invite' || saved === 'server' || (saved === 'tab' && sameBrowser) ? saved : sameBrowser ? 'tab' : 'invite', false);
+  setMpMode(saved === 'invite' ? 'invite' : 'server', false);
 }
-if (!sameBrowser) element('mp-mode-tab').hidden = true;
+element('local-multiplayer').hidden = !sameBrowser;
+// Debug controls share the normal session actions and lifecycle.
+element('debug-host-game').addEventListener('click', () => element<HTMLButtonElement>('host-game').click());
+element('debug-stop-hosting').addEventListener('click', () => element<HTMLButtonElement>('stop-hosting').click());
+element('debug-leave-game').addEventListener('click', () => element<HTMLButtonElement>('leave-game').click());
 
 function updateMultiplayer(): void {
   const hosting = isHosting();
   const offline = session === local && !hosting;
   element('mp-offline').hidden = !offline || !!reply;
+  element('local-browser-controls').hidden = !offline || !!reply;
+  element<HTMLButtonElement>('debug-host-game').disabled = !!pending || answering || connectingServer;
+  element('debug-stop-hosting').hidden = !hosting;
+  element('debug-leave-game').hidden = session === local;
   element('mp-reply').hidden = !reply;
   element('mp-hosting').hidden = !hosting;
+  element('mp-computer-host').hidden = !desktopHostToken;
+  element<HTMLButtonElement>('host-computer').disabled = !!pending || answering || connectingServer || computerStarting;
+  element<HTMLButtonElement>('host-game').disabled = !!pending || answering || connectingServer || computerStarting;
+  element('mp-computer-hosting').hidden = !computerHosting;
+  element('mp-browser-host-note').hidden = computerHosting;
+  element('create-invite').hidden = computerHosting;
+  element('internet-row').hidden = computerHosting;
   element('invite-panel').hidden = !invite;
   element('mp-online').hidden = session === local;
   joinButton.disabled = !!pending || connectingServer;
-  element('copy-server-link').hidden = !serverShareAddress;
+  element('copy-server-link').hidden = !serverShareAddress && !computerHost;
   element('mp-diagnostics').hidden = !invite && !reply && !recentConnectionReport;
   element<HTMLButtonElement>('answer-invite').disabled = answering || !!pending;
   if (session !== local) {
@@ -3248,17 +3265,11 @@ function joinRow(label: string, detail: string, action: string, onjoin: () => vo
   item.append(text, button);
   return item;
 }
-let shownLocalHint = false;
 function renderLocalWorlds(worlds: readonly LocalAdvert[]): void {
   element('local-worlds').replaceChildren(...worlds.map(world => joinRow(world.name,
     `${world.players}/${world.maxPlayers} ${world.maxPlayers === 1 ? 'pilot' : 'pilots'}`, `Join ${world.name}`,
     () => void joinLocal(world.host), world.players >= world.maxPlayers)));
   element('local-empty').hidden = worlds.length > 0;
-  // A world appearing elsewhere while this tab sits on another mode: point at it once.
-  if (worlds.length && session === local && !local.hosting && mpMode() !== 'tab' && !shownLocalHint) {
-    shownLocalHint = true;
-    mpStatus('A world is hosted in another tab of this browser: see This browser.');
-  }
 }
 
 async function copy(textarea: HTMLTextAreaElement): Promise<void> {
@@ -3274,7 +3285,8 @@ async function copyLink(value: string): Promise<void> {
   await copy(output);
 }
 element('copy-server-link').addEventListener('click', () => {
-  if (serverShareAddress) void copyLink(serverLink(serverShareAddress, location.protocol === 'https:'));
+  if (computerHost) void copyLink(computerHost.addresses[0] ?? computerHost.localAddress);
+  else if (serverShareAddress) void copyLink(serverLink(serverShareAddress, location.protocol === 'https:'));
 });
 element('copy-invite-link').addEventListener('click', () => {
   if (!invite) return;
@@ -3287,10 +3299,11 @@ element('mp-diagnostics').addEventListener('click', () => {
   if (report) download('space-sim-connection.json', JSON.stringify({ version: 1, ...report }, null, 2));
 });
 
-element('host-game').addEventListener('click', () => {
-  if (session !== local || local.hosting) return;
-  if (local.world.soloPreview) { mpStatus('Custom flight profiles are solo previews; use the built-in default to host.'); return; }
+function beginHosting(): boolean {
+  if (session !== local || local.hosting || pending || answering || connectingServer) return false;
+  if (local.world.soloPreview) { mpStatus('Custom flight profiles are solo previews; use the built-in default to host.'); return false; }
   local.hosting = true;
+  serverShareAddress = undefined;
   rememberToken(local.world.id, local.token, local.playerId);
   local.host.seatHost(pilotName(), local.token);
   if (local.paused) setPaused(false);
@@ -3299,11 +3312,61 @@ element('host-game').addEventListener('click', () => {
       players: local.host.connectedCount(), maxPlayers: local.host.settings.maxPlayers }), connection => local.accept(connection));
   }
   mpStatus(sameBrowser
-    ? 'Hosting. Other tabs of this browser can join from This browser. For friends elsewhere, create one invite per player.'
+    ? 'Hosting. Other tabs can join from Tools → Multiplayer debugging. For friends elsewhere, create one invite per player in Online.'
     : 'Hosting. Create one invite per player and send it to them (chat, email…). They send back a reply code.');
   profiler.event('host-start', { world: local.world.id });
   syncLocks();
   updateMultiplayer();
+  return true;
+}
+element('host-game').addEventListener('click', () => {
+  if (!computerStarting) beginHosting();
+});
+element('host-computer').addEventListener('click', async () => {
+  if (!desktopHostToken || computerStarting || session !== local || local.hosting) return;
+  computerHosting = true;
+  if (!beginHosting()) { computerHosting = false; updateMultiplayer(); return; }
+  computerStarting = true;
+  const generation = ++computerGeneration;
+  updateMultiplayer();
+  mpStatus('Starting hosting on this computer…');
+  try {
+    const host = await hostOnComputer(connection => {
+      if (computerHosting && isHosting() && generation === computerGeneration) local.accept(connection);
+      else connection.close('The host stopped hosting.');
+    }, reason => {
+      if (generation !== computerGeneration) return;
+      stopHosting();
+      syncLocks();
+      updateMultiplayer();
+      mpStatus(reason);
+    });
+    if (!computerHosting || !isHosting() || generation !== computerGeneration) { host.stop(); return; }
+    computerHost = host;
+    const links = host.addresses.length ? host.addresses : [host.localAddress];
+    element('mp-computer-links').replaceChildren(...links.map(address => {
+      const row = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = address;
+      link.textContent = address;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      row.append(link);
+      return row;
+    }));
+    mpStatus(host.addresses.length
+      ? 'Hosting your loaded world. Copy a game link for friends on the same network.'
+      : 'Hosting your loaded world. No network address found; the displayed link works only on this computer.');
+  } catch (error) {
+    if (generation === computerGeneration) {
+      stopHosting();
+      syncLocks();
+      mpStatus(message(error));
+    }
+  } finally {
+    computerStarting = false;
+    updateMultiplayer();
+  }
 });
 function cancelInvite(): void {
   inviteGeneration++;
@@ -3317,6 +3380,11 @@ function cancelInvite(): void {
   updateMultiplayer();
 }
 function stopHosting(reason = 'The host stopped hosting.'): void {
+  computerGeneration++;
+  computerHost?.stop();
+  computerHost = undefined;
+  computerHosting = false;
+  element('mp-computer-links').replaceChildren();
   cancelInvite();
   local.host.close(reason);
   localHost?.close(reason);
@@ -3519,8 +3587,8 @@ async function join(): Promise<void> {
     startClient(connection);
   } catch (error) {
     mpStatus(location.protocol === 'https:' && url.startsWith('ws:') ? `${message(error)} Secure pages can only reach wss:// servers.`
-      : isLoopback(url) ? `Could not reach a Space Sim server on ${new URL(url).host}. Start the dedicated server first `
-        + '(npm run server, or the space-sim-server program). To play with another tab of this browser, use This browser instead.'
+      : isLoopback(url) ? `Could not reach a Space Sim server on ${new URL(url).host}. Choose Host on this computer in the desktop game, `
+        + 'or start the dedicated server (npm run server, or the space-sim-server program). To test with another tab, use Tools → Multiplayer debugging.'
       : `${message(error)} Check the address and that the server is running and reachable (firewall, same network).`);
   } finally { connectingServer = false; updateMultiplayer(); }
 }
