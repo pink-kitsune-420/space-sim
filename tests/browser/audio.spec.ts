@@ -177,14 +177,18 @@ test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one
     // Latch the real signal in the audio thread: a short thud can finish while
     // rendering blocks the main thread, leaving a polled analyser buffer silent.
     const source = `class PeakMeter extends AudioWorkletProcessor {
-      constructor() { super(); this.peak = 0; }
+      constructor() { super(); this.peak = 0; this.sum = 0; this.count = 0; }
       process(inputs) {
         const samples = inputs[0][0];
         if (samples && samples.length) {
-          let sum = 0;
-          for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
-          const level = Math.sqrt(sum / samples.length);
-          if (level > this.peak) { this.peak = level; this.port.postMessage(level); }
+          for (let i = 0; i < samples.length; i++) {
+            this.sum += samples[i] * samples[i];
+            if (++this.count === 2048) {
+              const level = Math.sqrt(this.sum / 2048);
+              if (level > this.peak) { this.peak = level; this.port.postMessage(level); }
+              this.sum = 0; this.count = 0;
+            }
+          }
         }
         return true;
       }
