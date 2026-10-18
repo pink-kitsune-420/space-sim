@@ -53,7 +53,7 @@ import { PlanetDesigner } from './planet-designer';
 import './style.css';
 import {
   DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
-  magnitude, querySurface, nextWarpFactor, rotate, spinAngle, spinRate,
+  magnitude, querySurface, checkWarpSafety, nextWarpFactor, rotate, spinAngle, spinRate,
   findDominantBodyForWorldPos,
   type Controls, type ResolvedBody, type State,
   type UniverseDefinition, type Vec, type SurfaceContactEvent
@@ -1081,13 +1081,14 @@ function setWarp(factor: number): void {
 
 function warpUp(): void {
   if (!session.canWarp) { notify('Only the host can activate time warp.'); return; }
-  const next = nextWarpFactor(session.requestedWarp, 1);
+  const maxAllowed = session.paused ? 1 : checkWarpSafety(session.world).maxGranted;
+  const next = nextWarpFactor(session.warp, 1, maxAllowed);
   setWarp(next);
 }
 
 function warpDown(): void {
   if (!session.canWarp) { notify('Only the host can activate time warp.'); return; }
-  const prev = nextWarpFactor(session.requestedWarp, -1);
+  const prev = nextWarpFactor(session.warp, -1);
   setWarp(prev);
 }
 
@@ -1098,10 +1099,14 @@ function resetWarp(): void {
 
 function syncWarpUI(): void {
   const canWarp = session.canWarp;
-  warpDownButton.disabled = !canWarp;
-  warpUpButton.disabled = !canWarp;
+  const safety = canWarp ? checkWarpSafety(session.world) : undefined;
+  const atCeiling = session.paused || (safety !== undefined && nextWarpFactor(session.warp, 1, safety.maxGranted) <= session.warp);
+  warpDownButton.disabled = !canWarp || session.warp <= 1;
+  warpUpButton.disabled = !canWarp || atCeiling;
   warpDownButton.title = canWarp ? 'Decrease time warp ([ or ,)' : 'Only the host controls time warp';
-  warpUpButton.title = canWarp ? 'Increase time warp (] or .)' : 'Only the host controls time warp';
+  warpUpButton.title = !canWarp ? 'Only the host controls time warp'
+    : session.paused ? 'Simulation is paused'
+    : atCeiling ? safety?.reason ?? 'Maximum time warp reached' : 'Increase time warp (] or .)';
   const warpText = `${session.warp}×`;
   if (warpFactorSpan.textContent !== warpText) warpFactorSpan.textContent = warpText;
   show('warp-rate', session.warp > 1 ? `WARP · ${session.warp}×${spinView.holding.has(activeBody.id) ? ' · SPIN HELD' : ''}` : 'REAL TIME · 1×');
