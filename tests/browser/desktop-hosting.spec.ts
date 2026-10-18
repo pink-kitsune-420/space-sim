@@ -88,6 +88,7 @@ test('desktop hosts the loaded save over LAN and keeps that world when stopped',
       socket.onerror = () => resolve(true);
     }), controlUrl)).toBe(true);
 
+    await page.bringToFront();
     await page.locator('#stop-hosting').click();
     await expect(guest.locator('#mp-status')).toContainText('host stopped hosting');
     await expect.poll(async () => (await diagnostics(page)).session).toBe('local');
@@ -101,10 +102,13 @@ test('desktop hosts the loaded save over LAN and keeps that world when stopped',
     await expect(page.locator('#mp-status')).toContainText('Hosting your loaded world');
     await expect.poll(async () => (await diagnostics(page)).world).toBe(loaded.world);
     const restartedLink = await page.locator('#mp-computer-links a').first().getAttribute('href');
+    await guest.bringToFront();
     await guest.goto(restartedLink!);
     await expect(guest.locator('.connection')).toContainText('ONLINE');
     // Reloading the owner window tears down the LAN listener and all bridges.
+    await page.bringToFront();
     await page.reload();
+    await guest.bringToFront();
     await expect.poll(async () => (await diagnostics(guest)).session).toBe('local');
     await expect.poll(async () => guest.evaluate(url => new Promise<boolean>(resolve => {
       const socket = new WebSocket(url);

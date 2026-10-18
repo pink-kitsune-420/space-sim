@@ -9,7 +9,10 @@ test('offline checks block HTTP navigation while local HTML still flies', async 
   await page.goto('/');
   await expect(page.locator('#status')).toHaveText('LANDED');
   await disableNetwork(context);
-  await expect(page.goto('/')).rejects.toThrow();
+  const networkProbe = await context.newPage();
+  await expect(networkProbe.goto('/')).rejects.toThrow();
+  await networkProbe.close();
+  await page.bringToFront();
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await page.locator('#flight-view').focus();

@@ -61,10 +61,15 @@ jobs:
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=browser-tests
           pactl set-default-sink browser-tests
-      - name: Run browser checks with a virtual display
+      - name: Run browser checks
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
-        run: xvfb-run --auto-servernum npm run test:browser -- --project=${{ matrix.browser }} --headed
+        run: |
+          if [ "${{ matrix.browser }}" = "firefox" ]; then
+            xvfb-run --auto-servernum npm run test:browser -- --project=firefox --headed
+          else
+            npm run test:browser -- --project=${{ matrix.browser }}
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:

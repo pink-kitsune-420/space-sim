@@ -9,6 +9,17 @@ declare global {
   interface Window { audioProbe: { contexts: AudioContext[]; meters: AnalyserNode[]; tones: OscillatorNode[]; peak: number } }
 }
 
+test.afterEach(async ({ page }, info) => {
+  if (info.status === info.expectedStatus || page.isClosed()) return;
+  const state = await page.evaluate(() => ({
+    contexts: window.audioProbe?.contexts.map(context => ({ state: context.state, time: context.currentTime })),
+    tones: window.audioProbe?.tones.length,
+    peak: window.audioProbe?.peak,
+    flight: document.getElementById('debug')?.textContent,
+  }));
+  await info.attach('audio-state', { contentType: 'application/json', body: JSON.stringify(state) });
+});
+
 /** Tap the actual synthesized signal before the browser's destination, without changing
  * node timing or mocking Web Audio. This catches a silent graph as well as stuck engines. */
 async function meter(page: Page): Promise<void> {
@@ -158,19 +169,19 @@ test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one
   await expect(page.locator('#status')).toHaveText('LANDED');
   await closePanel(page);
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
+  await expect.poll(() => page.evaluate(() => window.audioProbe.contexts.at(-1)?.state)).toBe('running');
   const before = await page.evaluate(() => window.audioProbe.tones.length);
   await page.evaluate(() => {
     const tap = window.audioProbe.meters.at(-1)!;
     const samples = new Float32Array(tap.fftSize);
-    const until = performance.now() + 4000;
     window.audioProbe.peak = 0;
     const sample = (): void => {
       tap.getFloatTimeDomainData(samples);
       const level = Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length);
       window.audioProbe.peak = Math.max(window.audioProbe.peak, level);
-      if (performance.now() < until) requestAnimationFrame(sample);
     };
-    requestAnimationFrame(sample);
+    const timer = setInterval(sample, 10);
+    setTimeout(() => clearInterval(timer), 15000);
   });
   await page.locator('#preset').evaluate((select: HTMLSelectElement) => {
     select.value = 'descent'; select.dispatchEvent(new Event('change', { bubbles: true }));
