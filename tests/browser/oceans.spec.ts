@@ -1,3 +1,5 @@
+import { packageContracts } from '../../packages/module-tools/package.mjs';
+import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { build } from 'vite';
 import { resolve } from 'node:path';
@@ -51,6 +53,11 @@ for (const renderer of ['canvas', 'webgl'] as const) {
   });
 }
 
+test.beforeEach(async ({ page }, info) => {
+  if (info.title.includes('silhouettes')) await useLowGraphics(page);
+  else await useCanvas(page);
+});
+
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 
 test('surface worlds are one click away with a visible planet overview and close flight scenarios', async ({ page }, info) => {
@@ -99,7 +106,7 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   await expect.poll(async () => (await debug(page)).position?.y).toBe(520);
   const pendingDownload = page.waitForEvent('download');
   await page.locator('#export-universe').click();
-  const exported = JSON.parse(await readFile(await (await pendingDownload).path(), 'utf8'));
+  const exported = await (await packageContracts()).decodeDataFile(new Uint8Array(await readFile(await (await pendingDownload).path())), 'universe') as any;
   expect(exported.systems[0].bodies[0].surface).toEqual(ocean.systems[0]!.bodies[0]!.surface);
   await page.locator('#preset').evaluate(el => {
     (el as HTMLSelectElement).value = 'heavy'; el.dispatchEvent(new Event('change'));

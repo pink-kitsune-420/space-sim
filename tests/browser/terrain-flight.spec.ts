@@ -1,3 +1,4 @@
+import { useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { openPanel } from '../helpers/workspace';
 
@@ -19,6 +20,8 @@ const universe = {
     { id: 'orbit', name: 'Safe survey', bodyId: 'rock', kind: 'circular-orbit', radius: 20 },
   ] }],
 };
+test.beforeEach(async ({ page }) => useLowGraphics(page));
+
 async function diagnostics(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 async function load(page: Page, value = universe) {
   await page.locator('#universe-file').setInputFiles({ name: 'flight.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });

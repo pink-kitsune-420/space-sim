@@ -23,7 +23,7 @@ export function draw(options: { renderer: 'canvas' | 'webgl'; probes: readonly {
   canvas.style.cssText = 'width:800px;height:600px;display:block';
   document.body.replaceChildren(canvas);
   renderer = options.renderer === 'canvas' ? new CanvasRenderer(canvas) : new WebGLRenderer(canvas);
-  renderer.draw({ state: initialState(), path: [], pathClosed: false, engine: false,
+  renderer.draw({ theme: { highQuality: false, starsVisible: false, nebulaVisible: false, galaxiesVisible: false, gridEnabled: false, backdropStyle: 'void' }, state: initialState(), path: [], pathClosed: false, engine: false,
     camera: { center: { x: 0, y: 0 }, rotation: 0, scale: 2 },
     bodies: [{ id: 'far', name: '', position: { x: 1e9, y: 1e9 }, radius: 1 }],
     shipWorldPosition: { x: 1e20, y: 1e20 }, padPosition: { x: 1e20, y: 1e20 }, overlays: OVERLAYS });

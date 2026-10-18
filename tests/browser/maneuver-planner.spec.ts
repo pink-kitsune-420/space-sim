@@ -1,14 +1,16 @@
+import { useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { closePanel, openPanel } from '../helpers/workspace';
 
 test.describe.configure({ timeout: 90000 });
+test.beforeEach(async ({ page }) => useLowGraphics(page));
+
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 async function setup(page: Page): Promise<void> {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await page.locator('#preset').evaluate(el => {
     (el as HTMLSelectElement).value = 'planet-orbit'; el.dispatchEvent(new Event('change'));
     document.getElementById('pause')!.click(); document.getElementById('camera')!.click();
-    document.getElementById('graphics-toggle')!.click();
     // Run interactions in Canvas; switching to WebGL below verifies the same layer there.
     document.getElementById('renderer-toggle')!.click();
   });

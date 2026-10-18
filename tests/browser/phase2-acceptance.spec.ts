@@ -133,6 +133,7 @@ test('restores progress without its game, requires consent, and preserves the ac
   await page.reload(); await openPanel(page, 'fleet'); await expect(page.locator('#status')).toHaveText('LANDED');
   await expect(page.locator('.module-windows')).toHaveCount(0);
   const currentWorld = async () => JSON.parse(await page.locator('#debug').textContent() || '{}').world;
+  await expect.poll(currentWorld).toBeTruthy();
   const builtinWorld = await currentWorld();
   const load = async (bytes: Buffer, accept: boolean, error?: RegExp) => {
     const dialogs: string[] = [];

@@ -21,7 +21,10 @@ test.beforeAll(async () => {
   const built = await Promise.all(['force', 'telemetry'].map(name => buildModule(resolve(`examples/modules/${name}/module.json`), undefined, { typecheck: false })));
   force = built[0]!; telemetry = built[1]!;
 });
-async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
+async function debug(page: Page) {
+  await expect(page.locator('#debug')).toContainText('fingerprint');
+  return JSON.parse(await page.locator('#debug').textContent() || '{}');
+}
 async function importPackage(page: Page, value: LabPackage) {
   await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'test.spacegame', mimeType: 'application/gzip', buffer: Buffer.from(await encodePackage(value)) });
@@ -37,9 +40,11 @@ function codeGame(name = 'Code flight', artifact = force): GamePackage {
 }
 const card = (page: Page, name: string) => page.locator('.game-card').filter({ has: page.getByRole('heading', { name, exact: true }) });
 async function play(page: Page, name: string) {
+  const before = (await debug(page)).world;
   await openPanel(page, 'library');
   await card(page, name).getByRole('button', { name: 'Play · new world', exact: true }).click();
   await expect(page.locator('#lab-status')).toContainText(`Playing ${name}`);
+  await expect.poll(async () => (await debug(page)).world).not.toBe(before);
 }
 
 test.beforeEach(async ({ page }) => { await useCanvas(page); });

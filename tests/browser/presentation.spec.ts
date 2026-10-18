@@ -1,3 +1,4 @@
+import { useLowGraphics } from '../helpers/canvas';
 import { openPanel } from '../helpers/workspace';
 import { useCanvas } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
@@ -8,6 +9,11 @@ import { pathToFileURL } from 'node:url';
 import type * as Harness from '../helpers/overlay-harness';
 
 declare global { interface Window { overlayHarness: typeof Harness } }
+test.beforeEach(async ({ page }, info) => {
+  if (info.title.includes('renderer switches') || info.title.includes('release GPU')) await useLowGraphics(page);
+  else await useCanvas(page);
+});
+
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 const instrument = (page: Page, name: string) => page.locator('#instruments').getByRole('button', { name, exact: true });
 async function orbit(page: Page): Promise<void> {
@@ -166,8 +172,8 @@ test('repeated presentation changes release GPU programs, panels and module reso
   await expect.poll(programs).toBe(5);
   await openPanel(page, 'data');
   for (let i = 0; i < 4; i++) {
-    for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball']) await instrument(page, name).click();
-    await expect.poll(async () => (await debug(page)).presentation.modules.length).toBe(i % 2 ? 5 : 0);
+    for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball', 'Maneuver planner']) await instrument(page, name).click();
+    await expect.poll(async () => (await debug(page)).presentation.modules.length).toBe(i % 2 ? 7 : 1);
     expect(await page.locator('.module-panel').count()).toBeLessThanOrEqual(1);
   }
   await openPanel(page, 'settings');
@@ -189,6 +195,7 @@ test('a copied offline HTML runs the instruments and module commands without net
   page.on('pageerror', error => errors.push(error.message));
   await context.setOffline(true);
   await page.goto(`${pathToFileURL(path).href}?example=commands`);
+  await openPanel(page, 'data');
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.module-panel')).toContainText('Thrust / weight');
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });

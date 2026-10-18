@@ -112,6 +112,7 @@ export class WebGLRenderer implements Renderer {
   private camScaleLoc: WebGLUniformLocation | null = null;
   private camRotationLoc: WebGLUniformLocation | null = null;
   private pendingScene: PendingProgram | undefined;
+  private needsFullScene = false;
   private readonly noise!: WebGLTexture;
   private bodyUniforms: readonly BodyUniformLocations[] = [];
   private vecResolutionLoc: WebGLUniformLocation | null = null;
@@ -248,7 +249,8 @@ export class WebGLRenderer implements Renderer {
     const next = compileShaderPack(gl, lite ?? pack);
     const previous = this.programs;
     this.pendingScene?.cancel();
-    this.pendingScene = lite ? startProgram(gl, pack, 'scene') : undefined;
+    this.pendingScene = undefined;
+    this.needsFullScene = !!lite;
     this.programs = next;
     this.useScene(next.scene);
     this.vectorProgram = next.vector;
@@ -329,6 +331,14 @@ export class WebGLRenderer implements Renderer {
 
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) return;
+    // Low quality uses the lite scene. Do not compile the unused procedural shader:
+    // software drivers can block input for seconds even when its branches are disabled.
+    const theme = frame.theme ? { ...getActiveTheme(), ...frame.theme } : getActiveTheme();
+    const highQuality = theme.highQuality !== false;
+    if (highQuality && this.needsFullScene) {
+      this.pendingScene = startProgram(this.gl, this.activeShaders, 'scene');
+      this.needsFullScene = false;
+    }
     this.upgradeScene();
     const { canvas, gl } = this;
     const { state, camera, engine, bodies } = frame;
@@ -395,7 +405,6 @@ export class WebGLRenderer implements Renderer {
 
     let count = 0;
     const overflow: typeof visible = [];
-    const theme = frame.theme ? { ...getActiveTheme(), ...frame.theme } : getActiveTheme();
     if (this.nebulaTimeLoc) gl.uniform1f(this.nebulaTimeLoc, theme.animatedNebula ? realTimeSec : 0);
     if (this.starsVisibleLoc) gl.uniform1i(this.starsVisibleLoc, theme.starsVisible ? 1 : 0);
     if (this.starDensityLoc) gl.uniform1f(this.starDensityLoc, Math.max(0.2, Math.min(2.5, theme.starDensity)));

@@ -36,7 +36,7 @@ export function draw(options: { renderer: 'canvas' | 'webgl'; world: 'planet' | 
     vector: { ...DEFAULT_SHADERS.passes.vector, fragment: '#version 300 es\nprecision highp float;\nout vec4 fragColor;\nvoid main(){fragColor=vec4(0.0);}' },
   } } : DEFAULT_SHADERS;
   renderer = options.renderer === 'canvas' ? new CanvasRenderer(canvas) : new WebGLRenderer(canvas, pack);
-  renderer.draw({ state: initialState(), path: [], pathClosed: false, engine: false, camera,
+  renderer.draw({ theme: { highQuality: false, starsVisible: false, nebulaVisible: false, galaxiesVisible: false, gridEnabled: false, backdropStyle: 'void' }, state: initialState(), path: [], pathClosed: false, engine: false, camera,
     bodies: [body], shipWorldPosition: { x: 1e20, y: 1e20 }, padPosition: { x: 1e20, y: 1e20 } });
   const dpr = canvas.width / 800;
   const gl = options.renderer === 'webgl' ? canvas.getContext('webgl2')! : null;

@@ -370,7 +370,7 @@ test('joining an address with no server explains how to start one', async ({ pag
   await page.locator('#join-address').fill('localhost:1');
   await page.getByRole('button', { name: 'Scan local network', exact: true }).click();
   await page.getByRole('button', { name: 'Join', exact: true }).click();
-  await expect(page.locator('#mp-status')).toContainText('Choose Host on this computer in the desktop game');
+  await expect(page.locator('#mp-status')).toContainText('Choose Host on this computer in the desktop game', { timeout: 15000 });
   await expect(page.getByRole('button', { name: 'Scan local network', exact: true })).toBeVisible();
 });
 

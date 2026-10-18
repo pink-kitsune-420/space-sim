@@ -72,6 +72,7 @@ for (const offline of [false, true]) test(`${offline ? 'offline HTML' : 'hosted'
     await context.setOffline(true); await page.goto(pathToFileURL(path).href);
   } else await page.goto('/');
   await expect(page.locator('#status')).toHaveText('LANDED');
+  await expect(page.locator('#debug')).toContainText('fingerprint');
   const before = await page.locator('#debug').textContent();
   await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'editable.spacemod', mimeType: 'application/zip', buffer: archive });

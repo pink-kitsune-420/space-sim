@@ -1,3 +1,4 @@
+import { useLowGraphics } from '../helpers/canvas';
 import { test, expect } from '@playwright/test';
 import { openPanel } from '../helpers/workspace';
 import { build } from 'vite';
@@ -82,3 +83,5 @@ test('physical terrain imports offline and survives launch, renderer/system swit
   await expect(page.locator('#terrain-notice')).toBeHidden();
   expect(errors).toEqual([]);
 });
+
+test.beforeEach(async ({ page }) => useLowGraphics(page));

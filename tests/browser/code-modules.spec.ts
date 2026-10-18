@@ -19,7 +19,10 @@ test.beforeAll(async () => {
   force = built[0]!; telemetry = built[1]!; numerical = built[2]!;
 });
 const payload = (value: unknown) => ({ name: 'local.module.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });
-async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
+async function debug(page: Page) {
+  await expect(page.locator('#debug')).toContainText('fingerprint');
+  return JSON.parse(await page.locator('#debug').textContent() || '{}');
+}
 async function manager(page: Page) {
   await openPanel(page, 'library');
   await page.locator('.code-module-settings > summary').click();
@@ -29,6 +32,7 @@ async function enable(page: Page, id: string) {
   await page.locator(`#authoritative-module-list input[data-enable="${id}"]`).check();
   await page.locator('#apply-code-modules').click();
   await expect(page.locator('#code-module-status')).toContainText('Profile enabled');
+  await expect.poll(async () => (await debug(page)).motionCapabilities?.rails).toBe(false);
 }
 
 test.beforeEach(async ({ page }) => { await useCanvas(page); });

@@ -1,3 +1,4 @@
+import { useLowGraphics } from '../helpers/canvas';
 import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { openPanel } from '../helpers/workspace';
 import { test, expect, type Page } from '@playwright/test';
@@ -7,6 +8,8 @@ import { resolve } from 'node:path';
 
 const scene = '#version 300 es\nprecision highp float;\nout vec4 fragColor;\nvoid main(){fragColor=vec4(0.2,0.4,0.6,1.0);}';
 const pack = (passes: unknown, name = 'Custom sky') => JSON.stringify({ format: 'space-sim-shaders/1', name, passes });
+test.beforeEach(async ({ page }) => useLowGraphics(page));
+
 async function load(page: Page, content: string, name = 'custom.json'): Promise<void> {
   await page.locator('#shader-file').setInputFiles({ name, mimeType: 'text/plain', buffer: Buffer.from(content) });
 }
@@ -94,7 +97,7 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
   const stats = () => page.evaluate(() => (window as unknown as { shaderStats: Record<string, number> }).shaderStats);
   const before = await stats();
-  expect(before.livePrograms).toBe(4); // Three pack programs plus the private terrain program.
+  expect(before.livePrograms).toBe(5); // Three pack programs plus the private terrain and overlay text programs.
   expect(before.liveShaders).toBe(0);
   await page.waitForTimeout(250);
   expect(await stats()).toEqual(before); // No compilation, uniform lookups or GPU buffer allocation per frame.
@@ -109,7 +112,7 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
     await load(page, bad);
     await expect(page.locator('#shader-status')).toContainText('Shader was not loaded:');
     expect(await pixel(page)).toEqual([51, 102, 153, 255]);
-    expect((await stats()).livePrograms).toBe(4);
+    expect((await stats()).livePrograms).toBe(5);
     expect((await stats()).liveShaders).toBe(0);
   }
   await openPanel(page, 'settings');
@@ -120,7 +123,7 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
   await expect(page.locator('#shader-name')).toHaveText('Default');
   await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
-  expect((await stats()).livePrograms).toBe(4);
+  expect((await stats()).livePrograms).toBe(5);
   expect((await stats()).liveShaders).toBe(0);
 });
 
@@ -145,7 +148,11 @@ test('unavailable WebGL falls back to Canvas and reports shader loading errors w
   expect(errors).toEqual([]);
 });
 
-test('full packs replace all stages and receive drawing roles, glyph textures and simulation time', async ({ page }) => {
+test('full packs replace all stages and receive drawing roles, glyph textures and real time', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as any).shaderClock = 10000;
+    Object.defineProperty(performance, 'now', { value: () => (window as any).shaderClock });
+  });
   await page.goto('/');
   test.skip(await page.locator('#renderer-toggle').textContent() !== 'Renderer: WebGL', 'WebGL 2 unavailable in this browser environment');
   await openPanel(page, 'tools');
@@ -193,8 +200,10 @@ test('full packs replace all stages and receive drawing roles, glyph textures an
   await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const stopped = await vesselPixels();
-  await page.waitForTimeout(150);
-  expect((await vesselPixels()).ship).toEqual(stopped.ship);
+  expect(stopped.ship).toEqual([230, 0, 51, 255]);
+  await page.evaluate(() => { (window as any).shaderClock += 250; });
+  // Shader time continues while physics is paused.
+  await expect.poll(async () => (await vesselPixels()).ship).toEqual([230, 64, 51, 255]);
   await load(page, await readFile(resolve('examples/shaders/violet.json'), 'utf8'));
   await expect(page.locator('#shader-name')).toHaveText('Violet');
   expect((await vesselPixels()).error).toBe(0);

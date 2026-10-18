@@ -11,3 +11,8 @@ export async function useCanvas(page: Page): Promise<void> {
     } });
   });
 }
+
+/** Exercise WebGL geometry and lifecycle without unused procedural effects on software GPUs. */
+export async function useLowGraphics(page: Page): Promise<void> {
+  await page.addInitScript(() => localStorage.setItem('space-sim.graphics/1', 'low'));
+}

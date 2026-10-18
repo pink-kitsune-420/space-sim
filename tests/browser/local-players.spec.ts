@@ -100,7 +100,8 @@ test('a small guest pane draws and picks its navball pin consistently, and the i
   const center = (await debug(page)).hud.navballs.find((dial: { slot: number }) => dial.slot === 1);
   const pin = { x: center.x + (TRACK+2)*scale*.72, y: center.y - (TRACK+2)*scale*.72 };
   const pixel = () => canvas.evaluate((el, at) => {
-    const rgb = (el as HTMLCanvasElement).getContext('2d')!.getImageData(Math.round(at.x), Math.round(at.y), 1, 1).data;
+    const canvas = el as HTMLCanvasElement;
+    const rgb = canvas.getContext('2d')!.getImageData(Math.round(at.x * canvas.width / canvas.clientWidth), Math.round(at.y * canvas.height / canvas.clientHeight), 1, 1).data;
     return Math.max(...[0, 210, 255].map((value, i) => Math.abs(value - rgb[i]!)));
   }, pin);
   await expect.poll(pixel).toBeLessThanOrEqual(2);

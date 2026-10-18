@@ -87,12 +87,24 @@ describe('renderer features', () => {
     renderer.draw(frame());
     expect(calls.slice(before).some(c => c.startsWith('fillText(MODULE'))).toBe(false);
   });
+  it('keeps Low graphics on the lite shader and compiles the full scene only when High is requested', () => {
+    const { stats, canvas } = fakeGl();
+    const renderer = new WebGLRenderer(canvas);
+    for (let i = 0; i < 3; i++) renderer.draw({ ...frame(), theme: { highQuality: false } });
+    expect(stats.created).toBe(4);
+    renderer.draw({ ...frame(), theme: { highQuality: true } });
+    expect(stats.created).toBe(5);
+    expect(stats.programs).toBe(4);
+    renderer.draw({ ...frame(), theme: { highQuality: true } });
+    expect(stats.created).toBe(5);
+    renderer.dispose();
+    expect(stats.programs).toBe(0);
+  });
   it('draw WebGL overlays through private passes, compiling the label pass only when needed', () => {
     const { stats, canvas } = fakeGl();
     const renderer = new WebGLRenderer(canvas);
-    // Three pack programs (the scene in its lite build), the private colored pass, and the full
-    // scene linking in the background.
-    expect(stats.programs).toBe(5);
+    // Three pack programs (the scene in its lite build) and the private colored pass.
+    expect(stats.programs).toBe(4);
     renderer.draw(frame(OVERLAYS.slice(0, 2)));
     expect(stats.programs).toBe(4); // the full scene replaced the lite one
     renderer.draw(frame(OVERLAYS));
