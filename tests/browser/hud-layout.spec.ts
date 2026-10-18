@@ -103,6 +103,36 @@ test('touch controls leave room for chat, telemetry and a movable navball', asyn
   await page.screenshot({ path: info.outputPath('hud-touch.png') });
 });
 
+test('touch controls can be disabled through the dock after enabling and reloading', async ({ page }, info) => {
+  await page.goto('/');
+  const settings = page.locator('[data-workspace="settings"]');
+  const touch = page.locator('#hud-visible-touch');
+  for (const size of [{ width: 1366, height: 606 }, { width: 800, height: 600 }, { width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size);
+    // Real pointer clicks: openPanel bypasses hit testing and would miss an obstructed dock.
+    await settings.click();
+    await touch.check();
+    await page.locator('#settings-window [data-window-close]').click();
+    await expect(page.locator('#touch-overlay')).toBeVisible();
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => {
+      const dock = document.querySelector('.hud-dock')!.getBoundingClientRect();
+      const actions = document.querySelector('.touch-actions-zone')!.getBoundingClientRect();
+      return actions.right + 8 <= dock.left || actions.left >= dock.right + 8
+        || actions.bottom + 8 <= dock.top || actions.top >= dock.bottom + 8;
+    })).toBe(true);
+    await settings.click({ timeout: 5000 });
+    await expect(touch).toBeChecked();
+    await touch.uncheck();
+    await expect(page.locator('#touch-overlay')).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem('space-sim:touch-controls:v1'))).toBe('never');
+    await page.locator('#settings-window [data-window-close]').click();
+  }
+  await page.reload();
+  await expect(page.locator('#touch-overlay')).toBeHidden();
+  await page.screenshot({ path: info.outputPath('touch-disabled.png') });
+});
+
 test('edit mode moves the default pinned navball directly and preserves its pin preference', async ({ page }) => {
   await page.goto('/');
   await openPanel(page, 'settings'); await page.getByRole('button', { name: 'Edit HUD layout', exact: true }).click();

@@ -2160,7 +2160,7 @@ input.split-player-name {
 /* Right Touch Actions & Drag-to-Zoom Strip */
 .touch-actions-zone {
   position: absolute;
-  right: 16px;
+  right: max(16px, var(--hud-dock-inset, 0px));
   bottom: calc(62px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;

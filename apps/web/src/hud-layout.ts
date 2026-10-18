@@ -58,6 +58,9 @@ export function initHudLayout() {
     viewport.style.setProperty('--hud-status-bottom', `${left.bottom - bounds.top + 8}px`);
     viewport.classList.toggle('hud-top-stacked', left.right + 8 > right.left);
     const dock = viewport.querySelector<HTMLElement>('.hud-dock')!;
+    // Keep the touch deck beside the desktop dock, including its compact height variant.
+    // offsetLeft uses the home anchor so saved HUD translations remain independent.
+    viewport.style.setProperty('--hud-dock-inset', `${bounds.width > 650 ? bounds.width - dock.offsetLeft + 8 : 0}px`);
     const topBottom = Math.max(left.bottom, rightElement.getBoundingClientRect().bottom,
       bounds.width <= 650 ? bounds.top + dock.offsetTop + dock.offsetHeight : bounds.top);
     viewport.style.setProperty('--hud-message-top', `${topBottom - bounds.top + 8}px`);
