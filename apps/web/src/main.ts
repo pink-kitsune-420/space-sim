@@ -3194,16 +3194,17 @@ element('debug-leave-game').addEventListener('click', () => element<HTMLButtonEl
 function updateMultiplayer(): void {
   const hosting = isHosting();
   const offline = session === local && !hosting;
+  const cannotHost = session.world.soloPreview || !!pending || answering || connectingServer || computerStarting;
   element('mp-offline').hidden = !offline || !!reply;
   element('local-browser-controls').hidden = !offline || !!reply;
-  element<HTMLButtonElement>('debug-host-game').disabled = !!pending || answering || connectingServer;
+  element<HTMLButtonElement>('debug-host-game').disabled = cannotHost;
   element('debug-stop-hosting').hidden = !hosting;
   element('debug-leave-game').hidden = session === local;
   element('mp-reply').hidden = !reply;
   element('mp-hosting').hidden = !hosting;
   element('mp-computer-host').hidden = !desktopHostToken;
-  element<HTMLButtonElement>('host-computer').disabled = !!pending || answering || connectingServer || computerStarting;
-  element<HTMLButtonElement>('host-game').disabled = !!pending || answering || connectingServer || computerStarting;
+  element<HTMLButtonElement>('host-computer').disabled = cannotHost;
+  element<HTMLButtonElement>('host-game').disabled = cannotHost;
   element('mp-computer-hosting').hidden = !computerHosting;
   element('mp-browser-host-note').hidden = computerHosting;
   element('create-invite').hidden = computerHosting;

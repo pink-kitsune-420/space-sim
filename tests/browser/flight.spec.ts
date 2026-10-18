@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { openPanel, closePanel } from '../helpers/workspace';
+import { useCanvas } from '../helpers/canvas';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -213,6 +214,7 @@ test('the coast preview traces progressively, then stays as a full orbit', async
 });
 
 test('the profiler overlay opens from the keyboard and exports a local JSON log', async ({ page }) => {
+  await useCanvas(page);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
@@ -223,7 +225,7 @@ test('the profiler overlay opens from the keyboard and exports a local JSON log'
   await expect(page.locator('#profiler')).toBeHidden();
   await page.keyboard.press('Backquote');
   await expect(page.locator('#profiler')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Profiler', includeHidden: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#profiler-toggle')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#profiler-fps')).toContainText('FPS');
   await expect(page.locator('#profiler-rows tr')).toHaveCount(10);
   const pending = page.waitForEvent('download');

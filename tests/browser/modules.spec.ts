@@ -121,6 +121,8 @@ for (const example of ['force', 'numerical']) test(`static ${example} motion exa
   await expect(page.locator('#module-name')).toHaveText(example === 'force' ? 'example.steady-lift' : 'example.numerical-flight');
   await expect(page.locator('#save-world')).toBeDisabled();
   await expect(page.locator('#host-game')).toBeDisabled();
+  await expect(page.locator('#host-computer')).toBeDisabled();
+  await expect(page.locator('#debug-host-game')).toBeDisabled();
   await expect(page.locator('#periapsis')).toHaveText('Unavailable · custom motion');
   await expect(page.locator('#apoapsis')).toHaveText('Unavailable · custom motion');
   await expect.poll(async () => (await debug(page)).motionCapabilities).toEqual({
@@ -177,6 +179,8 @@ test('the shared rule example predicts without consuming live state and preserve
   await expect(page.locator('#module-name')).toHaveText('example.scheduled-cutoff');
   await expect(page.locator('#save-world')).toBeDisabled();
   await expect(page.locator('#host-game')).toBeDisabled();
+  await expect(page.locator('#host-computer')).toBeDisabled();
+  await expect(page.locator('#debug-host-game')).toBeDisabled();
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await debug(page)).samples, { timeout: 15000 }).toBeGreaterThan(4);

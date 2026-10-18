@@ -1,4 +1,5 @@
 import { openPanel } from '../helpers/workspace';
+import { useCanvas } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { build } from 'vite';
 import { copyFile } from 'node:fs/promises';
@@ -66,6 +67,7 @@ test('the flight instruments are part of the default game and each switches off 
 });
 
 test('dependencies: an add-on enables what it needs, and removing a library removes what uses it', async ({ page }) => {
+  await useCanvas(page);
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/?presentation=none');
@@ -84,6 +86,8 @@ test('dependencies: an add-on enables what it needs, and removing a library remo
   await expect(camera).toHaveText('Follow ship');
   await camera.click();
   await expect(camera).toHaveText('Planet view');
+  await camera.click();
+  await expect(camera).toHaveText('Free camera');
   await camera.click();
   await expect(camera).toHaveText('Lead camera');
   await expect.poll(async () => (await debug(page)).camera.mode).toBe('example.lead-camera/lead');
