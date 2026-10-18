@@ -94,6 +94,73 @@ test('warp stops before the burn and a reset marks the old plan stale', async ({
   await expect(page.locator('#maneuver-status')).toContainText('replan');
 });
 
+test('Execute burn warps, aligns, fires and cuts off autonomously', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await setup(page); await place(page);
+  await page.locator('#maneuver-prograde').fill('-10');
+  await page.locator('#maneuver-radial').fill('5');
+  await page.locator('#maneuver-time').fill('30'); await page.locator('#maneuver-time').press('Tab');
+  await page.locator('#pause').click();
+  await expect(page.locator('#maneuver-execute')).toBeEnabled();
+  await page.locator('#maneuver-execute').click();
+  await expect(page.locator('#maneuver-abort')).toBeVisible();
+  await expect.poll(async () => (await debug(page)).maneuver?.execution).not.toBeNull();
+  await expect(page.locator('#maneuver-status')).toContainText('Burn complete', { timeout: 25000 });
+  const done = await debug(page);
+  expect(done.maneuver.execution).toBeNull();
+  expect(done.engine).toBe(false);
+  expect(done.maneuver.valid).toBe(false);
+  await expect(page.locator('#warp-factor')).toHaveText('1×');
+  await expect(page.locator('#throttle-value')).toHaveText('0%');
+  await expect(page.locator('#maneuver-abort')).toBeHidden();
+  expect(errors).toEqual([]);
+  await test.info().attach('autonomous-burn-profile', { contentType: 'application/json', body: JSON.stringify({
+    workP95Ms: done.workP95Ms, simulationP95Ms: done.simulationP95Ms,
+    predictionP95Ms: done.predictionP95Ms, renderP95Ms: done.renderP95Ms,
+  }) });
+});
+
+test('Abort burn releases thrust during a finite burn and requires replanning', async ({ page }) => {
+  await setup(page); await place(page);
+  await page.locator('#maneuver-prograde').fill('400');
+  await page.locator('#maneuver-time').fill('8'); await page.locator('#maneuver-time').press('Tab');
+  await page.locator('#pause').click();
+  await page.locator('#maneuver-execute').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.execution, { timeout: 15000 }).toBe('burning');
+  const burning = await debug(page);
+  await test.info().attach('finite-burn-profile', { contentType: 'application/json', body: JSON.stringify({
+    workP95Ms: burning.workP95Ms, simulationP95Ms: burning.simulationP95Ms,
+    predictionP95Ms: burning.predictionP95Ms, renderP95Ms: burning.renderP95Ms,
+  }) });
+  await page.locator('#maneuver-abort').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
+  await expect.poll(async () => (await debug(page)).engine).toBe(false);
+  await expect(page.locator('#maneuver-status')).toContainText('aborted');
+  expect((await debug(page)).maneuver.valid).toBe(false);
+});
+
+test('manual steering, pause and reset cancel armed execution', async ({ page }) => {
+  await setup(page); await place(page);
+  await page.locator('#maneuver-prograde').fill('10');
+  await page.locator('#maneuver-time').fill('10'); await page.locator('#maneuver-time').press('Tab');
+  await page.locator('#pause').click();
+  await page.locator('#maneuver-execute').click();
+  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+  await page.keyboard.down('ArrowLeft');
+  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
+  await page.keyboard.up('ArrowLeft');
+  await page.locator('#maneuver-execute').click();
+  await page.locator('#pause').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
+  await page.locator('#pause').click();
+  await page.locator('#maneuver-execute').click();
+  await openPanel(page, 'setup');
+  await page.locator('#reset').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
+  await expect.poll(async () => (await debug(page)).maneuver?.valid).toBe(false);
+});
+
 test.describe('touch planning', () => {
   test.use({ hasTouch: true });
   test('a tap places a node; a pinch or cancelled gesture does not', async ({ page }) => {

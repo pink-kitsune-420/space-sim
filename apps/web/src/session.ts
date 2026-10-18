@@ -89,7 +89,9 @@ export class LocalSession implements GameSession {
   previous(shipId: string): Ship | undefined { return this.settled ? undefined : this.world.previous(shipId); }
   displayOffset(): Vec { return { x: 0, y: 0 }; }
 
-  update(seconds: number, shipId: string | undefined, controls: Controls): WorldEvent[] {
+  /** A local flight assistant may supply controls before each normal-speed physics tick.
+   * It runs inside the clock loop so short burns cannot overrun on slow frames. */
+  update(seconds: number, shipId: string | undefined, controls: Controls, beforeStep?: () => Controls): WorldEvent[] {
     const events: WorldEvent[] = [];
     if (this.controlled !== shipId && this.controlled && this.world.record(this.controlled)?.ownerId === this.playerId) {
       this.host.setControls(this.playerId, this.controlled, IDLE);
@@ -102,6 +104,9 @@ export class LocalSession implements GameSession {
         events.push(...this.host.advance(seconds));
       } else {
         this.clock.advance(seconds, () => {
+          if (beforeStep && shipId && this.world.record(shipId)?.ownerId === this.playerId) {
+            this.host.setControls(this.playerId, shipId, beforeStep());
+          }
           this.settled = false;
           events.push(...this.host.step());
         });

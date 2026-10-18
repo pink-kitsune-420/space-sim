@@ -5,6 +5,10 @@ import { maneuverWarpFactor, pickManeuverTime } from '../../apps/web/src/maneuve
 import { validateOverlay } from '../../packages/game-runtime/src/index';
 import { navballState, drawNavball } from '../../packages/modules/src/base/toolset/navball';
 import { project } from '../../packages/render-2d/src/frame';
+import { ManeuverBurn } from '../../apps/web/src/maneuver-burn';
+import { LocalSession } from '../../apps/web/src/session';
+import { World } from '../../packages/sim-core/src/world';
+import { DEFAULT_UNIVERSE, IDLE, STEP } from '../../packages/sim-core/src/index';
 
 const camera: Camera = { center: { x: 0, y: 0 }, rotation: 0, scale: 1 };
 const origin = { x: 0, y: 0 };
@@ -20,6 +24,61 @@ const view: PresentationView = {
 };
 
 describe('maneuver planning', () => {
+  it.each([{ x: .03, y: .04 }, { x: -137, y: 29 }, { x: 0, y: -25 }])(
+    'executes a finite burn %j identically across fast and stalled rendering frames', delta => {
+      const fly = (frames: readonly number[]) => {
+        const world = new World(DEFAULT_UNIVERSE);
+        const session = new LocalSession(world, { name: 'Pilot' });
+        const id = session.spawn('planet-orbit', false)!;
+        const burn = new ManeuverBurn(5, delta, world.context.vehicle);
+        let calls = 0, first = Infinity, last = -Infinity, deliveredX = 0, deliveredY = 0;
+        const finalTick = 800;
+        for (let frame = 0; world.tick < finalTick; frame++) {
+          const seconds = Math.min(frames[frame % frames.length]!, (finalTick - world.tick) * STEP - session.alpha * STEP);
+          session.update(seconds, id, IDLE, () => {
+            calls++;
+            const ship = world.ship(id)!, command = burn.next(ship.state);
+            if (command.throttle !== undefined) session.setThrottle(id, command.throttle);
+            if (command.controls.engine) {
+              first = Math.min(first, world.time); last = world.time + STEP;
+              const impulse = world.context.vehicle.acceleration * command.throttle! * STEP;
+              deliveredX += Math.cos(ship.state.heading) * impulse; deliveredY += Math.sin(ship.state.heading) * impulse;
+            }
+            return command.controls;
+          });
+        }
+        expect(calls).toBe(finalTick);
+        expect(burn.phase).toBe('complete');
+        expect(burn.remaining).toBeLessThan(1e-8);
+        expect(deliveredX).toBeCloseTo(delta.x, 8); expect(deliveredY).toBeCloseTo(delta.y, 8);
+        expect(Math.abs((first + last) / 2 - 5)).toBeLessThanOrEqual(STEP);
+        expect(world.ship(id)!.controls).toEqual(IDLE);
+        expect(world.ship(id)!.state.throttle).toBe(0);
+        const state = world.ship(id)!.state;
+        world.dispose();
+        return state;
+      };
+      expect(fly([.2, .01, .07, .03])).toEqual(fly([.01]));
+    });
+  it('refuses impossible burns and detects skipped physics ticks', () => {
+    expect(() => new ManeuverBurn(5, { x: 0, y: 0 }, view.vehicle)).toThrow();
+    expect(() => new ManeuverBurn(5, { x: 1, y: 0 }, { ...view.vehicle, acceleration: 0 })).toThrow();
+    const burn = new ManeuverBurn(.05, { x: 1, y: 0 }, { ...view.vehicle, turnRate: 0 });
+    expect(() => burn.next({ ...view.ship!.state, heading: 1 })).toThrow('No steering');
+    const state = { ...view.ship!.state, heading: 0, time: .1 };
+    expect(burn.next(state).controls.engine).toBe(true);
+    expect(() => burn.next({ ...state, time: .13 })).toThrow('clock changed');
+  });
+  it('keeps long-burn impulse accumulation precise through final cutoff', () => {
+    const delta = { x: 1e6 * Math.cos(1), y: 1e6 * Math.sin(1) };
+    const vehicle = { ...view.vehicle, acceleration: 125 };
+    const burn = new ManeuverBurn(4000, delta, vehicle);
+    for (let tick = 0; tick < 800002 && burn.phase !== 'complete'; tick++) {
+      burn.next({ ...view.ship!.state, time: tick * STEP, heading: 1 });
+    }
+    expect(burn.phase).toBe('complete');
+    expect(burn.remaining).toBeLessThan(1e-8);
+  }, 20_000);
   it('picks the rendered Hermite arc between samples, with camera rotation and body translation', () => {
     // At t=1/2 the curve is 100 m above the chord: a vertex/chord picker would miss it.
     const shifted = { x: 1e10, y: -2e10 };

@@ -264,7 +264,12 @@ const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship
 const maneuver = new ManeuverPlanner(workspace, {
   flight: () => ({ world: session.world, ship: selectedShip(), body: activeBody,
     enabled: presentation.isEnabled('builtin.maneuver-planner'), canWarp: session.canWarp,
-    paused: session.paused, warp: session.warp, requestedWarp: session.requestedWarp }),
+    paused: session.paused, inputBlocked: controlsDialog.open || document.hidden,
+    warp: session.warp, requestedWarp: session.requestedWarp }),
+  setThrottle: (shipId, throttle) => session.setThrottle(shipId, throttle),
+  releaseControls: shipId => {
+    if (session === local && local.world.record(shipId)?.ownerId === local.playerId) local.host.setControls(local.playerId, shipId, IDLE);
+  },
   setWarp, notify, event: (kind, detail) => profiler.event(kind, detail),
 });
 function notify(text: string, seconds = 5): void {
@@ -766,6 +771,7 @@ function syncLocks(): void {
 /** Switch which world the console shows and flies. Joining or leaving a game also
  * returns the camera to the piloted ship. */
 function useSession(next: GameSession, recenter = true): void {
+  maneuver.cancel();
   release();
   otherOrbits.clear();
   session.onchat = null;
@@ -4137,7 +4143,8 @@ function frame(now: number): void {
   splitScreen.applyInput(elapsed);
   const command = session.paused ? IDLE : controls(elapsed);
   maneuver.beforeAdvance(command);
-  handleEvents(session.update(elapsed, selectedShipId, command));
+  handleEvents(session === local ? local.update(elapsed, selectedShipId, command, maneuver.executing ? () => maneuver.step(command) : undefined)
+    : session.update(elapsed, selectedShipId, command));
   syncSelected();
   if (state.status !== lastStatus) {
     profiler.event('status', { from: lastStatus, to: state.status, time: state.time,
@@ -4146,7 +4153,7 @@ function frame(now: number): void {
   }
   profiler.lap('physics');
   const ship = selectedShip();
-  const engine = command.engine && !session.paused && !!ship;
+  const engine = (session === local ? !!ship?.controls.engine : command.engine && !!ship) && !session.paused;
   updatePrediction(elapsed, engine);
   profiler.lap('prediction');
   const before = selectedShipId ? session.previous(selectedShipId) : undefined;
