@@ -39,7 +39,7 @@ test('the flight instruments are part of the default game and each switches off 
   await expect(panel).toContainText(/Period\s*28\.1 s/);
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBeGreaterThan(0);
   const before = await debug(page);
-  expect(before.presentation.modules).toEqual(['builtin.flight-data', 'builtin.flight-vectors', 'builtin.maneuver-planner', 'builtin.navball', 'builtin.orbit-markers', 'builtin.telemetry']);
+  expect(before.presentation.modules).toEqual(['builtin.audio', 'builtin.flight-data', 'builtin.flight-vectors', 'builtin.maneuver-planner', 'builtin.navball', 'builtin.orbit-markers', 'builtin.telemetry']);
   await openPanel(page, 'data');
   await instrument(page, 'Telemetry').click();
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'false');
@@ -49,7 +49,7 @@ test('the flight instruments are part of the default game and each switches off 
   await instrument(page, 'Navball').click();
   await instrument(page, 'Maneuver planner').click();
   // Flight data stays only while something needs it.
-  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.audio']);
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBe(0);
   const after = await debug(page);
   expect(after.world).toBe(before.world);
@@ -62,7 +62,7 @@ test('the flight instruments are part of the default game and each switches off 
   for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball', 'Maneuver planner']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
   await instrument(page, 'Telemetry').click();
   await expect(page.locator('#presentation-status')).toContainText('Telemetry enabled with Flight data, which it needs');
-  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.telemetry']);
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.audio', 'builtin.flight-data', 'builtin.telemetry']);
   expect(errors).toEqual([]);
 });
 

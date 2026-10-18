@@ -4,7 +4,7 @@ import { applyHudThemeToDom, getActiveTheme } from '../../../packages/render-2d/
 
 const STORAGE_PREFIX = 'space-sim:flight-window:1:';
 const MARGIN = 8;
-interface WindowSettings { x?: number; y?: number; pinned: boolean; minimized: boolean; open: boolean; width?: number; height?: number }
+interface WindowSettings { x?: number; y?: number; pinned: boolean; minimized: boolean; maximized?: boolean; open: boolean; width?: number; height?: number }
 
 export interface FloatingWindowOptions {
   readonly id: string;
@@ -29,6 +29,7 @@ export class FloatingWindow {
   private readonly listeners = new Set<() => void>();
   private readonly pin: HTMLButtonElement;
   private readonly minimize: HTMLButtonElement;
+  private readonly maximize: HTMLButtonElement;
 
   constructor(private readonly options: FloatingWindowOptions) {
     const { id, title, container } = options;
@@ -46,6 +47,7 @@ export class FloatingWindow {
         </button>
         <button type="button" id="${id}-pin" class="window-chrome window-pin" aria-label="Pin ${name} window" aria-pressed="false">${icon('pin')}</button>
         <button type="button" id="${id}-minimize" class="window-chrome" aria-controls="${id}-window-body" aria-expanded="true">−</button>
+        <button type="button" id="${id}-maximize" class="window-chrome" aria-pressed="false">□</button>
         <button type="button" id="${id}-close" class="window-chrome" data-window-close aria-label="Close ${name} window" title="Close window">×</button>
       </div>`;
     this.body.id = `${id}-window-body`;
@@ -55,6 +57,7 @@ export class FloatingWindow {
     applyHudThemeToDom(getActiveTheme(), panel);
     this.pin = panel.querySelector<HTMLButtonElement>(`#${id}-pin`)!;
     this.minimize = panel.querySelector<HTMLButtonElement>(`#${id}-minimize`)!;
+    this.maximize = panel.querySelector<HTMLButtonElement>(`#${id}-maximize`)!;
 
     this.settings = { pinned: options.pinned ?? false, minimized: false, open: false };
     try {
@@ -66,6 +69,7 @@ export class FloatingWindow {
           y: Number.isFinite(stored.y) ? stored.y : undefined,
           pinned,
           minimized: stored.minimized === true,
+          maximized: stored.maximized === true,
           open: stored.open === true && pinned,
           width: Number.isFinite(stored.width) && stored.width! > 0 ? stored.width : undefined,
           height: Number.isFinite(stored.height) && stored.height! > 0 ? stored.height : undefined,
@@ -80,13 +84,27 @@ export class FloatingWindow {
     });
     this.pin.addEventListener('click', () => { this.settings.pinned = !this.settings.pinned; this.render(); });
     this.minimize.addEventListener('click', () => { this.settings.minimized = !this.settings.minimized; this.render(); });
+    this.maximize.addEventListener('click', () => {
+      // Keep the normal geometry untouched so restoring also works after a reload.
+      if (!this.settings.maximized) {
+        this.settings.width = panel.offsetWidth;
+        if (!this.settings.minimized) this.settings.height = panel.offsetHeight;
+      }
+      this.settings.maximized = !this.settings.maximized;
+      this.settings.minimized = false;
+      this.raise();
+      this.render();
+    });
     // Unpinned windows are temporary: they close when you return to the flight view.
     document.addEventListener('pointerdown', event => {
       if (!this.settings.pinned && event.target instanceof HTMLCanvasElement && (event.target.id === 'flight-view' || event.target.id === 'orbit-canvas')) this.close();
     }, true);
     this.attachDrag(panel.querySelector<HTMLButtonElement>('.flight-window-drag')!);
     attachWindowResize(panel, container, name, {
-      change: (width, height) => { this.settings.width = width; this.settings.height = height; this.position(); },
+      change: (width, height, x, y) => {
+        this.settings.width = width; this.settings.height = height;
+        this.settings.x = x; this.settings.y = y; this.position();
+      },
       end: () => this.save(),
     });
     const observer = new ResizeObserver(() => this.position());
@@ -94,7 +112,8 @@ export class FloatingWindow {
     observer.observe(panel);
     document.addEventListener('hud-layout-reset', () => {
       this.settings.x = this.settings.y = this.settings.width = this.settings.height = undefined;
-      this.position(); this.save();
+      this.settings.maximized = false;
+      this.render();
     });
     this.render();
   }
@@ -136,6 +155,7 @@ export class FloatingWindow {
     this.element.hidden = !this.settings.open;
     this.body.hidden = this.settings.minimized;
     this.element.classList.toggle('minimized', this.settings.minimized);
+    this.element.classList.toggle('maximized', this.settings.maximized === true);
     this.element.classList.toggle('pinned', this.settings.pinned);
     this.pin.setAttribute('aria-pressed', String(this.settings.pinned));
     this.pin.setAttribute('aria-label', `${this.settings.pinned ? 'Unpin' : 'Pin'} ${name} window`);
@@ -144,6 +164,10 @@ export class FloatingWindow {
     this.minimize.setAttribute('aria-label', `${this.settings.minimized ? 'Restore' : 'Minimize'} ${name} window`);
     this.minimize.setAttribute('aria-expanded', String(!this.settings.minimized));
     this.minimize.title = this.settings.minimized ? 'Restore window' : 'Minimize to title bar';
+    this.maximize.textContent = this.settings.maximized ? '❐' : '□';
+    this.maximize.setAttribute('aria-pressed', String(this.settings.maximized === true));
+    this.maximize.setAttribute('aria-label', `${this.settings.maximized ? 'Restore' : 'Maximize'} ${name} window size`);
+    this.maximize.title = this.settings.maximized ? 'Restore previous size and position' : 'Maximize window';
     if (this.settings.open && wasHidden) this.raise();
     this.position();
     this.save();
@@ -155,6 +179,12 @@ export class FloatingWindow {
     const panel = this.element, container = this.options.container;
     if (panel.hidden) return;
     const width = container.clientWidth, height = container.clientHeight;
+    if (this.settings.maximized) {
+      panel.style.width = `${Math.max(1, width - 2 * MARGIN)}px`;
+      panel.style.height = this.settings.minimized ? '' : `${Math.max(1, height - 2 * MARGIN)}px`;
+      panel.style.left = panel.style.top = `${MARGIN}px`;
+      return;
+    }
     panel.style.width = this.settings.width ? `${Math.min(this.settings.width, width - 2 * MARGIN)}px` : '';
     panel.style.height = this.settings.height && !this.settings.minimized ? `${Math.min(this.settings.height, height - 2 * MARGIN)}px` : '';
     if (this.settings.x === undefined || this.settings.y === undefined) {
@@ -175,6 +205,7 @@ export class FloatingWindow {
   private attachDrag(handle: HTMLButtonElement): void {
     let drag: { pointer: number; x: number; y: number; left: number; top: number } | undefined;
     handle.addEventListener('pointerdown', event => {
+      if (this.settings.maximized) return;
       if (!event.isPrimary || event.button !== 0) return;
       event.preventDefault();
       drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, left: this.settings.x ?? 0, top: this.settings.y ?? 0 };
@@ -191,6 +222,7 @@ export class FloatingWindow {
     handle.addEventListener('pointercancel', endDrag);
     handle.addEventListener('lostpointercapture', endDrag);
     handle.addEventListener('keydown', event => {
+      if (this.settings.maximized) return;
       const moves: Record<string, readonly [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
       const move = moves[event.key];
       if (!move) return;

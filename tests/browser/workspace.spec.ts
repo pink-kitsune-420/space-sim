@@ -2,6 +2,17 @@ import { test, expect } from '@playwright/test';
 import { openPanel, closePanel } from '../helpers/workspace';
 
 test.describe.configure({ timeout: 90000 });
+test.beforeEach(async ({ page }) => {
+  // Menu geometry and input do not depend on the software WebGL sky shader.
+  await page.addInitScript(() => {
+    localStorage.setItem('space-sim.graphics/1', 'low');
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = new Proxy(getContext, { apply(target, receiver, args) {
+      if (String(args[0]).startsWith('webgl')) return null;
+      return Reflect.apply(target, receiver, args);
+    } });
+  });
+});
 
 for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, { width: 800, height: 600 }, { width: 390, height: 844 }]) {
   test(`flight fits one window at ${size.width} × ${size.height}`, async ({ page }, info) => {

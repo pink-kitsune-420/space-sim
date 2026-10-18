@@ -1,15 +1,16 @@
 import type {
-  CameraExtension, CameraInput, CameraTarget, ModuleManifest, ModuleProfile, ModuleReference, OverlayPrimitive,
+  AudioProvider, CameraExtension, CameraInput, CameraTarget, ModuleManifest, ModuleProfile, ModuleReference, OverlayPrimitive,
   RegisteredModule, PresentationFault, PresentationSnapshot, PresentationView, RendererProvider,
 } from '../../../packages/game-api/src/index';
 import { ModuleRuntime, PresentationHooks, frozenSnapshot, type ModuleCandidate } from '../../../packages/game-runtime/src/index';
 import {
-  BUILTIN_RENDERERS, CANVAS_RENDERER, INSTRUMENTS, WEBGL_RENDERER, createPresentationRegistry, presentationProfile,
+  BUILTIN_RENDERERS, CANVAS_RENDERER, INSTRUMENTS, PROCEDURAL_AUDIO, WEBGL_RENDERER, createPresentationRegistry, presentationProfile,
 } from '../../../packages/modules/src/browser';
 import { PRESENTATION_EXAMPLES } from '../../../examples/modules/index';
 import { Rendering } from './rendering';
 import { environment } from './startup';
 import { element, message, show } from './ui';
+import { FlightAudio } from './audio';
 
 type EventSink = (kind: string, detail: Record<string, unknown>) => void;
 /** The viewer's own changes to the default modules: a per-browser convenience, never shared or
@@ -28,7 +29,7 @@ function store(choices: Choices): void {
 }
 
 /** The instruments a new viewer starts with; their dependencies come along through the closure. */
-const DEFAULTS: readonly string[] = INSTRUMENTS.map(i => i.id);
+const DEFAULTS: readonly string[] = [...INSTRUMENTS.map(i => i.id), PROCEDURAL_AUDIO.id];
 
 /** A frozen copy of what the pilot sees: hooks can neither observe nor change live objects. */
 export function presentationSnapshot(raw: PresentationSnapshot): PresentationSnapshot { return frozenSnapshot(raw); }
@@ -38,6 +39,7 @@ export function presentationSnapshot(raw: PresentationSnapshot): PresentationSna
  * profile never touches the world, its fingerprint or saves; the renderer is rebuilt only
  * when its provider changes. */
 export class Presentation {
+  readonly audio = new FlightAudio(element<HTMLButtonElement>('sound-toggle'), element<HTMLInputElement>('sound-volume'), element('sound-status'));
   readonly registry = createPresentationRegistry(PRESENTATION_EXAMPLES);
   readonly runtime = new ModuleRuntime(this.registry, environment());
   readonly rendering: Rendering;
@@ -172,6 +174,7 @@ export class Presentation {
         if (previous) this.options.event('renderer-switch', { renderer: provider.id });
       }
       this.runtime.activate(candidate);
+      this.audio.setProvider(candidate.lock.providers.audio ? candidate.service<AudioProvider>('audio') : undefined);
       this.hooks = hooks;
       this.profile = profile;
     } catch (error) {
@@ -185,7 +188,7 @@ export class Presentation {
 
   useRenderer(provider: RendererProvider): void {
     if (provider === this.rendering.provider) return;
-    this.apply({ ...presentationProfile(provider.id, this.enabled), settings: this.profile?.settings ?? {} });
+    this.apply({ ...presentationProfile(provider.id, this.enabled, this.profile?.providers.audio), settings: this.profile?.settings ?? {} });
   }
   toggleRenderer(): void {
     const index = BUILTIN_RENDERERS.indexOf(this.provider);
@@ -206,7 +209,8 @@ export class Presentation {
         dependents = next.filter(m => this.registry.closure([m]).some(d => d.id === id)).map(m => m.id);
         next = next.filter(m => !dependents.includes(m.id));
       }
-      const profile = presentationProfile(this.provider.id, this.registry.closure(next));
+      const audio = manifest.slots.includes('audio') ? (on ? id : undefined) : this.profile?.providers.audio;
+      const profile = presentationProfile(this.provider.id, this.registry.closure(next), audio);
       this.apply({ ...profile, settings: Object.fromEntries(Object.entries(this.profile?.settings ?? {}).filter(([id]) => profile.modules.some(m => m.id === id))) });
     } catch (error) {
       show('presentation-status', `${manifest?.name ?? id} could not be ${on ? 'enabled' : 'disabled'}: ${message(error)}`);
@@ -267,6 +271,7 @@ export class Presentation {
   }
 
   dispose(): void {
+    this.audio.dispose();
     this.runtime.dispose();
     this.rendering.dispose();
     for (const { card } of this.panels.values()) card.remove();

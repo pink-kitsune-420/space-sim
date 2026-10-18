@@ -1,6 +1,7 @@
 import { computeNavballCenter, type NavballPlacement } from './local-players';
 import { initHudEditor } from './hud-editor';
 import { navballFootprint } from '../../../packages/modules/src/base/toolset/navball';
+import { THROTTLE_LEVER_SPACE } from './throttle-lever';
 
 export interface HudRect { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 
@@ -109,8 +110,11 @@ export function initHudLayout() {
       // Include marker stems, drag banner, pin label and readouts. Text remains 11 px on small dials.
       const { side, above, below } = navballFootprint(scale, trajectory);
       const blocked = placement.anchor === 'custom' ? [] : obstacles.map(r => ({ ...r, x: r.x - (pane?.x ?? 0), y: r.y - (pane?.y ?? 0) }));
-      const fit = fitHudRect({ x: preferred.x - side, y: preferred.y - above, width: side * 2, height: above + below }, width, height, blocked);
-      const center = { x: fit.x + side, y: fit.y + above };
+      const left = side + THROTTLE_LEVER_SPACE;
+      const top = Math.max(above, 76);
+      const bottom = Math.max(below, 100);
+      const fit = fitHudRect({ x: preferred.x - left, y: preferred.y - top, width: left + side, height: top + bottom }, width, height, blocked);
+      const center = { x: fit.x + left, y: fit.y + top };
       cached.set(placement, { key, center });
       return center;
     },

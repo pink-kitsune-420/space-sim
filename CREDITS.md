@@ -8,6 +8,8 @@ The name is inspired by the joint ESA/NASA orbital laboratory missions. This pro
 
 All simulation physics, orbital mechanics, Kepler propagators, Canvas 2D and WebGL 2 GPU shader renderers, flight HUDs, multiplayer networking, and application plumbing are first-party code authored specifically for this project.
 
+Engine rumble and flight sound effects are synthesized by original first-party code under the project's MIT license, using generated noise and oscillators. No third-party sound recordings, samples or instrument libraries are bundled.
+
 ## Shipped Runtime Dependencies
 
 The shipped game application, browser distributions, and standalone offline builds contain **zero runtime third-party dependencies** (`modulePreload.polyfill = false`).

@@ -62,10 +62,15 @@
         {
           "id": "builtin.maneuver-planner",
           "version": "0.1.0"
+        },
+        {
+          "id": "builtin.audio",
+          "version": "0.1.0"
         }
       ],
       "providers": {
-        "renderer": "builtin.webgl"
+        "renderer": "builtin.webgl",
+        "audio": "builtin.audio"
       },
       "settings": {}
     },

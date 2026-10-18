@@ -5,7 +5,7 @@
  * Define a term the first time it appears. Avoid stock phrasing ("it's not X, it's Y", "the secret is").
  *
  * Pages are trusted first-party HTML. Tokens the Manual expands when a page opens:
- * - `{{key:<actionId>}}` the pilot's current key for an action in `input-config.ts`;
+ * - `{{key:<actionId>}}` player 1's mapped keyboard and controller inputs;
  * - `<div data-manual-controls></div>` the full live keybinding table;
  * - `<a data-page="<id>">` a link to another page in the same audience.
  * Keep button names exactly as they appear on screen, and update a page whenever its feature changes. */
@@ -50,6 +50,8 @@ without ever reaching the ground. That path is called an <b>orbit</b>.</p>
 </ul>
 <p>Click a dock button again or press <kbd>Esc</kbd> to close its window. The <b>pin</b> button keeps a window open
 while you fly. Press {{key:pause}} to pause.</p>
+<p>Drag a window's edge or corner to resize it. The <b>□</b> button maximizes it; press it again to restore
+the previous size and position. Focus a resize grip and use the arrow keys for small adjustments.</p>
 <p>Open <b>Settings → Edit HUD layout</b> to move the dock, flight controls, clock, status, readings and hints.
 Drag a small grip, or focus it and use the arrow keys. Navballs can be dragged directly while editing, even when pinned. Hold Shift for larger steps. Choose <b>Done</b> when finished.
 Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
@@ -68,12 +70,15 @@ Windows and chat move by their title bars. Outside the editor, unlock a navball 
     title: 'Controls',
     summary: 'Keyboard, touch and gamepad',
     html: `
-<p>The table shows your keys as they are set right now. To change any of them, open
-<b>Settings → Controls &amp; keybindings…</b>.</p>
+<p>The table shows player 1's current keyboard and controller mappings. Lesson hints use these mappings too.
+Choose <b>Configure controls…</b> above to change them. This opens the same dialog as
+<b>Settings → Controls &amp; keybindings…</b>. Controller axes show their configured index and direction;
+button names match the connected controller, with Xbox names used when it is disconnected.
+A dash means the action has no binding for that input or the device is disabled or assigned elsewhere.</p>
 <div data-manual-controls></div>
 <h3>Touch and mouse</h3>
 <ul>
-  <li>Hold <b>BURN</b> to fire the engine. Hold the turn buttons to rotate. Drag the throttle slider in <b>Ship</b>.</li>
+  <li>Hold <b>BURN</b> to fire the engine. Hold the turn buttons to rotate. Drag the throttle slider in <b>Ship</b>, or the lever beside your navball. The lever shows selected power as a percentage; setting it does not fire the engine. Release engine and throttle controls before dragging it (LOCK). Each local pilot has their own lever.</li>
   <li>Drag the view to move the camera. Pinch or use the mouse wheel to zoom. Flick the view to send the camera gliding.</li>
 </ul>
 <h3>Gamepad</h3>
@@ -432,14 +437,16 @@ A home router behind carrier NAT may not accept incoming connections; use a reac
   {
     id: 'settings',
     title: 'Look, feel and performance',
-    summary: 'Renderer, graphics quality, themes, profiler',
+    summary: 'Sound, renderer, graphics quality, themes, profiler',
     html: `
 <ul>
   <li><b>Settings → Renderer</b> switches between WebGL and 2D. 2D works on every device.</li>
   <li><b>Graphics: High / Low</b>. Low turns off lighting and planet surface detail, which helps older devices.</li>
   <li><b>Theme…</b> changes the colours of windows, the HUD, the grid and the starfield.</li>
+  <li><b>Settings → Sound</b> turns procedural engine rumble and flight cues on or off. Adjust <b>Volume</b> to taste; both settings stay on this device. Sound starts after a click or key press.</li>
   <li>{{key:fullscreen}} toggles fullscreen. If the game feels slow, {{key:profiler}} opens the profiler, which shows where each frame's time goes.</li>
-</ul>`,
+</ul>
+<p>The engine sound follows the first pilot's active thrust. It fades when you release the engine, pause or enter time warp. A low thud marks a landing; crashes and water contacts have separate sounds. Hidden tabs stay quiet even with Run in background enabled. All flight information remains visible with sound off. To remove the sound module, open <b>Library → Instruments &amp; display</b> and disable <b>Procedural sound</b>.</p>`,
   },
   {
     id: 'commands',
@@ -561,7 +568,7 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
   {
     id: 'modules',
     title: 'Code modules',
-    summary: 'Forces, rules, commands, instruments, cameras',
+    summary: 'Forces, rules, commands, instruments, cameras, sound',
     html: `
 <p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. There are three kinds:</p>
 <dl>
@@ -569,9 +576,10 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
     <b>Library → Data &amp; legacy profiles → Load module/profile…</b>.</dd>
   <dt>Simulation</dt><dd>Changes what happens: extra forces, a different physics integrator, world rules, or new
     pilot commands. These run on the host or server and are part of saves and multiplayer.</dd>
-  <dt>Presentation</dt><dd>Changes only what you see: overlays, panels and camera modes. You can switch these on
-    and off at any time. The built-in instruments, including the navball, are presentation modules.</dd>
+  <dt>Presentation</dt><dd>Changes what you see or hear: overlays, panels, camera modes and sound. You can switch these on
+    and off at any time. The built-in instruments and procedural sound are presentation modules.</dd>
 </dl>
+<p>The optional presentation <code>audio</code> provider exposes an <code>AudioProvider</code> factory. Its <code>AudioOutput</code> implements <code>resume</code>, <code>suspend</code>, <code>setVolume</code>, <code>setThrust</code>, <code>play</code> and <code>dispose</code>. Creation stays silent; the browser starts audio after user input and owns its lifetime independently of the renderer. Volume and thrust use levels from 0 to 1. Keep audio out of simulation state and saves. The bundled sample-free implementation is in <code>packages/modules/src/base/audio/</code>.</p>
 <h3>Build and share an editable package</h3>
 <ol>
   <li>Run <code>npm run module:new -- local.my-module my-module</code>, or copy a starter from

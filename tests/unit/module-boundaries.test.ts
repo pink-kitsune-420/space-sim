@@ -8,7 +8,7 @@ describe('module public imports', () => {
   it('keeps the headless server free of renderer, browser and presentation-module code', async () => {
     const files = [...await reachable('apps/server/src/cli.ts')];
     expect(files).toEqual(expect.arrayContaining(['apps/server/src/server.ts', 'packages/modules/src/base/motion.ts', 'packages/net/src/host.ts']));
-    expect(files.filter(f => /^(packages\/render-2d\/|apps\/web\/|examples\/modules\/|packages\/modules\/src\/(browser|base\/renderers|base\/toolset\/))/.test(f))).toEqual([]);
+    expect(files.filter(f => /^(packages\/render-2d\/|apps\/web\/|examples\/modules\/|packages\/modules\/src\/(browser|base\/renderers|base\/toolset\/|base\/audio\/))/.test(f))).toEqual([]);
     // The browser graph does load them, so the check above is meaningful.
     const browser = [...await reachable('apps/web/src/main.ts')];
     expect(browser).toEqual(expect.arrayContaining(['packages/render-2d/src/webgl.ts', 'packages/modules/src/base/toolset/telemetry.ts', 'examples/modules/lead-camera.ts']));

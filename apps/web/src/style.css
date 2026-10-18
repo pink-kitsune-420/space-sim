@@ -1,5 +1,18 @@
 @import '../../orbit-sandbox/src/style.css';
 
+/* A compact mechanical quadrant: engraved scale, inset slot and ribbed grip. */
+.throttle-lever { position:absolute; z-index:16; width:48px; height:176px; display:flex; flex-direction:column; align-items:center; padding:5px 3px; gap:3px; border:1px solid var(--ui-win-border); border-radius:5px; background:var(--ui-win-bg); color:var(--ui-win-text); box-shadow:inset 0 0 0 2px var(--ui-win-card-bg),0 2px 6px #0005; font:10px ui-monospace,monospace; user-select:none; pointer-events:auto }
+.throttle-lever-label { color:var(--ui-win-accent); letter-spacing:2px; font-size:9px }
+.throttle-lever-track { position:relative; width:40px; height:112px; flex-shrink:0; cursor:ns-resize; touch-action:none; border-radius:3px; background:repeating-linear-gradient(to top,var(--ui-win-border) 0 1px,transparent 1px 24px) 2px 8px / 9px 97px no-repeat }
+.throttle-lever-slot { position:absolute; left:18px; top:8px; bottom:8px; width:5px; border:1px solid var(--ui-win-border); border-radius:3px; background:#0008; box-shadow:inset 1px 0 3px #0009 }
+.throttle-lever-handle { position:absolute; left:7px; top:calc(8px + (1 - var(--throttle-position,.5)) * 96px); width:31px; height:15px; transform:translateY(-50%); border:1px solid var(--ui-win-accent); border-radius:3px; background:repeating-linear-gradient(to bottom,transparent 0 3px,var(--ui-win-border) 3px 4px),linear-gradient(var(--ui-win-hover-bg),var(--ui-win-card-bg)); box-shadow:0 2px 3px #0008,inset 0 1px var(--ui-win-accent) }
+.throttle-lever output { color:var(--ui-win-accent); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums }
+.throttle-lever-status { font-size:8px; letter-spacing:1px; opacity:.75 }
+.throttle-lever[data-locked=true] .throttle-lever-track { cursor:not-allowed }
+.throttle-lever[data-locked=true] .throttle-lever-handle { border-style:dashed }
+.throttle-lever[data-firing=true] .throttle-lever-label::before { content:'●'; letter-spacing:0 }
+.throttle-lever-track:focus-visible { outline:2px solid var(--ui-win-accent); outline-offset:2px }
+
 :root {
   font-family:Inter,ui-sans-serif,system-ui,sans-serif;
   color:#e3ecee;
@@ -3576,6 +3589,7 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
 .flight-window-header button { padding:4px 7px; min-height:28px; font-size:11px }
 .flight-window-header .flight-window-drag {
   flex:1;
+  min-width:0;
   display:flex;
   align-items:center;
   gap:7px;
@@ -3589,6 +3603,7 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
   user-select:none;
 }
 .flight-window-drag:active { cursor:grabbing }
+.flight-window-drag span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
 .flight-window-body { overflow-y:auto; min-height:0 }
 .flight-window .path-card { background:transparent; border:0; padding:10px 14px; margin:0; height:auto }
 .flight-window .path-card > .eyebrow,.flight-window .path-card > h2 { display:none }
@@ -3631,9 +3646,22 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
 
 .flight-window-header .flight-window-drag { color:#f1f5f9 }
 
-/* Shared touch-friendly resize grip; minimized windows retain only their header. */
+/* Edges and corners share pointer capture; the visible corner also supports keyboard resizing. */
 .window-resize { pointer-events:auto; position:absolute; right:1px; bottom:1px; z-index:2; width:18px; height:18px; padding:0; border:0; border-radius:2px; background:var(--ui-win-bg); color:var(--ui-win-accent); font-size:11px; cursor:nwse-resize; touch-action:none }
-.minimized > .window-resize { display:none }
+.window-resize:not([data-edge=se]) { background:transparent; min-height:0 }
+.window-resize[data-edge=n],.window-resize[data-edge=s] { left:12px; right:12px; width:auto; height:6px; cursor:ns-resize }
+.window-resize[data-edge=n] { top:0; bottom:auto }
+.window-resize[data-edge=s] { bottom:0 }
+.window-resize[data-edge=e],.window-resize[data-edge=w] { top:12px; bottom:18px; height:auto; width:6px; cursor:ew-resize }
+.window-resize[data-edge=e] { right:0 }
+.window-resize[data-edge=w] { left:0; right:auto }
+.window-resize[data-edge=ne],.window-resize[data-edge=nw],.window-resize[data-edge=sw] { width:12px; height:12px }
+.window-resize[data-edge=ne],.window-resize[data-edge=nw] { top:0; bottom:auto }
+.window-resize[data-edge=nw],.window-resize[data-edge=sw] { left:0; right:auto }
+.window-resize[data-edge=ne],.window-resize[data-edge=sw] { cursor:nesw-resize }
+.window-resize:focus-visible { outline:2px solid var(--ui-win-accent); outline-offset:-2px }
+.minimized > .window-resize,.maximized > .window-resize { display:none }
+.maximized .flight-window-drag { cursor:default }
 .flight-window.minimized { height:auto !important }
 .flight-window-body { padding-bottom:12px }
 .chat-overlay { min-width:0 }
@@ -3649,12 +3677,13 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
 .chat-header,.chat-form { flex-shrink:0 }
 
 /* In-game Manual: Players / Creators tabs, searchable topics and a reading pane. */
-.panel-window.panel-manual { width:min(760px,calc(100% - 16px)) }
+.panel-window.panel-manual { width:min(760px,calc(100% - 16px)); container-type:inline-size }
 .manual { display:flex; flex-direction:column; gap:10px; min-height:0 }
 .manual-tabs { display:flex; gap:6px }
 .manual-tabs button { flex:1; padding:7px 12px; font-size:12px }
 .manual-tabs button[aria-selected="true"] { border-color:var(--ui-win-accent); box-shadow:inset 0 -2px var(--ui-win-accent); color:#f1f5f9 }
 .manual-intro { margin:0; font-size:11px; color:#8fa5b0 }
+.manual-configure { align-self:flex-start }
 .manual-search { width:100%; padding:7px 10px; color:inherit; background:var(--ui-win-card-bg); border:1px solid var(--ui-win-border); border-radius:5px }
 .manual-layout { display:grid; grid-template-columns:200px minmax(0,1fr); gap:14px; min-height:0 }
 .manual-topics { min-width:0 }
@@ -3677,13 +3706,14 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
 .manual-page kbd.unbound,.manual-controls .unbound { color:#7f96a1; font-style:italic }
 .manual-note,.manual-warn { padding:8px 10px; border-radius:5px; font-size:11.5px; border-left:2px solid var(--ui-win-accent); background:var(--ui-win-card-bg) }
 .manual-warn { border-left-color:#e0a458 }
-.manual-controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:4px 16px; margin-bottom:10px }
+.manual-controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(360px,100%),1fr)); gap:4px 16px; margin-bottom:10px }
 .manual-controls table { width:100%; border-collapse:collapse; font-size:11.5px }
 .manual-controls caption { text-align:left; padding:8px 0 4px; font-size:11px; letter-spacing:.4px; text-transform:uppercase; color:var(--ui-win-accent) }
 .manual-controls th { text-align:left; font-weight:400; color:#c9d7dc; padding:3px 8px 3px 0 }
-.manual-controls td { text-align:right; white-space:nowrap; padding:3px 0 }
+.manual-controls td { text-align:right; padding:3px 0 3px 6px }
+.manual-controls kbd { display:inline-block; margin:2px 0 }
 .manual-controls tr + tr { border-top:1px solid color-mix(in srgb,var(--ui-win-border) 50%,transparent) }
-@media(max-width:620px) {
+@container(max-width:590px) {
   .manual-layout { grid-template-columns:minmax(0,1fr) }
   .manual-topics ul { flex-direction:row; overflow-x:auto; scrollbar-width:thin; padding-bottom:4px }
   .manual-topics li { flex:0 0 auto }

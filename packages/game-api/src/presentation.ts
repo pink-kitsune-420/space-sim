@@ -162,6 +162,26 @@ export interface RendererProvider {
   create(canvas: HTMLCanvasElement, options?: { readonly shaders?: ShaderPack }): Renderer;
 }
 
+/** Device-local flight cues; none of these commands changes simulation state. */
+export type AudioCue = 'confirm' | 'pause' | 'resume' | 'warp' | 'land' | 'crash' | 'splash';
+/** Browser-owned output. Creation is silent; resume() is called after a user gesture.
+ * Levels are normalized to 0–1. The host suspends hidden tabs and disposes replaced outputs. */
+export interface AudioOutput {
+  resume(): Promise<void>;
+  suspend(): void;
+  setVolume(level: number): void;
+  setThrust(level: number): void;
+  play(cue: AudioCue): void;
+  dispose(): void;
+}
+/** Optional `audio` presentation slot. A stateless factory, independent of renderer lifetime. */
+export interface AudioProvider {
+  readonly id: string;
+  readonly version: string;
+  readonly label: string;
+  create(): AudioOutput;
+}
+
 /** `world`: system coordinates in metres (+Y up), projected by the frame's camera.
  * `screen`: CSS pixels from the viewport's top-left corner (+Y down). Colors are
  * `#RRGGBB` or `#RRGGBBAA`; widths are CSS pixels in both spaces. */

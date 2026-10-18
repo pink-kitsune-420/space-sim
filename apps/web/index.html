@@ -103,6 +103,11 @@
               <div class="settings-group"><h3>Display</h3>
                 <div class="settings-buttons"><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="grid-toggle" type="button" title="Toggle navigation grid on/off (G)" aria-pressed="false">Grid: Off</button><button id="theme-toggle" type="button" title="Customize Skybox, Procedural Nebulas, Grids & Timers" aria-haspopup="dialog">Theme…</button></div>
               </div>
+              <div class="settings-group"><h3>Sound</h3>
+                <div class="settings-buttons"><button id="sound-toggle" type="button" aria-pressed="true">Sound: On</button></div>
+                <label for="sound-volume">Volume</label><input id="sound-volume" type="range" min="0" max="100" value="40" aria-label="Sound volume"/>
+                <p id="sound-status" class="control-note">Engine rumble and flight cues.</p>
+              </div>
               <div class="settings-group"><h3>Controls</h3>
                 <div class="settings-buttons"><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog" class="wide">Controls &amp; keybindings…</button><button id="players-toggle" type="button" title="Play with up to four players on one screen" aria-haspopup="dialog" class="wide">Split screen…</button><button id="hud-layout-toggle" type="button" aria-pressed="false">Edit HUD layout</button><button id="hud-layout-reset" type="button">Reset HUD layout</button></div>
               </div>

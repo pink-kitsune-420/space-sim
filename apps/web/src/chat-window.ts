@@ -79,7 +79,7 @@ export function initChatWindow(): void {
   }
   attachWindowResize(panel, viewport, 'chat', {
     start: anchor,
-    change: (width, height) => { layout.width = width; layout.height = height; position(); },
+    change: (width, height, x, y) => { layout.width = width; layout.height = height; layout.x = x; layout.y = y; position(); },
     end: save,
   });
   new ResizeObserver(() => { position(); notify(); }).observe(viewport);

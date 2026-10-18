@@ -1,4 +1,6 @@
-import { ACTION_DEFINITIONS, formatKeyCode, loadKeybindings, type ActionCategory, type ActionId, type KeyBindings } from './input-config';
+import { ACTION_DEFINITIONS, formatKeyCode, isFlightAction, type ActionCategory, type ActionId, type KeyBindings } from './input-config';
+import { formatControllerButton, type ControllerProfile, type GamepadDiagnostic } from './gamepad';
+import { keyboardOwner, padOwner, type LocalPlayersConfig } from './local-players';
 import { MANUAL, type ManualAudience, type ManualPage } from './manual-content';
 import type { Disposable } from '../../../packages/game-api/src/index';
 import type { ModuleCandidateV2 } from '../../../packages/game-runtime/src/modules-v2';
@@ -30,9 +32,15 @@ const CATEGORY_TITLES: Readonly<Record<ActionCategory, string>> = { flight: 'Fli
 const AUDIENCES = Object.keys(MANUAL) as ManualAudience[];
 
 interface ManualState { audience: ManualAudience; page: Record<ManualAudience, string> }
+interface ManualControls {
+  readonly keys: KeyBindings;
+  readonly players: LocalPlayersConfig;
+  readonly pads: readonly GamepadDiagnostic[];
+  readonly controllerEnabled: boolean;
+}
 
 /** Renders the Players / Creators manual into `#game-manual`, which the workspace hosts as the Manual window. */
-export function initManual(): void {
+export function initManual(options: { readControls: () => ManualControls; openControls: () => void }): void {
   const root = document.getElementById('game-manual');
   if (!root) return;
   const state = loadState();
@@ -41,6 +49,7 @@ export function initManual(): void {
       ${AUDIENCES.map(id => `<button type="button" role="tab" id="manual-tab-${id}" data-audience="${id}" aria-controls="manual-page">${MANUAL[id].label}</button>`).join('')}
     </div>
     <p class="manual-intro" id="manual-intro"></p>
+    <button type="button" class="manual-configure" aria-haspopup="dialog">Configure controls…</button>
     <input type="search" id="manual-search" class="manual-search" placeholder="Search the manual" aria-label="Search the manual" autocomplete="off" spellcheck="false" />
     <div class="manual-layout">
       <nav class="manual-topics" aria-label="Manual topics"><ul id="manual-topics"></ul></nav>
@@ -87,9 +96,16 @@ export function initManual(): void {
     }
   };
 
+  let renderedPage: ManualPage | undefined;
+  let renderedControls = '';
   const renderPage = (): void => {
     const page = currentPage();
-    const bindings = loadKeybindings();
+    const bindings = options.readControls();
+    const signature = JSON.stringify([bindings.keys, bindings.players, bindings.controllerEnabled,
+      bindings.pads.map(pad => [pad.index, pad.family])]);
+    // Window chrome changes must preserve reading position and expanded explanations.
+    if (page === renderedPage && signature === renderedControls) return;
+    renderedPage = page; renderedControls = signature;
     if ('render' in page && typeof page.render === 'function') { article.replaceChildren(page.render()); return; }
     article.innerHTML = `<h2>${page.title}</h2>${expandKeys(page.html, bindings)}`;
     for (const slot of article.querySelectorAll<HTMLElement>('[data-manual-controls]')) slot.replaceWith(controlsTable(bindings));
@@ -140,6 +156,11 @@ export function initManual(): void {
     root.querySelector<HTMLButtonElement>(`#manual-tab-${state.audience}`)!.focus();
   });
   search.addEventListener('input', renderTopics);
+  root.querySelector('.manual-configure')!.addEventListener('click', options.openControls);
+  // Configuration can be opened directly from this window; refresh when returning to it.
+  document.getElementById('controls-dialog')?.addEventListener('close', renderPage);
+  window.addEventListener('gamepadconnected', renderPage);
+  window.addEventListener('gamepaddisconnected', renderPage);
   // Keys may have been remapped since the page was last drawn.
   document.addEventListener('window-change', event => {
     if ((event as CustomEvent<{ id: string }>).detail?.id === 'manual' && root.offsetParent !== null) renderPage();
@@ -148,24 +169,45 @@ export function initManual(): void {
   document.addEventListener('module-guides-change', () => { indexPages(); render(); });
 }
 
-function expandKeys(html: string, bindings: KeyBindings): string {
+function expandKeys(html: string, bindings: ManualControls): string {
   return html.replace(/\{\{key:(\w+)\}\}/g, (_, id: string) => {
-    const code = bindings[id as ActionId]?.[0];
-    return code ? `<kbd>${escape(formatKeyCode(code))}</kbd>` : '<kbd class="unbound" title="Not bound: set a key in Settings">—</kbd>';
+    const action = id as ActionId;
+    return [keyboardLabels(action, bindings), controllerLabels(action, bindings)]
+      .filter(labels => labels.length).map(labels => labels.map(label => `<kbd>${escape(label)}</kbd>`).join(' / ')).join(' or ')
+      || '<span class="unbound">unbound (configure controls)</span>';
   });
 }
 
-function controlsTable(bindings: KeyBindings): HTMLElement {
+function keyboardLabels(action: ActionId, bindings: ManualControls): string[] {
+  if (isFlightAction(action) && keyboardOwner(bindings.players) !== 0) return [];
+  return (bindings.keys[action] ?? []).map(formatKeyCode);
+}
+
+function controllerLabels(action: ActionId, bindings: ManualControls): string[] {
+  const slot = bindings.players.slots[0]!;
+  if (!bindings.controllerEnabled || slot.device === 'keyboard' || slot.device === 'none') return [];
+  const connected = bindings.pads.map(pad => pad.index);
+  const pad = bindings.pads.find(pad => padOwner(bindings.players, pad.index, connected) === 0);
+  const profile: ControllerProfile = slot.profile;
+  const labels = profile.buttons[action].map(button => formatControllerButton(button, pad?.family ?? 'xbox'));
+  const axis = (index: number, positive: boolean): void => { if (index >= 0) labels.push(`Axis ${index} ${positive ? '+' : '−'}`); };
+  if (action === 'turnLeft' || action === 'turnRight') axis(profile.turnAxis, (action === 'turnRight') !== profile.invertTurn);
+  if (action === 'throttleUp' || action === 'throttleDown') axis(profile.throttleAxis, (action === 'throttleUp') !== profile.invertThrottle);
+  if (action === 'zoomIn' || action === 'zoomOut') axis(profile.zoomAxis, (action === 'zoomIn') !== profile.invertZoom);
+  return labels;
+}
+
+function controlsTable(bindings: ManualControls): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'manual-controls';
   for (const category of Object.keys(CATEGORY_TITLES) as ActionCategory[]) {
     const actions = ACTION_DEFINITIONS.filter(action => action.category === category);
     if (!actions.length) continue;
     const table = document.createElement('table');
-    table.innerHTML = `<caption>${CATEGORY_TITLES[category]}</caption><tbody>${actions.map(action => {
-      const keys = bindings[action.id] ?? [];
-      const cells = keys.length ? keys.map(code => `<kbd>${escape(formatKeyCode(code))}</kbd>`).join(' ') : '<span class="unbound">not bound</span>';
-      return `<tr title="${escape(action.description)}"><th scope="row">${escape(action.name)}</th><td>${cells}</td></tr>`;
+    table.innerHTML = `<caption>${CATEGORY_TITLES[category]}</caption><thead><tr><th scope="col">Action</th><th scope="col">Keyboard</th><th scope="col">Player 1 controller</th></tr></thead><tbody>${actions.map(action => {
+      const cells = [keyboardLabels(action.id, bindings), controllerLabels(action.id, bindings)].map((labels, index) =>
+        `<td class="manual-${index === 0 ? 'keyboard' : 'controller'}">${labels.length ? labels.map(label => `<kbd>${escape(label)}</kbd>`).join(' ') : '<span class="unbound">—</span>'}</td>`).join('');
+      return `<tr title="${escape(action.description)}"><th scope="row">${escape(action.name)}</th>${cells}</tr>`;
     }).join('')}</tbody>`;
     wrap.append(table);
   }

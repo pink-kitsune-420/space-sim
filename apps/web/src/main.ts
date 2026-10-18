@@ -36,7 +36,8 @@ import { TouchControlsManager, type TouchMode } from './touch-controls';
 import { SplitScreen, GuestPilot } from './split-screen';
 import { ControllerMenu } from './controller-menu';
 import { PLAYER_COLORS, setPlayerCount, setSlotNavball, defaultNavballPlacement } from './local-players';
-import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvider, TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH, type NavballFrame } from '../../../packages/modules/src/base/toolset/navball';
+import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvider, navballFootprint, TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH, type NavballFrame } from '../../../packages/modules/src/base/toolset/navball';
+import { ThrottleLever, THROTTLE_LEVER_SPACE, type ThrottleLeverState } from './throttle-lever';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
 import { CameraController, findSmartThrowTarget, type SmartCandidate } from './camera';
@@ -102,7 +103,6 @@ const workspace = new Workspace(() => release(), () => {
 
 const hudLayout = initHudLayout();
 initFlightWindows(workspace);
-initManual();
 
 const universes = builtinUniverses();
 const terrainUniverse = TERRAIN_UNIVERSE;
@@ -334,6 +334,10 @@ const splitScreen = new SplitScreen(viewport, {
   },
   onGuestPointer: (guest, action, event) => handleGuestPointer(guest, action, event),
   isSlotThrowing: slot => isSlotThrowing(slot),
+});
+initManual({
+  readControls: () => ({ keys: keybindings, players: splitScreen.config, pads: gamepadManager.getDiagnostics(), controllerEnabled: gamepadManager.getSettings().enabled }),
+  openControls: () => controlsToggle.click(),
 });
 viewport.addEventListener('hud-layout-edit', () => { release(); workspace.close(); });
 viewport.addEventListener('hud-layout-reset', () => {
@@ -844,6 +848,7 @@ function selectShip(id: string | undefined): void {
   lastTerrainContact = undefined;
   invalidatePrediction();
   const ship = selectedShip();
+  presentation.audio.reset(ship?.state.contact?.time ?? ship?.state.time);
   if (ship) {
     if (godModeToggle.checked && !ship.state.godMode) {
       try { session.setGodMode(ship.id, true); } catch { /* ignore */ }
@@ -1028,7 +1033,11 @@ let autoPaused = false;
 function setPaused(value: boolean, reason = ''): void {
   if (session !== local) return;
   if (!value || !reason) autoPaused = false;
-  if (value !== local.paused) profiler.event(value ? 'pause' : 'resume', { reason: reason || 'user', time: state.time });
+  if (value !== local.paused) {
+    profiler.event(value ? 'pause' : 'resume', { reason: reason || 'user', time: state.time });
+    if (!reason) presentation.audio.play(value ? 'pause' : 'resume');
+    if (value) presentation.audio.update(0, true);
+  }
   local.setPaused(value, value ? reason : '');
   const ship = selectedShip();
   if (!value && ship?.fault) local.world.clearFault(ship.id);
@@ -1049,7 +1058,12 @@ function setWarp(factor: number): void {
     return;
   }
   try {
+    const previousWarp = session.warp;
     session.setWarp(factor);
+    if (session.warp !== previousWarp) {
+      presentation.audio.play('warp');
+      if (session.warp > 1) presentation.audio.update(0, true);
+    }
     syncWarpUI();
     profiler.event('warp', { factor: session.warp, requested: factor, time: state.time });
   } catch (error) {
@@ -1144,6 +1158,7 @@ function reset(): void {
   }
   syncSelected();
   lastTerrainContact = undefined;
+  presentation.audio.reset(state.time);
   cameraControl.followShip();
   cameraControl.horizon = true;
   const startState = session.world.presetState(presetId).state;
@@ -1523,6 +1538,51 @@ function resolveNavballCenter(slot: number, width: number, height: number, scale
   const placement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
   const paneCanvas = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot)?.canvas ?? canvas : canvas;
   return hudLayout.navballCenter(placement, width, height, scale, paneCanvas, slot > 0);
+}
+
+function throttleLeverState(slot: number): ThrottleLeverState | undefined {
+  if (slot >= splitScreen.active || !presentation.isEnabled('builtin.navball')) return undefined;
+  const guest = slot > 0 ? splitScreen.guests.get(slot) : undefined;
+  const ship = slot === 0 ? selectedShip() : guest?.ship(session);
+  const owner = slot === 0 ? session.playerId : guest?.playerId;
+  if (!ship || session.world.record(ship.id)?.ownerId !== owner) return undefined;
+  let held = splitScreen.keyboardSlot === slot && (isActionActive('engine')
+    || isActionActive('throttleUp') || isActionActive('throttleDown'));
+  for (const pad of splitScreen.padsOf(slot)) {
+    const input = gamepadManager.flight(pad);
+    held ||= input.engine || input.throttle !== 0;
+  }
+  if (slot === 0) {
+    const touch = touchControls.pollFlight();
+    held ||= touch.engine || touch.throttle !== 0;
+    for (const action of pointers.values()) held ||= action === 'engine';
+  }
+  return { world: session.world, shipId: ship.id, throttle: ship.state.throttle,
+    locked: held || controlsDialog.open || hudLayout.editing || document.hidden,
+    firing: ship.controls.engine && ship.state.throttle > 0 && !session.paused
+      && ship.state.status !== 'crashed' && !ship.fault && session.warp === 1 };
+}
+
+const throttleLevers = Array.from({ length: 4 }, (_, slot) => new ThrottleLever(slot,
+  () => throttleLeverState(slot), value => {
+    const state = throttleLeverState(slot);
+    if (!state || state.locked) return;
+    if (slot === 0) session.setThrottle(state.shipId, value);
+    else {
+      const guest = splitScreen.guests.get(slot);
+      if (session === local && guest?.playerId) local.setGuestThrottle(guest.playerId, state.shipId, value);
+    }
+  }));
+
+function syncThrottleLevers(): void {
+  for (let slot = 0; slot < throttleLevers.length; slot++) {
+    const pane = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot)?.canvas ?? canvas : canvas;
+    const width = pane.clientWidth, height = pane.clientHeight;
+    const scale = Math.min(1, Math.max(.65, Math.min(width / 600, height / 450)));
+    const center = resolveNavballCenter(slot, width, height, scale);
+    throttleLevers[slot]!.sync(pane.parentElement!, pane.offsetLeft + center.x - navballFootprint(scale, slot > 0).side - THROTTLE_LEVER_SPACE,
+      pane.offsetTop + center.y - 76);
+  }
 }
 
 function hitTestNavball(
@@ -4259,6 +4319,8 @@ function handleEvents(events: readonly WorldEvent[]): void {
     }
     if (event.shipId !== selectedShipId) continue;
     if (event.type === 'contact') {
+      presentation.audio.contact(event.contact.time, event.status === 'crashed' ? 'crash'
+        : event.contact.material === 'water' ? 'splash' : 'land', !session.paused && session.warp === 1);
       lastTerrainContact = event.contact;
       profiler.event('terrain-contact', { ...event.contact, status: event.status, position: selectedShip()?.state.position });
     } else if (event.type === 'fault') {
@@ -4332,6 +4394,12 @@ function frame(now: number): void {
     : session.update(elapsed, selectedShipId, command));
   syncSelected();
   if (state.status !== lastStatus) {
+    // Smooth-body collisions change status without a terrain-contact event.
+    // Terrain contacts already play through handleEvents, so only fill that gap.
+    if (lastStatus === 'flying' && state.status !== 'flying' && !session.world.surface(activeBody.id)) {
+      presentation.audio.contact(state.time, state.status === 'crashed' ? 'crash' : 'land',
+        !session.paused && session.warp === 1);
+    }
     profiler.event('status', { from: lastStatus, to: state.status, time: state.time,
       speed: +magnitude(state.velocity).toFixed(2) });
     lastStatus = state.status;
@@ -4339,6 +4407,8 @@ function frame(now: number): void {
   profiler.lap('physics');
   const ship = selectedShip();
   const engine = (session === local ? !!ship?.controls.engine : command.engine && !!ship) && !session.paused;
+  presentation.audio.update(engine && ship && state.status !== 'crashed' && !ship.fault && session.warp === 1 ? state.throttle : 0,
+    !orbitSandboxInstance?.isOpen());
   updatePrediction(elapsed, engine);
   profiler.lap('prediction');
   const before = selectedShipId ? session.previous(selectedShipId) : undefined;
@@ -4473,6 +4543,7 @@ function frame(now: number): void {
 
   if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
   updateControllerCursors(elapsed);
+  syncThrottleLevers();
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
