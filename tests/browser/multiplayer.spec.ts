@@ -280,6 +280,60 @@ test('a second tab of the same browser joins a hosting tab in one click, and pil
   await context.close();
 });
 
+test('other pilots get slow coast previews with automatic crowd control and an off switch', async ({ browser }) => {
+  test.setTimeout(60000);
+  const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
+  const host = await tab(context, 'Orbit host');
+  const guest = await tab(context, 'Orbit guest');
+  const stats = async (page: Page) => (await diagnostics(page)).otherOrbits as { paths: number; starts: number; enabled: boolean; workMs: number };
+  try {
+    await host.getByRole('button', { name: 'Host this world' }).click();
+    await guest.getByRole('tab', { name: 'This browser' }).click();
+    await guest.locator('#local-worlds').getByRole('button', { name: /^Join Orbit host/ }).click();
+    await expect(guest.locator('.connection')).toContainText('ONLINE');
+    await openPanel(guest, 'setup');
+    await guest.locator('#preset').selectOption('planet-orbit');
+    await expect.poll(async () => (await stats(host)).paths).toBe(1);
+    expect((await stats(host)).enabled).toBe(true);
+    await openPanel(host, 'multiplayer');
+    await host.locator('#other-orbit-mode').selectOption('off');
+    await expect.poll(async () => (await stats(host)).paths).toBe(0);
+    await host.locator('#other-orbit-mode').selectOption('always');
+    await expect.poll(async () => (await stats(host)).paths).toBe(1);
+    // Sample several refresh cycles for a bounded forecast-rate/performance record.
+    const samples: Record<string, unknown>[] = [];
+    const sampleStart = Date.now();
+    const onStart = await host.evaluate(() => performance.now() / 1000);
+    for (let i = 0; i < 12; i++) {
+      await host.waitForTimeout(250);
+      const d = await diagnostics(host);
+      samples.push({ otherOrbits: d.otherOrbits, predictionP95Ms: d.predictionP95Ms,
+        workP95Ms: d.workP95Ms, renderP95Ms: d.renderP95Ms });
+    }
+    await test.info().attach('other-orbit-profile', { body: JSON.stringify(samples, null, 2), contentType: 'application/json' });
+    const first = (samples[0]!.otherOrbits as { starts: number }).starts;
+    const last = (samples.at(-1)!.otherOrbits as { starts: number }).starts;
+    expect(last - first).toBeLessThanOrEqual(Math.ceil((Date.now() - sampleStart) / 1000) + 1);
+    const onEnd = await host.evaluate(() => performance.now() / 1000);
+    await host.locator('#other-orbit-mode').selectOption('off');
+    const offStart = await host.evaluate(() => performance.now() / 1000);
+    await host.waitForTimeout(3000);
+    const offEnd = await host.evaluate(() => performance.now() / 1000);
+    const pending = host.waitForEvent('download');
+    await host.locator('#export-log').evaluate((button: HTMLButtonElement) => button.click());
+    const log = JSON.parse(await readFile(await (await pending).path(), 'utf8')) as { frames: Array<Record<string, number>> };
+    const steady = (start: number, end: number) => log.frames.filter(frame => frame.t! >= start && frame.t! <= end);
+    const profile = { samples, on: steady(onStart, onEnd), off: steady(offStart, offEnd) };
+    expect(profile.on.length).toBeGreaterThan(10);
+    expect(profile.off.length).toBeGreaterThan(10);
+    await writeFile(test.info().outputPath('other-orbit-steady-profile.json'), JSON.stringify(profile, null, 2));
+    await openPanel(guest, 'multiplayer');
+    await guest.getByRole('button', { name: 'Leave game', exact: true }).click();
+    await expect.poll(async () => (await stats(host)).paths).toBe(0);
+    expect([...errorsOf(host), ...errorsOf(guest)]).toEqual([]);
+  } finally { await context.close(); }
+});
+
 test('joining an address with no server explains how to start one', async ({ page }) => {
   await preparePilot(page);
   await page.goto('/');

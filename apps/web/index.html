@@ -175,6 +175,9 @@
               </div>
               <div id="mp-online" hidden><div class="actions"><button id="leave-game" type="button">Leave game</button></div></div>
               <div class="actions"><button id="copy-server-link" type="button" hidden>Copy game link</button><button id="mp-diagnostics" type="button" hidden>Save connection report</button></div>
+              <label for="other-orbit-mode">Other pilots’ orbits</label>
+              <select id="other-orbit-mode"><option value="auto">Auto · small groups</option><option value="always">Always</option><option value="off">Off</option></select>
+              <p id="other-orbit-status" class="control-note">Faint coast previews refresh about once a second. Auto hides them above 8 other pilots.</p>
               <textarea id="mp-share-link" readonly rows="3" aria-label="Link to share" hidden></textarea>
               <p id="mp-status" class="control-note" role="status">Single player. Host this world for friends, or join a server.</p>
               <ul id="player-list" class="player-list" aria-label="Players"></ul>

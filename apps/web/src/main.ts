@@ -34,6 +34,7 @@ import { CameraController, findSmartThrowTarget, type SmartCandidate } from './c
 import { CommandBar } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
 import { Prediction } from './prediction';
+import { OtherOrbits, showOtherOrbits, type OtherOrbitMode } from './other-orbits';
 import { ManeuverPlanner } from './maneuver-planner';
 import { SpinView } from './spin-view';
 import { loadGraphicsQuality, saveGraphicsQuality } from './graphics';
@@ -249,6 +250,7 @@ function preparePads(world: World): void {
 }
 
 const prediction = new Prediction(pass => profiler.event('prediction', pass));
+const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
 const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id);
 
@@ -765,6 +767,7 @@ function syncLocks(): void {
  * returns the camera to the piloted ship. */
 function useSession(next: GameSession, recenter = true): void {
   release();
+  otherOrbits.clear();
   session.onchat = null;
   session = next;
   next.onchat = showChatLine;
@@ -3074,6 +3077,17 @@ let recentConnectionReport: (() => ConnectionDiagnostics) | undefined;
 let inviteGeneration = 0;
 let inviteGathering: AbortController | undefined;
 const sameBrowser = typeof BroadcastChannel === 'function';
+const connectedPilotIds = new Set<string>();
+const orbitMode = element<HTMLSelectElement>('other-orbit-mode');
+try {
+  const saved = localStorage.getItem('space-sim.other-orbits/1');
+  if (saved === 'always' || saved === 'off') orbitMode.value = saved;
+} catch { /* defaults remain available without storage */ }
+orbitMode.addEventListener('change', () => {
+  otherOrbits.clear();
+  try { localStorage.setItem('space-sim.other-orbits/1', orbitMode.value); } catch { /* session-only preference */ }
+});
+const isConnectedPilot = (id: string): boolean => connectedPilotIds.has(id);
 nameInput.value = savedName();
 nameInput.addEventListener('change', () => {
   nameInput.value = cleanName(nameInput.value, MAX_PLAYER_NAME);
@@ -3144,6 +3158,8 @@ function updateMultiplayer(): void {
 let playersKey = '';
 function updatePlayers(): void {
   const players = session === local && !local.hosting ? [] : session.players();
+  connectedPilotIds.clear();
+  for (const player of players.length ? players : session.players()) if (player.connected) connectedPilotIds.add(player.id);
   const key = players.map(p => `${p.id}/${p.name}/${p.connected}`).join(',');
   if (key === playersKey) return;
   playersKey = key;
@@ -3501,6 +3517,7 @@ element('scan-lan').addEventListener('click', async () => {
 
 // Closing or reloading the tab says goodbye at once instead of leaving others waiting.
 window.addEventListener('pagehide', () => {
+  otherOrbits.clear();
   if (isHosting()) stopHosting('The host closed the game.');
   remote?.client.leave();
   discovery?.close();
@@ -3906,6 +3923,13 @@ function updatePrediction(seconds: number, engine: boolean): void {
   prediction.update(session.world.context, state, activeBody, session.world.surface(activeBody.id),
     selectedShip()?.id, seconds, engine, selectedShip()?.controls, session.world);
   maneuver.update(seconds, prediction, engine);
+  const others = Math.max(0, connectedPilotIds.size - 1);
+  const mode = orbitMode.value as OtherOrbitMode;
+  otherOrbits.update(session.world, splitScreen.active > 1 ? undefined : session.playerId,
+    isConnectedPilot, performance.now(), showOtherOrbits(mode, others));
+  show('other-orbit-status', mode === 'off' ? 'Other orbit previews are off.'
+    : mode === 'auto' && others > 8 ? 'Hidden in Auto: more than 8 other pilots. Choose Always to show previews.'
+    : 'Faint coast previews refresh about once a second. Future burns are unknown.');
 }
 
 function activeOrbitSource(): { readonly position: Vec; readonly velocity: Vec } {
@@ -3952,6 +3976,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     coastCache: world.context.coastCacheStats(state.coast),
     samples: prediction.path.length, predictionEnd: prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd, predictionPasses: prediction.passCount,
     predictionWorkMs: prediction.lastPass.workMs, predictionCoarse: prediction.lastPass.coarse,
+    otherOrbits: { ...otherOrbits.stats, mode: orbitMode.value, otherPilots: Math.max(0, connectedPilotIds.size - 1) },
     maneuver: maneuver.diagnostics(),
     workP50Ms: summary.work.p50.toFixed(2), workP95Ms: summary.work.p95.toFixed(2), workP99Ms: summary.work.p99.toFixed(2),
     workWorstMs: summary.work.max.toFixed(2), simulationP95Ms: summary.sections.physics.p95.toFixed(2),
@@ -4258,7 +4283,7 @@ function frame(now: number): void {
   updateControllerCursors(elapsed);
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
-  let overlays: OverlayPrimitive[] = baseOverlays ? [...baseOverlays] : [];
+  let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
 
   if (activeFlightSlingshot && (!activeFlightSlingshot.slot || activeFlightSlingshot.slot === 0 || !splitScreen.isSeparated(activeFlightSlingshot.slot))) {
     const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, view.time);
@@ -4409,7 +4434,7 @@ function frame(now: number): void {
 
       const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight);
 
-      const gOverlays: OverlayPrimitive[] = [];
+      const gOverlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, guest.view.time, guest.playerId ?? session.playerId, gCamera, gWidth, gHeight)];
       const gR = Math.hypot(guest.view.position.x, guest.view.position.y);
       const gAlt = Math.max(0, gR - guest.body.radius);
       const gFrame = shipAutoFrame(guest.state.status, gAlt, guest.body.radius, guestNavballFrames.get(guestShip.id));

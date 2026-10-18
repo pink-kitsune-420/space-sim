@@ -367,6 +367,11 @@ Only the scale changes.</p>`)}`,
     <b>Scan local network</b>. A dedicated server keeps the world running and saves it on its own.</dd>
 </dl>
 <p class="manual-note">When a browser tab hosts, the world runs in that tab. Keep it visible, because browsers slow down hidden tabs.</p>
+<p><b>Other pilots’ orbits.</b> Faint amber lines preview their current coast, refreshed about once per second.
+They assume no future engine burn. Under <b>Online → Other pilots’ orbits</b>, <b>Auto</b> shows them with up to
+eight other connected pilots and hides them in larger groups. Choose <b>Always</b> to keep previews on, or <b>Off</b> to hide them.
+Up to 16 flying vessels are previewed, giving each pilot one before filling spare slots with their other ships.
+Your own prediction keeps its normal refresh rate. Surface contact, a changed reference body or leaving the session clears outdated previews.</p>
 ${deeper('running a dedicated server', `
 <p>Download the server program from the project's releases page and start it. It prints the address players
 should use, including a link that joins automatically. It also serves the game page itself, so guests need only a browser.
