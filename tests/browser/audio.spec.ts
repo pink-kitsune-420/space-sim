@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { test, expect, type Page } from '@playwright/test';
 import { useCanvas } from '../helpers/canvas';
 import { openPanel, closePanel } from '../helpers/workspace';
@@ -187,7 +188,7 @@ test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one
 
 test('the offline game synthesizes audio with networking disabled', async ({ page, context }) => {
   await meter(page);
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await closePanel(page);

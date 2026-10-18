@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { useLowGraphics } from '../helpers/canvas';
 import { openPanel } from '../helpers/workspace';
 import { useCanvas } from '../helpers/canvas';
@@ -10,8 +11,10 @@ import type * as Harness from '../helpers/overlay-harness';
 
 declare global { interface Window { overlayHarness: typeof Harness } }
 test.beforeEach(async ({ page }, info) => {
-  if (info.title.includes('renderer switches') || info.title.includes('release GPU')) await useLowGraphics(page);
-  else await useCanvas(page);
+  if (info.title.includes('renderer switches') || info.title.includes('release GPU')) {
+    await useLowGraphics(page);
+    await page.setViewportSize({ width: 800, height: 600 });
+  } else await useCanvas(page);
 });
 
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
@@ -108,6 +111,7 @@ test('dependencies: an add-on enables what it needs, and removing a library remo
 });
 
 test('renderer switches keep the instruments and never change the flight or its fingerprint', async ({ page }) => {
+  test.slow(); // Three renderer replacements on a software GPU.
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
@@ -193,7 +197,7 @@ test('a copied offline HTML runs the instruments and module commands without net
   const requests: string[] = [], errors: string[] = [];
   page.on('request', req => { if (/^https?:/.test(req.url())) requests.push(req.url()); });
   page.on('pageerror', error => errors.push(error.message));
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(`${pathToFileURL(path).href}?example=commands`);
   await openPanel(page, 'data');
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'true');

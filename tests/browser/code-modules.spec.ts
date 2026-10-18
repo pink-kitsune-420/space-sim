@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { useCanvas } from '../helpers/canvas';
 import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { openPanel } from '../helpers/workspace';
@@ -105,7 +106,7 @@ test('copied and renamed offline HTML imports presentation and replacement code 
   const requests: string[] = [], errors: string[] = [];
   page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
   page.on('pageerror', error => errors.push(error.message));
-  await context.setOffline(true); await page.goto(pathToFileURL(file).href); await manager(page);
+  await disableNetwork(context); await page.goto(pathToFileURL(file).href); await manager(page);
   const original = await debug(page);
   await page.locator('#code-module-file').setInputFiles(payload(telemetry));
   await expect(page.locator('#code-module-status')).toContainText('Code has not run');

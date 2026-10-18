@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { openPanel, closePanel } from '../helpers/workspace';
@@ -27,7 +28,7 @@ test('standalone download plays directly from disk with networking disabled', as
   const errors: string[] = [];
   page.on('request', request => { if (/^https?:/.test(request.url())) network.push(request.url()); });
   page.on('pageerror', error => errors.push(error.message));
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect(page.locator('.connection')).toContainText('OFFLINE FLIGHT');
@@ -296,6 +297,9 @@ test('zooming out from Earth pad transitions smoothly between horizon and planet
 });
 
 test('starts with WebGL 2 renderer by default and toggles cleanly to 2D and back', async ({ page }) => {
+  test.slow(); // Context creation/disposal is expensive on software OpenGL.
+  // This checks renderer lifecycle; a compact viewport avoids saturating software GPUs.
+  await page.setViewportSize({ width: 800, height: 600 });
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
@@ -409,6 +413,7 @@ test('touch controls provide zoom in/out strip, vertical drag to zoom/unzoom, an
   await page.goto('/');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
+  await tracedOrbit(page);
   await closePanel(page);
 
   const zoomStrip = page.locator('#touch-zoom-strip');

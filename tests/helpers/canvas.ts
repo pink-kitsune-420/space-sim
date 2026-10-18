@@ -14,5 +14,12 @@ export async function useCanvas(page: Page): Promise<void> {
 
 /** Exercise WebGL geometry and lifecycle without unused procedural effects on software GPUs. */
 export async function useLowGraphics(page: Page): Promise<void> {
-  await page.addInitScript(() => localStorage.setItem('space-sim.graphics/1', 'low'));
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('space-sim.graphics/1', 'low');
+      localStorage.setItem('space-sim:theme:v5', JSON.stringify({
+        backdropStyle: 'void', starsVisible: false, nebulaVisible: false, galaxiesVisible: false, gridEnabled: false,
+      }));
+    } catch { /* Pixel harnesses also navigate to opaque about:blank documents. */ }
+  });
 }

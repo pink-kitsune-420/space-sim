@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { openPanel } from '../helpers/workspace';
 import { useCanvas } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
@@ -56,7 +57,7 @@ test('a copied offline HTML imports data and flies with networking disabled', as
   const requests: string[] = [], errors: string[] = [];
   page.on('request', req => { if (/^https?:/.test(req.url())) requests.push(req.url()); });
   page.on('pageerror', error => errors.push(error.message));
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(pathToFileURL(path).href);
   await openModules(page);
   await page.locator('#module-file').setInputFiles(payload(gentle));
@@ -157,7 +158,7 @@ test('a copied offline HTML runs the static force example without network access
   const requests: string[] = [], errors: string[] = [];
   page.on('request', req => { if (/^https?:/.test(req.url())) requests.push(req.url()); });
   page.on('pageerror', error => errors.push(error.message));
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(`${pathToFileURL(path).href}?motion-example=force`);
   await expect(page.locator('#periapsis')).toHaveText('Unavailable · custom motion');
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });

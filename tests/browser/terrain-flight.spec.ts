@@ -1,4 +1,4 @@
-import { useLowGraphics } from '../helpers/canvas';
+import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { openPanel } from '../helpers/workspace';
 
@@ -20,7 +20,10 @@ const universe = {
     { id: 'orbit', name: 'Safe survey', bodyId: 'rock', kind: 'circular-orbit', radius: 20 },
   ] }],
 };
-test.beforeEach(async ({ page }) => useLowGraphics(page));
+test.beforeEach(async ({ page }, info) => {
+  if (info.title.startsWith('WebGL')) await useLowGraphics(page);
+  else await useCanvas(page);
+});
 
 async function diagnostics(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 async function load(page: Page, value = universe) {
@@ -29,11 +32,12 @@ async function load(page: Page, value = universe) {
 
 for (const canvas of [false, true]) {
   test(`${canvas ? 'Canvas' : 'WebGL'} physical pads, crater prediction/landing, crash, God mode and safe coast`, async ({ page }) => {
+    if (!canvas) test.slow(); // Software GPU setup is independent of the physics assertions.
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto('/');
     await load(page);
-    if (canvas) {
+    if (canvas && await page.locator('#renderer-toggle').textContent() !== 'Renderer: 2D') {
       await openPanel(page, 'settings');
       await page.locator('#renderer-toggle').click();
       await openPanel(page, 'setup');

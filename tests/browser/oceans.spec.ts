@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
@@ -23,6 +24,7 @@ test.beforeAll(async () => {
 test.use({ viewport: { width: 900, height: 700 }, deviceScaleFactor: 2 });
 for (const renderer of ['canvas', 'webgl'] as const) {
   test(`${renderer}: ocean silhouettes at orbit, water horizon, coast, seam and large scales`, async ({ page }, info) => {
+    if (renderer === 'webgl') test.slow(); // High-DPI pixel readbacks on software GPUs.
     await page.goto('about:blank');
     await page.addScriptTag({ content: script });
     const views = [
@@ -99,7 +101,7 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   test.setTimeout(60000);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await page.locator('#universe-file').setInputFiles({ name: 'ocean.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(ocean)) });
   await expect(page.locator('#status')).toHaveText('LANDED');

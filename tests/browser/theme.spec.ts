@@ -58,7 +58,7 @@ test('window styles, custom accents, effects and reset stay synchronized across 
     await expect(page.locator('html')).toHaveAttribute('data-window-style', style!);
     await expect(page.locator('.theme-tab-btn.active')).toHaveCSS('color', accent!);
     await expect(page.locator('#active-game')).toHaveCSS('color', accent!);
-    await expect(page.locator('.theme-option-card.active').first()).toHaveCSS('border-top-color', accent!);
+    await expect(page.locator('#window-style-selector .theme-option-card.active')).toHaveCSS('border-top-color', accent!);
     await expect(page.locator('#throttle')).toHaveCSS('accent-color', accent!);
     await expect(page.locator('.chat-msg.system').first()).toHaveCSS('color', accent!);
     await expect(page.locator('.key-chip').first()).toHaveCSS('color', accent!);

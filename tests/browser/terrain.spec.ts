@@ -1,4 +1,5 @@
-import { useLowGraphics } from '../helpers/canvas';
+import { disableNetwork } from '../helpers/offline';
+import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import { test, expect } from '@playwright/test';
 import { openPanel } from '../helpers/workspace';
 import { build } from 'vite';
@@ -23,6 +24,7 @@ test.beforeAll(async () => {
 test.use({ viewport: { width: 900, height: 700 }, deviceScaleFactor: 2 });
 for (const renderer of ['canvas', 'webgl'] as const) {
   test(`${renderer} terrain silhouettes and landmarks at orbit, seam, landing and extreme scales`, async ({ page }, info) => {
+    if (renderer === 'webgl') test.slow(); // High-DPI pixel readbacks on software GPUs.
     await page.goto('about:blank');
     await page.addScriptTag({ content: script });
     const views = [
@@ -58,7 +60,7 @@ for (const renderer of ['canvas', 'webgl'] as const) {
 test('physical terrain imports offline and survives launch, renderer/system switches and reset', async ({ page, context }) => {
   const errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await expect(page.locator('#terrain-notice')).toBeHidden();
   await page.locator('#universe-file').setInputFiles({ name: 'terrain.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(examples)) });
@@ -84,4 +86,7 @@ test('physical terrain imports offline and survives launch, renderer/system swit
   expect(errors).toEqual([]);
 });
 
-test.beforeEach(async ({ page }) => useLowGraphics(page));
+test.beforeEach(async ({ page }, info) => {
+  if (info.title.startsWith('webgl')) await useLowGraphics(page);
+  else await useCanvas(page);
+});

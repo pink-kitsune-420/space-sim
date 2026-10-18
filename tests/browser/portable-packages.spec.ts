@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { useCanvas } from '../helpers/canvas';
 import { test, expect } from '@playwright/test';
 import { mkdtemp, readFile, rm, writeFile, copyFile } from 'node:fs/promises';
@@ -69,7 +70,7 @@ for (const offline of [false, true]) test(`${offline ? 'offline HTML' : 'hosted'
   if (offline) {
     const path = testInfo.outputPath('portable-offline.html'); await copyFile(resolve('dist/space-lab-offline.html'), path);
     page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
-    await context.setOffline(true); await page.goto(pathToFileURL(path).href);
+    await disableNetwork(context); await page.goto(pathToFileURL(path).href);
   } else await page.goto('/');
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect(page.locator('#debug')).toContainText('fingerprint');

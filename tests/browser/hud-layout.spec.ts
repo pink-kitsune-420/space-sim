@@ -29,13 +29,13 @@ test('default HUD and rendered navball fit the dock, chat and telemetry at deskt
       });
     })).toBe(true);
     // The stored geometry is the visible, interactive dial: click its vector pin.
-    const d = await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0]);
-    const pin = { x: d.x + 67 * d.scale * .72, y: d.y - 67 * d.scale * .72 };
-    await expect.poll(() => page.locator('#flight-view').evaluate((el, at) => {
+    await expect.poll(() => page.locator('#flight-view').evaluate(el => {
+      const d = JSON.parse(document.getElementById('debug')!.textContent!).hud.navballs[0];
+      const at = { x: d.x + 67 * d.scale * .72, y: d.y - 67 * d.scale * .72 };
       const canvas = el as HTMLCanvasElement;
       const rgb = canvas.getContext('2d')!.getImageData(Math.round(at.x * canvas.width / canvas.clientWidth), Math.round(at.y * canvas.height / canvas.clientHeight), 1, 1).data;
       return Math.max(...[56, 239, 125].map((value, i) => Math.abs(value - rgb[i]!)));
-    }, pin)).toBeLessThanOrEqual(2);
+    })).toBeLessThanOrEqual(2);
     await page.screenshot({ path: info.outputPath(`hud-${size.width}.png`) });
   }
   expect(errors).toEqual([]);

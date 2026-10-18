@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { useCanvas } from '../helpers/canvas';
 import { openPanel, closePanel } from '../helpers/workspace';
 import { test, expect, type Page } from '@playwright/test';
@@ -163,7 +164,7 @@ test('copied Spacelab HTML plays compressed games and exports their code without
   const requests: string[] = [], errors: string[] = [];
   page.on('request', r => { if (/^https?:/.test(r.url())) requests.push(r.url()); });
   page.on('pageerror', e => errors.push(e.message));
-  await context.setOffline(true); await page.goto(pathToFileURL(file).href);
+  await disableNetwork(context); await page.goto(pathToFileURL(file).href);
   await importPackage(page, codeGame()); await play(page, 'Code flight');
   await page.locator('#game-name').fill('Shared offline flight');
   const download = page.waitForEvent('download'); await page.locator('#lab-export').click();

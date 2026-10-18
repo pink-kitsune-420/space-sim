@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { openPanel } from '../helpers/workspace';
 import { useCanvas } from '../helpers/canvas';
 import { packageContracts } from '../../packages/module-tools/package.mjs';
@@ -104,7 +105,7 @@ test('invalid compressed universe data keeps the old world and names the problem
 
 test('standalone Spacelab imports and exports compressed planets without a network', async ({ page, context }, testInfo) => {
   const file = testInfo.outputPath('universe-workshop.html'); await copyFile(resolve('dist/space-lab-offline.html'), file);
-  await context.setOffline(true); await page.goto(pathToFileURL(file).href); await openPanel(page, 'setup');
+  await disableNetwork(context); await page.goto(pathToFileURL(file).href); await openPanel(page, 'setup');
   await page.locator('#universe-file').setInputFiles({ name: 'offline.spaceuniverse', mimeType: 'application/gzip', buffer: gzipSync(JSON.stringify(terrainUniverse())) });
   await expect(page.locator('#universe-select')).toHaveValue('terrain-import');
   const pending = page.waitForEvent('download'); await page.locator('#export-universe').click();

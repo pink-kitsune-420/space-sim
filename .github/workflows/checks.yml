@@ -9,14 +9,14 @@ jobs:
   verify:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.23.2'
           cache: npm
       - run: npm ci
       - run: npm run check
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: space-lab-offline
           path: |
@@ -24,11 +24,11 @@ jobs:
             dist/space-sim.spacegame
             dist/space-sim.spaceuniverse
             dist/universes/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: space-sim-server-node
           path: dist-server/space-sim-server.cjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: browser-build
           path: |
@@ -44,19 +44,28 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.23.2'
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: browser-build
           path: .
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: npm run test:browser -- --project=${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - name: Start virtual audio device
+        run: |
+          sudo apt-get install -y pulseaudio pulseaudio-utils libgl1-mesa-dri xvfb xauth
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=browser-tests
+          pactl set-default-sink browser-tests
+      - name: Run browser checks with a virtual display
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run --auto-servernum npm run test:browser -- --project=${{ matrix.browser }} --headed
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: browser-evidence-${{ matrix.browser }}
@@ -71,15 +80,15 @@ jobs:
         os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.23.2'
           cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm run build:server-exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: space-sim-server-${{ runner.os }}
           path: |
@@ -96,15 +105,15 @@ jobs:
         os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22.23.2'
           cache: npm
       - run: npm ci
       - run: npm run build
       - run: npm run build:game-exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: space-sim-game-${{ runner.os }}
           path: |
