@@ -1,28 +1,47 @@
 name: Deploy Spacelab to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ['Build and flight checks']
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
 concurrency:
   group: 'pages'
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Require verified current main commit
+        id: verified
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const main = await github.rest.repos.getBranch({ owner, repo, branch: 'main' });
+            const sha = context.eventName === 'workflow_run' ? context.payload.workflow_run.head_sha : context.sha;
+            if (sha !== main.data.commit.sha) throw new Error('Only the current main commit can deploy.');
+            const runs = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: 'checks.yml', head_sha: sha, status: 'completed', per_page: 100 });
+            if (!runs.data.workflow_runs.some(run => run.head_branch === 'main' && run.conclusion === 'success' && run.event !== 'pull_request')) {
+              throw new Error('This main commit has not passed Build and flight checks.');
+            }
+            core.setOutput('sha', sha);
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.verified.outputs.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22.23.2'
@@ -35,6 +54,14 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'dist'
+      - name: Reject a superseded build
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const main = await github.rest.repos.getBranch({ ...context.repo, branch: 'main' });
+            if (main.data.commit.sha !== '${{ steps.verified.outputs.sha }}') {
+              throw new Error('Main changed while building; this deployment is superseded.');
+            }
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

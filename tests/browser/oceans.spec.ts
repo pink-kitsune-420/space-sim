@@ -8,8 +8,6 @@ import { pathToFileURL } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import ocean from '../../games/space-sim/universes/sandbox/ocean/universe.json' with { type: 'json' };
 import { openPanel } from '../helpers/workspace';
-import { useCanvas } from '../helpers/canvas';
-import { packageContracts } from '../../packages/module-tools/package.mjs';
 
 let script: string;
 test.beforeAll(async () => {

@@ -10,7 +10,11 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    uses: ./.github/workflows/checks.yml
+
   package-desktop:
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +53,7 @@ jobs:
           if-no-files-found: error
 
   package-web-offline:
+    needs: verify
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +73,7 @@ jobs:
             dist/universes/
 
   package-android:
+    needs: verify
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
@@ -105,9 +111,12 @@ jobs:
         with:
           path: all-artifacts
       - name: Prepare Release Distribution Files
+        id: distribution
         run: |
           mkdir -p release-files
           TAG="${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}"
+
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
           # Linux Standalone Executables
           if [ -f all-artifacts/space-sim-linux/dist-desktop/space-sim ]; then
@@ -179,6 +188,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}
+          name: ${{ steps.distribution.outputs.version }}
+          prerelease: true
           files: release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
