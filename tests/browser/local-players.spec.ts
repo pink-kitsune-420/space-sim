@@ -70,7 +70,7 @@ test('controller throws respect the cheat, remapping, enabled state and disconne
   await page.locator('#controls-toggle').click(); await page.locator('#tab-gamepad-btn').click();
   const name = ACTION_DEFINITIONS.find(a => a.id === 'throwShip')!.name;
   const row = page.locator('#pad-bindings .key-action-row').filter({ hasText: name });
-  await row.locator('.key-chip').click(); // Remove D-pad Up.
+  await expect(row.locator('.key-chip')).toHaveCount(0); // Throw starts unbound; D-pad Up controls throttle.
   await row.locator('.add-key-btn').click(); await button(page, 0, 6, true);
   await expect.poll(async () => (await stored(page)).slots[0].profile.buttons.throwShip).toEqual([6]);
   await button(page, 0, 6, false);
@@ -114,7 +114,7 @@ test('a small guest pane draws and picks its navball pin consistently, and the i
   expect((await stored(page)).slots[1].navball.pinned).toBe(false);
 });
 
-test('using controller A on a navball pin consumes the engine binding', async ({ page }) => {
+test('using controller A on a navball pin consumes throttle activation', async ({ page }) => {
   // Put the primary dial at the initial cursor position to exercise the input conflict precisely.
   await players(page, 1);
   await page.getByLabel('Player 1 navball location', { exact: true }).selectOption('custom');
@@ -150,7 +150,7 @@ test('a hidden hosting tab releases guest thrust while its world keeps running',
   await page.locator('#debug-host-game').click();
   await expect(page.locator('.connection')).toContainText('HOSTING');
   await closePanel(page);
-  await button(page, 1, 0, true);
+  await button(page, 1, 7, true);
   await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(true);
   const before = (await debug(page)).time;
   // Keep the physical button held: hidden frames must not reapply it after release().
@@ -167,7 +167,7 @@ test('a hidden hosting tab releases guest thrust while its world keeps running',
     expect(d.localPlayers.cursors).toEqual([]);
     await expect(page.locator('.connection')).toContainText('HOSTING');
   } finally {
-    await button(page, 1, 0, false);
+    await button(page, 1, 7, false);
     await page.evaluate(() => {
       Reflect.deleteProperty(document, 'hidden');
       document.dispatchEvent(new Event('visibilitychange'));

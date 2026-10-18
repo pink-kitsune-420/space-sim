@@ -30,60 +30,63 @@ test.beforeEach(async ({ page }) => {
   await expect(track(page)).toBeVisible();
 });
 
-test('lever and existing controls synchronize, held input locks and cancels dragging', async ({ page }) => {
+test('keyboard steps persist, fine steps and cut synchronize with the unchanged lever', async ({ page }) => {
   await power(page, 0);
-  await drag(page, .25);
-  await power(page, 25);
-  await expect(lever(page)).toHaveAttribute('data-firing', 'true');
-  await expect.poll(async () => (await debug(page)).engine).toBe(true);
-  await advance(page); await power(page, 25);
-  await expect(page.locator('#throttle-value')).toHaveText(await lever(page).locator('output').innerText());
-  await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.locator('#flight-view').focus();
+  await page.keyboard.press('ArrowUp'); await power(page, 5);
+  await advance(page); await power(page, 5);
+  await page.keyboard.press('KeyW'); await power(page, 10);
+  await page.keyboard.down('Shift'); await page.keyboard.press('ArrowUp');
+  await page.keyboard.up('Shift'); await power(page, 11);
+  await page.keyboard.press('ArrowDown'); await power(page, 6);
+  await page.keyboard.press('KeyX'); await power(page, 0);
+  await expect.poll(async () => (await debug(page)).engine).toBe(false);
+  await drag(page, .25); await power(page, 25);
   await page.locator('#flight-view').focus();
   await page.keyboard.down('ArrowDown');
   await expect(track(page)).toHaveAttribute('aria-disabled', 'true');
-  await power(page, 0);
-  await page.keyboard.up('ArrowDown');
-  await advance(page); await power(page, 0);
-  await openPanel(page, 'ship');
-  await page.locator('#throttle').fill('23');
-  await page.locator('#throttle').dispatchEvent('input');
-  await closePanel(page);
-  await expect(page.locator('#throttle-value')).toHaveText('23%');
-  await power(page, 0);
-  await page.locator('#flight-view').focus();
-  await page.keyboard.down('Space');
-  await power(page, 23);
-  await expect(track(page)).toHaveAttribute('aria-disabled', 'true');
-  await drag(page, .1); await power(page, 23);
-  await page.keyboard.up('Space');
-  await power(page, 0);
-  await page.keyboard.down('ArrowUp');
-  await expect(track(page)).toHaveAttribute('aria-disabled', 'true');
-  await expect(page.locator('#throttle-value')).toHaveText('100%');
-  await drag(page, .1);
-  await power(page, 0);
-  await page.keyboard.up('ArrowUp');
-  await expect(track(page)).toHaveAttribute('aria-disabled', 'false');
-  // Begin dragging, then press the engine key: the current gesture must be discarded.
-  const box = (await track(page).boundingBox())!;
-  await page.mouse.move(box.x + 20, box.y + 8 + .7 * (box.height - 16)); await page.mouse.down();
-  await power(page, 30);
+  await page.keyboard.up('ArrowDown'); await power(page, 20);
+  await advance(page); await power(page, 20);
   await page.keyboard.down('Space');
   await expect(track(page)).toHaveAttribute('aria-disabled', 'true');
-  await page.mouse.move(box.x + 20, box.y + 104);
-  await power(page, 30);
-  await page.keyboard.up('Space');
-  await expect(track(page)).toHaveAttribute('aria-disabled', 'false');
-  await page.mouse.move(box.x + 20, box.y + 8); await page.mouse.up();
-  await power(page, 0);
-  await expect.poll(async () => (await debug(page)).engine).toBe(false);
+  await drag(page, .1); await power(page, 20);
+  await page.keyboard.press('KeyX'); await power(page, 0);
   await advance(page); await power(page, 0);
-  await drag(page, 0); await expect(track(page)).toHaveAttribute('aria-valuenow', '0');
-  await track(page).focus(); await page.keyboard.press('End');
-  await expect(track(page)).toHaveAttribute('aria-valuenow', '100');
-  await expect(lever(page)).toHaveAttribute('data-firing', 'true');
+  await page.keyboard.up('Space'); await advance(page); await power(page, 0);
+  // A cut and two short taps in one task must still produce two steps without a rendered frame.
+  await page.locator('#flight-view').evaluate(el => {
+    for (const code of ['KeyX', 'KeyW', 'KeyW']) {
+      el.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+      el.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true }));
+    }
+  });
+  await power(page, 10);
+  // Existing accessible slider keys still start and cut persistent thrust.
+  await track(page).focus(); await page.keyboard.press('End'); await power(page, 100);
   await page.keyboard.press('Home'); await power(page, 0);
+});
+
+test('activation level can be remembered, recalled, reset and restored after reload', async ({ page }) => {
+  await openPanel(page, 'ship');
+  await page.locator('#throttle').fill('23'); await page.locator('#throttle').dispatchEvent('input');
+  await expect(page.locator('#activation-throttle')).toHaveValue('23');
+  await closePanel(page); await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyZ'); await power(page, 23);
+  await advance(page); await power(page, 23);
+  await page.keyboard.press('KeyX'); await power(page, 0);
+  await drag(page, .1); await power(page, 10);
+  await page.locator('#flight-view').focus(); await page.keyboard.press('KeyZ'); await power(page, 23);
+  await page.reload(); await closePanel(page); await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyZ'); await power(page, 23);
+  await openPanel(page, 'ship');
+  await page.locator('#activation-throttle').fill('18'); await page.locator('#activation-throttle').press('Tab');
+  await closePanel(page); await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyZ'); await power(page, 18);
+  await openPanel(page, 'ship'); await page.locator('#activation-throttle-reset').click();
+  await expect(page.locator('#activation-throttle')).toHaveValue('50');
+  await closePanel(page); await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyZ'); await power(page, 50);
+  await page.keyboard.press('KeyX'); await power(page, 0);
 });
 
 test('dragging launches without a burn button and zero throttle leaves the ship coasting', async ({ page }) => {
@@ -174,6 +177,37 @@ test('guest keyboard takeover releases only the guest burn', async ({ page }) =>
   await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
 });
 
+test('keyboard throttle actions follow assignment and are inert when no pilot owns the keyboard', async ({ page }) => {
+  await page.evaluate(() => Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [{
+    index: 0, id: 'Xbox Test', connected: true, mapping: 'standard', axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 18 }, () => ({ pressed: false, touched: false, value: 0 })),
+  }] }));
+  await openPanel(page, 'settings'); await page.locator('#players-toggle').click();
+  await page.locator('.split-count [data-count="2"]').click();
+  await page.getByLabel('Player 2 input', { exact: true }).selectOption('keyboard');
+  await page.locator('#controls-close').click();
+  await openPanel(page, 'ship');
+  await page.locator('#activation-pilot').selectOption('1');
+  await page.locator('#activation-throttle').fill('20');
+  await page.locator('#activation-throttle').press('Tab'); await closePanel(page);
+  await drag(page, .1); await drag(page, .2, 1);
+  await page.locator('#flight-view').focus();
+  await page.keyboard.press('ArrowUp'); await power(page, 25, 1); await power(page, 10);
+  await page.keyboard.press('KeyX'); await power(page, 0, 1); await power(page, 10);
+  await page.keyboard.press('KeyZ'); await power(page, 20, 1); await power(page, 10);
+  await page.keyboard.press('KeyX'); await power(page, 0, 1);
+  await openPanel(page, 'settings'); await page.locator('#players-toggle').click();
+  await page.getByLabel('Player 1 input', { exact: true }).selectOption('pad:0');
+  await page.getByLabel('Player 2 input', { exact: true }).selectOption('none');
+  await page.locator('#controls-close').click(); await closePanel(page);
+  await drag(page, .1); await drag(page, .2, 1);
+  await page.locator('#flight-view').focus();
+  for (const key of ['ArrowUp', 'KeyX', 'KeyZ']) {
+    await page.keyboard.press(key); await advance(page);
+    await power(page, 10); await power(page, 20, 1);
+  }
+});
+
 test('guest controller reset clears only the guest burn', async ({ page }) => {
   await page.evaluate(() => Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [{
     index: 0, id: 'Xbox Test', connected: true, mapping: 'standard', axes: [0, 0, 0, 0],
@@ -187,6 +221,41 @@ test('guest controller reset clears only the guest burn', async ({ page }) => {
   await power(page, 20); await power(page, 30, 1);
   await page.evaluate(() => { document.body.dataset.resetGuest = 'true'; });
   await power(page, 0, 1); await advance(page); await power(page, 0, 1); await power(page, 20);
+});
+
+test('controller fine steps, cut and recall belong only to the assigned guest', async ({ page }) => {
+  await openPanel(page, 'ship');
+  await page.locator('#activation-pilot').selectOption('1');
+  await page.locator('#activation-throttle').fill('20');
+  await page.locator('#activation-throttle').press('Tab');
+  await closePanel(page);
+  await page.evaluate(() => Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [{
+    index: 0, id: 'Xbox Test', connected: true, mapping: 'standard', axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 18 }, (_, i) => ({ pressed: (document.body.dataset.padButtons ?? '').split(',').includes(String(i)), touched: false, value: 0 })),
+  }] }));
+  await openPanel(page, 'settings'); await page.locator('#players-toggle').click();
+  await page.locator('.split-count [data-count="2"]').click();
+  await page.getByLabel('Player 2 input', { exact: true }).selectOption('pad:0');
+  await page.locator('#controls-close').click(); await closePanel(page);
+  await drag(page, .1); await power(page, 10);
+  const pulse = async (value: string) => page.evaluate(async value => {
+    document.body.dataset.padButtons = value;
+    // Let the app poll the press, then release within two frames, before hold repeat.
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.body.dataset.padButtons = ''; resolve();
+    })));
+  }, value);
+  await pulse('6,12'); await expect(track(page, 1)).toHaveAttribute('aria-valuenow', '1');
+  await advance(page); await expect(track(page, 1)).toHaveAttribute('aria-valuenow', '1');
+  await pulse('12'); await expect(track(page, 1)).toHaveAttribute('aria-valuenow', '6');
+  await advance(page); await expect(track(page, 1)).toHaveAttribute('aria-valuenow', '6');
+  await pulse('11'); await power(page, 0, 1);
+  await advance(page); await power(page, 10);
+  await pulse('0'); await power(page, 20, 1);
+  await advance(page); await power(page, 20, 1); await power(page, 10);
+  await pulse('11'); await power(page, 0, 1);
+  await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyX'); await power(page, 0);
 });
 
 test('pointer cancellation and blur require a fresh drag', async ({ page }) => {
@@ -243,10 +312,11 @@ test('controller throttle follows the same readout and locks pointer input', asy
   }] }));
   await expect(track(page)).toHaveAttribute('aria-disabled', 'true');
   await expect(page.locator('#throttle-value')).toHaveText('100%');
-  await drag(page, 0); await power(page, 0);
+  await drag(page, 0); await power(page, 100);
   await page.evaluate(() => Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [] }));
   await expect(track(page)).toHaveAttribute('aria-disabled', 'false');
-  await advance(page); await power(page, 0);
+  await advance(page); await power(page, 100);
+  await page.locator('#flight-view').focus(); await page.keyboard.press('KeyX'); await power(page, 0);
   await drag(page, .3); await power(page, 30);
   await openPanel(page, 'settings'); await page.locator('#theme-toggle').click();
   await page.locator('[data-tab="tab-hud"]').click();

@@ -37,6 +37,7 @@ import { SplitScreen, GuestPilot } from './split-screen';
 import { ControllerMenu } from './controller-menu';
 import { PLAYER_COLORS, setPlayerCount, setSlotNavball, defaultNavballPlacement } from './local-players';
 import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvider, navballFootprint, TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH, type NavballFrame } from '../../../packages/modules/src/base/toolset/navball';
+import { PilotThrottle } from './throttle-control';
 import { ThrottleLever, THROTTLE_LEVER_SPACE, type ThrottleLeverState } from './throttle-lever';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
@@ -94,8 +95,8 @@ const presentation = new Presentation(canvas, {
 const profiler = new Profiler(() => presentation.rendering.renderer?.features?.flush?.());
 const keys = new Set<string>();
 const pointers = new Map<number, string>();
-/** Persistent lever burns belong to one pilot, ship and world; held flight controls cancel them. */
-const leverBurns: ({ world: object; shipId: string } | undefined)[] = new Array(4);
+const pilotThrottles = Array.from({ length: 4 }, () => new PilotThrottle());
+const activationThrottles: (number | undefined)[] = loadActivationThrottles();
 let restoreFullscreenOnResume = false;
 const workspace = new Workspace(() => release(), () => {
   if (restoreFullscreenOnResume && !document.fullscreenElement) {
@@ -326,8 +327,9 @@ const splitScreen = new SplitScreen(viewport, {
   presetId: () => preset.value || 'pad',
   isGodMode: () => godModeToggle.checked,
   keyboardFlight: () => keyboardFlight(),
-  resolveFlight: (slot, command) => withThrottleLever(slot, command),
-  releaseFlight: slot => { leverBurns[slot] = undefined; },
+  resolveFlight: (slot, command, elapsed) => withThrottleLever(slot, command, elapsed),
+  throttleAction: (slot, action) => throttleAction(slot, action),
+  releaseFlight: slot => pilotThrottles[slot]!.release(),
   inputEnabled: () => !controlsDialog.open && !hudLayout.editing && !document.hidden,
   consumesPad: (slot, pad) => controllerConsumesFlight(slot, pad),
   execute: action => executeAction(action),
@@ -962,7 +964,7 @@ function keyboardFlight(): Controls {
   let kbThrottle = 0;
   if (isActionActive('throttleUp')) kbThrottle += 1;
   if (isActionActive('throttleDown')) kbThrottle -= 1;
-  return { turn: kbTurn, throttle: kbThrottle, engine: isActionActive('engine') };
+  return { turn: kbTurn, throttle: kbThrottle * (isActionActive('throttleFine') ? .2 : 1), engine: isActionActive('engine') };
 }
 
 function controls(elapsed = 0): Controls {
@@ -1004,6 +1006,7 @@ function controls(elapsed = 0): Controls {
       ? touch.turn
       : kbTurn;
 
+  kbThrottle *= isActionActive('throttleFine') ? .2 : 1;
   const throttle = gpThrottle !== 0
     ? gpThrottle
     : touch.throttle !== 0
@@ -1012,10 +1015,10 @@ function controls(elapsed = 0): Controls {
 
   const engine = kbEngine || gpEngine || touch.engine;
 
-  return withThrottleLever(0, { turn, throttle, engine });
+  return withThrottleLever(0, { turn, throttle, engine }, elapsed);
 }
 function release(): void {
-  leverBurns.fill(undefined);
+  pilotThrottles.forEach(control => control.release());
   moduleManager?.devices.release();
   keys.clear(); pointers.clear();
   if (local && session === local) for (const guest of splitScreen.guests.values()) {
@@ -1560,20 +1563,66 @@ function throttleInputHeld(slot: number): boolean {
   return held;
 }
 
-/** Feed lever burns through the same session input path as keys, including local guest seats. */
-function withThrottleLever(slot: number, command: Controls): Controls {
-  const burn = leverBurns[slot];
-  if (!burn) return command;
+/** Persist activation preferences by seat, independent of transient burns and ship resets. */
+function loadActivationThrottles(): (number | undefined)[] {
+  try {
+    const values: unknown = JSON.parse(localStorage.getItem('space-sim:activation-throttle:v1') ?? '[]');
+    if (Array.isArray(values)) return Array.from({ length: 4 }, (_, i) =>
+      typeof values[i] === 'number' && Number.isFinite(values[i]) && values[i] >= 0 && values[i] <= 1 ? values[i] : undefined);
+  } catch { /* Use the world's default activation throttle. */ }
+  return new Array(4);
+}
+
+function activationThrottle(slot: number): number {
+  return activationThrottles[slot] ?? session.world.context.vehicle.initialThrottle;
+}
+
+function rememberActivationThrottle(slot: number, value: number | undefined): void {
+  activationThrottles[slot] = value;
+  try { localStorage.setItem('space-sim:activation-throttle:v1', JSON.stringify(activationThrottles)); } catch { /* Storage unavailable. */ }
+}
+
+function throttlePilot(slot: number) {
   const guest = slot > 0 ? splitScreen.guests.get(slot) : undefined;
   const ship = slot === 0 ? selectedShip() : guest?.ship(session);
   const owner = slot === 0 ? session.playerId : guest?.playerId;
-  if (burn.world !== session.world || ship?.id !== burn.shipId || ship.ownerId !== owner
-    || slot >= splitScreen.active || session.paused || controlsDialog.open || hudLayout.editing || document.hidden
-    || ship.state.status === 'crashed' || ship.fault || throttleInputHeld(slot)) {
-    leverBurns[slot] = undefined;
-    return command;
+  if (slot >= splitScreen.active || !ship || ship.ownerId !== owner) return undefined;
+  const control = pilotThrottles[slot]!;
+  control.bind(session.world, ship.id);
+  return { ship, guest, control };
+}
+
+function setPilotThrottle(slot: number, shipId: string, value: number): void {
+  if (slot === 0) session.setThrottle(shipId, value);
+  else {
+    const guest = splitScreen.guests.get(slot);
+    if (session === local && guest?.playerId) local.setGuestThrottle(guest.playerId, shipId, value);
   }
-  return { turn: command.turn, throttle: command.throttle, engine: true };
+}
+
+function throttleAction(slot: number, action: 'throttleCut' | 'throttleRecall'): void {
+  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) return;
+  const pilot = throttlePilot(slot);
+  if (!pilot || pilot.ship.state.status === 'crashed' || pilot.ship.fault) return;
+  if (slot === 0) maneuver.cancel();
+  const value = action === 'throttleCut' ? 0 : activationThrottle(slot);
+  if (action === 'throttleCut') pilot.control.cut(throttleInputHeld(slot)); else pilot.control.set(value);
+  setPilotThrottle(slot, pilot.ship.id, value);
+}
+
+/** Device steps and lever burns share the existing authoritative session input path. */
+function withThrottleLever(slot: number, command: Controls, elapsed: number, pressed = false): Controls {
+  const pilot = throttlePilot(slot);
+  if (!pilot) { pilotThrottles[slot]!.release(); return command; }
+  const { ship, control } = pilot;
+  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden
+    || ship.state.status === 'crashed' || ship.fault) {
+    control.release(); return IDLE;
+  }
+  if (slot === 0 && command.throttle !== 0) maneuver.cancel();
+  const value = control.update(command, elapsed, ship.state.throttle, activationThrottle(slot), pressed, ship.controls.engine);
+  if (value !== undefined && value !== ship.state.throttle) setPilotThrottle(slot, ship.id, value);
+  return { turn: command.turn, throttle: 0, engine: control.engine };
 }
 
 function throttleLeverState(slot: number): ThrottleLeverState | undefined {
@@ -1598,7 +1647,8 @@ const throttleLevers = Array.from({ length: 4 }, (_, slot) => new ThrottleLever(
       const guest = splitScreen.guests.get(slot);
       if (session === local && guest?.playerId) local.setGuestThrottle(guest.playerId, state.shipId, value);
     }
-    leverBurns[slot] = value > 0 ? { world: state.world, shipId: state.shipId } : undefined;
+    const control = pilotThrottles[slot]!;
+    control.bind(state.world, state.shipId); control.set(value);
   }));
 
 function syncThrottleLevers(): void {
@@ -1995,7 +2045,7 @@ function updateControllerCursors(elapsed: number): void {
         }
       }
 
-      // D-Pad Up: activates the slingshot throw feature
+      // The remappable Throw action activates the slingshot feature
       const profile = splitScreen.config.slots[slot]?.profile;
       const throwActionHeld = profile?.buttons?.throwShip ? profile.buttons.throwShip.some(b => isButtonDown(pad.buttons[b])) : false;
       const isThrowDown = throwCheatEnabled && throwActionHeld;
@@ -2003,7 +2053,7 @@ function updateControllerCursors(elapsed: number): void {
       lastPadDpadUp.set(padIndex, isThrowDown);
 
       if (isThrowDown && !wasThrowDown) {
-        // Just pressed D-pad Up: anchor the slingshot at the ship
+        // Just pressed Throw: anchor the slingshot at the ship
         cursor.isThrowing = true;
         cursor.aimingPad = padIndex;
         if (slot === 0) {
@@ -3024,8 +3074,19 @@ element<HTMLInputElement>('profiler-precise').addEventListener('change', event =
 for (const id of ['export-log', 'export-log-diagnostics']) element(id).addEventListener('click', exportLog);
 slider.addEventListener('input', () => {
   const ship = selectedShip();
-  if (ship) session.setThrottle(ship.id, Number(slider.value) / 100);
+  if (ship) {
+    const value = Number(slider.value) / 100;
+    session.setThrottle(ship.id, value); rememberActivationThrottle(0, value);
+  }
 });
+
+element<HTMLInputElement>('activation-throttle').addEventListener('change', event => {
+  const input = event.target as HTMLInputElement;
+  if (!input.validity.valid || !Number.isFinite(input.valueAsNumber)) return;
+  rememberActivationThrottle(Number(element<HTMLSelectElement>('activation-pilot').value), input.valueAsNumber / 100);
+});
+element('activation-throttle-reset').addEventListener('click', () =>
+  rememberActivationThrottle(Number(element<HTMLSelectElement>('activation-pilot').value), undefined));
 
 // Fleet & Navigation
 function cycleShip(direction: number): void {
@@ -3841,6 +3902,11 @@ function executeAction(action: ActionId): void {
     if (cameraAlteringActions.has(action)) return;
   }
   switch (action) {
+    case 'throttleCut': case 'throttleRecall': {
+      const slot = splitScreen.keyboardSlot;
+      if (slot !== undefined) throttleAction(slot, action);
+      break;
+    }
     case 'warpUp':
       warpUp();
       break;
@@ -3944,6 +4010,13 @@ window.addEventListener('keyup', event => {
 
 bindFlightInput({
   keys, pointers, paused: () => session.paused, autoPause, autoResume, visibility: updateBackground,
+  flightPress(code) {
+    const actions = keyLookup.get(code);
+    const slot = splitScreen.keyboardSlot;
+    if (slot !== undefined && actions?.some(action => action === 'throttleUp' || action === 'throttleDown')) {
+      withThrottleLever(slot, keyboardFlight(), 0, true);
+    }
+  },
   isFlightKey(code) {
     const actions = keyLookup.get(code);
     return actions ? actions.some(isFlightAction) : false;
@@ -4285,6 +4358,8 @@ function hud(engine: boolean): void {
   show('status', paused ? 'PAUSED' : !ship ? 'NO SHIP' : ship.fault ? 'STOPPED'
     : state.water && state.status !== 'crashed' ? state.water.toUpperCase() : state.status.toUpperCase());
   show('active-body', activeBody.name.toUpperCase());
+  const activationInput = element<HTMLInputElement>('activation-throttle');
+  if (document.activeElement !== activationInput) activationInput.value = String(Math.round(activationThrottle(Number(element<HTMLSelectElement>('activation-pilot').value)) * 100));
   show('throttle-value', `${Math.round(state.throttle * 100)}%`);
   if (document.activeElement !== slider) slider.value = String(Math.round(state.throttle * 100));
   const burning = String(engine && !paused);
@@ -4328,7 +4403,7 @@ function exportLog(): void {
     environment: { userAgent: navigator.userAgent, language: navigator.language,
       hardwareConcurrency: navigator.hardwareConcurrency, screen: `${screen.width}×${screen.height}`,
       viewport: `${canvas.clientWidth}×${canvas.clientHeight}`, dpr: window.devicePixelRatio, precise: profiler.precise },
-    diagnostics: diagnostics(controls().engine), profile: profiler.summary(),
+    diagnostics: diagnostics(!!selectedShip()?.controls.engine), profile: profiler.summary(),
     events: profiler.log(), frames: profiler.history(),
   };
   const text = JSON.stringify(report, null, 2);
@@ -4414,7 +4489,7 @@ function frame(now: number): void {
   moduleManager?.devices.sample(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden);
   splitScreen.pollPads();
   splitScreen.sync();
-  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) leverBurns.fill(undefined);
+  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) pilotThrottles.forEach(control => control.release());
   splitScreen.applyInput(elapsed);
   const command = session.paused ? IDLE : controls(elapsed);
   maneuver.beforeAdvance(command);
@@ -4852,7 +4927,7 @@ moduleManager = new ModuleManager(presentation, {
     release: pilot => {
       if (pilot === undefined || pilot === 0) { release(); return; }
       moduleManager?.devices.release(pilot);
-      leverBurns[pilot] = undefined;
+      pilotThrottles[pilot]!.release();
       const guest = splitScreen.guests.get(pilot);
       if (guest) {
         guest.controls = IDLE;

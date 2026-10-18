@@ -385,8 +385,8 @@ describe('split-screen configuration and dynamic viewports', () => {
   });
 
   describe('controller cursor and slingshot launch configuration', () => {
-    it('maps throwShip to D-Pad Up by default', () => {
-      expect(DEFAULT_PAD_BUTTONS.throwShip).toContain(12);
+    it('reserves D-Pad Up for throttle by default', () => {
+      expect(DEFAULT_PAD_BUTTONS.throwShip).toEqual([]);
     });
 
     it('sets zoomAxis to -1 by default so right stick acts as dedicated viewport cursor', () => {
@@ -400,13 +400,13 @@ describe('split-screen configuration and dynamic viewports', () => {
       expect(isButtonDown({ pressed: false, value: 0.6 } as any)).toBe(true);
     });
 
-    it('suppresses throttleUp when throwShip button is held', () => {
+    it('allows throttleUp on D-Pad Up', () => {
       const buttons = Array.from({ length: 18 }, () => ({ pressed: false, value: 0, touched: false }));
-      // Button 12 is D-pad Up (mapped to both throttleUp and throwShip)
+      // Button 12 is D-pad Up, dedicated to throttle
       buttons[12] = { pressed: true, value: 1.0, touched: true };
 
       const input = readPad({ axes: [0, 0, 0, 0], buttons }, DEFAULT_CONTROLLER_PROFILE);
-      expect(input.throttle).toBe(0); // Suppressed so aiming slingshot doesn't step throttle
+      expect(input.throttle).toBe(1);
     });
 
     it('allows throttleDown normally on D-Pad Down', () => {

@@ -138,8 +138,11 @@ export interface ControllerProfile {
 
 /** Steam Deck, Xbox and PlayStation share the W3C standard mapping. */
 export const DEFAULT_PAD_BUTTONS: Readonly<Record<ActionId, readonly number[]>> = Object.freeze({
-  engine: [0, 7],          // A / Cross, RT / R2
+  engine: [7],             // RT / R2 (held burn)
   throttleUp: [12],        // D-pad up
+  throttleFine: [6],       // LT / L2
+  throttleCut: [11],       // R3
+  throttleRecall: [0],     // A / Cross
   throttleDown: [13],      // D-pad down
   turnLeft: [],
   turnRight: [],
@@ -158,7 +161,7 @@ export const DEFAULT_PAD_BUTTONS: Readonly<Record<ActionId, readonly number[]>> 
   zoomOut: [],
   fullscreen: [],
   profiler: [],
-  throwShip: [12],         // D-pad up (slingshot throw / launch feature)
+  throwShip: [],           // Bind explicitly; D-pad up belongs to throttle
 });
 
 export const DEFAULT_CONTROLLER_PROFILE: ControllerProfile = Object.freeze({
@@ -190,7 +193,7 @@ export const DEFAULT_GAMEPAD_SETTINGS: GamepadSettings = Object.freeze({
   throttleAxis: DEFAULT_CONTROLLER_PROFILE.throttleAxis,
   invertThrottle: DEFAULT_CONTROLLER_PROFILE.invertThrottle,
   deadzone: DEFAULT_CONTROLLER_PROFILE.deadzone,
-  engineButton: 0,
+  engineButton: 7,
   secondaryEngineButton: 7,
 });
 
@@ -209,6 +212,15 @@ export function normalizeProfile(raw: unknown): ControllerProfile {
     const list = rawButtons[action];
     if (Array.isArray(list)) buttons[action] = [...new Set(list.filter(b => index(b, -1) >= 0) as number[])].slice(0, 4);
   }
+  if (rawButtons.throttleRecall === undefined && buttons.engine.length === 2 && buttons.engine[0] === 0 && buttons.engine[1] === 7) buttons.engine = [7];
+  // Migrate the former default collision; retain other custom throw mappings.
+  if (rawButtons.throttleRecall === undefined && buttons.throwShip.length === 1 && buttons.throwShip[0] === 12 && buttons.throttleUp.includes(12)) buttons.throwShip = [];
+  // New defaults must not take buttons already assigned by an older custom layout.
+  for (const action of ['throttleFine', 'throttleCut', 'throttleRecall'] as const) {
+    if (rawButtons[action] !== undefined) continue;
+    buttons[action] = buttons[action].filter(button => !Object.entries(rawButtons).some(([other, indices]) =>
+      other !== action && Array.isArray(indices) && buttons[other as ActionId]?.includes(button)));
+  }
   const deadzone = typeof r.deadzone === 'number' && Number.isFinite(r.deadzone) ? Math.max(0, Math.min(0.5, r.deadzone)) : d.deadzone;
   const flag = (value: unknown, fallback: boolean): boolean => typeof value === 'boolean' ? value : fallback;
   return {
@@ -220,14 +232,14 @@ export function normalizeProfile(raw: unknown): ControllerProfile {
 }
 
 /** Held actions read every frame; every other bound action fires on press. */
-const HELD = new Set<ActionId>(['engine', 'throttleUp', 'throttleDown', 'turnLeft', 'turnRight']);
+const HELD = new Set<ActionId>(['engine', 'throttleFine', 'throttleUp', 'throttleDown', 'turnLeft', 'turnRight']);
 
 const ENABLED_KEY = 'space-sim:gamepad:v1';
 
 export interface GamepadFlightInput {
   /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */
   readonly turn: number;
-  /** Throttle step (-1 = decrease, 0 = neutral, 1 = increase). */
+  /** Signed throttle step intent: ±1 normal, ±0.2 fine, 0 neutral. */
   readonly throttle: number;
   /** Engine burn state (held). */
   readonly engine: boolean;
@@ -271,7 +283,7 @@ export function readPad(pad: Pick<Gamepad, 'axes' | 'buttons'>, profile: Control
   if (held('throttleDown')) throttle = -1;
   const zoom = profile.zoomAxis < 0 ? 0 : profile.invertZoom ? -axis(profile.zoomAxis) : axis(profile.zoomAxis);
   const norm = (v: number): number => v === 0 ? 0 : v;
-  return { turn: norm(turn), throttle: norm(throttle), engine: held('engine'), zoom: norm(zoom) };
+  return { turn: norm(turn), throttle: norm(throttle * (held('throttleFine') ? .2 : 1)), engine: held('engine'), zoom: norm(zoom) };
 }
 
 /** Reads every connected pad once per frame: flight input per pad, button presses mapped
@@ -316,6 +328,7 @@ export class GamepadManager {
       const buttons = { ...DEFAULT_PAD_BUTTONS } as Record<ActionId, readonly number[]>;
       if (Number.isInteger(old.engineButton) || Number.isInteger(old.secondaryEngineButton)) {
         buttons.engine = [old.engineButton, old.secondaryEngineButton].filter(b => Number.isInteger(b)) as number[];
+        if (buttons.engine.length === 2 && buttons.engine[0] === 0 && buttons.engine[1] === 7) buttons.engine = [7];
       }
       // Version 1 steered backwards unless inverted; either way, the corrected default is right.
       return normalizeProfile({ ...old, invertTurn: false, zoomAxis: undefined, invertZoom: undefined, buttons });
@@ -409,7 +422,7 @@ export class GamepadManager {
       throttleAxis: DEFAULT_CONTROLLER_PROFILE.throttleAxis,
       invertThrottle: DEFAULT_CONTROLLER_PROFILE.invertThrottle,
       deadzone: DEFAULT_CONTROLLER_PROFILE.deadzone,
-      engineButton: 0,
+      engineButton: 7,
       secondaryEngineButton: 7,
     };
   }

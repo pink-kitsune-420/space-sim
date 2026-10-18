@@ -98,6 +98,15 @@ describe('input configuration and keybindings', () => {
     expect(reset.warpUp).toContain('BracketRight');
     expect(reset.warpDown).toContain('BracketLeft');
   });
+
+  it('preserves older custom keys without adding conflicting throttle actions', () => {
+    mockStorage['space-sim:keybindings:v1'] = JSON.stringify({ camera: ['KeyZ'], pause: ['KeyX'], turnLeft: ['ShiftLeft'] });
+    const loaded = loadKeybindings();
+    expect(loaded.camera).toEqual(['KeyZ']);
+    expect(loaded.throttleRecall).toEqual([]);
+    expect(loaded.throttleCut).toEqual([]);
+    expect(loaded.throttleFine).toEqual(['ShiftRight']);
+  });
 });
 
 describe('gamepad manager', () => {
@@ -119,7 +128,7 @@ describe('gamepad manager', () => {
     expect(settings.enabled).toBe(true);
     expect(settings.turnAxis).toBe(0);
     expect(settings.deadzone).toBe(0.15);
-    expect(settings.engineButton).toBe(0);
+    expect(settings.engineButton).toBe(7);
   });
 
   it('safely handles environments with no gamepad connected', () => {
@@ -140,8 +149,8 @@ describe('gamepad manager', () => {
       connected: true,
       axes: [-0.75, -0.8, 0, 0], // Axis 0: turn left (CCW); Axis 1: push forward (throttle up with invert)
       buttons: [
-        { pressed: true, value: 1.0 }, // Button 0: Engine firing
-        { pressed: false, value: 0 },
+        { pressed: false, value: 0 }, // Button 0: persistent activation
+        ...Array.from({ length: 7 }, (_, i) => ({ pressed: i === 6, value: i === 6 ? 1 : 0 })),
       ],
     };
 

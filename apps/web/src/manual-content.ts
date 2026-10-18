@@ -78,11 +78,13 @@ A dash means the action has no binding for that input or the device is disabled 
 <div data-manual-controls></div>
 <h3>Touch and mouse</h3>
 <ul>
-  <li>Hold <b>BURN</b> to fire the engine. Hold the turn buttons to rotate. The throttle slider in <b>Ship</b> sets power for held burns. Drag the lever beside your navball to set thrust directly: releasing it keeps burning; drag to 0% to coast. The lever shows active power and reads 0% when the engine is off. Engine and throttle keys, touch buttons and controller inputs override the lever (LOCK); releasing them stops thrust until you drag again. Each local pilot has their own lever. Pausing, losing focus or opening a window also clears the persistent burn.</li>
+  <li>Drag the lever beside your navball to set persistent thrust; release to keep burning, or drag to 0% to coast. The lever shows active power. Each local pilot has their own lever; its mechanical track and grip work with mouse and touch.</li>
+  <li>{{key:throttleUp}} / {{key:throttleDown}} change active thrust in 5% steps. Hold to repeat; hold {{key:throttleFine}} for 1% steps. Starting from idle steps up from 0%, and releasing keeps the burn. {{key:throttleCut}} cuts to 0%; {{key:throttleRecall}} starts a persistent burn at your remembered activation level. In <b>Ship</b>, moving the throttle slider also remembers that level; choose a player and edit <b>Activation throttle (%)</b> directly or choose <b>Reset activation level</b> to restore the world's default (normally 50%). The lever and steps can still reach 100%.</li>
+  <li>Hold <b>BURN</b> or {{key:engine}} for a temporary burn; releasing stops it. This overrides a persistent burn. Held engine/throttle controls lock and cancel dragging (LOCK). Cut overrides held controls until you release them. Pausing, losing focus or opening a window clears persistent thrust. Hold the turn buttons to rotate.</li>
   <li>Drag the view to move the camera. Pinch or use the mouse wheel to zoom. Flick the view to send the camera gliding.</li>
 </ul>
 <h3>Gamepad</h3>
-<p>Plug in a controller and press any button. Steam Deck, Xbox, PlayStation and most joysticks work.</p>
+<p>Plug in a controller and press any button. Steam Deck, Xbox, PlayStation and most joysticks work. By default, left stick vertical or D-pad up/down steps thrust; LT/L2 gives fine steps, R3 cuts, and A/Cross recalls the activation level. RT/R2 remains a held burn. Throw has no default controller button; bind it in Controllers if wanted. Saved default layouts migrate to free D-pad up for throttle.</p>
 ${deeper('tuning a controller', `
 <p>Open <b>Settings → Controls &amp; keybindings… → Controllers</b>. Choose the player to configure, then change their stick axes, inversion, dead zone or button bindings. The <b>dead zone</b> is how far a stick must move before the game reacts; raise it if the ship drifts while you aren't touching the stick. Select <b>+</b> beside an action and press a controller button to bind it. Gameplay input is held while this dialog is open.</p>`)}`,
   },
@@ -109,15 +111,15 @@ ${deeper('tuning a controller', `
 <p>In <b>Setup</b>, choose the <b>Primus System</b> and <b>North pad · ready to launch</b>. Primus is a small,
 heavy practice planet. Orbits there are a few hundred metres up and one lap takes about half a minute.</p>
 <ol>
-  <li><b>Climb.</b> Press {{key:throttleUp}} until the throttle is full, then hold {{key:engine}}. Go straight up for a moment.</li>
+  <li><b>Climb.</b> Hold {{key:throttleUp}} until the throttle is full; thrust starts immediately and continues when released. Go straight up for a moment.</li>
   <li><b>Tip over slowly.</b> Turn toward the horizon a little at a time with {{key:turnLeft}} or {{key:turnRight}}.
     Sideways speed is what keeps you up, so you want more of it as you climb.</li>
   <li><b>Watch the line.</b> The trajectory line shows where you will go if you stop the engine. If it hits the
     ground, keep burning sideways.</li>
   <li><b>Stop at the right height.</b> The <b>Ap</b> marker is the highest point of your path. When it is well
-    above the ground, let go of the engine.</li>
+    above the ground, press {{key:throttleCut}} to coast.</li>
   <li><b>Finish at the top.</b> Coast up to Ap. Point the ship the way you are moving (along the velocity arrow)
-    and burn again. The low side of the path lifts. Stop when the <b>Pe</b> marker, the lowest point, is safely
+    and press {{key:throttleRecall}} to burn again. The low side of the path lifts. Cut with {{key:throttleCut}} when the <b>Pe</b> marker, the lowest point, is safely
     above the ground.</li>
 </ol>
 <p>You are now in orbit. Press {{key:warpUp}} to speed up time and watch the ship circle the planet with the engine off.</p>

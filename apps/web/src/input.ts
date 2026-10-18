@@ -1,8 +1,8 @@
-const defaultFlightKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD']);
+const defaultFlightKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight']);
 const defaultShortcuts = new Set([
   'KeyP', 'KeyR', 'KeyC', 'KeyH', 'KeyF', 'KeyT', 'Equal', 'NumpadAdd', 'Minus', 'NumpadSubtract',
   'Backquote', 'BracketLeft', 'BracketRight', 'Backslash', 'Backspace', 'Comma', 'Period', 'Slash',
-  'Tab', 'KeyN', 'KeyB',
+  'Tab', 'KeyN', 'KeyB', 'KeyX', 'KeyZ',
 ]);
 /** Keys the console owns; module commands may not bind them. */
 export const RESERVED_KEYS: ReadonlySet<string> = new Set([...defaultFlightKeys, ...defaultShortcuts]);
@@ -13,6 +13,8 @@ export function bindFlightInput(options: {
   readonly pointers: Map<number, string>;
   readonly paused: () => boolean;
   readonly shortcut: (code: string) => void;
+  /** Initial held-action press, including taps shorter than one rendered frame. */
+  readonly flightPress?: (code: string) => void;
   /** A module command key; true when one is bound to `code`. */
   readonly command: (code: string) => boolean;
   readonly autoPause: (reason: string) => void;
@@ -34,7 +36,13 @@ export function bindFlightInput(options: {
       return;
     }
     event.preventDefault();
-    if (flight) { if (!options.paused()) options.keys.add(event.code); return; }
+    if (flight) {
+      if (!options.paused()) {
+        options.keys.add(event.code);
+        if (!event.repeat) options.flightPress?.(event.code);
+      }
+      return;
+    }
     if (event.repeat) return;
     options.shortcut(event.code);
   });

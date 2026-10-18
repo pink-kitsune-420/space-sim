@@ -4,6 +4,9 @@ export type ActionId =
   | 'turnRight'
   | 'throttleUp'
   | 'throttleDown'
+  | 'throttleFine'
+  | 'throttleCut'
+  | 'throttleRecall'
   | 'warpUp'
   | 'warpDown'
   | 'warpReset'
@@ -59,14 +62,26 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
     name: 'Increase Throttle',
     category: 'flight',
     defaultKeys: ['ArrowUp', 'KeyW'],
-    description: 'Raise engine thrust percentage',
+    description: 'Increase persistent thrust by 5%; hold to repeat',
   },
   {
     id: 'throttleDown',
     name: 'Decrease Throttle',
     category: 'flight',
     defaultKeys: ['ArrowDown', 'KeyS'],
-    description: 'Lower engine thrust percentage',
+    description: 'Decrease persistent thrust by 5%; hold to repeat',
+  },
+  {
+    id: 'throttleFine', name: 'Fine Throttle', category: 'flight',
+    defaultKeys: ['ShiftLeft', 'ShiftRight'], description: 'Hold for 1% throttle steps instead of 5%',
+  },
+  {
+    id: 'throttleCut', name: 'Cut Throttle', category: 'flight',
+    defaultKeys: ['KeyX'], description: 'Set thrust to zero and coast',
+  },
+  {
+    id: 'throttleRecall', name: 'Activate Remembered Throttle', category: 'flight',
+    defaultKeys: ['KeyZ'], description: 'Start a persistent burn at the remembered activation throttle',
   },
   {
     id: 'throwShip',
@@ -207,6 +222,8 @@ export function formatKeyCode(code: string): string {
   if (code.startsWith('Numpad')) return 'Num ' + code.slice(6);
   switch (code) {
     case 'Space': return 'Space';
+    case 'ShiftLeft': return 'Left Shift';
+    case 'ShiftRight': return 'Right Shift';
     case 'ArrowLeft': return '←';
     case 'ArrowRight': return '→';
     case 'ArrowUp': return '↑';
@@ -248,6 +265,12 @@ export function loadKeybindings(): KeyBindings {
       if (Array.isArray(keys) && keys.every(k => typeof k === 'string')) {
         result[def.id] = [...keys];
       }
+    }
+    // Preserve older custom layouts when adding throttle actions to saved bindings.
+    for (const action of ['throttleFine', 'throttleCut', 'throttleRecall'] as const) {
+      if (parsed[action] !== undefined) continue;
+      result[action] = result[action].filter(code => !Object.keys(parsed).some(other =>
+        other !== action && result[other as ActionId]?.includes(code)));
     }
   } catch {
     // Ignore parse or storage errors and use defaults
@@ -292,6 +315,7 @@ export function buildKeyLookup(bindings: KeyBindings): Map<string, ActionId[]> {
 /** Identifies continuous flight actions (held keys for flight physics). */
 export const FLIGHT_ACTIONS = new Set<ActionId>([
   'engine',
+  'throttleFine',
   'turnLeft',
   'turnRight',
   'throttleUp',

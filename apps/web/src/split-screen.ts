@@ -161,7 +161,8 @@ export interface SplitScreenHost {
   /** Held keyboard flight input (no touch, no pointer). */
   keyboardFlight(): Controls;
   /** Merge persistent console flight controls after held device input has been collected. */
-  resolveFlight?(slot: number, controls: Controls): Controls;
+  resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;
+  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall'): void;
   /** Release persistent input before restarting a pilot's ship. */
   releaseFlight?(slot: number): void;
   /** Configuration dialogs consume controllers without sending gameplay input. */
@@ -252,7 +253,9 @@ export class SplitScreen {
       (pad, action) => {
         // The cursor owns the held throw gesture; it must not toggle mouse throw mode.
         if (this.host.inputEnabled?.() === false || action === 'throwShip') return;
-        this.action(padOwner(config, pad, connected) ?? 0, action);
+        const slot = padOwner(config, pad, connected) ?? 0;
+        if (action === 'throttleRecall' && (this.host.consumesPad?.(slot, pad) || this.host.isSlotThrowing?.(slot))) return;
+        this.action(slot, action);
       },
       (pad, button) => {
         if (this.host.inputEnabled?.() === false) return;
@@ -287,6 +290,7 @@ export class SplitScreen {
       ]);
       if (cameraAlteringActions.has(action)) return;
     }
+    if (action === 'throttleCut' || action === 'throttleRecall') { this.host.throttleAction?.(slot, action); return; }
     const guest = this.guests.get(slot);
     if (slot === 0 || SHARED_ACTIONS.has(action) || !guest) { this.host.execute(action); return; }
     const session = this.host.session();
@@ -647,7 +651,7 @@ export class SplitScreen {
         const isSlotThrowing = this.host.isSlotThrowing?.(slot) ?? false;
         if (input.zoom && !isSlotThrowing) guest.camera.changeZoom(Math.exp(input.zoom * 2.2 * elapsed));
       }
-      guest.controls = local.paused ? IDLE : this.host.resolveFlight?.(slot, controls) ?? controls;
+      guest.controls = local.paused ? IDLE : this.host.resolveFlight?.(slot, controls, elapsed) ?? controls;
       local.guestControls(guest.playerId, guest.shipId, guest.controls);
     }
   }

@@ -9,7 +9,7 @@ import type { SplitScreen } from './split-screen';
 import { element } from './ui';
 
 /** Actions a controller can hold or press, in menu order. */
-const PAD_ACTIONS: readonly ActionId[] = ['engine', 'throttleUp', 'throttleDown', 'turnLeft', 'turnRight', 'throwShip', 'warpUp', 'warpDown',
+const PAD_ACTIONS: readonly ActionId[] = ['engine', 'throttleUp', 'throttleDown', 'throttleFine', 'throttleCut', 'throttleRecall', 'turnLeft', 'turnRight', 'throwShip', 'warpUp', 'warpDown',
   'warpReset', 'pause', 'reset', 'camera', 'orientation', 'zoomIn', 'zoomOut', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev'];
 const MAX_BUTTONS = 4;
 
