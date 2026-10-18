@@ -129,7 +129,7 @@ describe('gamepad manager', () => {
 
     const manager = new GamepadManager();
     const flight = manager.pollFlight();
-    expect(flight).toEqual({ turn: 0, throttle: 0, engine: false });
+    expect(flight).toEqual({ turn: 0, throttle: 0, engine: false, zoom: 0 });
     expect(manager.getDiagnostics()).toEqual([]);
   });
 
@@ -138,7 +138,7 @@ describe('gamepad manager', () => {
       index: 0,
       id: 'Standard Flight Stick',
       connected: true,
-      axes: [0.75, -0.8, 0, 0], // Axis 0: turn right; Axis 1: push forward (throttle up with invert)
+      axes: [-0.75, -0.8, 0, 0], // Axis 0: turn left (CCW); Axis 1: push forward (throttle up with invert)
       buttons: [
         { pressed: true, value: 1.0 }, // Button 0: Engine firing
         { pressed: false, value: 0 },

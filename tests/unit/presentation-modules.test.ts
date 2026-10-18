@@ -46,12 +46,12 @@ describe('presentation profiles', () => {
   it('ship the flight toolset in the default profile, resolved for browsers only', () => {
     const registry = createPresentationRegistry(PRESENTATION_EXAMPLES);
     expect(DEFAULT_PRESENTATION_PROFILE.modules.map(m => m.id)).toEqual(['builtin.webgl', 'builtin.canvas',
-      'builtin.flight-data', 'builtin.flight-vectors', 'builtin.orbit-markers', 'builtin.telemetry', 'builtin.navball']);
+      'builtin.flight-data', 'builtin.flight-vectors', 'builtin.orbit-markers', 'builtin.telemetry', 'builtin.navball', 'builtin.maneuver-planner']);
     // The default instruments are exactly the closure of the console's switches.
     expect(registry.closure(INSTRUMENTS.map(i => ({ id: i.id, version: '0.1.0' })))).toEqual([...DEFAULT_PRESENTATION_MODULES].sort((a, b) => a.id.localeCompare(b.id)));
     const candidate = registry.prepare(DEFAULT_PRESENTATION_PROFILE, 'offline', ['renderer']);
     expect(candidate.service('renderer')).toBe(BUILTIN_RENDERERS[0]);
-    expect(candidate.layers.map(l => l.id)).toEqual(['builtin.flight-vectors/velocity', 'builtin.navball/navball', 'builtin.orbit-markers/apsides']);
+    expect(candidate.layers.map(l => l.id)).toEqual(['builtin.flight-vectors/velocity', 'builtin.maneuver-planner/maneuver', 'builtin.navball/navball', 'builtin.orbit-markers/apsides']);
     expect(candidate.panels.map(p => p.id)).toEqual(['builtin.telemetry/telemetry']);
     candidate.dispose();
     // A headless server cannot load presentation code, and selecting Canvas initializes no WebGL module.

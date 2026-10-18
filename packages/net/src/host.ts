@@ -41,7 +41,8 @@ const CHAT_BURST = 5;
 const CHAT_REFILL_MS = 1500;
 
 interface PendingInput { readonly seq: number; readonly tick: number; readonly controls: Controls; readonly set?: number }
-interface Player { readonly id: string; name: string; tokenHash?: string; peer?: Peer; host?: boolean }
+/** `local`: a split-screen seat in the hosting browser, present without a connection. */
+interface Player { readonly id: string; name: string; tokenHash?: string; peer?: Peer; host?: boolean; local?: boolean }
 interface Peer {
   readonly connection: Connection;
   readonly openedAt: number;
@@ -131,6 +132,36 @@ export class HostSession {
     return player.id;
   }
 
+  /** Seat a split-screen player in the hosting browser: the player holding `token`, else a
+   * new one. Local seats count as connected and fly through `setControls` like the host. */
+  seatLocal(name: string, token: string): string {
+    const hash = sha256Hex(token);
+    let player = [...this.players.values()].find(p => p.tokenHash === hash);
+    if (player?.host) throw new SessionError('That seat belongs to the host.');
+    if (player?.peer) this.drop(player.peer, 'replaced', 'A local player took this seat.');
+    if (!player?.local && this.connectedCount() >= this.settings.maxPlayers) {
+      throw new SessionError(`The game is full (${this.settings.maxPlayers} players).`);
+    }
+    if (!player) {
+      if (!this.makeRoom()) throw new SessionError('This world remembers too many pilots to add another.');
+      player = { id: this.uniquePlayerId(), name: '', tokenHash: hash };
+      this.players.set(player.id, player);
+    }
+    player.name = cleanName(name, MAX_PLAYER_NAME) || 'Pilot';
+    player.local = true;
+    this.changedPlayers();
+    return player.id;
+  }
+
+  /** A split-screen player left: their ships stay in the world, like a remote player's. */
+  unseatLocal(playerId: string): void {
+    const player = this.players.get(playerId);
+    if (!player?.local) return;
+    player.local = false;
+    for (const id of this.world.ownedBy(playerId)) if (this.world.record(id)) this.world.setControls(id, IDLE);
+    this.changedPlayers();
+  }
+
   accept(connection: Connection): void {
     if (this.world.soloPreview) {
       connection.close('Custom authoritative module profiles are solo previews; multiplayer requires Phase 4 compatibility support.');
@@ -151,7 +182,7 @@ export class HostSession {
   /** Players currently in the game, including the host seat. */
   connectedCount(): number {
     let n = 0;
-    for (const p of this.players.values()) if (p.peer || p.host) n++;
+    for (const p of this.players.values()) if (p.peer || p.host || p.local) n++;
     return n;
   }
   remoteCount(): number {
@@ -160,7 +191,7 @@ export class HostSession {
     return n;
   }
   playerList(): NetPlayer[] {
-    return [...this.players.values()].map(p => ({ id: p.id, name: p.name, connected: !!(p.peer || p.host), ...(p.host ? { host: true } : {}) }));
+    return [...this.players.values()].map(p => ({ id: p.id, name: p.name, connected: !!(p.peer || p.host || p.local), ...(p.host ? { host: true } : {}) }));
   }
   /** Identities to persist with the world. Tokens themselves are never stored. */
   roster(): SavedPlayer[] {
@@ -208,11 +239,11 @@ export class HostSession {
     this.changed();
     return ship;
   }
-  respawnShip(playerId: string, shipId: string, presetId?: string): Ship {
+  respawnShip(playerId: string, shipId: string, presetId?: string, godMode?: boolean): Ship {
     this.owned(playerId, shipId);
     if (presetId !== undefined && !this.world.system.presets.some(p => p.id === presetId)) throw new SessionError(`Unknown start ${presetId}.`);
     this.queues.delete(shipId);
-    const ship = this.world.respawn(shipId, presetId);
+    const ship = this.world.respawn(shipId, presetId, godMode);
     this.changed();
     return ship;
   }
@@ -228,6 +259,11 @@ export class HostSession {
     this.owned(playerId, shipId);
     if (enabled && !this.settings.allowGodMode) throw new SessionError('God mode is disabled on this server.');
     this.world.setGodMode(shipId, enabled);
+    this.changed();
+  }
+  setGodModeAll(enabled: boolean): void {
+    if (enabled && !this.settings.allowGodMode) throw new SessionError('God mode is disabled on this server.');
+    this.world.setGodModeAll(enabled);
     this.changed();
   }
   /** Place an owned ship with a new body-relative position and velocity: the throw, orbit
@@ -620,7 +656,7 @@ export class HostSession {
     }
     const hash = message.token ? sha256Hex(message.token) : undefined;
     let player = hash ? [...this.players.values()].find(p => p.tokenHash === hash) : undefined;
-    if (player?.host) { this.drop(peer, 'replaced', 'That pilot is the host.'); return; }
+    if (player?.host || player?.local) { this.drop(peer, 'replaced', player.host ? 'That pilot is the host.' : 'That pilot is playing on the host\'s screen.'); return; }
     if (!player?.peer && this.connectedCount() >= this.settings.maxPlayers) {
       this.drop(peer, 'full', `The game is full (${this.settings.maxPlayers} players).`);
       return;
@@ -734,7 +770,7 @@ export class HostSession {
     if (this.players.size < MAX_SAVE_PLAYERS) return true;
     const owners = new Set([...this.world.records()].map(s => s.ownerId));
     for (const player of this.players.values()) {
-      if (!player.peer && !player.host && !owners.has(player.id)) { this.players.delete(player.id); return true; }
+      if (!player.peer && !player.host && !player.local && !owners.has(player.id)) { this.players.delete(player.id); return true; }
     }
     return false;
   }

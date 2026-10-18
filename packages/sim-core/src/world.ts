@@ -300,11 +300,12 @@ export class World {
 
   /** Back to a preset start now. Identity, owner and God mode are kept; the revision keeps
    * increasing so caches keyed by it can never mistake the new flight for the old one. */
-  respawn(shipId: string, presetId?: string): Ship {
+  respawn(shipId: string, presetId?: string, godMode?: boolean): Ship {
     const ship = this.require(shipId);
     const start = this.presetState(presetId);
+    const isGod = godMode !== undefined ? godMode : !!ship.state.godMode;
     const next: Ship = { id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId: start.bodyId, controls: IDLE,
-      state: { ...start.state, revision: ship.state.revision + 1, ...(ship.state.godMode ? { godMode: true } : {}) } };
+      state: { ...start.state, revision: ship.state.revision + 1, ...(isGod ? { godMode: true } : {}) } };
     this.fleet.set(ship.id, next);
     this.prior.delete(ship.id);
     this.wake(ship.id);
@@ -400,6 +401,14 @@ export class World {
     this.fleet.set(shipId, { ...ship, state: setGodMode(ship.state, enabled) });
     this.wake(shipId);
     this.touched(shipId);
+  }
+
+  setGodModeAll(enabled: boolean): void {
+    for (const [id, ship] of this.fleet) {
+      this.fleet.set(id, { ...ship, state: setGodMode(ship.state, enabled) });
+      this.wake(id);
+      this.touched(id);
+    }
   }
 
   rename(shipId: string, name: string): void {

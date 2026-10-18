@@ -16,6 +16,8 @@ export class Prediction {
   path: readonly GhostSample[] = [];
   pathEnd: GhostEnd = 'grounded';
   lastPass = { end: 'grounded' as GhostEnd, samples: 0, workMs: 0, coarse: false };
+  /** Tracing budget per frame; split-screen guests share the frame with player 1. */
+  maxMs = 3;
 
   private owner?: SimulationContext;
   constructor(private readonly onComplete: (pass: { end: GhostEnd; samples: number; workMs: number; coarse: boolean }) => void) {}
@@ -56,7 +58,7 @@ export class Prediction {
     this.pass.budget = Math.min(256, this.pass.budget + (surface || numerical ? 12000 : TRACE_SAMPLES_PER_SECOND) * seconds);
     const begin = performance.now();
     let end: GhostEnd | undefined;
-    while (this.pass.budget >= 1 && performance.now() - begin < 3) {
+    while (this.pass.budget >= 1 && performance.now() - begin < this.maxMs) {
       const result = this.pass.job.next();
       if (result.done) { end = result.value; break; }
       this.pass.samples.push(result.value); this.pass.budget--;

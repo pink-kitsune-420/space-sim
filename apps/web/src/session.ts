@@ -40,6 +40,7 @@ export interface GameSession {
   remove(shipId: string): void;
   setThrottle(shipId: string, throttle: number): void;
   setGodMode(shipId: string, enabled: boolean): void;
+  setGodModeAll(enabled: boolean): void;
   /** A module command for an owned ship. Local worlds apply it now through the host's
    * checks (or throw a SessionError); remote results arrive with the next snapshot. */
   command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void;
@@ -130,18 +131,44 @@ export class LocalSession implements GameSession {
     return this.host.spawnShip(this.playerId, presetId, godMode).id;
   }
   respawn(shipId: string, presetId: string): void {
-    this.host.respawnShip(this.playerId, shipId, presetId);
+    const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
+    this.host.respawnShip(ownerId, shipId, presetId);
   }
   teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
-    this.host.teleportShip(this.playerId, shipId, bodyId, position, velocity, heading);
+    const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
+    this.host.teleportShip(ownerId, shipId, bodyId, position, velocity, heading);
     this.settle();
   }
-  remove(shipId: string): void { this.host.removeShip(this.playerId, shipId); }
-  setThrottle(shipId: string, throttle: number): void { this.host.setThrottle(this.playerId, shipId, throttle); }
-  setGodMode(shipId: string, enabled: boolean): void { this.host.setGodMode(this.playerId, shipId, enabled); }
-  command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void {
-    this.host.command(this.playerId, shipId, commandId, args);
+  remove(shipId: string): void {
+    const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
+    this.host.removeShip(ownerId, shipId);
   }
+  setThrottle(shipId: string, throttle: number): void {
+    const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
+    this.host.setThrottle(ownerId, shipId, throttle);
+  }
+  setGodMode(shipId: string, enabled: boolean): void {
+    const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
+    this.host.setGodMode(ownerId, shipId, enabled);
+  }
+  setGodModeAll(enabled: boolean): void { this.host.setGodModeAll(enabled); }
+  command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void {
+    const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
+    this.host.command(ownerId, shipId, commandId, args);
+  }
+  /** Split-screen seats: extra pilots on this screen, each a player of their own. */
+  seatGuest(name: string, token: string): string { return this.host.seatLocal(name, token); }
+  unseatGuest(playerId: string): void { this.host.unseatLocal(playerId); }
+  /** Held controls for a guest seat's ship; applied by the next `update`. */
+  guestControls(playerId: string, shipId: string, controls: Controls): void {
+    if (!this.paused && this.world.record(shipId)?.ownerId === playerId) this.host.setControls(playerId, shipId, controls);
+  }
+  spawnGuest(playerId: string, presetId: string, godMode = false): string { return this.host.spawnShip(playerId, presetId, godMode).id; }
+  respawnGuest(playerId: string, shipId: string, presetId: string, godMode?: boolean): void {
+    this.host.respawnShip(playerId, shipId, presetId, godMode);
+    this.settle();
+  }
+  setGuestThrottle(playerId: string, shipId: string, throttle: number): void { this.host.setThrottle(playerId, shipId, throttle); }
   accept(connection: Connection): void { this.host.accept(connection); }
   players(): readonly NetPlayer[] { return this.host.playerList(); }
   playerName(id: string): string | undefined { return this.host.playerName(id); }
@@ -180,6 +207,11 @@ export class RemoteSession implements GameSession {
   remove(shipId: string): void { this.client.remove(shipId); }
   setThrottle(shipId: string, throttle: number): void { this.client.setThrottle(shipId, throttle); }
   setGodMode(shipId: string, enabled: boolean): void { this.client.setGodMode(shipId, enabled); }
+  setGodModeAll(enabled: boolean): void {
+    for (const ship of this.world.ships()) {
+      if (ship.ownerId === this.playerId) this.client.setGodMode(ship.id, enabled);
+    }
+  }
   command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void { this.client.command(shipId, commandId, args); }
   players(): readonly NetPlayer[] { return this.client.players; }
   playerName(id: string): string | undefined { return this.client.players.find(p => p.id === id)?.name; }

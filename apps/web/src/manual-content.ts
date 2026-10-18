@@ -74,9 +74,22 @@ while you fly. Press {{key:pause}} to pause.</p>
 <h3>Gamepad</h3>
 <p>Plug in a controller and press any button. Steam Deck, Xbox, PlayStation and most joysticks work.</p>
 ${deeper('tuning a controller', `
-<p>Open <b>Settings → Controls &amp; keybindings… → Controller</b>. You can pick which stick axis turns the ship
-and which sets the throttle, invert either one, and set the <b>dead zone</b>: how far a stick must move before the
-game reacts. Raise it if the ship drifts while you aren't touching the stick.</p>`)}`,
+<p>Open <b>Settings → Controls &amp; keybindings… → Controllers</b>. Choose the player to configure, then change their stick axes, inversion, dead zone or button bindings. The <b>dead zone</b> is how far a stick must move before the game reacts; raise it if the ship drifts while you aren't touching the stick. Select <b>+</b> beside an action and press a controller button to bind it. Gameplay input is held while this dialog is open.</p>`)}`,
+  },
+  {
+    id: 'local-players',
+    title: 'Playing on one screen',
+    summary: 'Up to four pilots, controllers and dynamic split screen',
+    html: `
+<p>Open <b>Settings → Split screen…</b> and choose one to four players. Local pilots work in your solo world or a world you host. Joining someone else's world uses the primary pilot.</p>
+<ol>
+  <li>On the <b>Players</b> tab, give each pilot a name and an input device. Use the keyboard for one player and controllers for the others. <b>Press to assign</b> lets a controller claim a seat.</li>
+  <li>Choose <b>Dynamic</b> screen mode to share a view while the ships are close together. Moving apart, changing reference body or opening a map splits the views. <b>Forced split screen</b> always gives each pilot a separate pane.</li>
+  <li>Each pilot has a matching colour and navball. Pick its corner on the Players tab, or unpin and drag the dial. Disabling <b>Instruments → Navball</b> hides the dials and their interaction targets.</li>
+  <li>The primary pilot's quick reset returns only that ship to the chosen scenario. Other pilots can use their assigned reset button. <b>Setup → Reset world</b> is for the host and restarts every ship and the clock.</li>
+</ol>
+<p>In a game already configured for several players, an unclaimed controller can join by pressing Start. Controller settings are separate for each player; time warp and pause affect everyone.</p>
+<p>With the throw cheat enabled in Settings, hold the controller's configured throw button and pull with a stick, then release to launch. Disabled controllers and disabled cheats cannot throw a vessel. The right stick moves a virtual cursor for the pilot's viewport.</p>`,
   },
   {
     id: 'first-orbit',
@@ -186,6 +199,7 @@ hyperbola. When you cross a boundary, the game switches the path to the new body
   <li><b>Velocity arrow</b>: the direction you are moving, with your speed (<b>Instruments → Velocity</b>).</li>
   <li><b>Navball</b>: your ship's tilt against the horizon. See <a data-page="navball">Navball</a>.</li>
   <li><b>Trajectory window</b>: Pe, Ap and impact numbers.</li>
+  <li><b>Maneuver planner</b>: click or tap the coast line to place a planned burn. See <a data-page="maneuvers">Planning a maneuver</a>.</li>
   <li><b>Telemetry window</b>: your speed split into up-down and sideways parts, local gravity, and orbit timing.</li>
   <li><b>Camera</b>: {{key:camera}} switches between following the ship, a view of the planet, and free movement.
     {{key:orientation}} switches between north-up and horizon-up. Zoom with {{key:zoomIn}} {{key:zoomOut}}.</li>
@@ -203,11 +217,28 @@ ${deeper('what the telemetry numbers mean', `
 </dl>`)}`,
   },
   {
+    id: 'maneuvers',
+    title: 'Planning a maneuver',
+    summary: 'Click a trajectory, plan a burn, preview the orbit',
+    html: `
+<p>A maneuver node marks a future point where you intend to change your velocity. Planning a burn leaves your ship coasting.</p>
+<ol>
+  <li>Enter an unpowered orbit. Zoom out until you can see the coast line, then click or tap it. An amber diamond marks the node and the <b>Maneuver</b> window opens.</li>
+  <li>Set <b>Prograde Δv</b> to add speed along your motion; a negative value is retrograde and slows you down. Set <b>Radial Δv</b> to push away from the body; a negative value pushes inward. Δv means a change in velocity, measured in metres per second.</li>
+  <li>The dashed amber line previews the coast after that burn. Click a different point on the original coast line to move the node, or edit <b>Burn in (s)</b>. The + and − buttons adjust by 1 m/s; Shift-click adjusts by 10 m/s.</li>
+  <li>Use the countdown and full-throttle burn estimate to prepare. <b>Warp to burn</b> approaches the node and returns to normal speed 10 seconds plus half the estimated burn duration beforehand. Only the host controls warp. Steering, thrust, pausing, hiding the tab or <b>Stop warp</b> cancels the approach.</li>
+  <li>Turn toward the amber diamond on the navball and fire the engine yourself. Centre the estimated burn on the node time. The amber arrow at the node also shows the intended burn direction.</li>
+</ol>
+<p>Use <b>Delete node</b> to remove the plan. Close the editor and reopen it from the <b>Maneuver</b> dock button. Disable the tool in <b>Instruments → Maneuver planner</b>.</p>
+<p>Each piloted ship has one local plan for this flight session. Plans are not included in world saves or sent to other players. Thrust, resets and changes of reference body mark an old plan for replanning.</p>
+${deeper('precision and limits', `<p>The preview applies the entire Δv instantly at the node, then uses the same isolated trajectory predictor as the coast line. Real engine burns take time, so long burns differ from the preview. Prograde follows velocity and radial follows position; those directions are not perpendicular on an eccentric orbit. Burn duration uses the magnitude of their combined vector and the engine's maximum acceleration.</p>
+<p>The preview uses the current body's gravity and stops at contact or its prediction limit. It does not forecast subsequent sphere-of-influence encounters. Custom worlds requiring numerical or whole-world prediction cannot use this analytic planner.</p>`)}`,
+  },
+  {
     id: 'navball',
     title: 'Navball',
-    summary: 'Coming soon: an attitude dial for launches, burns and landings',
+    summary: 'An attitude dial for launches, burns and landings',
     html: `
-<p class="manual-note"><b>Coming in the next update.</b> The navball is being built now. This page describes the first version, so details may still change.</p>
 <p>The navball is a round dial in the corner of the screen (top right on phones). It shows which way your
 ship points compared with the ground below you.</p>
 <ul>
@@ -216,6 +247,7 @@ ship points compared with the ground below you.</p>
   <li><b>Yellow-green circle with a dot</b>: prograde, the way you are moving. The same circle with an <b>X</b> is retrograde.</li>
   <li><b>Blue circles</b> at the top and bottom: radial out (straight up) and radial in (straight down).</li>
   <li><b>Orange arc</b>: the shortest turn from your nose to prograde.</li>
+  <li><b>Amber diamond</b>: the direction of a planned maneuver burn. See <a data-page="maneuvers">Planning a maneuver</a>.</li>
 </ul>
 <p>The readout under the dial shows <b>PITCH</b> (how far your nose points above the horizon), <b>Δ</b> (how many
 degrees you need to turn to face prograde), and your speed.</p>
@@ -307,7 +339,7 @@ Only the scale changes.</p>`)}`,
   <li>{{key:cycleShip}} and {{key:cycleShipPrev}} switch between ships, or click one in the Fleet list.
     <b>Remove ship</b> deletes the ship you are flying.</li>
   <li><b>Save world</b> downloads the whole world, with its clock and every ship, as a file. <b>Load world…</b> picks up where you left off.</li>
-  <li>{{key:reset}} (<b>Reset flight</b>) starts over. If you have several ships, only the one you are flying goes back to the start.</li>
+  <li>{{key:reset}} (<b>Reset flight</b>) returns only the ship you are flying to the chosen scenario, preserving the world clock and the other ships. <b>Setup → Reset world</b> restarts the whole world and rewinds the clock; only the host can do this.</li>
 </ul>`,
   },
   {

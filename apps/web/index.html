@@ -17,7 +17,7 @@
       <main>
         <div id="flight-console" class="workspace">
           <section class="flight-panel" aria-label="Flight view">
-            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Drag with the mouse to pan."></canvas>
+            <div class="viewport"><canvas id="flight-view" tabindex="0" aria-label="Planet, vessel and sampled coast trajectory. Click the trajectory to plan a maneuver; drag to pan."></canvas>
               <div class="hud-top-left">
                 <div class="hud-status">
                   <span class="view-title"><i></i><output id="active-body" aria-label="Active body">PRIMUS</output><output id="status" aria-label="Vessel status">LANDED</output></span>
@@ -30,6 +30,7 @@
                   <div class="qb-group qb-camera" role="group" aria-label="Camera"><button id="camera" type="button" title="Change camera (C)">Follow ship</button><button id="orientation" type="button" title="Horizon or north up (H)">Horizon up</button></div>
                   <div class="qb-group qb-zoom" role="group" aria-label="Zoom"><button id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out (−)">−</button><button id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in (+)">+</button></div>
                   <div class="qb-group" role="group" aria-label="View"><button id="throw-ship-toggle" type="button" title="Slingshot Throw / Teleport mode (T, or hold Alt and drag in space)">Throw</button><button id="fullscreen" class="qb-icon" type="button" title="Toggle fullscreen (F)" aria-label="Toggle fullscreen" aria-pressed="false">Fullscreen</button></div>
+                  <div class="qb-group qb-split" id="qb-split-group" role="group" aria-label="Split Screen" style="display: none;"><button id="split-mode-toggle" type="button" title="Toggle between Dynamic packing and Forced split screen">Dynamic Screen</button></div>
                 </div>
                 <div class="view-time">T+ <output id="time">00:00.00</output><span id="warp-rate">REAL TIME · 1×</span><span class="connection"><i></i> LOCAL FLIGHT</span></div>
               </div>
@@ -44,7 +45,7 @@
               </div>
 
               <div id="trajectory-source" hidden>
-            <section class="card path-card"><p class="eyebrow">TRAJECTORY</p><h2><span class="path-key"></span> If you coast now</h2><div class="flight-state"><span>Radial periapsis · ref. radius</span><output id="periapsis">—</output></div><div class="flight-state"><span>Radial apoapsis · ref. radius</span><output id="apoapsis">—</output></div><div class="flight-state"><span>Prediction</span><output id="prediction">Preparing…</output></div><details class="panel-note"><summary>About predictions</summary><p>Engine-off trajectory. Safe orbits use exact coast; near terrain, shared flight steps stop at first contact or show a partial path. Predictions use the active body until a sphere-of-influence change.</p></details></section>
+            <section class="card path-card"><p class="eyebrow">TRAJECTORY</p><h2><span class="path-key"></span> If you coast now</h2><div class="flight-state"><span>Radial periapsis · ref. radius</span><output id="periapsis">—</output></div><div class="flight-state"><span>Radial apoapsis · ref. radius</span><output id="apoapsis">—</output></div><div class="flight-state"><span>Prediction</span><output id="prediction">Preparing…</output></div><p class="control-note">Click the coast line to plan a maneuver.</p><details class="panel-note"><summary>About predictions</summary><p>Engine-off trajectory. Safe orbits use exact coast; near terrain, shared flight steps stop at first contact or show a partial path. Predictions use the active body until a sphere-of-influence change.</p></details></section>
               </div>
 
               <!-- Interactive Chat & Command Bar Overlay -->
@@ -97,13 +98,13 @@
               <select id="system-select"><option value="primus-system">Primus System</option></select>
               </div><div><label for="preset">Scenario</label>
               <select id="preset"><option value="pad">North pad · ready to launch</option><option value="planet-orbit">Circular orbit · 128 m altitude</option><option value="moon-orbit">Parvus circular orbit · 128 m altitude</option></select></div></div>
-              <div class="setup-run-controls"><button id="reset" type="button" aria-label="Reset flight" title="Restart this scenario (R)">Reset flight</button></div></section>
+              <div class="setup-run-controls"><button id="reset" type="button" aria-label="Reset flight" title="Quick restart ship at scenario (R)">Quick reset</button><button id="reset-world" type="button" aria-label="Reset world" title="Reset whole universe, clock and all ships (Host only)">Reset world</button></div></section>
             <section class="card settings-card" aria-label="Settings">
               <div class="settings-group"><h3>Display</h3>
                 <div class="settings-buttons"><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="grid-toggle" type="button" title="Toggle navigation grid on/off (G)" aria-pressed="false">Grid: Off</button><button id="theme-toggle" type="button" title="Customize Skybox, Procedural Nebulas, Grids & Timers" aria-haspopup="dialog">Theme…</button></div>
               </div>
               <div class="settings-group"><h3>Controls</h3>
-                <div class="settings-buttons"><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog" class="wide">Controls &amp; keybindings…</button></div>
+                <div class="settings-buttons"><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog" class="wide">Controls &amp; keybindings…</button><button id="players-toggle" type="button" title="Play with up to four players on one screen" aria-haspopup="dialog" class="wide">Split screen…</button></div>
               </div>
               <div class="settings-group"><h3>Gameplay</h3>
                 <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode<small>Impacts stop the ship safely.</small></span></label>
@@ -554,12 +555,13 @@
         <dialog id="controls-dialog" class="controls-dialog" aria-labelledby="controls-dialog-title">
           <div class="controls-modal">
             <div class="controls-modal-header">
-              <h2 id="controls-dialog-title">Flight Controls & Keybindings</h2>
+              <h2 id="controls-dialog-title">Players, Controllers & Keybindings</h2>
               <button id="controls-close" type="button" class="close-button" aria-label="Close controls settings">✕</button>
             </div>
             <div class="controls-tabs" role="tablist">
               <button id="tab-keyboard-btn" type="button" role="tab" aria-selected="true" aria-controls="tab-keyboard" class="active">Keyboard</button>
-              <button id="tab-gamepad-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-gamepad">Controller (Steam Deck / Xbox / PS)</button>
+              <button id="tab-players-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-players">Players (Split Screen)</button>
+              <button id="tab-gamepad-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-gamepad">Controllers</button>
               <button id="tab-touch-btn" type="button" role="tab" aria-selected="false" aria-controls="tab-touch">Touchscreen Overlay</button>
             </div>
             <div id="tab-keyboard" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-keyboard-btn">
@@ -569,10 +571,45 @@
                 <button id="reset-keybindings" type="button">Reset Keyboard to Defaults</button>
               </div>
             </div>
+            <div id="tab-players" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-players-btn" hidden>
+              <p class="control-note">Split screen: up to four pilots on this screen, each flying their own ship in your world (solo or while hosting). Time warp and pause are shared. In split screen, press <b>Start</b> on a free controller to join.</p>
+              <div class="split-count" role="radiogroup" aria-label="Players on this screen">
+                <span>Players</span>
+                <button type="button" role="radio" data-count="1">1</button><button type="button" role="radio" data-count="2">2</button><button type="button" role="radio" data-count="3">3</button><button type="button" role="radio" data-count="4">4</button>
+              </div>
+              <div class="gamepad-setting-row split-layout-row">
+                <label for="split-layout">Two-player layout</label>
+                <select id="split-layout">
+                  <option value="auto">Auto (side by side on wide screens)</option>
+                  <option value="side">Side by side</option>
+                  <option value="stacked">Stacked (top and bottom)</option>
+                </select>
+              </div>
+              <div class="gamepad-setting-row split-mode-row">
+                <label for="split-screen-mode">Screen mode</label>
+                <select id="split-screen-mode">
+                  <option value="dynamic">Dynamic (share screen when together, split when apart)</option>
+                  <option value="split">Forced split screen (always split)</option>
+                </select>
+              </div>
+              <div class="gamepad-setting-row split-navball-row">
+                <label>Navball Options</label>
+                <div class="split-navball-actions">
+                  <button id="split-navball-pin-all" type="button" class="split-action-btn">📌 Pin All Navballs</button>
+                  <button id="split-navball-unpin-all" type="button" class="split-action-btn">🔓 Unlock All for Dragging</button>
+                </div>
+              </div>
+              <div id="split-players" class="split-players"></div>
+              <p id="split-players-note" class="control-note" role="status"></p>
+            </div>
             <div id="tab-gamepad" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-gamepad-btn" hidden>
+              <div class="gamepad-setting-row">
+                <label for="pad-player">Configure controller for</label>
+                <select id="pad-player"></select>
+              </div>
               <div id="gamepad-status" class="gamepad-status-banner">No controller detected. Connect a Steam Deck, Xbox, PlayStation (DualSense / DualShock), or joystick and press any button.</div>
               <div class="gamepad-options">
-                <label class="gamepad-checkbox-label"><input id="gamepad-enabled" type="checkbox" checked /> Enable Gamepad / Controller Flight Support</label>
+                <label class="gamepad-checkbox-label"><input id="gamepad-enabled" type="checkbox" checked /> Enable controllers (all players)</label>
                 <div class="gamepad-setting-row">
                   <label for="gamepad-deadzone">Analog Stick Deadzone: <span id="deadzone-value">15%</span></label>
                   <input id="gamepad-deadzone" type="range" min="0" max="40" value="15" step="1" />
@@ -580,21 +617,23 @@
                 <div class="gamepad-axis-grid">
                   <div class="gamepad-axis-col">
                     <label for="gamepad-turn-axis">Turn / Steering Axis</label>
-                    <select id="gamepad-turn-axis">
-                      <option value="0">Axis 0 (Left Stick X / Roll)</option>
-                      <option value="2">Axis 2 (Right Stick X)</option>
-                    </select>
-                    <label class="checkbox-inline"><input id="gamepad-turn-invert" type="checkbox" /> Invert Turn Direction</label>
+                    <select id="gamepad-turn-axis" data-axis="turnAxis"></select>
+                    <label class="checkbox-inline"><input id="gamepad-turn-invert" type="checkbox" data-invert="invertTurn" /> Invert Turn Direction</label>
                   </div>
                   <div class="gamepad-axis-col">
-                    <label for="gamepad-throttle-axis">Throttle / Pitch Axis</label>
-                    <select id="gamepad-throttle-axis">
-                      <option value="1">Axis 1 (Left Stick Y / Pitch)</option>
-                      <option value="3">Axis 3 (Right Stick Y)</option>
-                    </select>
-                    <label class="checkbox-inline"><input id="gamepad-throttle-invert" type="checkbox" checked /> Invert Throttle (Forward = Increase)</label>
+                    <label for="gamepad-throttle-axis">Throttle Axis</label>
+                    <select id="gamepad-throttle-axis" data-axis="throttleAxis"></select>
+                    <label class="checkbox-inline"><input id="gamepad-throttle-invert" type="checkbox" data-invert="invertThrottle" /> Invert Throttle (Forward = Increase)</label>
+                  </div>
+                  <div class="gamepad-axis-col">
+                    <label for="gamepad-zoom-axis">Zoom Axis</label>
+                    <select id="gamepad-zoom-axis" data-axis="zoomAxis"></select>
+                    <label class="checkbox-inline"><input id="gamepad-zoom-invert" type="checkbox" data-invert="invertZoom" /> Invert Zoom (Forward = Zoom In)</label>
                   </div>
                 </div>
+                <h3 class="pad-buttons-title">Buttons</h3>
+                <p class="control-note">Select <b>+</b> and press a controller button to add it, or select a button to remove it. <kbd>Esc</kbd> cancels.</p>
+                <div id="pad-bindings" class="keybindings-list pad-bindings"></div>
                 <div class="gamepad-diagnostics">
                   <h3>Live Controller Diagnostics</h3>
                   <div id="gamepad-axes-display" class="gamepad-axes-display"></div>
@@ -602,7 +641,7 @@
                 </div>
               </div>
               <div class="controls-modal-actions">
-                <button id="reset-gamepad" type="button">Reset Gamepad to Defaults</button>
+                <button id="reset-gamepad" type="button">Reset This Player's Controller</button>
               </div>
             </div>
             <div id="tab-touch" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-touch-btn" hidden>

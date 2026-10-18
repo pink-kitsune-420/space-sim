@@ -7,12 +7,15 @@ import { flightVectors } from './flight-vectors';
 import { navball } from './navball';
 import { orbitMarkers } from './orbit-markers';
 import { telemetry } from './telemetry';
+import { maneuverPlanner } from './maneuver-planner';
 export type { FlightData, FlightDataApi, OrbitData } from './flight-data';
-export type { NavballFrame, NavballOrientation, NavballState } from './navball';
+export type { NavballFrame, NavballOrientation, NavballState, NavballPlacementDetail } from './navball';
+export { setNavballPlacementProvider, drawNavball, SIDE as NAVBALL_SIDE, BELOW as NAVBALL_BELOW } from './navball';
 
-export const TOOLSET_MODULES: readonly RegisteredModule[] = Object.freeze([flightData, flightVectors, orbitMarkers, telemetry, navball]);
+export const TOOLSET_MODULES: readonly RegisteredModule[] = Object.freeze([flightData, flightVectors, orbitMarkers, telemetry, navball, maneuverPlanner]);
 /** The console's instrument switches, in display order. Each enables what it depends on. */
 export const INSTRUMENTS: readonly { readonly id: string; readonly label: string; readonly title: string }[] = Object.freeze([
+  { id: 'builtin.maneuver-planner', label: 'Maneuver planner', title: 'Click the coast trajectory to plan a burn and preview its orbit' },
   { id: 'builtin.flight-vectors', label: 'Velocity', title: 'The velocity (prograde) vector at the ship, with its speed' },
   { id: 'builtin.orbit-markers', label: 'Orbit markers', title: 'Periapsis and apoapsis on the orbit, with altitude and time to go' },
   { id: 'builtin.telemetry', label: 'Telemetry', title: 'Speed components, gravity, energy and orbit timing' },

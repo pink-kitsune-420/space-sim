@@ -22,14 +22,19 @@ import {
   ACTION_DEFINITIONS, buildKeyLookup, formatKeyCode, isFlightAction, loadKeybindings,
   resetKeybindings, saveKeybindings, type ActionId, type KeyBindings,
 } from './input-config';
-import { GamepadManager } from './gamepad';
+import { GamepadManager, isButtonDown } from './gamepad';
 import { TouchControlsManager, type TouchMode } from './touch-controls';
+import { SplitScreen, GuestPilot } from './split-screen';
+import { ControllerMenu } from './controller-menu';
+import { PLAYER_COLORS, setPlayerCount, computeNavballCenter, setSlotNavball, defaultNavballPlacement } from './local-players';
+import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvider, TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH, type NavballFrame } from '../../../packages/modules/src/base/toolset/navball';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
 import { CameraController, findSmartThrowTarget, type SmartCandidate } from './camera';
 import { CommandBar } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
 import { Prediction } from './prediction';
+import { ManeuverPlanner } from './maneuver-planner';
 import { SpinView } from './spin-view';
 import { loadGraphicsQuality, saveGraphicsQuality } from './graphics';
 import { PlanetDesigner } from './planet-designer';
@@ -37,6 +42,7 @@ import './style.css';
 import {
   DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
   magnitude, querySurface, nextWarpFactor, rotate, spinAngle, spinRate,
+  findDominantBodyForWorldPos,
   type Controls, type ResolvedBody, type State,
   type UniverseDefinition, type Vec, type SurfaceContactEvent
 } from '../../../packages/sim-core/src/index';
@@ -48,7 +54,7 @@ import { connectWebSocket, serverUrl } from '../../../packages/net/src/websocket
 import { LocalDiscovery, LocalHost, connectLocal, type LocalAdvert } from '../../../packages/net/src/broadcast';
 import { lanCandidates, scanServers } from '../../../packages/net/src/discovery';
 import { OCEAN_UNIVERSE, TERRAIN_UNIVERSE } from '../../../packages/scenarios/builtin';
-import { type Camera, type RenderShip, saveThemeSettings, hashWorldSeed, screenToWorld } from '../../../packages/render-2d/src/index';
+import { type Camera, type RenderShip, saveThemeSettings, hashWorldSeed, screenToWorld, project } from '../../../packages/render-2d/src/index';
 import { initThemeCustomizer } from './theme-customizer';
 import type { CommandExtension, PresentationSnapshot, OverlayPrimitive } from '../../../packages/game-api/src/index';
 import { Profiler, createRows } from './profiler';
@@ -121,6 +127,11 @@ graphicsButton.addEventListener('click', () => {
   profiler.event('graphics', { quality: graphicsQuality });
 });
 const godModeToggle = element<HTMLInputElement>('god-mode');
+const GOD_MODE_KEY = 'space-sim:god-mode:v1';
+try {
+  const savedGod = localStorage.getItem(GOD_MODE_KEY);
+  if (savedGod !== null) godModeToggle.checked = savedGod === 'true';
+} catch { /* ignore */ }
 const runInBackgroundToggle = element<HTMLInputElement>('run-in-background');
 const RUN_IN_BACKGROUND_KEY = 'space-sim:run-in-background:v1';
 try {
@@ -138,26 +149,18 @@ const profilerPanel = element<HTMLElement>('profiler');
 const profilerButton = element<HTMLButtonElement>('profiler-toggle');
 const fullscreenButton = element<HTMLButtonElement>('fullscreen');
 const controlsToggle = element<HTMLButtonElement>('controls-toggle');
+const playersToggle = element<HTMLButtonElement>('players-toggle');
 const controlsDialog = element<HTMLDialogElement>('controls-dialog');
 const controlsClose = element<HTMLButtonElement>('controls-close');
 const tabKeyboardBtn = element<HTMLButtonElement>('tab-keyboard-btn');
+const tabPlayersBtn = element<HTMLButtonElement>('tab-players-btn');
 const tabGamepadBtn = element<HTMLButtonElement>('tab-gamepad-btn');
 const tabKeyboard = element<HTMLElement>('tab-keyboard');
+const tabPlayers = element<HTMLElement>('tab-players');
 const tabGamepad = element<HTMLElement>('tab-gamepad');
 const keybindingsList = element<HTMLElement>('keybindings-list');
 const resetKeybindingsBtn = element<HTMLButtonElement>('reset-keybindings');
 
-const gamepadStatus = element<HTMLElement>('gamepad-status');
-const gamepadEnabled = element<HTMLInputElement>('gamepad-enabled');
-const gamepadDeadzone = element<HTMLInputElement>('gamepad-deadzone');
-const deadzoneValue = element<HTMLElement>('deadzone-value');
-const gamepadTurnAxis = element<HTMLSelectElement>('gamepad-turn-axis');
-const gamepadTurnInvert = element<HTMLInputElement>('gamepad-turn-invert');
-const gamepadThrottleAxis = element<HTMLSelectElement>('gamepad-throttle-axis');
-const gamepadThrottleInvert = element<HTMLInputElement>('gamepad-throttle-invert');
-const gamepadAxesDisplay = element<HTMLElement>('gamepad-axes-display');
-const gamepadButtonsDisplay = element<HTMLElement>('gamepad-buttons-display');
-const resetGamepadBtn = element<HTMLButtonElement>('reset-gamepad');
 const tabTouchBtn = element<HTMLButtonElement>('tab-touch-btn');
 const tabTouch = element<HTMLElement>('tab-touch');
 const touchOverlayMode = element<HTMLSelectElement>('touch-overlay-mode');
@@ -202,6 +205,7 @@ let state: State;
 let view: State;
 const cameraControl = new CameraController();
 let cameraDrag: { id: number; x: number; y: number; moved: boolean } | undefined;
+let maneuverTap: { id: number; x: number; y: number } | undefined;
 let lastWall: number | undefined;
 let lastHud = -Infinity;
 let lastDebug = -Infinity;
@@ -254,10 +258,68 @@ const isSolo = (): boolean => session === local && !local.hosting;
 /** Records only: a pilot's list never needs to evaluate sleeping ships. */
 const ownShips = (): Ship[] => [...session.world.records()].filter(s => s.ownerId === session.playerId);
 const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship(selectedShipId) : undefined;
+const maneuver = new ManeuverPlanner(workspace, {
+  flight: () => ({ world: session.world, ship: selectedShip(), body: activeBody,
+    enabled: presentation.isEnabled('builtin.maneuver-planner'), canWarp: session.canWarp,
+    paused: session.paused, warp: session.warp, requestedWarp: session.requestedWarp }),
+  setWarp, notify, event: (kind, detail) => profiler.event(kind, detail),
+});
 function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };
   lastHud = -Infinity;
 }
+
+const viewport = canvas.parentElement as HTMLElement;
+let controllerMenu: ControllerMenu;
+const splitModeToggleBtn = element<HTMLButtonElement>('split-mode-toggle');
+const qbSplitGroup = element<HTMLDivElement>('qb-split-group');
+
+function syncSplitModeButton(): void {
+  if (!splitModeToggleBtn || !qbSplitGroup) return;
+  const isSplitActive = splitScreen.split;
+  qbSplitGroup.style.display = isSplitActive ? '' : 'none';
+  if (isSplitActive) {
+    const isForced = splitScreen.config.screenMode === 'split';
+    splitModeToggleBtn.textContent = isForced ? 'Forced Split' : 'Dynamic Screen';
+    splitModeToggleBtn.title = isForced
+      ? 'Screen mode: Forced Split (Always split). Click for Dynamic.'
+      : 'Screen mode: Dynamic (Packs together). Click for Forced Split.';
+    splitModeToggleBtn.setAttribute('aria-pressed', String(isForced));
+  }
+}
+
+splitModeToggleBtn?.addEventListener('click', () => {
+  const nextMode = splitScreen.config.screenMode === 'split' ? 'dynamic' : 'split';
+  splitScreen.setConfig({ ...splitScreen.config, screenMode: nextMode });
+  syncSplitModeButton();
+  notify(nextMode === 'split' ? 'Forced split screen enabled (always split).' : 'Dynamic screen mode enabled.');
+});
+
+const splitScreen = new SplitScreen(viewport, {
+  gamepads: gamepadManager,
+  session: () => session,
+  ownWorld: () => session === local ? local : undefined,
+  presetId: () => preset.value || 'pad',
+  isGodMode: () => godModeToggle.checked,
+  keyboardFlight: () => keyboardFlight(),
+  inputEnabled: () => !controlsDialog.open && !document.hidden,
+  consumesPad: (slot, pad) => controllerConsumesFlight(slot, pad),
+  execute: action => executeAction(action),
+  notify: text => notify(text),
+  changed: () => {
+    controllerMenu?.renderPlayers();
+    syncSplitModeButton();
+  },
+  onGuestPointer: (guest, action, event) => handleGuestPointer(guest, action, event),
+  isSlotThrowing: slot => isSlotThrowing(slot),
+});
+controllerMenu = new ControllerMenu(
+  splitScreen,
+  gamepadManager,
+  () => pilotName(),
+  () => controlsDialog.open,
+);
+
 
 const chatOverlay = document.getElementById('chat-overlay');
 const chatMessages = document.getElementById('chat-messages');
@@ -337,6 +399,7 @@ function showChatLine(line: ChatLine): void {
 /** Place a ship through the session (throw, orbit and teleport cheats). A remote host
  * applies it with its next update, or refuses with a notice. False if refused here. */
 function placeShip(ship: Ship, bodyId: string, position: Vec, velocity: Vec, heading: number | undefined, done: string): boolean {
+  if (!throwCheatEnabled) { notify('Throw cheat is disabled. Enable it in Settings to place a vessel.'); return false; }
   try { session.teleport(ship.id, bodyId, position, velocity, heading); } catch (error) {
     logChatMessage('error', message(error));
     notify(message(error));
@@ -364,6 +427,7 @@ function executeChatCommand(cmdStr: string): void {
       logChatMessage('system', '/god — Toggle god mode (invulnerable)');
       logChatMessage('system', '/warp [factor] — Set time warp rate (1-10000)');
       logChatMessage('system', '/spawn [preset] — Spawn a new vessel');
+      logChatMessage('system', '/split [force|dynamic|1-4] — Toggle or configure split screen mode');
       logChatMessage('system', '/clear — Clear chat messages');
       logChatMessage('system', 'Tip: Hold Alt and drag in space (or press T / click "Throw") to sling your ship into orbit!');
       break;
@@ -495,13 +559,27 @@ function executeChatCommand(cmdStr: string): void {
       break;
     }
     case 'god': {
-      if (!ship) {
-        logChatMessage('error', 'No active vessel.');
-        return;
+      const nextGod = !godModeToggle.checked;
+      godModeToggle.checked = nextGod;
+      try { localStorage.setItem(GOD_MODE_KEY, String(nextGod)); } catch { /* ignore */ }
+      try {
+        session.setGodModeAll(nextGod);
+      } catch (error) {
+        godModeToggle.checked = !nextGod;
+        notify(message(error));
+        logChatMessage('error', `Could not update God Mode: ${message(error)}`);
+        break;
       }
-      const nextGod = !ship.state.godMode;
-      session.setGodMode(ship.id, nextGod);
-      logChatMessage('success', `God Mode ${nextGod ? 'ENABLED (invulnerable)' : 'DISABLED'}.`);
+      logChatMessage('success', `God Mode ${nextGod ? 'ENABLED for all ships (invulnerable)' : 'DISABLED'}.`);
+      break;
+    }
+    case 'reset': {
+      reset();
+      logChatMessage('success', 'Quick reset: vessel respawned at scenario start.');
+      break;
+    }
+    case 'resetworld': {
+      resetWorld();
       break;
     }
     case 'warp': {
@@ -523,6 +601,30 @@ function executeChatCommand(cmdStr: string): void {
         logChatMessage('success', `Spawned vessel with preset "${presetId}".`);
       } catch (e) {
         logChatMessage('error', `Failed to spawn: ${(e as Error).message}`);
+      }
+      break;
+    }
+    case 'split':
+    case 'splitscreen': {
+      const sub = (args[0] || '').toLowerCase();
+      if (sub === 'force' || sub === 'forced' || sub === 'split' || sub === 'always') {
+        splitScreen.setConfig({ ...splitScreen.config, screenMode: 'split' });
+        syncSplitModeButton();
+        logChatMessage('success', 'Forced split screen ENABLED (always split).');
+      } else if (sub === 'dynamic' || sub === 'auto' || sub === 'pack') {
+        splitScreen.setConfig({ ...splitScreen.config, screenMode: 'dynamic' });
+        syncSplitModeButton();
+        logChatMessage('success', 'Dynamic screen mode ENABLED (merges when together, splits when apart).');
+      } else if (sub === '1' || sub === '2' || sub === '3' || sub === '4') {
+        const count = Number(sub) as 1 | 2 | 3 | 4;
+        splitScreen.setConfig(setPlayerCount(splitScreen.config, count));
+        syncSplitModeButton();
+        logChatMessage('success', `Split screen set to ${count} ${count === 1 ? 'player' : 'players'}.`);
+      } else {
+        const nextMode = splitScreen.config.screenMode === 'dynamic' ? 'split' : 'dynamic';
+        splitScreen.setConfig({ ...splitScreen.config, screenMode: nextMode });
+        syncSplitModeButton();
+        logChatMessage('success', `Screen mode switched to ${nextMode === 'split' ? 'FORCED SPLIT SCREEN (always split)' : 'DYNAMIC (merges when together)'}.`);
       }
       break;
     }
@@ -707,7 +809,11 @@ function selectShip(id: string | undefined): void {
   invalidatePrediction();
   const ship = selectedShip();
   if (ship) {
-    godModeToggle.checked = ship.state.godMode === true;
+    if (godModeToggle.checked && !ship.state.godMode) {
+      try { session.setGodMode(ship.id, true); } catch { /* ignore */ }
+    } else {
+      godModeToggle.checked = ship.state.godMode === true;
+    }
     // A different ship, not a sphere-of-influence change.
     activeBody = session.world.body(ship.bodyId);
   }
@@ -803,47 +909,76 @@ function showSurfaceWorld(u: UniverseDefinition): void {
   element('flight-console').scrollIntoView({ block: 'start' });
 }
 
-function controls(): Controls {
-  const held = new Set([...pointers.values()]);
-  const gp = gamepadManager.pollFlight();
-  const touch = touchControls.pollFlight();
-
-  // Keyboard / touch button steering: CCW (+1) if turnLeft pressed; CW (-1) if turnRight pressed
+function keyboardFlight(): Controls {
+  if (controlsDialog.open || document.hidden) return IDLE;
   let kbTurn = 0;
-  if (isActionActive('turnLeft') || held.has('left')) kbTurn += 1;
-  if (isActionActive('turnRight') || held.has('right')) kbTurn -= 1;
-
-  // Keyboard / touch button throttle: +1 if throttleUp pressed; -1 if throttleDown pressed
+  if (isActionActive('turnLeft')) kbTurn += 1;
+  if (isActionActive('turnRight')) kbTurn -= 1;
   let kbThrottle = 0;
   if (isActionActive('throttleUp')) kbThrottle += 1;
   if (isActionActive('throttleDown')) kbThrottle -= 1;
+  return { turn: kbTurn, throttle: kbThrottle, engine: isActionActive('engine') };
+}
 
-  // Keyboard / touch engine burn
-  const kbEngine = isActionActive('engine') || held.has('engine');
+function controls(elapsed = 0): Controls {
+  if (controlsDialog.open || document.hidden) return IDLE;
+  const held = new Set([...pointers.values()]);
+  const touch = touchControls.pollFlight();
+
+  // Keyboard controls: only if player 1 has the keyboard assigned
+  let kbTurn = 0;
+  let kbThrottle = 0;
+  let kbEngine = false;
+  if (splitScreen.keyboardSlot === 0) {
+    if (isActionActive('turnLeft') || held.has('left')) kbTurn += 1;
+    if (isActionActive('turnRight') || held.has('right')) kbTurn -= 1;
+    if (isActionActive('throttleUp')) kbThrottle += 1;
+    if (isActionActive('throttleDown')) kbThrottle -= 1;
+    kbEngine = isActionActive('engine') || held.has('engine');
+  }
+
+  // Controllers assigned to player 1
+  let gpTurn = 0;
+  let gpThrottle = 0;
+  let gpEngine = false;
+  let gpZoom = 0;
+  for (const pad of splitScreen.padsOf(0)) {
+    if (controllerConsumesFlight(0, pad)) continue;
+    const input = gamepadManager.flight(pad);
+    if (Math.abs(input.turn) > Math.abs(gpTurn)) gpTurn = input.turn;
+    if (input.throttle !== 0) gpThrottle = input.throttle;
+    if (input.engine) gpEngine = true;
+    if (Math.abs(input.zoom) > Math.abs(gpZoom)) gpZoom = input.zoom;
+  }
+  if (gpZoom && elapsed > 0 && !isSlotThrowing(0)) cameraControl.changeZoom(Math.exp(gpZoom * 2.2 * elapsed));
 
   // Blend inputs:
-  // Gamepad analog stick takes highest priority if outside deadzone,
-  // then virtual touchscreen joystick, then keyboard/pointer
-  const turn = Math.abs(gp.turn) > 0.01
-    ? gp.turn
+  const turn = Math.abs(gpTurn) > 0.01
+    ? gpTurn
     : Math.abs(touch.turn) > 0.01
       ? touch.turn
       : kbTurn;
 
-  const throttle = gp.throttle !== 0
-    ? gp.throttle
+  const throttle = gpThrottle !== 0
+    ? gpThrottle
     : touch.throttle !== 0
       ? touch.throttle
       : kbThrottle;
 
-  const engine = kbEngine || gp.engine || touch.engine;
+  const engine = kbEngine || gpEngine || touch.engine;
 
   return { turn, throttle, engine };
 }
 function release(): void {
   keys.clear(); pointers.clear();
+  if (local && session === local) for (const guest of splitScreen.guests.values()) {
+    guest.controls = IDLE;
+    if (guest.playerId && guest.shipId) local.guestControls(guest.playerId, guest.shipId, IDLE);
+  }
+  cancelControllerCursors();
   cameraControl.stopFling();
   cameraDrag = undefined; canvasTouches.clear(); lastPinchDistance = undefined;
+  maneuverTap = undefined;
   canvas.classList.remove('dragging');
   for (const button of document.querySelectorAll('[data-hold]')) button.setAttribute('aria-pressed', 'false');
   element('burn').setAttribute('aria-pressed', 'false'); shown.set('burn', 'false');
@@ -949,23 +1084,21 @@ function fitZoom(start: State, presetId = preset.value): void {
     cameraControl.setZoom(1500 / (magnitude(start.position) * 2.8));
   }
 }
-/** Start over at the selected scenario. Alone in a solo world this is a fresh flight with
- * the clock at zero; in a shared world (or with a fleet) the piloted ship respawns. */
+/** Quick reset: restarts the piloted vessel at the scenario start without wiping the world or other ships. */
 function reset(): void {
   release();
   const presetId = session.world.presetId(preset.value);
   const ship = selectedShip();
+  const isGod = godModeToggle.checked;
   try {
-    if (isSolo() && session.world.size <= 1) {
-      local.world.reset();
-      local.settle();
-      selectedShipId = undefined;
-      selectShip(local.spawn(presetId, godModeToggle.checked));
-    } else if (ship) {
+    if (ship && session.world.record(ship.id)) {
       session.respawn(ship.id, presetId);
-      if (session === local) local.settle();
+      if (session === local) {
+        local.settle();
+        if (isGod) local.world.setGodMode(ship.id, true);
+      }
     } else {
-      const id = session.spawn(presetId, godModeToggle.checked);
+      const id = session.spawn(presetId, isGod);
       if (id) selectShip(id);
     }
   } catch (error) {
@@ -984,6 +1117,43 @@ function reset(): void {
   invalidatePrediction(); setPaused(false);
   show('active-body', activeBody.name.toUpperCase());
   profiler.event('reset', { preset: preset.value, body: activeBody.id });
+}
+
+/** Full world reset (Host only): rewinds the entire universe clock to zero and resets all ships. */
+function resetWorld(): void {
+  if (session !== local) {
+    notify('Only the host can reset the world.');
+    logChatMessage('error', 'Only the host can reset the world.');
+    return;
+  }
+  release();
+  splitScreen.resetGuests();
+  const presetId = session.world.presetId(preset.value);
+  const isGod = godModeToggle.checked;
+  try {
+    local.world.reset();
+    local.settle();
+    selectedShipId = undefined;
+    selectShip(local.spawn(presetId, isGod));
+    if (isGod) local.world.setGodModeAll(true);
+    notify('World reset: clock rewound to T+0, all ships reset.');
+    logChatMessage('system', 'World reset: clock rewound to T+0, all ships reset.');
+  } catch (error) {
+    if (!(error instanceof SessionError)) throw error;
+    notify(error.message);
+  }
+  syncSelected();
+  lastTerrainContact = undefined;
+  cameraControl.followShip();
+  cameraControl.horizon = true;
+  const startState = session.world.presetState(presetId).state;
+  cameraControl.rotation = Math.PI / 2 - Math.atan2(startState.position.y, startState.position.x);
+  fitZoom(startState, presetId);
+  lastStatus = state.status;
+  syncCameraButton();
+  invalidatePrediction(); setPaused(false);
+  show('active-body', activeBody.name.toUpperCase());
+  profiler.event('reset-world', { preset: preset.value, body: activeBody.id });
 }
 function changeZoom(factor: number): void { cameraControl.changeZoom(factor); }
 /** Follow ship → planet view → module camera modes → follow ship. */
@@ -1063,6 +1233,9 @@ interface FlightSlingshot {
   circularSpeed: number;
   currentSpeed: number;
   isSnappingCircular: boolean;
+  slot?: number;
+  targetShipId?: string;
+  sourceCanvas?: HTMLCanvasElement;
 }
 let activeFlightSlingshot: FlightSlingshot | null = null;
 let isThrowModeActive = false;
@@ -1120,28 +1293,8 @@ function updateThrowModeUI(): void {
   canvas.classList.toggle('throw-mode-cursor', active);
 }
 
-function findDominantCelestialBody(worldPos: Vec, time: number): { body: ResolvedBody; bodyPos: Vec; relPos: Vec; dist: number } {
-  const bodies = session.world.system.getAllBodies();
-  let best = bodies[0]!;
-  let bestPos = session.world.system.getBodyPosition(best.id, time);
-  let maxG = -1;
-  let bestDist = Infinity;
-  let bestRel: Vec = { x: 0, y: 0 };
-  for (const b of bodies) {
-    const bPos = session.world.system.getBodyPosition(b.id, time);
-    const rx = worldPos.x - bPos.x;
-    const ry = worldPos.y - bPos.y;
-    const d = Math.hypot(rx, ry);
-    const g = b.mu / Math.max(b.radius * b.radius, d * d);
-    if (g > maxG) {
-      maxG = g;
-      best = b;
-      bestPos = bPos;
-      bestDist = d;
-      bestRel = { x: rx, y: ry };
-    }
-  }
-  return { body: best, bodyPos: bestPos, relPos: bestRel, dist: bestDist };
+function findDominantCelestialBody(worldPos: Vec, time: number, hintBodyId?: string): { body: ResolvedBody; bodyPos: Vec; relPos: Vec; dist: number } {
+  return findDominantBodyForWorldPos(session.world.system, worldPos, time, hintBodyId);
 }
 
 function computeBodyCircularVelocity(relPos: Vec, dist: number, body: ResolvedBody, preferredDir?: Vec): { velocity: Vec; speed: number } {
@@ -1181,6 +1334,799 @@ function updateFlightSlingshotHud(): void {
       snapEl.classList.add('hidden');
     }
   }
+}
+
+function formatDistance(meters: number): string {
+  const abs = Math.abs(meters);
+  if (abs >= 1e6) return `${(meters / 1e6).toFixed(1)}Mm`;
+  if (abs >= 1e3) return `${(meters / 1e3).toFixed(1)}km`;
+  return `${meters.toFixed(0)}m`;
+}
+
+function formatTrajectoryStats(
+  shipState: { readonly position: Vec; readonly velocity: Vec; readonly status: string; readonly coast?: { readonly bodyId: string; readonly mu: number; readonly position: Vec; readonly velocity: Vec } },
+  body: ResolvedBody,
+  context: { readonly capabilities: { readonly orbitalDiagnostics?: boolean }; readonly services: { readonly orbits: { elements(s: any, mu: number): any } } },
+): string {
+  const r = Math.hypot(shipState.position.x, shipState.position.y);
+  const alt = Math.max(0, r - body.radius);
+  const spd = Math.hypot(shipState.velocity.x, shipState.velocity.y);
+  let traj = `Alt ${formatDistance(alt)} · ${spd.toFixed(1)}m/s`;
+
+  if (shipState.status === 'flying' && context.capabilities.orbitalDiagnostics) {
+    try {
+      const source = shipState.coast?.bodyId === body.id && shipState.coast.mu === body.mu ? shipState.coast : shipState;
+      const el = context.services.orbits.elements(source, body.mu);
+      const peAlt = el.periapsis - body.radius;
+      const peStr = `Pe ${formatDistance(peAlt)}`;
+      const apStr = el.apoapsis === null ? 'Ap Esc' : `Ap ${formatDistance(el.apoapsis - body.radius)}`;
+      traj = `Alt ${formatDistance(alt)} · ${peStr} · ${apStr}`;
+    } catch {
+      // Numerical fallback
+    }
+  }
+  return traj;
+}
+
+function buildSlingshotOverlay(s: FlightSlingshot, cameraScale: number, accentColor = '#38ef7d'): OverlayPrimitive[] {
+  const slingList: OverlayPrimitive[] = [];
+  slingList.push({
+    kind: 'circle',
+    space: 'world',
+    center: s.originWorld,
+    radius: 12 / cameraScale,
+    color: accentColor,
+    width: 2,
+  });
+  slingList.push({
+    kind: 'circle',
+    space: 'world',
+    center: s.originWorld,
+    radius: 3 / cameraScale,
+    color: '#ffffff',
+    fill: true,
+  });
+
+  const dragDist = Math.hypot(s.pointerWorld.x - s.originWorld.x, s.pointerWorld.y - s.originWorld.y);
+  if (s.isSnappingCircular || dragDist * cameraScale < 6) {
+    const circVel = s.circularVelocity;
+    const speed = s.circularSpeed;
+    if (speed > 0) {
+      const arrowLen = 50 / cameraScale;
+      const dirX = circVel.x / speed;
+      const dirY = circVel.y / speed;
+      const tipX = s.originWorld.x + dirX * arrowLen;
+      const tipY = s.originWorld.y + dirY * arrowLen;
+      slingList.push({
+        kind: 'line',
+        space: 'world',
+        points: [s.originWorld, { x: tipX, y: tipY }],
+        color: '#00d2ff',
+        width: 3,
+      });
+      const perpX = -dirY;
+      const perpY = dirX;
+      const barbLen = 10 / cameraScale;
+      slingList.push({
+        kind: 'line',
+        space: 'world',
+        points: [
+          { x: tipX - dirX * barbLen + perpX * (barbLen * 0.5), y: tipY - dirY * barbLen + perpY * (barbLen * 0.5) },
+          { x: tipX, y: tipY },
+          { x: tipX - dirX * barbLen - perpX * (barbLen * 0.5), y: tipY - dirY * barbLen - perpY * (barbLen * 0.5) },
+        ],
+        color: '#00d2ff',
+        width: 2,
+      });
+    }
+  } else {
+    slingList.push({
+      kind: 'line',
+      space: 'world',
+      points: [s.originWorld, s.pointerWorld],
+      color: '#ff4d4d',
+      width: 1.5,
+    });
+    const pullSpeed = Math.hypot(s.pullVelocity.x, s.pullVelocity.y);
+    if (pullSpeed > 0) {
+      const dirX = s.pullVelocity.x / pullSpeed;
+      const dirY = s.pullVelocity.y / pullSpeed;
+      const arrowPx = Math.min(120, Math.max(30, pullSpeed * 0.05));
+      const arrowWorldLen = arrowPx / cameraScale;
+      const tipX = s.originWorld.x + dirX * arrowWorldLen;
+      const tipY = s.originWorld.y + dirY * arrowWorldLen;
+      slingList.push({
+        kind: 'line',
+        space: 'world',
+        points: [s.originWorld, { x: tipX, y: tipY }],
+        color: accentColor,
+        width: 3,
+      });
+      const perpX = -dirY;
+      const perpY = dirX;
+      const barbWorldLen = 12 / cameraScale;
+      slingList.push({
+        kind: 'line',
+        space: 'world',
+        points: [
+          { x: tipX - dirX * barbWorldLen + perpX * (barbWorldLen * 0.5), y: tipY - dirY * barbWorldLen + perpY * (barbWorldLen * 0.5) },
+          { x: tipX, y: tipY },
+          { x: tipX - dirX * barbWorldLen - perpX * (barbWorldLen * 0.5), y: tipY - dirY * barbWorldLen - perpY * (barbWorldLen * 0.5) },
+        ],
+        color: accentColor,
+        width: 2,
+      });
+    }
+  }
+  return slingList;
+}
+
+interface NavballDragState {
+  slot: number;
+  pointerId: number;
+  startPointer: { x: number; y: number };
+  startNavballCenter: { x: number; y: number };
+  paneWidth: number;
+  paneHeight: number;
+}
+let activeNavballDrag: NavballDragState | null = null;
+
+interface NavballHitResult {
+  slot: number;
+  isPin: boolean;
+  center: Vec;
+  scale: number;
+  pinned: boolean;
+}
+
+function hitTestNavball(
+  screenPos: Vec,
+  targetSlot: number | 'all',
+  viewportWidth: number,
+  viewportHeight: number,
+): NavballHitResult | undefined {
+  if (!presentation.isEnabled('builtin.navball')) return undefined;
+  const slots: number[] = targetSlot === 'all'
+    ? Array.from({ length: splitScreen.active }, (_, i) => i)
+    : [targetSlot];
+
+  for (let i = slots.length - 1; i >= 0; i--) {
+    const slot = slots[i]!;
+    if (targetSlot === 'all' && slot > 0 && splitScreen.isSeparated(slot)) continue;
+    const placement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
+    const scale = Math.min(1, Math.max(0.65, Math.min(viewportWidth / 600, viewportHeight / 450)));
+    const center = computeNavballCenter(placement, viewportWidth, viewportHeight, scale);
+    const pinPos: Vec = { x: center.x + (NAVBALL_TRACK + 2) * scale * 0.72, y: center.y - (NAVBALL_TRACK + 2) * scale * 0.72 };
+
+    const dPin = Math.hypot(screenPos.x - pinPos.x, screenPos.y - pinPos.y);
+    if (dPin <= 22 * scale) {
+      return { slot, isPin: true, center, scale, pinned: placement.pinned };
+    }
+
+    const dDial = Math.hypot(screenPos.x - center.x, screenPos.y - center.y);
+    if (dDial <= (NAVBALL_TRACK + NAVBALL_GLYPH + 8) * scale) {
+      return { slot, isPin: false, center, scale, pinned: placement.pinned };
+    }
+  }
+  return undefined;
+}
+
+function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void {
+  const gCanvas = guest.canvas;
+  const guestShip = guest.ship(session);
+  if (!guestShip || !guest.view || !guest.body) return false;
+
+  if (action === 'down') {
+    const rect = gCanvas.getBoundingClientRect();
+    const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const navHit = hitTestNavball(screenPos, guest.slot, gCanvas.clientWidth, gCanvas.clientHeight);
+    if (navHit) {
+      if (navHit.isPin) {
+        const newPinned = !navHit.pinned;
+        splitScreen.setConfig(setSlotNavball(splitScreen.config, navHit.slot, { pinned: newPinned }));
+        notify(`Player ${navHit.slot + 1} Navball ${newPinned ? 'Pinned' : 'Unlocked (Drag to Move)'}.`);
+        return true;
+      }
+      if (!navHit.pinned) {
+        activeNavballDrag = {
+          slot: navHit.slot,
+          pointerId: event.pointerId,
+          startPointer: { x: event.clientX, y: event.clientY },
+          startNavballCenter: { ...navHit.center },
+          paneWidth: gCanvas.clientWidth,
+          paneHeight: gCanvas.clientHeight,
+        };
+        try { gCanvas.setPointerCapture(event.pointerId); } catch {}
+        return true;
+      }
+    }
+
+    const canThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding || event.altKey;
+    if (!canThrow || !throwCheatEnabled) return false;
+
+    const originWorld = screenToWorld(screenPos, guest.camera.last, gCanvas.clientWidth, gCanvas.clientHeight);
+    const dom = findDominantCelestialBody(originWorld, guest.view.time, guest.body?.id);
+    const circ = computeBodyCircularVelocity(dom.relPos, dom.dist, dom.body);
+
+    activeFlightSlingshot = {
+      pointerId: event.pointerId,
+      screenStart: { x: event.clientX, y: event.clientY },
+      originWorld: { x: dom.bodyPos.x + dom.relPos.x, y: dom.bodyPos.y + dom.relPos.y },
+      dominantBody: dom.body,
+      dominantWorldPos: dom.bodyPos,
+      relPos: { ...dom.relPos },
+      pointerWorld: originWorld,
+      pullVelocity: { x: 0, y: 0 },
+      circularVelocity: circ.velocity,
+      circularSpeed: circ.speed,
+      currentSpeed: 0,
+      isSnappingCircular: event.shiftKey,
+      slot: guest.slot,
+      targetShipId: guestShip.id,
+      sourceCanvas: gCanvas,
+    };
+    guest.camera.stopFling();
+    try {
+      gCanvas.setPointerCapture(event.pointerId);
+    } catch { /* ignore */ }
+    updateFlightSlingshotHud();
+    return true;
+  }
+
+  if (action === 'move') {
+    if (activeNavballDrag && activeNavballDrag.pointerId === event.pointerId && activeNavballDrag.slot === guest.slot) {
+      const dx = event.clientX - activeNavballDrag.startPointer.x;
+      const dy = event.clientY - activeNavballDrag.startPointer.y;
+      const newX = activeNavballDrag.startNavballCenter.x + dx;
+      const newY = activeNavballDrag.startNavballCenter.y + dy;
+      const fracX = Math.max(0.02, Math.min(0.98, newX / activeNavballDrag.paneWidth));
+      const fracY = Math.max(0.02, Math.min(0.98, newY / activeNavballDrag.paneHeight));
+      splitScreen.setConfig(setSlotNavball(splitScreen.config, activeNavballDrag.slot, {
+        anchor: 'custom',
+        x: fracX,
+        y: fracY,
+        pinned: false,
+      }));
+      return true;
+    }
+
+    if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId && activeFlightSlingshot.slot === guest.slot) {
+      const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, guest.view.time);
+      activeFlightSlingshot.dominantWorldPos = curDomPos;
+      activeFlightSlingshot.originWorld = {
+        x: curDomPos.x + activeFlightSlingshot.relPos.x,
+        y: curDomPos.y + activeFlightSlingshot.relPos.y,
+      };
+      const rect = gCanvas.getBoundingClientRect();
+      const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      const pointerWorld = screenToWorld(screenPos, guest.camera.last, gCanvas.clientWidth, gCanvas.clientHeight);
+      activeFlightSlingshot.pointerWorld = pointerWorld;
+      const dragDx = activeFlightSlingshot.originWorld.x - pointerWorld.x;
+      const dragDy = activeFlightSlingshot.originWorld.y - pointerWorld.y;
+      const pullVel = { x: dragDx * 0.5, y: dragDy * 0.5 };
+      activeFlightSlingshot.pullVelocity = pullVel;
+      const circ = computeBodyCircularVelocity(
+        activeFlightSlingshot.relPos,
+        Math.hypot(activeFlightSlingshot.relPos.x, activeFlightSlingshot.relPos.y),
+        activeFlightSlingshot.dominantBody,
+        pullVel,
+      );
+      activeFlightSlingshot.circularVelocity = circ.velocity;
+      activeFlightSlingshot.circularSpeed = circ.speed;
+      activeFlightSlingshot.isSnappingCircular = event.shiftKey;
+      activeFlightSlingshot.currentSpeed = activeFlightSlingshot.isSnappingCircular
+        ? circ.speed
+        : Math.hypot(pullVel.x, pullVel.y);
+      updateFlightSlingshotHud();
+      return true;
+    }
+  }
+
+  if (action === 'up') {
+    if (activeNavballDrag && activeNavballDrag.pointerId === event.pointerId && activeNavballDrag.slot === guest.slot) {
+      activeNavballDrag = null;
+      if (gCanvas.hasPointerCapture(event.pointerId)) {
+        try { gCanvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+      }
+      return true;
+    }
+
+    if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId && activeFlightSlingshot.slot === guest.slot) {
+      const s = activeFlightSlingshot;
+      const dragDist = Math.hypot(event.clientX - s.screenStart.x, event.clientY - s.screenStart.y);
+      const ship = s.targetShipId ? session.world.ship(s.targetShipId) : guest.ship(session);
+      if (ship && event.type !== 'pointercancel') {
+        let finalVel: Vec;
+        if (dragDist < 6 || s.isSnappingCircular) {
+          finalVel = s.circularVelocity;
+        } else {
+          finalVel = s.pullVelocity;
+        }
+        const finalSpeed = Math.hypot(finalVel.x, finalVel.y);
+        const heading = Math.atan2(finalVel.y, finalVel.x);
+        if (placeShip(ship, s.dominantBody.id, s.relPos, finalVel, heading,
+          `Vessel ${ship.name.toUpperCase()} placed into orbit around ${s.dominantBody.name} (${finalSpeed.toFixed(1)} m/s).`)) {
+          guest.camera.followShip();
+          show('flight-message', `Placed ${ship.name} in orbit around ${s.dominantBody.name}`);
+        }
+      }
+      activeFlightSlingshot = null;
+      updateFlightSlingshotHud();
+      if (gCanvas.hasPointerCapture(event.pointerId)) {
+        try { gCanvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+      }
+      return true;
+    }
+  }
+}
+
+interface ControllerCursor {
+  slot: number;
+  screenPos: { x: number; y: number };
+  worldPos: Vec;
+  visible: boolean;
+  lastMovedTime: number;
+  isThrowing: boolean;
+  aimingPad?: number;
+  interactingPad?: number;
+  throwOriginWorld?: Vec;
+  throwOriginScreen?: Vec;
+  pullVelocity?: Vec;
+  speed?: number;
+  circularVelocity?: Vec;
+  circularSpeed?: number;
+  isSnappingCircular?: boolean;
+  dominantBody?: ResolvedBody;
+  relPos?: Vec;
+  accentColor: string;
+}
+
+const controllerCursors = new Map<number, ControllerCursor>();
+const lastPadDpadUp = new Map<number, boolean>();
+const lastPadAButton = new Map<number, boolean>();
+const guestNavballFrames = new Map<string, NavballFrame>();
+let p1ThrowFrozenCamera: Camera | undefined;
+const guestThrowFrozenCameras = new Map<number, Camera>();
+
+function cancelControllerCursors(): void {
+  controllerCursors.clear();
+  lastPadDpadUp.clear();
+  lastPadAButton.clear();
+  p1ThrowFrozenCamera = undefined;
+  guestThrowFrozenCameras.clear();
+}
+
+function isSlotThrowing(slot: number): boolean {
+  if (controllerCursors.get(slot)?.isThrowing) return true;
+  if (activeFlightSlingshot && (activeFlightSlingshot.slot ?? 0) === slot) return true;
+  return false;
+}
+
+function controllerConsumesFlight(slot: number, padIndex: number): boolean {
+  const cursor = controllerCursors.get(slot);
+  if (!cursor) return false;
+  if (cursor.isThrowing) return true;
+  const pad = navigator.getGamepads?.()[padIndex];
+  if (!pad || (!isButtonDown(pad.buttons[0]) && !isButtonDown(pad.buttons[11]))) return false;
+  if (cursor.interactingPad === padIndex) return true;
+  const guest = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot) : undefined;
+  const hit = hitTestNavball(cursor.screenPos, slot, guest?.canvas.clientWidth ?? canvas.clientWidth,
+    guest?.canvas.clientHeight ?? canvas.clientHeight);
+  return !!hit && (hit.isPin || !hit.pinned);
+}
+
+function updateControllerCursors(elapsed: number): void {
+  if (!gamepadManager.enabled || controlsDialog.open || document.hidden) { cancelControllerCursors(); return; }
+  const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
+  const maxSlot = splitScreen.active;
+
+  for (const slot of controllerCursors.keys()) {
+    const cursor = controllerCursors.get(slot)!;
+    const pads = splitScreen.padsOf(slot);
+    if (slot >= maxSlot || !pads.length || (cursor.isThrowing && cursor.aimingPad !== undefined && !pads.includes(cursor.aimingPad))) {
+      controllerCursors.delete(slot);
+      guestThrowFrozenCameras.delete(slot);
+      if (slot === 0) p1ThrowFrozenCamera = undefined;
+    }
+  }
+  for (const index of lastPadDpadUp.keys()) {
+    if (!gamepads[index]?.connected) { lastPadDpadUp.delete(index); lastPadAButton.delete(index); }
+  }
+
+  for (let slot = 0; slot < maxSlot; slot++) {
+    const padIndices = splitScreen.padsOf(slot);
+    if (!padIndices.length) continue;
+
+    let ship: Ship | undefined;
+    let body: ResolvedBody | undefined;
+    let bodyPos: Vec | undefined;
+    let viewPos: Vec | undefined;
+    let cam: Camera | undefined;
+    let guest: GuestPilot | undefined;
+    let width = 0;
+    let height = 0;
+    let time = 0;
+
+    if (slot === 0) {
+      ship = ownShips().find(s => s.id === selectedShipId) ?? ownShips()[0] ?? selectedShip();
+      body = activeBody;
+      time = view.time;
+      bodyPos = session.world.system.getBodyPosition(activeBody.id, time);
+      viewPos = view?.position;
+      cam = cameraControl.last;
+      width = canvas.clientWidth;
+      height = canvas.clientHeight;
+    } else {
+      guest = splitScreen.guests.get(slot);
+      ship = guest?.ship(session);
+      body = guest?.body;
+      time = guest?.view?.time ?? view.time;
+      if (body && guest?.view) {
+        bodyPos = session.world.system.getBodyPosition(body.id, time);
+        viewPos = guest.view.position;
+      }
+      const separated = splitScreen.isSeparated(slot);
+      cam = separated ? guest?.camera.last : cameraControl.last;
+      width = separated ? (guest?.canvas.clientWidth ?? canvas.clientWidth) : canvas.clientWidth;
+      height = separated ? (guest?.canvas.clientHeight ?? canvas.clientHeight) : canvas.clientHeight;
+    }
+
+    if (!ship || !body || !bodyPos || !viewPos || !cam || width <= 0 || height <= 0) continue;
+
+    const shipWorldPos = { x: bodyPos.x + viewPos.x, y: bodyPos.y + viewPos.y };
+    const accentColor = PLAYER_COLORS[slot] ?? '#38ef7d';
+
+    let cursor = controllerCursors.get(slot);
+    if (!cursor) {
+      const initScreen = project(shipWorldPos, cam, width, height);
+      cursor = {
+        slot,
+        screenPos: {
+          x: Math.max(20, Math.min(width - 20, initScreen.x)),
+          y: Math.max(20, Math.min(height - 20, initScreen.y)),
+        },
+        worldPos: shipWorldPos,
+        visible: false,
+        lastMovedTime: 0,
+        isThrowing: false,
+        accentColor,
+      };
+      controllerCursors.set(slot, cursor);
+    }
+    cursor.accentColor = accentColor;
+    if (!throwCheatEnabled) cursor.isThrowing = false;
+
+    for (const padIndex of padIndices) {
+      const pad = gamepads[padIndex];
+      if (!pad) continue;
+
+      // Right Stick: moves the virtual cursor for this viewport (or Left Stick while aiming a throw)
+      let rawX = pad.axes[2] ?? 0;
+      let rawY = pad.axes[3] ?? 0;
+      if (Math.hypot(rawX, rawY) < 0.15 && cursor.isThrowing) {
+        const altX = pad.axes[0] ?? 0;
+        const altY = pad.axes[1] ?? 0;
+        if (Math.hypot(altX, altY) >= 0.15) {
+          rawX = altX;
+          rawY = altY;
+        }
+      }
+      const stickDist = Math.hypot(rawX, rawY);
+      if (stickDist > 0.15) {
+        const norm = Math.min(1, (stickDist - 0.15) / 0.75);
+        const vx = (rawX / stickDist) * norm;
+        const vy = (rawY / stickDist) * norm;
+        const CURSOR_SPEED = 650; // pixels per second across viewport
+        cursor.screenPos.x = Math.max(0, Math.min(width, cursor.screenPos.x + vx * CURSOR_SPEED * elapsed));
+        cursor.screenPos.y = Math.max(0, Math.min(height, cursor.screenPos.y + vy * CURSOR_SPEED * elapsed));
+        cursor.visible = true;
+        cursor.lastMovedTime = performance.now();
+      }
+
+      // Convert current screen position to world coordinates
+      cursor.worldPos = screenToWorld(cursor.screenPos, cam, width, height);
+
+      // Controller cursor interaction with navball (Pin / Drag)
+      if (!cursor.isThrowing && presentation.isEnabled('builtin.navball')) {
+        const aBtn = !!(pad.buttons[0]?.pressed || (pad.buttons[0]?.value ?? 0) > 0.5);
+        const r3Btn = !!(pad.buttons[11]?.pressed || (pad.buttons[11]?.value ?? 0) > 0.5);
+        const interactBtn = aBtn || r3Btn;
+        if (!interactBtn && cursor.interactingPad === padIndex) cursor.interactingPad = undefined;
+        const navPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
+        const navScale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
+        const navCenter = computeNavballCenter(navPlacement, width, height, navScale);
+        const navPinPos: Vec = { x: navCenter.x + (NAVBALL_TRACK + 2) * navScale * 0.72, y: navCenter.y - (NAVBALL_TRACK + 2) * navScale * 0.72 };
+        const dPin = Math.hypot(cursor.screenPos.x - navPinPos.x, cursor.screenPos.y - navPinPos.y);
+        const dDial = Math.hypot(cursor.screenPos.x - navCenter.x, cursor.screenPos.y - navCenter.y);
+
+        const lastBtnState = lastPadAButton.get(padIndex) ?? false;
+        lastPadAButton.set(padIndex, interactBtn);
+
+        if (interactBtn && !lastBtnState && dPin <= 22 * navScale) {
+          cursor.interactingPad = padIndex;
+          const newPinned = !navPlacement.pinned;
+          splitScreen.setConfig(setSlotNavball(splitScreen.config, slot, { pinned: newPinned }));
+          notify(`Player ${slot + 1} Navball ${newPinned ? 'Pinned' : 'Unlocked (Drag to Move)'}.`);
+        } else if (interactBtn && !navPlacement.pinned && dDial <= (NAVBALL_TRACK + NAVBALL_GLYPH + 8) * navScale) {
+          cursor.interactingPad = padIndex;
+          const fracX = Math.max(0.02, Math.min(0.98, cursor.screenPos.x / width));
+          const fracY = Math.max(0.02, Math.min(0.98, cursor.screenPos.y / height));
+          splitScreen.setConfig(setSlotNavball(splitScreen.config, slot, {
+            anchor: 'custom',
+            x: fracX,
+            y: fracY,
+            pinned: false,
+          }));
+        }
+      }
+
+      // D-Pad Up: activates the slingshot throw feature
+      const profile = splitScreen.config.slots[slot]?.profile;
+      const throwActionHeld = profile?.buttons?.throwShip ? profile.buttons.throwShip.some(b => isButtonDown(pad.buttons[b])) : false;
+      const isThrowDown = throwCheatEnabled && throwActionHeld;
+      const wasThrowDown = lastPadDpadUp.get(padIndex) ?? false;
+      lastPadDpadUp.set(padIndex, isThrowDown);
+
+      if (isThrowDown && !wasThrowDown) {
+        // Just pressed D-pad Up: anchor the slingshot at the ship
+        cursor.isThrowing = true;
+        cursor.aimingPad = padIndex;
+        if (slot === 0) {
+          cameraControl.stopFling();
+          cameraDrag = undefined;
+        } else if (guest) {
+          guest.camera.stopFling();
+        }
+        const dom = findDominantCelestialBody(shipWorldPos, time, ship.bodyId);
+        cursor.dominantBody = dom.body;
+        cursor.relPos = { ...dom.relPos };
+        cursor.throwOriginWorld = { x: dom.bodyPos.x + dom.relPos.x, y: dom.bodyPos.y + dom.relPos.y };
+        cursor.throwOriginScreen = project(cursor.throwOriginWorld, cam, width, height);
+        cursor.screenPos.x = Math.max(0, Math.min(width, cursor.throwOriginScreen.x));
+        cursor.screenPos.y = Math.max(0, Math.min(height, cursor.throwOriginScreen.y));
+        cursor.worldPos = cursor.throwOriginWorld;
+        cursor.visible = true;
+        cursor.lastMovedTime = performance.now();
+        cursor.speed = 0;
+        cursor.pullVelocity = { x: 0, y: 0 };
+        cursor.isSnappingCircular = false;
+      } else if (isThrowDown && cursor.isThrowing && cursor.dominantBody && cursor.relPos) {
+        // Holding D-pad Up and dragging with the right stick:
+        // Update anchor position with the dominant body's current world position so it stays still in 3D space!
+        const currentDomPos = session.world.system.getBodyPosition(cursor.dominantBody.id, time);
+        cursor.throwOriginWorld = { x: currentDomPos.x + cursor.relPos.x, y: currentDomPos.y + cursor.relPos.y };
+        cursor.throwOriginScreen = project(cursor.throwOriginWorld, cam, width, height);
+
+        // Pull vector is from anchor to cursor.
+        // Slingshot throw velocity is in the OTHER direction (anchor - cursorWorld).
+        const dragDx = cursor.throwOriginWorld.x - cursor.worldPos.x;
+        const dragDy = cursor.throwOriginWorld.y - cursor.worldPos.y;
+        const pullVel = { x: dragDx * 0.5, y: dragDy * 0.5 };
+        const pullSpeed = Math.hypot(pullVel.x, pullVel.y);
+
+        const snapBtn = !!(pad.buttons[2]?.pressed || pad.buttons[4]?.pressed || pad.buttons[10]?.pressed);
+        cursor.isSnappingCircular = snapBtn;
+
+        const circ = computeBodyCircularVelocity(cursor.relPos, Math.hypot(cursor.relPos.x, cursor.relPos.y), cursor.dominantBody, pullVel);
+        cursor.circularVelocity = circ.velocity;
+        cursor.circularSpeed = circ.speed;
+
+        if (snapBtn) {
+          cursor.pullVelocity = circ.velocity;
+          cursor.speed = circ.speed;
+        } else {
+          cursor.pullVelocity = pullVel;
+          cursor.speed = pullSpeed;
+        }
+      } else if (!isThrowDown && wasThrowDown && cursor.isThrowing && cursor.throwOriginWorld) {
+        // Released D-pad Up: throw in the other direction if dragged
+        cursor.isThrowing = false;
+        if (slot === 0) {
+          p1ThrowFrozenCamera = undefined;
+        } else {
+          guestThrowFrozenCameras.delete(slot);
+        }
+        const screenDist = cursor.throwOriginScreen
+          ? Math.hypot(cursor.screenPos.x - cursor.throwOriginScreen.x, cursor.screenPos.y - cursor.throwOriginScreen.y)
+          : 0;
+
+        if (screenDist > 12 && cursor.speed && cursor.speed > 5 && cursor.dominantBody && cursor.relPos && cursor.pullVelocity) {
+          const finalVel = cursor.isSnappingCircular ? (cursor.circularVelocity ?? cursor.pullVelocity) : cursor.pullVelocity;
+          const finalSpeed = Math.hypot(finalVel.x, finalVel.y);
+          const heading = Math.atan2(finalVel.y, finalVel.x);
+          if (placeShip(ship, cursor.dominantBody.id, cursor.relPos, finalVel, heading,
+            `Vessel ${ship.name.toUpperCase()} launched via slingshot into orbit around ${cursor.dominantBody.name} (${finalSpeed.toFixed(1)} m/s).`)) {
+            if (slot > 0 && guest) {
+              guest.camera.followShip();
+            } else {
+              cameraControl.followShip();
+              syncCameraButton();
+            }
+            show('flight-message', `Placed ${ship.name} in orbit around ${cursor.dominantBody.name}`);
+            profiler.event('pad-throw', { slot, ship: ship.id, speed: finalSpeed });
+          }
+        } else {
+          if (slot > 0 && guest) {
+            guest.camera.followShip();
+          } else {
+            cameraControl.followShip();
+            syncCameraButton();
+          }
+        }
+      }
+    }
+  }
+}
+
+function buildControllerCursorOverlay(cursor: ControllerCursor, camScale: number): OverlayPrimitive[] {
+  const out: OverlayPrimitive[] = [];
+  if (!cursor.visible) return out;
+
+  const color = cursor.accentColor;
+
+  if (cursor.isThrowing && cursor.throwOriginWorld && cursor.pullVelocity) {
+    // 1. Slingshot Anchor circle at origin
+    out.push({
+      kind: 'circle',
+      space: 'world',
+      center: cursor.throwOriginWorld,
+      radius: 12 / camScale,
+      color,
+      width: 2,
+    });
+    out.push({
+      kind: 'circle',
+      space: 'world',
+      center: cursor.throwOriginWorld,
+      radius: 3 / camScale,
+      color: '#ffffff',
+      fill: true,
+    });
+
+    const speed = cursor.speed ?? 0;
+    const dragDist = Math.hypot(cursor.worldPos.x - cursor.throwOriginWorld.x, cursor.worldPos.y - cursor.throwOriginWorld.y);
+
+    if (cursor.isSnappingCircular) {
+      const circVel = cursor.circularVelocity ?? cursor.pullVelocity;
+      const cSpeed = cursor.circularSpeed ?? speed;
+      if (cSpeed > 0) {
+        const arrowLen = 50 / camScale;
+        const dirX = circVel.x / cSpeed;
+        const dirY = circVel.y / cSpeed;
+        const tipX = cursor.throwOriginWorld.x + dirX * arrowLen;
+        const tipY = cursor.throwOriginWorld.y + dirY * arrowLen;
+        out.push({
+          kind: 'line',
+          space: 'world',
+          points: [cursor.throwOriginWorld, { x: tipX, y: tipY }],
+          color: '#00d2ff',
+          width: 3,
+        });
+        const perpX = -dirY;
+        const perpY = dirX;
+        const barbLen = 10 / camScale;
+        out.push({
+          kind: 'line',
+          space: 'world',
+          points: [
+            { x: tipX - dirX * barbLen + perpX * (barbLen * 0.5), y: tipY - dirY * barbLen + perpY * (barbLen * 0.5) },
+            { x: tipX, y: tipY },
+            { x: tipX - dirX * barbLen - perpX * (barbLen * 0.5), y: tipY - dirY * barbLen - perpY * (barbLen * 0.5) },
+          ],
+          color: '#00d2ff',
+          width: 2,
+        });
+      }
+    } else if (dragDist * camScale > 6 && speed > 0) {
+      // Pull line (red) from origin to dragged cursor
+      out.push({
+        kind: 'line',
+        space: 'world',
+        points: [cursor.throwOriginWorld, cursor.worldPos],
+        color: '#ff4d4d',
+        width: 2,
+      });
+
+      // Throw arrow in the OTHER direction (opposite to pull)
+      const dirX = cursor.pullVelocity.x / speed;
+      const dirY = cursor.pullVelocity.y / speed;
+      const arrowPx = Math.min(120, Math.max(30, speed * 0.05));
+      const arrowLen = arrowPx / camScale;
+      const tipX = cursor.throwOriginWorld.x + dirX * arrowLen;
+      const tipY = cursor.throwOriginWorld.y + dirY * arrowLen;
+
+      out.push({
+        kind: 'line',
+        space: 'world',
+        points: [cursor.throwOriginWorld, { x: tipX, y: tipY }],
+        color,
+        width: 3,
+      });
+      const perpX = -dirY;
+      const perpY = dirX;
+      const barbLen = 12 / camScale;
+      out.push({
+        kind: 'line',
+        space: 'world',
+        points: [
+          { x: tipX - dirX * barbLen + perpX * (barbLen * 0.5), y: tipY - dirY * barbLen + perpY * (barbLen * 0.5) },
+          { x: tipX, y: tipY },
+          { x: tipX - dirX * barbLen - perpX * (barbLen * 0.5), y: tipY - dirY * barbLen - perpY * (barbLen * 0.5) },
+        ],
+        color,
+        width: 2,
+      });
+    }
+
+    // Reticle at current cursor position
+    const crossR = 9 / camScale;
+    out.push({
+      kind: 'circle',
+      space: 'world',
+      center: cursor.worldPos,
+      radius: crossR,
+      color: cursor.isSnappingCircular ? '#00d2ff' : color,
+      width: 1.5,
+    });
+    out.push({
+      kind: 'circle',
+      space: 'world',
+      center: cursor.worldPos,
+      radius: 2 / camScale,
+      color: '#ffffff',
+      fill: true,
+    });
+
+    const snapLabel = cursor.isSnappingCircular ? ' [CIRC]' : '';
+    const infoText = `${speed.toFixed(0)} m/s${snapLabel} · Release D-Pad ↑`;
+    out.push({
+      kind: 'text',
+      space: 'world',
+      at: { x: cursor.worldPos.x, y: cursor.worldPos.y - 16 / camScale },
+      color: cursor.isSnappingCircular ? '#00d2ff' : color,
+      align: 'center',
+      text: infoText,
+    });
+
+    return out;
+  }
+
+  // Normal virtual cursor for the viewpoint (when not actively throwing):
+  // Clean, subtle vector reticle in the player's color
+  const reticleR = 7 / camScale;
+  out.push({
+    kind: 'circle',
+    space: 'world',
+    center: cursor.worldPos,
+    radius: reticleR,
+    color,
+    width: 1.5,
+  });
+  out.push({
+    kind: 'circle',
+    space: 'world',
+    center: cursor.worldPos,
+    radius: 1.5 / camScale,
+    color: '#ffffff',
+    fill: true,
+  });
+
+  const tickIn = 3 / camScale;
+  const tickOut = 9 / camScale;
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    out.push({
+      kind: 'line',
+      space: 'world',
+      points: [
+        { x: cursor.worldPos.x + dx * tickIn, y: cursor.worldPos.y + dy * tickIn },
+        { x: cursor.worldPos.x + dx * tickOut, y: cursor.worldPos.y + dy * tickOut },
+      ],
+      color,
+      width: 1.5,
+    });
+  }
+
+  return out;
 }
 
 function initiateCameraFling(vel: Vec, width: number, height: number): void {
@@ -1229,10 +2175,27 @@ function initiateCameraFling(vel: Vec, width: number, height: number): void {
 }
 
 const endCameraDrag = (event: PointerEvent): void => {
+  if (event.type === 'pointerup' && maneuverTap?.id === event.pointerId && cameraDrag?.id === event.pointerId && !cameraDrag.moved
+    && Math.hypot(event.clientX-maneuverTap.x, event.clientY-maneuverTap.y) < 6
+    && event.button === 0 && !isSlotThrowing(0) && canvasTouches.size < 2) {
+    const rect = canvas.getBoundingClientRect();
+    maneuver.place({ x: event.clientX - rect.left, y: event.clientY - rect.top }, cameraControl.last,
+      session.world.system.getBodyPosition(activeBody.id, view.time), canvas.clientWidth, canvas.clientHeight, prediction);
+  }
+  if (maneuverTap?.id === event.pointerId) maneuverTap = undefined;
+  if (activeNavballDrag && activeNavballDrag.pointerId === event.pointerId) {
+    activeNavballDrag = null;
+    if (canvas.hasPointerCapture(event.pointerId)) {
+      try { canvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+    }
+    return;
+  }
   if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId) {
     const s = activeFlightSlingshot;
     const dragDist = Math.hypot(event.clientX - s.screenStart.x, event.clientY - s.screenStart.y);
-    const ship = selectedShip() ?? ownShips()[0];
+    const ship = s.targetShipId
+      ? session.world.ship(s.targetShipId)
+      : (selectedShip() ?? ownShips()[0]);
     if (ship) {
       let finalVel: Vec;
       if (dragDist < 6 || s.isSnappingCircular) {
@@ -1244,15 +2207,21 @@ const endCameraDrag = (event: PointerEvent): void => {
       const heading = Math.atan2(finalVel.y, finalVel.x);
       if (placeShip(ship, s.dominantBody.id, s.relPos, finalVel, heading,
         `Vessel ${ship.name.toUpperCase()} placed into orbit around ${s.dominantBody.name} (${finalSpeed.toFixed(1)} m/s).`)) {
-        cameraControl.followShip();
-        syncCameraButton();
-        show('flight-message', `Placed in orbit around ${s.dominantBody.name}`);
+        if (s.slot !== undefined && s.slot > 0) {
+          const guest = splitScreen.guests.get(s.slot);
+          if (guest) guest.camera.followShip();
+        } else {
+          cameraControl.followShip();
+          syncCameraButton();
+        }
+        show('flight-message', `Placed ${ship.name} in orbit around ${s.dominantBody.name}`);
       }
     }
+    const canvasToRelease = s.sourceCanvas ?? canvas;
     activeFlightSlingshot = null;
     updateFlightSlingshotHud();
-    if (canvas.hasPointerCapture(event.pointerId)) {
-      try { canvas.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
+    if (canvasToRelease.hasPointerCapture(event.pointerId)) {
+      try { canvasToRelease.releasePointerCapture(event.pointerId); } catch { /* Ignore */ }
     }
     return;
   }
@@ -1397,6 +2366,34 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   // Pointer events: mouse drag/throw and fallback for pointer-only touchscreen devices
   target.addEventListener('pointerdown', event => {
     cameraControl.stopFling();
+
+    const rect = target.getBoundingClientRect();
+    const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    const navHit = hitTestNavball(screenPos, splitScreen.split ? 'all' : 0, target.clientWidth, target.clientHeight);
+    if (navHit) {
+      if (navHit.isPin) {
+        event.preventDefault();
+        const newPinned = !navHit.pinned;
+        splitScreen.setConfig(setSlotNavball(splitScreen.config, navHit.slot, { pinned: newPinned }));
+        notify(`Player ${navHit.slot + 1} Navball ${newPinned ? 'Pinned' : 'Unlocked (Drag to Move)'}.`);
+        return;
+      }
+      if (!navHit.pinned) {
+        event.preventDefault();
+        target.focus();
+        activeNavballDrag = {
+          slot: navHit.slot,
+          pointerId: event.pointerId,
+          startPointer: { x: event.clientX, y: event.clientY },
+          startNavballCenter: { ...navHit.center },
+          paneWidth: target.clientWidth,
+          paneHeight: target.clientHeight,
+        };
+        try { target.setPointerCapture(event.pointerId); } catch {}
+        return;
+      }
+    }
+
     const wantsThrow = event.altKey || isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (wantsThrow) {
       if (!throwCheatEnabled) {
@@ -1408,10 +2405,23 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       event.preventDefault();
       target.focus();
       try { target.setPointerCapture(event.pointerId); } catch {}
-      const rect = target.getBoundingClientRect();
-      const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       const originWorld = screenToWorld(screenPos, cameraControl.last, target.clientWidth, target.clientHeight);
-      const dom = findDominantCelestialBody(originWorld, view.time);
+      let chosenShip = selectedShip() ?? ownShips()[0];
+      const allShips = session.world.records();
+      let bestDist = Infinity;
+      for (const s of allShips) {
+        const sBodyPos = session.world.system.getBodyPosition(s.bodyId, view.time);
+        const sWorld = { x: sBodyPos.x + s.state.position.x, y: sBodyPos.y + s.state.position.y };
+        const sDist = Math.hypot(sWorld.x - originWorld.x, sWorld.y - originWorld.y) * cameraControl.last.scale;
+        if (sDist < 80 && sDist < bestDist) {
+          bestDist = sDist;
+          chosenShip = s;
+        }
+      }
+      const targetSlot = chosenShip
+        ? ([...splitScreen.guests.entries()].find(([_, g]) => g.playerId === chosenShip.ownerId)?.[0] ?? 0)
+        : 0;
+      const dom = findDominantCelestialBody(originWorld, view.time, chosenShip?.bodyId ?? activeBody?.id);
       const circ = computeBodyCircularVelocity(dom.relPos, dom.dist, dom.body);
       activeFlightSlingshot = {
         pointerId: event.pointerId,
@@ -1426,10 +2436,17 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
         circularSpeed: circ.speed,
         currentSpeed: 0,
         isSnappingCircular: event.shiftKey,
+        slot: targetSlot,
+        targetShipId: chosenShip?.id,
+        sourceCanvas: canvas,
       };
       updateFlightSlingshotHud();
       return;
     }
+    if (isSlotThrowing(0)) return;
+    if (event.isPrimary && event.button === 0 && !navHit && canvasTouches.size === 0) {
+      maneuverTap = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    } else maneuverTap = undefined;
     if (event.pointerType === 'touch') {
       canvasTouches.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (canvasTouches.size === 2) {
@@ -1443,6 +2460,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       return;
     }
     if (event.pointerType !== 'mouse' || (event.button !== 0 && event.button !== 1)) return;
+    if (isSlotThrowing(0)) return;
     event.preventDefault();
     target.focus();
     try { target.setPointerCapture(event.pointerId); } catch { /* Ignore */ }
@@ -1452,7 +2470,29 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   });
 
   target.addEventListener('pointermove', event => {
+    if (maneuverTap?.id === event.pointerId && Math.hypot(event.clientX-maneuverTap.x, event.clientY-maneuverTap.y) >= 6) maneuverTap = undefined;
+    if (activeNavballDrag && activeNavballDrag.pointerId === event.pointerId) {
+      const dx = event.clientX - activeNavballDrag.startPointer.x;
+      const dy = event.clientY - activeNavballDrag.startPointer.y;
+      const newX = activeNavballDrag.startNavballCenter.x + dx;
+      const newY = activeNavballDrag.startNavballCenter.y + dy;
+      const fracX = Math.max(0.02, Math.min(0.98, newX / activeNavballDrag.paneWidth));
+      const fracY = Math.max(0.02, Math.min(0.98, newY / activeNavballDrag.paneHeight));
+      splitScreen.setConfig(setSlotNavball(splitScreen.config, activeNavballDrag.slot, {
+        anchor: 'custom',
+        x: fracX,
+        y: fracY,
+        pinned: false,
+      }));
+      return;
+    }
     if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId) {
+      const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, view.time);
+      activeFlightSlingshot.dominantWorldPos = curDomPos;
+      activeFlightSlingshot.originWorld = {
+        x: curDomPos.x + activeFlightSlingshot.relPos.x,
+        y: curDomPos.y + activeFlightSlingshot.relPos.y,
+      };
       const rect = target.getBoundingClientRect();
       const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       const pointerWorld = screenToWorld(screenPos, cameraControl.last, target.clientWidth, target.clientHeight);
@@ -1489,6 +2529,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
           lastPinchDistance = dist;
           return;
         } else if (cameraDrag && cameraDrag.id === event.pointerId) {
+          if (isSlotThrowing(0)) return;
           pointerVelocityTracker.add(event.clientX, event.clientY);
           const delta = { x: event.clientX - cameraDrag.x, y: event.clientY - cameraDrag.y };
           if (Math.hypot(delta.x, delta.y) >= 1) {
@@ -1503,6 +2544,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       return;
     }
     if (!cameraDrag || cameraDrag.id !== event.pointerId) return;
+    if (isSlotThrowing(0)) return;
     pointerVelocityTracker.add(event.clientX, event.clientY);
     const delta = { x: event.clientX - cameraDrag.x, y: event.clientY - cameraDrag.y };
     if (!cameraDrag.moved && Math.hypot(delta.x, delta.y) < 3) return;
@@ -1519,6 +2561,25 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
 }
 const requested = requestedModules();
 presentation.start(requested.presentation);
+
+setNavballPlacementProvider(() => {
+  const p1Placement = splitScreen.config.slots[0]?.navball ?? defaultNavballPlacement(0);
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  const scale = Math.min(1, Math.max(0.65, Math.min(w / 600, h / 450)));
+  const center = computeNavballCenter(p1Placement, w, h, scale);
+  const isDragging = activeNavballDrag?.slot === 0;
+  return {
+    x: center.x,
+    y: center.y,
+    scale,
+    accentColor: PLAYER_COLORS[0],
+    playerLabel: splitScreen.split ? 'P1' : undefined,
+    pinned: p1Placement.pinned,
+    isDragging,
+  };
+});
+
 
 
 
@@ -1545,6 +2606,7 @@ pauseButton.addEventListener('click', () => setPaused(!session.paused));
 warpDownButton.addEventListener('click', warpDown);
 warpUpButton.addEventListener('click', warpUp);
 element('reset').addEventListener('click', reset);
+element('reset-world').addEventListener('click', resetWorld);
 preset.addEventListener('change', () => {
   const builtinSurface = session.world.universe === terrainUniverse || session.world.universe === oceanUniverse;
   if (builtinSurface) {
@@ -1693,10 +2755,12 @@ function exportModuleProfile(): void {
 element('export-profile').addEventListener('click', exportModuleProfile);
 
 godModeToggle.addEventListener('change', () => {
-  const ship = selectedShip();
-  if (!ship) return;
-  try { session.setGodMode(ship.id, godModeToggle.checked); } catch (error) {
-    godModeToggle.checked = !godModeToggle.checked;
+  const enabled = godModeToggle.checked;
+  try { localStorage.setItem(GOD_MODE_KEY, String(enabled)); } catch { /* ignore */ }
+  try {
+    session.setGodModeAll(enabled);
+  } catch (error) {
+    godModeToggle.checked = !enabled;
     notify(message(error));
   }
   profiler.event('god-mode', { enabled: godModeToggle.checked });
@@ -1885,7 +2949,18 @@ function updateLists(): void {
   const world = session.world;
   const own = ownShips();
   const piloted = selectedShip();
-  if (piloted && document.activeElement !== godModeToggle) godModeToggle.checked = piloted.state.godMode === true;
+  if (piloted && document.activeElement !== godModeToggle) {
+    if (godModeToggle.checked && !piloted.state.godMode) {
+      try { session.setGodModeAll(true); } catch { /* ignore */ }
+    } else if (!godModeToggle.checked && piloted.state.godMode) {
+      godModeToggle.checked = true;
+    }
+  }
+  const resetWorldBtn = element<HTMLButtonElement>('reset-world');
+  if (resetWorldBtn) {
+    resetWorldBtn.disabled = session !== local;
+    resetWorldBtn.title = session === local ? 'Reset World (Host only): rewind clock to T+0 and reset all vessels' : 'Only the host can reset the world';
+  }
   const limit = session === local ? local.host.settings.maxShipsPerPlayer : remote?.client.rules?.maxShipsPerPlayer ?? 1;
   spawnButton.disabled = own.length >= limit;
   removeButton.disabled = own.length <= 1 || !selectedShipId;
@@ -2407,6 +3482,13 @@ worldFileInput.addEventListener('change', async () => {
 });
 
 function executeAction(action: ActionId): void {
+  if (controlsDialog.open) return;
+  if (isSlotThrowing(0)) {
+    const cameraAlteringActions = new Set<ActionId>([
+      'camera', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
+    ]);
+    if (cameraAlteringActions.has(action)) return;
+  }
   switch (action) {
     case 'warpUp':
       warpUp();
@@ -2478,6 +3560,7 @@ throwCheatToggle?.addEventListener('change', () => {
 });
 
 window.addEventListener('keydown', event => {
+  if (controlsDialog.open) return;
   if (event.target && (event.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return;
   const actions = keyLookup.get(event.code);
   if (actions?.includes('throwShip')) {
@@ -2534,7 +3617,6 @@ bindFlightInput({
 
 // Controls & Remapping Modal Management
 let listeningChip: { action: ActionId; keyIndex?: number; element: HTMLElement } | null = null;
-let diagnosticsRaf: number | undefined;
 
 function stopListening(): void {
   if (listeningChip) {
@@ -2653,132 +3735,53 @@ window.addEventListener('keydown', (e) => {
   stopListening();
 }, true);
 
-function renderGamepadTab(): void {
-  const settings = gamepadManager.getSettings();
-  gamepadEnabled.checked = settings.enabled;
-  gamepadDeadzone.value = String(Math.round(settings.deadzone * 100));
-  deadzoneValue.textContent = `${Math.round(settings.deadzone * 100)}%`;
-  gamepadTurnAxis.value = String(settings.turnAxis);
-  gamepadTurnInvert.checked = settings.invertTurn;
-  gamepadThrottleAxis.value = String(settings.throttleAxis);
-  gamepadThrottleInvert.checked = settings.invertThrottle;
-  touchOverlayMode.value = touchControls.getMode();
-}
-
-function updateGamepadDiagnostics(): void {
-  const diags = gamepadManager.getDiagnostics();
-  const primary = diags.find(d => d.connected);
-
-  if (!primary) {
-    gamepadStatus.textContent = 'No controller detected. Connect a Steam Deck, Xbox, PlayStation (DualSense / DualShock), or joystick and press any button.';
-    gamepadStatus.classList.remove('connected');
-    gamepadAxesDisplay.innerHTML = '<span class="control-note">Waiting for controller input…</span>';
-    gamepadButtonsDisplay.innerHTML = '';
-    return;
-  }
-
-  const tagClass = primary.family;
-  gamepadStatus.innerHTML = `Connected: <b>${primary.id}</b> <span class="gamepad-family-tag ${tagClass}">${primary.familyName}</span> (${primary.axes.length} axes, ${primary.buttons.length} buttons)`;
-  gamepadStatus.classList.add('connected');
-
-  if (gamepadTurnAxis.options.length !== primary.axes.length) {
-    gamepadTurnAxis.innerHTML = '';
-    gamepadThrottleAxis.innerHTML = '';
-    for (let i = 0; i < primary.axes.length; i++) {
-      const optT = document.createElement('option');
-      optT.value = String(i);
-      optT.textContent = `Axis ${i}${i === 0 ? ' (Left Stick X / Roll)' : i === 1 ? ' (Left Stick Y / Pitch)' : i === 2 ? ' (Right Stick X)' : i === 3 ? ' (Right Stick Y)' : ''}`;
-      gamepadTurnAxis.appendChild(optT);
-
-      const optP = document.createElement('option');
-      optP.value = String(i);
-      optP.textContent = `Axis ${i}${i === 0 ? ' (Left Stick X / Roll)' : i === 1 ? ' (Left Stick Y / Pitch)' : i === 2 ? ' (Right Stick X)' : i === 3 ? ' (Right Stick Y)' : ''}`;
-      gamepadThrottleAxis.appendChild(optP);
-    }
-    const currentSettings = gamepadManager.getSettings();
-    gamepadTurnAxis.value = String(currentSettings.turnAxis);
-    gamepadThrottleAxis.value = String(currentSettings.throttleAxis);
-  }
-
-  let axesHtml = '';
-  primary.axes.forEach((val, i) => {
-    const clamped = Math.max(-1, Math.min(1, val));
-    const widthPct = Math.abs(clamped) * 50;
-    const leftPct = clamped < 0 ? 50 - widthPct : 50;
-    axesHtml += `
-      <div class="axis-meter">
-        <span class="axis-meter-label">Axis ${i}</span>
-        <div class="axis-meter-track">
-          <div class="axis-meter-center"></div>
-          <div class="axis-meter-fill" style="left: ${leftPct}%; width: ${widthPct}%;"></div>
-        </div>
-        <span class="axis-meter-val">${clamped >= 0 ? '+' : ''}${clamped.toFixed(2)}</span>
-      </div>`;
-  });
-  gamepadAxesDisplay.innerHTML = axesHtml;
-
-  let buttonsHtml = '';
-  primary.buttons.forEach((btn, i) => {
-    buttonsHtml += `<span class="btn-indicator ${btn.pressed ? 'pressed' : ''}" title="Button ${i}: ${btn.label}">${btn.label.slice(0, 3)}</span>`;
-  });
-  gamepadButtonsDisplay.innerHTML = buttonsHtml;
-}
-
-function startDiagnosticsLoop(): void {
-  if (diagnosticsRaf) return;
-  const tick = () => {
-    if (controlsDialog.open) {
-      updateGamepadDiagnostics();
-      diagnosticsRaf = requestAnimationFrame(tick);
-    } else {
-      diagnosticsRaf = undefined;
-    }
-  };
-  diagnosticsRaf = requestAnimationFrame(tick);
-}
-
-function stopDiagnosticsLoop(): void {
-  if (diagnosticsRaf) {
-    cancelAnimationFrame(diagnosticsRaf);
-    diagnosticsRaf = undefined;
-  }
-}
+playersToggle.addEventListener('click', () => {
+  release(); cancelControllerCursors();
+  activeFlightSlingshot = null; updateFlightSlingshotHud();
+  renderKeybindingsList();
+  selectControlsTab('players');
+  controlsDialog.showModal();
+});
 
 controlsToggle.addEventListener('click', () => {
+  release(); cancelControllerCursors();
+  activeFlightSlingshot = null; updateFlightSlingshotHud();
   renderKeybindingsList();
-  renderGamepadTab();
+  selectControlsTab('keyboard');
   controlsDialog.showModal();
-  startDiagnosticsLoop();
 });
 
 controlsClose.addEventListener('click', () => {
   stopListening();
   controlsDialog.close();
-  stopDiagnosticsLoop();
 });
 
 controlsDialog.addEventListener('close', () => {
+  release(); cancelControllerCursors();
   stopListening();
-  stopDiagnosticsLoop();
 });
 
-function selectControlsTab(tab: 'keyboard' | 'gamepad' | 'touch'): void {
+function selectControlsTab(tab: 'keyboard' | 'players' | 'gamepad' | 'touch'): void {
   tabKeyboardBtn.classList.toggle('active', tab === 'keyboard');
   tabKeyboardBtn.setAttribute('aria-selected', String(tab === 'keyboard'));
+  tabPlayersBtn.classList.toggle('active', tab === 'players');
+  tabPlayersBtn.setAttribute('aria-selected', String(tab === 'players'));
   tabGamepadBtn.classList.toggle('active', tab === 'gamepad');
   tabGamepadBtn.setAttribute('aria-selected', String(tab === 'gamepad'));
   tabTouchBtn.classList.toggle('active', tab === 'touch');
   tabTouchBtn.setAttribute('aria-selected', String(tab === 'touch'));
 
   tabKeyboard.hidden = tab !== 'keyboard';
+  tabPlayers.hidden = tab !== 'players';
   tabGamepad.hidden = tab !== 'gamepad';
   tabTouch.hidden = tab !== 'touch';
 
-  if (tab === 'gamepad') renderGamepadTab();
+  if (tab === 'players' || tab === 'gamepad') controllerMenu.open();
   if (tab === 'touch') touchOverlayMode.value = touchControls.getMode();
 }
 
 tabKeyboardBtn.addEventListener('click', () => selectControlsTab('keyboard'));
+tabPlayersBtn.addEventListener('click', () => selectControlsTab('players'));
 tabGamepadBtn.addEventListener('click', () => selectControlsTab('gamepad'));
 tabTouchBtn.addEventListener('click', () => selectControlsTab('touch'));
 
@@ -2790,32 +3793,6 @@ resetKeybindingsBtn.addEventListener('click', () => {
   keybindings = resetKeybindings();
   refreshKeyLookup();
   renderKeybindingsList();
-});
-
-resetGamepadBtn.addEventListener('click', () => {
-  gamepadManager.resetSettings();
-  renderGamepadTab();
-});
-
-gamepadEnabled.addEventListener('change', () => {
-  gamepadManager.saveSettings({ enabled: gamepadEnabled.checked });
-});
-gamepadDeadzone.addEventListener('input', () => {
-  const val = Number(gamepadDeadzone.value);
-  deadzoneValue.textContent = `${val}%`;
-  gamepadManager.saveSettings({ deadzone: val / 100 });
-});
-gamepadTurnAxis.addEventListener('change', () => {
-  gamepadManager.saveSettings({ turnAxis: Number(gamepadTurnAxis.value) });
-});
-gamepadTurnInvert.addEventListener('change', () => {
-  gamepadManager.saveSettings({ invertTurn: gamepadTurnInvert.checked });
-});
-gamepadThrottleAxis.addEventListener('change', () => {
-  gamepadManager.saveSettings({ throttleAxis: Number(gamepadThrottleAxis.value) });
-});
-gamepadThrottleInvert.addEventListener('change', () => {
-  gamepadManager.saveSettings({ invertThrottle: gamepadThrottleInvert.checked });
 });
 window.addEventListener('error', event => profiler.event('error',
   { message: event.message, source: event.filename, line: event.lineno, column: event.colno }));
@@ -2863,6 +3840,7 @@ function updateBackground(): void {
 function updatePrediction(seconds: number, engine: boolean): void {
   prediction.update(session.world.context, state, activeBody, session.world.surface(activeBody.id),
     selectedShip()?.id, seconds, engine, selectedShip()?.controls, session.world);
+  maneuver.update(seconds, prediction, engine);
 }
 
 function activeOrbitSource(): { readonly position: Vec; readonly velocity: Vec } {
@@ -2895,6 +3873,11 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     session: session === local ? (local.hosting ? 'host' : 'local') : 'client', world: world.id,
     ship: selectedShipId ?? null, ships: world.size, asleep: world.asleepCount, fleetView: { ...fleetView.stats },
     players: session.players().filter(p => p.connected).length,
+    localPlayers: { count: splitScreen.active, screenMode: splitScreen.config.screenMode,
+      guests: [...splitScreen.guests].map(([slot, guest]) => ({ slot, ship: guest.shipId,
+        status: guest.state?.status, controls: guest.controls, separated: splitScreen.isSeparated(slot) })),
+      cursors: [...controllerCursors].map(([slot, cursor]) => ({ slot, aiming: cursor.isThrowing, visible: cursor.visible,
+        screenPosition: cursor.screenPos })) },
     rttMs: remote && Number.isFinite(remote.client.rttMs) ? +remote.client.rttMs.toFixed(1) : null,
     stepSeconds: STEP, tick: world.tick, steps: session === local ? local.clockStats.steps : null,
     droppedSeconds: session === local ? local.clockStats.droppedSeconds : null,
@@ -2904,6 +3887,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     coastCache: world.context.coastCacheStats(state.coast),
     samples: prediction.path.length, predictionEnd: prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd, predictionPasses: prediction.passCount,
     predictionWorkMs: prediction.lastPass.workMs, predictionCoarse: prediction.lastPass.coarse,
+    maneuver: maneuver.diagnostics(),
     workP50Ms: summary.work.p50.toFixed(2), workP95Ms: summary.work.p95.toFixed(2), workP99Ms: summary.work.p99.toFixed(2),
     workWorstMs: summary.work.max.toFixed(2), simulationP95Ms: summary.sections.physics.p95.toFixed(2),
     predictionP95Ms: summary.sections.prediction.p95.toFixed(2),
@@ -3006,14 +3990,31 @@ function handleEvents(events: readonly WorldEvent[]): void {
 }
 
 const fleetView = new FleetView();
-function otherShips(time: number, alpha: number, camera: Camera): RenderShip[] {
-  return fleetView.build({ world: session.world, time, alpha, paused: session.paused, skipId: selectedShipId,
-    playerId: session.playerId, camera, width: canvas.clientWidth, height: canvas.clientHeight,
-    previous: id => session.previous(id), displayOffset: id => session.displayOffset(id),
+function otherShips(
+  time: number,
+  alpha: number,
+  camera: Camera,
+  skipId: string | undefined = selectedShipId,
+  width: number = canvas.clientWidth,
+  height: number = canvas.clientHeight,
+): RenderShip[] {
+  return fleetView.build({
+    world: session.world,
+    time,
+    alpha,
+    paused: session.paused,
+    skipId,
+    playerId: session.playerId,
+    camera,
+    width,
+    height,
+    previous: id => session.previous(id),
+    displayOffset: id => session.displayOffset(id),
     playerName: id => session.playerName(id),
     display: (s, bodyId) => spinView.state(s, session.world.body(bodyId)),
     interpolate: (from, to, alpha, bodyId) => spinView.interpolate(from, to, alpha, session.world.body(bodyId)),
-    isRock: ship => ship.ownerId === STRESS_OWNER && ship.id.startsWith(STRESS_ROCK_PREFIX) });
+    isRock: ship => ship.ownerId === STRESS_OWNER && ship.id.startsWith(STRESS_ROCK_PREFIX),
+  });
 }
 
 /** What the pilot sees, for presentation modules: interpolated, detached and frozen. */
@@ -3032,6 +4033,7 @@ function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnaps
     groundClearance: ship ? groundClearance() : null,
     prediction: { status: !ship ? 'none' : prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd,
       samples: prediction.path.length, ...(last ? { last } : {}) },
+    maneuver: maneuver.snapshot(),
     moduleState: world.moduleState,
   });
 }
@@ -3040,7 +4042,11 @@ function frame(now: number): void {
   const elapsed = lastWall === undefined ? 0 : (now - lastWall) / 1000;
   lastWall = now;
   profiler.begin(elapsed * 1000);
-  const command = session.paused ? IDLE : controls();
+  splitScreen.pollPads();
+  splitScreen.sync();
+  splitScreen.applyInput(elapsed);
+  const command = session.paused ? IDLE : controls(elapsed);
+  maneuver.beforeAdvance(command);
   handleEvents(session.update(elapsed, selectedShipId, command));
   syncSelected();
   if (state.status !== lastStatus) {
@@ -3060,6 +4066,24 @@ function frame(now: number): void {
   if (ship) {
     const offset = session.displayOffset(ship.id);
     if (offset.x || offset.y) view = { ...view, position: { x: view.position.x + offset.x, y: view.position.y + offset.y } };
+  }
+  for (const guest of splitScreen.guests.values()) {
+    guest.refresh(session);
+    if (guest.state && guest.body) {
+      const gBefore = guest.shipId ? session.previous(guest.shipId) : undefined;
+      guest.view = session.paused || !gBefore || gBefore.bodyId !== guest.body.id
+        ? spinView.state(guest.state, guest.body)
+        : spinView.interpolate(gBefore.state, guest.state, session.alpha, guest.body);
+      const gShip = guest.ship(session);
+      if (gShip) {
+        const offset = session.displayOffset(gShip.id);
+        if (offset.x || offset.y) {
+          guest.view = { ...guest.view, position: { x: guest.view.position.x + offset.x, y: guest.view.position.y + offset.y } };
+        }
+      }
+    } else {
+      guest.view = undefined;
+    }
   }
   // Resolved bodies for renderer
   const world = session.world;
@@ -3101,6 +4125,7 @@ function frame(now: number): void {
 
   // Presentation hooks share one frozen snapshot, built only when a module needs it.
   const width = canvas.clientWidth, height = canvas.clientHeight;
+  const dynamic = splitScreen.updateDynamic(view, activeBody, cameraControl, width, height, now);
   let snapshot: PresentationSnapshot | undefined;
   const base = (): PresentationSnapshot => snapshot ??= presentationView(elapsed, activeBodyPos);
   const mode = cameraControl.mode;
@@ -3128,105 +4153,102 @@ function frame(now: number): void {
     }
   }
 
-  const camera = cameraControl.update({ body: activeBodyPos, ship: view.position, elapsed, instant: reducedMotion.matches,
+  const cameraShipPos = (dynamic.centroid && cameraControl.mode === 'follow' && !cameraControl.dragged && !cameraControl.focusTarget)
+    ? dynamic.centroid
+    : view.position;
+  let camera = cameraControl.update({ body: activeBodyPos, ship: cameraShipPos, elapsed, instant: reducedMotion.matches,
     width, height, ...(target ? { target } : {}), ...(focusPosition ? { focusPosition } : {}) });
-  if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
-  const others = otherShips(view.time, session.alpha, camera);
-  const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
-  let overlays = baseOverlays;
-  if (activeFlightSlingshot) {
-    const s = activeFlightSlingshot;
-    const slingList: OverlayPrimitive[] = [];
-    slingList.push({
-      kind: 'circle',
-      space: 'world',
-      center: s.originWorld,
-      radius: 12 / camera.scale,
-      color: '#38ef7d',
-      width: 2,
-    });
-    slingList.push({
-      kind: 'circle',
-      space: 'world',
-      center: s.originWorld,
-      radius: 3 / camera.scale,
-      color: '#ffffff',
-      fill: true,
-    });
+  if (dynamic.zoomScale && dynamic.zoomScale < 1 && cameraControl.mode === 'follow' && !cameraControl.dragged && !cameraControl.focusTarget) {
+    camera = { ...camera, scale: camera.scale * dynamic.zoomScale };
+  }
 
-    const dragDist = Math.hypot(s.pointerWorld.x - s.originWorld.x, s.pointerWorld.y - s.originWorld.y);
-    if (s.isSnappingCircular || dragDist * camera.scale < 6) {
-      const circVel = s.circularVelocity;
-      const speed = s.circularSpeed;
-      if (speed > 0) {
-        const arrowLen = 50 / camera.scale;
-        const dirX = circVel.x / speed;
-        const dirY = circVel.y / speed;
-        const tipX = s.originWorld.x + dirX * arrowLen;
-        const tipY = s.originWorld.y + dirY * arrowLen;
-        slingList.push({
-          kind: 'line',
-          space: 'world',
-          points: [s.originWorld, { x: tipX, y: tipY }],
-          color: '#00d2ff',
-          width: 3,
-        });
-        const perpX = -dirY;
-        const perpY = dirX;
-        const barbLen = 10 / camera.scale;
-        slingList.push({
-          kind: 'line',
-          space: 'world',
-          points: [
-            { x: tipX - dirX * barbLen + perpX * (barbLen * 0.5), y: tipY - dirY * barbLen + perpY * (barbLen * 0.5) },
-            { x: tipX, y: tipY },
-            { x: tipX - dirX * barbLen - perpX * (barbLen * 0.5), y: tipY - dirY * barbLen - perpY * (barbLen * 0.5) },
-          ],
-          color: '#00d2ff',
-          width: 2,
-        });
+  const isP1Throwing = isSlotThrowing(0);
+  const p1Cursor = controllerCursors.get(0);
+  const p1AnchorBody = (p1Cursor?.isThrowing ? p1Cursor.dominantBody : undefined) ??
+    (activeFlightSlingshot && (activeFlightSlingshot.slot ?? 0) === 0 ? activeFlightSlingshot.dominantBody : undefined);
+  const p1AnchorRelPos = (p1Cursor?.isThrowing ? p1Cursor.relPos : undefined) ??
+    (activeFlightSlingshot && (activeFlightSlingshot.slot ?? 0) === 0 ? activeFlightSlingshot.relPos : undefined);
+
+  if (isP1Throwing && p1AnchorBody && p1AnchorRelPos) {
+    const curDomPos = session.world.system.getBodyPosition(p1AnchorBody.id, view.time);
+    const anchorWorld = { x: curDomPos.x + p1AnchorRelPos.x, y: curDomPos.y + p1AnchorRelPos.y };
+    if (!p1ThrowFrozenCamera) {
+      p1ThrowFrozenCamera = {
+        center: { x: camera.center.x - anchorWorld.x, y: camera.center.y - anchorWorld.y },
+        rotation: camera.rotation,
+        scale: camera.scale,
+      };
+    }
+    camera = {
+      center: { x: anchorWorld.x + p1ThrowFrozenCamera.center.x, y: anchorWorld.y + p1ThrowFrozenCamera.center.y },
+      rotation: p1ThrowFrozenCamera.rotation,
+      scale: p1ThrowFrozenCamera.scale,
+    };
+    cameraControl.last = camera;
+  } else {
+    p1ThrowFrozenCamera = undefined;
+  }
+
+  if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
+  updateControllerCursors(elapsed);
+  const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
+  const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
+  let overlays: OverlayPrimitive[] = baseOverlays ? [...baseOverlays] : [];
+
+  if (activeFlightSlingshot && (!activeFlightSlingshot.slot || activeFlightSlingshot.slot === 0 || !splitScreen.isSeparated(activeFlightSlingshot.slot))) {
+    const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, view.time);
+    activeFlightSlingshot.dominantWorldPos = curDomPos;
+    activeFlightSlingshot.originWorld = {
+      x: curDomPos.x + activeFlightSlingshot.relPos.x,
+      y: curDomPos.y + activeFlightSlingshot.relPos.y,
+    };
+    const sList = buildSlingshotOverlay(activeFlightSlingshot, camera.scale, PLAYER_COLORS[activeFlightSlingshot.slot ?? 0]);
+    overlays.push(...sList);
+  }
+
+  const liveP1Cursor = controllerCursors.get(0);
+  if (liveP1Cursor) {
+    overlays.push(...buildControllerCursorOverlay(liveP1Cursor, camera.scale));
+  }
+
+  if (splitScreen.split) {
+    for (const [slot, guest] of splitScreen.guests) {
+      if (splitScreen.isSeparated(slot)) continue;
+      const guestShip = guest.ship(session);
+      if (!guestShip || !guest.body || !guest.state || !guest.view) continue;
+      const gR = Math.hypot(guest.view.position.x, guest.view.position.y);
+      const gAlt = Math.max(0, gR - guest.body.radius);
+      const gFrame = shipAutoFrame(guest.state.status, gAlt, guest.body.radius, guestNavballFrames.get(guestShip.id));
+      guestNavballFrames.set(guestShip.id, gFrame);
+      const gNavState = shipNavballState(guest.state, { radius: guest.body.radius, spin: guest.body.rotation ? spinRate(guest.body) : 0 }, gFrame);
+      if (gNavState && presentation.isEnabled('builtin.navball')) {
+        const gTurn = Math.PI / 2 - gNavState.zenith;
+        const gScale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
+        const gPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
+        const gCenter = computeNavballCenter(gPlacement, width, height, gScale);
+        const gTraj = formatTrajectoryStats(guest.state, guest.body, session.world.context);
+        const isDragging = activeNavballDrag?.slot === slot;
+        const guestNavPrimitives = drawNavball(
+          gNavState,
+          gCenter,
+          gTurn,
+          'horizon',
+          PLAYER_COLORS[slot],
+          `P${slot + 1}`,
+          gScale,
+          gTraj,
+          gPlacement.pinned,
+          isDragging,
+        );
+        overlays.push(...guestNavPrimitives);
       }
-    } else {
-      slingList.push({
-        kind: 'line',
-        space: 'world',
-        points: [s.originWorld, s.pointerWorld],
-        color: '#ff4d4d',
-        width: 1.5,
-      });
-      const pullSpeed = Math.hypot(s.pullVelocity.x, s.pullVelocity.y);
-      if (pullSpeed > 0) {
-        const dirX = s.pullVelocity.x / pullSpeed;
-        const dirY = s.pullVelocity.y / pullSpeed;
-        const arrowPx = Math.min(120, Math.max(30, pullSpeed * 0.05));
-        const arrowWorldLen = arrowPx / camera.scale;
-        const tipX = s.originWorld.x + dirX * arrowWorldLen;
-        const tipY = s.originWorld.y + dirY * arrowWorldLen;
-        slingList.push({
-          kind: 'line',
-          space: 'world',
-          points: [s.originWorld, { x: tipX, y: tipY }],
-          color: '#38ef7d',
-          width: 3,
-        });
-        const perpX = -dirY;
-        const perpY = dirX;
-        const barbWorldLen = 12 / camera.scale;
-        slingList.push({
-          kind: 'line',
-          space: 'world',
-          points: [
-            { x: tipX - dirX * barbWorldLen + perpX * (barbWorldLen * 0.5), y: tipY - dirY * barbWorldLen + perpY * (barbWorldLen * 0.5) },
-            { x: tipX, y: tipY },
-            { x: tipX - dirX * barbWorldLen - perpX * (barbWorldLen * 0.5), y: tipY - dirY * barbWorldLen - perpY * (barbWorldLen * 0.5) },
-          ],
-          color: '#38ef7d',
-          width: 2,
-        });
+      const jCursor = controllerCursors.get(slot);
+      if (jCursor) {
+        overlays.push(...buildControllerCursorOverlay(jCursor, camera.scale));
       }
     }
-    overlays = baseOverlays ? [...baseOverlays, ...slingList] : slingList;
   }
+
   presentation.rendering.renderer!.draw({
     state: view,
     path: prediction.path,
@@ -3247,11 +4269,170 @@ function frame(now: number): void {
         ? themeCustomizer.getSettings().shaderSeed!
         : hashWorldSeed(world.id),
     },
-    ...(overlays ? { overlays } : {}),
+    ...(overlays.length ? { overlays } : {}),
   }, profiler);
 
+  if (splitScreen.split) {
+    for (const [slot, guest] of splitScreen.guests) {
+      if (!splitScreen.isSeparated(slot)) continue;
+      const guestShip = guest.ship(session);
+      if (!guestShip || !guest.body || !guest.view || !guest.state) continue;
+
+      const gEngine = guest.controls.engine && !session.paused;
+      guest.prediction.update(
+        session.world.context,
+        guest.state,
+        guest.body,
+        session.world.surface(guest.body.id),
+        guestShip.id,
+        elapsed,
+        gEngine,
+        guestShip.controls,
+        session.world,
+      );
+
+      const gWidth = guest.canvas.clientWidth;
+      const gHeight = guest.canvas.clientHeight;
+      if (gWidth === 0 || gHeight === 0) continue;
+
+      const gBodyPos = world.system.getBodyPosition(guest.body.id, guest.view.time);
+      let gCamera = guest.camera.update({
+        body: gBodyPos,
+        ship: guest.view.position,
+        elapsed,
+        instant: reducedMotion.matches,
+        width: gWidth,
+        height: gHeight,
+      });
+
+      const isGuestThrowing = isSlotThrowing(slot);
+      const gCursor = controllerCursors.get(slot);
+      const gAnchorBody = (gCursor?.isThrowing ? gCursor.dominantBody : undefined) ??
+        (activeFlightSlingshot && activeFlightSlingshot.slot === slot ? activeFlightSlingshot.dominantBody : undefined);
+      const gAnchorRelPos = (gCursor?.isThrowing ? gCursor.relPos : undefined) ??
+        (activeFlightSlingshot && activeFlightSlingshot.slot === slot ? activeFlightSlingshot.relPos : undefined);
+
+      if (isGuestThrowing && gAnchorBody && gAnchorRelPos) {
+        const curDomPos = session.world.system.getBodyPosition(gAnchorBody.id, guest.view.time);
+        const anchorWorld = { x: curDomPos.x + gAnchorRelPos.x, y: curDomPos.y + gAnchorRelPos.y };
+        let frozen = guestThrowFrozenCameras.get(slot);
+        if (!frozen) {
+          frozen = {
+            center: { x: gCamera.center.x - anchorWorld.x, y: gCamera.center.y - anchorWorld.y },
+            rotation: gCamera.rotation,
+            scale: gCamera.scale,
+          };
+          guestThrowFrozenCameras.set(slot, frozen);
+        }
+        gCamera = {
+          center: { x: anchorWorld.x + frozen.center.x, y: anchorWorld.y + frozen.center.y },
+          rotation: frozen.rotation,
+          scale: frozen.scale,
+        };
+        guest.camera.last = gCamera;
+      } else {
+        guestThrowFrozenCameras.delete(slot);
+      }
+
+      const gRenderer = splitScreen.rendererFor(guest, presentation.provider, presentation.rendering.shaders);
+      if (!gRenderer) continue;
+
+      const gShipWorld = bodyWorldPosition(guest.body.id, guest.view.time, guest.view.position);
+      const gPad = padSites.get(world)?.get(guest.body.id);
+      const gPadAt = gPad && spinView.point(guest.body, guest.view.time, gPad.position);
+      const gPadWorld = gPadAt ? { x: gBodyPos.x + gPadAt.x, y: gBodyPos.y + gPadAt.y } : { x: 1e30, y: 1e30 };
+
+      const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight);
+
+      const gOverlays: OverlayPrimitive[] = [];
+      const gR = Math.hypot(guest.view.position.x, guest.view.position.y);
+      const gAlt = Math.max(0, gR - guest.body.radius);
+      const gFrame = shipAutoFrame(guest.state.status, gAlt, guest.body.radius, guestNavballFrames.get(guestShip.id));
+      guestNavballFrames.set(guestShip.id, gFrame);
+      const gNavState = shipNavballState(guest.state, { radius: guest.body.radius, spin: guest.body.rotation ? spinRate(guest.body) : 0 }, gFrame);
+      if (gNavState && presentation.isEnabled('builtin.navball')) {
+        const gTurn = Math.PI / 2 - gNavState.zenith;
+        const gScale = Math.min(1, Math.max(0.65, Math.min(gWidth / 600, gHeight / 450)));
+        const gPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
+        const gCenter = computeNavballCenter(gPlacement, gWidth, gHeight, gScale);
+        const gTraj = formatTrajectoryStats(guest.state, guest.body, session.world.context);
+        const isDragging = activeNavballDrag?.slot === slot;
+        gOverlays.push(...drawNavball(
+          gNavState,
+          gCenter,
+          gTurn,
+          'horizon',
+          PLAYER_COLORS[slot],
+          `P${slot + 1}`,
+          gScale,
+          gTraj,
+          gPlacement.pinned,
+          isDragging,
+        ));
+      }
+      if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
+        const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, guest.view.time);
+        activeFlightSlingshot.dominantWorldPos = curDomPos;
+        activeFlightSlingshot.originWorld = {
+          x: curDomPos.x + activeFlightSlingshot.relPos.x,
+          y: curDomPos.y + activeFlightSlingshot.relPos.y,
+        };
+        gOverlays.push(...buildSlingshotOverlay(activeFlightSlingshot, gCamera.scale, PLAYER_COLORS[slot]));
+      }
+      const jCursor = controllerCursors.get(slot);
+      if (jCursor) {
+        gOverlays.push(...buildControllerCursorOverlay(jCursor, gCamera.scale));
+      }
+
+      gRenderer.draw({
+        state: guest.view,
+        path: guest.prediction.path,
+        pathClosed: guest.prediction.pathEnd === 'closed' && (!guest.prediction.pass || guest.prediction.pathKey === guest.prediction.passKey),
+        engine: gEngine,
+        camera: gCamera,
+        bodies: renderBodies,
+        shipWorldPosition: gShipWorld,
+        pathOrigin: gBodyPos,
+        padPosition: gPadWorld,
+        padNormal: gPad && spinView.point(guest.body, guest.view.time, gPad.normal),
+        shipLabel: guestShip.name.toUpperCase(),
+        ships: gOthers,
+        theme: {
+          ...themeCustomizer.getSettings(),
+          highQuality: graphicsQuality === 'high',
+          worldSeed: (themeCustomizer.getSettings().shaderSeed && themeCustomizer.getSettings().shaderSeed !== 0)
+            ? themeCustomizer.getSettings().shaderSeed!
+            : hashWorldSeed(world.id),
+        },
+        ...(gOverlays.length ? { overlays: gOverlays } : {}),
+      });
+    }
+  }
+
   // Staggered DOM work: HUD at 12.5 Hz, diagnostics, lists and profiler panel at 4 Hz.
-  if (now - lastHud > 80) { hud(engine); lastHud = now; }
+  if (now - lastHud > 80) {
+    hud(engine);
+    if (splitScreen.split) {
+      splitScreen.updateTags(
+        {
+          name: pilotName(),
+          status: (godModeToggle.checked ? '[INVULNERABLE] ' : '') + (session.paused ? 'PAUSED' : !selectedShip() ? 'NO SHIP' : state.status.toUpperCase()),
+          text: selectedShip() ? formatTrajectoryStats(state, activeBody, session.world.context) : '',
+        },
+        guest => {
+          const s = guest.state;
+          const b = guest.body;
+          if (!s || !b) return { status: 'NO SHIP', text: '' };
+          return {
+            status: (godModeToggle.checked ? '[INVULNERABLE] ' : '') + s.status.toUpperCase(),
+            text: formatTrajectoryStats(s, b, session.world.context),
+          };
+        },
+      );
+    }
+    syncSplitModeButton();
+    lastHud = now;
+  }
   if (now - lastDebug > 250) {
     element('debug').textContent = JSON.stringify(diagnostics(engine), null, 2); lastDebug = now;
   }

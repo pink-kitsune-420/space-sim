@@ -118,43 +118,124 @@ export function formatControllerButton(buttonIndex: number, family: ControllerFa
   }
 }
 
-export interface GamepadSettings {
-  readonly enabled: boolean;
-  /** Axis index for yaw/roll turn [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */
+/** One player's controller layout: analog axes plus remappable buttons for every action. */
+export interface ControllerProfile {
+  /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */
   readonly turnAxis: number;
   readonly invertTurn: boolean;
-  /** Axis index for pitch/throttle [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */
+  /** Axis index for throttle steps [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */
   readonly throttleAxis: number;
   readonly invertThrottle: boolean;
+  /** Axis index for analog zoom, or -1 for none. Default: 3 (Right Stick Y). */
+  readonly zoomAxis: number;
+  readonly invertZoom: boolean;
   /** Radial deadzone fraction [0..0.5]. Default: 0.15. */
   readonly deadzone: number;
-  /** Primary button index for main engine burn. Default: 0 (A / Cross / Trigger). */
+  /** Standard-mapping button indices per action. Held actions (engine, throttle, turn) act
+   * while pressed; the rest fire once per press. */
+  readonly buttons: Readonly<Record<ActionId, readonly number[]>>;
+}
+
+/** Steam Deck, Xbox and PlayStation share the W3C standard mapping. */
+export const DEFAULT_PAD_BUTTONS: Readonly<Record<ActionId, readonly number[]>> = Object.freeze({
+  engine: [0, 7],          // A / Cross, RT / R2
+  throttleUp: [12],        // D-pad up
+  throttleDown: [13],      // D-pad down
+  turnLeft: [],
+  turnRight: [],
+  warpDown: [4, 14],       // LB / L1, D-pad left
+  warpUp: [5, 15],         // RB / R1, D-pad right
+  warpReset: [10],         // L3
+  pause: [9],              // Start / Menu / Options
+  reset: [8, 17],          // Back / View / Share, PlayStation touchpad
+  camera: [3],             // Y / Triangle
+  orientation: [2],        // X / Square
+  cycleShip: [1],          // B / Circle
+  cycleShipPrev: [],
+  cyclePlanet: [],
+  cyclePlanetPrev: [],
+  zoomIn: [],
+  zoomOut: [],
+  fullscreen: [],
+  profiler: [],
+  throwShip: [12],         // D-pad up (slingshot throw / launch feature)
+});
+
+export const DEFAULT_CONTROLLER_PROFILE: ControllerProfile = Object.freeze({
+  turnAxis: 0,
+  invertTurn: false,
+  throttleAxis: 1,
+  invertThrottle: true,
+  zoomAxis: -1,
+  invertZoom: true,
+  deadzone: 0.15,
+  buttons: DEFAULT_PAD_BUTTONS,
+});
+
+export interface GamepadSettings {
+  readonly enabled: boolean;
+  readonly turnAxis: number;
+  readonly invertTurn: boolean;
+  readonly throttleAxis: number;
+  readonly invertThrottle: boolean;
+  readonly deadzone: number;
   readonly engineButton: number;
-  /** Secondary button index for engine burn. Default: 7 (Right Trigger RT / R2). */
   readonly secondaryEngineButton: number;
 }
 
 export const DEFAULT_GAMEPAD_SETTINGS: GamepadSettings = Object.freeze({
   enabled: true,
-  turnAxis: 0,
-  invertTurn: false,
-  throttleAxis: 1,
-  invertThrottle: true,
-  deadzone: 0.15,
+  turnAxis: DEFAULT_CONTROLLER_PROFILE.turnAxis,
+  invertTurn: DEFAULT_CONTROLLER_PROFILE.invertTurn,
+  throttleAxis: DEFAULT_CONTROLLER_PROFILE.throttleAxis,
+  invertThrottle: DEFAULT_CONTROLLER_PROFILE.invertThrottle,
+  deadzone: DEFAULT_CONTROLLER_PROFILE.deadzone,
   engineButton: 0,
   secondaryEngineButton: 7,
 });
 
-const STORAGE_KEY = 'space-sim:gamepad:v1';
+const MAX_INDEX = 31;
+const index = (value: unknown, fallback: number, min = 0): number =>
+  Number.isInteger(value) && (value as number) >= min && (value as number) <= MAX_INDEX ? value as number : fallback;
+
+/** A stored or imported profile with every field checked; unknown actions are dropped. */
+export function normalizeProfile(raw: unknown): ControllerProfile {
+  const d = DEFAULT_CONTROLLER_PROFILE;
+  if (typeof raw !== 'object' || raw === null) return d;
+  const r = raw as Record<string, unknown>;
+  const buttons = { ...d.buttons } as Record<ActionId, readonly number[]>;
+  const rawButtons = typeof r.buttons === 'object' && r.buttons !== null ? r.buttons as Record<string, unknown> : {};
+  for (const action of Object.keys(buttons) as ActionId[]) {
+    const list = rawButtons[action];
+    if (Array.isArray(list)) buttons[action] = [...new Set(list.filter(b => index(b, -1) >= 0) as number[])].slice(0, 4);
+  }
+  const deadzone = typeof r.deadzone === 'number' && Number.isFinite(r.deadzone) ? Math.max(0, Math.min(0.5, r.deadzone)) : d.deadzone;
+  const flag = (value: unknown, fallback: boolean): boolean => typeof value === 'boolean' ? value : fallback;
+  return {
+    turnAxis: index(r.turnAxis, d.turnAxis), invertTurn: flag(r.invertTurn, d.invertTurn),
+    throttleAxis: index(r.throttleAxis, d.throttleAxis), invertThrottle: flag(r.invertThrottle, d.invertThrottle),
+    zoomAxis: index(r.zoomAxis, d.zoomAxis, -1), invertZoom: flag(r.invertZoom, d.invertZoom),
+    deadzone, buttons,
+  };
+}
+
+/** Held actions read every frame; every other bound action fires on press. */
+const HELD = new Set<ActionId>(['engine', 'throttleUp', 'throttleDown', 'turnLeft', 'turnRight']);
+
+const ENABLED_KEY = 'space-sim:gamepad:v1';
 
 export interface GamepadFlightInput {
-  /** Analog turning rate in [-1, 1]. Negative = left/CCW, positive = right/CW. */
+  /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */
   readonly turn: number;
-  /** Digital or analog throttle adjustment (-1 = decrease, 0 = neutral, 1 = increase). */
+  /** Throttle step (-1 = decrease, 0 = neutral, 1 = increase). */
   readonly throttle: number;
   /** Engine burn state (held). */
   readonly engine: boolean;
+  /** Analog zoom rate in [-1, 1]: positive zooms in. */
+  readonly zoom: number;
 }
+
+export const NO_PAD_INPUT: GamepadFlightInput = Object.freeze({ turn: 0, throttle: 0, engine: false, zoom: 0 });
 
 export interface GamepadDiagnostic {
   readonly index: number;
@@ -166,204 +247,184 @@ export interface GamepadDiagnostic {
   readonly buttons: readonly { readonly pressed: boolean; readonly value: number; readonly label: string }[];
 }
 
+export function applyDeadzone(value: number, deadzone: number): number {
+  const abs = Math.abs(value);
+  if (abs <= deadzone) return 0;
+  const scaled = (abs - deadzone) / (1 - deadzone);
+  return Math.sign(value) * Math.min(1, Math.max(0, scaled));
+}
+
+export const isButtonDown = (button: GamepadButton | undefined): boolean => !!button && (button.pressed || button.value > 0.25);
+const isDown = isButtonDown;
+
+/** Flight input from one pad under `profile`. Pure, for tests and the poller. */
+export function readPad(pad: Pick<Gamepad, 'axes' | 'buttons'>, profile: ControllerProfile): GamepadFlightInput {
+  const axis = (i: number): number => i >= 0 && i < pad.axes.length ? applyDeadzone(pad.axes[i] ?? 0, profile.deadzone) : 0;
+  const held = (action: ActionId): boolean => profile.buttons[action].some(b => isDown(pad.buttons[b]));
+  // Stick right reads +1; turning right is negative.
+  let turn = profile.invertTurn ? axis(profile.turnAxis) : -axis(profile.turnAxis);
+  if (held('turnLeft')) turn = 1;
+  if (held('turnRight')) turn = -1;
+  const stick = profile.invertThrottle ? -axis(profile.throttleAxis) : axis(profile.throttleAxis);
+  let throttle = Math.abs(stick) > 0.2 ? Math.sign(stick) : 0;
+  if (held('throttleUp') && !held('throwShip')) throttle = 1;
+  if (held('throttleDown')) throttle = -1;
+  const zoom = profile.zoomAxis < 0 ? 0 : profile.invertZoom ? -axis(profile.zoomAxis) : axis(profile.zoomAxis);
+  const norm = (v: number): number => v === 0 ? 0 : v;
+  return { turn: norm(turn), throttle: norm(throttle), engine: held('engine'), zoom: norm(zoom) };
+}
+
+/** Reads every connected pad once per frame: flight input per pad, button presses mapped
+ * through each pad's profile, and raw presses for joining and rebinding. Runs while paused,
+ * so a Start button can resume. */
 export class GamepadManager {
-  private settings: GamepadSettings = { ...DEFAULT_GAMEPAD_SETTINGS };
-  private previousButtonStates: Map<number, boolean[]> = new Map();
-  private onShortcutHandler?: (action: ActionId) => void;
+  enabled = true;
+  private readonly previous = new Map<number, boolean[]>();
+  private readonly input = new Map<number, GamepadFlightInput>();
+  /** Last time (ms) each pad had a button down or a stick outside its deadzone. */
+  readonly activity = new Map<number, number>();
+  private capture: ((pad: number, button: number) => void) | undefined;
 
   constructor() {
     this.loadSettings();
     if (typeof window !== 'undefined') {
-      window.addEventListener('gamepadconnected', () => {});
-      window.addEventListener('gamepaddisconnected', (e) => {
-        this.previousButtonStates.delete(e.gamepad.index);
+      window.addEventListener('gamepaddisconnected', e => {
+        this.previous.delete(e.gamepad.index);
+        this.input.delete(e.gamepad.index);
+        this.activity.delete(e.gamepad.index);
       });
     }
   }
 
-  loadSettings(): GamepadSettings {
-    if (typeof localStorage === 'undefined') return this.settings;
+  private loadSettings(): void {
+    if (typeof localStorage === 'undefined') return;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<GamepadSettings>;
-        this.settings = { ...DEFAULT_GAMEPAD_SETTINGS, ...parsed };
-      }
+      const raw = localStorage.getItem(ENABLED_KEY);
+      if (raw) this.enabled = (JSON.parse(raw) as { enabled?: unknown }).enabled !== false;
     } catch {
       // Use defaults
     }
-    return this.settings;
   }
 
-  saveSettings(settings: Partial<GamepadSettings>): void {
-    this.settings = { ...this.settings, ...settings };
+  /** The version 1 layout, for migrating player 1's controller settings. */
+  static legacyProfile(): ControllerProfile | undefined {
+    if (typeof localStorage === 'undefined') return undefined;
+    try {
+      const raw = localStorage.getItem(ENABLED_KEY);
+      if (!raw) return undefined;
+      const old = JSON.parse(raw) as Record<string, unknown>;
+      const buttons = { ...DEFAULT_PAD_BUTTONS } as Record<ActionId, readonly number[]>;
+      if (Number.isInteger(old.engineButton) || Number.isInteger(old.secondaryEngineButton)) {
+        buttons.engine = [old.engineButton, old.secondaryEngineButton].filter(b => Number.isInteger(b)) as number[];
+      }
+      // Version 1 steered backwards unless inverted; either way, the corrected default is right.
+      return normalizeProfile({ ...old, invertTurn: false, zoomAxis: undefined, invertZoom: undefined, buttons });
+    } catch {
+      return undefined;
+    }
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) this.input.clear();
     if (typeof localStorage === 'undefined') return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.settings));
+      localStorage.setItem(ENABLED_KEY, JSON.stringify({ enabled }));
     } catch {
       // Ignore
     }
   }
 
-  resetSettings(): GamepadSettings {
-    this.settings = { ...DEFAULT_GAMEPAD_SETTINGS };
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch {
-        // Ignore
-      }
-    }
-    return this.settings;
-  }
-
-  getSettings(): Readonly<GamepadSettings> {
-    return this.settings;
-  }
-
-  onShortcut(handler: (action: ActionId) => void): void {
-    this.onShortcutHandler = handler;
-  }
-
-  /** Gets all active gamepads safely from navigator. */
-  private getGamepads(): (Gamepad | null)[] {
-    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') {
-      return [];
-    }
+  /** All connected pads from navigator. */
+  private pads(): Gamepad[] {
+    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return [];
     try {
-      const pads = navigator.getGamepads();
-      return pads ? Array.from(pads) : [];
+      return Array.from(navigator.getGamepads() ?? []).filter((p): p is Gamepad => !!p && p.connected);
     } catch {
       return [];
     }
   }
 
-  /** Evaluates flight controls from the primary connected gamepad. */
-  pollFlight(): GamepadFlightInput {
-    if (!this.settings.enabled) {
-      return { turn: 0, throttle: 0, engine: false };
-    }
+  /** Indices of connected pads, lowest first. */
+  connected(): number[] {
+    return this.pads().map(p => p.index).sort((a, b) => a - b);
+  }
 
-    const pads = this.getGamepads();
-    let turn = 0;
-    let throttle = 0;
-    let engine = false;
-
-    for (const pad of pads) {
-      if (!pad || !pad.connected) continue;
-
-      // Handle button edge transitions for single-shot shortcuts
-      this.pollShortcuts(pad);
-
-      // Read Turn Axis (Left Stick X / flight stick roll)
-      if (pad.axes.length > this.settings.turnAxis) {
-        const rawTurn = pad.axes[this.settings.turnAxis] ?? 0;
-        const deadzoned = this.applyDeadzone(rawTurn, this.settings.deadzone);
-        if (Math.abs(deadzoned) > Math.abs(turn)) {
-          turn = this.settings.invertTurn ? -deadzoned : deadzoned;
+  /** Call once per frame. `profileFor` gives each pad's layout (undefined: unassigned, which
+   * still reports raw presses through `onPress`); `onAction` receives mapped presses. */
+  update(profileFor: (pad: number) => ControllerProfile | undefined,
+      onAction: (pad: number, action: ActionId) => void,
+      onPress?: (pad: number, button: number) => void): void {
+    const now = typeof performance !== 'undefined' ? performance.now() : 0;
+    for (const pad of this.pads()) {
+      const down = pad.buttons.map(isDown);
+      const before = this.previous.get(pad.index);
+      this.previous.set(pad.index, down);
+      if (down.some(Boolean) || pad.axes.some(a => Math.abs(a) > 0.5)) this.activity.set(pad.index, now);
+      if (!this.enabled) continue;
+      const profile = profileFor(pad.index);
+      this.input.set(pad.index, profile ? readPad(pad, profile) : NO_PAD_INPUT);
+      // The first sight of a pad only records which buttons were already down.
+      if (!before || before.length !== down.length) continue;
+      for (let b = 0; b < down.length; b++) {
+        if (!down[b] || before[b]) continue;
+        if (this.capture) { const capture = this.capture; this.capture = undefined; capture(pad.index, b); continue; }
+        onPress?.(pad.index, b);
+        if (!profile) continue;
+        for (const [action, list] of Object.entries(profile.buttons) as [ActionId, readonly number[]][]) {
+          if (!HELD.has(action) && list.includes(b)) onAction(pad.index, action);
         }
       }
-
-      // Read Throttle Axis (Left Stick Y / flight stick pitch)
-      if (pad.axes.length > this.settings.throttleAxis) {
-        const rawThrottle = pad.axes[this.settings.throttleAxis] ?? 0;
-        const deadzoned = this.applyDeadzone(rawThrottle, this.settings.deadzone);
-        if (Math.abs(deadzoned) > 0.2) {
-          const dir = this.settings.invertThrottle ? -deadzoned : deadzoned;
-          throttle = dir > 0 ? 1 : -1;
-        }
-      }
-
-      // Check D-pad up/down for throttle stepping (Buttons 12 and 13)
-      if (pad.buttons.length > 12 && pad.buttons[12]?.pressed) throttle = 1;
-      if (pad.buttons.length > 13 && pad.buttons[13]?.pressed) throttle = -1;
-
-      // Check Engine Button (A/Cross or RT/R2 trigger)
-      const primaryBtn = pad.buttons[this.settings.engineButton];
-      const secondaryBtn = pad.buttons[this.settings.secondaryEngineButton];
-      if ((primaryBtn && (primaryBtn.pressed || primaryBtn.value > 0.25)) ||
-          (secondaryBtn && (secondaryBtn.pressed || secondaryBtn.value > 0.25))) {
-        engine = true;
-      }
-
-      // Priority goes to first active connected controller
-      break;
-    }
-
-    return { turn, throttle, engine };
-  }
-
-  /** Detects single-press button transitions and fires shortcuts. */
-  private pollShortcuts(pad: Gamepad): void {
-    if (!this.onShortcutHandler) return;
-
-    let prev = this.previousButtonStates.get(pad.index);
-    if (!prev || prev.length !== pad.buttons.length) {
-      prev = pad.buttons.map(b => b.pressed);
-      this.previousButtonStates.set(pad.index, prev);
-      return;
-    }
-
-    const checkEdge = (buttonIndex: number, action: ActionId): void => {
-      const isDown = pad.buttons[buttonIndex]?.pressed ?? false;
-      const wasDown = prev![buttonIndex] ?? false;
-      if (isDown && !wasDown) {
-        this.onShortcutHandler!(action);
-      }
-      prev![buttonIndex] = isDown;
-    };
-
-    // Standard mappings for Steam Deck, Xbox, PlayStation:
-    // LB / L1 (4) or D-Pad Left (14) -> warpDown
-    // RB / R1 (5) or D-Pad Right (15) -> warpUp
-    // Start / Menu / Options (9) -> pause
-    // Back / View / Share (8) -> reset
-    // Y / Triangle (3) -> camera
-    // X / Square (2) -> orientation
-    // Stick click L3 (10) -> warpReset
-    // Touchpad click on PlayStation (17) -> reset
-    checkEdge(4, 'warpDown');
-    checkEdge(5, 'warpUp');
-    checkEdge(14, 'warpDown');
-    checkEdge(15, 'warpUp');
-    checkEdge(9, 'pause');
-    checkEdge(8, 'reset');
-    checkEdge(3, 'camera');
-    checkEdge(2, 'orientation');
-    checkEdge(10, 'warpReset');
-    if (pad.buttons.length > 17) {
-      checkEdge(17, 'reset');
     }
   }
 
-  private applyDeadzone(value: number, deadzone: number): number {
-    const abs = Math.abs(value);
-    if (abs <= deadzone) return 0;
-    const scaled = (abs - deadzone) / (1 - deadzone);
-    return Math.sign(value) * Math.min(1, Math.max(0, scaled));
+  /** This frame's flight input from `pad`. */
+  flight(pad: number): GamepadFlightInput {
+    return this.enabled ? this.input.get(pad) ?? NO_PAD_INPUT : NO_PAD_INPUT;
   }
 
-  /** Returns diagnostic snapshot of all connected gamepads for configuration UI. */
+  /** The next newly pressed button on any pad goes to `listener` instead of the game. */
+  captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void {
+    this.capture = listener;
+  }
+  get capturing(): boolean { return !!this.capture; }
+
+  /** Diagnostic snapshot of all connected gamepads for the configuration UI. */
   getDiagnostics(): GamepadDiagnostic[] {
-    const pads = this.getGamepads();
-    const result: GamepadDiagnostic[] = [];
-    for (const pad of pads) {
-      if (!pad) continue;
+    return this.pads().map(pad => {
       const family = detectControllerFamily(pad.id);
-      result.push({
-        index: pad.index,
-        id: pad.id,
-        family,
-        familyName: getControllerFamilyDisplayName(family),
-        connected: pad.connected,
+      return {
+        index: pad.index, id: pad.id, family, familyName: getControllerFamilyDisplayName(family), connected: pad.connected,
         axes: Array.from(pad.axes),
-        buttons: pad.buttons.map((b, idx) => ({
-          pressed: b.pressed,
-          value: b.value,
-          label: formatControllerButton(idx, family),
-        })),
-      });
-    }
-    return result;
+        buttons: pad.buttons.map((b, idx) => ({ pressed: b.pressed, value: b.value, label: formatControllerButton(idx, family) })),
+      };
+    });
+  }
+
+  getSettings(): GamepadSettings {
+    return {
+      enabled: this.enabled,
+      turnAxis: DEFAULT_CONTROLLER_PROFILE.turnAxis,
+      invertTurn: DEFAULT_CONTROLLER_PROFILE.invertTurn,
+      throttleAxis: DEFAULT_CONTROLLER_PROFILE.throttleAxis,
+      invertThrottle: DEFAULT_CONTROLLER_PROFILE.invertThrottle,
+      deadzone: DEFAULT_CONTROLLER_PROFILE.deadzone,
+      engineButton: 0,
+      secondaryEngineButton: 7,
+    };
+  }
+
+  private legacyShortcutHandler?: (action: ActionId) => void;
+  onShortcut(handler: (action: ActionId) => void): void {
+    this.legacyShortcutHandler = handler;
+  }
+
+  pollFlight(): GamepadFlightInput {
+    const pads = this.pads();
+    if (!pads.length || !this.enabled) return NO_PAD_INPUT;
+    this.update(() => DEFAULT_CONTROLLER_PROFILE, (_pad, action) => {
+      this.legacyShortcutHandler?.(action);
+    });
+    return this.flight(pads[0]!.index);
   }
 }

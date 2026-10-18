@@ -58,6 +58,10 @@
         {
           "id": "builtin.navball",
           "version": "0.1.0"
+        },
+        {
+          "id": "builtin.maneuver-planner",
+          "version": "0.1.0"
         }
       ],
       "providers": {

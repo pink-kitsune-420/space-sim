@@ -212,8 +212,18 @@ export interface PresentationSnapshot {
   /** Height above local ground or sea in metres (negative underwater). */
   readonly groundClearance: number | null;
   readonly prediction: { readonly status: GhostEnd | 'tracing' | 'none'; readonly samples: number; readonly last?: GhostSample };
+  /** Optional local flight plan. Body-relative SI coordinates; a preview never changes live motion. */
+  readonly maneuver?: ManeuverPreview;
   /** Shared-world rule namespaces at the last committed tick. */
   readonly moduleState: Readonly<Record<string, WorldRuleState>>;
+}
+export interface ManeuverPreview {
+  readonly time: number;
+  readonly position: Vec;
+  readonly deltaVelocity: Vec;
+  readonly burnSeconds: number;
+  readonly valid: boolean;
+  readonly path: readonly GhostSample[];
 }
 export interface PresentationView extends PresentationSnapshot {
   /** The camera this frame is drawn with. */

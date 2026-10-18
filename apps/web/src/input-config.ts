@@ -155,7 +155,7 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
     id: 'cycleShip',
     name: 'Next Ship / Target',
     category: 'system',
-    defaultKeys: ['Backslash'],
+    defaultKeys: ['Tab', 'Backslash'],
     description: 'Switch pilot focus to next ship, or cycle celestial bodies in free view',
   },
   {
@@ -169,14 +169,14 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
     id: 'cyclePlanet',
     name: 'Next Planet',
     category: 'view',
-    defaultKeys: [],
+    defaultKeys: ['KeyN'],
     description: 'Focus camera on next planet in system order',
   },
   {
     id: 'cyclePlanetPrev',
     name: 'Previous Planet',
     category: 'view',
-    defaultKeys: [],
+    defaultKeys: ['KeyB'],
     description: 'Focus camera on previous planet in system order',
   },
   {

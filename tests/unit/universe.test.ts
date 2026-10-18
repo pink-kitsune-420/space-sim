@@ -3,6 +3,7 @@ import {
   DEFAULT_UNIVERSE,
   GRAVITATIONAL_CONSTANT,
   calculateLaplaceSOI,
+  findDominantBodyForWorldPos,
   loadSystem,
   validateUniverse,
   type SystemDefinition,
@@ -586,6 +587,65 @@ describe('universe format, validation and system loader', () => {
         ],
       };
       expect(() => validateUniverse(invalid)).toThrow('Body b1 horizonColor must be a string');
+    });
+  });
+
+  describe('findDominantBodyForWorldPos (Laplace SOI hierarchical resolution)', () => {
+    it('accurately resolves moon when within moon sphere of influence', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const moon = loaded.getResolvedBody('moon');
+      const moonWorld = loaded.getBodyPosition('moon', 0);
+
+      // Point 500 m above Parvus surface (Parvus radius 128m, SOI 2910m)
+      const nearMoon = { x: moonWorld.x, y: moonWorld.y + moon.radius + 500 };
+      const resolved = findDominantBodyForWorldPos(loaded, nearMoon, 0);
+
+      expect(resolved.body.id).toBe('moon');
+      expect(resolved.body.name).toBe('Parvus');
+      expect(resolved.dist).toBeCloseTo(moon.radius + 500, 1);
+    });
+
+    it('accurately resolves planet when outside moon SOI but inside planet SOI', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const planet = loaded.getResolvedBody('planet');
+      const planetWorld = loaded.getBodyPosition('planet', 0);
+
+      // Point 2000 m above Primus surface (Primus radius 512m, SOI 50000m; Parvus is at 15360m)
+      const nearPlanet = { x: planetWorld.x + planet.radius + 2000, y: planetWorld.y };
+      const resolved = findDominantBodyForWorldPos(loaded, nearPlanet, 0);
+
+      expect(resolved.body.id).toBe('planet');
+      expect(resolved.body.name).toBe('Primus');
+      expect(resolved.dist).toBeCloseTo(planet.radius + 2000, 1);
+    });
+
+    it('accurately resolves central star when out in interplanetary space', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const star = loaded.rootBody;
+
+      // Deep interplanetary space far beyond any planet SOI
+      const deepSpace = { x: 500000000, y: 500000000 };
+      const resolved = findDominantBodyForWorldPos(loaded, deepSpace, 0);
+
+      expect(resolved.body.id).toBe(star.id);
+      expect(resolved.body.name).toBe(star.name);
+    });
+
+    it('respects preferredBodyId within its SOI while still switching to child moon inside moon SOI', () => {
+      const loaded = loadSystem(DEFAULT_UNIVERSE, 'primus-system');
+      const moon = loaded.getResolvedBody('moon');
+      const moonWorld = loaded.getBodyPosition('moon', 0);
+      const planetWorld = loaded.getBodyPosition('planet', 0);
+
+      // Preferred is planet: when near Parvus, it still correctly resolves Parvus!
+      const nearMoon = { x: moonWorld.x, y: moonWorld.y + moon.radius + 200 };
+      const onMoon = findDominantBodyForWorldPos(loaded, nearMoon, 0, 'planet');
+      expect(onMoon.body.id).toBe('moon');
+
+      // Preferred is planet: when in Primus orbit, stays Primus
+      const nearPlanet = { x: planetWorld.x + 2000, y: planetWorld.y };
+      const onPlanet = findDominantBodyForWorldPos(loaded, nearPlanet, 0, 'planet');
+      expect(onPlanet.body.id).toBe('planet');
     });
   });
 });

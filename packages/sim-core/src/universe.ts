@@ -707,6 +707,75 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
   };
 }
 
+/**
+ * Resolves the dominant celestial body whose sphere of influence (SOI) contains worldPos at time.
+ * If preferredBodyId is supplied and worldPos lies within its SOI (and not within any child moon's SOI),
+ * the preferred body is maintained for smooth reference-frame stability.
+ */
+export function findDominantBodyForWorldPos(
+  system: LoadedSystem,
+  worldPos: Vec,
+  time: number,
+  preferredBodyId?: string,
+): { body: ResolvedBody; bodyPos: Vec; relPos: Vec; dist: number } {
+  if (preferredBodyId) {
+    try {
+      const pref = system.getResolvedBody(preferredBodyId);
+      if (pref) {
+        const prefPos = system.getBodyPosition(pref.id, time);
+        const dx = worldPos.x - prefPos.x;
+        const dy = worldPos.y - prefPos.y;
+        const dist = Math.hypot(dx, dy);
+        const exitLimit = pref.soi.exitMetres;
+
+        // Check if inside any child moon of preferredBody
+        let insideChildMoon = false;
+        const moons = system.getMoonsOf(pref.id);
+        for (const moon of moons) {
+          const mPos = system.getBodyPosition(moon.id, time);
+          const mDist = Math.hypot(worldPos.x - mPos.x, worldPos.y - mPos.y);
+          if (mDist <= moon.soi.entryMetres) {
+            insideChildMoon = true;
+            break;
+          }
+        }
+
+        if (!insideChildMoon && (!pref.parentId || dist < exitLimit)) {
+          return { body: pref, bodyPos: prefPos, relPos: { x: dx, y: dy }, dist };
+        }
+      }
+    } catch {
+      // Fallback to full tree traversal below
+    }
+  }
+
+  // Hierarchical search from root down through moon trees
+  let current: ResolvedBody = system.rootBody;
+  let currentPos = system.getBodyPosition(current.id, time);
+
+  let foundChild = true;
+  while (foundChild) {
+    foundChild = false;
+    const children = system.getMoonsOf(current.id);
+    for (const child of children) {
+      const childPos = system.getBodyPosition(child.id, time);
+      const dx = worldPos.x - childPos.x;
+      const dy = worldPos.y - childPos.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= child.soi.entryMetres) {
+        current = child;
+        currentPos = childPos;
+        foundChild = true;
+        break;
+      }
+    }
+  }
+
+  const relPos = { x: worldPos.x - currentPos.x, y: worldPos.y - currentPos.y };
+  const dist = Math.hypot(relPos.x, relPos.y);
+  return { body: current, bodyPos: currentPos, relPos, dist };
+}
+
 /** Pre-validated and frozen default universe */
 export const DEFAULT_UNIVERSE: UniverseDefinition = Object.freeze(
   validateUniverse(defaultUniverseJson)
