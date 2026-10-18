@@ -118,6 +118,9 @@ jobs:
 
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
+          # Artifact uploads do not preserve POSIX executable permissions.
+          find all-artifacts/space-sim-linux all-artifacts/space-sim-macos -type f \( -name space-sim -o -name space-sim-server \) -exec chmod 755 {} +
+
           # Linux Standalone Executables
           if [ -f all-artifacts/space-sim-linux/dist-desktop/space-sim ]; then
             tar -czf "release-files/space-sim-${TAG}-linux-x64.tar.gz" -C all-artifacts/space-sim-linux/dist-desktop space-sim NODE-LICENSE.txt
