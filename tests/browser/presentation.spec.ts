@@ -139,13 +139,13 @@ test('module commands bind keys and buttons and go through the host', async ({ p
   page.on('pageerror', e => errors.push(e.message));
   await page.goto('/?example=commands');
   const commands = page.locator('#module-commands');
-  await expect(commands.getByRole('button', { includeHidden: true })).toHaveText(['Full throttle Z', 'Cut throttle X', 'Throttle +10% V']);
+  await expect(commands.getByRole('button', { includeHidden: true })).toHaveText(['Full throttle U', 'Cut throttle J', 'Throttle +10% V']);
   await expect(page.locator('#module-name')).toHaveText('example.maneuvers');
   await expect(page.locator('#save-world')).toBeDisabled();
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
-  await page.keyboard.press('z');
+  await page.keyboard.press('u');
   await expect(page.locator('#throttle-value')).toHaveText('100%');
-  await page.keyboard.press('x');
+  await page.keyboard.press('j');
   await expect(page.locator('#throttle-value')).toHaveText('0%');
   await page.keyboard.press('v');
   await expect(page.locator('#throttle-value')).toHaveText('10%');
@@ -211,7 +211,7 @@ test('a copied offline HTML runs the instruments and module commands without net
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.module-panel')).toContainText('Thrust / weight');
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
-  await page.keyboard.press('z');
+  await page.keyboard.press('u');
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('FLYING');

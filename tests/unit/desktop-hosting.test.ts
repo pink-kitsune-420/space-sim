@@ -53,6 +53,9 @@ it('uses a free port when 6464 is occupied and closes its listener on stop', asy
   await expect.poll(owner.data).toContain('"type":"ready"');
   const ready = JSON.parse(owner.data().match(/\{"type":"ready"[^\r\n]*\}/)![0]) as { localAddress: string };
   expect(new URL(ready.localAddress).port).not.toBe('6464');
+  const guest = await upgrade(Number(new URL(ready.localAddress).port), '/ws?prejoin=1', `http://127.0.0.1:${port}`);
+  expect(guest.data()).toContain('101 Switching Protocols');
+  await expect.poll(owner.data).toContain('"type":"peer"');
   expect(await (await fetch(ready.localAddress)).text()).toBe('game');
   await hosting.stop();
   await expect(fetch(ready.localAddress)).rejects.toThrow();

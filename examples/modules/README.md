@@ -12,7 +12,7 @@ similarly to these examples and serve as useful references.
 | [gentle-flight.json](gentle-flight.json) | Data module: vehicle settings | **Data modules → Load module/profile…** |
 | [motion.ts](motion.ts) | Force extension and numerical dynamics replacement | `?example=force`, `?example=numerical` |
 | [rules.ts](rules.ts) | Shared-world rule with module state and seeded RNG | `?example=rule` |
-| [commands.ts](commands.ts) | Authoritative pilot commands run by the host | `?example=commands`, then Z / X / V |
+| [commands.ts](commands.ts) | Authoritative pilot commands run by the host | `?example=commands`, then U / J / V |
 | [lead-camera.ts](lead-camera.ts) | Presentation add-on depending on `builtin.flight-data` | **Presentation modules → Lead camera (example)** |
 
 ## Gentle Flight

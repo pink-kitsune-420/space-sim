@@ -72,6 +72,7 @@ describe('command registration', () => {
 describe('commands on the authoritative host', () => {
   it('belong to the authoritative profile: the lock and fingerprint name the module, and the world gates sharing', () => {
     const world = examples(), plain = worldWith(GAME_EXAMPLES, []);
+    expect(() => checkCommandKeys(world.commands)).not.toThrow();
     expect(world.commands.map(c => c.id)).toEqual(['example.maneuvers/full-throttle', 'example.maneuvers/cut-throttle', 'example.maneuvers/trim-throttle']);
     expect(world.lock!.modules.map(m => m.id)).toContain('example.maneuvers');
     expect(world.simulationFingerprint).not.toBe(plain.simulationFingerprint);
