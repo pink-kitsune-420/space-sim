@@ -7,7 +7,8 @@ import type { MotionCapabilities, MotionContextOptions } from './motion';
 
 /** Motion context with an optional numerical/contact replacement and force schedule.
  * All motion is synchronous, body-relative 2D SI: metres, seconds, radians (+Y up).
- * Methods leave input state untouched. One owned context per world; no DOM or timers.
+ * Methods leave input state untouched. Contexts are owned per world/vehicle definition;
+ * craft with the same handling share a context. No DOM or timers.
  * Prediction consumers own a clone and dispose it when a job ends or is cancelled. */
 export interface SimulationContext {
   readonly modelIdentity: string;

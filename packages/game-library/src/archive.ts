@@ -6,7 +6,7 @@ import { validateDataModule } from '../../modules/src/data';
 
 import { readJsonFile } from './compression';
 import { encodeGamePackage, inspectGameFiles } from './game-package';
-import { copyPackageFiles, inspectModuleFiles } from './portable';
+import { copyPackageFiles, inspectModuleFiles, type ShippedPackageOptions } from './portable';
 import { DATA_FILE_FORMAT, inspectDataFiles } from './data-file';
 import { inspectSaveFiles } from './save-package';
 import { parsePackageJson, requiredFile } from './portable';
@@ -104,26 +104,26 @@ export function validatePackage(raw: unknown): LabPackage {
 }
 
 /** New exports are ordinary ZIP collections; legacy JSON/gzip readers remain supported. */
-export async function encodePackage(raw: LabPackage): Promise<Uint8Array<ArrayBuffer>> {
-  return encodeGamePackage(validatePackage(raw));
+export async function encodePackage(raw: LabPackage, options: ShippedPackageOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
+  return encodeGamePackage(validatePackage(raw), options);
 }
 /** One inert import route distinguishes setup, code, reusable data and saved progress by bytes. */
-export async function decodeLabFile(bytes: Uint8Array<ArrayBuffer>): Promise<unknown> {
+export async function decodeLabFile(bytes: Uint8Array<ArrayBuffer>, options: ShippedPackageOptions = {}): Promise<unknown> {
   if (!isZip(bytes)) return readJsonFile(bytes);
   const budget = { bytes: 0, files: 0 }, files = await readZip(bytes, { budget });
   if (files.has('save.json')) return inspectSaveFiles(files);
-  if (files.has('game.json')) return (await inspectGameFiles(files, validatePackage, { budget })).legacy;
+  if (files.has('game.json')) return (await inspectGameFiles(files, validatePackage, { ...options, budget })).legacy;
   if (files.has('data.json')) {
     const descriptor = parsePackageJson(requiredFile(files, 'data.json'), 'Data descriptor') as { format?: string };
-    if (descriptor.format === DATA_FILE_FORMAT) return inspectDataFiles(files).value;
+    if (descriptor.format === DATA_FILE_FORMAT) return inspectDataFiles(files, options).value;
   }
-  const module = inspectModuleFiles(files);
+  const module = inspectModuleFiles(files, true, options);
   if (!module.code && !module.content) throw new Error('Use Setup → Import for universe definitions, or Tools → Load shader for shaders');
   return { format: 'space-lab-plugin/1', info: { id: module.descriptor.manifest.id, name: module.descriptor.manifest.name, description: '' },
     data: module.content ? [module.content] : [], code: module.code ? [module.code] : [] };
 }
-export async function decodePackage(bytes: Uint8Array<ArrayBuffer>): Promise<LabPackage> {
-  return validatePackage(await decodeLabFile(bytes));
+export async function decodePackage(bytes: Uint8Array<ArrayBuffer>, options: ShippedPackageOptions = {}): Promise<LabPackage> {
+  return validatePackage(await decodeLabFile(bytes, options));
 }
 
 // Keep existing imports compatible while execution policy lives in the pure runtime.

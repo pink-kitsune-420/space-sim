@@ -1,4 +1,4 @@
-import type { DataModule, HostServiceAccess, JoinOptions, ModuleProfile, RegisteredModule, SimulationContextFactory, UniverseDefinition } from '../../game-api/src/index';
+import type { JoinOffer, JoinStage, DataModule, HostServiceAccess, JoinOptions, ModuleProfile, RegisteredModule, SimulationContextFactory, UniverseDefinition } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from '../../game-runtime/src/authoritative';
 import { prepareInstalledGame, type CandidateGame, type EngineAdapters, type InstalledGamePlan } from '../../game-runtime/src/game-loader';
 import { normalizeLegacyModule, type LoadPolicy } from '../../game-runtime/src/loader';
@@ -9,9 +9,10 @@ import { loadWorld, type LoadedWorld } from '../../sim-core/src/save';
 import { World } from '../../sim-core/src/world';
 import { validateUniverse } from '../../sim-core/src/universe';
 import { applyDataModules } from './data';
-import { BASE_GAME_MODULES, DEFAULT_PROFILE } from './index';
+import { prepareGame, BASE_GAME_MODULES, DEFAULT_PROFILE } from './index';
 
 export interface InstalledWorldOptions {
+  readonly logs?:EngineAdapters['logs'];
   readonly configuration?: import('../../game-api/src/index').SavedGameConfiguration;
   readonly profile?: ModuleProfile;
   readonly data?: readonly DataModule[];
@@ -56,7 +57,7 @@ export async function prepareInstalledWorld(plan: InstalledGamePlan, store: Pack
     settings: { ...profile.settings, ...plan.profile.settings } }, requiredSlots: [...new Set(['motion', 'content', ...plan.requiredSlots])] };
   let loaded!: LoadedWorld;
   let createContext!: SimulationContextFactory;
-  const candidate = await prepareInstalledGame(merged, store, policy, { hostServices: options.hostServices, staticModules, inspect: options.inspect,
+  const candidate = await prepareInstalledGame(merged, store, policy, { logs:options.logs,hostServices: options.hostServices, staticModules, inspect: options.inspect,
     construct(modules, identity) {
       const saved = options.restore === undefined ? undefined : options.restore as Record<string, unknown>;
       const configuration = moduleWorldConfiguration(modules, identity, { id: options.id, systemId: saved ? saved.systemId as string : options.systemId,
@@ -82,4 +83,45 @@ export async function prepareInstalledWorld(plan: InstalledGamePlan, store: Pack
   // Ownership is in CandidateGame.resources; world callers close the complete candidate.
   loaded.world.dispose = () => candidate.dispose();
   return { candidate, loaded, createContext };
+}
+
+/** Prepare exact remote authority in isolation. Physical content is already resolved by the
+ * server pack; no saved craft state or code approval is accepted from a welcome message. */
+export async function preparePeerWorld(plan: InstalledGamePlan | undefined, store: PackageStore, policy: LoadPolicy,
+  options: InstalledWorldOptions, offer: JoinOffer, signal: AbortSignal): Promise<JoinStage> {
+  signal.throwIfAborted();
+  if (plan) {
+    const prepared = await prepareInstalledWorld(plan, store, policy, options, signal);
+    try {
+      const world = prepared.loaded.world;
+      if (world.soloPreview || sha256Hex(canonicalJson(world.lock)) !== offer.lockDigest || world.simulationFingerprint !== offer.fingerprint)
+        throw new Error('Server pack cannot reproduce the offered authoritative lock and simulation fingerprint');
+      await prepared.candidate.start(signal); signal.throwIfAborted();
+      return { options: { name: 'Pilot', lock: world.lock, simulationFingerprint: world.simulationFingerprint,
+        createContext: prepared.createContext, vehicles: world.vehicles, dataAdapters: world.dataAdapters, rules: world.rules, forces: world.forces, commands: world.commands,
+        verifyCandidate: candidate => {
+          if (candidate.fingerprint !== offer.fingerprint || sha256Hex(canonicalJson(candidate.lock)) !== offer.lockDigest)
+            return { ok: false, reason: 'The host changed its enabled game while joining' };
+          return verifyInstalledWorldCandidate(prepared.candidate, candidate);
+        } }, dispose: () => prepared.candidate.dispose() };
+    } catch (error) { prepared.candidate.dispose(); throw error; }
+  }
+  const prepared = prepareGame({ environment: policy.environment, profile: options.profile, data: options.data,
+    code: options.code, universe: options.universe, systemId: options.systemId, resolvedUniverse: true });
+  try {
+    signal.throwIfAborted(); const world = prepared.world;
+    if (world.soloPreview || sha256Hex(canonicalJson(world.lock)) !== offer.lockDigest || world.simulationFingerprint !== offer.fingerprint)
+      throw new Error('Server pack cannot reproduce the offered authoritative lock and simulation fingerprint');
+    return { options: { name: 'Pilot', lock: world.lock, simulationFingerprint: world.simulationFingerprint,
+      createContext: prepared.createContext, vehicles: world.vehicles, dataAdapters: world.dataAdapters, rules: world.rules, forces: world.forces, commands: world.commands,
+      verifyCandidate(candidate) {
+        if (!prepared.candidate.available || !candidate.lock || candidate.fingerprint !== offer.fingerprint
+          || sha256Hex(canonicalJson(candidate.lock)) !== offer.lockDigest) return { ok: false, reason: 'The host changed its enabled game while joining' };
+        const probe = prepareGame({ environment: policy.environment, profile: options.profile, data: options.data,
+          code: options.code, universe: candidate.universe, systemId: candidate.systemId, resolvedUniverse: true });
+        try { return { ok: probe.world.simulationFingerprint === offer.fingerprint
+          && sha256Hex(canonicalJson(probe.world.lock)) === offer.lockDigest, simulationFingerprint: probe.world.simulationFingerprint }; }
+        finally { probe.candidate.dispose(); }
+      } }, activate() { prepared.runtime.activate(prepared.candidate); }, dispose: () => prepared.candidate.dispose() };
+  } catch (error) { prepared.candidate.dispose(); throw error; }
 }

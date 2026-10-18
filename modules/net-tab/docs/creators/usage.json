@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Scoped tab transport",
+  "summary": "Same-origin text links and discovery scoped by game and session protocol.",
+  "blocks": [
+    { "type": "paragraph", "text": "Provides net.tab@1.0.0 as a factory requiring an explicit scope and session protocol ID. Channels and Web Locks use the same versioned scoped name. No required services or flight, renderer, UI or planet imports. Browser/offline/Node environments with native BroadcastChannel when opening links; no IO occurs during package initialization." },
+    { "type": "paragraph", "text": "Create a scoped network, then host a session advertisement, connect to a tab address or watch discovery. Advertisements describe opaque session IDs and player counts; they do not prove compatible commands, saves or snapshots. Shared text transport and discovery never replace a compatible session adapter." },
+    { "type": "paragraph", "text": "Signals cancel connections, hosts and watchers. Disposing a network or provider removes channels, timers and pending work and releases locks. Web Locks are optional; bounded heartbeats detect loss when locks are unavailable. Network state has no authoritative persistence or migration; session restore/reconnect belongs to the session adapter." },
+    { "type": "paragraph", "text": "The explicit flight adapter retains Space Sim's original space-sim-local channel and wire format. New compatible games use their own declared scope/protocol. Build, unpack, edit, rebuild and replace this package through the normal .spacemod tools and explicit imported-code consent." }
+  ]
+}

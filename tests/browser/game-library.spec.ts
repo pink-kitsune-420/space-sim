@@ -54,6 +54,7 @@ test('a data plugin installs inertly, applies with code controls, and saves/expo
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
   await openPanel(page, 'library');
+  await expect(page.locator('[data-workspace="library"]')).toHaveAccessibleName('ModMenu');
   await expect(card(page, 'Space Sim')).toBeVisible();
   const before = await debug(page);
   await importPackage(page, { format: 'space-lab-plugin/1', info: { id: 'local.gentle-pack', name: 'Gentle pack', description: '' }, data: [gentle as DataModule], code: [] });
@@ -98,6 +99,11 @@ test('a data plugin installs inertly, applies with code controls, and saves/expo
   await play(page, 'Gentle remix');
   await expect.poll(async () => (await debug(page)).vehicle?.acceleration).toBe(75);
   const world = (await debug(page)).world;
+  await card(page, 'Gentle remix').getByText('Organize', { exact: true }).click();
+  await card(page, 'Gentle remix').getByLabel('Collection').fill('Built-in');
+  await card(page, 'Gentle remix').getByRole('button', { name: 'Save details', exact: true }).click();
+  await expect(card(page, 'Gentle remix')).toContainText('Built-in');
+  // Organization labels do not turn an installed game into an immutable shipped game.
   await card(page, 'Gentle remix').getByText('Organize', { exact: true }).click();
   await card(page, 'Gentle remix').getByRole('button', { name: 'Remove from library', exact: true }).click();
   await expect(card(page, 'Gentle remix')).toHaveCount(0);

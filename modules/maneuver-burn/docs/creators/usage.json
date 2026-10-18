@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Finite maneuver burns",
+  "summary": "Host-validated finite-burn intent, independent of UI/rendering and world stepping.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "flight.maneuver-burn@1.0.0 requires core.clock@^1.0.0 and creates bounded finite-burn intent over the compatible 0.01-second clock. Supply a finite center time in world seconds, nonzero inertial delta velocity in metres/second and the selected vehicle handling. Each instance owns alignment phase and compensated commanded engine impulse, excluding gravity."
+    },
+    {
+      "type": "paragraph",
+      "text": "Call next(state) once before each actual fixed tick. Observe the next advanced state before requesting another intent; a changed clock or inadequate alignment rejects the plan. The last burn tick can request fractional throttle. The host owns ownership checks, setThrottle, normal controls, warp policy and world stepping. This service never steps or mutates a world and cannot authorize a command by itself."
+    },
+    {
+      "type": "paragraph",
+      "text": "The owner must validate ship/body/session/trajectory continuity and cancel on manual input, pause, provider replacement or other changes. Dispose makes pending intent inert; it does not issue a world command, so the host must separately release held controls. Provider removal disposes unfinished burns; completed instances retain only idle intent. This extracts existing behavior without new handling, physics models or numerical tolerances."
+    }
+  ]
+}

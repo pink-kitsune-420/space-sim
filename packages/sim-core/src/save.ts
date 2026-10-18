@@ -1,3 +1,5 @@
+import { captureVehicleCatalog, vehicleId, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
+import { canonicalJson } from '../../game-runtime/src/authoritative';
 import type { AuthoritativeLock, Coast, ModuleLock, ModuleState, State, WorldRuleState, SavedShip, SavedPlayer, WorldSave, WorldRead } from '../../game-api/src/index';
 import { validateModuleState } from '../../game-runtime/src/motion';
 import { DEFAULT_BUILTIN_LOCK, migrateModuleState } from '../../game-runtime/src/authoritative';
@@ -32,13 +34,15 @@ const pair = (v: { readonly x: number; readonly y: number }): Pair => [v.x, v.y]
 export function shipToSaved(ship: Ship): SavedShip {
   const { state } = ship;
   return {
+    ...(ship.vehicleId ? { vehicleId: ship.vehicleId } : {}),
     id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId: ship.bodyId,
     position: pair(state.position), velocity: pair(state.velocity),
     heading: state.heading, throttle: state.throttle, status: state.status, revision: state.revision,
     ...(state.godMode ? { godMode: true } : {}),
     ...(state.water ? { water: state.water } : {}),
     ...(state.coast ? { coast: { epochSeconds: state.coast.epochSeconds, position: pair(state.coast.position),
-      velocity: pair(state.coast.velocity), revision: state.coast.revision } } : {}),
+      velocity: pair(state.coast.velocity), revision: state.coast.revision,
+      ...(state.coast.modelIdentity !== undefined ? { modelIdentity: state.coast.modelIdentity } : {}) } } : {}),
     ...(state.moduleState && Object.keys(state.moduleState).length ? { moduleState: state.moduleState } : {}) as { moduleState?: Readonly<Record<string, ModuleState>> },
     ...(ship.fault ? { fault: ship.fault } : {}),
   };
@@ -74,6 +78,8 @@ export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', 
   const s = record(raw, context);
   const shipId = id(s.id, `${context} id`);
   context = `Ship ${shipId}`;
+  const selectedVehicle = s.vehicleId === undefined ? (world.vehicles ? TRAINER_VEHICLE_ID : undefined) : vehicleId(s.vehicleId);
+  const motion = world.contextFor({ vehicleId: selectedVehicle });
   if (typeof s.name !== 'string' || s.name.length > MAX_SHIP_NAME * 4) fail(context, 'name must be a string');
   const name = cleanName(s.name) || shipId;
   const ownerId = id(s.ownerId, `${context} ownerId`);
@@ -108,7 +114,10 @@ export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', 
   };
   if (s.coast !== undefined) {
     const c = record(s.coast, `${context} coast`);
+    if (c.modelIdentity !== undefined && (typeof c.modelIdentity !== 'string' || !c.modelIdentity.length || c.modelIdentity.length > 65536))
+      fail(context, 'coast model identity must be a nonempty string of at most 65536 characters');
     const coast: Coast = Object.freeze({
+      ...(c.modelIdentity !== undefined ? { modelIdentity: c.modelIdentity as string } : {}),
       bodyId, epochSeconds: finite(c.epochSeconds, `${context} coast epoch`),
       position: Object.freeze(vec(c.position, `${context} coast position`)),
       velocity: Object.freeze(vec(c.velocity, `${context} coast velocity`)),
@@ -116,7 +125,7 @@ export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', 
       surfaceIdentity: surfaceIdentity(body), ...(surface ? { contactSurfaceIdentity: surface.identity } : {}),
     });
     if (status !== 'flying' || s.water !== undefined) fail(context, 'only free flight can coast');
-    const check = world.context.coastAt(coast, time, body, surface, { cache: false });
+    const check = motion.coastAt(coast, time, body, surface, { cache: false });
     if (!check.ok) fail(context, `coast epoch is unusable (${check.diagnostics.reason ?? 'no solution'})`);
     const scale = Math.max(1, magnitude(state.position));
     if (magnitude({ x: check.state.position.x - state.position.x, y: check.state.position.y - state.position.y }) > 1e-6 * scale
@@ -126,14 +135,14 @@ export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', 
     }
     state = { ...state, coast, dynamics: 'kepler' };
   }
-  const ship: Ship = { id: shipId, name, ownerId, bodyId, state, controls: IDLE, ...(s.fault ? { fault: s.fault as string } : {}) };
+  const ship: Ship = { ...(selectedVehicle ? { vehicleId: selectedVehicle } : {}), id: shipId, name, ownerId, bodyId, state, controls: IDLE, ...(s.fault ? { fault: s.fault as string } : {}) };
   // Terrain support is checked by the trial step; the plain circle model needs it here.
   if (!surface && status !== 'flying' && (Math.abs(magnitude(state.position) - body.radius) > 1e-6 * body.radius
     || magnitude(state.velocity) !== 0)) {
     fail(context, 'a landed or crashed ship must rest on the surface with zero velocity');
   }
   if (!ship.fault) {
-    try { world.context.advance(state, IDLE, STEP, body, surface); }
+    try { motion.advance(state, IDLE, STEP, body, surface); }
     catch (error) { fail(context, error instanceof Error ? error.message : String(error)); }
   }
   return ship;
@@ -155,7 +164,12 @@ export function saveWorld(world: WorldRead, extra: {
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
 } = {}): WorldSave {
   if (world.soloPreview) throw new Error('Custom authoritative module profiles are solo previews; world saves require declared deterministic multiplayer support. Export the module/profile instead.');
-  const version = extra.version ?? (world.saveVersion === 1 ? 1 : SAVE_VERSION);
+  const hasData = world.data.schemas.length > 0;
+  const version = extra.version ?? (world.vehicles ? 4 : hasData ? 3 : world.saveVersion === 1 ? 1 : SAVE_VERSION);
+  if (![1, 2, 3, 4].includes(version)) throw new Error('Unsupported save version');
+  if (world.vehicles && version !== 4) throw new Error('Vehicle definitions require save version 4');
+  if (version === 4 && !world.vehicles) throw new Error('Save version 4 requires vehicle definitions');
+  if (hasData && version < 3) throw new Error('Module-data adapters require save version 3');
   if (version === 1) {
     return {
       format: SAVE_FORMAT, version: 1, model: MODEL, units: SAVE_UNITS, worldId: world.id,
@@ -176,17 +190,22 @@ export function saveWorld(world: WorldRead, extra: {
   const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
   return {
     ...(world.configuration ? { configuration: world.configuration } : {}),
-    format: SAVE_FORMAT, version: SAVE_VERSION, model: MODEL, units: SAVE_UNITS, worldId: world.id,
+    format: SAVE_FORMAT, version, model: MODEL, units: SAVE_UNITS, worldId: world.id,
     ...(extra.savedAt ? { savedAt: extra.savedAt } : {}),
     universe: world.universe, systemId: world.systemId, tick: world.tick, time: world.time,
     ...(extra.paused !== undefined ? { paused: extra.paused } : {}),
     nextShipNumber: world.nextShipNumber,
     ...(extra.hostId ? { hostId: extra.hostId } : {}),
     players: (extra.players ?? []).map(p => ({ id: p.id, name: p.name, ...(p.tokenHash ? { tokenHash: p.tokenHash } : {}) })),
-    ships: world.ships().map(shipToSaved),
+    ships: world.ships().map(ship => {
+      const saved = shipToSaved(ship);
+      return world.vehicles ? { ...saved, vehicleId: ship.vehicleId ?? TRAINER_VEHICLE_ID } : saved;
+    }),
+    ...(world.vehicles ? { vehicles: world.vehicles } : {}),
     ...(lock ? { lock } : {}),
     ...(simulationFingerprint ? { simulationFingerprint } : {}),
     ...(ruleState ? { moduleState: ruleState } : {}),
+    ...(hasData ? { data: world.data.snapshot() } : {}),
   };
 }
 
@@ -200,12 +219,12 @@ export function migrateSave(raw: Record<string, unknown>): Record<string, unknow
       moduleState: {},
     };
   }
-  if (raw.version === SAVE_VERSION) return raw;
+  if (raw.version === SAVE_VERSION || raw.version === 3 || raw.version === 4) return raw;
   throw new Error(`Unsupported save version ${String(raw.version)}; this game reads version ${SAVE_VERSION}`);
 }
 
 /** Validate everything before building a world; a rejected save never touches live state. */
-export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState'>> = {}): LoadedWorld {
+export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>> = {}): LoadedWorld {
   const input = record(raw, 'Save');
   if (input.format !== SAVE_FORMAT) fail('Save', `not a ${SAVE_FORMAT} file`);
   const originalVersion = Number(input.version);
@@ -261,6 +280,14 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
     }
   }
 
+  if (save.version === 4) {
+    if (!options.vehicles) throw new VehicleConfigurationError('Save: Missing required vehicle packages. Enable the exact gameplay packages listed by this save.');
+    const expected = captureVehicleCatalog(options.vehicles), saved = captureVehicleCatalog(save.vehicles);
+    if (canonicalJson(expected) !== canonicalJson(saved)) throw new VehicleConfigurationError('Save: Required vehicle definitions differ. Enable the exact gameplay packages used by this save.');
+    if ((save.ships as Record<string, unknown>[]).some(ship => !ship || typeof ship.vehicleId !== 'string')) fail('Save', 'Version 4 requires an explicit identity for every vehicle');
+  } else if (save.vehicles !== undefined || (save.ships as Record<string, unknown>[]).some(ship => ship && ship.vehicleId !== undefined)) {
+    fail('Save', 'Vehicle identity requires save version 4');
+  }
   const world = new World(universe, {
     ...options,
     systemId: save.systemId as string,
@@ -270,6 +297,11 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
     saveVersion: originalVersion,
   });
   try {
+    if ((save.version === 3 || world.data.schemas.length) && save.data === undefined) throw new Error('Save version 3 requires module-data state');
+    if (save.data !== undefined) {
+      if (save.version !== 3 && save.version !== 4) throw new Error('Module-data state requires save version 3 or 4');
+      world.data.restore(save.data);
+    }
     world.tick = tick;
     world.time = time;
     if (ruleState) {

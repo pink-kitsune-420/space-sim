@@ -1,3 +1,5 @@
+import type { ModuleDataAdapter } from './module-data';
+import type { VehicleDefinition, VehicleAppearance } from './vehicles';
 import type { Disposable, ModuleEnvironment, ModuleInitialization, ModuleReference, NumberSetting } from './modules';
 import type { ActionDefinitionV2, DiscoveryProvider, GuidePage, InputSource, MaterialDefinition,
   PostEffectDefinition, TransportProvider, WindowDefinition } from './platform';
@@ -59,14 +61,24 @@ export interface ModuleAssets {
   url(path: string): { readonly href: string; dispose(): void };
 }
 export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {
+  /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */
+  readonly module?: ModuleReference;
   readonly assets: ModuleAssets;
   provide<T>(key: ServiceKey<T>, service: T): void;
   use<T>(key: ServiceKey<T>): T;
+  /** Initialization only. Absence is allowed only for a declared optional capability
+   * with no binding; invalid access and a bound provider's failures still throw. */
+  tryUse<T>(key: ServiceKey<T>): T | undefined;
   contributeInput(source: InputSource): void;
   contributeActions(actions: readonly ActionDefinitionV2[]): void;
   contributeTransport(provider: TransportProvider): void;
   contributeDiscovery(provider: DiscoveryProvider): void;
+  /** Authoritative records shared by saves and compatible session replication. */
+  contributeData(adapter: ModuleDataAdapter): void;
+  contributeVehicle(vehicle: VehicleDefinition): void;
+  contributeVehicleAppearance(appearance: VehicleAppearance): void;
   contributeWindow(window: WindowDefinition): void;
+  /** Bounded structured Manual data, available in every tier without a UI dependency. */
   contributeGuide(page: GuidePage): void;
   contributeMaterial(material: MaterialDefinition): void;
   contributePostEffect(effect: PostEffectDefinition): void;

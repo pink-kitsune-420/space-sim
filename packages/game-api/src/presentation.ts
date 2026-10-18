@@ -34,6 +34,7 @@ export interface RenderBody {
 }
 /** Another vessel in the same world: one of this player's fleet, or someone else's. */
 export interface RenderShip {
+  readonly vehicleId?: string;
   readonly id: string;
   /** System world coordinates. */
   readonly position: Vec;
@@ -48,6 +49,7 @@ export interface RenderShip {
   readonly rock?: boolean;
 }
 export interface RenderFrame {
+  readonly vehicleId?: string;
   /** Presentation snapshot; may be interpolated between fixed physics steps. */
   readonly state: State;
   /** Ghost samples with exact velocities. Closed loops are drawn whole; open paths start at the ship. */
@@ -69,6 +71,10 @@ export interface RenderFrame {
   readonly shipLabel?: string;
   /** Viewer-only annotations; omitted preserves the default visible labels and scale bar. */
   readonly showScale?: boolean;
+  readonly showShip?: boolean;
+  readonly showPad?: boolean;
+  /** Optional explicit viewer animation epoch, seconds. Never advances a simulation. */
+  readonly presentationTime?: number;
   readonly showShipLabels?: boolean;
   /** Other vessels, drawn beneath the piloted ship. */
   readonly ships?: readonly RenderShip[];
@@ -103,6 +109,8 @@ export interface RenderThemeOptions {
   readonly gridColor?: string;
   readonly windowStyle?: ThemeWindowStyle;
   readonly windowColor?: string;
+  /** Window background alpha, 0.4–1; text and controls remain fully visible. */
+  readonly windowOpacity?: number;
   readonly counterTheme?: ThemeCounterStyle;
   readonly hudColor?: string;
   readonly hudScanlines?: boolean;

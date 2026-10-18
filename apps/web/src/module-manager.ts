@@ -2,7 +2,7 @@ import { normalizeLegacyModule } from '../../../packages/game-runtime/src/loader
 import { moduleAssets } from '../../../packages/game-runtime/src/modules-v2';
 import type { RuntimeSelection } from '../../../packages/game-library/src/runtime-selection';
 import type { ModuleProfileV2 } from '../../../packages/game-api/src/index';
-import type { ModuleManifest, ModuleProfile, UniverseDefinition } from '../../../packages/game-api/src/index';
+import type { ModuleProfile, UniverseDefinition, ModMenuProfileView } from '../../../packages/game-api/src/index';
 import { applyDataModules, createBuiltinRegistry, type DataModule } from '../../../packages/modules/src/index';
 import { GAME_EXAMPLES } from '../../../examples/modules/index';
 import { builtinUniverses, environment } from './startup';
@@ -15,32 +15,36 @@ import { decodeModulePackage, encodeModuleFiles, packageFiles, wrapLegacyCode, w
 import { isZip } from '../../../packages/game-library/src/zip';
 import { DeviceModuleManager } from './device-module-manager';
 import { ALLOW_RUNTIME_CODE } from '../../../packages/game-runtime/src/build-policy';
+import {createModMenu} from '../../../modules/mod-menu/src/index';
 
 /** Installation never enables code. Authority is applied as a complete new-world profile. */
 export class ModuleManager {
   readonly devices: DeviceModuleManager;
+  private readonly modMenu=createModMenu();
+  private readonly profileEditor:ModMenuProfileView;
   private data = new Map<string, DataModule>();
   private universes = new Map<string, UniverseDefinition>();
   resetData(data: readonly DataModule[]): void { this.data = new Map(data.map(m => [m.manifest.id, m])); }
   constructor(private readonly presentation: Presentation, private readonly options: {
     readonly current: () => { readonly profile: ModuleProfile; readonly data: readonly DataModule[]; readonly editable: boolean;
       readonly universe: UniverseDefinition; readonly resolvedUniverse: UniverseDefinition; readonly universeKey: string; readonly systemId: string };
-    readonly apply: (profile: ModuleProfile, data: readonly DataModule[], selection: { universe: string; system: string }, runtime?: RuntimeSelection) => Promise<void>;
+    readonly apply: (profile: ModuleProfile, data: readonly DataModule[], selection: { universe: string; system: string }, runtime?: RuntimeSelection,signal?:AbortSignal) => Promise<void>;
     readonly pilots: import('../../../packages/game-api/src/index').PilotRegistry; readonly world: () => object;
   }) {
+    this.profileEditor=this.modMenu.profile({list:element('authoritative-module-list'),providers:element('authoritative-providers'),installed:element('installed-code-modules'),apply:element<HTMLButtonElement>('apply-code-modules')},{
+      changed:()=>{this.syncUniverses(element<HTMLSelectElement>('plugin-universe').value,element<HTMLSelectElement>('plugin-system').value);this.preview();},error:text=>show('code-module-status',text),
+      exportModule:async(id,signal)=>{signal.throwIfAborted();const artifact=this.installedArtifact(id),manifest=artifact.manifest;const files=packageFiles(artifact)??(artifact.format==='space-sim-data-module/1'?wrapLegacyData(artifact,`Legacy data; declared license: ${manifest.license}`):wrapLegacyCode(artifact));const bytes=await encodeModuleFiles(files);signal.throwIfAborted();downloadBytes(`${manifest.id}.${manifest.kind==='data'?'spacedata':'spacemod'}`,bytes);},
+      removeModule:async(id,signal)=>{signal.throwIfAborted();const artifact=this.installedArtifact(id),manifest=artifact.manifest;if(this.isActive(artifact))throw new Error('Disable the module before removing it');if(artifact.format==='space-sim-data-module/1')this.data.delete(id);else if(manifest.authority==='presentation')this.presentation.remove(id);moduleLibrary.remove(id);this.refresh();},
+      presentationSettings:async(id,values,signal)=>{signal.throwIfAborted();this.presentation.setSettings(id,values);}
+    },options.current().profile);
     this.devices = new DeviceModuleManager(moduleLibrary.store, { pilots: options.pilots, editable: () => this.options.current().editable, world: options.world,
       base: () => this.base(), editBase: profile => {
-        const ids = new Set(profile.modules.map(ref => ref.id));
-        for (const input of element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]')) input.checked = ids.has(input.dataset.enable!);
-      }, apply: runtime => this.applyProfile(runtime) });
+        this.profileEditor.select(profile.modules);
+      }, apply: (runtime,signal) => this.applyProfile(runtime,signal) });
     element('plugin-manager').append(this.devices.root);
     element('plugin-universe').addEventListener('change', () => this.syncSystems());
-    element('authoritative-module-list').addEventListener('change', () => this.syncUniverses(
-      element<HTMLSelectElement>('plugin-universe').value, element<HTMLSelectElement>('plugin-system').value));
     const preview = document.createElement('p'); preview.id = 'module-change-preview'; preview.setAttribute('role', 'status');
     element('code-module-status').after(preview);
-    element('authoritative-module-list').addEventListener('change', () => this.preview());
-    element('authoritative-providers').addEventListener('change', () => this.preview());
     void moduleLibrary.open().then(() => {
       for (const data of moduleLibrary.data.values()) if (!this.data.has(data.manifest.id)) this.data.set(data.manifest.id, data);
       for (const artifact of moduleLibrary.artifacts) if (artifact.manifest.authority === 'presentation' && !this.presentation.registry.getManifest(artifact.manifest.id))
@@ -60,7 +64,7 @@ export class ModuleManager {
         if (await this.installDevicePackage(bytes, file.name)) return;
         if (isZip(bytes)) {
           const plugin = await decodePackage(bytes);
-          if (plugin.format !== 'space-lab-plugin/1') throw new Error('Import game collections in the Library');
+          if (plugin.format !== 'space-lab-plugin/1') throw new Error('Import game collections in ModMenu');
           this.install(plugin); return;
         }
         const artifact = parseCodeArtifact(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
@@ -70,7 +74,8 @@ export class ModuleManager {
     });
     element('apply-code-modules').addEventListener('click', () => { void this.applyProfile().catch(error => show('code-module-status', `Profile was not enabled: ${message(error)}`)); });
   }
-  private async applyProfile(runtime?: RuntimeSelection): Promise<void> {
+  private async applyProfile(runtime?: RuntimeSelection,signal?:AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
     if (!this.options.current().editable) throw new Error('Change authoritative modules in your solo world');
     const universe = element<HTMLSelectElement>('plugin-universe').value;
     const draft = this.base().profile;
@@ -84,8 +89,8 @@ export class ModuleManager {
     // Mixed resolution validates the complete graph. Legacy-only games retain v1 identities.
     runtime ??= await this.devices.proposal();
     if (!runtime) this.registry().resolve(profile, environment(), ['motion', 'content']);
-    await this.options.apply(profile, [...this.data.values()].filter(m => enabled.has(m.manifest.id)),
-      { universe, system: element<HTMLSelectElement>('plugin-system').value }, runtime);
+    signal?.throwIfAborted();await this.options.apply(profile, [...this.data.values()].filter(m => enabled.has(m.manifest.id)),
+      { universe, system: element<HTMLSelectElement>('plugin-system').value }, runtime,signal);
     this.refresh();
     show('code-module-status', 'Profile enabled in a new world. Save or export a game to share this complete selection.');
   }
@@ -94,14 +99,7 @@ export class ModuleManager {
     const registry = this.registry();
     const manifests = new Map([...registry.manifests, ...this.presentation.registry.manifests].map(([id, manifest]) =>
       [id, normalizeLegacyModule({ manifest, initialize() {} }, moduleAssets()).manifest]));
-    const modules = [...element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]:checked')]
-      .map(input => ({ id: input.dataset.enable!, version: input.dataset.version! }));
-    const settings: Record<string, Record<string, number>> = {};
-    for (const input of element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-setting]')) {
-      if (modules.some(ref => ref.id === input.dataset.owner)) (settings[input.dataset.owner!] ??= {})[input.dataset.setting!] = Number(input.value);
-    }
-    const providers: Record<string, string> = {};
-    for (const select of element('authoritative-providers').querySelectorAll<HTMLSelectElement>('select')) if (select.value) providers[select.dataset.slot!] = select.value;
+    const {modules,settings,providers}=this.profileEditor.draft();
     const display = this.presentation.profile;
     const current = this.options.current().profile;
     const applied: ModuleProfileV2 = { format: 'space-sim-profile/2', id: current.id,
@@ -156,80 +154,18 @@ export class ModuleManager {
     this.refreshData();
     const current = this.options.current(), registry = this.registry();
     const manifests = [...registry.manifests.values()].filter(m => m.authority === 'authoritative' || m.kind === 'data');
-    const list = element('authoritative-module-list');
-    list.replaceChildren(...manifests.map(manifest => {
-      const item = document.createElement('li'), label = document.createElement('label'), box = document.createElement('input');
-      box.type = 'checkbox'; box.dataset.enable = manifest.id; box.dataset.version = manifest.version;
-      box.checked = current.profile.modules.some(m => m.id === manifest.id); box.disabled = !current.editable;
-      label.append(box, ` ${manifest.name} · ${manifest.id}@${manifest.version}`);
-      item.append(label);
-      if (manifest.dependencies.length) {
-        const note = document.createElement('p'); note.className = 'module-note';
-        note.textContent = `Requires ${manifest.dependencies.map(d => `${d.id}@${d.version}`).join(', ')}`; item.append(note);
-      }
-      item.append(...this.settings(manifest, current.profile, input => { input.dataset.owner = manifest.id; input.disabled = !current.editable; }));
-      return item;
-    }));
-    this.syncUniverses(current.universeKey, current.systemId);
-    const slots = [...new Set(manifests.flatMap(m => [...m.slots]))];
-    element('authoritative-providers').replaceChildren(...slots.map(slot => {
-      const label = document.createElement('label'), select = document.createElement('select');
-      select.dataset.slot = slot; select.disabled = !current.editable;
-      const none = document.createElement('option'); none.value = ''; none.textContent = 'Automatic'; select.append(none);
-      for (const m of manifests.filter(m => m.slots.includes(slot))) {
-        const option = document.createElement('option'); option.value = m.id; option.textContent = m.name; select.append(option);
-      }
-      select.value = current.profile.providers[slot] ?? ''; label.append(`${slot} `, select); return label;
-    }));
-    element<HTMLButtonElement>('apply-code-modules').disabled = !current.editable;
-    element('installed-code-modules').replaceChildren(...[...this.data.values(), ...moduleLibrary.artifacts].map(artifact => {
-      const item = document.createElement('li'), detail = document.createElement('p');
-      const m = artifact.manifest;
-      const active = artifact.format !== 'space-sim-data-module/1' && m.authority === 'presentation' ? this.presentation.isEnabled(m.id) : current.profile.modules.some(ref => ref.id === m.id);
-      detail.textContent = `${m.name} · ${m.id}@${m.version} · ${active ? 'active' : 'installed'} · ${m.authority} · ${m.license} · ${'digest' in artifact ? `SHA-256 ${artifact.digest}` : 'data'}`;
-      item.append(detail);
-      if ('inputs' in artifact) {
-        const notices = document.createElement('details'), summary = document.createElement('summary'), text = document.createElement('pre');
-        summary.textContent = 'Bundled inputs and attribution';
-        text.textContent = artifact.inputs.map(i => `${i.path} · ${i.license}\n${i.attribution}`).join('\n\n'); notices.append(summary, text); item.append(notices);
-      }
-      const exportButton = document.createElement('button'); exportButton.textContent = 'Export plugin'; exportButton.type = 'button';
-      exportButton.onclick = async () => {
-        try {
-          const files = packageFiles(artifact) ?? (artifact.format === 'space-sim-data-module/1'
-            ? wrapLegacyData(artifact, `Legacy data; declared license: ${artifact.manifest.license}`) : wrapLegacyCode(artifact));
-          downloadBytes(`${m.id}.${m.kind === 'data' ? 'spacedata' : 'spacemod'}`, await encodeModuleFiles(files));
-        }
-        catch (error) { show('code-module-status', message(error)); }
-      };
-      const remove = document.createElement('button'); remove.textContent = 'Remove'; remove.type = 'button'; remove.disabled = active;
-      remove.title = active ? 'Disable the module before removing it' : 'Remove this installed artifact';
-      remove.onclick = () => {
-        try { if (artifact.format === 'space-sim-data-module/1') { this.data.delete(m.id); moduleLibrary.remove(m.id); }
-          else { if (m.authority === 'presentation') this.presentation.remove(m.id); moduleLibrary.remove(m.id); }
-          this.refresh(); }
-        catch (error) { show('code-module-status', message(error)); }
-      };
-      item.append(exportButton, remove);
-      if (m.authority === 'presentation' && Object.keys(m.settings).length && active && this.presentation.profile) {
-        const inputs: HTMLInputElement[] = [];
-        item.append(...this.settings(m, this.presentation.profile, input => inputs.push(input)));
-        const apply = document.createElement('button'); apply.type = 'button'; apply.textContent = 'Apply presentation settings';
-        apply.onclick = () => {
-          try { this.presentation.setSettings(m.id, Object.fromEntries(inputs.map(input => [input.dataset.setting!, Number(input.value)]))); }
-          catch (error) { show('code-module-status', message(error)); }
-        }; item.append(apply);
-      }
-      return item;
-    }));
+    this.profileEditor.refresh({applied:current.profile,available:manifests,editable:current.editable,installed:[...this.data.values(),...moduleLibrary.artifacts].map(artifact=>{
+      const manifest=artifact.manifest,active=this.isActive(artifact);
+      return {manifest,active,...('digest' in artifact?{digest:artifact.digest}:{}),...('inputs' in artifact?{inputs:artifact.inputs}:{}),...(manifest.authority==='presentation'&&active&&this.presentation.profile?{values:this.presentation.profile.settings[manifest.id]??{}}:{})};
+    })});
+    this.syncUniverses(current.universeKey,current.systemId);
     this.preview(false);
   }
   private syncUniverses(preferred: string, system?: string): void {
     const current = this.options.current();
     const base = new Map([...builtinUniverses().values()].map(u => [`builtin.content/${u.id}`, u]));
     base.set(`builtin.content/${current.universe.id}`, current.universe);
-    const refs = [...element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]:checked')]
-      .map(input => ({ id: input.dataset.enable!, version: input.dataset.version! }));
+    const refs=this.profileEditor.draft().modules;
     try {
       const enabled = new Set(this.registry().closure(refs).map(m => m.id));
       this.universes = new Map(applyDataModules(base, [...this.data.values()].filter(m => enabled.has(m.manifest.id))));
@@ -257,12 +193,10 @@ export class ModuleManager {
     select.value = universe?.systems.some(system => system.id === preferred) ? preferred! : universe?.defaultSystemId ?? '';
     select.disabled = !this.options.current().editable;
   }
-  private settings(manifest: ModuleManifest, profile: ModuleProfile, setup: (input: HTMLInputElement) => void): HTMLElement[] {
-    return Object.entries(manifest.settings).map(([key, schema]) => {
-      const label = document.createElement('label'), input = document.createElement('input');
-      input.type = 'number'; input.step = 'any'; input.min = String(schema.minimum); input.max = String(schema.maximum);
-      input.value = String(profile.settings[manifest.id]?.[key] ?? schema.default); input.dataset.setting = key; setup(input);
-      label.append(`${key} [${schema.minimum}, ${schema.maximum}] `, input); return label;
-    });
+  private installedArtifact(id:string):DataModule|import('../../../packages/game-runtime/src/artifact').CodeArtifact {
+    const artifact=this.data.get(id)??moduleLibrary.artifacts.find(artifact=>artifact.manifest.id===id);if(!artifact)throw new Error('This module is no longer installed');return artifact;
+  }
+  private isActive(artifact:ReturnType<ModuleManager['installedArtifact']>):boolean {
+    return artifact.format!=='space-sim-data-module/1'&&artifact.manifest.authority==='presentation'?this.presentation.isEnabled(artifact.manifest.id):this.options.current().profile.modules.some(ref=>ref.id===artifact.manifest.id);
   }
 }

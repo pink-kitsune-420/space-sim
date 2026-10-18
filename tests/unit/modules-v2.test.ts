@@ -106,6 +106,47 @@ describe('v2 candidate services and lifecycle', () => {
     register(registry, 'test.wrong-version', { requires: [{ name: 'session', version: '*' }] }, c => c.use({ ...session, version: '2.0.0' }));
     expect(() => registry.prepare(profile(['test.wrong-version', 'test.session']), 'node')).toThrow('incompatible');
   });
+  it('returns optional absence only for valid unbound declarations and keeps strict access strict', () => {
+    const registry = new ModuleRegistryV2(); let captured!: ModuleInitializationV2;
+    register(registry, 'test.optional-access', { requires: [{ name: 'session', version: '^1.0.0', optional: true }] }, c => {
+      captured = c; expect(c.tryUse(session)).toBeUndefined();
+      expect(() => c.use(session)).toThrow('undeclared');
+      expect(() => c.tryUse({ ...session, version: '2.0.0' })).toThrow('incompatible');
+      expect(() => c.tryUse({ ...session, slot: 'not declared' })).toThrow();
+      expect(() => c.tryUse({ ...session, version: '*' })).toThrow();
+    });
+    const candidate = registry.prepare(profile(['test.optional-access']), 'node');
+    expect(() => captured.tryUse(session)).toThrow('sealed'); candidate.dispose();
+    register(registry, 'test.undeclared-optional', {}, c => c.tryUse(session));
+    expect(() => registry.prepare(profile(['test.undeclared-optional']), 'node')).toThrow('undeclared');
+    register(registry, 'test.required-optional', { requires: [{ name: 'session', version: '*' }] }, c => c.tryUse(session));
+    register(registry, 'test.session', serviceManifest, c => c.provide(session, { seats: 1 }));
+    expect(() => registry.prepare(profile(['test.required-optional', 'test.session']), 'node')).toThrow('optional service');
+  });
+  it('supports compatible optional substitution and disposes enhancements on graph replacement', () => {
+    const registry = new ModuleRegistryV2(), runtime = new ModuleRuntimeV2(registry, 'node');
+    const closed: number[] = []; let received: number | undefined;
+    for (const [id, seats] of [['test.session-a', 1], ['test.session-b', 4]] as const)
+      register(registry, id, serviceManifest, c => c.provide(session, { seats }));
+    register(registry, 'test.optional-access', { requires: [{ name: 'session', version: '^1.0.0', optional: true }] }, c => {
+      const bound = c.tryUse(session); received = bound?.seats;
+      if (bound) c.own({ dispose() { closed.push(bound.seats); } });
+    });
+    for (const [id, count] of [['test.session-a', 1], ['test.session-b', 4], [undefined, undefined]] as const) {
+      const candidate = runtime.prepare(profile(['test.optional-access', ...id ? [id] : []], id ? { providers: { session: id } } : {}));
+      runtime.activate(candidate); expect(received).toBe(count);
+    }
+    expect(closed).toEqual([1, 4]); runtime.dispose();
+  });
+  it('does not disguise broken, ambiguous or explicitly invalid optional providers as absence', () => {
+    const registry = new ModuleRegistryV2();
+    register(registry, 'test.optional-access', { requires: [{ name: 'session', version: '^1.0.0', optional: true }] }, c => c.tryUse(session));
+    register(registry, 'test.broken', { provides: [{ name: 'session', version: '1.0.0' }] });
+    register(registry, 'test.other', { provides: [{ name: 'session', version: '1.0.0' }] }, c => c.provide(session, { seats: 2 }));
+    expect(() => registry.prepare(profile(['test.optional-access', 'test.broken']), 'node')).toThrow('not available from test.broken');
+    expect(() => registry.prepare(profile(['test.optional-access', 'test.broken', 'test.other']), 'node')).toThrow('Choose');
+    expect(() => registry.prepare(profile(['test.optional-access'], { capabilities: { 'test.optional-access': { session: 'test.other' } } }), 'node')).toThrow();
+  });
   it('restricts reserved engine façades to declared needs, allowed tiers and environments', () => {
     const world: HostService = { key: { slot: 'core.world', version: '1.0.0' }, service: { name: 'world' }, tiers: ['network'], environments: ['node'] };
     const registry = new ModuleRegistryV2([world]); let received: unknown;
@@ -189,6 +230,22 @@ describe('v2 contributions', () => {
     const p = peer(); resolvePeer(p); resolveListener({ dispose() { listenerCloses++; } });
     await Promise.all([rejectedConnection, rejectedListener]); expect(p.closes).toBe(1); expect(listenerCloses).toBe(1);
   });
+  it('cancels established transport lifetimes, detaches on peer close and rejects late accepts', async () => {
+    const registry = new ModuleRegistryV2(), peers: ReturnType<typeof peer>[] = []; let listenerCloses = 0, accept!: (peer: TextConnection) => void;
+    register(registry, 'test.net', { tier: 'network' }, c => c.contributeTransport({ name: 'ws', schemes: ['ws'],
+      async connect() { const p = peer(); peers.push(p); return p; },
+      async listen(_address, receive) { accept = receive; return { dispose() { listenerCloses++; } }; },
+    }));
+    const candidate = registry.prepare(profile(['test.net']), 'node'), transport = candidate.contributions('transport')[0]!.value;
+    const firstSignal = new AbortController(), first = await transport.connect('ws://local', firstSignal.signal);
+    firstSignal.abort(); expect(peers[0]!.closes).toBe(1); expect(() => first.send('late')).toThrow('closed');
+    const secondSignal = new AbortController(), second = await transport.connect('ws://local', secondSignal.signal);
+    let closed = ''; second.onclose = reason => { closed = reason; }; peers[1]!.onclose?.('remote closed'); secondSignal.abort();
+    expect(closed).toBe('remote closed'); expect(peers[1]!.closes).toBe(0); expect(() => second.send('late')).toThrow('closed');
+    const listeningSignal = new AbortController(); await transport.listen!('ws://local', () => { throw new Error('must not accept'); }, listeningSignal.signal);
+    listeningSignal.abort(); expect(listenerCloses).toBe(1); const late = peer(); accept(late); expect(late.closes).toBe(1);
+    candidate.dispose(); expect(listenerCloses).toBe(1); expect(peers.map(p => p.closes)).toEqual([1, 0]);
+  });
   it('isolates discovery validation faults and never emits after cancellation', async () => {
     const registry = new ModuleRegistryV2();
     register(registry, 'test.discovery', { tier: 'network' }, c => c.contributeDiscovery({ name: 'lan', async scan(emit) {
@@ -239,7 +296,9 @@ describe('v2 cleanup and captured declarations', () => {
     } }, assets);
     const candidate = registry.prepare(profile(['test.effects', 'test.ui']), 'node'); controls[0]!.text = 'Changed';
     expect(candidate.contributions('window')[0]!.value.controls[0]).toMatchObject({ text: 'Hello' });
-    expect(candidate.contributions('post').map(p => p.id)).toEqual(['test.effects/first', 'test.effects/last']); candidate.dispose();
+    expect(candidate.contributions('post').map(p => p.id)).toEqual(['test.effects/first', 'test.effects/last']);
+    expect(candidate.renderEffects().post.map(effect => [effect.id,effect.fragment])).toEqual([['test.effects/first','void main() {}'],['test.effects/last','void main() {}']]);
+    candidate.dispose(); expect(candidate.effectSources.size).toBe(0); expect(() => candidate.renderEffects()).toThrow('disposed');
   });
 });
 
@@ -247,12 +306,16 @@ describe('v2 imported declarations', () => {
   it('accepts only bounded structured Manual assets that match the declared page', () => {
     const page = { id: 'help', audience: 'creators' as const, title: 'Help', summary: 'Example', asset: 'docs/creators/help.json' };
     const document = { id: 'help', audience: 'creators', title: 'Help', summary: 'Example', blocks: [{ type: 'paragraph', text: 'Plain text' }] };
-    const prepare = (text: string) => {
+    const prepare = (text: string, tier: ManifestV2['tier'] = 'platform') => {
       const registry = new ModuleRegistryV2();
-      registry.register({ manifest: manifest('test.guides'), initialize(c) { c.contributeGuide(page); } }, moduleAssets(new Map([[page.asset, new TextEncoder().encode(text)]])));
+      registry.register({ manifest: manifest('test.guides', { tier }), initialize(c) { c.contributeGuide(page); } }, moduleAssets(new Map([[page.asset, new TextEncoder().encode(text)]])));
       return registry.prepare(profile(['test.guides']), 'node');
     };
     const good = prepare(JSON.stringify(document)); expect(good.contributions('guide')[0]!.id).toBe('test.guides/help'); good.dispose();
+    for (const tier of ['network', 'authoritative', 'presentation'] as const) {
+      const headless = prepare(JSON.stringify(document), tier);
+      expect(headless.guideDocuments.get('test.guides/help')).toBe(JSON.stringify(document)); headless.dispose();
+    }
     expect(() => prepare(JSON.stringify({ ...document, audience: 'players' }))).toThrow('mismatch');
     expect(() => prepare(JSON.stringify({ ...document, blocks: [{ type: 'html', text: '<script>bad()</script>' }] }))).toThrow('Unsupported guide block');
     expect(() => prepare(JSON.stringify({ ...document, blocks: [{ type: 'paragraph', text: 'x'.repeat(65536) }] }))).toThrow('64 KiB');

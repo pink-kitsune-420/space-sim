@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Themes",
+  "summary": "Public presentation.themes@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Creates isolated theme controllers with optional borrowed preference storage and DOM roots. Loading and setting apply current styling; refresh styles newly mounted windows. Subscriptions, stylesheets and owned DOM changes are released on disposal, preserving unrelated properties. The legacy browser adapter keeps the existing theme storage key. Theme changes never alter authoritative state."
+    }
+  ]
+}

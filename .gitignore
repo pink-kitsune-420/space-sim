@@ -25,6 +25,14 @@ private-docs/
 docs/
 references/
 
+# Structured in-game Manual contributions belong to their editable modules.
+!modules/*/docs/
+modules/*/docs/**
+!modules/*/docs/players/
+!modules/*/docs/creators/
+!modules/*/docs/players/*.json
+!modules/*/docs/creators/*.json
+
 # Experimental Spherical Tile Planets & Modular Shipbuilding fork
 packages/tile-core/
 games/space-sim-nextgen/
@@ -79,6 +87,7 @@ pnpm-debug.log*
 
 # Rebuilt example inventories (bundles are already covered by dist/).
 examples/packages/*/integrity.json
+modules/*/integrity.json
 
 # Private research requested at repository-root paths.
 /orbital-sandbox-refactor.md

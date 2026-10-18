@@ -163,7 +163,8 @@ test('restores progress without its game, requires consent, and preserves the ac
   const ref = saved.configuration.runtime.plans.browser.packages.find((p: any) => p.id === 'test.force');
   async function damage(tamper: boolean) {
     await page.evaluate(async ({ digest, tamper }) => {
-      const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open('space-lab-modules', 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
+      // Use the app-created schema; join-pack support can upgrade the database version.
+      const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open('space-lab-modules'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction('packages', 'readwrite'), store = tx.objectStore('packages');
         if (!tamper) store.delete(digest);

@@ -1,7 +1,7 @@
 import type { CameraExtension, CameraHook, CommandExtension, CommandHook, Disposable, ForceExtension, ForceHook, LayerExtension, LayerHook,
   PanelExtension, PanelHook, PresentationContribution, WorldRuleExtension, WorldRuleHook, ModuleEnvironment, ModuleLock, ModuleManifest,
   ModuleProfile, ModuleReference, RegisteredModule } from '../../game-api/src/index';
-import { freezeJson, validateManifest, validateProfile } from './validation';
+import { freezeJson, settingValue, validateManifest, validateProfile } from './validation';
 import { MAX_COMMANDS_PER_MODULE, captureCommand } from './commands';
 import { MAX_PRESENTATION_HOOKS_PER_MODULE, capturePresentation } from './presentation';
 import { type StateMigrationFn } from './authoritative';
@@ -87,6 +87,7 @@ export class ModuleRegistry {
         const overrides = profile.settings[id] ?? {};
         const value = Object.hasOwn(overrides, key) ? overrides[key]! : schema.default;
         if (value < schema.minimum || value > schema.maximum) throw new Error(`Module ${id} setting ${key}: must be in [${schema.minimum}, ${schema.maximum}]`);
+        if(!settingValue(value,schema))throw new Error(`Module ${id} setting ${key}: must follow increment ${schema.step}`);
         settings[id]![key] = value;
       }
     }

@@ -6,7 +6,7 @@ import { satisfies, validRange } from '../../game-runtime/src/semver';
 import { createBuiltinRegistry } from '../../modules/src/index';
 import { artifactModules, validatePackage } from './archive';
 import { createIntegrity, decodeModulePackage, encodeModuleFiles, inspectModuleFiles, jsonBytes, parsePackageJson, requiredFile, verifyIntegrity,
-  wrapLegacyCode, wrapLegacyData, packageFiles, copyPackageFiles, type InspectedModule } from './portable';
+  wrapLegacyCode, wrapLegacyData, packageFiles, copyPackageFiles, type InspectedModule, type ShippedPackageOptions } from './portable';
 import { readZip, writeZip, type PackageFiles, type ZipOptions } from './zip';
 import { attachRuntimeFiles, runtimeReferences, runtimeSelectionFiles, type RuntimeSelection } from './runtime-selection';
 
@@ -76,24 +76,24 @@ function runtimeResolution(raw: LabPackage): { order: GamePackageLock['order']; 
     ...Object.entries(raw.bundle.presentation?.providers ?? {}).map(([slot, id]) => [`presentation.${slot}`, id]),
   ]) };
 }
-export async function createGameFiles(raw: LabPackage, authored: ReadonlyMap<string, PackageFiles> = new Map()): Promise<Map<string, Uint8Array<ArrayBuffer>>> {
+export async function createGameFiles(raw: LabPackage, authored: ReadonlyMap<string, PackageFiles> = new Map(), options: ShippedPackageOptions = {}): Promise<Map<string, Uint8Array<ArrayBuffer>>> {
   const data = raw.format === 'space-lab-game/1' ? raw.bundle.modules : raw.data, code = raw.format === 'space-lab-game/1' ? raw.plugins : raw.code;
   const files = new Map<string, Uint8Array<ArrayBuffer>>(), modules: InspectedModule[] = [];
   const requirements: GameRequirement[] = [];
   for (const m of [...data, ...code]) {
     const contents = authored.get(m.manifest.id) ?? packageFiles(m) ?? (m.format === 'space-sim-code-module/1' ? wrapLegacyCode(m) : wrapLegacyData(m, projectLicense));
-    const module = inspectModuleFiles(contents), path = m.manifest.kind === 'data' ? `data/${m.manifest.id}.spacedata` : `modules/${m.manifest.id}.spacemod`;
+    const module = inspectModuleFiles(contents, true, options), path = m.manifest.kind === 'data' ? `data/${m.manifest.id}.spacedata` : `modules/${m.manifest.id}.spacemod`;
     if (module.descriptor.manifest.id !== m.manifest.id || module.descriptor.manifest.version !== m.manifest.version
       || m.format === 'space-sim-code-module/1' && module.code?.digest !== m.digest
       || m.format === 'space-sim-data-module/1' && canonicalJson(module.content) !== canonicalJson(m)) throw new Error(`Authored module differs from legacy runtime selection: ${m.manifest.id}`);
-    modules.push(module); files.set(path, await encodeModuleFiles(contents));
+    modules.push(module); files.set(path, await encodeModuleFiles(contents, options));
     requirements.push({ id: m.manifest.id, version: m.manifest.version, role: 'required', path });
   }
   const selection = runtime(raw);
   if (selection) for (const ref of runtimeReferences(selection)) {
     const path = `modules/${ref.id}.spacemod`, bytes = runtimeSelectionFiles(selection).get(path);
     if (!bytes) throw new Error(`Missing exact runtime package ${ref.id}`);
-    const module = await decodeModulePackage(bytes);
+    const module = await decodeModulePackage(bytes, options);
     if (module.descriptor.manifest.id !== ref.id || module.descriptor.manifest.version !== ref.version || module.integrity.digest !== ref.digest) throw new Error(`Runtime package identity mismatch: ${ref.id}`);
     if (module.descriptor.manifest.kind === 'data') throw new Error('Put reusable content in the game data profile; runtime target extras require code modules');
     modules.push(module); files.set(path, bytes.slice());
@@ -112,7 +112,7 @@ export async function createGameFiles(raw: LabPackage, authored: ReadonlyMap<str
 }
 /** Validation compares package identities and legacy identities separately, without evaluating code.
  * The v1 resolver validates authoritative dependencies/order. Viewer activation stays in its host. */
-export async function inspectGameFiles(files: PackageFiles, validateLegacy: (raw: unknown) => LabPackage, options: ZipOptions = {}): Promise<InspectedGame> {
+export async function inspectGameFiles(files: PackageFiles, validateLegacy: (raw: unknown) => LabPackage, options: ZipOptions & ShippedPackageOptions = {}): Promise<InspectedGame> {
   verifyIntegrity(files);
   const manifest = object(parsePackageJson(requiredFile(files, 'game.json'), 'Game descriptor'), 'Game');
   keys(manifest, ['format', 'info', 'engineApi', 'modules', 'targets', 'settings', 'content', 'legacy', 'runtime'], 'Game');
@@ -169,13 +169,13 @@ export async function inspectGameFiles(files: PackageFiles, validateLegacy: (raw
   if (canonicalJson(lock) !== canonicalJson(expected)) throw new Error('Game exact lock mismatch');
   return { manifest: freezeJson(manifest) as unknown as PortableGame, lock: freezeJson(expected), modules, legacy: raw, files };
 }
-export async function decodeGamePackage(bytes: Uint8Array<ArrayBuffer>, validateLegacy: (raw: unknown) => LabPackage, options: ZipOptions = {}): Promise<InspectedGame> {
+export async function decodeGamePackage(bytes: Uint8Array<ArrayBuffer>, validateLegacy: (raw: unknown) => LabPackage, options: ZipOptions & ShippedPackageOptions = {}): Promise<InspectedGame> {
   const budget = options.budget ?? { bytes: 0, files: 0 };
   const files = await readZip(bytes, { ...options, budget });
   return inspectGameFiles(files, validateLegacy, { ...options, budget });
 }
-export async function encodeGamePackage(raw: LabPackage, options: ZipOptions = {}, authored?: ReadonlyMap<string, PackageFiles>): Promise<Uint8Array<ArrayBuffer>> {
-  const files = await createGameFiles(validatePackage(raw), authored);
+export async function encodeGamePackage(raw: LabPackage, options: ZipOptions & ShippedPackageOptions = {}, authored?: ReadonlyMap<string, PackageFiles>): Promise<Uint8Array<ArrayBuffer>> {
+  const files = await createGameFiles(validatePackage(raw), authored, options);
   const bytes = [...files.values()].reduce((n, value) => n + value.length, 0);
   await inspectGameFiles(files, validatePackage, { ...options, budget: { bytes, files: files.size } });
   return writeZip(files, options);

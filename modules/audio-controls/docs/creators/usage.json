@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Flight sound controls",
+  "summary": "Public audio.flight-controls@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Create controls over borrowed nodes or mount the reusable settings content with a scoped ID prefix. Supply an optional sound provider and local preference storage. Confirmed terrain contacts and smooth-body status transitions produce one landing/crash/splash cue; reset establishes a new load/reconnect baseline. Thrust is silent during pause, warp, inactive views or faults. Disposal releases listeners, pending activation and output, and restores mounted content."
+    }
+  ]
+}

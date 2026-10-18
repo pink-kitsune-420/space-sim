@@ -257,9 +257,11 @@ async function say(page: Page, text: string): Promise<void> {
   }, text);
 }
 
-test('a second tab of the same browser joins a hosting tab in one click, and pilots chat', async ({ browser }) => {
+for (const withoutLocks of [false, true])
+test(`a second tab of the same browser joins a hosting tab in one click, and pilots chat${withoutLocks ? ' without Web Locks' : ''}`, async ({ browser }) => {
   test.setTimeout(150000);
   const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
+  if (withoutLocks) await context.addInitScript(() => Object.defineProperty(navigator, 'locks', { value: undefined }));
   const host = await tab(context, 'Hana');
   const guest = await tab(context, 'Gus');
   await expect(guest.getByRole('tab', { name: 'Server', exact: true })).toHaveAttribute('aria-selected', 'true');
@@ -299,7 +301,7 @@ test('a second tab of the same browser joins a hosting tab in one click, and pil
   await host.locator('#debug-stop-hosting').click();
   await expect(host.locator('.connection')).toContainText('LOCAL FLIGHT');
   await expect(host.locator('#debug-host-game')).toBeVisible();
-  expect([...errorsOf(host)]).toEqual([]);
+  expect([...errorsOf(host), ...errorsOf(guest)]).toEqual([]);
   await context.close();
 });
 

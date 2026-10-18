@@ -10,7 +10,7 @@ import { PRESENTATION_EXAMPLES } from '../../../examples/modules/index';
 import { Rendering } from './rendering';
 import { environment } from './startup';
 import { element, message, show } from './ui';
-import { FlightAudio } from './audio';
+import { mountFlightAudio } from './audio';
 
 type EventSink = (kind: string, detail: Record<string, unknown>) => void;
 /** The viewer's own changes to the default modules: a per-browser convenience, never shared or
@@ -39,7 +39,7 @@ export function presentationSnapshot(raw: PresentationSnapshot): PresentationSna
  * profile never touches the world, its fingerprint or saves; the renderer is rebuilt only
  * when its provider changes. */
 export class Presentation {
-  readonly audio = new FlightAudio(element<HTMLButtonElement>('sound-toggle'), element<HTMLInputElement>('sound-volume'), element('sound-status'));
+  readonly audio = mountFlightAudio(element('sound-settings'));
   readonly registry = createPresentationRegistry(PRESENTATION_EXAMPLES);
   readonly runtime = new ModuleRuntime(this.registry, environment());
   readonly rendering: Rendering;
@@ -54,6 +54,7 @@ export class Presentation {
   private readonly panels = new Map<string, { readonly card: HTMLElement; readonly rows: HTMLElement }>();
 
   constructor(canvas: HTMLCanvasElement, private readonly options: {
+    readonly perViewInstruments?: readonly string[];
     readonly onCanvas: (canvas: HTMLCanvasElement) => void; readonly release: () => void; readonly event: EventSink;
   }) {
     const name = (provider: RendererProvider): string => this.registry.getManifest(provider.id)?.name ?? provider.label;
@@ -166,7 +167,7 @@ export class Presentation {
     const candidate: ModuleCandidate = this.runtime.prepare(profile, ['renderer']);
     try {
       const provider = candidate.service<RendererProvider>('renderer');
-      const hooks = new PresentationHooks(candidate.layers, candidate.panels, candidate.cameras, fault => this.fault(fault));
+      const hooks = new PresentationHooks(candidate.layers.filter(layer=>!this.options.perViewInstruments?.includes(layer.moduleId)), candidate.panels, candidate.cameras, fault => this.fault(fault));
       if (provider !== this.rendering.provider) {
         const previous = this.rendering.provider;
         this.rendering.replace(provider, this.options.release);

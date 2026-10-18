@@ -36,7 +36,7 @@
               </div>
               <div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div>
               <section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section>
-              <!-- Flight Slingshot HUD (shown during Alt-drag or throw mode) -->
+              <!-- Flight Slingshot HUD (shown during throw mode) -->
               <div id="flight-slingshot-hud" class="slingshot-hud hidden">
                 <div class="hud-stat"><span class="hud-label">Launch Vel:</span> <span id="fhud-vel" class="hud-val">0 m/s</span></div>
                 <div class="hud-stat"><span class="hud-label">Circ. Speed:</span> <span id="fhud-circ" class="hud-val">—</span></div>
@@ -50,28 +50,7 @@
 
               <!-- Interactive Chat & Command Bar Overlay -->
               <div id="chat-overlay" class="chat-overlay" aria-label="Flight chat and commands">
-                <div class="chat-header">
-                  <button type="button" class="chat-title-wrap" aria-label="Move chat window" title="Drag to move; arrow keys move the window">
-                    <span class="chat-title-dot"></span>
-                    <span class="chat-title">COMMS / CONSOLE</span>
-                  </button>
-                  <div class="chat-header-actions">
-                    <button type="button" id="chat-minimize" class="btn-chat-min" title="Minimize chat console (Esc or click)">−</button>
-                  </div>
-                </div>
-                <div id="chat-messages" class="chat-messages">
-                  <div class="chat-msg system"><span class="chat-tag">SYSTEM</span> Flight console ready. Type <kbd>/help</kbd> for commands or <kbd>Alt+Drag</kbd> to throw ship.</div>
-                </div>
-                <form id="chat-form" class="chat-form" autocomplete="off">
-                  <span class="chat-prompt">&gt;</span>
-                  <input id="chat-input" type="text" placeholder="Press Enter or / to chat or run commands (/help)..." maxlength="256" spellcheck="false" />
-                  <button type="submit" id="chat-send" class="btn-chat-send" title="Send message or run command">↵</button>
-                </form>
-                <button type="button" id="chat-min-pill" class="chat-min-pill" aria-label="Expand chat and commands (Enter or /)" hidden>
-                  <span class="chat-min-icon">💬</span>
-                  <span class="chat-min-label">Chat & Commands</span>
-                  <span id="chat-unread-dot" class="chat-unread-dot" hidden></span>
-                </button>
+
               </div>
               <p id="terrain-notice" class="control-note" role="note" hidden>Physical terrain · Clearance is above local ground or sea level. Gentle water entry sinks and floats; inward thrust dives, and water hits above 5 m/s inward crash. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less.</p>
               <div class="telemetry"><div><span>GROUND / SEA CLEARANCE</span><output id="altitude">0.0</output><small>m</small></div><div><span>SPEED</span><output id="speed">0.0</output><small>m/s</small></div><div><span>VERTICAL</span><output id="vertical">0.0</output><small>m/s</small></div><div><span>HEADING</span><output id="heading">90</output><small>°</small></div></div>
@@ -103,17 +82,13 @@
               <div class="settings-group"><h3>Display</h3>
                 <div class="settings-buttons"><button id="renderer-toggle" type="button" title="Switch between 2D Canvas and WebGL 2 GPU shader renderer">Renderer: WebGL</button><button id="graphics-toggle" type="button" aria-pressed="true" title="Graphics quality. High draws detailed, lit planets; Low draws plain discs for slower devices">Graphics: High</button><button id="grid-toggle" type="button" title="Toggle navigation grid on/off (G)" aria-pressed="false">Grid: Off</button><button id="theme-toggle" type="button" title="Customize Skybox, Procedural Nebulas, Grids & Timers" aria-haspopup="dialog">Theme…</button></div>
               </div>
-              <div class="settings-group"><h3>Sound</h3>
-                <div class="settings-buttons"><button id="sound-toggle" type="button" aria-pressed="true">Sound: On</button></div>
-                <label for="sound-volume">Volume</label><input id="sound-volume" type="range" min="0" max="100" value="40" aria-label="Sound volume"/>
-                <p id="sound-status" class="control-note">Engine rumble and flight cues.</p>
-              </div>
+              <div class="settings-group" id="sound-settings"></div>
               <div class="settings-group"><h3>Controls</h3>
                 <div class="settings-buttons"><button id="controls-toggle" type="button" title="Configure flight controls, keybindings, and gamepad/joystick" aria-haspopup="dialog" class="wide">Controls &amp; keybindings…</button><button id="players-toggle" type="button" title="Play with up to four players on one screen" aria-haspopup="dialog" class="wide">Split screen…</button><button id="hud-layout-toggle" type="button" aria-pressed="false">Edit HUD layout</button><button id="hud-layout-reset" type="button">Reset HUD layout</button></div>
               </div>
               <div class="settings-group"><h3>Gameplay</h3>
                 <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode<small>Impacts stop the ship safely.</small></span></label>
-                <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat<small>Drag to sling your ship anywhere (T or Alt-drag).</small></span></label>
+                <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat<small>Drag to sling your ship anywhere (T, then drag).</small></span></label>
                 <label class="god-mode" title="Keep the simulation running when the window or tab is in the background"><input id="run-in-background" type="checkbox"/><span>Run in background<small>Keep flying when this tab is hidden.</small></span></label>
               </div>
               <div class="settings-group"><h3>HUD visibility</h3>
@@ -124,7 +99,7 @@
                 <div class="settings-buttons"><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler" title="Performance profiler (`)">Profiler</button><button id="chat-toggle" type="button" title="Toggle chat &amp; command bar (Enter or /)">Chat</button></div>
               </div>
             </section>
-            <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
+            <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><label for="activation-pilot">Activation level for</label><select id="activation-pilot" aria-label="Activation throttle player"><option value="0">Player 1</option><option value="1">Player 2</option><option value="2">Player 3</option><option value="3">Player 4</option></select><label for="activation-throttle">Activation throttle (%)</label><input id="activation-throttle" type="number" min="0" max="100" step="1" value="50"/><button id="activation-throttle-reset" type="button">Reset activation level</button><p class="control-note">↑/↓: tap or hold to ramp · Ctrl: fine<br />Z: activate · X: cut · Shift+Z: remember</p><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
 
             <section class="card instruments-card" aria-labelledby="instruments-title"><p class="eyebrow">INSTRUMENTS</p><h2 id="instruments-title">Flight information</h2>
               <div id="instruments" class="instruments" role="group" aria-label="Instruments"></div>
@@ -522,7 +497,7 @@
           <div id="toast-container" class="toast-container"></div>
         </div>
         <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
-          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
+          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / MODMENU</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
           <p id="lab-status" role="status">Space Sim is ready to fly. Import a game, or build a remix with plugins.</p>
           <details class="library-settings" open><summary>Game library (Load game)</summary>
             <p id="library-storage" class="control-note">Opening your local library…</p>
@@ -605,79 +580,8 @@
                 <button id="reset-keybindings" type="button">Reset Keyboard to Defaults</button>
               </div>
             </div>
-            <div id="tab-players" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-players-btn" hidden>
-              <p class="control-note">Split screen: up to four pilots on this screen, each flying their own ship in your world (solo or while hosting). Time warp and pause are shared. In split screen, press <b>Start</b> on a free controller to join.</p>
-              <div class="split-count" role="radiogroup" aria-label="Players on this screen">
-                <span>Players</span>
-                <button type="button" role="radio" data-count="1">1</button><button type="button" role="radio" data-count="2">2</button><button type="button" role="radio" data-count="3">3</button><button type="button" role="radio" data-count="4">4</button>
-              </div>
-              <div class="gamepad-setting-row split-layout-row">
-                <label for="split-layout">Two-player layout</label>
-                <select id="split-layout">
-                  <option value="auto">Auto (side by side on wide screens)</option>
-                  <option value="side">Side by side</option>
-                  <option value="stacked">Stacked (top and bottom)</option>
-                </select>
-              </div>
-              <div class="gamepad-setting-row split-mode-row">
-                <label for="split-screen-mode">Screen mode</label>
-                <select id="split-screen-mode">
-                  <option value="dynamic">Dynamic (share screen when together, split when apart)</option>
-                  <option value="split">Forced split screen (always split)</option>
-                </select>
-              </div>
-              <div class="gamepad-setting-row split-navball-row">
-                <label>Navball Options</label>
-                <div class="split-navball-actions">
-                  <button id="split-navball-pin-all" type="button" class="split-action-btn">📌 Pin All Navballs</button>
-                  <button id="split-navball-unpin-all" type="button" class="split-action-btn">🔓 Unlock All for Dragging</button>
-                </div>
-              </div>
-              <div id="split-players" class="split-players"></div>
-              <p id="split-players-note" class="control-note" role="status"></p>
-            </div>
-            <div id="tab-gamepad" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-gamepad-btn" hidden>
-              <div class="gamepad-setting-row">
-                <label for="pad-player">Configure controller for</label>
-                <select id="pad-player"></select>
-              </div>
-              <div id="gamepad-status" class="gamepad-status-banner">No controller detected. Connect a Steam Deck, Xbox, PlayStation (DualSense / DualShock), or joystick and press any button.</div>
-              <div class="gamepad-options">
-                <label class="gamepad-checkbox-label"><input id="gamepad-enabled" type="checkbox" checked /> Enable controllers (all players)</label>
-                <div class="gamepad-setting-row">
-                  <label for="gamepad-deadzone">Analog Stick Deadzone: <span id="deadzone-value">15%</span></label>
-                  <input id="gamepad-deadzone" type="range" min="0" max="40" value="15" step="1" />
-                </div>
-                <div class="gamepad-axis-grid">
-                  <div class="gamepad-axis-col">
-                    <label for="gamepad-turn-axis">Turn / Steering Axis</label>
-                    <select id="gamepad-turn-axis" data-axis="turnAxis"></select>
-                    <label class="checkbox-inline"><input id="gamepad-turn-invert" type="checkbox" data-invert="invertTurn" /> Invert Turn Direction</label>
-                  </div>
-                  <div class="gamepad-axis-col">
-                    <label for="gamepad-throttle-axis">Throttle Axis</label>
-                    <select id="gamepad-throttle-axis" data-axis="throttleAxis"></select>
-                    <label class="checkbox-inline"><input id="gamepad-throttle-invert" type="checkbox" data-invert="invertThrottle" /> Invert Throttle (Forward = Increase)</label>
-                  </div>
-                  <div class="gamepad-axis-col">
-                    <label for="gamepad-zoom-axis">Zoom Axis</label>
-                    <select id="gamepad-zoom-axis" data-axis="zoomAxis"></select>
-                    <label class="checkbox-inline"><input id="gamepad-zoom-invert" type="checkbox" data-invert="invertZoom" /> Invert Zoom (Forward = Zoom In)</label>
-                  </div>
-                </div>
-                <h3 class="pad-buttons-title">Buttons</h3>
-                <p class="control-note">Select <b>+</b> and press a controller button to add it, or select a button to remove it. <kbd>Esc</kbd> cancels.</p>
-                <div id="pad-bindings" class="keybindings-list pad-bindings"></div>
-                <div class="gamepad-diagnostics">
-                  <h3>Live Controller Diagnostics</h3>
-                  <div id="gamepad-axes-display" class="gamepad-axes-display"></div>
-                  <div id="gamepad-buttons-display" class="gamepad-buttons-display"></div>
-                </div>
-              </div>
-              <div class="controls-modal-actions">
-                <button id="reset-gamepad" type="button">Reset This Player's Controller</button>
-              </div>
-            </div>
+            <div id="tab-players" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-players-btn" hidden></div>
+            <div id="tab-gamepad" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-gamepad-btn" hidden></div>
             <div id="tab-touch" class="controls-tab-content" role="tabpanel" aria-labelledby="tab-touch-btn" hidden>
               <div class="gamepad-options">
                 <div class="gamepad-setting-row">

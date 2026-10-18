@@ -1,12 +1,21 @@
 import type { ModuleProfile, ModuleReference, RegisteredModule } from '../../game-api/src/index';
 import { ModuleRegistry } from '../../game-runtime/src/index';
 import { freezeJson } from '../../game-runtime/src/validation';
-import { BUILTIN_RENDERERS, rendererModules, WEBGL_RENDERER } from './base/renderers';
-import { TOOLSET_MODULES } from './base/toolset/index';
-import { audioModule, PROCEDURAL_AUDIO } from './base/audio/index';
-export { BUILTIN_RENDERERS, CANVAS_RENDERER, WEBGL_RENDERER } from './base/renderers';
-export { INSTRUMENTS, TOOLSET_MODULES } from './base/toolset/index';
-export { PROCEDURAL_AUDIO } from './base/audio/index';
+import { createRendererModules } from './base/renderers';
+import { CanvasRenderer, WebGLRenderer } from '../../render-2d/src/index';
+import type { RendererProvider } from '../../game-api/src/index';
+import { TOOLSET_MODULES as TOOLSET_CORE } from './base/toolset/index';
+import { navball } from '../../../modules/navball/src/drawing';
+export const TOOLSET_MODULES = Object.freeze([...TOOLSET_CORE.slice(0,4),navball,...TOOLSET_CORE.slice(4)]);
+import { createAudioModule } from './base/audio/index';
+import { PROCEDURAL_AUDIO } from '../../../modules/audio-procedural/src/synth';
+const provider = (value: RendererProvider): RendererProvider => Object.freeze({ ...value, capabilities: Object.freeze({ ...value.capabilities }) });
+export const CANVAS_RENDERER = provider({ id: 'builtin.canvas', version: '0.1.0', label: '2D', capabilities: { shaders: false, overlays: true }, create: canvas => new CanvasRenderer(canvas) });
+export const WEBGL_RENDERER = provider({ id: 'builtin.webgl', version: '0.1.0', label: 'WebGL', capabilities: { shaders: true, overlays: true, effects: true }, create: (canvas, options) => new WebGLRenderer(canvas, options?.shaders) });
+export const BUILTIN_RENDERERS = Object.freeze([WEBGL_RENDERER, CANVAS_RENDERER]);
+const rendererModules = createRendererModules(BUILTIN_RENDERERS), audioModule = createAudioModule(PROCEDURAL_AUDIO);
+export { INSTRUMENTS } from './base/toolset/index';
+export { PROCEDURAL_AUDIO } from '../../../modules/audio-procedural/src/synth';
 
 const reference = (m: RegisteredModule): ModuleReference => ({ id: m.manifest.id, version: m.manifest.version });
 /** Base presentation modules a new viewer starts with: flight instruments and sound. */

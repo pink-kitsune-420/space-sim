@@ -33,6 +33,7 @@
     "module:validate": "node packages/module-tools/package.mjs validate",
     "measure:code-modules": "node scripts/measure_code_modules.mjs",
     "module:new": "node packages/module-tools/package.mjs new",
+    "module:fork": "node packages/module-tools/package.mjs fork",
     "module:convert": "node packages/module-tools/package.mjs convert",
     "module:pack": "node packages/module-tools/package.mjs pack",
     "module:unpack": "node packages/module-tools/package.mjs unpack",

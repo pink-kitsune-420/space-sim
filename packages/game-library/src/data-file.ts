@@ -1,7 +1,7 @@
 import { keys, object, string } from '../../game-runtime/src/validation';
 import { validateUniverse } from '../../sim-core/src/universe';
 import { validateDataModule } from '../../modules/src/data';
-import { createIntegrity, inspectModuleFiles, jsonBytes, modulePayload, parsePackageJson, requiredFile, validateShaderPayload, verifyIntegrity } from './portable';
+import { createIntegrity, inspectModuleFiles, jsonBytes, modulePayload, parsePackageJson, requiredFile, validateShaderPayload, verifyIntegrity, type ShippedPackageOptions } from './portable';
 import { readJsonFile } from './compression';
 import { isZip, readZip, writeZip, type PackageFiles, type ZipOptions } from './zip';
 
@@ -14,17 +14,17 @@ function validate(kind: DataFileKind, value: unknown): unknown {
   validateShaderPayload(value); return value;
 }
 /** Plain reusable content carries its original data, without inventing a module ID or licence. */
-export async function encodeDataFile(kind: DataFileKind, value: unknown, options: ZipOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
+export async function encodeDataFile(kind: DataFileKind, value: unknown, options: ZipOptions & ShippedPackageOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
   const checked = validate(kind, value), path = `data/${kind}.json`;
   const files = new Map([['data.json', jsonBytes({ format: DATA_FILE_FORMAT, kind, path })], [path, jsonBytes(checked)]]);
   files.set('integrity.json', jsonBytes(createIntegrity(files)));
   return writeZip(files, options);
 }
-export function inspectDataFiles(files: PackageFiles): InspectedDataFile {
+export function inspectDataFiles(files: PackageFiles, options: ShippedPackageOptions = {}): InspectedDataFile {
   verifyIntegrity(files);
   const d = object(parsePackageJson(requiredFile(files, 'data.json'), 'Data descriptor'), 'Data descriptor');
   if (d.format !== DATA_FILE_FORMAT) {
-    const module = inspectModuleFiles(files);
+    const module = inspectModuleFiles(files, true, options);
     const kind: DataFileKind = module.descriptor.data.some(p => p.kind === 'universe') ? 'universe' : module.content ? 'content' : 'shaders';
     return { kind, value: kind === 'content' ? module.content : modulePayload(module, kind), files };
   }
@@ -34,11 +34,11 @@ export function inspectDataFiles(files: PackageFiles): InspectedDataFile {
   const value = parsePackageJson(requiredFile(files, string(d.path, 'Data path')), 'Data payload');
   return { kind: d.kind as DataFileKind, value: validate(d.kind as DataFileKind, value), files };
 }
-export async function decodeDataFile(bytes: Uint8Array<ArrayBuffer>, kind: DataFileKind, options: ZipOptions = {}): Promise<unknown> {
+export async function decodeDataFile(bytes: Uint8Array<ArrayBuffer>, kind: DataFileKind, options: ZipOptions & ShippedPackageOptions = {}): Promise<unknown> {
   if (!isZip(bytes)) return validate(kind, await readJsonFile(bytes));
   const files = await readZip(bytes, options);
   if (files.has('save.json')) throw new Error('This is saved progress. Use Fleet → Load universe…');
-  const inspected = inspectDataFiles(files);
+  const inspected = inspectDataFiles(files, options);
   if (inspected.kind !== kind) throw new Error(`Expected ${kind} data; this file contains ${inspected.kind}`);
   return inspected.value;
 }

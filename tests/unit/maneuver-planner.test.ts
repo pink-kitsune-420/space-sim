@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { Camera, GhostSample, PresentationView } from '../../packages/game-api/src/index';
-import { maneuverDelta, drawManeuver } from '../../packages/modules/src/base/toolset/maneuver-planner';
+import { maneuverDelta, drawManeuver } from '../../modules/maneuver-display/src/overlay';
 import { maneuverWarpFactor, pickManeuverTime } from '../../apps/web/src/maneuver-planner';
 import { validateOverlay } from '../../packages/game-runtime/src/index';
-import { navballState, drawNavball } from '../../packages/modules/src/base/toolset/navball';
+import { navballState, drawNavball } from '../../modules/navball/src/drawing';
 import { project } from '../../packages/render-2d/src/frame';
 import { ManeuverBurn } from '../../apps/web/src/maneuver-burn';
 import { LocalSession } from '../../apps/web/src/session';

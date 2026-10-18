@@ -65,7 +65,7 @@ describe('command registration', () => {
   it('rejects command keys that would take over the console before activation', () => {
     const command = (key: string) => captureCommand('test.module', '1.0.0', { name: 'go', label: 'Go', key, resolve: () => ({ throttle: 1 }) });
     expect(() => checkCommandKeys([command('KeyP')])).toThrow('Module test.module command test.module/go: key P is reserved by the flight console');
-    expect(() => checkCommandKeys([command('KeyZ'), command('Digit1')])).not.toThrow();
+    expect(() => checkCommandKeys([command('KeyV'), command('Digit1')])).not.toThrow();
   });
 });
 

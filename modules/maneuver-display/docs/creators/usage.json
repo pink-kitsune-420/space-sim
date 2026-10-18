@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Maneuver vector display",
+  "summary": "Read-only node and predicted path overlays.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "This optional presentation contribution draws detached maneuver snapshots, with bounded Hermite path dashes and no world commands. It retains builtin.maneuver-planner and the original v1 adapter for default controls and saves. The v2 capability is view.maneuver-display@1.0.0; a planner editor can require it while a compatible read-only viewer can supply its own validated snapshot. Removal removes overlays and authoring UI enablement, preserving live physics. Shipped identity requires the exact catalogue pin; edited forks use creator IDs."
+    }
+  ]
+}

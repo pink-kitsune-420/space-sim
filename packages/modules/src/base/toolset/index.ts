@@ -4,15 +4,12 @@
 import type { RegisteredModule } from '../../../../game-api/src/index';
 import { flightData } from './flight-data';
 import { flightVectors } from './flight-vectors';
-import { navball } from './navball';
 import { orbitMarkers } from './orbit-markers';
 import { telemetry } from './telemetry';
-import { maneuverPlanner } from './maneuver-planner';
+import { maneuverPlanner } from '../../../../../modules/maneuver-display/src/overlay';
 export type { FlightData, FlightDataApi, OrbitData } from './flight-data';
-export type { NavballFrame, NavballOrientation, NavballState, NavballPlacementDetail } from './navball';
-export { setNavballPlacementProvider, drawNavball, SIDE as NAVBALL_SIDE, BELOW as NAVBALL_BELOW } from './navball';
 
-export const TOOLSET_MODULES: readonly RegisteredModule[] = Object.freeze([flightData, flightVectors, orbitMarkers, telemetry, navball, maneuverPlanner]);
+export const TOOLSET_MODULES: readonly RegisteredModule[] = Object.freeze([flightData, flightVectors, orbitMarkers, telemetry, maneuverPlanner]);
 /** The console's instrument switches, in display order. Each enables what it depends on. */
 export const INSTRUMENTS: readonly { readonly id: string; readonly label: string; readonly title: string }[] = Object.freeze([
   { id: 'builtin.maneuver-planner', label: 'Maneuver planner', title: 'Click the coast trajectory to plan a burn and preview its orbit' },

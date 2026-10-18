@@ -1,0 +1,32 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Keyboard input",
+  "summary": "Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter."
+    },
+    {
+      "type": "paragraph",
+      "text": "Capabilities: input.keyboard@1.0.0; no required or optional services. Constructors receive active actions and seat assignment."
+    },
+    {
+      "type": "paragraph",
+      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+    },
+    {
+      "type": "paragraph",
+      "text": "Generic sources have no persistence. The flight adapter receives bindings from its caller. All DOM listeners and held input are released on disposal; blur, hidden/pagehide, capture suppression and reassignment clear held generic input."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/input-keyboard/module.json /tmp/input-keyboard.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+    }
+  ]
+}

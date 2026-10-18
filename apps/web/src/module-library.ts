@@ -18,6 +18,9 @@ export class ModuleLibrary {
   constructor(store: PackageStore = new BrowserPackageStore()) { this.store = store; }
   async open(): Promise<void> {
     if (this.opened) return; this.opened = true;
+    await this.refreshInstalled();
+  }
+  async refreshInstalled(): Promise<void> {
     try {
       for (const entry of await this.store.list()) {
         const stored = await this.store.get(entry.digest);

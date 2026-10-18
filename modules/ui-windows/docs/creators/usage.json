@@ -1,0 +1,28 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Shared windows",
+  "summary": "Shared floating chrome, structured documents/forms/logs and versioned previews.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Require ui.windows@^1.0.0, use WINDOWS during initialization, then create one window per content instance. Supply its container, ID, title and optional viewer preference storage. The provider owns chrome, pointer/keyboard moving and resizing, pin/minimize/maximize, stacking and disposal. Opening can release input through the supplied callback. Modules keep authority out of layout preferences."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use one WindowSystem for all windows sharing a stack, including borrowed chat WindowInteractions. Each factory has an independent stack. Dispose the content and window on removal; disposing the provider also closes remaining windows and releases styles. Titles are always rendered as text. A game supplies its own dismiss gesture, theme decoration and dock."
+    },
+    {
+      "type": "paragraph",
+      "text": "Require ui.window-content@^1.0.0 and use WINDOW_CONTENT to mount document/instruction, inspector/form, list/log or preview sections. Imported window definitions accept a content array alongside legacy controls. Document blocks support paragraphs, headings, code, lists and internal page links. The Manual uses this same reader and searches contributed body text. All strings remain text, including titles, list entries and code."
+    },
+    {
+      "type": "paragraph",
+      "text": "Publish a named exact-version preview type with register({type:{name,version},validate,mount}). Add-ons declare their ui.window-content service requirement, own the returned registration and validate candidate data before allocating resources. Each mount owns its independent camera/renderer, receives immutable bounded data and resize callbacks, and disposes every borrowed read-only subscription. Editing uses declared namespaced actions routed through the host and authoritative command validation. No mutable world is passed to previews. Missing versions fail preparation; unregistering closes all instances and suppresses retained callbacks. Orbit prediction providers follow this contract in extraction group 6."
+    },
+    {
+      "type": "code",
+      "text": "context.contributeWindow({name:'help',title:'Help',controls:[],content:[{kind:'instruction',id:'steps',document:{blocks:[{type:'paragraph',text:'Read this before flying.'}]}}]});"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Flight sessions",
+  "summary": "Explicit flight protocol, headless hosts and predicted clients through public engine ports.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides session.flight@1.0.0 and retains space-sim-net/5 with space-sim-ships/1. Requires core.world, core.save, core.clock, core.motion and core.commands. Browser, offline and Node use the same code; no device, renderer or DOM dependency."
+    },
+    {
+      "type": "paragraph",
+      "text": "Host borrows a supplied privileged world and owns peers and its change subscription. A local session owns its world; a joined client owns its mirror. The caller schedules a shared world once; inputs, views and transports never step it. Disposal closes sessions and releases held controls before world disposal. Save and restore use the selected public codec and preserve legacy identity."
+    },
+    {
+      "type": "paragraph",
+      "text": "This explicit adapter retains flight ownership, command validation, snapshots, prediction replay, reconnect tokens, chat limits and shared pause/warp. A different entity or state schema needs its own compatible session adapter. Transport advertisements alone do not prove compatible state or commands."
+    },
+    {
+      "type": "paragraph",
+      "text": "Build and import through normal .spacemod tools and code consent. Choose a compatible replacement when a required service is removed. Downloaded modules never bypass authoritative identity or game-pack installation approval."
+    },
+    {
+      "type": "paragraph",
+      "text": "Authoritative v2 modules may contributeData adapters for world/player/entity records. Read session.world.data; request host-validated updates with session.dataCommand. Exact schemas negotiate space-sim-module-data/1; snapshots and revision deltas preserve reliable order independently of predicted flight. Save version 3 requires the active adapters and uses their one-version migrations. Ordinary worlds preserve their legacy saves and protocol. All replicated data is public to peers; keep credentials outside this store."
+    }
+  ]
+}

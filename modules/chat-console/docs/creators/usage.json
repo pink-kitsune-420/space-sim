@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Chat console",
+  "summary": "Optional chat and command UI independent of flight state.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides ui.chat@1.0.0 for browser/offline. Create with explicit root and viewport DOM, a submit callback and optional visibility/window interaction ports. Session adapters echo chat in shared order; game command modules interpret slash commands. The console does not own simulation or network state."
+    },
+    {
+      "type": "paragraph",
+      "text": "The module owns its template, styles, input handlers, window layout, observers and minimized/layout preferences. Disposing a console/provider removes handlers, observers, resize controls and DOM. Removing chat does not remove session gameplay. No mandatory flight actions, HUD, renderer or theme dependencies."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use the same editable .spacemod build/import consent and compatible replacement flow as other modules. Layout preferences are local and are not in authoritative saves or identity."
+    }
+  ]
+}

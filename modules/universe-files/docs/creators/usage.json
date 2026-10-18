@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Universe files",
+  "summary": "Universe files",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "universe.files@1.0.0 reads browser-selected files up to 64 MiB and writes .spaceuniverse download bytes. It owns object URLs and releases them on timeout or provider disposal. It does not decode, approve packages or load worlds. Native file dialogs remain under the user gesture. Storage is an explicit download, never an unreported browser autosave."
+    }
+  ]
+}

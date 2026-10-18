@@ -70,6 +70,8 @@ export interface BodyAppearance {
 
 /** Tunable appearance settings. */
 export type AppearanceTuning = 'water' | 'clouds' | 'ice' | 'craters' | 'turbulence' | 'glow';
+/** Presentation tuning fields in shader order. */
+export const APPEARANCE_TUNING: readonly AppearanceTuning[] = Object.freeze(['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow']);
 
 export interface RotationDefinition {
   /** Seconds per turn. */

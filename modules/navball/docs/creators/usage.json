@@ -1,0 +1,16 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Navball HUD",
+  "summary": "Optional flight instrument using the shared HUD lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Use this optional instrument definition through ui.view-hud@1.0.0 with view.flight-hud-state@1.0.0. Every seat follows the same create/rebind/resize/update/dispose path. The read-only flight adapter supplies detached quantities, cached geometry and local preferences. Commands recheck current target ownership and suppression through the adapter. Removing the definition releases gestures, controls and subscriptions; physics, vehicles, split screen and cameras remain independent."
+    },
+    {
+      "type": "paragraph",
+      "text": "Configuration: frame is 0 automatic, 1 orbital or 2 surface; orientation is 0 horizon-up or 1 camera-relative. Defaults preserve current instruments. These settings apply to this contribution; per-view placement and player preferences stay local."
+    }
+  ]
+}

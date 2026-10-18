@@ -1,6 +1,6 @@
 import type { CapabilityBinding, CapabilityNeed, HostServiceAccess, ManifestV2, ModuleEnvironment, ModuleLockV2, ModuleTier } from '../../game-api/src/index';
 import { satisfies } from './semver';
-import { freezeJson } from './validation';
+import { freezeJson, settingValue } from './validation';
 import { validateProfileV2 } from './validation-v2';
 
 export interface ResolutionDiagnostic {
@@ -64,6 +64,7 @@ export function resolveModulesV2(installed: ReadonlyMap<string, ManifestV2>, raw
     for (const [key, schema] of Object.entries(m.settings)) {
       const value = Object.hasOwn(overrides, key) ? overrides[key]! : schema.default;
       if (value < schema.minimum || value > schema.maximum) fail('settings', id, key, `${m.name}: ${key} must be between ${schema.minimum} and ${schema.maximum}.`);
+      if(!settingValue(value,schema))fail('settings',id,key,`${m.name}: ${key} must follow increment ${schema.step}.`);
       values[key] = value;
     }
     settings[id] = values;

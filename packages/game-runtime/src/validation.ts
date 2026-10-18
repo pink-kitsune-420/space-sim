@@ -12,6 +12,12 @@ export function string(raw: unknown, label: string): string {
   if (typeof raw !== 'string' || !raw.trim() || raw.length > 256) throw new Error(`${label}: expected a nonempty string (at most 256 characters)`);
   return raw;
 }
+export function settingValue(value: number, schema: NumberSetting): boolean {
+  if(!Number.isFinite(value)||value<schema.minimum||value>schema.maximum)return false;
+  if(schema.step===undefined)return true;
+  const delta=value-schema.minimum,nearest=Math.round(delta/schema.step)*schema.step;
+  return Math.abs(delta-nearest)<=8*Number.EPSILON*Math.max(1,Math.abs(value),Math.abs(schema.minimum));
+}
 export function moduleId(raw: unknown, label: string): string {
   const id = string(raw, label);
   if (!/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(id)) throw new Error(`${label}: expected a namespaced module ID`);
@@ -64,10 +70,13 @@ export function validateManifest(raw: unknown): ModuleManifest {
   const settings: Record<string, NumberSetting> = Object.create(null);
   for (const [key, value] of Object.entries(object(m.settings, `${label} settings`))) {
     const s = object(value, `${label} setting ${key}`);
-    keys(s, ['type', 'default', 'minimum', 'maximum'], `${label} setting ${key}`);
+    keys(s, ['type', 'label', 'description', 'step', 'default', 'minimum', 'maximum'], `${label} setting ${key}`);
+    if(s.label!==undefined)string(s.label,`${label} setting ${key} label`);
+    if(s.description!==undefined&&(typeof s.description!=='string'||!s.description.trim()||s.description.length>1024))throw new Error(`${label} setting ${key}: description must be 1–1024 characters`);
     if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(key) || s.type !== 'number'
       || ![s.default, s.minimum, s.maximum].every(n => typeof n === 'number' && Number.isFinite(n))
       || (s.minimum as number) > (s.default as number) || (s.default as number) > (s.maximum as number)) throw new Error(`${label} setting ${key}: invalid number schema`);
+    if(s.step!==undefined&&(typeof s.step!=='number'||!Number.isFinite(s.step)||s.step<=0||!settingValue(s.default as number,s as unknown as NumberSetting)))throw new Error(`${label} setting ${key}: invalid setting increment/default`);
     settings[key] = s as unknown as NumberSetting;
   }
   const slots = strings(m.slots, `${label} slots`);

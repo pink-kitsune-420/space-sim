@@ -34,7 +34,7 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await manual.locator('#manual-page a[data-page="shaders"]').click();
   await expect(manual.locator('#manual-page h2')).toHaveText('Shader packs');
   await manual.locator('#manual-search').fill('determin');
-  await expect(manual.locator('.manual-topic b')).toHaveText(['Rules for simulation modules']);
+  await expect(manual.locator('.manual-topic b')).toHaveText(['Code modules', 'Rules for simulation modules']);
   await manual.locator('#manual-search').fill('zzzz');
   await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');
   await manual.locator('#manual-search').fill('');
@@ -177,13 +177,13 @@ test('manual uses player 1 keyboard and controller mappings and refreshes after 
   await page.locator('#controls-close').click();
   await expect(engine.locator('.manual-keyboard kbd')).toHaveText(['K', 'L']);
   await expect(engine.locator('.manual-controller kbd')).toHaveText(['L2 Trigger']);
-  await manual.locator('[data-page="first-orbit"]').first().click();
-  const climb = manual.locator('#manual-page > ol > li').filter({ hasText: /^Climb\./ });
-  await expect(climb).toContainText('K / L or L2 Trigger');
+  await manual.locator('[data-page="welcome"]').first().click();
+  const engineHint = manual.locator('#manual-page > ol > li').filter({ hasText: /^Look over/ });
+  await expect(engineHint).toContainText('K / L or L2 Trigger');
   await manual.getByRole('button', { name: 'Configure controls…' }).click();
   await page.locator('#tab-gamepad-btn').click();
   await page.locator('#gamepad-enabled').uncheck();
   await page.locator('#controls-close').click();
-  await expect(climb).not.toContainText('L2 Trigger');
+  await expect(engineHint).not.toContainText('L2 Trigger');
   expect(errors).toEqual([]);
 });

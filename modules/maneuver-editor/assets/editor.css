@@ -1,0 +1,10 @@
+.maneuver-window .flight-window-body { display: grid; gap: 10px; padding: 12px; }
+.maneuver-window .flight-window-body[hidden] { display: none; }
+.maneuver-help { margin: 0; font-size: 11px; line-height: 1.5; opacity: .85; }
+.maneuver-fields { display: grid; gap: 8px; }
+.maneuver-fields label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; font-size: 12px; }
+.maneuver-fields input { width: 115px; min-width: 0; margin: 0; }
+.maneuver-adjust { display: flex; flex-wrap: wrap; gap: 6px; }
+.maneuver-adjust button { flex: 1; min-height: 32px; font-size: 11px; }
+.maneuver-window output { display: block; font-size: 12px; line-height: 1.5; }
+.maneuver-status, .maneuver-summary { color: #f7c775; }

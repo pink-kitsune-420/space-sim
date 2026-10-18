@@ -115,7 +115,7 @@ export class OtherOrbits {
           if (world.requiresWorldPrediction) {
             this.pass = { entry, job: world.predictShip(entry.id), samples: [], dispose() {} };
           } else {
-            const context = world.context.cloneForPrediction();
+            const context = world.contextFor(ship).cloneForPrediction();
             try {
               this.pass = { entry, job: context.predict(structuredClone(ship.state), false, world.body(ship.bodyId), world.surface(ship.bodyId)),
                 samples: [], dispose: () => context.dispose() };

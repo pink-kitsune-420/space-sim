@@ -1,10 +1,15 @@
 import { CORE_DOM, CORE_THEME, CORE_UI, CORE_PILOTS, type PilotRegistry, type ActionDefinitionV2, type ActionSink, type Disposable,
   type HostServiceAccess, type InputFrame, type InputSource, type ModuleAssets, type ModuleContribution,
+  WINDOWS, WINDOW_CONTENT, type WindowChrome, type WindowSystem, type WindowContentService,
   type ThemeService, type TrustedDomShell, type UiShell, type WindowDefinition } from '../../../packages/game-api/src/index';
 import type { ModuleCandidateV2 } from '../../../packages/game-runtime/src/modules-v2';
 import { moduleAssets } from '../../../packages/game-runtime/src/modules-v2';
 import { getActiveTheme, onThemeChange, saveThemeSettings } from '../../../packages/render-2d/src/theme';
 import { registerModuleGuides } from './manual';
+import { createWindows } from '../../../modules/ui-windows/src/index';
+import { createWindowContent } from '../../../modules/ui-windows/src/content';
+import {MODULE_LOGS} from '../../../packages/game-api/src/index';
+import {observeModuleLogs} from './module-logging';
 
 function themeSettings(value: Parameters<ThemeService['set']>[0]): Parameters<ThemeService['set']>[0] {
   const current = getActiveTheme(), checked: Record<string, unknown> = Object.create(null);
@@ -17,6 +22,7 @@ function themeSettings(value: Parameters<ThemeService['set']>[0]): Parameters<Th
     if (enums[key]) { if (typeof item !== 'string' || !enums[key]!.includes(item)) throw new Error(`Invalid theme setting ${key}`); }
     else if (['gridColor', 'windowColor', 'hudColor'].includes(key)) { if (typeof item !== 'string' || !/^#[0-9a-f]{3}(?:[0-9a-f]{3})?$/i.test(item)) throw new Error(`Invalid theme color ${key}`); }
     else if (['worldSeed', 'shaderSeed'].includes(key)) { if (!Number.isSafeInteger(item) || (item as number) < 0) throw new Error(`Invalid theme seed ${key}`); }
+    else if (key === 'windowOpacity') { if (typeof item !== 'number' || !Number.isFinite(item) || item < .4 || item > 1) throw new Error('Invalid theme setting windowOpacity'); }
     else {
       const previous: unknown = current[key as keyof typeof current];
       if (typeof previous === 'boolean' ? typeof item !== 'boolean' : typeof previous === 'number'
@@ -38,7 +44,9 @@ export function browserModuleAssets(files: ReadonlyMap<string, Uint8Array>): Mod
  * synchronously with its candidate. Imported titles/content are always text nodes. */
 export class BrowserModuleHost implements Disposable {
   readonly root = document.createElement('section');
-  private readonly windows = new Map<string, HTMLDetailsElement>();
+  private readonly windows = new Map<string, WindowChrome>();
+  private windowSystem: WindowSystem | undefined;
+  private content: WindowContentService | undefined;
   private readonly controls = new Map<string, HTMLElement>();
   private readonly callbacks = new Map<string, Set<(value: string | number | boolean) => void>>();
   private readonly opens = new Set<string>();
@@ -57,8 +65,8 @@ export class BrowserModuleHost implements Disposable {
   private disposed = false;
   private attached = false;
   readonly shell: UiShell = Object.freeze<UiShell>({
-    open: id => { this.assertLive(); this.opens.add(id); const window = this.windows.get(id); if (window) window.open = true; },
-    close: id => { this.assertLive(); this.opens.delete(id); const window = this.windows.get(id); if (window) window.open = false; },
+    open: id => { this.assertLive(); this.opens.add(id); const window = this.windows.get(id); window?.open(); },
+    close: id => { this.assertLive(); this.opens.delete(id); const window = this.windows.get(id); window?.close(); },
     set: (id, value) => {
       this.assertLive(); const control = this.controls.get(id); if (!control) throw new Error(`Unknown module control ${id}`);
       if (control instanceof HTMLInputElement) {
@@ -102,41 +110,36 @@ export class BrowserModuleHost implements Disposable {
     this.candidate = candidate; this.actions = candidate.actionDefinitions; this.sources = candidate.contributions('input');
     this.actions.forEach((action, index) => this.indices.set(action.id, index));
     this.values = new Float64Array(this.actions.length); this.previous = new Float64Array(this.actions.length * 4);
+    this.windowSystem = candidate.lock.providers[WINDOWS.slot] ? candidate.providedService(WINDOWS) : createWindows();
+    if (!candidate.lock.providers[WINDOWS.slot]) this.resources.push(this.windowSystem);
+    this.content = candidate.lock.providers[WINDOW_CONTENT.slot] ? candidate.providedService(WINDOW_CONTENT) : createWindowContent();
+    if (!candidate.lock.providers[WINDOW_CONTENT.slot]) this.resources.push(this.content);
     for (const window of candidate.contributions('window')) this.createWindow(window.id, window.value);
     for (const id of this.callbacks.keys()) if (!this.indices.has(id)) throw new Error(`Module UI subscribed to unknown action ${id}`);
     for (const id of this.opens) if (!this.windows.has(id)) throw new Error(`Unknown module window ${id}`);
     for (const entry of this.mounts) if (entry.active) {
       const window = this.windows.get(entry.id); if (!window) throw new Error(`Unknown trusted DOM window ${entry.id}`);
-      entry.resource = entry.mount(window);
+      entry.resource = entry.mount(window.body);
     }
     if (candidate.contributions('material').length || candidate.contributions('post').length) throw new Error('The selected renderer does not provide material/post effects. Choose a compatible renderer before enabling this module.');
   }
   private createWindow(id: string, definition: WindowDefinition): void {
-    const window = document.createElement('details'), title = document.createElement('summary');
-    title.textContent = definition.title; window.append(title); window.open = this.opens.has(id); this.windows.set(id, window);
-    for (const control of definition.controls) {
-      const key = `${id}/${control.id}`;
-      let node: HTMLElement;
-      if (control.kind === 'text') { node = document.createElement('p'); node.textContent = control.text; }
-      else if (control.kind === 'canvas') { const canvas = document.createElement('canvas'); canvas.setAttribute('aria-label', control.label); node = canvas; }
-      else {
-        const label = document.createElement('label'); label.append(document.createTextNode(control.label));
-        if (control.kind === 'button') {
-          const button = document.createElement('button'); button.type = 'button'; button.textContent = control.label;
-          button.addEventListener('click', () => this.emit(control.action, 1)); node = button;
-        } else {
-          const input = document.createElement('input'); input.type = control.kind === 'toggle' ? 'checkbox' : 'range';
-          if (control.kind === 'slider') { input.min = String(control.minimum); input.max = String(control.maximum); input.step = String(control.step); input.value = String(control.minimum); }
-          input.addEventListener('input', () => this.emit(control.action, control.kind === 'toggle' ? input.checked : Number(input.value)));
-          label.append(input); this.controls.set(key, input); window.append(label); continue;
-        }
-      }
-      this.controls.set(key, node); window.append(node);
-    }
-    this.root.append(window);
+    const window = this.windowSystem!.create({id, title:definition.title, container:this.root,
+      releaseInput:() => this.release(), dismissOn:target => target instanceof HTMLCanvasElement && (target.id === 'flight-view' || target.id === 'orbit-canvas'),
+      onCloseButton:() => this.opens.delete(id)});
+    this.resources.push(window); this.windows.set(id,window);
+    const options = (prefix: string) => ({
+      action:(action:string,value:string | number | boolean) => this.emit(action,value),
+      control:(control:string,node:HTMLElement) => this.controls.set(`${prefix}/${control}`,node),
+    });
+    this.resources.push(this.content!.mount(window.body,{kind:'form',id:'controls',controls:definition.controls},options(id)));
+    for (const section of definition.content ?? []) this.resources.push(this.content!.mount(window.body,section,options(`${id}/${section.id}`)));
+    if (this.opens.has(id)) window.open();
   }
   private emit(id: string, value: string | number | boolean): void {
-    if (this.disposed) return;
+    if (this.disposed || !this.attached) return;
+    if (!this.indices.has(id)) throw new Error(`Unknown module action ${id}`);
+    if (typeof value !== 'string' && typeof value !== 'boolean' && (typeof value !== 'number' || !Number.isFinite(value))) throw new Error('Invalid module action value');
     const callbacks = this.callbacks.get(id); if (!callbacks) return;
     for (const callback of callbacks) {
       try { callback(value); } catch (error) { this.callbacks.get(id)?.delete(callback); this.release(); this.fault(`Module action ${id} failed: ${String(error)}`); }
@@ -169,6 +172,7 @@ export class BrowserModuleHost implements Disposable {
   activate(container: HTMLElement): void {
     this.assertLive(); container.append(this.root); this.attached = true;
     if (this.candidate) this.resources.push(registerModuleGuides(this.candidate));
+    if(this.candidate?.lock.providers[MODULE_LOGS.slot])this.resources.push(observeModuleLogs(this.candidate.providedService(MODULE_LOGS)));
     if (this.theme) { this.rollbackTheme = { ...getActiveTheme() }; saveThemeSettings(this.theme); }
   }
   /** Publication succeeded; subsequent disposal must retain the viewer's chosen theme. */

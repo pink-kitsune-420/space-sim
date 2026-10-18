@@ -1,0 +1,16 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Server pack review",
+  "summary": "Exact server/source/module review with Cancel focused by default.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides ui.join-review@1.0.0 in browser/offline. Displays the selected server address/name, protocol, required package versions, digests, license, source availability, code/data and total transfer size. Cancel has default focus. Code consent explains access to game data, input and network. Both code and changed data require exact-offer review."
+    },
+    {
+      "type": "paragraph",
+      "text": "The review UI returns a decision only. The host installer separately verifies all content, stages authority, installs atomically and records scoped approval. Cached bytes never imply consent. Aborting or disposing the service closes dialogs and restores focus. No simulation or authoritative save state is owned here."
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Node WebSocket server transport",
+  "summary": "Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides net.node-ws@1.0.0. Requires core.websocket-codecs@1.0.0, restricted to the Node environment and network tier. The engine adapter supplies native SHA-1 and bounded raw DEFLATE primitives; the module owns handshake, framing, text validation, message limits, compression negotiation, heartbeat and close-handshake policy. No ship, renderer, UI or private server imports."
+    },
+    {
+      "type": "paragraph",
+      "text": "The host supplies a borrowed HTTP upgrade request, byte stream, initial bytes and connection limits. The module does not start an HTTP listener. Accepted links are owned until TCP closes; disposing/replacing the provider closes them with the existing bounded two-second handshake grace period. The host retains responsibility for listener shutdown."
+    },
+    {
+      "type": "paragraph",
+      "text": "No authoritative persistence or migrations. Text connections carry bytes only; sessions must independently match commands, snapshots, saves, replay and locks. Missing or incompatible codecs reject preparation; a game must supply a compatible Node host adapter. Optional removal retains local play when the game permits it."
+    },
+    {
+      "type": "paragraph",
+      "text": "Build, export, unpack, edit and rebuild this source as a .spacemod. Imported code requires explicit consent. The browser graph never imports native Node codec implementations; the portable protocol uses public byte-stream and typed service contracts."
+    }
+  ]
+}

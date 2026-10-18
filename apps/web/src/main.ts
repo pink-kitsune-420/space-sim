@@ -1,3 +1,8 @@
+import { createJoinPacks } from '../../../modules/session-join/src/index';
+import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
+import { joinClientPort, releaseJoinModules, sampleJoinModules } from './join-pack';
+import {moduleLogReport} from './module-logging';
+import type { JoinStage } from '../../../packages/game-api/src/index';
 import { canonicalJson } from '../../../packages/game-runtime/src/authoritative';
 import { installGamePackages } from '../../../packages/game-library/src/runtime-selection';
 import { LocalPilotRegistry } from './local-players';
@@ -12,7 +17,8 @@ import { LabManager } from './lab-manager';
 import { Workspace } from './workspace';
 import { initHudLayout } from './hud-layout';
 import { HudVisibility } from './hud-visibility';
-import { initChatWindow } from './chat-window';
+import { createChatConsole } from '../../../modules/chat-console/src/index';
+import { attachWindowResize, raiseWindow, releaseWindow } from './window-resize';
 import { initFlightWindows } from './flight-windows';
 import { initManual } from './manual';
 import { artifactModules, validatePackage, type GamePackage } from '../../../packages/game-library/src/archive';
@@ -21,14 +27,17 @@ import builtinGame from '../../../games/space-sim/game.json' with { type: 'json'
 import builtinOrbitSandbox from '../../../games/orbit-sandbox/game.json' with { type: 'json' };
 import { initOrbitSandbox, type OrbitSandboxInstance } from '../../orbit-sandbox/src/main';
 import universeCatalog from '../../../games/space-sim/universes/catalog.json';
-import { encodeUniverseSave, decodeUniverseSave } from '../../../packages/game-library/src/save-package';
+import { universeSaveFormat } from '../../../packages/game-library/src/universe-save-services';
+import { createUniverseSaves } from '../../../modules/universe-saves/src/index';
+import { createUniverseFiles } from '../../../modules/universe-files/src/index';
+import { createUniverseSaveControls } from '../../../modules/universe-save-controls/src/index';
 import { decodeDataFile, encodeDataFile } from '../../../packages/game-library/src/data-file';
 import { encodeUniverse, decodeUniverse } from '../../../packages/game-library/src/universe';
 import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compression';
 import { parseModuleImport, type ModuleBundle } from './modules';
 import { bindFlightInput } from './input';
 import {
-  ACTION_DEFINITIONS, buildKeyLookup, formatKeyCode, isFlightAction, loadKeybindings,
+  ACTION_DEFINITIONS, buildKeyLookup, formatKeyCode, isFlightAction, loadKeybindings, resolveKeybinding, shortcutBinding,
   resetKeybindings, saveKeybindings, type ActionId, type KeyBindings,
 } from './input-config';
 import { GamepadManager, isButtonDown } from './gamepad';
@@ -36,8 +45,13 @@ import { TouchControlsManager, type TouchMode } from './touch-controls';
 import { SplitScreen, GuestPilot } from './split-screen';
 import { ControllerMenu } from './controller-menu';
 import { PLAYER_COLORS, setPlayerCount, setSlotNavball, defaultNavballPlacement } from './local-players';
-import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvider, navballFootprint, TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH, type NavballFrame } from '../../../packages/modules/src/base/toolset/navball';
-import { ThrottleLever, THROTTLE_LEVER_SPACE, type ThrottleLeverState } from './throttle-lever';
+import { TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH } from '../../../modules/navball/src/drawing';
+import { PilotThrottle } from './throttle-control';
+import type { ThrottleLeverState } from './throttle-lever';
+import { FLIGHT_HUD_STATE, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
+import { createViewHud } from '../../../modules/view-hud/src/index';
+import { navballInstrument } from '../../../modules/navball/src/index';
+import { throttleInstrument } from '../../../modules/throttle-hud/src/index';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
 import { CameraController, findSmartThrowTarget, type SmartCandidate } from './camera';
@@ -87,6 +101,7 @@ let activeGameInfo = { ...defaultGame.info };
 let orbitSandboxInstance: OrbitSandboxInstance | undefined;
 /** Renderer provider, presentation modules and their hooks; started below once input exists. */
 const presentation = new Presentation(canvas, {
+  perViewInstruments: ['builtin.navball'],
   onCanvas: next => { canvas = next; cache.set('flight-view', next); attachCanvasListeners(next); },
   release: () => release(),
   event: (kind, detail) => profiler.event(kind, detail),
@@ -94,6 +109,8 @@ const presentation = new Presentation(canvas, {
 const profiler = new Profiler(() => presentation.rendering.renderer?.features?.flush?.());
 const keys = new Set<string>();
 const pointers = new Map<number, string>();
+const pilotThrottles = Array.from({ length: 4 }, () => new PilotThrottle());
+const activationThrottles: (number | undefined)[] = loadActivationThrottles();
 let restoreFullscreenOnResume = false;
 const workspace = new Workspace(() => release(), () => {
   if (restoreFullscreenOnResume && !document.fullscreenElement) {
@@ -324,6 +341,15 @@ const splitScreen = new SplitScreen(viewport, {
   presetId: () => preset.value || 'pad',
   isGodMode: () => godModeToggle.checked,
   keyboardFlight: () => keyboardFlight(),
+  resolveFlight: (slot, command, elapsed) => withThrottleLever(slot, command, elapsed),
+  throttleAction: (slot, action) => throttleAction(slot, action),
+  releaseFlight: slot => pilotThrottles[slot]!.release(),
+  releaseInput: slot => {
+    if (splitScreen.keyboardSlot === slot) keys.clear();
+    if (slot === 0) touchControls.release();
+    moduleManager?.devices.release(slot);
+    pilotThrottles[slot]!.release();
+  },
   inputEnabled: () => !controlsDialog.open && !hudLayout.editing && !document.hidden,
   consumesPad: (slot, pad) => controllerConsumesFlight(slot, pad),
   execute: action => executeAction(action),
@@ -353,81 +379,14 @@ controllerMenu = new ControllerMenu(
 );
 
 
-const chatOverlay = document.getElementById('chat-overlay');
-const chatMessages = document.getElementById('chat-messages');
-const chatForm = document.getElementById('chat-form') as HTMLFormElement | null;
-const chatInput = document.getElementById('chat-input') as HTMLInputElement | null;
-const chatToggleBtn = document.getElementById('chat-toggle');
-const chatMinimizeBtn = document.getElementById('chat-minimize');
-const chatMinPill = document.getElementById('chat-min-pill');
-const chatUnreadDot = document.getElementById('chat-unread-dot');
-
-let chatMinimized = false;
-try {
-  chatMinimized = localStorage.getItem('space-sim:chat:minimized') === 'true';
-} catch {}
-
-function setChatMinimized(minimized: boolean, focusInput = false): void {
-  if (!minimized && focusInput && !hudVisibility.visible('chat')) hudVisibility.set('chat', true);
-  chatMinimized = minimized;
-  try {
-    localStorage.setItem('space-sim:chat:minimized', String(minimized));
-  } catch {}
-  chatOverlay?.classList.toggle('minimized', minimized);
-  if (chatMinPill) chatMinPill.hidden = !minimized;
-  chatToggleBtn?.setAttribute('aria-pressed', String(!minimized));
-  chatToggleBtn?.classList.toggle('active', !minimized);
-  if (!minimized) {
-    if (chatUnreadDot) chatUnreadDot.hidden = true;
-    if (focusInput) chatInput?.focus();
-  }
-}
-
-// Initial state
-setChatMinimized(chatMinimized);
-initChatWindow();
-
-function logChatMessage(kind: 'system' | 'error' | 'success' | 'chat', text: string, sender?: string): void {
-  if (!chatMessages) return;
-  const msg = document.createElement('div');
-  msg.className = `chat-msg ${kind}`;
-  if (sender) {
-    const s = document.createElement('span');
-    s.className = 'sender';
-    s.textContent = `${sender}:`;
-    msg.appendChild(s);
-  } else if (kind === 'system') {
-    const t = document.createElement('span');
-    t.className = 'chat-tag';
-    t.textContent = 'SYSTEM';
-    msg.appendChild(t);
-  } else if (kind === 'error') {
-    const t = document.createElement('span');
-    t.className = 'chat-tag';
-    t.textContent = 'ERROR';
-    msg.appendChild(t);
-  } else if (kind === 'success') {
-    const t = document.createElement('span');
-    t.className = 'chat-tag';
-    t.textContent = 'OK';
-    msg.appendChild(t);
-  }
-  const content = document.createTextNode(` ${text}`);
-  msg.appendChild(content);
-  chatMessages.appendChild(msg);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  while (chatMessages.children.length > 60) {
-    chatMessages.firstElementChild?.remove();
-  }
-  if (chatMinimized && chatUnreadDot) {
-    chatUnreadDot.hidden = false;
-  }
-}
-
-/** A chat line from the session: every pilot in the world sees the same ones. */
-function showChatLine(line: ChatLine): void {
-  logChatMessage('chat', line.text, line.from === undefined ? line.name : line.from === session.playerId ? `${line.name} (you)` : line.name);
-}
+const chatConsole = createChatConsole({
+  root: element('chat-overlay'), viewport: document.querySelector<HTMLElement>('#flight-console .viewport')!, toggle: element('chat-toggle'),
+  windows: { resize: attachWindowResize, raise: raiseWindow, release: releaseWindow },
+  initialMessage: 'Flight console ready. Type /help for commands or T then drag to throw ship.',
+  visible: () => hudVisibility.visible('chat'), setVisible: visible => hudVisibility.set('chat', visible), submit: handleChatSubmit,
+});
+const logChatMessage = chatConsole.log;
+const showChatLine = (line: ChatLine): void => chatConsole.show(line, session.playerId);
 
 /** Place a ship through the session (throw, orbit and teleport cheats). A remote host
  * applies it with its next update, or refuses with a notice. False if refused here. */
@@ -452,7 +411,7 @@ function executeChatCommand(cmdStr: string): void {
     case 'help':
     case '?': {
       logChatMessage('system', 'Flight commands:');
-      logChatMessage('system', '/throw [on|off] — Toggle slingshot throw & teleport cheat (T or Alt+Drag)');
+      logChatMessage('system', '/throw [on|off] — Toggle slingshot throw & teleport cheat (T, then drag)');
       logChatMessage('system', '/orbit [body] [alt_km] — Teleport into circular orbit (e.g. /orbit Parvus 100)');
       logChatMessage('system', '/throw [vx] [vy] — Slingshot throw with velocity vector in m/s');
       logChatMessage('system', '/circ — Circularize current orbit around dominant body');
@@ -466,7 +425,7 @@ function executeChatCommand(cmdStr: string): void {
       break;
     }
     case 'clear': {
-      if (chatMessages) chatMessages.innerHTML = '';
+      chatConsole.clear();
       logChatMessage('system', 'Chat cleared.');
       break;
     }
@@ -678,56 +637,6 @@ function handleChatSubmit(text: string): void {
   }
 }
 
-chatForm?.addEventListener('submit', event => {
-  event.preventDefault();
-  if (!chatInput) return;
-  const text = chatInput.value;
-  chatInput.value = '';
-  handleChatSubmit(text);
-});
-
-chatMinimizeBtn?.addEventListener('click', () => setChatMinimized(true));
-chatMinPill?.addEventListener('click', () => setChatMinimized(false, true));
-
-chatToggleBtn?.addEventListener('click', () => {
-  if (!hudVisibility.visible('chat')) {
-    hudVisibility.set('chat', true); setChatMinimized(false, true); return;
-  }
-  if (chatMinimized) {
-    setChatMinimized(false, true);
-  } else if (document.activeElement === chatInput) {
-    setChatMinimized(true);
-  } else {
-    chatInput?.focus();
-  }
-});
-
-window.addEventListener('keydown', event => {
-  if (event.code === 'Enter') {
-    if (document.activeElement === chatInput) {
-      // Handled by form submit
-    } else if (!document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
-      event.preventDefault();
-      setChatMinimized(false, true);
-    }
-  } else if (event.code === 'Slash') {
-    if (document.activeElement !== chatInput && !document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
-      event.preventDefault();
-      hudVisibility.set('chat', true);
-      setChatMinimized(false);
-      if (chatInput) {
-        chatInput.focus();
-        chatInput.value = '/';
-      }
-    }
-  } else if (event.code === 'Escape') {
-    if (document.activeElement === chatInput) {
-      chatInput?.blur();
-      setChatMinimized(true);
-      event.preventDefault();
-    }
-  }
-});
 
 function syncUniverseSelect(): void {
   universeSelect.innerHTML = '';
@@ -958,7 +867,7 @@ function keyboardFlight(): Controls {
   let kbThrottle = 0;
   if (isActionActive('throttleUp')) kbThrottle += 1;
   if (isActionActive('throttleDown')) kbThrottle -= 1;
-  return { turn: kbTurn, throttle: kbThrottle, engine: isActionActive('engine') };
+  return { turn: kbTurn, throttle: kbThrottle * (isActionActive('throttleFine') ? .2 : 1), engine: isActionActive('engine') };
 }
 
 function controls(elapsed = 0): Controls {
@@ -1000,6 +909,7 @@ function controls(elapsed = 0): Controls {
       ? touch.turn
       : kbTurn;
 
+  kbThrottle *= isActionActive('throttleFine') ? .2 : 1;
   const throttle = gpThrottle !== 0
     ? gpThrottle
     : touch.throttle !== 0
@@ -1008,10 +918,12 @@ function controls(elapsed = 0): Controls {
 
   const engine = kbEngine || gpEngine || touch.engine;
 
-  return { turn, throttle, engine };
+  return withThrottleLever(0, { turn, throttle, engine }, elapsed);
 }
 function release(): void {
-  moduleManager?.devices.release();
+  pilotThrottles.forEach(control => control.release());
+  gamepadManager.release(); touchControls.release();
+  moduleManager?.devices.release(); releaseJoinModules();
   keys.clear(); pointers.clear();
   if (local && session === local) for (const guest of splitScreen.guests.values()) {
     guest.controls = IDLE;
@@ -1540,12 +1452,7 @@ function resolveNavballCenter(slot: number, width: number, height: number, scale
   return hudLayout.navballCenter(placement, width, height, scale, paneCanvas, slot > 0);
 }
 
-function throttleLeverState(slot: number): ThrottleLeverState | undefined {
-  if (slot >= splitScreen.active || !presentation.isEnabled('builtin.navball')) return undefined;
-  const guest = slot > 0 ? splitScreen.guests.get(slot) : undefined;
-  const ship = slot === 0 ? selectedShip() : guest?.ship(session);
-  const owner = slot === 0 ? session.playerId : guest?.playerId;
-  if (!ship || session.world.record(ship.id)?.ownerId !== owner) return undefined;
+function throttleInputHeld(slot: number): boolean {
   let held = splitScreen.keyboardSlot === slot && (isActionActive('engine')
     || isActionActive('throttleUp') || isActionActive('throttleDown'));
   for (const pad of splitScreen.padsOf(slot)) {
@@ -1557,31 +1464,140 @@ function throttleLeverState(slot: number): ThrottleLeverState | undefined {
     held ||= touch.engine || touch.throttle !== 0;
     for (const action of pointers.values()) held ||= action === 'engine';
   }
-  return { world: session.world, shipId: ship.id, throttle: ship.state.throttle,
-    locked: held || controlsDialog.open || hudLayout.editing || document.hidden,
-    firing: ship.controls.engine && ship.state.throttle > 0 && !session.paused
-      && ship.state.status !== 'crashed' && !ship.fault && session.warp === 1 };
+  return held;
 }
 
-const throttleLevers = Array.from({ length: 4 }, (_, slot) => new ThrottleLever(slot,
-  () => throttleLeverState(slot), value => {
-    const state = throttleLeverState(slot);
-    if (!state || state.locked) return;
-    if (slot === 0) session.setThrottle(state.shipId, value);
-    else {
-      const guest = splitScreen.guests.get(slot);
-      if (session === local && guest?.playerId) local.setGuestThrottle(guest.playerId, state.shipId, value);
-    }
-  }));
+/** Persist activation preferences by seat, independent of transient burns and ship resets. */
+function loadActivationThrottles(): (number | undefined)[] {
+  try {
+    const values: unknown = JSON.parse(localStorage.getItem('space-sim:activation-throttle:v1') ?? '[]');
+    if (Array.isArray(values)) return Array.from({ length: 4 }, (_, i) =>
+      typeof values[i] === 'number' && Number.isFinite(values[i]) && values[i] >= 0 && values[i] <= 1 ? values[i] : undefined);
+  } catch { /* Use the world's default activation throttle. */ }
+  return new Array(4);
+}
 
-function syncThrottleLevers(): void {
-  for (let slot = 0; slot < throttleLevers.length; slot++) {
-    const pane = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot)?.canvas ?? canvas : canvas;
-    const width = pane.clientWidth, height = pane.clientHeight;
-    const scale = Math.min(1, Math.max(.65, Math.min(width / 600, height / 450)));
-    const center = resolveNavballCenter(slot, width, height, scale);
-    throttleLevers[slot]!.sync(pane.parentElement!, pane.offsetLeft + center.x - navballFootprint(scale, slot > 0).side - THROTTLE_LEVER_SPACE,
-      pane.offsetTop + center.y - 76);
+function activationThrottle(slot: number): number {
+  const ship = slot === 0 ? selectedShip() : splitScreen.guests.get(slot)?.ship(session);
+  return activationThrottles[slot] ?? (ship ? session.world.contextFor(ship) : session.world.context).vehicle.initialThrottle;
+}
+
+function rememberActivationThrottle(slot: number, value: number | undefined): void {
+  activationThrottles[slot] = value;
+  try { localStorage.setItem('space-sim:activation-throttle:v1', JSON.stringify(activationThrottles)); } catch { /* Storage unavailable. */ }
+}
+
+function throttlePilot(slot: number) {
+  const guest = slot > 0 ? splitScreen.guests.get(slot) : undefined;
+  const ship = slot === 0 ? selectedShip() : guest?.ship(session);
+  const owner = slot === 0 ? session.playerId : guest?.playerId;
+  if (slot >= splitScreen.active || !ship || ship.ownerId !== owner) return undefined;
+  const control = pilotThrottles[slot]!;
+  control.bind(session.world, ship.id);
+  return { ship, guest, control };
+}
+
+function setPilotThrottle(slot: number, shipId: string, value: number): void {
+  if (slot === 0) session.setThrottle(shipId, value);
+  else {
+    const guest = splitScreen.guests.get(slot);
+    if (session === local && guest?.playerId) local.setGuestThrottle(guest.playerId, shipId, value);
+  }
+}
+
+function throttleAction(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void {
+  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) return;
+  const pilot = throttlePilot(slot);
+  if (!pilot || pilot.ship.state.status === 'crashed' || pilot.ship.fault) return;
+  if (action === 'throttleRemember') {
+    const value = pilot.control.burning || pilot.ship.controls.engine ? pilot.ship.state.throttle : 0;
+    rememberActivationThrottle(slot, value);
+    notify(`Player ${slot + 1} throttle remembered: ${Math.round(value * 1000) / 10}%.`);
+    return;
+  }
+  if (slot === 0) maneuver.cancel();
+  const value = action === 'throttleCut' ? 0 : activationThrottle(slot);
+  if (action === 'throttleCut') pilot.control.cut(throttleInputHeld(slot)); else pilot.control.set(value);
+  setPilotThrottle(slot, pilot.ship.id, value);
+}
+
+/** Device ramps and lever burns share the existing authoritative session input path. */
+function withThrottleLever(slot: number, command: Controls, elapsed: number, pressed = false): Controls {
+  const pilot = throttlePilot(slot);
+  if (!pilot) { pilotThrottles[slot]!.release(); return command; }
+  const { ship, control } = pilot;
+  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden
+    || ship.state.status === 'crashed' || ship.fault) {
+    control.release(); return IDLE;
+  }
+  if (slot === 0 && command.throttle !== 0) maneuver.cancel();
+  const value = control.update(command, elapsed, ship.state.throttle, activationThrottle(slot), pressed, ship.controls.engine, performance.now() / 1000);
+  if (value !== undefined && value !== ship.state.throttle) setPilotThrottle(slot, ship.id, value);
+  return { turn: command.turn, throttle: 0, engine: control.engine };
+}
+
+function throttleLeverState(slot: number): ThrottleLeverState | undefined {
+  if (slot >= splitScreen.active || !presentation.isEnabled('builtin.navball')) return undefined;
+  const guest = slot > 0 ? splitScreen.guests.get(slot) : undefined;
+  const ship = slot === 0 ? selectedShip() : guest?.ship(session);
+  const owner = slot === 0 ? session.playerId : guest?.playerId;
+  if (!ship || session.world.record(ship.id)?.ownerId !== owner) return undefined;
+  const firing = ship.controls.engine && ship.state.throttle > 0 && !session.paused
+    && ship.state.status !== 'crashed' && !ship.fault && session.warp === 1;
+  return { world: session.world, shipId: ship.id, throttle: firing ? ship.state.throttle : 0,
+    locked: throttleInputHeld(slot) || session.paused || controlsDialog.open || hudLayout.editing || document.hidden,
+    firing };
+}
+
+const HUD_INSTRUMENTS = Object.freeze([navballInstrument, throttleInstrument]);
+const NO_HUD_INSTRUMENTS = Object.freeze([]);
+type MutableHudReadout = { -readonly [K in keyof FlightHudReadout]: FlightHudReadout[K] };
+interface SeatHud { readonly hud: ViewHud; readonly readout: MutableHudReadout; readonly surface: { -readonly [K in keyof HudSurface]: HudSurface[K] }; present: boolean }
+const seatHuds = new Map<number,SeatHud>();
+
+/** Every local seat, including Player 1, uses the same selected instrument lifecycle. */
+function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined, camera: Camera): void {
+  for (const [slot,entry] of seatHuds) if(slot >= splitScreen.active) {entry.hud.dispose();seatHuds.delete(slot);}
+  for (let slot=0;slot<splitScreen.active;slot++) {
+    const guest=slot>0?splitScreen.guests.get(slot):undefined;
+    const ship=slot===0?selectedShip():guest?.ship(session), body=slot===0?activeBody:guest?.body;
+    const pane=slot>0&&splitScreen.isSeparated(slot)?guest?.canvas??canvas:canvas;
+    let entry=seatHuds.get(slot);
+    if(!entry) {
+      const readout:MutableHudReadout={state,radius:1,spin:0,clearance:null,center:{x:0,y:0},scale:1,cameraRotation:0,frameSetting:0,orientation:'horizon',pinned:true,dragging:false,editing:false};
+      const adapter={pilot:slot,navball:()=>entry!.present?readout:undefined,throttle:()=>throttleLeverState(slot),
+        setThrottle(value:number){
+          if(!Number.isFinite(value)||value<0||value>1)return;
+          const current=throttleLeverState(slot);if(!current||current.locked)return;
+          setPilotThrottle(slot,current.shipId,value);
+          const control=pilotThrottles[slot]!;control.bind(current.world,current.shipId);control.set(value);
+        },
+        cancelGestures(){
+          if(activeNavballDrag?.slot===slot){const pointer=activeNavballDrag.pointerId;activeNavballDrag=null;for(const target of [canvas,splitScreen.guests.get(slot)?.canvas])if(target?.hasPointerCapture(pointer))target.releasePointerCapture(pointer);}
+          const cursor=controllerCursors.get(slot);if(cursor)cursor.interactingPad=undefined;
+        }};
+      const hud=createViewHud({binding:{seatId:`seat-${slot}`,viewportId:`pilot-view-${slot}`,session,context:session.world,playerId:slot===0?session.playerId:guest?.playerId,targetId:ship?.id},adapters:[{key:FLIGHT_HUD_STATE,service:adapter}],fault:(id,error)=>profiler.event('hud-failed',{id,error:String(error)})});
+      entry={hud,readout,present:false,surface:{root:pane.parentElement!,width:0,height:0,x:0,y:0}};seatHuds.set(slot,entry);
+    }
+    const binding=entry.hud.binding,playerId=slot===0?session.playerId:guest?.playerId;
+    if(binding.session!==session||binding.context!==session.world||binding.playerId!==playerId||binding.targetId!==ship?.id)
+      entry.hud.bind({...binding,session,context:session.world,playerId,targetId:ship?.id});
+    entry.present=!!(primary&&ship&&body&&(slot===0||guest?.state&&guest.view));
+    const width=pane.clientWidth,height=pane.clientHeight,scale=Math.min(1,Math.max(.65,Math.min(width/600,height/450)));
+    const readout=entry.readout,placement=splitScreen.config.slots[slot]?.navball??defaultNavballPlacement(slot);
+    if(entry.present&&body&&ship&&primary){
+      readout.state=slot===0?primary.ship!.state:guest!.state!;readout.radius=body.radius;readout.spin=body.rotation?spinRate(body):0;
+      readout.clearance=slot===0?primary.groundClearance:Math.max(0,Math.hypot(guest!.view!.position.x,guest!.view!.position.y)-body.radius);
+      readout.trajectory=slot===0?undefined:formatTrajectoryStats(guest!.state!,body,session.world.contextFor(guest!.ship(session)!));
+      const plan=slot===0?primary.maneuver:undefined;readout.maneuver=plan?.valid&&Math.hypot(plan.deltaVelocity.x,plan.deltaVelocity.y)>0?Math.atan2(plan.deltaVelocity.y,plan.deltaVelocity.x):undefined;
+    }
+    readout.center=resolveNavballCenter(slot,width,height,scale);readout.scale=scale;readout.cameraRotation=slot===0?camera.rotation:guest?.camera.last.rotation??0;
+    readout.frameSetting=slot===0?(presentation.profile?.settings['builtin.navball']?.frame??0):0;
+    readout.orientation=slot===0&&(presentation.profile?.settings['builtin.navball']?.orientation??0)>=1?'camera':'horizon';
+    readout.accentColor=PLAYER_COLORS[slot];readout.playerLabel=slot>0?`P${slot+1}`:splitScreen.split?'P1':undefined;
+    readout.pinned=placement.pinned;readout.dragging=activeNavballDrag?.slot===slot;readout.editing=hudLayout.editing;
+    const surface=entry.surface;surface.root=pane.parentElement!;surface.width=width;surface.height=height;surface.x=pane.offsetLeft;surface.y=pane.offsetTop;
+    entry.hud.select(presentation.isEnabled('builtin.navball')?HUD_INSTRUMENTS:NO_HUD_INSTRUMENTS);entry.hud.resize(surface);entry.hud.update(elapsed);
   }
 }
 
@@ -1649,7 +1665,7 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
     }
 
     if (hudLayout.editing) return true;
-    const canThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding || event.altKey;
+    const canThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (!canThrow || !throwCheatEnabled) return false;
 
     const originWorld = screenToWorld(screenPos, guest.camera.last, gCanvas.clientWidth, gCanvas.clientHeight);
@@ -1792,7 +1808,6 @@ interface ControllerCursor {
 const controllerCursors = new Map<number, ControllerCursor>();
 const lastPadDpadUp = new Map<number, boolean>();
 const lastPadAButton = new Map<number, boolean>();
-const guestNavballFrames = new Map<string, NavballFrame>();
 let p1ThrowFrozenCamera: Camera | undefined;
 const guestThrowFrozenCameras = new Map<number, Camera>();
 
@@ -1968,7 +1983,7 @@ function updateControllerCursors(elapsed: number): void {
         }
       }
 
-      // D-Pad Up: activates the slingshot throw feature
+      // The remappable Throw action activates the slingshot feature
       const profile = splitScreen.config.slots[slot]?.profile;
       const throwActionHeld = profile?.buttons?.throwShip ? profile.buttons.throwShip.some(b => isButtonDown(pad.buttons[b])) : false;
       const isThrowDown = throwCheatEnabled && throwActionHeld;
@@ -1976,7 +1991,7 @@ function updateControllerCursors(elapsed: number): void {
       lastPadDpadUp.set(padIndex, isThrowDown);
 
       if (isThrowDown && !wasThrowDown) {
-        // Just pressed D-pad Up: anchor the slingshot at the ship
+        // Just pressed Throw: anchor the slingshot at the ship
         cursor.isThrowing = true;
         cursor.aimingPad = padIndex;
         if (slot === 0) {
@@ -2381,7 +2396,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
 
   target.addEventListener('touchstart', event => {
     if (activeNavballDrag || hudLayout.editing) { event.preventDefault(); singleTouchLast = undefined; touchVelocityTracker.reset(); return; }
-    const wantsThrow = throwCheatEnabled && (isThrowModeActive || event.altKey || isThrowKeyDown || isTouchSlingHolding);
+    const wantsThrow = throwCheatEnabled && (isThrowModeActive || isThrowKeyDown || isTouchSlingHolding);
     if (wantsThrow) return;
     cameraControl.stopFling();
     if (event.touches.length >= 2) {
@@ -2506,7 +2521,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     }
 
     if (hudLayout.editing) { event.preventDefault(); return; }
-    const wantsThrow = event.altKey || isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
+    const wantsThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (wantsThrow) {
       if (!throwCheatEnabled) {
         notify('Throw cheat is disabled. Enable it in Settings or type /throw on in chat.');
@@ -2677,27 +2692,6 @@ hudVisibility.bind('navball', 'Navballs', () => presentation.isEnabled('builtin.
   value => presentation.setEnabled('builtin.navball', value), () => presentation.setEnabled('builtin.navball', true));
 hudVisibility.bind('profiler', 'Profiler', () => !profilerPanel.hidden,
   value => { if (value !== !profilerPanel.hidden) toggleProfiler(); }, () => { if (!profilerPanel.hidden) toggleProfiler(); });
-
-setNavballPlacementProvider(() => {
-  const p1Placement = splitScreen.config.slots[0]?.navball ?? defaultNavballPlacement(0);
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  const scale = Math.min(1, Math.max(0.65, Math.min(w / 600, h / 450)));
-  const center = resolveNavballCenter(0, w, h, scale);
-  const isDragging = activeNavballDrag?.slot === 0;
-  return {
-    x: center.x,
-    y: center.y,
-    scale,
-    accentColor: PLAYER_COLORS[0],
-    playerLabel: splitScreen.split ? 'P1' : undefined,
-    pinned: p1Placement.pinned,
-    isDragging,
-    editing: hudLayout.editing,
-  };
-});
-
-
 
 
 /** Module commands: buttons and keys for the active world's command table. The session sends
@@ -2997,8 +2991,19 @@ element<HTMLInputElement>('profiler-precise').addEventListener('change', event =
 for (const id of ['export-log', 'export-log-diagnostics']) element(id).addEventListener('click', exportLog);
 slider.addEventListener('input', () => {
   const ship = selectedShip();
-  if (ship) session.setThrottle(ship.id, Number(slider.value) / 100);
+  if (ship) {
+    const value = Number(slider.value) / 100;
+    session.setThrottle(ship.id, value); rememberActivationThrottle(0, value);
+  }
 });
+
+element<HTMLInputElement>('activation-throttle').addEventListener('change', event => {
+  const input = event.target as HTMLInputElement;
+  if (!input.validity.valid || !Number.isFinite(input.valueAsNumber)) return;
+  rememberActivationThrottle(Number(element<HTMLSelectElement>('activation-pilot').value), input.valueAsNumber / 100);
+});
+element('activation-throttle-reset').addEventListener('click', () =>
+  rememberActivationThrottle(Number(element<HTMLSelectElement>('activation-pilot').value), undefined));
 
 // Fleet & Navigation
 function cycleShip(direction: number): void {
@@ -3189,6 +3194,9 @@ let localHost: LocalHost | undefined;
 let discovery: LocalDiscovery | undefined;
 let scan: AbortController | undefined;
 let connectingServer = false;
+let joiningPack: AbortController | undefined;
+const joinPacks = createJoinPacks();
+const hostPackNegotiations = new Set<AbortController>();
 let serverShareAddress: string | undefined;
 let computerHost: DesktopHost | undefined;
 let computerHosting = false;
@@ -3254,7 +3262,7 @@ element('debug-leave-game').addEventListener('click', () => element<HTMLButtonEl
 function updateMultiplayer(): void {
   const hosting = isHosting();
   const offline = session === local && !hosting;
-  const cannotHost = session.world.soloPreview || !!pending || answering || connectingServer || computerStarting;
+  const cannotHost = session.world.soloPreview || !!pending || !!joiningPack || answering || connectingServer || computerStarting;
   element('mp-offline').hidden = !offline || !!reply;
   element('local-browser-controls').hidden = !offline || !!reply;
   element<HTMLButtonElement>('debug-host-game').disabled = cannotHost;
@@ -3271,7 +3279,7 @@ function updateMultiplayer(): void {
   element('internet-row').hidden = computerHosting;
   element('invite-panel').hidden = !invite;
   element('mp-online').hidden = session === local;
-  joinButton.disabled = !!pending || connectingServer;
+  joinButton.disabled = !!pending || !!joiningPack || connectingServer;
   element('copy-server-link').hidden = !serverShareAddress && !computerHost;
   element('mp-diagnostics').hidden = !invite && !reply && !recentConnectionReport;
   element<HTMLButtonElement>('answer-invite').disabled = answering || !!pending;
@@ -3285,7 +3293,7 @@ function updateMultiplayer(): void {
   // Other tabs' worlds are listed while this one could join them.
   if (offline && sameBrowser && !discovery) discovery = new LocalDiscovery(renderLocalWorlds);
   else if (!offline && discovery) { discovery.close(); discovery = undefined; }
-  if (!offline || pending || reply || answering || connectingServer) stopScan();
+  if (!offline || pending || joiningPack || reply || answering || connectingServer) stopScan();
   renderLocalWorlds(discovery?.worlds() ?? []);
   lastLists = -Infinity;
 }
@@ -3367,7 +3375,7 @@ element('mp-diagnostics').addEventListener('click', () => {
 });
 
 function beginHosting(): boolean {
-  if (session !== local || local.hosting || pending || answering || connectingServer) return false;
+  if (session !== local || local.hosting || pending || joiningPack || answering || connectingServer) return false;
   if (local.world.soloPreview) { mpStatus('Custom flight profiles are solo previews; use the built-in default to host.'); return false; }
   local.hosting = true;
   serverShareAddress = undefined;
@@ -3376,7 +3384,7 @@ function beginHosting(): boolean {
   if (local.paused) setPaused(false);
   if (sameBrowser) {
     localHost = new LocalHost(() => ({ name: `${pilotName()} · ${local.world.system.system.name}`, worldId: local.world.id,
-      players: local.host.connectedCount(), maxPlayers: local.host.settings.maxPlayers }), connection => local.accept(connection));
+      players: local.host.connectedCount(), maxPlayers: local.host.settings.maxPlayers }), connection => { void acceptHostedPeer(connection); });
   }
   mpStatus(sameBrowser
     ? 'Hosting. Other tabs can join from Tools → Multiplayer debugging. For friends elsewhere, create one invite per player in Online.'
@@ -3399,7 +3407,7 @@ element('host-computer').addEventListener('click', async () => {
   mpStatus('Starting hosting on this computer…');
   try {
     const host = await hostOnComputer(connection => {
-      if (computerHosting && isHosting() && generation === computerGeneration) local.accept(connection);
+      if (computerHosting && isHosting() && generation === computerGeneration) void acceptHostedPeer(connection);
       else connection.close('The host stopped hosting.');
     }, reason => {
       if (generation !== computerGeneration) return;
@@ -3447,6 +3455,8 @@ function cancelInvite(): void {
   updateMultiplayer();
 }
 function stopHosting(reason = 'The host stopped hosting.'): void {
+  for (const controller of hostPackNegotiations) controller.abort(new Error(reason));
+  hostPackNegotiations.clear();
   computerGeneration++;
   computerHost?.stop();
   computerHost = undefined;
@@ -3511,7 +3521,7 @@ element('accept-reply').addEventListener('click', async () => {
     if (invite === current) invite = undefined;
     // Hosting stopped while the link opened.
     if (!isHosting()) { connection.close('The host stopped hosting.'); return; }
-    local.accept(connection);
+    void acceptHostedPeer(connection);
     mpStatus('Player connected. Create another invite for the next player.');
   } catch (error) {
     recentConnectionReport = current.diagnostics;
@@ -3529,7 +3539,44 @@ element<HTMLTextAreaElement>('host-reply').addEventListener('paste', event => {
   element<HTMLButtonElement>('accept-reply').click();
 });
 
-function startClient(connection: Connection): void {
+async function acceptHostedPeer(connection: Connection): Promise<void> {
+  const world = local.world, configuration = worldModules(world);
+  if (!configuration?.runtime && !configuration?.data.some(module => configuration.profile.modules.some(ref => ref.id === module.manifest.id))
+    && !configuration?.profile.modules.some(ref => !ref.id.startsWith('builtin.'))) { local.accept(connection); return; }
+  const controller = new AbortController(); hostPackNegotiations.add(controller);
+  try {
+    await joinPacks.host(connection, { async current(signal) {
+      signal.throwIfAborted();
+      if (world !== local.world || !isHosting()) throw new Error('The hosted game changed while preparing its modules');
+      const runtime = await moduleManager!.devices.capture(); signal.throwIfAborted();
+      const bundle: ModuleBundle = { format: 'space-sim-module-profile/1', profile: configuration!.profile, modules: configuration!.data,
+        selection: { universe: configuration!.universeKey, system: world.systemId },
+        ...(moduleLibrary.artifacts.length ? { code: moduleLibrary.artifacts.filter(artifact => configuration!.profile.modules.some(ref => ref.id === artifact.manifest.id))
+          .map(artifact => ({ id: artifact.manifest.id, version: artifact.manifest.version, digest: artifact.digest })) } : {}) };
+      const game: GamePackage = { format: 'space-lab-game/1', info: { ...activeGameInfo }, bundle,
+        plugins: moduleLibrary.artifacts.filter(artifact => configuration!.profile.modules.some(ref => ref.id === artifact.manifest.id)), ...(runtime ? { runtime } : {}) };
+      return encodeJoinPack(game, world);
+    } }, peer => { if (world !== local.world || !isHosting()) throw new Error('The host stopped hosting'); local.accept(peer); }, controller.signal);
+  } catch (error) { connection.close(message(error)); }
+  finally { hostPackNegotiations.delete(controller); }
+}
+async function startClient(connection: Connection): Promise<void> {
+  if (joiningPack || pending) { connection.close('Another connection was selected'); return; }
+  const controller = new AbortController(), previousWorld = local.world; joiningPack = controller; updateMultiplayer();
+  const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel join'; cancel.id = 'cancel-pack-join';
+  cancel.onclick = () => controller.abort(new Error('Joining cancelled')); element('mp-status').parentElement!.append(cancel);
+  let stage: JoinStage | undefined;
+  try {
+    const negotiated = await joinPacks.client(connection, joinClientPort({ address: serverShareAddress ?? connection.label,
+      root: document.querySelector<HTMLElement>('#flight-console .viewport')!, pilots: localPilotRegistry, status: mpStatus }), controller.signal);
+    stage = negotiated.stage;
+    if (controller.signal.aborted || local.world !== previousWorld || session !== local || isHosting()) throw new Error('Your active game changed while joining');
+    startAuthenticatedClient(negotiated.peer, stage);
+  } catch (error) { stage?.dispose(); connection.close(message(error)); mpStatus(message(error)); }
+  finally { if (joiningPack === controller) joiningPack = undefined; cancel.remove(); updateMultiplayer(); }
+}
+function startAuthenticatedClient(connection: Connection, stage?: JoinStage): void {
+
   const identity = new JoinIdentity();
   const joiningWorld = local.world;
   const installed = worldModules(joiningWorld);
@@ -3538,11 +3585,14 @@ function startClient(connection: Connection): void {
     name: pilotName(), ...(passwordInput.value ? { password: passwordInput.value } : {}),
     token: (worldId, hostId) => identity.token(worldId, hostId),
     saveToken: (worldId, token, playerId) => identity.remember(worldId, token, playerId, client.hostSeat),
-    lock: joiningWorld.lock, simulationFingerprint: joiningWorld.simulationFingerprint,
-    createContext: installed?.createContext,
-    rules: joiningWorld.rules, forces: joiningWorld.forces, commands: joiningWorld.commands,
+    lock: stage?.options.lock ?? joiningWorld.lock, simulationFingerprint: stage?.options.simulationFingerprint ?? joiningWorld.simulationFingerprint,
+    createContext: stage?.options.createContext ?? installed?.createContext,
+    vehicles: stage?.options.vehicles ?? joiningWorld.vehicles,
+    dataAdapters: stage?.options.dataAdapters ?? joiningWorld.dataAdapters,
+    rules: stage?.options.rules ?? joiningWorld.rules, forces: stage?.options.forces ?? joiningWorld.forces, commands: stage?.options.commands ?? joiningWorld.commands,
     verifyCandidate: candidate => {
       if (local.world !== joiningWorld) return { ok: false, reason: 'Your local game changed while joining. Try joining again.' };
+      if (stage?.options.verifyCandidate) return stage.options.verifyCandidate(candidate);
       if (!installed) return { ok: false, reason: 'Load an installed game before joining this server.' };
       if (installed.runtime) return moduleManager!.devices.verifyCandidate(candidate);
       return verifyServerCandidate(candidate, { environment: environment(), profile: installed.profile, data: installed.data, code });
@@ -3551,6 +3601,7 @@ function startClient(connection: Connection): void {
   pending = client;
   updateMultiplayer();
   client.onjoined = () => {
+    try { stage?.activate?.(); } catch (error) { client.leave(); stage?.dispose(); mpStatus(message(error)); return; }
     pending = undefined;
     // Joining ends anything this tab offered to others.
     if (isHosting()) stopHosting('The host joined another game.');
@@ -3565,7 +3616,7 @@ function startClient(connection: Connection): void {
   client.onplayers = () => { lastLists = -Infinity; };
   client.onnotice = text => { notify(text); logChatMessage('system', text); };
   client.onclose = reason => {
-    identity.release();
+    identity.release(); stage?.dispose();
     if (pending === client) pending = undefined;
     if (remote?.client === client) {
       remote = undefined;
@@ -3582,7 +3633,7 @@ function startClient(connection: Connection): void {
 
 /** Player side of an invite: make the reply code, then wait for the host to accept it. */
 async function answerInviteCode(text: string): Promise<void> {
-  if (pending || reply || answering || session !== local || isHosting()) return;
+  if (pending || joiningPack || reply || answering || session !== local || isHosting()) return;
   answering = true;
   updateMultiplayer();
   mpStatus('Reading the invite…');
@@ -3604,7 +3655,7 @@ async function answerInviteCode(text: string): Promise<void> {
     const connection = await answer.connection;
     if (reply !== answer) { connection.close('Cancelled.'); return; }
     reply = undefined;
-    startClient(connection);
+    await startClient(connection);
   } catch (error) {
     // Cancelled or replaced: whatever came after owns the panel now.
     if (reply !== answer) return;
@@ -3632,7 +3683,7 @@ const isLoopback = (url: string): boolean => {
 };
 async function join(): Promise<void> {
   const text = inviteFromText(joinInput.value);
-  if (!text || pending || reply || connectingServer || session !== local || isHosting()) return;
+  if (!text || pending || joiningPack || reply || connectingServer || session !== local || isHosting()) return;
   // An invite pasted where a server address goes.
   if (isInviteCode(text)) {
     element<HTMLTextAreaElement>('invite-input').value = text;
@@ -3648,10 +3699,11 @@ async function join(): Promise<void> {
   connectingServer = true;
   joinButton.disabled = true;
   try {
-    const connection = await connectWebSocket(url);
+    const prejoinUrl = new URL(url); prejoinUrl.searchParams.set('prejoin', '1');
+    const connection = await connectWebSocket(prejoinUrl.href);
     if (session !== local || isHosting() || pending || reply) { connection.close('Another connection was selected.'); return; }
     serverShareAddress = url;
-    startClient(connection);
+    await startClient(connection);
   } catch (error) {
     mpStatus(location.protocol === 'https:' && url.startsWith('ws:') ? `${message(error)} Secure pages can only reach wss:// servers.`
       : isLoopback(url) ? `Could not reach a Space Sim server on ${new URL(url).host}. Choose Host on this computer in the desktop game, `
@@ -3660,14 +3712,15 @@ async function join(): Promise<void> {
   } finally { connectingServer = false; updateMultiplayer(); }
 }
 async function joinLocal(host: string): Promise<void> {
-  if (pending || reply || session !== local || isHosting()) return;
+  if (pending || joiningPack || reply || session !== local || isHosting()) return;
   mpStatus('Joining the world in another tab…');
-  try { startClient(await connectLocal(host)); } catch (error) { mpStatus(message(error)); }
+  try { await startClient(await connectLocal(host)); } catch (error) { mpStatus(message(error)); }
   updateMultiplayer();
 }
 joinButton.addEventListener('click', () => void join());
 joinInput.addEventListener('keydown', event => { if (event.key === 'Enter') void join(); });
 element('cancel-join').addEventListener('click', () => {
+  joiningPack?.abort(new Error('Joining cancelled'));
   reply?.cancel();
   reply = undefined;
   mpStatus('Invite cancelled.');
@@ -3725,6 +3778,7 @@ element('scan-lan').addEventListener('click', async () => {
 
 // Closing or reloading the tab says goodbye at once instead of leaving others waiting.
 window.addEventListener('pagehide', () => {
+  joiningPack?.abort(new Error('The page closed'));
   otherOrbits.clear();
   if (isHosting()) stopHosting('The host closed the game.');
   remote?.client.leave();
@@ -3732,37 +3786,25 @@ window.addEventListener('pagehide', () => {
   discovery = undefined;
 });
 
-// A universe save contains progress; reusable definitions export separately as .spacedata.
-element('save-world').addEventListener('click', async () => {
-  if (session !== local || local.world.soloPreview) return;
-  rememberToken(local.world.id, local.token, local.playerId);
-  const save = saveWorld(local.world, { players: local.host.roster(), hostId: local.playerId, paused: local.paused,
-    savedAt: new Date().toISOString() });
-  try {
-    downloadBytes(`${save.universe.id.replace(/[^a-z0-9._-]/gi, '-').slice(0, 80)}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.spaceuniverse`, await encodeUniverseSave(save));
-    notify(`Universe saved with ${save.ships.length} ${save.ships.length === 1 ? 'ship' : 'ships'}. A dedicated server can run it with --import.`);
-    profiler.event('world-save', { ships: save.ships.length });
-  } catch (error) { notify(`Universe was not saved: ${message(error)}`); }
-});
-const worldFileInput = element<HTMLInputElement>('world-file');
-element('load-world').addEventListener('click', () => worldFileInput.click());
-worldFileInput.addEventListener('change', async () => {
-  const file = worldFileInput.files?.[0];
-  if (!file) return;
-  const originalWorld = session.world;
-  try {
-    if (session !== local || local.hosting) throw new Error('Load universe saves in your solo game.');
-    if (file.size > 64 * 1024 * 1024) throw new Error('Universe save files must be at most 64 MiB.');
-    const saved = await decodeUniverseSave(new Uint8Array(await file.arrayBuffer()));
-    if (session.world !== originalWorld || session !== local || local.hosting) throw new Error('The active session changed while loading.');
+// Universe commands own IO/cancellation; the host retains consent and atomic game activation.
+const universeSaveProvider = createUniverseSaves({ save: saveWorld }, universeSaveFormat);
+const universeFiles = createUniverseFiles();
+const universeSaveUi = createUniverseSaveControls(universeFiles);
+const universeSaveCommands = universeSaveProvider.create({
+  current: () => ({ identity: session, world: session.world,
+    canSave: session === local && !local.world.soloPreview, canLoad: session === local && !local.hosting,
+    options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused } }),
+  async restore(saved, signal, guard) {
+    guard();
     let installedProfile = worldModules(local.world);
     const configuration = savedProgressConfiguration(saved);
     let restoredArtifacts: readonly import('../../../packages/game-runtime/src/artifact').CodeArtifact[] | undefined;
     let restoredCode: readonly import('../../../packages/game-api/src/index').RegisteredModule[] | undefined;
     if (configuration) {
-      await moduleLibrary.open();
+      await moduleLibrary.open(); guard();
       const restored = await reconstructProgress(configuration, moduleLibrary.store, environment(), { data: [...moduleLibrary.data.values()],
         code: GAME_EXAMPLES, allowRuntimeCode: ALLOW_RUNTIME_CODE, approvedLegacyDigests: new Set(configuration.code.map(ref => ref.digest)) });
+      guard();
       const active = local.world.configuration;
       if (canonicalJson(active ?? null) !== canonicalJson(configuration) && restored.executablePackages.length) {
         if (!ALLOW_RUNTIME_CODE) throw new Error('This build does not allow imported code');
@@ -3775,6 +3817,7 @@ worldFileInput.addEventListener('change', async () => {
     if (installedProfile?.runtime) {
       await moduleManager!.devices.loadWorldGame(installedProfile.runtime, { profile: installedProfile.profile, data: installedProfile.data,
         code: restoredCode ?? [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative')], configuration, restore: saved }, prepared => {
+        guard();
         checkCommandKeys(prepared.loaded.world.commands);
         rememberWorldModules(prepared.loaded.world, { ...installedProfile, createContext: prepared.createContext });
         const next = new LocalSession(prepared.loaded.world, { name: pilotName(), players: prepared.loaded.players,
@@ -3783,10 +3826,11 @@ worldFileInput.addEventListener('change', async () => {
         if (restoredArtifacts) moduleLibrary.replace([...moduleLibrary.artifacts.filter(m => m.manifest.authority === 'presentation'), ...restoredArtifacts]);
         moduleManager!.resetData(installedProfile!.data);
         local.dispose(); local = next; useSession(local, true); setPaused(true, 'Universe loaded');
-      });
+      }, signal);
       notify('Universe loaded.');
       return;
     }
+    guard();
     const loaded = loadInstalledWorld(saved, { environment: environment(),
       data: worldModules(local.world)?.data, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative'
         && worldModules(local.world)?.profile.modules.some(ref => ref.id === m.manifest.id))] });
@@ -3798,11 +3842,21 @@ worldFileInput.addEventListener('change', async () => {
     setPaused(true, 'Universe loaded');
     notify('Universe loaded.');
     profiler.event('world-load', { world: loaded.world.id, ships: loaded.world.size });
-  } catch (error) {
-    alert(`Universe was not loaded: ${message(error)}`);
-  } finally {
-    worldFileInput.value = '';
-  }
+  },
+});
+const universeSaveControl = universeSaveUi.mount({
+  root: element('save-world').closest<HTMLElement>('.world-files')!, commands: universeSaveCommands,
+  controls: { save: element<HTMLButtonElement>('save-world'), load: element<HTMLButtonElement>('load-world'), file: element<HTMLInputElement>('world-file') },
+  saved(save) {
+    if (local.world.id === save.worldId && local.playerId === save.hostId) rememberToken(local.world.id, local.token, local.playerId);
+    notify(`Universe saved with ${save.ships.length} ${save.ships.length === 1 ? 'ship' : 'ships'}. A dedicated server can run it with --import.`);
+    profiler.event('world-save', { ships: save.ships.length });
+  },
+  error(operation, error) { if (operation === 'save') notify(`Universe was not saved: ${message(error)}`); else alert(`Universe was not loaded: ${message(error)}`); },
+});
+window.addEventListener('pagehide', event => {
+  if (event.persisted) return;
+  universeSaveControl.dispose(); universeSaveUi.dispose(); universeSaveProvider.dispose(); universeFiles.dispose();
 });
 
 function executeAction(action: ActionId): void {
@@ -3814,6 +3868,11 @@ function executeAction(action: ActionId): void {
     if (cameraAlteringActions.has(action)) return;
   }
   switch (action) {
+    case 'throttleCut': case 'throttleRecall': case 'throttleRemember': {
+      const slot = splitScreen.keyboardSlot;
+      if (slot !== undefined) throttleAction(slot, action);
+      break;
+    }
     case 'warpUp':
       warpUp();
       break;
@@ -3916,7 +3975,15 @@ window.addEventListener('keyup', event => {
 });
 
 bindFlightInput({
+  binding: event => resolveKeybinding(event, keyLookup),
   keys, pointers, paused: () => session.paused, autoPause, autoResume, visibility: updateBackground,
+  flightPress(code) {
+    const actions = keyLookup.get(code);
+    const slot = splitScreen.keyboardSlot;
+    if (slot !== undefined && actions?.some(action => action === 'throttleUp' || action === 'throttleDown')) {
+      withThrottleLever(slot, keyboardFlight(), 0, true);
+    }
+  },
   isFlightKey(code) {
     const actions = keyLookup.get(code);
     return actions ? actions.some(isFlightAction) : false;
@@ -4042,17 +4109,21 @@ window.addEventListener('keydown', (e) => {
   }
 
   const { action, keyIndex } = listeningChip;
+  // Held controls bind physical keys; shortcuts wait for the chord’s non-modifier key.
+  const held = isFlightAction(action) || action === 'throwShip';
+  if (!held && /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(e.code)) return;
+  const binding = held ? e.code : shortcutBinding(e);
   const list = keybindings[action] || [];
 
   if (keyIndex !== undefined) {
     if (e.code === 'Backspace' || e.code === 'Delete') {
       list.splice(keyIndex, 1);
     } else {
-      list[keyIndex] = e.code;
+      list[keyIndex] = binding;
     }
   } else {
-    if (!list.includes(e.code) && e.code !== 'Backspace' && e.code !== 'Delete') {
-      list.push(e.code);
+    if (!list.includes(binding) && e.code !== 'Backspace' && e.code !== 'Delete') {
+      list.push(binding);
     }
   }
 
@@ -4163,8 +4234,13 @@ function updateBackground(): void {
   }
 }
 
+function activeMotion() {
+  const ship = selectedShip();
+  return ship ? session.world.contextFor(ship) : session.world.context;
+}
+
 function updatePrediction(seconds: number, engine: boolean): void {
-  prediction.update(session.world.context, state, activeBody, session.world.surface(activeBody.id),
+  prediction.update(activeMotion(), state, activeBody, session.world.surface(activeBody.id),
     selectedShip()?.id, seconds, engine, selectedShip()?.controls, session.world);
   maneuver.update(seconds, prediction, engine);
   const others = Math.max(0, connectedPilotIds.size - 1);
@@ -4201,12 +4277,12 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     water: state.water ?? null,
     waterDepth: Math.max(0, (world.surface(activeBody.id)?.seaRadiusMetres ?? 0) - magnitude(state.position)),
     predictionLast: prediction.path.at(-1) ?? null,
-    vehicle: world.context.vehicle, soloPreview: world.soloPreview,
+    vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
     model: MODEL, body: activeBody.id, system: world.systemId, universe: world.universe.id,
     session: session === local ? (local.hosting ? 'host' : 'local') : 'client', world: world.id,
     ship: selectedShipId ?? null, ships: world.size, asleep: world.asleepCount, fleetView: { ...fleetView.stats },
     players: session.players().filter(p => p.connected).length,
-    hud: { editing: hudLayout.editing, navballs: Array.from({ length: splitScreen.active }, (_, slot) => {
+    hud: { editing: hudLayout.editing, views:[...seatHuds].map(([slot,entry])=>({slot,seat:entry.hud.binding.seatId,player:entry.hud.binding.playerId,target:entry.hud.binding.targetId,viewport:entry.hud.binding.viewportId,instruments:entry.hud.count})), navballs: Array.from({ length: splitScreen.active }, (_, slot) => {
       const pane = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot)?.canvas ?? canvas : canvas;
       const width = pane.clientWidth, height = pane.clientHeight;
       const scale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
@@ -4221,9 +4297,9 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     stepSeconds: STEP, tick: world.tick, steps: session === local ? local.clockStats.steps : null,
     droppedSeconds: session === local ? local.clockStats.droppedSeconds : null,
     dynamics: state.dynamics ?? 'numerical', coastEpochSeconds: state.coast?.epochSeconds ?? null,
-    solver: state.solver ?? null, orbit: world.context.capabilities.orbitalDiagnostics ? world.context.services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
-    motionCapabilities: world.context.capabilities, modelIdentity: world.context.modelIdentity,
-    coastCache: world.context.coastCacheStats(state.coast),
+    solver: state.solver ?? null, orbit: activeMotion().capabilities.orbitalDiagnostics ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
+    motionCapabilities: activeMotion().capabilities, modelIdentity: activeMotion().modelIdentity,
+    coastCache: activeMotion().coastCacheStats(state.coast),
     samples: prediction.path.length, predictionEnd: prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd, predictionPasses: prediction.passCount,
     predictionWorkMs: prediction.lastPass.workMs, predictionCoarse: prediction.lastPass.coarse,
     otherOrbits: { ...otherOrbits.stats, mode: orbitMode.value, otherPilots: Math.max(0, connectedPilotIds.size - 1) },
@@ -4258,13 +4334,15 @@ function hud(engine: boolean): void {
   show('status', paused ? 'PAUSED' : !ship ? 'NO SHIP' : ship.fault ? 'STOPPED'
     : state.water && state.status !== 'crashed' ? state.water.toUpperCase() : state.status.toUpperCase());
   show('active-body', activeBody.name.toUpperCase());
+  const activationInput = element<HTMLInputElement>('activation-throttle');
+  if (document.activeElement !== activationInput) activationInput.value = String(Math.round(activationThrottle(Number(element<HTMLSelectElement>('activation-pilot').value)) * 100));
   show('throttle-value', `${Math.round(state.throttle * 100)}%`);
   if (document.activeElement !== slider) slider.value = String(Math.round(state.throttle * 100));
   const burning = String(engine && !paused);
   if (shown.get('burn') !== burning) { element('burn').setAttribute('aria-pressed', burning); shown.set('burn', burning); }
   show('prediction', prediction.text(state));
-  const analytic = session.world.context.capabilities.orbitalDiagnostics;
-  const orbit = analytic && ship && state.status === 'flying' ? session.world.context.services.orbits.elements(activeOrbitSource(), activeBody.mu) : null;
+  const analytic = activeMotion().capabilities.orbitalDiagnostics;
+  const orbit = analytic && ship && state.status === 'flying' ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null;
   show('periapsis', !analytic ? 'Unavailable · custom motion' : !orbit ? '—'
     : `${(orbit.periapsis - activeBody.radius).toFixed(1)} m`);
   show('apoapsis', !analytic ? 'Unavailable · custom motion' : !orbit ? '—'
@@ -4301,8 +4379,8 @@ function exportLog(): void {
     environment: { userAgent: navigator.userAgent, language: navigator.language,
       hardwareConcurrency: navigator.hardwareConcurrency, screen: `${screen.width}×${screen.height}`,
       viewport: `${canvas.clientWidth}×${canvas.clientHeight}`, dpr: window.devicePixelRatio, precise: profiler.precise },
-    diagnostics: diagnostics(controls().engine), profile: profiler.summary(),
-    events: profiler.log(), frames: profiler.history(),
+    diagnostics: diagnostics(!!selectedShip()?.controls.engine), profile: profiler.summary(),
+    events: profiler.log(), frames: profiler.history(),moduleLogs:moduleLogReport(),
   };
   const text = JSON.stringify(report, null, 2);
   download(`space-sim-log-${now.toISOString().replace(/[:.]/g, '-')}.json`, text);
@@ -4319,8 +4397,7 @@ function handleEvents(events: readonly WorldEvent[]): void {
     }
     if (event.shipId !== selectedShipId) continue;
     if (event.type === 'contact') {
-      presentation.audio.contact(event.contact.time, event.status === 'crashed' ? 'crash'
-        : event.contact.material === 'water' ? 'splash' : 'land', !session.paused && session.warp === 1);
+      presentation.audio.terrainContact(event, !session.paused && session.warp === 1);
       lastTerrainContact = event.contact;
       profiler.event('terrain-contact', { ...event.contact, status: event.status, position: selectedShip()?.state.position });
     } else if (event.type === 'fault') {
@@ -4339,14 +4416,16 @@ function otherShips(
   skipId: string | undefined = selectedShipId,
   width: number = canvas.clientWidth,
   height: number = canvas.clientHeight,
+  fleet: Pick<FleetView, 'build'> = fleetView,
+  playerId: string = session.playerId,
 ): RenderShip[] {
-  return fleetView.build({
+  return fleet.build({
     world: session.world,
     time,
     alpha,
     paused: session.paused,
     skipId,
-    playerId: session.playerId,
+    playerId,
     camera,
     width,
     height,
@@ -4362,7 +4441,7 @@ function otherShips(
 /** What the pilot sees, for presentation modules: interpolated, detached and frozen. */
 function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnapshot {
   const world = session.world, ship = selectedShip(), last = prediction.path.at(-1);
-  const analyticOrbits = world.context.capabilities.orbitalDiagnostics;
+  const analyticOrbits = activeMotion().capabilities.orbitalDiagnostics;
   return presentationSnapshot({
     time: view.time, tick: world.tick, paused: session.paused, elapsed,
     viewport: { width: canvas.clientWidth, height: canvas.clientHeight, pixelRatio: window.devicePixelRatio || 1 },
@@ -4370,8 +4449,8 @@ function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnaps
       ...(activeBody.rotation ? { spin: spinRate(activeBody) } : {}) },
     ...(ship ? { ship: { id: ship.id, name: ship.name, bodyId: activeBody.id, state: view, controls: ship.controls,
       position: { x: bodyPosition.x + view.position.x, y: bodyPosition.y + view.position.y }, ...(ship.fault ? { fault: ship.fault } : {}) } } : {}),
-    vehicle: world.context.vehicle, analyticOrbits,
-    orbit: analyticOrbits && ship && state.status === 'flying' ? world.context.services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
+    vehicle: activeMotion().vehicle, analyticOrbits,
+    orbit: analyticOrbits && ship && state.status === 'flying' ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
     groundClearance: ship ? groundClearance() : null,
     prediction: { status: !ship ? 'none' : prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd,
       samples: prediction.path.length, ...(last ? { last } : {}) },
@@ -4385,8 +4464,10 @@ function frame(now: number): void {
   lastWall = now;
   profiler.begin(elapsed * 1000);
   moduleManager?.devices.sample(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden);
+  sampleJoinModules(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden);
   splitScreen.pollPads();
   splitScreen.sync();
+  if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) pilotThrottles.forEach(control => control.release());
   splitScreen.applyInput(elapsed);
   const command = session.paused ? IDLE : controls(elapsed);
   maneuver.beforeAdvance(command);
@@ -4394,12 +4475,7 @@ function frame(now: number): void {
     : session.update(elapsed, selectedShipId, command));
   syncSelected();
   if (state.status !== lastStatus) {
-    // Smooth-body collisions change status without a terrain-contact event.
-    // Terrain contacts already play through handleEvents, so only fill that gap.
-    if (lastStatus === 'flying' && state.status !== 'flying' && !session.world.surface(activeBody.id)) {
-      presentation.audio.contact(state.time, state.status === 'crashed' ? 'crash' : 'land',
-        !session.paused && session.warp === 1);
-    }
+    presentation.audio.status(lastStatus, state, !!session.world.surface(activeBody.id), !session.paused && session.warp === 1);
     profiler.event('status', { from: lastStatus, to: state.status, time: state.time,
       speed: +magnitude(state.velocity).toFixed(2) });
     lastStatus = state.status;
@@ -4407,8 +4483,7 @@ function frame(now: number): void {
   profiler.lap('physics');
   const ship = selectedShip();
   const engine = (session === local ? !!ship?.controls.engine : command.engine && !!ship) && !session.paused;
-  presentation.audio.update(engine && ship && state.status !== 'crashed' && !ship.fault && session.warp === 1 ? state.throttle : 0,
-    !orbitSandboxInstance?.isOpen());
+  presentation.audio.flight(state, engine && !!ship, !!ship?.fault, session.warp, session.paused, !orbitSandboxInstance?.isOpen());
   updatePrediction(elapsed, engine);
   profiler.lap('prediction');
   const before = selectedShipId ? session.previous(selectedShipId) : undefined;
@@ -4543,7 +4618,7 @@ function frame(now: number): void {
 
   if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
   updateControllerCursors(elapsed);
-  syncThrottleLevers();
+  syncViewHuds(elapsed,presentation.isEnabled('builtin.navball')?base():undefined,camera);
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
@@ -4564,38 +4639,13 @@ function frame(now: number): void {
     overlays.push(...buildControllerCursorOverlay(liveP1Cursor, camera.scale));
   }
 
+  seatHuds.get(0)?.hud.draw(overlays);
   if (splitScreen.split) {
     for (const [slot, guest] of splitScreen.guests) {
       if (splitScreen.isSeparated(slot)) continue;
       const guestShip = guest.ship(session);
       if (!guestShip || !guest.body || !guest.state || !guest.view) continue;
-      const gR = Math.hypot(guest.view.position.x, guest.view.position.y);
-      const gAlt = Math.max(0, gR - guest.body.radius);
-      const gFrame = shipAutoFrame(guest.state.status, gAlt, guest.body.radius, guestNavballFrames.get(guestShip.id));
-      guestNavballFrames.set(guestShip.id, gFrame);
-      const gNavState = shipNavballState(guest.state, { radius: guest.body.radius, spin: guest.body.rotation ? spinRate(guest.body) : 0 }, gFrame);
-      if (gNavState && presentation.isEnabled('builtin.navball')) {
-        const gTurn = Math.PI / 2 - gNavState.zenith;
-        const gScale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
-        const gPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
-        const gCenter = resolveNavballCenter(slot, width, height, gScale);
-        const gTraj = formatTrajectoryStats(guest.state, guest.body, session.world.context);
-        const isDragging = activeNavballDrag?.slot === slot;
-        const guestNavPrimitives = drawNavball(
-          gNavState,
-          gCenter,
-          gTurn,
-          'horizon',
-          PLAYER_COLORS[slot],
-          `P${slot + 1}`,
-          gScale,
-          gTraj,
-          gPlacement.pinned,
-          isDragging,
-          hudLayout.editing,
-        );
-        overlays.push(...guestNavPrimitives);
-      }
+      seatHuds.get(slot)?.hud.draw(overlays);
       const jCursor = controllerCursors.get(slot);
       if (jCursor) {
         overlays.push(...buildControllerCursorOverlay(jCursor, camera.scale));
@@ -4615,6 +4665,7 @@ function frame(now: number): void {
     padPosition: padWorld,
     padNormal: pad && spinView.point(activeBody, view.time, pad.normal),
     shipLabel: ship?.name.toUpperCase(),
+    vehicleId: ship?.vehicleId,
     ships: others,
     showScale: hudVisibility.visible('scale'),
     showShipLabels: hudVisibility.visible('labels'),
@@ -4636,7 +4687,7 @@ function frame(now: number): void {
 
       const gEngine = guest.controls.engine && !session.paused;
       guest.prediction.update(
-        session.world.context,
+        session.world.contextFor(guestShip),
         guest.state,
         guest.body,
         session.world.surface(guest.body.id),
@@ -4698,35 +4749,10 @@ function frame(now: number): void {
       const gPadAt = gPad && spinView.point(guest.body, guest.view.time, gPad.position);
       const gPadWorld = gPadAt ? { x: gBodyPos.x + gPadAt.x, y: gBodyPos.y + gPadAt.y } : { x: 1e30, y: 1e30 };
 
-      const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight);
+      const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight, guest.fleetView, guest.playerId ?? session.playerId);
 
       const gOverlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, guest.view.time, guest.playerId ?? session.playerId, gCamera, gWidth, gHeight)];
-      const gR = Math.hypot(guest.view.position.x, guest.view.position.y);
-      const gAlt = Math.max(0, gR - guest.body.radius);
-      const gFrame = shipAutoFrame(guest.state.status, gAlt, guest.body.radius, guestNavballFrames.get(guestShip.id));
-      guestNavballFrames.set(guestShip.id, gFrame);
-      const gNavState = shipNavballState(guest.state, { radius: guest.body.radius, spin: guest.body.rotation ? spinRate(guest.body) : 0 }, gFrame);
-      if (gNavState && presentation.isEnabled('builtin.navball')) {
-        const gTurn = Math.PI / 2 - gNavState.zenith;
-        const gScale = Math.min(1, Math.max(0.65, Math.min(gWidth / 600, gHeight / 450)));
-        const gPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
-        const gCenter = resolveNavballCenter(slot, gWidth, gHeight, gScale);
-        const gTraj = formatTrajectoryStats(guest.state, guest.body, session.world.context);
-        const isDragging = activeNavballDrag?.slot === slot;
-        gOverlays.push(...drawNavball(
-          gNavState,
-          gCenter,
-          gTurn,
-          'horizon',
-          PLAYER_COLORS[slot],
-          `P${slot + 1}`,
-          gScale,
-          gTraj,
-          gPlacement.pinned,
-          isDragging,
-          hudLayout.editing,
-        ));
-      }
+      seatHuds.get(slot)?.hud.draw(gOverlays);
       if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
         const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, guest.view.time);
         activeFlightSlingshot.dominantWorldPos = curDomPos;
@@ -4753,6 +4779,7 @@ function frame(now: number): void {
         padPosition: gPadWorld,
         padNormal: gPad && spinView.point(guest.body, guest.view.time, gPad.normal),
         shipLabel: guestShip.name.toUpperCase(),
+        vehicleId: guestShip.vehicleId,
         ships: gOthers,
         showScale: hudVisibility.visible('scale'),
         showShipLabels: hudVisibility.visible('labels'),
@@ -4776,7 +4803,7 @@ function frame(now: number): void {
         {
           name: pilotName(),
           status: (godModeToggle.checked ? '[INVULNERABLE] ' : '') + (session.paused ? 'PAUSED' : !selectedShip() ? 'NO SHIP' : state.status.toUpperCase()),
-          text: selectedShip() ? formatTrajectoryStats(state, activeBody, session.world.context) : '',
+          text: selectedShip() ? formatTrajectoryStats(state, activeBody, activeMotion()) : '',
         },
         guest => {
           const s = guest.state;
@@ -4784,7 +4811,7 @@ function frame(now: number): void {
           if (!s || !b) return { status: 'NO SHIP', text: '' };
           return {
             status: (godModeToggle.checked ? '[INVULNERABLE] ' : '') + s.status.toUpperCase(),
-            text: formatTrajectoryStats(s, b, session.world.context),
+            text: formatTrajectoryStats(s, b, session.world.contextFor(guest.ship(session)!)),
           };
         },
       );
@@ -4817,27 +4844,30 @@ local = new LocalSession(initialGame.world, { name: pilotName() });
 session = local;
 syncPresetSelect();
 local.spawn(local.world.presetId(preset.value || 'pad'), false);
-moduleManager = new ModuleManager(presentation, {
-  pilots: new LocalPilotRegistry({ config: () => splitScreen.config, count: () => splitScreen.active,
+const localPilotRegistry = new LocalPilotRegistry({ config: () => splitScreen.config, count: () => splitScreen.active,
     playerId: pilot => pilot === 0 ? session.playerId : splitScreen.guests.get(pilot)?.playerId,
     change: config => { splitScreen.setConfig(config); splitScreen.sync(); },
     release: pilot => {
       if (pilot === undefined || pilot === 0) { release(); return; }
       moduleManager?.devices.release(pilot);
+      pilotThrottles[pilot]!.release();
       const guest = splitScreen.guests.get(pilot);
       if (guest) {
         guest.controls = IDLE;
         if (session === local && guest.playerId && guest.shipId) local.guestControls(guest.playerId, guest.shipId, IDLE);
       }
     },
-  }),
+  });
+moduleManager = new ModuleManager(presentation, {
+  pilots: localPilotRegistry,
   world: () => session.world,
   current: () => ({ profile: worldModules(local.world)?.profile ?? DEFAULT_PROFILE,
     data: worldModules(local.world)?.data ?? [], editable: session === local && !local.hosting,
     universe: worldModules(local.world)?.baseUniverse ?? local.world.universe, universeKey: worldModules(local.world)?.universeKey ?? `builtin.content/${local.world.universe.id}`,
     resolvedUniverse: local.world.universe,
     systemId: local.world.systemId }),
-  apply: async (profile, data, selection, runtime) => {
+  apply: async (profile, data, selection, runtime,signal) => {
+    signal?.throwIfAborted();
     const current = worldModules(local.world);
     if (runtime) {
       await moduleManager!.devices.loadWorldGame(runtime, { profile, data,
@@ -4849,7 +4879,7 @@ moduleManager = new ModuleManager(presentation, {
           rememberWorldModules(prepared.loaded.world, { data, profile, baseUniverse: current?.baseUniverse ?? local.world.universe,
             universeKey: selection.universe, createContext: prepared.createContext, runtime });
           local.dispose(); local = next; useSession(local, true); reset(); focusOnShipForNewWorld();
-      });
+      },signal);
       return;
     }
     const prepared = prepareLocalWorld(current?.baseUniverse ?? local.world.universe, selection.system,
@@ -4917,7 +4947,8 @@ labManager = new LabManager({
     return { format: 'space-lab-game/1', info: { ...activeGameInfo, id: `local.game-${crypto.randomUUID()}` }, bundle,
       plugins: moduleLibrary.artifacts.filter(a => bundle.code?.some(ref => ref.id === a.manifest.id)), ...(runtime ? { runtime } : {}) };
   },
-  play: async game => {
+  play: async (game,signal) => {
+    signal.throwIfAborted();
     if (session !== local || local.hosting) throw new Error('Leave multiplayer before switching games');
     if (game.info.id === 'builtin.orbit-sandbox') {
       switchToOrbitSandbox();
@@ -4945,10 +4976,11 @@ labManager = new LabManager({
         for (const data of game.bundle.modules) moduleLibrary.installData(data);
         local.dispose(); local = next; activeGameInfo = { ...game.info };
         useSession(local, true); reset(); focusOnShipForNewWorld();
-      });
+      },signal);
       return;
     }
     await installGamePackages(game, moduleLibrary.store, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE }, 'Game library');
+    signal.throwIfAborted();
     if (local.world !== previousWorld || session !== local || local.hosting) throw new Error('The active session changed while installing game packages');
     const prepared = prepareLocalWorld(DEFAULT_UNIVERSE, game.bundle.selection.system,
       { data: game.bundle.modules, profile: game.bundle.profile, universeKey: game.bundle.selection.universe, code: authoritative });

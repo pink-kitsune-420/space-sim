@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Window shell and dock",
+  "summary": "Optional grouped dock and window lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Require ui.shell@^1.0.0 and use WINDOW_SHELL to create a shell for your viewport. Supply grouped panel definitions, borrowed content nodes, input-release/focus callbacks and optional viewer-only chrome preferences. No game-specific panels are created implicitly. The shell owns its windows, dock entries, subscriptions, keyboard/file listeners and styles. Removing it restores borrowed nodes to their original locations."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use addInstrument for optional windows. Dispose its returned lease when that instrument is removed; the shell does not own borrowed instrument windows. The game can omit the shell entirely. Modal Escape, fullscreen transitions and import-to-panel routing are host callbacks, independent of gameplay/session authority."
+    },
+    {
+      "type": "paragraph",
+      "text": "Configuration: escapeToggleMs sets the minimum wall-time interval between Escape/fullscreen toggles (default 300 ms). Existing panel layout and preferences keep their defaults."
+    }
+  ]
+}

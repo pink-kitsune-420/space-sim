@@ -1,0 +1,75 @@
+/* Shared window palette. Import from each application entry point. */
+:root, [data-window-style] {
+  --ui-win-accent: var(--ui-win-custom-accent, #38bdf8);
+  --ui-win-bg: rgba(10, 18, 28, var(--ui-win-opacity, 0.96));
+  --ui-win-header-bg: rgba(16, 27, 39, var(--ui-win-opacity, 0.96));
+  --ui-win-card-bg: color-mix(in srgb, var(--ui-win-header-bg) 78%, var(--ui-win-accent) 6%);
+  --ui-win-border: color-mix(in srgb, var(--ui-win-accent) 45%, transparent);
+  --ui-win-glow: transparent;
+  --ui-win-hover-bg: color-mix(in srgb, var(--ui-win-accent) 12%, var(--ui-win-card-bg));
+  --ui-win-active-bg: color-mix(in srgb, var(--ui-win-accent) 22%, var(--ui-win-bg));
+}
+
+[data-window-style="classic"] {
+  --ui-win-bg: rgba(10, 18, 28, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #38bdf8);
+  --ui-win-header-bg: rgba(16, 27, 39, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="cyber"] {
+  --ui-win-bg: rgba(3, 15, 26, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #00f0ff);
+  --ui-win-header-bg: rgba(2, 24, 40, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="apollo"] {
+  --ui-win-bg: rgba(13, 9, 1, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #ffb300);
+  --ui-win-header-bg: rgba(26, 17, 3, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="tactical"] {
+  --ui-win-bg: rgba(15, 19, 24, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #ff6600);
+  --ui-win-header-bg: rgba(26, 32, 40, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="aurora"] {
+  --ui-win-bg: rgba(8, 24, 30, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #00ffaa);
+  --ui-win-header-bg: rgba(12, 38, 44, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="solar"] {
+  --ui-win-bg: rgba(22, 15, 5, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #ffd700);
+  --ui-win-header-bg: rgba(36, 25, 8, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="void"] {
+  --ui-win-bg: rgba(5, 7, 10, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #94a3b8);
+  --ui-win-header-bg: rgba(10, 14, 20, var(--ui-win-opacity, 0.96));
+}
+[data-window-style="crimson"] {
+  --ui-win-bg: rgba(24, 8, 10, var(--ui-win-opacity, 0.96));
+  --ui-win-accent: var(--ui-win-custom-accent, #ef4444);
+  --ui-win-header-bg: rgba(38, 12, 16, var(--ui-win-opacity, 0.96));
+}
+
+
+.hud-glow[data-window-style] {
+  --ui-win-glow: color-mix(in srgb, var(--ui-win-accent) 35%, transparent);
+}
+:is(.controls-dialog,.workspace-drawer,.modal-window,.inspector-panel,.flight-window).hud-glow,
+.theme-dialog.hud-glow .theme-modal-window {
+  box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 24px var(--ui-win-glow);
+}
+:is(.controls-dialog,.workspace-drawer,.modal-window,.inspector-panel,.flight-window).hud-chamfer,
+.theme-dialog.hud-chamfer .theme-modal-window {
+  clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+  border-radius: 0;
+}
+.controls-dialog.hud-scanlines .controls-modal-header,
+.workspace-drawer.hud-scanlines .drawer-heading,
+.modal-window.hud-scanlines .modal-header,
+.inspector-panel.hud-scanlines .inspector-header,
+.theme-dialog.hud-scanlines .theme-modal-header,
+.chat-overlay.hud-scanlines .chat-header,
+.flight-window.hud-scanlines .flight-window-header {
+  background-image: repeating-linear-gradient(0deg,transparent 0 2px,color-mix(in srgb,var(--ui-win-accent) 8%,transparent) 2px 3px);
+}

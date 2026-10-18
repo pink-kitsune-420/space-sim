@@ -1,0 +1,24 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Manual reader and guide catalog",
+  "summary": "Shared Players/Creators navigation over documents and explicit trusted live-content adapters.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "ui.manual@1.0.0 depends on ui.window-content@^1.0.0. It owns a removable guide catalog and independent reader instances. Each instance receives its book, root, optional preference storage and unique DOM ID prefix. It has no simulation, pilot, input or tutorial dependency."
+    },
+    {
+      "type": "paragraph",
+      "text": "Register structured document pages with stable IDs, title, summary and Players/Creators audience. Search includes contributed body text. Registration returns a lease; removing it refreshes readers and falls back to an available page. For staged replacement, register(pages, {replace: true}) temporarily shadows matching guide IDs: releasing the candidate restores the prior guides, while releasing the prior lease keeps the new guides. Duplicate IDs within one registration always fail. guides(audience) keeps contributed data discoverable by recovery/library UI without mounting a reader. Candidate guide assets remain owned by their host; no raw imported HTML is accepted as a document."
+    },
+    {
+      "type": "paragraph",
+      "text": "For trusted live content, the host can provide a mount callback and a revision string. The game adapter owns input interpretation and template expansion; refresh updates the body only when the page or revision changes, preserving scroll and expanded explanations during chrome changes. Source-only default Space Sim book content remains editable in src/content.ts. No tutorial runner or F28 redesign is included."
+    },
+    {
+      "type": "paragraph",
+      "text": "The provider owns reader instances and injected styles; each reader owns listeners, document mounts and navigation state. Dispose aborts handlers, removes reading resources and restores borrowed root children/classes. Factories reject creation after disposal. Storage failures leave navigation usable for the session. Use a separate idPrefix and storageKey for independent readers; live controls can be omitted."
+    }
+  ]
+}

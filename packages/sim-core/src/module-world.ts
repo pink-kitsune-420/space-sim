@@ -1,3 +1,4 @@
+import { TRAINER_VEHICLE_ID } from '../../game-api/src/index';
 import type { DynamicsProvider, ModuleManifest, MotionServices, SimulationContextFactory, UniverseDefinition } from '../../game-api/src/index';
 import type { GameIdentity } from '../../game-runtime/src/game-loader';
 import type { ModuleCandidateV2 } from '../../game-runtime/src/modules-v2';
@@ -41,7 +42,11 @@ export function moduleWorldConfiguration(candidate: ModuleCandidateV2, identity:
   const universe = validateUniverse(selected);
   const createContext = candidate.lock.providers.motion ? service<SimulationContextFactory>('motion') : createSimulationContext;
   const dynamics = candidate.lock.providers.dynamics ? service<DynamicsProvider>('dynamics') : undefined;
-  const services: Partial<MotionServices> = Object.fromEntries(Object.keys(BUILTIN_SERVICES).filter(slot => candidate.lock.providers[slot]).map(slot => [slot, service(slot)]));
+  // Selecting the fixed built-in service is not a model override. Preserve its legacy
+  // coast identity/fast path, as v1 composition does; only real replacements enter options.
+  const services: Partial<MotionServices> = Object.fromEntries(Object.keys(BUILTIN_SERVICES)
+    .filter(slot => candidate.lock.providers[slot]).map(slot => [slot, service(slot)] as const)
+    .filter(([slot, provider]) => provider !== BUILTIN_SERVICES[slot as keyof MotionServices]));
   const forces = candidate.core.forceExtensions, rules = candidate.core.worldRules, commands = candidate.core.commands;
   const manifests = new Map(identity.manifests.map(manifest => {
     const { tier, provides: _provides, requires: _requires, ...common } = manifest;
@@ -54,7 +59,11 @@ export function moduleWorldConfiguration(candidate: ModuleCandidateV2, identity:
     providers: candidate.lock.providers, settings: candidate.lock.settings, rules, forces,
     contentDigests: { 'world.universe': physicalUniverseDigest(universe), 'world.module-resolution': identity.authoritativeDigest,
       ...Object.fromEntries(identity.packages.filter(ref => manifests.get(ref.id)?.authority === 'authoritative').map(ref => [ref.id, ref.digest])) } });
+  const definitions = candidate.contributions('vehicle').map(c => c.value);
+  const vehicles = definitions.length ? { format: 'space-sim-vehicles/1' as const,
+    defaultId: definitions.some(d => d.id === TRAINER_VEHICLE_ID) ? TRAINER_VEHICLE_ID : [...definitions].sort((a,b) => a.id < b.id ? -1 : 1)[0]!.id,
+    definitions } : undefined;
   const factory: SimulationContextFactory = (settings, options) => createContext(settings, { ...options, dynamics, forces, services, worldRules: rules.length > 0 });
-  return { universe, options: { id: options.id, systemId: options.systemId, createContext: factory,
-    rules, forces, commands, lock, soloPreview: candidate.soloPreview, migrateState: candidate.core.migrateState } };
+  return { universe, options: { vehicles, id: options.id, systemId: options.systemId, createContext: factory,
+    dataAdapters: candidate.contributions('data').map(c => c.value), rules, forces, commands, lock, soloPreview: candidate.soloPreview, migrateState: candidate.core.migrateState } };
 }

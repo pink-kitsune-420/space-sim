@@ -1,3 +1,8 @@
+import { universeSaveFormatService } from '../../../packages/game-library/src/universe-save-services';
+import { universeDiskService } from './universe-disk';
+import { createJoinPacks } from '../../../modules/session-join/src/index';
+import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
+import type { GamePackage } from '../../../packages/game-library/src/archive';
 import { GameConfigurationError } from '../../../packages/game-runtime/src/game-loader';
 import { progressConfiguration, reconstructProgress, savedProgressConfiguration } from '../../../packages/game-library/src/progress-configuration';
 import { FilePackageStore } from './package-store';
@@ -92,13 +97,14 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const config = await loadConfig(dataDir, options.overrides);
   const createContext = builtinContextFactory('node');
   const installed = await serverModules(config, dataDir);
+  let activeGameSource = installed.game;
   const startupCleanup: (() => void)[] = [];
   try {
   const prepareMixed = async (restore?: unknown) => {
     const runtime = installed.runtime!;
     const prepared = await prepareInstalledWorld(runtime.plan, runtime.store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
       approvedDigests: new Set(runtime.plan.packages.map(ref => ref.digest)) }, {
-      hostServices: engineModuleServices(), inspect: inspectRuntimePackage, profile: installed.bundle?.profile,
+      hostServices: [universeSaveFormatService, universeDiskService, ...engineModuleServices()], inspect: inspectRuntimePackage, profile: installed.bundle?.profile,
       data: installed.bundle?.modules, code: installed.code, restore,
       configuration: progressConfiguration(installed.bundle?.profile ?? DEFAULT_PROFILE, installed.bundle?.modules ?? [], installed.code, runtime.game.runtime!),
       universe: restore ? undefined : await resolveUniverse(config.universe, dataDir),
@@ -122,14 +128,22 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       const plan = restored.runtime.plans.node!;
       const prepared = await prepareInstalledWorld(plan, packageStore, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
         approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...restored, configuration,
-        hostServices: engineModuleServices(), inspect: inspectRuntimePackage, restore: raw,
+        hostServices: [universeSaveFormatService, universeDiskService, ...engineModuleServices()], inspect: inspectRuntimePackage, restore: raw,
         configure(modules) {
           if (modules.lock.providers.renderer || modules.contributions('input').length || modules.contributions('window').length || modules.contributions('material').length
             || modules.contributions('post').length || modules.core.layers.length || modules.core.panels.length || modules.core.cameras.length)
             throw new Error('Progress Node target contains viewer hooks; use a compatible headless target');
         },
       }, new AbortController().signal);
-      try { await prepared.candidate.start(new AbortController().signal); return prepared.loaded; }
+      try {
+        await prepared.candidate.start(new AbortController().signal);
+        activeGameSource = { format: 'space-lab-game/1', info: { id: 'local.server-game', name: config.name, description: '' },
+          bundle: { format: 'space-sim-module-profile/1', profile: restored.profile, modules: restored.data,
+            code: restored.artifacts.map(artifact => ({ id: artifact.manifest.id, version: artifact.manifest.version, digest: artifact.digest })),
+            selection: { universe: `builtin.content/${prepared.loaded.world.universe.id}`, system: prepared.loaded.world.systemId } },
+          plugins: restored.artifacts, runtime: restored.runtime };
+        return prepared.loaded;
+      }
       catch (error) { prepared.candidate.dispose(); throw error; }
     }
     } catch (error) { throw new GameConfigurationError(error instanceof Error ? error.message : String(error)); }
@@ -184,6 +198,18 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     ...(config.spawnPreset ? { spawnPreset: config.spawnPreset } : {}),
   }, { players, log });
   startupCleanup.push(() => host.dispose());
+
+  const joinPacks = createJoinPacks();
+  startupCleanup.push(() => joinPacks.dispose());
+  const exportedGame: GamePackage = activeGameSource ?? { format: 'space-lab-game/1', info: { id: 'local.server-game', name: config.name, description: '' },
+    bundle: { format: 'space-sim-module-profile/1', profile: installed.bundle?.profile ?? { ...DEFAULT_PROFILE,
+      id: world.lock?.profileId ?? DEFAULT_PROFILE.id, modules: world.lock?.modules ?? DEFAULT_PROFILE.modules,
+      providers: world.lock?.providers ?? DEFAULT_PROFILE.providers, settings: world.lock?.settings ?? DEFAULT_PROFILE.settings },
+      modules: installed.bundle?.modules ?? [], code: (installed.artifacts ?? []).filter(artifact => world.lock?.modules.some(ref => ref.id === artifact.manifest.id))
+        .map(artifact => ({ id: artifact.manifest.id, version: artifact.manifest.version, digest: artifact.digest })),
+      selection: { universe: `builtin.content/${world.universe.id}`, system: world.systemId } },
+    plugins: (installed.artifacts ?? []).filter(artifact => world.lock?.modules.some(ref => ref.id === artifact.manifest.id)) };
+  const offered = config.offerGamePack ? await encodeJoinPack({ ...exportedGame, info: { ...exportedGame.info, name: config.name } }, world) : undefined;
 
   // "Anything changed?" from the world's version and the roster, not by building the whole
   // save twice: a large world takes hundreds of milliseconds to serialize.
@@ -270,7 +296,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     sockets++;
     connections.add(ws);
     socket.once('close', () => { sockets--; connections.delete(ws); });
-    host.accept(ws);
+    // Explicit route: old clients and discovery keep the unchanged flight greeting.
+    const prejoin = new URL(request.url ?? '/ws', 'http://localhost').searchParams.get('prejoin') === '1';
+    if (offered && prejoin) {
+      void joinPacks.host(ws, { async current(signal) { signal.throwIfAborted(); return offered; } }, peer => host.accept(peer), new AbortController().signal)
+        .catch(error => ws.close(error instanceof Error ? error.message : String(error)));
+    } else host.accept(ws);
   });
   await new Promise<void>((done, fail) => {
     server.once('error', fail);
@@ -306,7 +337,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const stop = (reason = 'The server is shutting down.'): Promise<void> => {
     stopping ??= (async () => {
       clearInterval(ticker); clearInterval(autosave); clearInterval(backups);
-      accepting = false;
+      accepting = false; joinPacks.dispose();
       const drained = Promise.all([...connections].map(ws => ws.closed));
       host.close(reason);
       try {
@@ -321,7 +352,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         // sockets as idle HTTP connections and destroyed them mid-goodbye.
         setTimeout(() => server.closeAllConnections(), 500).unref();
       })]);
-      host.dispose(); world.dispose();
+      host.dispose(); world.dispose(); store.dispose();
       log('Stopped.');
     })();
     return stopping;

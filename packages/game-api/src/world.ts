@@ -2,6 +2,8 @@ import type { Controls, State, SurfaceContactEvent } from './state';
 
 /** One independently controlled vessel. `state` is relative to `bodyId`'s non-rotating frame. */
 export interface Ship {
+  /** Absent only on the legacy trainer path. Stable across respawn, replay and ownership. */
+  readonly vehicleId?: string;
   readonly id: string;
   readonly name: string;
   readonly ownerId: string;

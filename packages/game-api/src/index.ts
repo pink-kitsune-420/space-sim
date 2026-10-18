@@ -1,3 +1,4 @@
+export * from './universe-saving';
 /** Public simulation contracts. No implementation or platform dependencies. */
 export type * from './state';
 export type * from './orbit';
@@ -8,6 +9,7 @@ export type * from './world';
 export type * from './modules';
 export type * from './motion';
 export type * from './services';
+export { MOTION_CONTEXTS, ORBITAL_MOTION, BODY_FRAMES, SURFACE_GEOMETRY, RAILS_POLICY } from './services';
 export type * from './rules';
 export type * from './commands';
 export type * from './presentation';
@@ -16,3 +18,36 @@ export * from './platform';
 export type * from './modules-v2';
 export * from './engine';
 export * from './session';
+export type * from './flight-input';
+export * from './flight-view';
+export * from './node-transport';
+export * from './tab-transport';
+export * from './webrtc-transport';
+export * from './flight-session';
+export * from './session-discovery';
+export * from './chat';
+export * from './join-pack';
+
+export * from './module-data';
+
+export * from './rendering';
+export * from './shader-format';
+export * from './theme';
+export * from './audio';
+export * from './theme-customizer';
+export * from './render-math';
+export * from './windows';
+export * from './window-content';
+export * from './window-shell';
+export * from './profiler';
+export * from './view-hud';
+export * from './hud-layout';
+export * from './logging';
+export * from './manual';
+export * from './mod-menu';
+export * from './maneuver';
+export * from './rotation';
+
+export { APPEARANCE_TUNING } from './universe';
+export * from './planet-designer';
+export * from './vehicles';

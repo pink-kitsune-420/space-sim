@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Shared per-view HUD",
+  "summary": "Optional instruments with independent per-view lifetimes.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Create one HUD per logical view, including the first seat. Supply distinct seat/player/target/viewport identities, an opaque session/context token and exact-version read-only adapters. Select compatible instrument definitions; absent adapters omit that instrument. Reflow resizes retained instances. Target/session changes cancel all gestures before rebinding any instrument; join/leave creates/disposes only affected views. Optional absence attaches no instruments. Dispose view/provider resources on removal. No world step or hard-coded flight instrument exists in the lifecycle manager."
+    }
+  ]
+}

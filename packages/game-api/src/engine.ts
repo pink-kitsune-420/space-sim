@@ -1,3 +1,5 @@
+import type { ModuleDataRead, ModuleDataControl, ModuleDataSnapshot, ModuleDataExtension } from './module-data';
+import type { VehicleCatalog } from './vehicles';
 import type { ModuleProfile, ModuleEnvironment } from './modules';
 import type { ModuleProfileV2 } from './modules-v2';
 import type { AuthoritativeLock, ModuleLock, Disposable } from './modules';
@@ -14,6 +16,8 @@ import type { ServiceKey } from './modules-v2';
 
 type Pair = readonly [number, number];
 export interface SavedCoast {
+  /** Present for selected custom services; checked against the installed context on load. */
+  readonly modelIdentity?: string;
   readonly epochSeconds: number;
   readonly position: Pair;
   readonly velocity: Pair;
@@ -21,6 +25,7 @@ export interface SavedCoast {
 }
 /** Body-relative Float64 state. Derived caches and per-step diagnostics are rebuilt. */
 export interface SavedShip {
+  readonly vehicleId?: string;
   readonly id: string;
   readonly name: string;
   readonly ownerId: string;
@@ -56,6 +61,8 @@ export interface SavedGameConfiguration {
   readonly code: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
 }
 export interface WorldSave {
+  readonly vehicles?: VehicleCatalog;
+  readonly data?: ModuleDataSnapshot;
   readonly format: 'space-sim-world';
   readonly configuration?: SavedGameConfiguration;
   readonly version: number;
@@ -81,6 +88,10 @@ export interface WorldSave {
 
 /** Body-relative SI state. Read operations retain the world's established rails semantics. */
 export interface WorldRead {
+  readonly vehicles?: VehicleCatalog;
+  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext;
+  readonly data: ModuleDataRead;
+  readonly dataAdapters: readonly ModuleDataExtension[];
   readonly configuration?: SavedGameConfiguration;
   readonly id: string; readonly tick: number; readonly time: number;
   readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;
@@ -107,10 +118,11 @@ export interface WorldChanges extends Disposable {
   take(): { readonly changed: readonly string[]; readonly removed: readonly string[] };
 }
 export interface WorldControl extends WorldRead, Disposable {
+  readonly data: ModuleDataControl;
   setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;
   step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];
   put(ship: Ship): void; remove(id: string): boolean;
-  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean }): Ship;
+  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;
   respawn(id: string, preset?: string, godMode?: boolean): Ship;
   teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;
   reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;
@@ -123,6 +135,8 @@ export interface WorldControl extends WorldRead, Disposable {
   subscribeChanges(): WorldChanges;
 }
 export interface WorldCreationOptions {
+  readonly vehicles?: VehicleCatalog;
+  readonly dataAdapters?: readonly ModuleDataExtension[];
   readonly configuration?: SavedGameConfiguration;
   readonly soloPreview?: boolean; readonly migrateState?: WorldRead['migrateState']; readonly systemId?: string; readonly id?: string;
   readonly createContext?: SimulationContextFactory; readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[];
@@ -135,8 +149,10 @@ export interface SavedWorldOptions {
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
 }
 export interface SaveCodec {
+  /** Exact legacy authority identity used for worlds predating explicit locks. */
+  readonly defaultLock: AuthoritativeLock;
   save(world: WorldRead, extra?: SavedWorldOptions): WorldSave;
-  load(raw: unknown, options?: Pick<WorldCreationOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState'>): {
+  load(raw: unknown, options?: Pick<WorldCreationOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>): {
     readonly world: WorldControl; readonly players: readonly SavedPlayer[]; readonly hostId?: string; readonly paused: boolean;
   };
   shipToSaved(ship: Ship): SavedShip;

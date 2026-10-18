@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { openPanel, closePanel } from '../helpers/workspace';
 import { ACTION_DEFINITIONS } from '../../apps/web/src/input-config';
 import { computeNavballCenter } from '../../apps/web/src/local-players';
-import { TRACK } from '../../packages/modules/src/base/toolset/navball';
+import { TRACK } from '../../modules/navball/src/drawing';
 
 interface TestPad { index: number; id: string; connected: boolean; axes: number[]; buttons: { pressed: boolean; value: number; touched: boolean }[] }
 declare global { interface Window { localPilotTestPads: (TestPad | null)[] } }
@@ -70,9 +70,11 @@ test('controller throws respect the cheat, remapping, enabled state and disconne
   await page.locator('#controls-toggle').click(); await page.locator('#tab-gamepad-btn').click();
   const name = ACTION_DEFINITIONS.find(a => a.id === 'throwShip')!.name;
   const row = page.locator('#pad-bindings .key-action-row').filter({ hasText: name });
-  await row.locator('.key-chip').click(); // Remove D-pad Up.
+  await expect(row.locator('.key-chip')).toHaveCount(0); // Throw starts unbound; D-pad Up controls throttle.
   await row.locator('.add-key-btn').click(); await button(page, 0, 6, true);
-  await expect.poll(async () => (await stored(page)).slots[0].profile.buttons.throwShip).toEqual([6]);
+  // The first saved local-player record is created by the captured button on
+  // the next animation frame; polling must tolerate its initial absence.
+  await expect.poll(async () => (await stored(page))?.slots[0].profile.buttons.throwShip).toEqual([6]);
   await button(page, 0, 6, false);
   await page.locator('#controls-close').click(); await closePanel(page);
   await button(page, 0, 12, true);
@@ -87,6 +89,36 @@ test('controller throws respect the cheat, remapping, enabled state and disconne
   await page.locator('#controls-close').click(); await closePanel(page);
   await button(page, 1, 12, true);
   await expect.poll(async () => (await debug(page)).localPlayers.cursors).toEqual([]);
+});
+
+test('a held controller cannot transfer thrust to another seat or replay it after reconnect', async ({ page }) => {
+  // Isolate input routing from the brief launch/landing between connection checks.
+  await openPanel(page, 'settings'); await page.locator('#god-mode').check(); await closePanel(page);
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await button(page, 0, 7, true);
+  await expect.poll(async () => (await debug(page)).engine).toBe(true);
+  await players(page);
+  await page.getByLabel('Player 2 input', { exact: true }).selectOption('pad:0');
+  await page.locator('#controls-close').click(); await closePanel(page);
+  const start = (await debug(page)).time;
+  await expect.poll(async () => (await debug(page)).time).toBeGreaterThan(start + .2);
+  expect((await debug(page)).engine).toBe(false);
+  expect((await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
+  await button(page, 0, 7, false);
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await button(page, 0, 7, true);
+  await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(true);
+  const pad = await page.evaluate(() => { const pad = window.localPilotTestPads[0]!; window.localPilotTestPads[0] = null; return pad; });
+  await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
+  await page.evaluate(pad => { window.localPilotTestPads[0] = pad; }, pad);
+  const reconnected = (await debug(page)).time;
+  await expect.poll(async () => (await debug(page)).time).toBeGreaterThan(reconnected + .2);
+  expect((await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
+  await button(page, 0, 7, false);
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await button(page, 0, 7, true);
+  await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(true);
+  expect((await debug(page)).engine).toBe(false);
 });
 
 test('a small guest pane draws and picks its navball pin consistently, and the instrument switch disables it', async ({ page }) => {
@@ -115,7 +147,7 @@ test('a small guest pane draws and picks its navball pin consistently, and the i
   expect((await stored(page)).slots[1].navball.pinned).toBe(false);
 });
 
-test('using controller A on a navball pin consumes the engine binding', async ({ page }) => {
+test('using controller A on a navball pin consumes throttle activation', async ({ page }) => {
   // Put the primary dial at the initial cursor position to exercise the input conflict precisely.
   await players(page, 1);
   await page.getByLabel('Player 1 navball location', { exact: true }).selectOption('custom');
@@ -151,7 +183,7 @@ test('a hidden hosting tab releases guest thrust while its world keeps running',
   await page.locator('#debug-host-game').click();
   await expect(page.locator('.connection')).toContainText('HOSTING');
   await closePanel(page);
-  await button(page, 1, 0, true);
+  await button(page, 1, 7, true);
   await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(true);
   const before = (await debug(page)).time;
   // Keep the physical button held: hidden frames must not reapply it after release().
@@ -168,7 +200,7 @@ test('a hidden hosting tab releases guest thrust while its world keeps running',
     expect(d.localPlayers.cursors).toEqual([]);
     await expect(page.locator('.connection')).toContainText('HOSTING');
   } finally {
-    await button(page, 1, 0, false);
+    await button(page, 1, 7, false);
     await page.evaluate(() => {
       Reflect.deleteProperty(document, 'hidden');
       document.dispatchEvent(new Event('visibilitychange'));
@@ -185,7 +217,8 @@ test('cancelling a guest slingshot abandons the throw without launching its ship
   const canvas = page.locator('.split-pane canvas');
   await expect(canvas).toBeVisible();
   const box = (await canvas.boundingBox())!;
-  const gesture = { pointerId: 7, pointerType: 'touch', altKey: true,
+  await page.locator('#flight-view').focus(); await page.keyboard.press('KeyT');
+  const gesture = { pointerId: 7, pointerType: 'touch',
     clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
   await canvas.dispatchEvent('pointerdown', gesture);
   await expect(page.locator('#flight-slingshot-hud')).not.toHaveClass(/hidden/);

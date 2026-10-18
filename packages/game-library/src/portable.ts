@@ -8,6 +8,8 @@ import { validateManifestV2 } from '../../game-runtime/src/validation-v2';
 import { validateDataModule } from '../../modules/src/data';
 import { validateUniverse } from '../../sim-core/src/universe';
 import { fileLimit, readZip, validateFilePaths, writeZip, type PackageFiles, type ZipOptions } from './zip';
+import type { ShippedPackageOptions } from './shipped-catalogue';
+export { ShippedModuleCatalogue, parseShippedCatalogue, type ShippedModulePin, type ShippedPackageOptions } from './shipped-catalogue';
 
 export const PACKAGE_FORMAT = 'spacelab-module-package/1';
 export const DATA_PACKAGE_FORMAT = 'spacelab-data-package/1';
@@ -83,13 +85,14 @@ function safeDigest(raw: unknown): string {
   if (typeof raw !== 'string' || !/^[0-9a-f]{64}$/.test(raw)) throw new Error('Invalid SHA-256 digest');
   return raw;
 }
+/** Structural authoring validation. Reserved identity recognition requires the
+ * verified complete inventory and is enforced by inspectModuleFiles. */
 export function validateDescriptor(raw: unknown): ModulePackageDescriptor {
   const d = object(raw, 'Module package');
   keys(d, ['format', 'manifest', 'entry', 'build', 'compatibility', 'assets', 'data', 'guides', 'inputs', 'sourceStatus', 'legacy'], 'Module package');
   if (d.format !== PACKAGE_FORMAT && d.format !== DATA_PACKAGE_FORMAT) throw new Error('Unsupported module package format');
   const manifest = (d.manifest as { format?: unknown })?.format === 'space-sim-module/2' ? validateManifestV2(d.manifest) : validateManifest(d.manifest);
   if (d.format === DATA_PACKAGE_FORMAT && manifest.kind !== 'data') throw new Error('Data files cannot contain executable modules');
-  if (manifest.id.startsWith('builtin.')) throw new Error('Imported builtin identities require a shipped catalogue; fork under a creator namespace');
   if (!(MODULE_LICENSES as readonly string[]).includes(manifest.license)) throw new Error('Module license is not approved for distribution');
   const compatibility = object(d.compatibility, 'Compatibility'); keys(compatibility, ['deterministic', 'multiplayer'], 'Compatibility');
   if (typeof compatibility.deterministic !== 'boolean' || typeof compatibility.multiplayer !== 'boolean'
@@ -149,7 +152,7 @@ function validateGuide(bytes: Uint8Array): void {
   }
 }
 /** Validate source packages inertly; playable=false permits missing/stale bundles for inspection. */
-export function inspectModuleFiles(files: PackageFiles, playable = true): InspectedModule {
+export function inspectModuleFiles(files: PackageFiles, playable = true, options: ShippedPackageOptions = {}): InspectedModule {
   if (files.size > 1024) throw new Error('Module file count exceeded');
   validateFilePaths([...files.keys()]);
   let total = 0;
@@ -161,6 +164,9 @@ export function inspectModuleFiles(files: PackageFiles, playable = true): Inspec
   if (files.has('module.json') === files.has('data.json')) throw new Error('Expected exactly one module.json or data.json descriptor');
   const descriptorPath = files.has('data.json') ? 'data.json' : 'module.json';
   const integrity = verifyIntegrity(files), descriptor = validateDescriptor(parsePackageJson(requiredFile(files, descriptorPath), 'Package descriptor'));
+  if (descriptor.manifest.id.startsWith('builtin.')
+    && !options.shipped?.recognizes(descriptor.manifest.id, descriptor.manifest.version, integrity.digest))
+    throw new Error('Imported builtin identities require an exact shipped catalogue pin; fork under a creator namespace');
   if ((descriptor.format === DATA_PACKAGE_FORMAT) !== (descriptorPath === 'data.json')) throw new Error('Data files use data.json with spacelab-data-package/1');
   if (!decoder.decode(requiredFile(files, 'LICENSE')).trim() || !decoder.decode(requiredFile(files, 'NOTICE')).trim()) throw new Error('Include license texts and provenance');
   const d = descriptor;
@@ -229,13 +235,13 @@ export function validateShaderPayload(raw: unknown): void {
     for (const source of Object.values(stages)) if (typeof source !== 'string' || !source.trim() || source.length > 256 * 1024) throw new Error('Invalid shader source');
   }
 }
-export async function encodeModuleFiles(files: PackageFiles, options: ZipOptions & { readonly compression?: 'store' | 'deflate' | 'auto' } = {}): Promise<Uint8Array<ArrayBuffer>> {
+export async function encodeModuleFiles(files: PackageFiles, options: ZipOptions & ShippedPackageOptions & { readonly compression?: 'store' | 'deflate' | 'auto' } = {}): Promise<Uint8Array<ArrayBuffer>> {
   const complete = new Map(files); complete.set('integrity.json', jsonBytes(createIntegrity(complete)));
-  inspectModuleFiles(complete);
+  inspectModuleFiles(complete, true, options);
   return writeZip(complete, options);
 }
-export async function decodeModulePackage(bytes: Uint8Array<ArrayBuffer>, options: ZipOptions & { readonly playable?: boolean } = {}): Promise<InspectedModule> {
-  return inspectModuleFiles(await readZip(bytes, options), options.playable ?? true);
+export async function decodeModulePackage(bytes: Uint8Array<ArrayBuffer>, options: ZipOptions & ShippedPackageOptions & { readonly playable?: boolean } = {}): Promise<InspectedModule> {
+  return inspectModuleFiles(await readZip(bytes, options), options.playable ?? true, options);
 }
 /** Lossless legacy adapter. The source-input hashes do not contain the original TypeScript. */
 export function wrapLegacyCode(artifact: CodeArtifact): Map<string, Uint8Array<ArrayBuffer>> {

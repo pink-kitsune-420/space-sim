@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Universe save commands",
+  "summary": "Universe save commands",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "universe.saves@1.0.0 requires core.save and core.universe-save-format. Each controller receives a current session/world identity and a restore command. Container decoding is inert. The host retains exact-package approval, engine validation and candidate activation. Recheck the supplied guard immediately before publication. Abort or dispose cancels pending operations; failed or stale operations retain the active world. Only one operation per controller is allowed. Saves retain the .spaceuniverse filename and Save universe / Load universe naming."
+    }
+  ]
+}

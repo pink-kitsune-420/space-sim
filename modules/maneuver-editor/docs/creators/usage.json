@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Independent maneuver editors",
+  "summary": "Owned preview/window lifecycle and explicit validated host actions.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.maneuver-planner@1.0.0 requires core.motion/core.clock, ui.windows, view.prediction, flight.maneuver-burn and view.maneuver-display at compatible 1.x versions. It creates independent floating editors over supplied read-only flight/world state; a shared dock is an optional borrowed addInstrument port. Set a distinct window id per independent editor. No private app or storage/physics implementation is imported."
+    },
+    {
+      "type": "paragraph",
+      "text": "The editor clones preview state and uses isolated prediction jobs. Pointer picking, timing and radial/prograde form edits change only local candidate nodes. canWarp=false supports read-only planning: execution/warp controls remain unavailable. setWarp, setThrottle and releaseControls are explicit host commands that must validate current authority; an editor never grants ownership or steps the world. Node/vehicle/clock/session continuity and manual-input cancellation preserve the original finite-burn policy."
+    },
+    {
+      "type": "paragraph",
+      "text": "Each editor owns its window, dock lease, listeners, preview jobs and unfinished burn policy. Dispose cancels pending actions, releases host controls, aborts listeners and closes resources even after child failures. Provider removal closes every editor and its injected styles. previewMaxMs and uiRefreshMs preserve default 1 ms/100 ms viewer budgets. The default app adapter retains legacy control IDs and layout preferences until actual manifest startup in Phase 4."
+    }
+  ]
+}

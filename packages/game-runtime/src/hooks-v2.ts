@@ -1,8 +1,9 @@
 import type { ActionDefinitionV2, ActionSink, DiscoveryProvider, Disposable, GuidePage, InputFrame, InputSource,
   MaterialDefinition, ModuleContribution, ModuleHookFault, PostEffectDefinition, ServerAdvert, TextConnection,
-  TransportProvider, UiControl, WindowDefinition } from '../../game-api/src/index';
+  TransportProvider, UiControl, WindowDefinition, WindowContentDefinition, PreviewData } from '../../game-api/src/index';
+import { captureDocument, capturePreviewData } from '../../game-api/src/index';
 import { artifactPath } from './artifact';
-import { freezeJson, keys, object, string } from './validation';
+import { freezeJson, keys, object, string, version } from './validation';
 
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const ACTION = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+\/[a-z][a-z0-9-]{0,63}$/;
@@ -26,7 +27,7 @@ export function captureActions(raw: readonly ActionDefinitionV2[], moduleId: str
   }));
 }
 export function captureWindow(raw: WindowDefinition): WindowDefinition {
-  const w = object(raw, 'Window'); keys(w, ['name', 'title', 'controls'], 'Window');
+  const w = object(raw, 'Window'); keys(w, ['name', 'title', 'controls', 'content'], 'Window');
   if (!Array.isArray(w.controls) || w.controls.length > 128) throw new Error('At most 128 controls per window');
   const ids = new Set<string>();
   const controls = w.controls.map(value => {
@@ -43,7 +44,37 @@ export function captureWindow(raw: WindowDefinition): WindowDefinition {
       || (c.minimum as number) >= (c.maximum as number) || (c.step as number) <= 0 || (c.step as number) > (c.maximum as number) - (c.minimum as number))) throw new Error('Invalid slider bounds');
     return { ...c, id } as unknown as UiControl;
   });
-  return freezeJson({ name: contributionName(w.name), title: string(w.title, 'Window title'), controls });
+  let content: readonly WindowContentDefinition[] | undefined;
+  if (w.content !== undefined) {
+    if (!Array.isArray(w.content) || w.content.length > 64) throw new Error('At most 64 window content sections');
+    content = w.content.map(captureContent);
+    for (const section of content) { if (ids.has(section.id)) throw new Error(`Duplicate content ${section.id}`); ids.add(section.id); }
+  }
+  return freezeJson({ name: contributionName(w.name), title: string(w.title, 'Window title'), controls, ...(content ? {content} : {}) });
+}
+function captureContent(value: unknown): WindowContentDefinition {
+  const c = object(value, 'Window content'), id = contributionName(c.id);
+  if (c.kind === 'document' || c.kind === 'instruction') {
+    keys(c, ['kind', 'id', 'document'], 'Document content');
+    const doc = object(c.document, 'Document'); keys(doc, ['blocks'], 'Document');
+    return { kind: c.kind, id, document: captureDocument(doc) };
+  }
+  if (c.kind === 'form' || c.kind === 'inspector') {
+    keys(c, ['kind', 'id', 'controls'], 'Form content');
+    return { kind: c.kind, id, controls: captureWindow({name:id,title:id,controls:c.controls as UiControl[]}).controls };
+  }
+  if (c.kind === 'list' || c.kind === 'log') {
+    keys(c, ['kind', 'id', 'items'], 'List content');
+    if (!Array.isArray(c.items) || c.items.length > 256) throw new Error('At most 256 list entries');
+    return {kind:c.kind,id,items:c.items.map(item => string(item, 'List entry'))};
+  }
+  if (c.kind === 'preview') {
+    keys(c, ['kind', 'id', 'type', 'data'], 'Preview content');
+    const type = object(c.type, 'Preview type'); keys(type, ['name', 'version'], 'Preview type');
+    if (typeof type.name !== 'string' || !/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(type.name)) throw new Error('Preview type must be namespaced');
+    return {kind:'preview',id,type:{name:type.name,version:version(type.version,'Preview version')},data:capturePreviewData(c.data as PreviewData)};
+  }
+  throw new Error('Unknown window content kind');
 }
 export function captureGuide(raw: GuidePage): GuidePage {
   const p = object(raw, 'Guide'); keys(p, ['id', 'audience', 'title', 'summary', 'asset'], 'Guide');
@@ -59,11 +90,7 @@ export function validateGuideDocument(text: string, page: GuidePage): void {
   keys(raw, ['id', 'audience', 'title', 'summary', 'blocks'], 'Guide document');
   if (raw.id !== page.id || raw.audience !== page.audience) throw new Error('Guide document identity/audience mismatch');
   string(raw.title, 'Guide title'); string(raw.summary, 'Guide summary');
-  if (!Array.isArray(raw.blocks) || raw.blocks.length > 256) throw new Error('At most 256 guide blocks');
-  for (const value of raw.blocks) {
-    const block = object(value, 'Guide block'); keys(block, ['type', 'text'], 'Guide block');
-    if (!['paragraph', 'heading', 'code'].includes(block.type as string) || typeof block.text !== 'string') throw new Error('Unsupported guide block');
-  }
+  captureDocument(raw);
 }
 export function captureEffect<T extends MaterialDefinition | PostEffectDefinition>(raw: T, post: boolean): T {
   const e = object(raw, 'Effect'); keys(e, post ? ['name', 'fragmentAsset', 'after', 'scale', 'uniforms'] : ['name', 'bodyIds', 'fragmentAsset', 'uniforms'], 'Effect');
@@ -130,21 +157,26 @@ export class DeviceHooks implements Disposable {
     const connect = method(raw, 'connect'), listen = raw.listen ? method(raw, 'listen') : undefined;
     const value: TransportProvider = Object.freeze({ name, schemes: Object.freeze([...raw.schemes]),
       connect: (address: string, signal: AbortSignal) => this.run('transport', moduleId, id, signal, async ownedSignal => {
-        const peer = ownedConnection(await connect(address, ownedSignal));
-        if (ownedSignal.aborted) { peer.close('Connection cancelled'); throw new Error('Connection cancelled'); }
+        let cancel = (): void => {};
+        const peer = ownedConnection(await connect(address, ownedSignal), () => signal.removeEventListener('abort', cancel));
+        cancel = () => { try { peer.close('Connection cancelled'); } catch (error) { this.fail('transport', id, moduleId, error); } };
+        signal.addEventListener('abort', cancel, { once: true });
+        if (signal.aborted || ownedSignal.aborted) { peer.close('Connection cancelled'); throw new Error('Connection cancelled'); }
         this.own(id, { dispose: () => peer.close('Module disposed') }); return peer;
       }),
       ...(listen ? { listen: (address: string, accept: (peer: TextConnection) => void, signal: AbortSignal) => this.run('transport', moduleId, id, signal, async ownedSignal => {
         const listener = await listen(address, rawPeer => {
           try {
             const peer = ownedConnection(rawPeer);
-            if (ownedSignal.aborted || !this.enabled(id)) { peer.close('Listener cancelled'); return; }
+            if (signal.aborted || ownedSignal.aborted || !this.enabled(id)) { peer.close('Listener cancelled'); return; }
             this.own(id, { dispose: () => peer.close('Module disposed') }); accept(peer);
           } catch (error) { this.fail('transport', id, moduleId, error); }
         }, ownedSignal);
         const close = method(listener, 'dispose'); let closed = false;
-        const resource = Object.freeze({ dispose() { if (closed) return; closed = true; close(); } });
-        if (ownedSignal.aborted) { resource.dispose(); throw new Error('Listener cancelled'); }
+        const cancel = (): void => { try { resource.dispose(); } catch (error) { this.fail('transport', id, moduleId, error); } };
+        const resource = Object.freeze({ dispose() { if (closed) return; closed = true; signal.removeEventListener('abort', cancel); close(); } });
+        signal.addEventListener('abort', cancel, { once: true });
+        if (signal.aborted || ownedSignal.aborted) { resource.dispose(); throw new Error('Listener cancelled'); }
         this.own(id, resource); return resource;
       }) } : {}),
     });
@@ -192,19 +224,21 @@ function captureAdvert(raw: ServerAdvert): ServerAdvert {
   if (!Number.isSafeInteger(a.players) || !Number.isSafeInteger(a.maxPlayers) || (a.players as number) < 0 || (a.maxPlayers as number) < 1 || (a.players as number) > (a.maxPlayers as number)) throw new Error('Invalid server player counts');
   return freezeJson({ id: string(a.id, 'Server ID'), name: string(a.name, 'Server name'), address: string(a.address, 'Server address'), protocol: string(a.protocol, 'Server protocol'), players: a.players, maxPlayers: a.maxPlayers }) as ServerAdvert;
 }
-function ownedConnection(raw: TextConnection): TextConnection {
-  try { return captureConnection(raw); }
+function ownedConnection(raw: TextConnection, stopped: () => void = () => {}): TextConnection {
+  try { return captureConnection(raw, stopped); }
   catch (error) { try { raw.close('Invalid connection'); } catch { /* Preserve validation failure. */ } throw error; }
 }
-function captureConnection(raw: TextConnection): TextConnection {
+function captureConnection(raw: TextConnection, stopped: () => void): TextConnection {
   string(raw.label, 'Connection label');
   const send = method(raw, 'send'), close = method(raw, 'close'); let closed = false;
   if (!Number.isFinite(raw.bufferedAmount) || raw.bufferedAmount < 0) throw new Error('Invalid connection backpressure');
+  let onclose = raw.onclose, notified = false;
+  raw.onclose = reason => { if (notified) return; notified = true; closed = true; stopped(); onclose?.(reason); };
   return Object.freeze({ label: raw.label,
     get bufferedAmount() { return raw.bufferedAmount; },
     send(text: string) { if (closed) throw new Error('Connection closed'); send(text); },
-    close(reason?: string) { if (closed) return; closed = true; close(reason); },
+    close(reason?: string) { if (closed) return; closed = true; stopped(); close(reason); },
     get onmessage() { return raw.onmessage; }, set onmessage(value) { raw.onmessage = value; },
-    get onclose() { return raw.onclose; }, set onclose(value) { raw.onclose = value; },
+    get onclose() { return onclose; }, set onclose(value) { onclose = value; },
   });
 }

@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Canvas 2D",
+  "summary": "Public render.canvas@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Draws flight frames or body-only scenes with read-only public geometry. Supply an independent camera and optional theme artwork. No default planet, trainer, HUD or world scheduler is loaded. Geometry queries use the selected surface provider; draw quality never changes collision. The caller owns the borrowed canvas; the provider releases created renderers on disposal."
+    }
+  ]
+}

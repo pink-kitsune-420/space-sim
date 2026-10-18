@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Throttle HUD",
+  "summary": "Optional flight instrument using the shared HUD lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Use this optional instrument definition through ui.view-hud@1.0.0 with view.flight-hud-state@1.0.0. Every seat follows the same create/rebind/resize/update/dispose path. The read-only flight adapter supplies detached quantities, cached geometry and local preferences. Commands recheck current target ownership and suppression through the adapter. Removing the definition releases gestures, controls and subscriptions; physics, vehicles, split screen and cameras remain independent."
+    }
+  ]
+}
