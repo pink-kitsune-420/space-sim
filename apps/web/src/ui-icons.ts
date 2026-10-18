@@ -1,5 +1,6 @@
 /** Minimal line icons for the HUD dock and window chrome; stroked with the current text colour. */
 const PATHS = {
+  grip: '<path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01" stroke-width="3"/>',
   setup: '<circle cx="12" cy="12" r="4.5"/><ellipse cx="12" cy="12" rx="10" ry="3.6" transform="rotate(-24 12 12)"/>',
   ship: '<path d="M12 2.5 17 15l-5-2.6L7 15z"/><path d="M10 17.5 12 21.5l2-4"/>',
   fleet: '<path d="M7.5 3 11 12l-3.5-2L4 12z"/><path d="M16.5 10 20 19l-3.5-2-3.5 2z"/>',

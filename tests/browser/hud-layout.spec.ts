@@ -102,3 +102,88 @@ test('touch controls leave room for chat, telemetry and a movable navball', asyn
   })).toBe(true);
   await page.screenshot({ path: info.outputPath('hud-touch.png') });
 });
+
+test('edit mode moves the default pinned navball directly and preserves its pin preference', async ({ page }) => {
+  await page.goto('/');
+  await openPanel(page, 'settings'); await page.getByRole('button', { name: 'Edit HUD layout', exact: true }).click();
+  const handle = page.getByRole('button', { name: 'Move status', exact: true });
+  await expect(handle.locator('svg')).toBeVisible();
+  await expect(handle).toHaveText('');
+  expect((await handle.boundingBox())!.width).toBeLessThanOrEqual(32);
+  const before = await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0]);
+  await page.mouse.move(before.x, before.y); await page.mouse.down();
+  await page.mouse.move(before.x - 120, before.y - 70, { steps: 6 }); await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('space-sim:local-players:v1')!).slots[0].navball.anchor)).toBe('custom');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('space-sim:local-players:v1')!).slots[0].navball.pinned)).toBe(true);
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect.poll(async () => (await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0])).x).toBeCloseTo(before.x - 120, 0);
+  await page.reload();
+  await expect.poll(async () => (await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0])).x).toBeCloseTo(before.x - 120, 0);
+  await expect(page.locator('#status')).toHaveText('LANDED');
+});
+
+test('HUD switches persist, leave the dock reachable, and restore existing instrument controls', async ({ page }, info) => {
+  await page.goto('/');
+  const fingerprint = await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).fingerprint);
+  await openPanel(page, 'settings');
+  for (const id of ['status', 'controls', 'clock', 'telemetry', 'message', 'terrain', 'throw', 'players', 'chat', 'scale', 'labels', 'navball']) {
+    await page.locator(`#hud-visible-${id}`).uncheck();
+  }
+  await page.locator('#hud-visible-touch').check();
+  await expect(page.locator('#touch-overlay')).toBeVisible();
+  await page.locator('#hud-visible-touch').uncheck();
+  await page.locator('#hud-visible-profiler').check();
+  await expect(page.locator('#profiler')).toBeVisible();
+  await page.locator('#hud-visible-profiler').uncheck();
+  await closePanel(page);
+  for (const selector of ['.hud-top-left', '.hud-quickbar', '.view-time.hud-movable', '.telemetry.hud-movable', '#flight-message', '#terrain-notice', '#chat-overlay', '#touch-overlay', '#profiler']) {
+    await expect(page.locator(selector)).toBeHidden();
+  }
+  await expect(page.getByRole('navigation', { name: 'Windows', exact: true })).toBeVisible();
+  await page.screenshot({ path: info.outputPath('minimal-hud.png') });
+  await page.reload(); await openPanel(page, 'settings');
+  for (const id of ['status', 'controls', 'clock', 'telemetry', 'message', 'terrain', 'throw', 'players', 'chat', 'scale', 'labels', 'navball', 'touch', 'profiler']) {
+    await expect(page.locator(`#hud-visible-${id}`)).not.toBeChecked();
+  }
+  // Instruments and Settings operate on the same navball choice.
+  await openPanel(page, 'data');
+  const navball = page.locator('#instruments').getByRole('button', { name: 'Navball', exact: true });
+  await expect(navball).toHaveAttribute('aria-pressed', 'false'); await navball.click();
+  await openPanel(page, 'settings'); await expect(page.locator('#hud-visible-navball')).toBeChecked();
+  await page.getByRole('button', { name: 'Restore HUD visibility', exact: true }).click();
+  await closePanel(page);
+  for (const selector of ['.hud-top-left', '.hud-quickbar', '.view-time.hud-movable', '.telemetry.hud-movable', '#flight-message', '#chat-overlay']) {
+    await expect(page.locator(selector)).toBeVisible();
+  }
+  expect(await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).fingerprint)).toBe(fingerprint);
+  // An explicit dock/keyboard action can reopen chat after it was hidden.
+  await openPanel(page, 'settings'); await page.locator('#hud-visible-chat').uncheck(); await closePanel(page);
+  await page.locator('#flight-view').focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('#chat-input')).toBeVisible();
+});
+
+test('scale and ship-label switches remove the actual Canvas annotations', async ({ page }) => {
+  await page.addInitScript(() => {
+    const state = window as unknown as { hudAnnotationTexts: string[] };
+    state.hudAnnotationTexts = [];
+    const transform = CanvasRenderingContext2D.prototype.setTransform;
+    CanvasRenderingContext2D.prototype.setTransform = new Proxy(transform, { apply(target, receiver, args) {
+      if ((receiver as CanvasRenderingContext2D).canvas.id === 'flight-view') state.hudAnnotationTexts = [];
+      return Reflect.apply(target, receiver, args);
+    } });
+    const text = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = new Proxy(text, { apply(target, receiver, args) {
+      if ((receiver as CanvasRenderingContext2D).canvas.id === 'flight-view') state.hudAnnotationTexts.push(String(args[0]));
+      return Reflect.apply(target, receiver, args);
+    } });
+  });
+  await page.goto('/');
+  const annotations = () => page.evaluate(() => {
+    const texts = (window as unknown as { hudAnnotationTexts: string[] }).hudAnnotationTexts;
+    return { ship: texts.some(text => text.startsWith('VESSEL')), scale: texts.some(text => /^\d+ m$/.test(text)) };
+  });
+  await expect.poll(annotations).toEqual({ ship: true, scale: true });
+  await openPanel(page, 'settings');
+  await page.locator('#hud-visible-labels').uncheck(); await page.locator('#hud-visible-scale').uncheck();
+  await expect.poll(annotations).toEqual({ ship: false, scale: false });
+});

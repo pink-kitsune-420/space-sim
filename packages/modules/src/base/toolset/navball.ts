@@ -129,6 +129,7 @@ export function drawNavball(
   trajectoryText?: string,
   pinned = true,
   isDragging = false,
+  editing = false,
 ): OverlayPrimitive[] {
   const r = RADIUS * scale;
   const track = TRACK * scale;
@@ -150,7 +151,7 @@ export function drawNavball(
   ];
 
   // Drag indicator and handles when unpinned or dragging
-  if (!pinned) {
+  if (!pinned && !editing) {
     out.push({
       kind: 'circle',
       space: 'screen',
@@ -174,16 +175,21 @@ export function drawNavball(
 
   // Pin button: vector pushpin glyph at upper-right of dial
   const pinPos: Vec = { x: center.x + (track + 2 * scale) * 0.72, y: center.y - (track + 2 * scale) * 0.72 };
-  out.push(
+  if (editing) {
+    for (const dx of [-2, 2]) for (const dy of [-4, 0, 4]) {
+      out.push({ kind: 'circle', space: 'screen', center: { x: pinPos.x + dx * scale, y: pinPos.y + dy * scale },
+        radius: scale, color: accentColor ?? RIM, fill: true });
+    }
+  } else out.push(
     { kind: 'circle', space: 'screen', center: pinPos, radius: 4 * scale, color: pinned ? (accentColor ?? RIM) : '#ffb347', fill: pinned, width: 1.5 },
     line([pinPos, { x: pinPos.x - 4 * scale, y: pinPos.y + 4 * scale }], pinned ? (accentColor ?? RIM) : '#ffb347', 1.5),
     { kind: 'text', space: 'screen', at: { x: pinPos.x + 6 * scale, y: pinPos.y + 3 * scale }, color: pinned ? `${accentColor ?? LABEL}99` : '#ffb347', align: 'left', text: pinned ? 'PIN' : 'UNPIN' },
   );
 
   // Status banner when unpinned or dragging
-  if (isDragging) {
+  if (isDragging && !editing) {
     out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: center.y - track - glyph - 15 * scale }, color: accentColor ?? '#38ef7d', align: 'center', text: '✥ DRAGGING NAVBALL' });
-  } else if (!pinned) {
+  } else if (!pinned && !editing) {
     out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: center.y - track - glyph - 15 * scale }, color: '#ffb347', align: 'center', text: '🔓 DRAG TO MOVE' });
   }
 
@@ -280,6 +286,8 @@ export interface NavballPlacementDetail {
   readonly playerLabel?: string;
   readonly pinned?: boolean;
   readonly isDragging?: boolean;
+  /** Layout editor allows movement while retaining the saved pin preference. */
+  readonly editing?: boolean;
 }
 
 let customNavballPlacementProvider: ((view: PresentationView) => NavballPlacementDetail | undefined) | undefined;
@@ -321,6 +329,7 @@ export const navball: RegisteredModule = {
             undefined,
             custom.pinned ?? true,
             custom.isDragging ?? false,
+            custom.editing ?? false,
           );
         }
 

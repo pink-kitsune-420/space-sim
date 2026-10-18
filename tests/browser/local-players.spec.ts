@@ -194,3 +194,29 @@ test('cancelling a guest slingshot abandons the throw without launching its ship
   await expect.poll(async () => (await debug(page)).time).toBeGreaterThan(before + .2);
   expect((await debug(page)).localPlayers.guests[0].status).toBe('landed');
 });
+
+test('HUD edit mode moves only the selected guest navball in shared and split views', async ({ page }) => {
+  await page.setViewportSize({ width: 960, height: 720 });
+  for (const mode of ['dynamic', 'split']) {
+    await players(page, 2); await page.locator('#split-screen-mode').selectOption(mode);
+    await page.locator('#controls-close').click(); await closePanel(page);
+    await openPanel(page, 'settings'); await page.getByRole('button', { name: 'Edit HUD layout', exact: true }).click();
+    const pane = mode === 'split' ? page.locator('.split-pane canvas') : page.locator('#flight-view');
+    const box = (await pane.boundingBox())!;
+    await expect.poll(async () => (await debug(page)).hud.navballs[1].width).toBeCloseTo(box.width, 0);
+    const center = (await debug(page)).hud.navballs[1];
+    const primary = (await stored(page)).slots[0].navball;
+    await page.mouse.move(box.x + center.x, box.y + center.y); await page.mouse.down();
+    await page.mouse.move(box.x + center.x + 60, box.y + center.y - 40, { steps: 6 }); await page.mouse.up();
+    await expect.poll(async () => (await stored(page)).slots[1].navball.anchor).toBe('custom');
+    expect((await stored(page)).slots[1].navball.pinned).toBe(true);
+    expect((await stored(page)).slots[0].navball).toEqual(primary);
+    await page.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect.poll(async () => (await debug(page)).hud.navballs[1].x).toBeCloseTo(center.x + 60, 0);
+  }
+  await openPanel(page, 'settings'); await page.locator('#hud-visible-players').uncheck(); await closePanel(page);
+  for (const tag of await page.locator('.split-tag').all()) await expect(tag).toBeHidden();
+  await page.reload();
+  await expect.poll(async () => (await debug(page)).localPlayers.count).toBe(2);
+  for (const tag of await page.locator('.split-tag').all()) await expect(tag).toBeHidden();
+});

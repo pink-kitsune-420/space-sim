@@ -1,3 +1,5 @@
+import { icon } from './ui-icons';
+
 /** Viewport-relative HUD preferences; presentation only, independent of world saves. */
 const KEY = 'space-sim:hud-layout:1';
 const ITEMS = [
@@ -26,7 +28,7 @@ export function initHudEditor(viewport: HTMLElement, changed: () => void) {
   const toolbar = document.createElement('div');
   toolbar.className = 'hud-layout-toolbar';
   toolbar.hidden = true;
-  toolbar.innerHTML = '<span>Drag the move handles. Windows and navballs have their own handles.</span><button type="button">Done</button>';
+  toolbar.innerHTML = '<span>Drag grips or navballs to move.</span><button type="button">Done</button>';
   viewport.append(toolbar);
   const save = (): void => {
     try { localStorage.setItem(KEY, JSON.stringify(positions)); } catch { /* Session-only preferences. */ }
@@ -64,7 +66,7 @@ export function initHudEditor(viewport: HTMLElement, changed: () => void) {
     handle.type = 'button'; handle.className = 'hud-move-handle';
     handle.setAttribute('aria-label', `Move ${label}`);
     handle.title = `Move ${label}; arrow keys move, Shift moves faster`;
-    handle.textContent = `↔ ${label}`;
+    handle.innerHTML = icon('grip');
     element.append(handle);
     let drag: { pointer: number; x: number; y: number; left: number; top: number } | undefined;
     handle.addEventListener('pointerdown', event => {
@@ -72,6 +74,7 @@ export function initHudEditor(viewport: HTMLElement, changed: () => void) {
       event.preventDefault(); event.stopPropagation();
       const rect = element.getBoundingClientRect(), parent = viewport.getBoundingClientRect();
       drag = { pointer: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left - parent.left, top: rect.top - parent.top };
+      element.classList.add('hud-moving');
       handle.setPointerCapture(event.pointerId);
     });
     handle.addEventListener('pointermove', event => {
@@ -79,7 +82,7 @@ export function initHudEditor(viewport: HTMLElement, changed: () => void) {
       event.stopPropagation();
       remember(id, element, drag.left + event.clientX - drag.x, drag.top + event.clientY - drag.y);
     });
-    const end = (): void => { if (drag) { drag = undefined; save(); } };
+    const end = (): void => { if (drag) { drag = undefined; element.classList.remove('hud-moving'); save(); } };
     for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) handle.addEventListener(name, end);
     handle.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); });
     handle.addEventListener('keydown', event => {

@@ -51,9 +51,10 @@ without ever reaching the ground. That path is called an <b>orbit</b>.</p>
 <p>Click a dock button again or press <kbd>Esc</kbd> to close its window. The <b>pin</b> button keeps a window open
 while you fly. Press {{key:pause}} to pause.</p>
 <p>Open <b>Settings → Edit HUD layout</b> to move the dock, flight controls, clock, status, readings and hints.
-Drag a move handle, or focus it and use the arrow keys. Hold Shift for larger steps. Choose <b>Done</b> when finished.
+Drag a small grip, or focus it and use the arrow keys. Navballs can be dragged directly while editing, even when pinned. Hold Shift for larger steps. Choose <b>Done</b> when finished.
 Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
-Windows and chat move by their title bars; navballs unlock with their pin buttons. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
+Windows and chat move by their title bars. Outside the editor, unlock a navball with its pin button before dragging it. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
+<p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, labels and the scale bar. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
 <h3>Where to start</h3>
 <ol>
   <li>Look over <a data-page="controls">Controls</a>, or hold {{key:engine}} to fire the engine and steer with {{key:turnLeft}} {{key:turnRight}}.</li>

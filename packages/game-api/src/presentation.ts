@@ -67,6 +67,9 @@ export interface RenderFrame {
   readonly padNormal?: Vec;
   /** Label beside the piloted ship (default VESSEL 01). */
   readonly shipLabel?: string;
+  /** Viewer-only annotations; omitted preserves the default visible labels and scale bar. */
+  readonly showScale?: boolean;
+  readonly showShipLabels?: boolean;
   /** Other vessels, drawn beneath the piloted ship. */
   readonly ships?: readonly RenderShip[];
   /** Validated presentation layers above the scene, in the overlay section: shapes in order,

@@ -344,7 +344,7 @@ export class WebGLRenderer implements Renderer {
     const ship = toScreen(shipPos);
     const shipVisible = ship.x >= -40 && ship.x <= width + 40 && ship.y >= -40 && ship.y <= height + 40;
     const shipLabel = state.status === 'crashed' ? 'SIGNAL LOST' : frame.shipLabel ?? 'VESSEL 01';
-    if (shipVisible) labels.reserve(labelRect(shipLabel, ship.x + 16, ship.y - 13, 'left'));
+    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, ship.x + 16, ship.y - 13, 'left'));
 
     // 1. Fullscreen Shader Pass (Stars + Celestial Bodies)
     gl.disable(gl.BLEND);
@@ -484,7 +484,7 @@ export class WebGLRenderer implements Renderer {
       }
       this.drawShipBatch(others, toScreen, camera.rotation, width, height);
       for (const other of others) {
-        if (other.rock) continue;
+        if (other.rock || frame.showShipLabels === false) continue;
         const at = toScreen(other.position);
         if (at.x < -40 || at.x > width + 40 || at.y < -40 || at.y > height + 40) continue;
         const text = other.status === 'crashed' ? `${other.label} · LOST` : other.label;
@@ -500,22 +500,24 @@ export class WebGLRenderer implements Renderer {
     if (shipVisible) {
       this.drawShip(ship, -state.heading - camera.rotation, 1, state.status, engine, state.throttle, ShaderStyle.ship);
       this.beginTextPass(width, height);
-      this.drawLabel(shipLabel, ship.x + 16, ship.y - 13, ShaderStyle.telemetryLabel, 'left', dpr);
+      if (frame.showShipLabels !== false) this.drawLabel(shipLabel, ship.x + 16, ship.y - 13, ShaderStyle.telemetryLabel, 'left', dpr);
       this.beginVectorPass(width, height);
     }
     timer?.lap('ship');
 
     // Telemetry scale bar & overlay labels
     verts = this.dynamicVerts;
-    const metres = 10 ** Math.floor(Math.log10(100 / camera.scale));
-    const pixels = metres * camera.scale;
-    const barY = height - 27;
-    verts[0] = width - 24 - pixels; verts[1] = barY;
-    verts[2] = width - 24; verts[3] = barY;
-    this.uploadAndDraw(2, gl.LINES, ShaderStyle.scale);
-
-    this.beginTextPass(width, height);
-    this.drawLabel(`${metres} m`, width - 24, height - 36, ShaderStyle.telemetryLabel, 'right', dpr);
+    if (frame.showScale !== false) {
+      const metres = 10 ** Math.floor(Math.log10(100 / camera.scale));
+      const pixels = metres * camera.scale;
+      const barY = height - 27;
+      verts[0] = width - 24 - pixels; verts[1] = barY;
+      verts[2] = width - 24; verts[3] = barY;
+      this.uploadAndDraw(2, gl.LINES, ShaderStyle.scale);
+      this.beginTextPass(width, height);
+      this.drawLabel(`${metres} m`, width - 24, height - 36, ShaderStyle.telemetryLabel, 'right', dpr);
+    }
+    if (frame.showScale === false) this.beginTextPass(width, height);
     if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
     timer?.lap('overlay');
 

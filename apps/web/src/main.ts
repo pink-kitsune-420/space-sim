@@ -5,6 +5,7 @@ import { ModuleManager } from './module-manager';
 import { LabManager } from './lab-manager';
 import { Workspace } from './workspace';
 import { initHudLayout } from './hud-layout';
+import { HudVisibility } from './hud-visibility';
 import { initChatWindow } from './chat-window';
 import { initFlightWindows } from './flight-windows';
 import { initManual } from './manual';
@@ -278,6 +279,9 @@ function notify(text: string, seconds = 5): void {
 }
 
 const viewport = canvas.parentElement as HTMLElement;
+const hudVisibility = new HudVisibility(viewport);
+profilerPanel.hidden = !hudVisibility.visible('profiler');
+profilerButton.setAttribute('aria-pressed', String(!profilerPanel.hidden));
 let controllerMenu: ControllerMenu;
 const splitModeToggleBtn = element<HTMLButtonElement>('split-mode-toggle');
 const qbSplitGroup = element<HTMLDivElement>('qb-split-group');
@@ -350,6 +354,7 @@ try {
 } catch {}
 
 function setChatMinimized(minimized: boolean, focusInput = false): void {
+  if (!minimized && focusInput && !hudVisibility.visible('chat')) hudVisibility.set('chat', true);
   chatMinimized = minimized;
   try {
     localStorage.setItem('space-sim:chat:minimized', String(minimized));
@@ -671,6 +676,9 @@ chatMinimizeBtn?.addEventListener('click', () => setChatMinimized(true));
 chatMinPill?.addEventListener('click', () => setChatMinimized(false, true));
 
 chatToggleBtn?.addEventListener('click', () => {
+  if (!hudVisibility.visible('chat')) {
+    hudVisibility.set('chat', true); setChatMinimized(false, true); return;
+  }
   if (chatMinimized) {
     setChatMinimized(false, true);
   } else if (document.activeElement === chatInput) {
@@ -691,6 +699,7 @@ window.addEventListener('keydown', event => {
   } else if (event.code === 'Slash') {
     if (document.activeElement !== chatInput && !document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
       event.preventDefault();
+      hudVisibility.set('chat', true);
       setChatMinimized(false);
       if (chatInput) {
         chatInput.focus();
@@ -1187,6 +1196,7 @@ function syncCameraButton(): void {
 }
 function toggleProfiler(): void {
   profilerPanel.hidden = !profilerPanel.hidden;
+  hudVisibility.set('profiler', !profilerPanel.hidden);
   profilerButton.setAttribute('aria-pressed', String(!profilerPanel.hidden));
   lastPanel = -Infinity;
 }
@@ -1479,6 +1489,7 @@ function buildSlingshotOverlay(s: FlightSlingshot, cameraScale: number, accentCo
 
 interface NavballDragState {
   slot: number;
+  pinned: boolean;
   pointerId: number;
   startPointer: { x: number; y: number };
   startNavballCenter: { x: number; y: number };
@@ -1544,15 +1555,16 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
     const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     const navHit = hitTestNavball(screenPos, guest.slot, gCanvas.clientWidth, gCanvas.clientHeight);
     if (navHit) {
-      if (navHit.isPin) {
+      if (navHit.isPin && !hudLayout.editing) {
         const newPinned = !navHit.pinned;
         splitScreen.setConfig(setSlotNavball(splitScreen.config, navHit.slot, { pinned: newPinned }));
         notify(`Player ${navHit.slot + 1} Navball ${newPinned ? 'Pinned' : 'Unlocked (Drag to Move)'}.`);
         return true;
       }
-      if (!navHit.pinned) {
+      if (!navHit.pinned || hudLayout.editing) {
         activeNavballDrag = {
           slot: navHit.slot,
+          pinned: navHit.pinned,
           pointerId: event.pointerId,
           startPointer: { x: event.clientX, y: event.clientY },
           startNavballCenter: { ...navHit.center },
@@ -1564,6 +1576,7 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
       }
     }
 
+    if (hudLayout.editing) return true;
     const canThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding || event.altKey;
     if (!canThrow || !throwCheatEnabled) return false;
 
@@ -1608,7 +1621,7 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
         anchor: 'custom',
         x: fracX,
         y: fracY,
-        pinned: false,
+        pinned: activeNavballDrag.pinned,
       }));
       return true;
     }
@@ -2295,6 +2308,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   let lastTouchZoomTime = -Infinity;
 
   target.addEventListener('touchstart', event => {
+    if (activeNavballDrag || hudLayout.editing) { event.preventDefault(); singleTouchLast = undefined; touchVelocityTracker.reset(); return; }
     const wantsThrow = throwCheatEnabled && (isThrowModeActive || event.altKey || isThrowKeyDown || isTouchSlingHolding);
     if (wantsThrow) return;
     cameraControl.stopFling();
@@ -2312,6 +2326,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
   }, { passive: false });
 
   target.addEventListener('touchmove', event => {
+    if (activeNavballDrag || hudLayout.editing) { event.preventDefault(); return; }
     if (event.touches.length >= 2) {
       event.preventDefault();
       isPinching = true;
@@ -2394,18 +2409,19 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     const navHit = hitTestNavball(screenPos, splitScreen.split ? 'all' : 0, target.clientWidth, target.clientHeight);
     if (navHit) {
-      if (navHit.isPin) {
+      if (navHit.isPin && !hudLayout.editing) {
         event.preventDefault();
         const newPinned = !navHit.pinned;
         splitScreen.setConfig(setSlotNavball(splitScreen.config, navHit.slot, { pinned: newPinned }));
         notify(`Player ${navHit.slot + 1} Navball ${newPinned ? 'Pinned' : 'Unlocked (Drag to Move)'}.`);
         return;
       }
-      if (!navHit.pinned) {
+      if (!navHit.pinned || hudLayout.editing) {
         event.preventDefault();
         target.focus();
         activeNavballDrag = {
           slot: navHit.slot,
+          pinned: navHit.pinned,
           pointerId: event.pointerId,
           startPointer: { x: event.clientX, y: event.clientY },
           startNavballCenter: { ...navHit.center },
@@ -2417,6 +2433,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       }
     }
 
+    if (hudLayout.editing) { event.preventDefault(); return; }
     const wantsThrow = event.altKey || isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (wantsThrow) {
       if (!throwCheatEnabled) {
@@ -2505,7 +2522,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
         anchor: 'custom',
         x: fracX,
         y: fracY,
-        pinned: false,
+        pinned: activeNavballDrag.pinned,
       }));
       return;
     }
@@ -2584,6 +2601,10 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
 }
 const requested = requestedModules();
 presentation.start(requested.presentation);
+hudVisibility.bind('navball', 'Navballs', () => presentation.isEnabled('builtin.navball'),
+  value => presentation.setEnabled('builtin.navball', value), () => presentation.setEnabled('builtin.navball', true));
+hudVisibility.bind('profiler', 'Profiler', () => !profilerPanel.hidden,
+  value => { if (value !== !profilerPanel.hidden) toggleProfiler(); }, () => { if (!profilerPanel.hidden) toggleProfiler(); });
 
 setNavballPlacementProvider(() => {
   const p1Placement = splitScreen.config.slots[0]?.navball ?? defaultNavballPlacement(0);
@@ -2600,6 +2621,7 @@ setNavballPlacementProvider(() => {
     playerLabel: splitScreen.split ? 'P1' : undefined,
     pinned: p1Placement.pinned,
     isDragging,
+    editing: hudLayout.editing,
   };
 });
 
@@ -3646,6 +3668,8 @@ gamepadManager.onShortcut(action => executeAction(action));
 touchControls.onShortcut(action => executeAction(action));
 touchControls.onZoom(factor => changeZoom(factor));
 touchControls.attach(element('flight-view').parentElement!);
+hudVisibility.bind('touch', 'Touch controls', () => document.getElementById('touch-overlay')?.hasAttribute('hidden') === false,
+  value => { release(); touchControls.saveMode(value ? 'always' : 'never'); }, () => touchControls.saveMode('auto'));
 touchControls.onSlingHold(holding => {
   isTouchSlingHolding = holding;
   updateThrowModeUI();
@@ -4355,6 +4379,7 @@ function frame(now: number): void {
           gTraj,
           gPlacement.pinned,
           isDragging,
+          hudLayout.editing,
         );
         overlays.push(...guestNavPrimitives);
       }
@@ -4378,6 +4403,8 @@ function frame(now: number): void {
     padNormal: pad && spinView.point(activeBody, view.time, pad.normal),
     shipLabel: ship?.name.toUpperCase(),
     ships: others,
+    showScale: hudVisibility.visible('scale'),
+    showShipLabels: hudVisibility.visible('labels'),
     theme: {
       ...themeCustomizer.getSettings(),
       highQuality: graphicsQuality === 'high',
@@ -4484,6 +4511,7 @@ function frame(now: number): void {
           gTraj,
           gPlacement.pinned,
           isDragging,
+          hudLayout.editing,
         ));
       }
       if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
@@ -4513,6 +4541,8 @@ function frame(now: number): void {
         padNormal: gPad && spinView.point(guest.body, guest.view.time, gPad.normal),
         shipLabel: guestShip.name.toUpperCase(),
         ships: gOthers,
+        showScale: hudVisibility.visible('scale'),
+        showShipLabels: hudVisibility.visible('labels'),
         theme: {
           ...themeCustomizer.getSettings(),
           highQuality: graphicsQuality === 'high',
