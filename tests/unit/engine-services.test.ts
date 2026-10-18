@@ -75,3 +75,31 @@ describe('typed engine and session adapters', () => {
     session.local.unseatGuest(guest); session.dispose(); session.dispose();
   });
 });
+
+describe('public privileged caller inventory', () => {
+  it('runs host snapshots, delta ownership, validation and repeated sessions against a concrete public facade', () => {
+    const backing = new World(DEFAULT_UNIVERSE), control = worldFacade(backing).control;
+    const host = new HostSession(control);
+    const player = host.seatHost('Host', 'host-secret'), guest = host.seatLocal('Guest', 'guest-secret');
+    const ship = host.spawnShip(guest, control.presetId());
+    expect(() => host.setControls(player, ship.id, { turn: 0, throttle: 0, engine: true })).toThrow();
+    host.setControls(guest, ship.id, { turn: 0, throttle: 0, engine: true }); host.step();
+    expect(host.snapshot().t).toBe('snapshot');
+    expect(() => new HostSession(control)).toThrow('change consumer');
+    host.dispose(); host.dispose();
+    expect(control.record(ship.id)!.controls.engine).toBe(false);
+    const replacement = new HostSession(control); replacement.dispose(); control.dispose();
+  });
+  it('keeps per-window pilot IDs and existing device precedence while releasing before reassignment', async () => {
+    const { LocalPilotRegistry, defaultLocalPlayers, setPlayerCount } = await import('../../apps/web/src/local-players');
+    let config = setPlayerCount(defaultLocalPlayers(), 2); const events: string[] = [];
+    const make = (window: string) => new LocalPilotRegistry({ config: () => config, count: () => config.count,
+      playerId: pilot => `${window}-${pilot}`, change(next) { events.push('assign'); config = next; }, release(pilot) { events.push(`release ${pilot ?? 'all'}`); } });
+    const first = make('window-a'), second = make('window-b');
+    expect(first.playerId(0)).not.toBe(second.playerId(0)); first.assign(1, 'keyboard');
+    expect(events).toEqual(['release all', 'assign']); expect(config.slots[1]!.device).toBe('keyboard');
+    first.assign(0, 'keyboard'); expect(config.slots[1]!.device).toBe('none');
+    expect(() => first.assign(4, 'pad:0')).toThrow('not active'); expect(() => first.assign(1, 'auto')).toThrow('Unsupported');
+    first.release(1); expect(events.at(-1)).toBe('release 1');
+  });
+});

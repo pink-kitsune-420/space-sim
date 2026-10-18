@@ -1,3 +1,7 @@
+import { GameConfigurationError } from '../../../packages/game-runtime/src/game-loader';
+import { progressConfiguration, reconstructProgress, savedProgressConfiguration } from '../../../packages/game-library/src/progress-configuration';
+import { FilePackageStore } from './package-store';
+import { DEFAULT_PROFILE } from '../../../packages/modules/src/index';
 import { decodeUniverseSave } from '../../../packages/game-library/src/save-package';
 import { builtinContextFactory, prepareGame, loadInstalledWorld } from '../../../packages/modules/src/index';
 import { spawn } from 'node:child_process';
@@ -88,16 +92,19 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const config = await loadConfig(dataDir, options.overrides);
   const createContext = builtinContextFactory('node');
   const installed = await serverModules(config, dataDir);
+  const startupCleanup: (() => void)[] = [];
+  try {
   const prepareMixed = async (restore?: unknown) => {
     const runtime = installed.runtime!;
     const prepared = await prepareInstalledWorld(runtime.plan, runtime.store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
       approvedDigests: new Set(runtime.plan.packages.map(ref => ref.digest)) }, {
       hostServices: engineModuleServices(), inspect: inspectRuntimePackage, profile: installed.bundle?.profile,
       data: installed.bundle?.modules, code: installed.code, restore,
+      configuration: progressConfiguration(installed.bundle?.profile ?? DEFAULT_PROFILE, installed.bundle?.modules ?? [], installed.code, runtime.game.runtime!),
       universe: restore ? undefined : await resolveUniverse(config.universe, dataDir),
       universeKey: installed.bundle?.selection.universe, systemId: config.system || installed.bundle?.selection.system, id: newWorldId(),
       configure(modules) {
-        if (modules.contributions('input').length || modules.contributions('window').length || modules.contributions('material').length
+        if (modules.lock.providers.renderer || modules.contributions('input').length || modules.contributions('window').length || modules.contributions('material').length
           || modules.contributions('post').length || modules.core.layers.length || modules.core.panels.length || modules.core.cameras.length)
           throw new Error('Server target contains viewer hooks; choose a headless runtime target');
       },
@@ -105,16 +112,39 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     try { await prepared.candidate.start(new AbortController().signal); return prepared; }
     catch (error) { prepared.candidate.dispose(); throw error; }
   };
-  const restore = async (raw: unknown) => installed.runtime ? (await prepareMixed(raw)).loaded
-    : loadInstalledWorld(raw, { environment: 'node', code: installed.code, data: installed.bundle?.modules });
+  const restore = async (raw: unknown) => {
+    try {
+    const configuration = savedProgressConfiguration(raw);
+    if (configuration) {
+      const packageStore = new FilePackageStore(join(dataDir, 'packages'));
+      const restored = await reconstructProgress(configuration, packageStore, 'node', { code: installed.code, data: installed.bundle?.modules ?? [],
+        allowRuntimeCode: ALLOW_RUNTIME_CODE, approvedLegacyDigests: new Set(configuration.code.map(ref => ref.digest)) });
+      const plan = restored.runtime.plans.node!;
+      const prepared = await prepareInstalledWorld(plan, packageStore, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
+        approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...restored, configuration,
+        hostServices: engineModuleServices(), inspect: inspectRuntimePackage, restore: raw,
+        configure(modules) {
+          if (modules.lock.providers.renderer || modules.contributions('input').length || modules.contributions('window').length || modules.contributions('material').length
+            || modules.contributions('post').length || modules.core.layers.length || modules.core.panels.length || modules.core.cameras.length)
+            throw new Error('Progress Node target contains viewer hooks; use a compatible headless target');
+        },
+      }, new AbortController().signal);
+      try { await prepared.candidate.start(new AbortController().signal); return prepared.loaded; }
+      catch (error) { prepared.candidate.dispose(); throw error; }
+    }
+    } catch (error) { throw new GameConfigurationError(error instanceof Error ? error.message : String(error)); }
+    return installed.runtime ? (await prepareMixed(raw)).loaded
+      : loadInstalledWorld(raw, { environment: 'node', code: installed.code, data: installed.bundle?.modules });
+  };
   const store = new WorldStore(dataDir, config.keepBackups, log, createContext, restore);
 
   if (options.importSave) {
     const imported = await restore(await decodeUniverseSave(new Uint8Array(await readFile(options.importSave))));
-    const previous = await store.backup();
-    if (previous) log(`Backed up the previous world to ${previous}.`);
-    await store.save(saveWorld(imported.world, { players: imported.players, savedAt: new Date().toISOString() }));
-    imported.world.dispose();
+    try {
+      const previous = await store.backup();
+      if (previous) log(`Backed up the previous world to ${previous}.`);
+      await store.save(saveWorld(imported.world, { players: imported.players, savedAt: new Date().toISOString() }));
+    } finally { imported.world.dispose(); }
     log(`Imported ${options.importSave}.`);
   } else if (options.newWorld) {
     const previous = await store.backup();
@@ -125,6 +155,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   let players: readonly SavedPlayer[] = [];
   if (existing) {
     ({ world, players } = existing.loaded);
+    startupCleanup.push(() => world.dispose());
     log(`Loaded world ${world.id} from ${existing.from}: ${world.system.system.name}, T+${clockText(world.time)}, `
       + `${world.size} ships, ${players.length} known players.`);
     if (existing.from === store.file) await store.backup();
@@ -137,6 +168,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     prepared.runtime.activate(prepared.candidate);
     world = prepared.world;
     }
+    startupCleanup.push(() => world.dispose());
     log(`Created world ${world.id}: ${world.universe.name} · ${world.system.system.name}.`);
   }
   if (world.soloPreview) { world.dispose(); throw new Error('Server module profile requires deterministic multiplayer support'); }
@@ -151,6 +183,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     snapshotEveryTicks: Math.max(1, Math.round(100 / config.snapshotsPerSecond)),
     ...(config.spawnPreset ? { spawnPreset: config.spawnPreset } : {}),
   }, { players, log });
+  startupCleanup.push(() => host.dispose());
 
   // "Anything changed?" from the world's version and the roster, not by building the whole
   // save twice: a large world takes hundreds of milliseconds to serialize.
@@ -221,6 +254,10 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   let accepting = true;
   const connections = new Set<NonNullable<ReturnType<typeof acceptWebSocket>>>();
   const server = createServer(serve);
+  startupCleanup.push(() => {
+    for (const connection of connections) connection.close('Server startup failed');
+    server.closeAllConnections(); if (server.listening) server.close();
+  });
   server.on('clientError', (_error, socket) => socket.destroy());
   server.on('upgrade', (request, socket, head) => {
     if (!accepting) { socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); return; }
@@ -261,6 +298,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const backups = setInterval(() => {
     store.backup().then(path => { if (path) log(`Backup written to ${path}.`); }, error => log(`Backup failed: ${(error as Error).message}`));
   }, config.backupMinutes * 60_000);
+  startupCleanup.push(() => { clearInterval(ticker); clearInterval(autosave); clearInterval(backups); });
   for (const timer of [autosave, backups]) timer.unref();
 
 
@@ -283,7 +321,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         // sockets as idle HTTP connections and destroyed them mid-goodbye.
         setTimeout(() => server.closeAllConnections(), 500).unref();
       })]);
-      world.dispose();
+      host.dispose(); world.dispose();
       log('Stopped.');
     })();
     return stopping;
@@ -350,7 +388,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     }
   };
 
+  startupCleanup.length = 0;
   return { config, host, store, port, save, stop, command, };
+  } catch (error) {
+    for (let i = startupCleanup.length - 1; i >= 0; i--) { try { startupCleanup[i]!(); } catch { /* Complete rollback of the remaining resources. */ } }
+    throw error;
+  }
 }
 
 function escapeHtml(text: string): string {

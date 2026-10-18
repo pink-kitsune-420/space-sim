@@ -1,5 +1,6 @@
+import type { WorldRead } from '../../../packages/game-api/src/index';
 import { APPEARANCE_TUNING, spinAngle, type AppearanceStyle, type AppearanceTuning, type BodyAppearance, type ResolvedBody } from '../../../packages/sim-core/src/index';
-import type { World } from '../../../packages/sim-core/src/world';
+
 import { PlanetPreview } from '../../../packages/render-2d/src/index';
 import type { RenderBody } from '../../../packages/game-api/src/index';
 import { COLOR_ROLES, PLANET_PRESETS, STAR_PRESETS, TUNING_LABELS, type PlanetPreset } from './planet-presets';
@@ -102,7 +103,7 @@ export class PlanetDesigner {
   private readonly ui;
 
   /** `current` names the body the pilot is at, which the designer opens on. */
-  constructor(private readonly root: HTMLElement, private readonly world: () => World,
+  constructor(private readonly root: HTMLElement, private readonly world: () => WorldRead,
     private readonly current: () => string | undefined = () => undefined) {
     const canvas = html('canvas', { className: 'planet-preview', width: 260, height: 260 });
     canvas.setAttribute('aria-label', 'Planet preview');
@@ -161,7 +162,7 @@ export class PlanetDesigner {
   }
 
   /** The look to draw a body with: the applied design, else its own. */
-  appearanceFor(world: World, body: ResolvedBody): ResolvedBody['appearance'] {
+  appearanceFor(world: WorldRead, body: ResolvedBody): ResolvedBody['appearance'] {
     return (this.applied[this.key(world, body.id)] as ResolvedBody['appearance'] | undefined) ?? body.appearance;
   }
 
@@ -176,7 +177,7 @@ export class PlanetDesigner {
     this.select(keep);
   }
 
-  private key(world: World, bodyId: string): string { return `${world.universe.id}/${world.systemId}/${bodyId}`; }
+  private key(world: WorldRead, bodyId: string): string { return `${world.universe.id}/${world.systemId}/${bodyId}`; }
   private target(): ResolvedBody { return this.world().body(this.bodyId); }
   private isStar(): boolean { return this.target().surfaceFeatures === 'star'; }
   /** What the body shows now: its applied design, else its own look. */

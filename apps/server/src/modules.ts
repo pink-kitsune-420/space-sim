@@ -7,7 +7,7 @@ import { artifactModules } from '../../../packages/game-runtime/src/loader';
 import type { RegisteredModule } from '../../../packages/game-api/src/index';
 import type { ServerConfig } from './config';
 import type { GamePackage } from '../../../packages/game-library/src/archive';
-import { installRuntimeSelection } from '../../../packages/game-library/src/runtime-selection';
+import { installRuntimeSelection, installGamePackages } from '../../../packages/game-library/src/runtime-selection';
 import { ALLOW_RUNTIME_CODE } from '../../../packages/game-runtime/src/build-policy';
 import type { InstalledGamePlan } from '../../../packages/game-runtime/src/game-loader';
 import { FilePackageStore } from './package-store';
@@ -29,6 +29,7 @@ export async function serverModules(config: ServerConfig, dataDir: string): Prom
       && !m.manifest.environments.includes('node'));
     if (unsupported) throw new Error(`Server: this game requires ${unsupported.manifest.name}, which cannot run on a Node server`);
     const store = new FilePackageStore(join(dataDir, 'packages'));
+    await installGamePackages(game, store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE }, `Owner game: ${config.gameFile}`);
     const plan = game.runtime ? await installRuntimeSelection(game.runtime, store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE }, `Owner game: ${config.gameFile}`) : undefined;
     return { code: artifactModules(game.plugins.filter(a => a.manifest.authority === 'authoritative'), 'node'), bundle: game.bundle,
       ...(plan ? { runtime: { plan, store, game } } : {}) };

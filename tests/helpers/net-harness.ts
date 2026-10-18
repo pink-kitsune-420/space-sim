@@ -1,3 +1,5 @@
+import { worldFacade } from '../../packages/sim-core/src/module-services';
+import type { WorldControl } from '../../packages/game-api/src/index';
 import { DEFAULT_UNIVERSE, type Controls } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
 import { loopback, type Connection, type Scheduler } from '../../packages/net/src/connection';
@@ -43,14 +45,14 @@ export class Game {
   readonly host: HostSession;
   readonly pilots: Pilot[] = [];
   hostTicks = new Map<number, Map<string, unknown>>();
-  constructor(settings: Partial<HostSettings> = {}, world = new World(DEFAULT_UNIVERSE, { id: 'w-test' }), players?: SavedPlayer[]) {
-    this.host = new HostSession(world, settings, { now: () => this.net.now, log: m => this.net.log.push(m), ...(players ? { players } : {}) });
+  constructor(settings: Partial<HostSettings> = {}, world: WorldControl = new World(DEFAULT_UNIVERSE, { id: 'w-test' }), players?: SavedPlayer[]) {
+    this.host = new HostSession(worldFacade(world).control, settings, { now: () => this.net.now, log: m => this.net.log.push(m), ...(players ? { players } : {}) });
   }
 
   join(name: string, options: Partial<ClientOptions> & { latencyMs?: number | (() => number); tokens?: Map<string, string> } = {}): Pilot {
     const [clientEnd, hostEnd] = this.net.link(options.latencyMs ?? 20);
     const tokens = options.tokens ?? new Map<string, string>();
-    const client = new ClientSession(clientEnd, { name, now: () => this.net.now,
+    const client = new ClientSession(clientEnd, { worldFactory: { create: (universe, options) => worldFacade(new World(universe, options)).control }, name, now: () => this.net.now,
       token: id => tokens.get(id), saveToken: (id, token) => tokens.set(id, token), ...options });
     this.host.accept(hostEnd);
     const pilot: Pilot = { client, tokens };

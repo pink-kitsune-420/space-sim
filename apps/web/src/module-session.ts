@@ -1,10 +1,10 @@
-import type { SessionFactory, SessionHandle, SessionRead, LocalSessionControl } from '../../../packages/game-api/src/index';
-import { implementationWorld, worldFacade } from '../../../packages/sim-core/src/module-services';
+import type { WorldControl, SessionFactory, SessionHandle, SessionRead, LocalSessionControl } from '../../../packages/game-api/src/index';
+import { worldFacade } from '../../../packages/sim-core/src/module-services';
 import { ClientSession } from '../../../packages/net/src/client';
 import { PROTOCOL } from '../../../packages/net/src/protocol';
 import { LocalSession, RemoteSession } from './session';
 
-function handle(session: LocalSession | RemoteSession, dispose: () => void): SessionHandle {
+function handle(session: LocalSession<WorldControl> | RemoteSession, dispose: () => void): SessionHandle {
   const world = worldFacade(session.world).read;
   const view: SessionRead = {
     get kind() { return session.kind; }, get world() { return world; }, get playerId() { return session.playerId; },
@@ -27,7 +27,7 @@ function handle(session: LocalSession | RemoteSession, dispose: () => void): Ses
 export const browserSessionFactory: SessionFactory = Object.freeze<SessionFactory>({
   protocol: PROTOCOL, entitySchema: 'space-sim-ships/1',
   local(world, options) {
-    const session = new LocalSession(implementationWorld(world), options);
+    const session = new LocalSession(world, options);
     const local: LocalSessionControl = Object.freeze({
       get token() { return session.token; }, get hosting() { return session.hosting; },
       seatGuest: session.seatGuest.bind(session), unseatGuest: session.unseatGuest.bind(session), guestControls: session.guestControls.bind(session),
@@ -36,7 +36,7 @@ export const browserSessionFactory: SessionFactory = Object.freeze<SessionFactor
       service: () => session.host.service(), snapshot: () => JSON.stringify(session.host.snapshot()), roster: () => session.host.roster(),
       close: (reason?: string) => session.host.close(reason),
     });
-    return Object.freeze(Object.assign(Object.create(handle(session, () => { session.host.close(); world.dispose(); })) as SessionHandle, { local }));
+    return Object.freeze(Object.assign(Object.create(handle(session, () => session.dispose())) as SessionHandle, { local }));
   },
   async join(peer, options, signal) {
     signal.throwIfAborted();

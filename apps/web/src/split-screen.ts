@@ -351,7 +351,10 @@ export class SplitScreen {
     const local = this.host.ownWorld();
     if (local !== this.seated) {
       // A new world (or none): old seats went with the old one.
-      for (const guest of this.guests.values()) guest.dispose();
+      for (const guest of this.guests.values()) {
+        if (guest.playerId) this.seated?.unseatGuest(guest.playerId);
+        guest.dispose();
+      }
       this.guests.clear();
       this.separatedGuests.clear();
       this.candidateSeparation.clear();

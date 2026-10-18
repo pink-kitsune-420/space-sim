@@ -1,9 +1,10 @@
+import type { WorldRead } from '../../../packages/game-api/src/index';
 import { coastAt, elements, type Coast, type State, type Vec } from '../../../packages/sim-core/src/index';
-import type { Ship, World } from '../../../packages/sim-core/src/world';
+import type { Ship } from '../../../packages/sim-core/src/world';
 import { interpolateState, type Camera, type RenderShip } from '../../../packages/render-2d/src/index';
 
 export interface FleetViewInput {
-  readonly world: World;
+  readonly world: WorldRead;
   /** Presentation time of the frame (may lie between fixed steps). */
   readonly time: number;
   readonly alpha: number;

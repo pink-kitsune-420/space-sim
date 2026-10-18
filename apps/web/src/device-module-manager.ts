@@ -1,8 +1,10 @@
+import { progressConfiguration } from '../../../packages/game-library/src/progress-configuration';
+import { DEFAULT_PROFILE } from '../../../packages/modules/src/index';
 import { CORE_SESSION, type JoinOptions, type ManifestV2, type ModuleProfileV2 } from '../../../packages/game-api/src/index';
 import { ALLOW_RUNTIME_CODE } from '../../../packages/game-runtime/src/build-policy';
-import { InstalledGameRuntime, type CandidateGame, type InstalledGamePlan } from '../../../packages/game-runtime/src/game-loader';
+import { GameTransition, type CandidateGame, type InstalledGamePlan } from '../../../packages/game-runtime/src/game-loader';
 import { installPackage, type PackageStore } from '../../../packages/game-runtime/src/package-store';
-import { previewModulesV2 } from '../../../packages/game-runtime/src/preview-v2';
+import { previewModulesV2, removeModuleDependents } from '../../../packages/game-runtime/src/preview-v2';
 import { ModuleResolutionError } from '../../../packages/game-runtime/src/resolver-v2';
 import { satisfies } from '../../../packages/game-runtime/src/semver';
 import { decodeModulePackage } from '../../../packages/game-library/src/portable';
@@ -27,14 +29,18 @@ export class DeviceModuleManager {
   private readonly capabilities: Record<string, Record<string, string>> = Object.create(null);
   private readonly settings: Record<string, Record<string, number>> = Object.create(null);
   private readonly catalog = new Map<string, { manifest: ManifestV2; digest: string }>();
-  private runtime: InstalledGameRuntime | undefined;
+  private readonly transition = new GameTransition();
+  private generation = 0;
   private host: BrowserModuleHost | undefined;
   private activePlan: InstalledGamePlan | undefined;
   private activeSelection: RuntimeSelection | undefined;
   private mixed: CandidateGame | undefined;
   private busy = false;
   constructor(private readonly store: PackageStore, private readonly options: {
-    readonly editable: () => boolean; readonly restart: () => void; readonly world: () => object; readonly activeLegacyIds: () => ReadonlySet<string>;
+    readonly pilots: import('../../../packages/game-api/src/index').PilotRegistry; readonly editable: () => boolean; readonly world: () => object;
+    readonly base: () => { profile: ModuleProfileV2; applied: ModuleProfileV2; manifests: ReadonlyMap<string, ManifestV2> };
+    readonly editBase: (profile: ModuleProfileV2) => void;
+    readonly apply: (selection: RuntimeSelection) => Promise<void>;
   }) {
     this.root.className = 'device-module-settings';
     const summary = document.createElement('summary'); summary.textContent = 'Device and network modules';
@@ -44,7 +50,11 @@ export class DeviceModuleManager {
     this.apply.onclick = () => { void this.activate(); };
     const dependencies = document.createElement('button'); dependencies.type = 'button'; dependencies.textContent = 'Include required modules';
     dependencies.onclick = () => { this.preview(true); this.draw(); };
-    this.root.append(summary, warning, this.list, dependencies, this.apply, this.status);
+    const dependents = document.createElement('button'); dependents.type = 'button'; dependents.textContent = 'Remove dependent modules';
+    dependents.onclick = () => { this.preview(false, true); this.draw(); };
+    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel module application'; cancel.id = 'cancel-device-modules';
+    cancel.onclick = () => this.transition.cancel();
+    this.root.append(summary, warning, this.list, dependencies, dependents, this.apply, cancel, this.status);
   }
   async refresh(): Promise<void> {
     this.catalog.clear();
@@ -72,7 +82,7 @@ export class DeviceModuleManager {
       versions.setAttribute('aria-label', `Version of ${id}`);
       for (const entry of entries) { const option = document.createElement('option'); option.value = entry.digest; option.textContent = `${entry.manifest.version} · SHA-256 ${entry.digest}`; versions.append(option); }
       versions.value = this.selected.get(id) ?? entries[0]!.digest;
-      checkbox.disabled = versions.disabled = this.busy || !!this.mixed || !this.options.editable();
+      checkbox.disabled = versions.disabled = this.busy || !this.options.editable();
       checkbox.onchange = () => { if (checkbox.checked) this.selected.set(id, versions.value); else this.selected.delete(id); this.preview(); };
       versions.onchange = () => { delete this.settings[id]; if (checkbox.checked) this.selected.set(id, versions.value); this.draw(); this.preview(); };
       const entry = entries.find(e => e.digest === versions.value)!;
@@ -106,20 +116,20 @@ export class DeviceModuleManager {
         label.append(select, ` Use for ${slot}`); item.append(label);
       }
       const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove installed version';
-      remove.disabled = this.busy || (this.runtime?.active ?? this.mixed)?.identity.packages.some(ref => ref.digest === versions.value) === true;
+      remove.disabled = this.busy || this.mixed?.identity.packages.some(ref => ref.digest === versions.value) === true;
       remove.onclick = () => { void this.store.remove(versions.value).then(() => { if (this.selected.get(id) === versions.value) this.selected.delete(id); return this.refresh(); }).catch(error => { this.status.textContent = message(error); }); };
       item.append(remove); return item;
     }));
-    this.apply.disabled = this.busy || !!this.mixed || !this.options.editable() || !this.catalog.size;
+    this.apply.disabled = this.busy || !this.options.editable() || !this.catalog.size;
   }
   private profile(): ModuleProfileV2 {
-    return { format: 'space-sim-profile/2', id: 'local.device-modules', modules: [...this.selected].map(([id, digest]) => ({ id, version: this.catalog.get(digest)!.manifest.version })),
+    return { format: 'space-sim-profile/2', id: this.activePlan?.profile.id ?? 'local.device-modules', modules: [...this.selected].map(([id, digest]) => ({ id, version: this.catalog.get(digest)!.manifest.version })),
       providers: Object.fromEntries(Object.entries(this.providers).filter(([, id]) => this.selected.has(id))),
       capabilities: Object.fromEntries(Object.entries(this.capabilities).filter(([id]) => this.selected.has(id))),
       settings: Object.fromEntries(Object.entries(this.settings).filter(([id]) => this.selected.has(id))) };
   }
   private manifests(): ReadonlyMap<string, ManifestV2> {
-    const manifests = new Map<string, ManifestV2>();
+    const manifests = new Map<string, ManifestV2>(this.options.base().manifests);
     for (const entry of this.catalog.values()) if (!manifests.has(entry.manifest.id) || this.selected.get(entry.manifest.id) === entry.digest) manifests.set(entry.manifest.id, entry.manifest);
     return manifests;
   }
@@ -127,122 +137,131 @@ export class DeviceModuleManager {
     return [...engineModuleServices(), ...host.hostServices(), { key: CORE_SESSION, service: browserSessionFactory,
       tiers: ['platform', 'network'] as const, environments: ['browser', 'offline'] as const }];
   }
-  private preview(includeDependencies = false): void {
-    const host = new BrowserModuleHost();
+  /** Shared full-game metadata preview, including the legacy authority/viewer profile. */
+  preview(includeDependencies = false, removeDependents = false, announce = true): string {
+    let text = '';
+    const host = new BrowserModuleHost(() => {}, this.options.pilots);
     try {
-      const preview = previewModulesV2(this.manifests(), this.profile(), this.runtime?.active?.identity.lock, environment(), { includeDependencies, hostServices: this.services(host) });
-      if (includeDependencies) for (const ref of preview.profile.modules) {
-        if (!this.selected.has(ref.id)) {
-          const entry = [...this.catalog.values()].find(entry => entry.manifest.id === ref.id && entry.manifest.version === ref.version)!;
-          this.selected.set(ref.id, entry.digest);
+      const base = this.options.base(), device = this.profile();
+      const combined: ModuleProfileV2 = { ...device, modules: [...base.profile.modules, ...device.modules],
+        providers: { ...base.profile.providers, ...device.providers }, settings: { ...base.profile.settings, ...device.settings },
+        capabilities: { ...base.profile.capabilities, ...device.capabilities } };
+      const manifests = this.manifests();
+      const applied = this.activePlan?.profile;
+      const currentProfile = { ...base.applied, modules: [...base.applied.modules, ...applied?.modules ?? []],
+        providers: { ...base.applied.providers, ...applied?.providers }, settings: { ...base.applied.settings, ...applied?.settings },
+        capabilities: applied?.capabilities ?? {} };
+      const currentManifests = new Map(manifests);
+      for (const manifest of this.mixed?.identity.manifests ?? []) currentManifests.set(manifest.id, manifest);
+      const current = previewModulesV2(currentManifests, currentProfile, undefined, environment(), { hostServices: this.services(host) }).lock;
+      let proposed = combined;
+      if (removeDependents) proposed = removeModuleDependents(manifests, proposed, current);
+      const preview = previewModulesV2(manifests, proposed, current, environment(),
+        { includeDependencies, requiredSlots: ['motion', 'content', 'renderer'], hostServices: this.services(host) });
+      if (includeDependencies || removeDependents) {
+        this.options.editBase({ ...preview.profile, modules: preview.profile.modules.filter(ref => base.manifests.has(ref.id)) });
+        this.selected.clear();
+        for (const ref of preview.profile.modules) if (!base.manifests.has(ref.id)) {
+          const entry = [...this.catalog.values()].find(entry => entry.manifest.id === ref.id && entry.manifest.version === ref.version);
+          if (entry) this.selected.set(ref.id, entry.digest);
         }
       }
-      this.status.textContent = `New world required. Enable: ${preview.added.join(', ') || 'none'}. Remove: ${preview.removed.join(', ') || 'none'}. Dependency order: ${preview.lock.order.join(' → ') || 'none'}.`;
+      text = `New world required. Enable: ${preview.added.join(', ') || 'none'}. Remove: ${preview.removed.join(', ') || 'none'}. Replace: ${[...new Set([...preview.replaced, ...[...this.selected].filter(([id, digest]) => this.activePlan?.packages.some(ref => ref.id === id && ref.digest !== digest)).map(([id]) => id)])].join(', ') || 'none'}. Provider changes: ${preview.providerChanges.join(', ') || 'none'}. Dependency order: ${preview.lock.order.join(' → ') || 'none'}. Dependencies: ${preview.dependencies.map(d => `${d.requester} → ${d.provider} (${d.reason})`).join('; ') || 'none'}.`;
     } catch (error) {
-      this.status.textContent = error instanceof ModuleResolutionError
+      text = error instanceof ModuleResolutionError
         ? `${error.message} ${error.diagnostic.actions.join(' ')}${error.diagnostic.candidates.length ? ` Available: ${error.diagnostic.candidates.map(c => `${c.name} (${c.id}@${c.version})`).join(', ')}.` : ''}` : message(error);
     } finally { host.dispose(); }
+    if (announce) this.status.textContent = text;
+    return text;
+  }
+  /** Capture pending exact edits only for an explicit Apply action. */
+  async proposal(): Promise<RuntimeSelection | undefined> {
+    if (!this.activePlan && !this.selected.size) return undefined;
+    const plan: InstalledGamePlan = { profile: this.profile(), packages: [...this.selected].map(([id, digest]) => ({ id, digest, version: this.catalog.get(digest)!.manifest.version })), requiredSlots: this.activePlan?.requiredSlots ?? [] };
+    const files = new Map<string, Uint8Array<ArrayBuffer>>();
+    const plans = { ...this.activeSelection?.plans, [environment()]: plan };
+    // Apply the same edit to another target only when its previous exact plan matched.
+    // Distinct target configurations remain explicit and unchanged.
+    for (const target of ['browser', 'offline', 'node'] as const) {
+      if (target === environment()) continue;
+      const previous = this.activeSelection?.plans[target];
+      if ((!previous && target !== 'node' || previous && JSON.stringify(previous) === JSON.stringify(this.activePlan))
+        && plan.packages.every(ref => this.catalog.get(ref.digest)!.manifest.environments.includes(target))) plans[target] = plan;
+    }
+    if (!plans.node) plans.node = { profile: { ...plan.profile, modules: [], providers: {}, capabilities: {}, settings: {} }, packages: [], requiredSlots: [] };
+    for (const target of Object.values(plans)) for (const ref of target.packages) {
+      const stored = await this.store.get(ref.digest);
+      if (!stored) throw new Error(`Install exact package ${ref.id}@${ref.version} (${ref.digest}) before applying`);
+      files.set(`modules/${ref.id}.spacemod`, Uint8Array.from(stored.bytes));
+    }
+    return attachRuntimeFiles(validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans }), files);
   }
   private async activate(): Promise<void> {
     if (this.busy || !this.options.editable()) return;
-    if (this.mixed) { this.status.textContent = 'This game uses a complete v2 selection. Load its game package to restart with all simulation and device modules.'; return; }
-    this.busy = true; this.draw();
-    const host = new BrowserModuleHost(error => { this.status.textContent = error; });
-    const plan: InstalledGamePlan = { profile: this.profile(), packages: [...this.selected].map(([id, digest]) => ({ id, digest, version: this.catalog.get(digest)!.manifest.version })), requiredSlots: [] };
     try {
-      for (const ref of plan.packages) if (this.options.activeLegacyIds().has(ref.id)) throw new Error(`Module ${ref.id} is already active in the legacy game profile. Disable it there before choosing another version.`);
-      await this.replace(plan, () => this.options.restart(), host);
-      this.status.textContent = 'Device modules enabled for this game after restart. Installed versions in other games remain disabled.';
-    } catch (error) { host.dispose(); this.status.textContent = `Modules were not enabled: ${message(error)}`; }
-    finally { this.busy = false; this.draw(); }
-  }
-  private async replace(plan: InstalledGamePlan, publish: () => void, host = new BrowserModuleHost(error => { this.status.textContent = error; })): Promise<void> {
-    const world = this.options.world();
-    const runtime = new InstalledGameRuntime(this.store, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE, approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, {
-      hostServices: this.services(host), staticModules: [],
-      inspect: async bytes => runtimePackage(await decodeModulePackage(Uint8Array.from(bytes)), browserModuleAssets),
-      construct: (candidate, identity) => {
-        // These hook families need a simulation/renderer game adapter, not the device sidecar.
-        if (candidate.core.forceExtensions.length || candidate.core.worldRules.length || candidate.core.commands.length
-          || candidate.core.layers.length || candidate.core.panels.length || candidate.core.cameras.length
-          || identity.manifests.some(manifest => manifest.tier === 'authoritative'))
-          throw new Error('This selection needs a full simulation or renderer game profile. Device modules cannot change simulation authority.');
-        host.configure(candidate);
-        return { async start(signal) { signal.throwIfAborted(); }, activate: () => {
-          if (this.options.world() !== world || !this.options.editable()) throw new Error('The active session changed; review the selection again');
-          publish(); host.activate(this.root);
-        }, dispose: () => host.dispose() };
-      },
-    });
-    try {
-      await runtime.replace(plan);
-      const previous = this.runtime; this.runtime = runtime; this.host = host; this.activePlan = plan; previous?.dispose();
-    } catch (error) { runtime.dispose(); host.dispose(); throw error; }
+      const selection = await this.proposal();
+      if (selection) await this.options.apply(selection);
+    } catch (error) { this.status.textContent = `Modules were not enabled: ${message(error)}`; }
   }
   /** Capture the committed selection, rather than unchecked edits in the manager. */
-  async capture(): Promise<RuntimeSelection | undefined> {
-    if (this.activeSelection) return this.activeSelection;
-    const plan = this.activePlan;
-    if (!plan || !plan.packages.length) return undefined;
-    const files = new Map<string, Uint8Array<ArrayBuffer>>();
-    for (const ref of plan.packages) {
-      const stored = await this.store.get(ref.digest);
-      if (!stored) throw new Error(`Cannot export missing package ${ref.id}`);
-      files.set(`modules/${ref.id}.spacemod`, Uint8Array.from(stored.bytes));
-    }
-    if (this.activePlan !== plan) throw new Error('The active module selection changed while exporting');
-    const empty: InstalledGamePlan = { profile: { ...plan.profile, modules: [], providers: {}, capabilities: {}, settings: {} }, packages: [], requiredSlots: [] };
-    // Device selections are local to the viewer. The headless target keeps the base game.
-    const plans: RuntimeSelection['plans'] = { [environment()]: plan, node: empty };
-    const other = environment() === 'browser' ? 'offline' : 'browser';
-    if (plan.packages.every(ref => this.catalog.get(ref.digest)?.manifest.environments.includes(other))) Object.assign(plans, { [other]: plan });
-    return attachRuntimeFiles(validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans }), files);
-  }
+  async capture(): Promise<RuntimeSelection | undefined> { if (this.mixed && !this.mixed.available) this.clear(); return this.activeSelection; }
   loadLegacyGame(publish: () => void): void {
-    if (this.busy) throw new Error('A module selection is already loading');
-    publish(); this.clear();
+    this.transition.cancel(); publish(); this.clear();
   }
   /** Prepare simulation and device hooks together, before publishing either host's game. */
-  async loadWorldGame(selection: RuntimeSelection, options: Omit<InstalledWorldOptions, 'hostServices' | 'inspect' | 'configure' | 'dispose'>,
+  async loadWorldGame(selection: RuntimeSelection, options: Omit<InstalledWorldOptions, 'hostServices' | 'inspect' | 'configure' | 'dispose'> & { readonly install?: () => Promise<void> },
     publish: (prepared: Awaited<ReturnType<typeof prepareInstalledWorld>>) => void): Promise<void> {
-    if (this.busy) throw new Error('A module selection is already loading');
+    const generation = ++this.generation;
     const previousWorld = this.options.world(), previousHost = this.host;
     this.busy = true; this.draw();
-    const host = new BrowserModuleHost(error => { this.status.textContent = error; });
+    const host = new BrowserModuleHost(error => { this.status.textContent = error; }, this.options.pilots);
     let prepared: Awaited<ReturnType<typeof prepareInstalledWorld>> | undefined;
     try {
-      const plan = await installRuntimeSelection(selection, this.store, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE }, 'Game library');
+      let plan!: InstalledGamePlan;
+      await this.transition.replace(async signal => {
+      signal.throwIfAborted();
+      await options.install?.();
+      signal.throwIfAborted();
+      plan = await installRuntimeSelection(selection, this.store, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE }, 'Game library');
+      signal.throwIfAborted();
       await this.refresh();
+      signal.throwIfAborted();
       prepared = await prepareInstalledWorld(plan, this.store, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE,
-        approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...options, hostServices: this.services(host),
+        approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...options, configuration: options.configuration ?? progressConfiguration(options.profile ?? DEFAULT_PROFILE, options.data ?? [], options.code ?? [], selection), hostServices: this.services(host),
         inspect: async bytes => runtimePackage(await decodeModulePackage(Uint8Array.from(bytes)), browserModuleAssets),
         configure(modules) {
-          if (modules.core.layers.length || modules.core.panels.length || modules.core.cameras.length) throw new Error('V2 renderer contributions require the renderer adapter; use the legacy presentation profile for now');
           host.configure(modules);
         },
         dispose: () => host.dispose(),
-      }, new AbortController().signal);
-      await prepared.candidate.start(new AbortController().signal);
+      }, signal);
+      return prepared.candidate;
+      }, () => {
+      if (!prepared) throw new Error('Game candidate was not prepared');
       if (this.options.world() !== previousWorld || !this.options.editable()) throw new Error('The active session changed while loading');
-      publish(prepared); host.activate(this.root);
-      const previousRuntime = this.runtime, previousMixed = this.mixed;
-      this.runtime = undefined; this.mixed = prepared.candidate; this.host = host; this.activePlan = plan; this.activeSelection = selection;
+      host.activate(this.root); publish(prepared); host.commit();
+      const previousMixed = this.mixed;
+      this.mixed = prepared.candidate; this.host = host; this.activePlan = plan; this.activeSelection = selection;
       this.selected.clear(); for (const ref of plan.packages) this.selected.set(ref.id, ref.digest);
-      previousRuntime?.dispose(); previousMixed?.dispose(); previousHost?.dispose();
-      this.status.textContent = 'Game modules enabled after restart. Reload this game from the Library to keep its complete simulation selection.';
+      for (const record of [this.providers, this.capabilities, this.settings]) for (const key of Object.keys(record)) delete record[key];
+      Object.assign(this.providers, plan.profile.providers);
+      for (const [id, choices] of Object.entries(plan.profile.capabilities)) this.capabilities[id] = { ...choices };
+      for (const [id, values] of Object.entries(plan.profile.settings)) this.settings[id] = { ...values };
+      previousMixed?.dispose(); previousHost?.dispose();
+      this.status.textContent = 'Game modules enabled for this game after restart. Save or export to keep the applied selection.';
+      });
     } catch (error) { prepared?.candidate.dispose(); host.dispose(); throw error; }
-    finally { this.busy = false; this.draw(); }
+    finally { if (this.generation === generation) { this.busy = false; this.draw(); } }
   }
   sample(elapsed: number, flightAllowed: boolean, shortcutsAllowed: boolean): void {
     if (this.mixed && !this.mixed.available) this.clear();
     this.host?.sample(elapsed, flightAllowed, shortcutsAllowed);
   }
-  release(): void { this.host?.release(); }
+  release(pilot?: number): void { this.host?.release(pilot); }
   verifyCandidate(candidate: Parameters<NonNullable<JoinOptions['verifyCandidate']>>[0]) {
     return this.mixed ? verifyInstalledWorldCandidate(this.mixed, candidate) : { ok: false, reason: 'Load the exact game before joining this server.' };
   }
   clear(): void {
-    this.runtime?.dispose(); this.mixed?.dispose(); this.host?.dispose(); this.runtime = undefined; this.mixed = undefined;
+    ++this.generation; this.busy = false; this.transition.cancel(); this.mixed?.dispose(); this.host?.dispose(); this.mixed = undefined;
     this.host = undefined; this.activePlan = undefined; this.activeSelection = undefined; this.selected.clear();
     for (const record of [this.providers, this.capabilities, this.settings]) for (const key of Object.keys(record)) delete record[key];
     this.status.textContent = 'Device modules are disabled for this game. Installed files remain on this device.'; this.draw();

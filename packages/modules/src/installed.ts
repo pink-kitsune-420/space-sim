@@ -12,6 +12,7 @@ import { applyDataModules } from './data';
 import { BASE_GAME_MODULES, DEFAULT_PROFILE } from './index';
 
 export interface InstalledWorldOptions {
+  readonly configuration?: import('../../game-api/src/index').SavedGameConfiguration;
   readonly profile?: ModuleProfile;
   readonly data?: readonly DataModule[];
   readonly code?: readonly RegisteredModule[];
@@ -61,14 +62,15 @@ export async function prepareInstalledWorld(plan: InstalledGamePlan, store: Pack
       const configuration = moduleWorldConfiguration(modules, identity, { id: options.id, systemId: saved ? saved.systemId as string : options.systemId,
         universe: saved ? validateUniverse(saved.universe) : options.universe, universeKey: saved ? undefined : options.universeKey,
         resolveContent: saved ? undefined : base => applyDataModules(base, data.filter(m => selected.has(m.manifest.id))) });
-      createContext = configuration.options.createContext!;
+      const worldOptions = { ...configuration.options, configuration: options.configuration };
+      createContext = worldOptions.createContext!;
       if (saved) {
-        const probe = new World(configuration.universe, configuration.options);
+        const probe = new World(configuration.universe, worldOptions);
         try {
           if (canonicalJson(probe.lock) !== canonicalJson(saved.lock) || probe.simulationFingerprint !== saved.simulationFingerprint) throw new Error('Save: exact installed game selection, settings or geometry differ from the required lock');
         } finally { probe.dispose(); }
-        loaded = loadWorld(saved, configuration.options);
-      } else loaded = { world: new World(configuration.universe, configuration.options), players: [], paused: false };
+        loaded = loadWorld(saved, worldOptions);
+      } else loaded = { world: new World(configuration.universe, worldOptions), players: [], paused: false };
       try { options.configure?.(modules); } catch (error) {
         try { options.dispose?.(); } finally { loaded.world.dispose(); }
         throw error;

@@ -10,18 +10,11 @@ import { validateUniverse } from './universe';
 import { checkWarpSafety, clampWarpFactor, nextWarpFactor } from './warp';
 import { resolveCommand } from '../../game-runtime/src/commands';
 
-const implementations = new WeakMap<WorldRead, World>();
-/** Host composition only. Modules use WorldRead/WorldControl, never this adapter. */
-export function implementationWorld(world: WorldRead): World {
-  const implementation = implementations.get(world);
-  if (!implementation) throw new Error('World was not created by this engine adapter');
-  return implementation;
-}
-
 /** Fixed public projection: no implementation class, mutable clock fields or hidden lookup.
  * All binding occurs once at construction, outside physics/render loops. */
-export function worldFacade(world: World): { readonly read: WorldRead; readonly control: WorldControl } {
+export function worldFacade(world: WorldControl): { readonly read: WorldRead; readonly control: WorldControl } {
   const read: WorldRead = Object.freeze({
+    get configuration() { return world.configuration; },
     get id() { return world.id; }, get tick() { return world.tick; }, get time() { return world.time; },
     get systemId() { return world.systemId; }, get size() { return world.size; },
     get awakeCount() { return world.awakeCount; }, get asleepCount() { return world.asleepCount; },
@@ -46,7 +39,6 @@ export function worldFacade(world: World): { readonly read: WorldRead; readonly 
     rename: world.rename.bind(world), clearFault: world.clearFault.bind(world), setModuleState: world.setModuleState.bind(world), adopt: world.adopt.bind(world),
     restoreClock: world.restoreClock.bind(world), subscribeChanges: world.subscribeChanges.bind(world), dispose: world.dispose.bind(world),
   }));
-  implementations.set(read, world); implementations.set(control, world);
   return Object.freeze({ read, control });
 }
 const saveCodec: SaveCodec = Object.freeze({ save: saveWorld, shipFromSaved, shipToSaved, playerFromSaved,

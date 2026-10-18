@@ -3,7 +3,7 @@ import type { InstalledGamePlan } from '../../game-runtime/src/game-loader';
 import { packageDigest } from '../../game-runtime/src/package-store';
 import { capabilityName, validateProfileV2 } from '../../game-runtime/src/validation-v2';
 import { freezeJson, keys, moduleId, object, version } from '../../game-runtime/src/validation';
-import { copyPackageFiles, packageFiles, rememberPackageFiles } from './portable';
+import { copyPackageFiles, packageFiles, rememberPackageFiles, wrapLegacyCode, wrapLegacyData, encodeModuleFiles } from './portable';
 import type { PackageFiles } from './zip';
 import { decodeModulePackage } from './portable';
 import { installPackage, type PackageBuildPolicy, type PackageStore } from '../../game-runtime/src/package-store';
@@ -81,4 +81,22 @@ export async function runtimeContainsCode(selection: RuntimeSelection): Promise<
     if (checked.descriptor.manifest.kind === 'provider') return true;
   }
   return false;
+}
+
+/** Persist every supplied member inertly, including legacy reusable content and code.
+ * Target selection and code approval remain separate operations at activation time. */
+export async function installGamePackages(game: import('./archive').GamePackage, store: PackageStore, policy: PackageBuildPolicy, source: string): Promise<void> {
+  const provenance = { source, installedAt: new Date().toISOString() };
+  for (const artifact of [...game.bundle.modules, ...game.plugins]) {
+    const files = packageFiles(artifact) ?? (artifact.format === 'space-sim-data-module/1'
+      ? wrapLegacyData(artifact, `Declared license: ${artifact.manifest.license}; see package provenance`) : wrapLegacyCode(artifact));
+    await installPackage(await encodeModuleFiles(files), store, inspectRuntimePackage, provenance, policy);
+  }
+  if (game.runtime) for (const ref of runtimeReferences(game.runtime)) {
+    const bytes = runtimeSelectionFiles(game.runtime).get(`modules/${ref.id}.spacemod`);
+    if (!bytes) throw new Error(`Missing runtime package ${ref.id}`);
+    const checked = await inspectRuntimePackage(bytes);
+    if (checked.id !== ref.id || checked.version !== ref.version || checked.digest !== ref.digest) throw new Error(`Runtime exact package mismatch: ${ref.id}`);
+    await installPackage(bytes, store, inspectRuntimePackage, provenance, policy);
+  }
 }

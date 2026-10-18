@@ -1,3 +1,4 @@
+import { worldFacade } from '../../packages/sim-core/src/module-services';
 import { describe, expect, it } from 'vitest';
 import { STEP, type Controls } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
@@ -99,8 +100,12 @@ describe('multiplayer regressions', () => {
   });
 
   it('asks for the complete world after falling far behind instead of stepping for seconds', () => {
-    const game = new Game();
-    const a = game.join('Ada'), b = game.join('Bo');
+    const game = new Game(); let counting = false, steps = 0;
+    const a = game.join('Ada', { worldFactory: { create(universe, options) {
+      const backing = new World(universe, options), step = backing.step.bind(backing);
+      backing.step = () => { if (counting) steps++; return step(); };
+      return worldFacade(backing).control;
+    } } }), b = game.join('Bo');
     game.run(300);
     b.controls = BURN;
     game.run(300);
@@ -112,17 +117,14 @@ describe('multiplayer regressions', () => {
       if (game.net.now % 10 === 0) { game.host.step(); game.host.service(); }
       if (game.net.now % 16 === 0) for (const p of game.pilots) if (!hidden.has(p.client)) { p.client.control(p.ship, p.controls ?? BURN); p.client.update(); }
     }
-    const world = a.client.world!;
-    const step = world.step.bind(world);
-    let steps = 0;
-    world.step = () => { steps++; return step(); };
+    counting = true;
     let sent = '';
     const send = raw(a.client).send.bind(raw(a.client));
     raw(a.client).send = text => { sent += text; send(text); };
     a.client.update();
     expect(steps).toBeLessThanOrEqual(500);
     expect(sent).toContain('"t":"resync"');
-    world.step = step;
+    counting = false;
     game.run(500);
     const bo = b.client.ownShips()[0]!.id;
     const hostShip = game.host.world.ship(bo)!, mirrored = a.client.world!.ship(bo)!;

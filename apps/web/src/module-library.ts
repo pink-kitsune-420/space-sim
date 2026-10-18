@@ -63,7 +63,7 @@ export class ModuleLibrary {
   /** A played game owns its complete code selection, so versions cannot leak between games. */
   replace(artifacts: readonly CodeArtifact[]): void {
     this.installed.clear();
-    for (const artifact of artifacts) this.installed.set(artifact.manifest.id, artifact);
+    for (const artifact of artifacts) { this.installed.set(artifact.manifest.id, artifact); this.persist(artifact); }
   }
   modules(environment: ModuleEnvironment): RegisteredModule[] {
     return artifactModules(this.artifacts, environment);

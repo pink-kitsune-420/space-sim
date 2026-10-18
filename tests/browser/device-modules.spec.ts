@@ -77,6 +77,9 @@ test('device package installs inertly, activates only on restart, and replays di
   await openPanel(page, 'fleet');
   const saveDownload = page.waitForEvent('download'); await page.locator('#save-world').click();
   const savedBytes = await readFile(await (await saveDownload).path());
+  await page.reload(); await openPanel(page, 'fleet');
+  await expect(page.locator('.module-windows')).toHaveCount(0);
+  page.once('dialog', dialog => dialog.accept());
   await page.locator('#world-file').setInputFiles({ name: 'progress.spaceuniverse', mimeType: 'application/zip', buffer: savedBytes });
   await expect(page.locator('#status')).toHaveText('PAUSED');
   await expect(page.locator('#flight-message')).toContainText('Universe loaded');

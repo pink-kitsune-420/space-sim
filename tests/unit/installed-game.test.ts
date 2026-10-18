@@ -240,3 +240,120 @@ describe('portable mixed games in real hosts', () => {
     finally { browser.loaded.world.dispose(); node.loaded.world.dispose(); }
   });
 });
+
+describe('progress reconstructs the exact installed game', () => {
+  it('restores without a selected game; retains settings/provider choices, physical identity and code separation', async () => {
+    const { progressConfiguration, reconstructProgress, savedProgressConfiguration } = await import('../../packages/game-library/src/progress-configuration');
+    const { encodeUniverseSave, decodeUniverseSave } = await import('../../packages/game-library/src/save-package');
+    const value = await installed('test.progress-force', 'authoritative');
+    const runtime = validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans: { browser: value.plan, node: value.plan } });
+    const configuration = progressConfiguration((validatePackage(builtin) as GamePackage).bundle.profile, [], [], runtime);
+    const original = await prepareInstalledWorld(value.plan, value.store, value.policy, { configuration, hostServices: [], inspect: inspectRuntimePackage }, new AbortController().signal);
+    original.loaded.world.spawn({ ownerId: 'pilot' }); original.loaded.world.step();
+    const save = saveWorld(original.loaded.world), bytes = await encodeUniverseSave(save);
+    const raw = await decodeUniverseSave(bytes), stored = savedProgressConfiguration(raw)!;
+    expect(stored).toEqual(configuration); expect(new TextDecoder().decode(bytes)).not.toContain('SpaceSimModule');
+    original.candidate.dispose(); delete (globalThis as Record<string, unknown>).__phase2Code;
+    const resolved = await reconstructProgress(stored, value.store, 'node', { data: [], code: [] });
+    expect((globalThis as Record<string, unknown>).__phase2Code).toBeUndefined();
+    await expect(prepareInstalledWorld(resolved.runtime.plans.node!, value.store, policy,
+      { ...resolved, configuration: stored, hostServices: [], inspect: inspectRuntimePackage, restore: raw }, new AbortController().signal)).rejects.toThrow('approve this exact');
+    const resumed = await prepareInstalledWorld(resolved.runtime.plans.node!, value.store, value.policy,
+      { ...resolved, configuration: stored, hostServices: [], inspect: inspectRuntimePackage, restore: raw }, new AbortController().signal);
+    expect(saveWorld(resumed.loaded.world)).toEqual(save); resumed.candidate.dispose();
+    await expect(reconstructProgress(stored, new MemoryPackageStore(), 'node', { data: [], code: [] })).rejects.toThrow('Install exact package');
+    await expect(reconstructProgress({ ...stored, runtime: validateRuntimeSelection({ ...runtime, plans: { browser: value.plan } }) }, value.store, 'node', { data: [], code: [] })).rejects.toThrow('no node target');
+    const record = (await value.store.get(value.entry.digest))!, altered = record.bytes.slice(); altered[40] = altered[40]! ^ 1;
+    await value.store.putVerified({ ...record, bytes: altered });
+    await expect(reconstructProgress(stored, value.store, 'node', { data: [], code: [] })).rejects.toThrow();
+  });
+  it('cancels preparation before publication and releases all candidate/session resources exactly once', async () => {
+    const { GameTransition } = await import('../../packages/game-runtime/src/game-loader');
+    const value = await installed(), transition = new GameTransition(); let closed = 0, release!: () => void, published = 0;
+    const prepare = (signal: AbortSignal) => prepareInstalledGame(value.plan, value.store, value.policy,
+      adapters(() => ({ async start() { await new Promise<void>(resolve => { release = resolve; }); }, dispose() { closed++; } })), signal);
+    const active = await transition.replace(signal => prepareInstalledGame(value.plan, value.store, value.policy, adapters(), signal));
+    const pending = transition.replace(prepare, () => { published++; });
+    while (!release) await new Promise(resolve => setTimeout(resolve, 0));
+    transition.cancel(); release(); await expect(pending).rejects.toThrow('cancelled');
+    expect(transition.active).toBe(active); expect(active.available).toBe(true); expect(published).toBe(0); expect(closed).toBe(1);
+    transition.dispose();
+  });
+  it('reopens dedicated-server progress using installed packages after removing --game', async () => {
+    const value = await installed('test.server-progress', 'authoritative');
+    const directory = await mkdtemp(join(tmpdir(), 'phase2-server-progress-')); temporary.push(directory);
+    const store = new FilePackageStore(join(directory, 'packages'));
+    await installPackage(value.bytes, store, inspectRuntimePackage, provenance, policy);
+    const { progressConfiguration } = await import('../../packages/game-library/src/progress-configuration');
+    const configuration = progressConfiguration((validatePackage(builtin) as GamePackage).bundle.profile, [], [], validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans: { node: value.plan } }));
+    const original = await prepareInstalledWorld(value.plan, store, value.policy, { configuration, hostServices: [], inspect: inspectRuntimePackage }, new AbortController().signal);
+    const path = join(directory, 'progress.spaceuniverse');
+    const { encodeUniverseSave } = await import('../../packages/game-library/src/save-package');
+    await writeFile(path, await encodeUniverseSave(saveWorld(original.loaded.world))); const fingerprint = original.loaded.world.simulationFingerprint;
+    original.candidate.dispose();
+    const server = await startServer({ dataDir: directory, importSave: path, overrides: { port: 0, host: '127.0.0.1' }, log() {} });
+    try { expect(server.host.world.simulationFingerprint).toBe(fingerprint); await server.save(true); } finally { await server.stop(); }
+    const resumed = await startServer({ dataDir: directory, overrides: { port: 0, host: '127.0.0.1' }, log() {} });
+    try { expect(resumed.host.world.simulationFingerprint).toBe(fingerprint); expect(saveWorld(resumed.host.world).configuration).toEqual(configuration); }
+    finally { await resumed.stop(); }
+  }, 30000);
+});
+
+describe('dedicated candidate resource ownership', () => {
+  it('closes initialized modules when the host cannot bind its socket', async () => {
+    const { createServer } = await import('node:http');
+    const blocker = createServer(); await new Promise<void>(resolve => blocker.listen(0, '127.0.0.1', resolve));
+    const port = (blocker.address() as import('node:net').AddressInfo).port;
+    const directory = await mkdtemp(join(tmpdir(), 'phase2-failed-host-')); temporary.push(directory);
+    const bytes = await archive('test.server-resource', 'platform', `var SpaceSimModule = { default: function(c) {
+      globalThis.__serverResources = (globalThis.__serverResources || 0) + 1;
+      var timer = setInterval(function() {}, 1000);
+      c.own({ dispose: function() { globalThis.__serverResources--; clearInterval(timer); } });
+    } };`);
+    const checked = await inspectRuntimePackage(bytes);
+    const plan = { profile: profile(checked.id), packages: [{ id: checked.id, version: checked.version, digest: checked.digest }], requiredSlots: [] };
+    const runtime = attachRuntimeFiles(validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans: { node: plan } }), new Map([[`modules/${checked.id}.spacemod`, bytes]]));
+    const path = join(directory, 'game.spacegame'); await writeFile(path, await encodePackage(validatePackage({ ...builtin, runtime })));
+    try {
+      await expect(startServer({ dataDir: directory, overrides: { gameFile: path, port, host: '127.0.0.1' }, log() {} })).rejects.toThrow('EADDRINUSE');
+      expect((globalThis as Record<string, unknown>).__serverResources).toBe(0);
+    } finally { await new Promise<void>(resolve => blocker.close(() => resolve())); delete (globalThis as Record<string, unknown>).__serverResources; }
+  });
+  it('retains the saved world file when its exact installed package is missing', async () => {
+    const value = await installed('test.missing-server-progress', 'authoritative');
+    const directory = await mkdtemp(join(tmpdir(), 'phase2-missing-host-')); temporary.push(directory);
+    const store = new FilePackageStore(join(directory, 'packages'));
+    await installPackage(value.bytes, store, inspectRuntimePackage, provenance, policy);
+    const { progressConfiguration } = await import('../../packages/game-library/src/progress-configuration');
+    const configuration = progressConfiguration((validatePackage(builtin) as GamePackage).bundle.profile, [], [], validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans: { node: value.plan } }));
+    const prepared = await prepareInstalledWorld(value.plan, store, value.policy, { configuration, hostServices: [], inspect: inspectRuntimePackage }, new AbortController().signal);
+    const save = JSON.stringify(saveWorld(prepared.loaded.world)); prepared.candidate.dispose();
+    const path = join(directory, 'world.json'); await writeFile(path, save); await store.remove(value.entry.digest);
+    await expect(startServer({ dataDir: directory, overrides: { port: 0, host: '127.0.0.1' }, log() {} })).rejects.toThrow('Install exact package');
+    expect(await readFile(path, 'utf8')).toBe(save);
+  });
+});
+
+describe('mixed progress retains installed legacy members', () => {
+  it('reconstructs both legacy code/data and v2 packages after --game is removed', async () => {
+    const { artifactDigest } = await import('../../packages/game-runtime/src/artifact');
+    const value = await installed('test.mixed-progress', 'authoritative');
+    const directory = await mkdtemp(join(tmpdir(), 'phase2-mixed-progress-')); temporary.push(directory);
+    const data = JSON.parse(await readFile('examples/modules/gentle-flight.json', 'utf8'));
+    const body = { format: 'space-sim-code-module/1' as const, manifest: { ...BASE_GAME_MODULES[0]!.manifest, id: 'test.legacy-progress', slots: [], provides: [], requires: [], dependencies: [], conflicts: [], before: [], after: [] },
+      source: 'var SpaceSimModule = { default: function() {} };', assets: {}, inputs: [{ path: 'src/main.ts', sha256: '0'.repeat(64), license: 'MIT', attribution: 'Test authors' }], compatibility: { deterministic: true, multiplayer: true } };
+    const code = { ...body, digest: artifactDigest(body) };
+    const base = validatePackage(builtin) as GamePackage;
+    const runtime = attachRuntimeFiles(validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans: { node: value.plan } }), new Map([[`modules/${value.entry.id}.spacemod`, value.bytes]]));
+    const game = validatePackage({ ...base, plugins: [code], runtime, bundle: { ...base.bundle, modules: [data], code: [{ id: code.manifest.id, version: code.manifest.version, digest: code.digest }],
+      profile: { ...base.bundle.profile, modules: [...base.bundle.profile.modules, { id: data.manifest.id, version: data.manifest.version }, { id: code.manifest.id, version: code.manifest.version }] } } });
+    const path = join(directory, 'mixed.spacegame'); await writeFile(path, await encodePackage(game));
+    const server = await startServer({ dataDir: directory, overrides: { gameFile: path, port: 0, host: '127.0.0.1' }, log() {} });
+    const fingerprint = server.host.world.simulationFingerprint;
+    try { await server.save(true); expect(await new FilePackageStore(join(directory, 'packages')).list()).toHaveLength(3); }
+    finally { await server.stop(); }
+    const resumed = await startServer({ dataDir: directory, overrides: { gameFile: '', port: 0, host: '127.0.0.1' }, log() {} });
+    try { expect(resumed.host.world.simulationFingerprint).toBe(fingerprint); expect(resumed.host.world.configuration!.code[0]!.digest).toBe(code.digest); expect(resumed.host.world.configuration!.data[0]!.id).toBe(data.manifest.id); }
+    finally { await resumed.stop(); }
+  });
+});

@@ -1,6 +1,7 @@
+import type { WorldRead } from '../../../packages/game-api/src/index';
 import type { Controls, GhostEnd, GhostSample, ResolvedBody, SimulationContext, State, SurfaceProfile } from '../../../packages/game-api/src/index';
 
-import type { World } from '../../../packages/sim-core/src/world';
+
 
 // Ghost prediction lifecycle
 const TRACE_SAMPLES_PER_SECOND = 120;
@@ -31,7 +32,7 @@ export class Prediction {
     this.passKey = ''; this.pathKey = ''; this.path = []; this.pathEnd = 'grounded';
   }
   update(context: SimulationContext, state: State, activeBody: ResolvedBody, surface: SurfaceProfile | undefined,
-      selectedShipId: string | undefined, seconds: number, engine: boolean, controls?: Controls, world?: World): void {
+      selectedShipId: string | undefined, seconds: number, engine: boolean, controls?: Controls, world?: WorldRead): void {
     if (!selectedShipId) { this.invalidate(); return; }
     const numerical = !!world?.requiresWorldPrediction || !context.capabilities.analyticCoast;
     const changing = engine || !!controls?.turn || !!controls?.throttle;

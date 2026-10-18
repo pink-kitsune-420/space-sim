@@ -175,6 +175,7 @@ export function saveWorld(world: WorldRead, extra: {
   const simulationFingerprint = extra.simulationFingerprint ?? world.simulationFingerprint;
   const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
   return {
+    ...(world.configuration ? { configuration: world.configuration } : {}),
     format: SAVE_FORMAT, version: SAVE_VERSION, model: MODEL, units: SAVE_UNITS, worldId: world.id,
     ...(extra.savedAt ? { savedAt: extra.savedAt } : {}),
     universe: world.universe, systemId: world.systemId, tick: world.tick, time: world.time,

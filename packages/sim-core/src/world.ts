@@ -105,7 +105,9 @@ export class World implements WorldControl {
   private readonly owners = new Map<string, Set<string>>();
   private static readonly NONE: ReadonlySet<string> = new Set();
 
+  readonly configuration: WorldOptions['configuration'];
   constructor(universe: UniverseDefinition, options: WorldOptions = {}) {
+    this.configuration = options.configuration;
     this.id = options.id ?? 'local';
     this.migrateState = options.migrateState;
     this.universe = universe;

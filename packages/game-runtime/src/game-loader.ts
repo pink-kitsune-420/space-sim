@@ -6,6 +6,12 @@ import { packageDigest, type PackageIdentity, type PackageStore } from './packag
 import type { LoadPolicy } from './loader';
 import { validateProfileV2 } from './validation-v2';
 
+/** An intact progress file cannot be activated with this installed configuration.
+ * Hosts must retain its bytes rather than treating it as corrupt saved progress. */
+export class GameConfigurationError extends Error {
+  constructor(message: string) { super(message); this.name = 'GameConfigurationError'; }
+}
+
 export interface InspectedRuntimePackage extends PackageIdentity {
   readonly manifest: ManifestV2;
   /** Creating a lazy registration is inert. Initialization is the only execution gate. */
@@ -57,6 +63,11 @@ export class CandidateGame implements Disposable {
   private starting = false;
   private disposed = false;
   readonly disposalErrors: unknown[] = [];
+  private readonly owned: Disposable[] = [];
+  own<T extends Disposable>(resource: T): T {
+    if (this.disposed) { resource.dispose(); throw new Error('Game candidate is disposed'); }
+    this.owned.push(resource); return resource;
+  }
   private readonly controller = new AbortController();
   constructor(readonly modules: ModuleCandidateV2, readonly identity: GameIdentity, readonly resources: CandidateResources) {}
   get available(): boolean { return !this.disposed; }
@@ -75,6 +86,8 @@ export class CandidateGame implements Disposable {
   }
   dispose(): void {
     if (this.disposed) return; this.disposed = true; this.controller.abort();
+    for (let i = this.owned.length - 1; i >= 0; i--) { try { this.owned[i]!.dispose(); } catch (error) { this.disposalErrors.push(error); } }
+    this.owned.length = 0;
     try { this.resources.dispose(); } catch (error) { this.disposalErrors.push(error); }
     try { this.modules.dispose(); } catch (error) { this.disposalErrors.push(error); }
   }
@@ -111,26 +124,36 @@ export async function prepareInstalledGame(plan: InstalledGamePlan, store: Packa
     return new CandidateGame(modules, gameIdentity, adapters.construct(modules, gameIdentity));
   } catch (error) { modules.dispose(); throw error; }
 }
-/** Latest request wins. Start/IO failure keeps the previous complete game alive. */
-export class InstalledGameRuntime implements Disposable {
+/** One publication boundary shared by browser mixed worlds and installed runtimes. */
+export class GameTransition implements Disposable {
   active: CandidateGame | undefined;
   private pending: AbortController | undefined;
   private closed = false;
-  constructor(private readonly store: PackageStore, private readonly policy: LoadPolicy, private readonly adapters: EngineAdapters) {}
-  async replace(plan: InstalledGamePlan, signal?: AbortSignal): Promise<CandidateGame> {
+  async replace(prepare: (signal: AbortSignal) => Promise<CandidateGame>, publish: (candidate: CandidateGame) => void = () => {}, signal?: AbortSignal): Promise<CandidateGame> {
     if (this.closed) throw new Error('Game runtime is disposed');
     this.pending?.abort(); const controller = this.pending = new AbortController();
     const abort = () => controller.abort(signal?.reason);
     if (signal?.aborted) abort(); else signal?.addEventListener('abort', abort, { once: true });
     let candidate: CandidateGame | undefined;
     try {
-      candidate = await prepareInstalledGame(plan, this.store, this.policy, this.adapters, controller.signal);
+      candidate = await prepare(controller.signal);
       await candidate.start(controller.signal); controller.signal.throwIfAborted();
       if (this.pending !== controller || this.closed) throw new Error('Game replacement was superseded');
-      candidate.resources.activate?.();
+      candidate.resources.activate?.(); publish(candidate);
       const previous = this.active; this.active = candidate; previous?.dispose(); return candidate;
     } catch (error) { candidate?.dispose(); throw error; }
     finally { if (this.pending === controller) this.pending = undefined; signal?.removeEventListener('abort', abort); }
   }
-  dispose(): void { this.closed = true; this.pending?.abort(); this.active?.dispose(); this.active = undefined; }
+  cancel(): void { this.pending?.abort(new Error('Game replacement cancelled')); }
+  dispose(): void { this.closed = true; this.cancel(); this.active?.dispose(); this.active = undefined; }
+}
+/** Latest request wins. Start/IO failure keeps the previous complete game alive. */
+export class InstalledGameRuntime implements Disposable {
+  private readonly transition = new GameTransition();
+  get active(): CandidateGame | undefined { return this.transition.active; }
+  constructor(private readonly store: PackageStore, private readonly policy: LoadPolicy, private readonly adapters: EngineAdapters) {}
+  replace(plan: InstalledGamePlan, signal?: AbortSignal): Promise<CandidateGame> {
+    return this.transition.replace(signal => prepareInstalledGame(plan, this.store, this.policy, this.adapters, signal), () => {}, signal);
+  }
+  dispose(): void { this.transition.dispose(); }
 }

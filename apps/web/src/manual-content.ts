@@ -600,16 +600,21 @@ Choose an exact installed version, review its dependencies, then select <b>Apply
 This starts a fresh world. Device modules remain disabled in other games and after a page reload.
 Saving or exporting a game includes its applied selection, exact versions and editable packages.
 Choose Play in the Library to enable that game's selection again. Unapplied edits are not exported.
-The exported server target omits device-only modules.</p>
+Distinct server targets retain their explicit configuration; new device-only selections omit devices on the server.</p>
 <p>V2 device packages declare a <code>platform</code> or <code>network</code> tier and versioned capability
 requirements. Their synchronous initializer can contribute actions, input sources, transports,
 declarative controls and structured Manual pages. Typed host services are imported as keys such as
 <code>CORE_UI</code>, then requested with <code>context.use(CORE_UI)</code>. Declare
 <code>{ name: 'core.ui', version: '^1.0.0' }</code> in the manifest's requirements before using it.
 V2 authoritative modules can be included in a game's explicit runtime target alongside its legacy base profile.
-Browser and dedicated-server targets use the same package resolver and world adapter. Load that exact game
-before restoring its universe progress; progress files contain no executable modules.
-The device-only selection rejects simulation hooks. V2 renderer hooks still require the renderer adapter;
+Browser and dedicated-server targets use the same package resolver and world adapter. Progress records its exact plans, settings and provider choices. Load progress directly in Fleet;
+the loader reconstructs it from packages already installed on this device, checks its lock and physical
+fingerprint, and asks before enabling a different code selection. Missing packages must be imported
+through the Library; progress never embeds or downloads code. Cancelling or a failed preparation keeps
+the previous game active. Both Apply controls support mixed legacy/v2 games and restart the world.
+Use Include required modules for the complete ID/capability closure, or Remove dependent modules to
+review a reverse removal. Ambiguous capability providers require an explicit choice; conflicts are
+reported before code runs. Exact settings and provider choices survive save/export. V2 renderer hooks still require the renderer adapter;
 keep renderer layers, panels and cameras in the legacy presentation profile for now.</p>
 <p>Legacy <code>.module.json</code> and <code>.spaceplugin</code> files still import. A legacy code artifact
 contains bundled JavaScript and source hashes, so its ZIP wrapper is labelled “original source unavailable”.

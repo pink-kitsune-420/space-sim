@@ -1,4 +1,4 @@
-import { CORE_DOM, CORE_THEME, CORE_UI, type ActionDefinitionV2, type ActionSink, type Disposable,
+import { CORE_DOM, CORE_THEME, CORE_UI, CORE_PILOTS, type PilotRegistry, type ActionDefinitionV2, type ActionSink, type Disposable,
   type HostServiceAccess, type InputFrame, type InputSource, type ModuleAssets, type ModuleContribution,
   type ThemeService, type TrustedDomShell, type UiShell, type WindowDefinition } from '../../../packages/game-api/src/index';
 import type { ModuleCandidateV2 } from '../../../packages/game-runtime/src/modules-v2';
@@ -46,6 +46,7 @@ export class BrowserModuleHost implements Disposable {
   private readonly mounts: { id: string; mount: (root: HTMLElement) => Disposable; active: boolean; resource?: Disposable }[] = [];
   private candidate: ModuleCandidateV2 | undefined;
   private theme: Parameters<ThemeService['set']>[0] | undefined;
+  private rollbackTheme: ReturnType<typeof getActiveTheme> | undefined;
   private sources: readonly ModuleContribution<InputSource>[] = [];
   private actions: readonly ActionDefinitionV2[] = [];
   private readonly indices = new Map<string, number>();
@@ -75,7 +76,7 @@ export class BrowserModuleHost implements Disposable {
     const lease = { dispose: () => { if (!entry.active) return; entry.active = false; entry.resource?.dispose(); } };
     this.resources.push(lease); return lease;
   } });
-  constructor(private readonly fault: (message: string) => void = () => {}) {
+  constructor(private readonly fault: (message: string) => void = () => {}, private readonly pilots?: PilotRegistry) {
     this.root.setAttribute('aria-label', 'Module windows'); this.root.className = 'module-windows';
   }
   private assertLive(): void { if (this.disposed) throw new Error('Module UI is disposed'); }
@@ -85,12 +86,22 @@ export class BrowserModuleHost implements Disposable {
       set: value => { this.assertLive(); const checked = themeSettings(value); if (this.attached) saveThemeSettings(checked); else this.theme = checked; },
       subscribe: change => { this.assertLive(); const unsubscribe = onThemeChange(value => { if (this.attached && !this.disposed) change(value); }); const resource = { dispose: unsubscribe }; this.resources.push(resource); return resource; } });
     const access = { tiers: ['platform', 'presentation'] as const, environments: ['browser', 'offline'] as const };
-    return [{ ...access, key: CORE_UI, service: this.shell }, { ...access, key: CORE_DOM, service: this.dom }, { ...access, key: CORE_THEME, service: theme }];
+    const pilots: PilotRegistry = Object.freeze<PilotRegistry>({
+      get count() { return registry?.count ?? 1; },
+      playerId: pilot => this.attached ? this.pilots?.playerId(pilot) : undefined,
+      assign: (pilot, device) => { this.assertLive(); if (!this.attached) throw new Error('Assign pilot devices after game activation'); this.pilots?.assign(pilot, device); },
+      release: pilot => { this.assertLive(); this.release(pilot); if (this.attached) this.pilots?.release(pilot); },
+    });
+    const registry = this.pilots;
+    return [{ ...access, key: CORE_PILOTS, service: pilots }, { ...access, key: CORE_UI, service: this.shell }, { ...access, key: CORE_DOM, service: this.dom }, { ...access, key: CORE_THEME, service: theme }];
   }
   configure(candidate: ModuleCandidateV2): void {
-    this.assertLive(); this.candidate = candidate; this.actions = candidate.actionDefinitions; this.sources = candidate.contributions('input');
+    this.assertLive();
+    if (candidate.lock.providers.renderer || candidate.core.layers.length || candidate.core.panels.length || candidate.core.cameras.length)
+      throw new Error('V2 renderer providers and contributions require the renderer adapter; use the legacy presentation profile for now');
+    this.candidate = candidate; this.actions = candidate.actionDefinitions; this.sources = candidate.contributions('input');
     this.actions.forEach((action, index) => this.indices.set(action.id, index));
-    this.values = new Float64Array(this.actions.length); this.previous = new Float64Array(this.actions.length);
+    this.values = new Float64Array(this.actions.length); this.previous = new Float64Array(this.actions.length * 4);
     for (const window of candidate.contributions('window')) this.createWindow(window.id, window.value);
     for (const id of this.callbacks.keys()) if (!this.indices.has(id)) throw new Error(`Module UI subscribed to unknown action ${id}`);
     for (const id of this.opens) if (!this.windows.has(id)) throw new Error(`Unknown module window ${id}`);
@@ -136,29 +147,35 @@ export class BrowserModuleHost implements Disposable {
     if (this.disposed || !this.attached) return;
     if (!flightAllowed && !shortcutsAllowed) { this.release(); return; }
     this.frame.elapsed = elapsed; this.frame.flightAllowed = flightAllowed; this.frame.shortcutsAllowed = shortcutsAllowed;
-    this.values.fill(0);
-    for (const source of this.sources) source.value.sample(this.frame, this.sink);
-    for (let i = 0; i < this.actions.length; i++) {
-      const value = this.values[i]!, previous = this.previous[i]!;
-      if (value !== previous && (this.actions[i]!.mode !== 'press' || value !== 0)) this.emit(this.actions[i]!.id, value);
+    for (let pilot = 0; pilot < (this.pilots?.count ?? 1); pilot++) {
+      this.frame.pilot = pilot;
+      this.values.fill(0);
+      for (const source of this.sources) source.value.sample(this.frame, this.sink);
+      for (let i = 0; i < this.actions.length; i++) {
+        const value = this.values[i]!, previous = this.previous[pilot * this.actions.length + i]!;
+        if (value !== previous && (this.actions[i]!.mode !== 'press' || value !== 0)) this.emit(this.actions[i]!.id, value);
+      }
+      this.previous.set(this.values, pilot * this.actions.length);
     }
-    this.previous.set(this.values);
   }
-  release(): void {
-    for (const source of this.sources) source.value.release();
+  release(pilot?: number): void {
+    for (const source of this.sources) source.value.release(pilot);
     this.values.fill(0);
-    for (let i = 0; i < this.actions.length; i++) if (this.previous[i] !== 0) {
+    for (let i = 0; i < this.previous.length; i++) if ((pilot === undefined || Math.floor(i / this.actions.length) === pilot) && this.previous[i] !== 0) {
       this.previous[i] = 0;
-      if (this.actions[i]!.mode !== 'press') this.emit(this.actions[i]!.id, 0);
+      if (this.actions[i % this.actions.length]!.mode !== 'press') this.emit(this.actions[i % this.actions.length]!.id, 0);
     }
   }
   activate(container: HTMLElement): void {
     this.assertLive(); container.append(this.root); this.attached = true;
     if (this.candidate) this.resources.push(registerModuleGuides(this.candidate));
-    if (this.theme) saveThemeSettings(this.theme);
+    if (this.theme) { this.rollbackTheme = { ...getActiveTheme() }; saveThemeSettings(this.theme); }
   }
+  /** Publication succeeded; subsequent disposal must retain the viewer's chosen theme. */
+  commit(): void { this.rollbackTheme = undefined; }
   dispose(): void {
     if (this.disposed) return; this.release(); this.disposed = true; this.root.remove();
+    if (this.rollbackTheme) { saveThemeSettings(this.rollbackTheme); this.rollbackTheme = undefined; }
     for (const resource of this.resources.reverse()) { try { resource.dispose(); } catch { /* Continue closing owned resources. */ } }
     this.resources.length = 0; this.callbacks.clear(); this.controls.clear(); this.windows.clear();
   }

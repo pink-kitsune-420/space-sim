@@ -7,13 +7,13 @@ import type { NetPlayer } from '../../../packages/net/src/protocol';
 import { newToken } from '../../../packages/net/src/sha256';
 
 export type { ChatLine } from '../../../packages/game-api/src/index';
-import type { SessionRead, ChatLine, LocalSessionOptions } from '../../../packages/game-api/src/index';
-export interface GameSession extends SessionRead { readonly world: World }
+import type { WorldControl, SessionRead, ChatLine, LocalSessionOptions } from '../../../packages/game-api/src/index';
+export interface GameSession extends SessionRead {}
 
 /** This browser's own world: single player, or the authoritative host for remote players. */
-export class LocalSession implements GameSession {
+export class LocalSession<W extends WorldControl = World> implements GameSession {
   readonly kind = 'local';
-  readonly host: HostSession;
+  readonly host: HostSession<W>;
   readonly playerId: string;
   /** Secret for this seat; stored only once the world is hosted or saved. */
   readonly token: string;
@@ -24,13 +24,15 @@ export class LocalSession implements GameSession {
   private settled = true;
   private controlled?: string;
 
-  constructor(world: World, options: LocalSessionOptions) {
+  constructor(world: W, options: LocalSessionOptions) {
     this.host = new HostSession(world, { maxShipsPerPlayer: 16, maxShips: 64, maxPlayers: 8 }, { players: options.players ?? [] });
     this.token = options.token ?? newToken();
     this.playerId = this.host.seatHost(options.name, this.token, options.hostId);
   }
 
-  get world(): World { return this.host.world; }
+  dispose(): void { this.host.dispose(); this.world.dispose(); }
+
+  get world(): W { return this.host.world; }
   get paused(): boolean { return this.host.paused; }
   get pauseReason(): string { return this.host.pauseReason; }
   get warp(): number { return this.host.warp; }
@@ -123,7 +125,7 @@ export class LocalSession implements GameSession {
   unseatGuest(playerId: string): void { this.host.unseatLocal(playerId); }
   /** Held controls for a guest seat's ship; applied by the next `update`. */
   guestControls(playerId: string, shipId: string, controls: Controls): void {
-    if (!this.paused && this.world.record(shipId)?.ownerId === playerId) this.host.setControls(playerId, shipId, controls);
+    if ((!this.paused || controls.turn === 0 && controls.throttle === 0 && !controls.engine) && this.world.record(shipId)?.ownerId === playerId) this.host.setControls(playerId, shipId, controls);
   }
   spawnGuest(playerId: string, presetId: string, godMode = false): string { return this.host.spawnShip(playerId, presetId, godMode).id; }
   respawnGuest(playerId: string, shipId: string, presetId: string, godMode?: boolean): void {
@@ -144,7 +146,9 @@ export class LocalSession implements GameSession {
 export class RemoteSession implements GameSession {
   readonly kind = 'client';
   constructor(readonly client: ClientSession) {}
-  get world(): World { return this.client.world!; }
+  dispose(): void { this.client.leave(); }
+
+  get world(): WorldControl { return this.client.world!; }
   get playerId(): string { return this.client.playerId!; }
   get paused(): boolean { return this.client.paused; }
   get pauseReason(): string { return this.client.pauseReason || 'Paused by the host'; }

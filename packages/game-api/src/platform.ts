@@ -29,6 +29,7 @@ export interface PilotRegistry {
   assign(pilot: number, device: string): void;
   release(pilot?: number): void;
 }
+export const CORE_PILOTS: ServiceKey<PilotRegistry> = Object.freeze({ slot: 'core.pilots', version: '1.0.0' });
 /** Text and backpressure contract shared by browser and headless adapters. */
 export interface TextConnection {
   readonly label: string;

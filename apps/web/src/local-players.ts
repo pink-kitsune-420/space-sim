@@ -1,3 +1,4 @@
+import type { PilotRegistry } from '../../../packages/game-api/src/index';
 import { DEFAULT_CONTROLLER_PROFILE, normalizeProfile, type ControllerProfile } from './gamepad';
 import { newToken } from '../../../packages/net/src/sha256';
 
@@ -277,4 +278,25 @@ export function setAllNavballsPinned(config: LocalPlayersConfig, pinned: boolean
       navball: { ...s.navball, pinned },
     })),
   };
+}
+
+/** Public pilot contract over this window's existing seats/device preferences. The host
+ * supplies identity; this registry never creates reconnect tokens or network authority. */
+export class LocalPilotRegistry implements PilotRegistry {
+  constructor(private readonly host: {
+    config(): LocalPlayersConfig; count(): number; playerId(pilot: number): string | undefined;
+    change(config: LocalPlayersConfig): void; release(pilot?: number): void;
+  }) {}
+  get count(): number { return this.host.count(); }
+  private check(pilot: number): void {
+    if (!Number.isInteger(pilot) || pilot < 0 || pilot >= this.count) throw new Error('Pilot is not active in this window');
+  }
+  playerId(pilot: number): string | undefined { this.check(pilot); return this.host.playerId(pilot); }
+  assign(pilot: number, device: string): void {
+    this.check(pilot);
+    if (!(device === 'keyboard' || device === 'none' || device === 'auto' && pilot === 0 || /^pad:\d{1,2}$/.test(device))) throw new Error('Unsupported pilot input device');
+    this.host.release();
+    this.host.change(assignDevice(this.host.config(), pilot, device as InputDevice));
+  }
+  release(pilot?: number): void { if (pilot !== undefined) this.check(pilot); this.host.release(pilot); }
 }

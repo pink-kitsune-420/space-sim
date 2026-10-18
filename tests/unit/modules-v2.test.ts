@@ -265,3 +265,40 @@ describe('v2 imported declarations', () => {
     expect(() => registry.prepare(profile(['test.effects']), 'node')).toThrow('ordering cycle');
   });
 });
+
+describe('complete dependency edit previews', () => {
+  it('includes transitive ID and capability dependencies, requiring explicit ambiguous choices', async () => {
+    const { previewModulesV2 } = await import('../../packages/game-runtime/src/preview-v2');
+    const manifests = new Map([
+      manifest('test.input', { dependencies: [{ id: 'test.actions', version: '^1.0.0' }], requires: [seats] }),
+      manifest('test.actions'), manifest('test.session', { provides: [seats], dependencies: [{ id: 'test.protocol', version: '*' }] }),
+      manifest('test.protocol'),
+    ].map(m => [m.id, m]));
+    const preview = previewModulesV2(manifests, profile(['test.input']), undefined, 'node', { includeDependencies: true });
+    expect(preview.lock.order).toEqual(['test.actions', 'test.protocol', 'test.session', 'test.input']);
+    expect(preview.dependencies).toContainEqual({ requester: 'test.input', provider: 'test.session', reason: 'session.local-seats@1.0.0' });
+    manifests.set('test.other-session', manifest('test.other-session', { provides: [seats] }));
+    expect(() => previewModulesV2(manifests, profile(['test.input']), undefined, 'node', { includeDependencies: true })).toThrow('Enable test.other-session or test.session');
+    const chosen = previewModulesV2(manifests, profile(['test.input'], { capabilities: { 'test.input': { 'session.local-seats': 'test.session' } } }), undefined, 'node', { includeDependencies: true });
+    expect(chosen.lock.capabilities['test.input']!['session.local-seats']!.provider.id).toBe('test.session');
+  });
+  it('previews reverse removals, provider replacement and conflicts without changing the applied graph', async () => {
+    const { previewModulesV2, removeModuleDependents } = await import('../../packages/game-runtime/src/preview-v2');
+    const manifests = new Map([
+      manifest('test.session', { ...serviceManifest, provides: [seats] }), manifest('test.replacement', { ...serviceManifest, provides: [seats] }),
+      manifest('test.split', { requires: [seats] }), manifest('test.hud', { dependencies: [{ id: 'test.split', version: '*' }] }),
+      manifest('test.conflict', { conflicts: [{ id: 'test.split', version: '*' }] }),
+    ].map(m => [m.id, m]));
+    const original = profile(['test.session', 'test.split', 'test.hud']);
+    const applied = previewModulesV2(manifests, original, undefined, 'node').lock;
+    const removed = removeModuleDependents(manifests, profile(['test.split', 'test.hud']), applied);
+    expect(removed.modules).toEqual([]);
+    expect(previewModulesV2(manifests, removed, applied, 'node').removed).toEqual(['test.session', 'test.split', 'test.hud']);
+    const replaced = profile(['test.replacement', 'test.split', 'test.hud'], { providers: { session: 'test.replacement' } });
+    expect(removeModuleDependents(manifests, replaced, applied).modules).toEqual(replaced.modules);
+    const preview = previewModulesV2(manifests, replaced, applied, 'node');
+    expect(preview.providerChanges).toEqual(['session']); expect(preview.restartRequired).toBe(true);
+    expect(() => previewModulesV2(manifests, profile(['test.session', 'test.split', 'test.conflict']), applied, 'node')).toThrow('conflicts');
+    expect(applied.modules.map(m => m.id)).toEqual(['test.session', 'test.split', 'test.hud']);
+  });
+});

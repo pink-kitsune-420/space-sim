@@ -1,5 +1,6 @@
+import type { WorldRead } from '../../../packages/game-api/src/index';
 import type { Camera, GhostEnd, GhostSample, OverlayPrimitive, Vec } from '../../../packages/game-api/src/index';
-import type { Ship, World } from '../../../packages/sim-core/src/world';
+import type { Ship } from '../../../packages/sim-core/src/world';
 import { hermiteControls } from '../../../packages/render-2d/src/frame';
 
 export type OtherOrbitMode = 'auto' | 'always' | 'off';
@@ -38,7 +39,7 @@ export function showOtherOrbits(mode: OtherOrbitMode, otherPilots: number): bool
 export class OtherOrbits {
   readonly stats = { starts: 0, completed: 0, paths: 0, workMs: 0, enabled: false };
   maxMs = .5;
-  private world?: World;
+  private world?: WorldRead;
   private excludedOwner?: string;
   private nextScan = -Infinity;
   private readonly entries = new Map<string, Entry>();
@@ -62,7 +63,7 @@ export class OtherOrbits {
     }
   }
 
-  update(world: World, excludedOwner: string | undefined, isPilot: (id: string) => boolean,
+  update(world: WorldRead, excludedOwner: string | undefined, isPilot: (id: string) => boolean,
     now: number, enabled: boolean): void {
     if (!enabled) { if (this.world) this.clear(); return; }
     if (world !== this.world || excludedOwner !== this.excludedOwner) {
@@ -169,7 +170,7 @@ export class OtherOrbits {
   }
 
   /** Geometry storage is reused. Call and consume for one viewport before building another. */
-  overlays(world: World, time: number, viewer: string, camera: Camera, width: number, height: number): readonly OverlayPrimitive[] {
+  overlays(world: WorldRead, time: number, viewer: string, camera: Camera, width: number, height: number): readonly OverlayPrimitive[] {
     this.output.length = 0;
     if (world !== this.world) return this.output;
     const viewRadius = Math.hypot(width, height) / (2 * camera.scale);

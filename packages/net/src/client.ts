@@ -1,4 +1,4 @@
-import type { AuthoritativeLock, CommandExtension, ForceExtension, JoinOptions, ModuleLock, SimulationContextFactory, WorldRuleExtension } from '../../game-api/src/index';
+import type { WorldControl, WorldFactory, AuthoritativeLock, CommandExtension, ForceExtension, JoinOptions, ModuleLock, SimulationContextFactory, WorldRuleExtension } from '../../game-api/src/index';
 import { createSimulationContext } from '../../sim-core/src/context';
 import { IDLE, MODEL, magnitude, type Controls, type Vec } from '../../sim-core/src/index';
 import { shipFromSaved } from '../../sim-core/src/save';
@@ -11,6 +11,7 @@ import {
 
 export interface ClientOptions {
   readonly createContext?: SimulationContextFactory;
+  readonly worldFactory?: WorldFactory;
   readonly name: string;
   readonly password?: string;
   /** A reconnect token saved for this world, if any. `hostId` is the player seated in the
@@ -64,7 +65,7 @@ const sameControls = (a: Controls, b: Controls): boolean => a.turn === b.turn &&
  * fade instead of jumping. */
 export class ClientSession {
   phase: 'connecting' | 'joined' | 'closed' = 'connecting';
-  world?: World;
+  world?: WorldControl;
   playerId?: string;
   worldId = '';
   hostName = '';
@@ -315,8 +316,7 @@ export class ClientSession {
     // Catching up only reports events on the way; a complete world replaces everything.
     if (!this.catchUp(snapshot.tick, out, MAX_REPLAY_TICKS) && !snapshot.full) { this.requestResync(now); return; }
 
-    world.tick = snapshot.tick;
-    world.time = snapshot.time;
+    world.restoreClock(snapshot.tick, snapshot.time);
     if (snapshot.moduleState) {
       world.setModuleState(snapshot.moduleState);
     }
@@ -479,8 +479,7 @@ export class ClientSession {
   /** Replace the mirror with the host's ships at `tick`. Returns this player's input acks. */
   private apply(tick: number, time: number, ships: readonly NetShip[]): Map<string, number> {
     const world = this.world!;
-    world.tick = tick;
-    world.time = time;
+    world.restoreClock(tick, time);
     const acks = new Map<string, number>();
     const seen = new Set<string>();
     for (const raw of ships) {
@@ -565,7 +564,7 @@ export class ClientSession {
             return;
           }
         }
-        const world = new World(universe, {
+        const world = (this.options.worldFactory ?? { create: (universe, options) => new World(universe, options) } satisfies WorldFactory).create(universe, {
           systemId: message.systemId,
           id: this.worldId,
           createContext: this.options.createContext ?? createSimulationContext,

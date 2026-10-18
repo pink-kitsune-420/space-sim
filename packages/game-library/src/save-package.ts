@@ -1,3 +1,4 @@
+import { savedProgressConfiguration } from './progress-configuration';
 import type { WorldSave } from '../../sim-core/src/save';
 import { keys, object } from '../../game-runtime/src/validation';
 import { createIntegrity, jsonBytes, parsePackageJson, requiredFile, verifyIntegrity } from './portable';
@@ -14,10 +15,11 @@ interface SaveDescriptor {
 /** Only containers change. Saved float64 values, model, locks and engine schema stay intact. */
 export function createSaveFiles(save: WorldSave): Map<string, Uint8Array<ArrayBuffer>> {
   if (save.format !== 'space-sim-world' || !Array.isArray(save.ships) || !Array.isArray(save.players)) throw new Error('Expected a universe save');
-  const { universe, players, ships, lock, simulationFingerprint, moduleState, ...state } = save;
+  const configuration = savedProgressConfiguration(save);
+  const { universe, players, ships, lock, simulationFingerprint, moduleState, configuration: _configuration, ...state } = save as WorldSave & { configuration?: unknown };
   const files = new Map<string, Uint8Array<ArrayBuffer>>([
     ['state/universe.json', jsonBytes(state)], ['data/universe.json', jsonBytes(universe)], ['state/pilots.json', jsonBytes(players)],
-    ['state/modules.json', jsonBytes({ ...(lock === undefined ? {} : { lock }), ...(simulationFingerprint === undefined ? {} : { simulationFingerprint }), ...(moduleState === undefined ? {} : { moduleState }) })],
+    ['state/modules.json', jsonBytes({ ...(configuration ? { configuration } : {}), ...(lock === undefined ? {} : { lock }), ...(simulationFingerprint === undefined ? {} : { simulationFingerprint }), ...(moduleState === undefined ? {} : { moduleState }) })],
   ]);
   let expanded = [...files.values()].reduce((sum, bytes) => sum + bytes.length, 0);
   if ([...files.values()].some(bytes => bytes.length > JSON_LIMIT)) throw new Error('Save metadata/definitions exceed the 1 MiB per-file limit');
@@ -64,7 +66,8 @@ export function inspectSaveFiles(files: PackageFiles): WorldSave {
   keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId'], 'Universe state');
   if (state.format !== 'space-sim-world') throw new Error('Unsupported saved state');
   const modules = object(parsePackageJson(requiredFile(files, d.modules), 'Saved module state'), 'Saved module state');
-  keys(modules, ['lock', 'simulationFingerprint', 'moduleState'], 'Saved module state');
+  keys(modules, ['lock', 'simulationFingerprint', 'moduleState', 'configuration'], 'Saved module state');
+  savedProgressConfiguration(modules);
   const players = parsePackageJson(requiredFile(files, d.pilots), 'Saved pilots');
   if (!Array.isArray(players) || players.length > 512) throw new Error('Invalid saved pilot count');
   const universe = parsePackageJson(requiredFile(files, d.definition), 'Saved universe definition');

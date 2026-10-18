@@ -30,4 +30,11 @@ test('code-disabled distribution runs builtins and rejects imported code before 
   await page.locator('#lab-file').setInputFiles(resolve('examples/modules/gentle-flight.json'));
   await expect(page.locator('#lab-status')).toContainText('Installed');
   await expect(page.locator('#installed-code-modules')).toContainText('Gentle');
+  const original = JSON.parse(await page.locator('#debug').textContent() || '{}').fingerprint;
+  await page.locator('.code-module-settings > details > summary').click();
+  await page.locator('input[data-enable="example.gentle-flight"]').check();
+  await page.locator('#apply-code-modules').click();
+  await expect(page.locator('#code-module-status')).toContainText('Profile enabled');
+  await expect.poll(async () => JSON.parse(await page.locator('#debug').textContent() || '{}').fingerprint).not.toBe(original);
+  await expect(page.locator('#save-world')).toBeEnabled();
 });

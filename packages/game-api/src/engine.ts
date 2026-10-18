@@ -1,3 +1,5 @@
+import type { ModuleProfile, ModuleEnvironment } from './modules';
+import type { ModuleProfileV2 } from './modules-v2';
 import type { AuthoritativeLock, ModuleLock, Disposable } from './modules';
 import type { Controls, State, Vec, GhostSample, GhostEnd } from './state';
 import type { Ship, WorldEvent } from './world';
@@ -42,8 +44,20 @@ export interface SavedPlayer {
   readonly name: string;
   readonly tokenHash?: string;
 }
+export interface SavedGameConfiguration {
+  readonly format: 'spacelab-progress-configuration/2';
+  readonly profile: ModuleProfile;
+  readonly runtime: { readonly format: 'spacelab-runtime-selection/2'; readonly plans: Readonly<Partial<Record<ModuleEnvironment, {
+    readonly profile: ModuleProfileV2;
+    readonly packages: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
+    readonly requiredSlots: readonly string[];
+  }>>> };
+  readonly data: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
+  readonly code: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
+}
 export interface WorldSave {
   readonly format: 'space-sim-world';
+  readonly configuration?: SavedGameConfiguration;
   readonly version: number;
   readonly model: string;
   readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };
@@ -67,6 +81,7 @@ export interface WorldSave {
 
 /** Body-relative SI state. Read operations retain the world's established rails semantics. */
 export interface WorldRead {
+  readonly configuration?: SavedGameConfiguration;
   readonly id: string; readonly tick: number; readonly time: number;
   readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;
   readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;
@@ -108,6 +123,7 @@ export interface WorldControl extends WorldRead, Disposable {
   subscribeChanges(): WorldChanges;
 }
 export interface WorldCreationOptions {
+  readonly configuration?: SavedGameConfiguration;
   readonly soloPreview?: boolean; readonly migrateState?: WorldRead['migrateState']; readonly systemId?: string; readonly id?: string;
   readonly createContext?: SimulationContextFactory; readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[];
   readonly commands?: readonly CommandExtension[]; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string; readonly saveVersion?: number;

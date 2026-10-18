@@ -1,3 +1,4 @@
+import { GameConfigurationError } from '../../../packages/game-runtime/src/game-loader';
 import type { SimulationContextFactory } from '../../../packages/game-api/src/index';
 import { builtinContextFactory } from '../../../packages/modules/src/index';
 import { closeSync, fsyncSync, openSync, renameSync, writeSync } from 'node:fs';
@@ -32,6 +33,7 @@ export class WorldStore {
     try {
       return { loaded: await read(this.file), from: this.file };
     } catch (error) {
+      if (error instanceof GameConfigurationError) throw error;
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
       const aside = join(this.dir, `world.unusable-${stamp()}.json`);
       this.log(`World file ${this.file} is unusable: ${(error as Error).message}`);
@@ -45,6 +47,7 @@ export class WorldStore {
         this.log(`Restored the world from backup ${path}.`);
         return { loaded, from: path };
       } catch (error) {
+        if (error instanceof GameConfigurationError) throw error;
         this.log(`Backup ${path} is unusable: ${(error as Error).message}`);
       }
     }
@@ -75,7 +78,8 @@ export class WorldStore {
       await mkdir(this.backups, { recursive: true });
       const target = join(this.backups, `world-${stamp()}.json`);
       try { await copyFile(this.file, target); } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+        if (error instanceof GameConfigurationError) throw error;
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
         throw error;
       }
       const files = await this.backupFiles();

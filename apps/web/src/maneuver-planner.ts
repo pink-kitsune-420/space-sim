@@ -1,5 +1,6 @@
+import type { WorldRead } from '../../../packages/game-api/src/index';
 import type { Camera, Controls, GhostSample, ManeuverPreview, ResolvedBody, SimulationContext, State, Vec } from '../../../packages/game-api/src/index';
-import type { Ship, World } from '../../../packages/sim-core/src/world';
+import type { Ship } from '../../../packages/sim-core/src/world';
 import { clampWarpFactor } from '../../../packages/sim-core/src/warp';
 import { maneuverDelta } from '../../../packages/modules/src/base/toolset/maneuver-planner';
 import { createProjector, hermiteControls } from '../../../packages/render-2d/src/frame';
@@ -61,7 +62,7 @@ interface Node {
   reason: string;
 }
 interface Flight {
-  readonly world: World;
+  readonly world: WorldRead;
   readonly ship?: Ship;
   readonly body: ResolvedBody;
   readonly enabled: boolean;
@@ -86,7 +87,7 @@ export class ManeuverPlanner {
   private readonly window: FloatingWindow;
   private readonly preview = new Prediction(pass => this.options.event('maneuver-preview', pass));
   private readonly nodes = new Map<string, Node>();
-  private world?: World;
+  private world?: WorldRead;
   private current?: Node;
   private readonly prograde: HTMLInputElement;
   private readonly radial: HTMLInputElement;

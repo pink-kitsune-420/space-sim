@@ -1,8 +1,8 @@
 import { IDLE, MODEL, STEP, checkWarpSafety, clampWarpFactor, type Controls, type Vec } from '../../sim-core/src/index';
 import { DEFAULT_BUILTIN_LOCK, MAX_PLAYER_NAME, MAX_SAVE_PLAYERS, shipToSaved, type SavedPlayer } from '../../sim-core/src/save';
-import { cleanName, type Ship, type World, type WorldEvent } from '../../sim-core/src/world';
+import { cleanName, type Ship, type WorldEvent } from '../../sim-core/src/world';
 import { resolveCommand } from '../../game-runtime/src/commands';
-import type { CommandEffect } from '../../game-api/src/index';
+import type { CommandEffect, WorldControl, WorldChanges } from '../../game-api/src/index';
 import type { Connection } from './connection';
 import {
   MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
@@ -77,8 +77,9 @@ export class SessionError extends Error {}
  * host validates ownership and timing, advances every ship and publishes snapshots.
  * Transport- and clock-agnostic: the caller drives `step()` at the fixed rate and
  * `service()` regularly, including while paused. */
-export class HostSession {
-  readonly world: World;
+export class HostSession<W extends WorldControl = WorldControl> {
+  readonly world: W;
+  private readonly changes: WorldChanges;
   readonly settings: HostSettings;
   paused = false;
   pauseReason = '';
@@ -102,14 +103,14 @@ export class HostSession {
   private readonly log: (message: string) => void;
   private dirty = false;
 
-  constructor(world: World, settings: Partial<HostSettings> = {}, options: {
+  constructor(world: W, settings: Partial<HostSettings> = {}, options: {
     readonly players?: readonly SavedPlayer[]; readonly now?: () => number; readonly log?: (message: string) => void;
   } = {}) {
     this.world = world;
     this.settings = { ...DEFAULT_HOST_SETTINGS, ...settings };
     this.now = options.now ?? (() => performance.now());
     this.log = options.log ?? (() => {});
-    world.trackChanges = true;
+    this.changes = world.subscribeChanges();
     for (const p of options.players ?? []) this.players.set(p.id, { ...p });
   }
 
@@ -507,6 +508,13 @@ export class HostSession {
     for (const peer of [...this.peers]) this.drop(peer, 'closing', reason);
   }
 
+  /** Release this session's delta consumer as well as every peer and held control. */
+  dispose(): void {
+    this.close();
+    for (const player of this.players.values()) this.releaseControls(player.id);
+    this.changes.dispose(); this.queues.clear(); this.acks.clear(); this.onchat = null; this.onplayers = null;
+  }
+
   /** The complete world. */
   snapshot(): HostMessage {
     return { t: 'snapshot', tick: this.world.tick, time: this.world.time, paused: this.paused,
@@ -547,7 +555,7 @@ export class HostSession {
   private broadcastSnapshot(): void {
     this.dirty = false;
     this.warpSnapshotSeconds = 0;
-    const { changed, removed } = this.world.takeChanges();
+    const { changed, removed } = this.changes.take();
     const ready = [...this.peers].filter(p => p.player && !p.closed);
     for (const peer of ready) {
       if (peer.needsFull) continue;

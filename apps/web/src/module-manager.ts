@@ -1,3 +1,7 @@
+import { normalizeLegacyModule } from '../../../packages/game-runtime/src/loader';
+import { moduleAssets } from '../../../packages/game-runtime/src/modules-v2';
+import type { RuntimeSelection } from '../../../packages/game-library/src/runtime-selection';
+import type { ModuleProfileV2 } from '../../../packages/game-api/src/index';
 import type { ModuleManifest, ModuleProfile, UniverseDefinition } from '../../../packages/game-api/src/index';
 import { applyDataModules, createBuiltinRegistry, type DataModule } from '../../../packages/modules/src/index';
 import { GAME_EXAMPLES } from '../../../examples/modules/index';
@@ -21,21 +25,22 @@ export class ModuleManager {
   constructor(private readonly presentation: Presentation, private readonly options: {
     readonly current: () => { readonly profile: ModuleProfile; readonly data: readonly DataModule[]; readonly editable: boolean;
       readonly universe: UniverseDefinition; readonly resolvedUniverse: UniverseDefinition; readonly universeKey: string; readonly systemId: string };
-    readonly apply: (profile: ModuleProfile, data: readonly DataModule[], selection: { universe: string; system: string }) => void;
-    readonly world: () => object;
+    readonly apply: (profile: ModuleProfile, data: readonly DataModule[], selection: { universe: string; system: string }, runtime?: RuntimeSelection) => Promise<void>;
+    readonly pilots: import('../../../packages/game-api/src/index').PilotRegistry; readonly world: () => object;
   }) {
-    this.devices = new DeviceModuleManager(moduleLibrary.store, { editable: () => this.options.current().editable, world: options.world,
-      activeLegacyIds: () => new Set([...this.options.current().profile.modules, ...(this.presentation.profile?.modules ?? [])].map(ref => ref.id)), restart: () => {
-      const current = this.options.current();
-      this.options.apply(current.profile, current.data, { universe: current.universeKey, system: current.systemId });
-    } });
+    this.devices = new DeviceModuleManager(moduleLibrary.store, { pilots: options.pilots, editable: () => this.options.current().editable, world: options.world,
+      base: () => this.base(), editBase: profile => {
+        const ids = new Set(profile.modules.map(ref => ref.id));
+        for (const input of element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]')) input.checked = ids.has(input.dataset.enable!);
+      }, apply: runtime => this.applyProfile(runtime) });
     element('plugin-manager').append(this.devices.root);
     element('plugin-universe').addEventListener('change', () => this.syncSystems());
     element('authoritative-module-list').addEventListener('change', () => this.syncUniverses(
       element<HTMLSelectElement>('plugin-universe').value, element<HTMLSelectElement>('plugin-system').value));
     const preview = document.createElement('p'); preview.id = 'module-change-preview'; preview.setAttribute('role', 'status');
-    element('authoritative-module-list').after(preview);
+    element('code-module-status').after(preview);
     element('authoritative-module-list').addEventListener('change', () => this.preview());
+    element('authoritative-providers').addEventListener('change', () => this.preview());
     void moduleLibrary.open().then(() => {
       for (const data of moduleLibrary.data.values()) if (!this.data.has(data.manifest.id)) this.data.set(data.manifest.id, data);
       for (const artifact of moduleLibrary.artifacts) if (artifact.manifest.authority === 'presentation' && !this.presentation.registry.getManifest(artifact.manifest.id))
@@ -63,35 +68,50 @@ export class ModuleManager {
       } catch (error) { show('code-module-status', `Module was not installed: ${message(error)}`); }
       finally { input.value = ''; }
     });
-    element('apply-code-modules').addEventListener('click', () => {
-      try {
-        if (!this.options.current().editable) throw new Error('Change authoritative modules in your solo world');
-        const refs = [...element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]:checked')]
-          .map(input => ({ id: input.dataset.enable!, version: input.dataset.version! }));
-        const universe = element<HTMLSelectElement>('plugin-universe').value;
-        const content = [...this.data.values()].find(m => m.data.universes?.some(u => !u.target && `${m.manifest.id}/${u.definition.id}` === universe));
-        if (content && !refs.some(ref => ref.id === content.manifest.id)) refs.push({ id: content.manifest.id, version: content.manifest.version });
-        const registry = this.registry();
-        const modules = registry.closure(refs), enabled = new Set(modules.map(m => m.id));
-        const settings: Record<string, Record<string, number>> = {};
-        for (const input of element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-setting]')) {
-          if (!enabled.has(input.dataset.owner!)) continue;
-          (settings[input.dataset.owner!] ??= {})[input.dataset.setting!] = Number(input.value);
-        }
-        const providers: Record<string, string> = {};
-        for (const select of element('authoritative-providers').querySelectorAll<HTMLSelectElement>('select')) {
-          if (enabled.has(select.value)) providers[select.dataset.slot!] = select.value;
-        }
-        const profile: ModuleProfile = { format: 'space-sim-profile/1', id: 'local.custom', modules, providers, settings };
-        // Resolution precedes any initializer, including source evaluation.
-        registry.resolve(profile, environment(), ['motion', 'content']);
-        this.options.apply(profile, [...this.data.values()].filter(m => enabled.has(m.manifest.id)),
-          { universe, system: element<HTMLSelectElement>('plugin-system').value });
-        this.refresh();
-        show('code-module-status', 'Profile enabled in a new world. Save or export a game to share this complete selection.');
-      } catch (error) { show('code-module-status', `Profile was not enabled: ${message(error)}`); }
-    });
+    element('apply-code-modules').addEventListener('click', () => { void this.applyProfile().catch(error => show('code-module-status', `Profile was not enabled: ${message(error)}`)); });
   }
+  private async applyProfile(runtime?: RuntimeSelection): Promise<void> {
+    if (!this.options.current().editable) throw new Error('Change authoritative modules in your solo world');
+    const universe = element<HTMLSelectElement>('plugin-universe').value;
+    const draft = this.base().profile;
+    const refs = draft.modules.filter(ref => this.registry().manifests.has(ref.id));
+    const content = [...this.data.values()].find(m => m.data.universes?.some(u => !u.target && `${m.manifest.id}/${u.definition.id}` === universe));
+    if (content && !refs.some(ref => ref.id === content.manifest.id)) refs.push({ id: content.manifest.id, version: content.manifest.version });
+    const modules = this.registry().closure(refs), enabled = new Set(modules.map(m => m.id));
+    const profile: ModuleProfile = { format: 'space-sim-profile/1', id: this.options.current().profile.id, modules,
+      providers: Object.fromEntries(Object.entries(draft.providers).filter(([, id]) => enabled.has(id))),
+      settings: Object.fromEntries(Object.entries(draft.settings).filter(([id]) => enabled.has(id))) };
+    // Mixed resolution validates the complete graph. Legacy-only games retain v1 identities.
+    runtime ??= await this.devices.proposal();
+    if (!runtime) this.registry().resolve(profile, environment(), ['motion', 'content']);
+    await this.options.apply(profile, [...this.data.values()].filter(m => enabled.has(m.manifest.id)),
+      { universe, system: element<HTMLSelectElement>('plugin-system').value }, runtime);
+    this.refresh();
+    show('code-module-status', 'Profile enabled in a new world. Save or export a game to share this complete selection.');
+  }
+  /** Inert normalization used only by the common full-game dependency preview. */
+  private base(): { profile: ModuleProfileV2; applied: ModuleProfileV2; manifests: ReadonlyMap<string, import('../../../packages/game-api/src/index').ManifestV2> } {
+    const registry = this.registry();
+    const manifests = new Map([...registry.manifests, ...this.presentation.registry.manifests].map(([id, manifest]) =>
+      [id, normalizeLegacyModule({ manifest, initialize() {} }, moduleAssets()).manifest]));
+    const modules = [...element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]:checked')]
+      .map(input => ({ id: input.dataset.enable!, version: input.dataset.version! }));
+    const settings: Record<string, Record<string, number>> = {};
+    for (const input of element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-setting]')) {
+      if (modules.some(ref => ref.id === input.dataset.owner)) (settings[input.dataset.owner!] ??= {})[input.dataset.setting!] = Number(input.value);
+    }
+    const providers: Record<string, string> = {};
+    for (const select of element('authoritative-providers').querySelectorAll<HTMLSelectElement>('select')) if (select.value) providers[select.dataset.slot!] = select.value;
+    const display = this.presentation.profile;
+    const current = this.options.current().profile;
+    const applied: ModuleProfileV2 = { format: 'space-sim-profile/2', id: current.id,
+      modules: [...current.modules, ...display?.modules ?? []], providers: { ...current.providers, ...display?.providers },
+      settings: { ...current.settings, ...display?.settings }, capabilities: {} };
+    return { manifests, applied, profile: { format: 'space-sim-profile/2', id: this.options.current().profile.id,
+      modules: [...modules, ...display?.modules ?? []], settings: { ...settings, ...display?.settings },
+      providers: { ...providers, ...display?.providers }, capabilities: {} } };
+  }
+
   async installDevicePackage(bytes: Uint8Array, source: string): Promise<boolean> {
     if (!isZip(bytes)) return false;
     let checked;
@@ -125,20 +145,8 @@ export class ModuleManager {
   private refreshData(): void {
     for (const data of this.options.current().data) this.data.set(data.manifest.id, data);
   }
-  private preview(): void {
-    const current = this.options.current();
-    const refs = [...element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]:checked')]
-      .map(input => ({ id: input.dataset.enable!, version: input.dataset.version! }));
-    try {
-      const closure = this.registry().closure(refs), selected = new Set(closure.map(ref => ref.id));
-      const added = closure.filter(ref => !refs.some(request => request.id === ref.id)).map(ref => ref.id);
-      const removed = current.profile.modules.filter(ref => !selected.has(ref.id)).map(ref => ref.id);
-      const parts = ['Applying this selection starts a new world.'];
-      if (added.length) parts.push(`Required dependencies will also be enabled: ${added.join(', ')}.`);
-      if (removed.length) parts.push(`Modules removed from the new world: ${removed.join(', ')}.`);
-      parts.push(`Dependency order: ${closure.map(ref => ref.id).join(' → ')}.`);
-      show('module-change-preview', parts.join(' '));
-    } catch (error) { show('module-change-preview', `Selection cannot be applied: ${message(error)}`); }
+  private preview(announce = true): void {
+    show('module-change-preview', this.devices.preview(false, false, announce));
   }
   private registry() {
     return createBuiltinRegistry([...this.data.values()],
@@ -214,7 +222,7 @@ export class ModuleManager {
       }
       return item;
     }));
-    this.preview();
+    this.preview(false);
   }
   private syncUniverses(preferred: string, system?: string): void {
     const current = this.options.current();
