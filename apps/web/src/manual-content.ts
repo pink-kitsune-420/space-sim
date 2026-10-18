@@ -78,7 +78,7 @@ A dash means the action has no binding for that input or the device is disabled 
 <div data-manual-controls></div>
 <h3>Touch and mouse</h3>
 <ul>
-  <li>Hold <b>BURN</b> to fire the engine. Hold the turn buttons to rotate. Drag the throttle slider in <b>Ship</b>, or the lever beside your navball. The lever shows selected power as a percentage; setting it does not fire the engine. Release engine and throttle controls before dragging it (LOCK). Each local pilot has their own lever.</li>
+  <li>Hold <b>BURN</b> to fire the engine. Hold the turn buttons to rotate. The throttle slider in <b>Ship</b> sets power for held burns. Drag the lever beside your navball to set thrust directly: releasing it keeps burning; drag to 0% to coast. The lever shows active power and reads 0% when the engine is off. Engine and throttle keys, touch buttons and controller inputs override the lever (LOCK); releasing them stops thrust until you drag again. Each local pilot has their own lever. Pausing, losing focus or opening a window also clears the persistent burn.</li>
   <li>Drag the view to move the camera. Pinch or use the mouse wheel to zoom. Flick the view to send the camera gliding.</li>
 </ul>
 <h3>Gamepad</h3>

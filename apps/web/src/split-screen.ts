@@ -160,6 +160,10 @@ export interface SplitScreenHost {
   isGodMode(): boolean;
   /** Held keyboard flight input (no touch, no pointer). */
   keyboardFlight(): Controls;
+  /** Merge persistent console flight controls after held device input has been collected. */
+  resolveFlight?(slot: number, controls: Controls): Controls;
+  /** Release persistent input before restarting a pilot's ship. */
+  releaseFlight?(slot: number): void;
   /** Configuration dialogs consume controllers without sending gameplay input. */
   inputEnabled?(): boolean;
   /** A pad currently interacting with a HUD control or aiming a throw. */
@@ -330,6 +334,7 @@ export class SplitScreen {
       case 'reset': {
         const local = this.host.ownWorld();
         if (!local || !guest.playerId) break;
+        this.host.releaseFlight?.(slot);
         const isGod = this.host.isGodMode();
         try {
           if (guest.shipId && local.world.record(guest.shipId)) local.respawnGuest(guest.playerId, guest.shipId, local.world.presetId(this.host.presetId()), isGod);
@@ -642,7 +647,7 @@ export class SplitScreen {
         const isSlotThrowing = this.host.isSlotThrowing?.(slot) ?? false;
         if (input.zoom && !isSlotThrowing) guest.camera.changeZoom(Math.exp(input.zoom * 2.2 * elapsed));
       }
-      guest.controls = local.paused ? IDLE : controls;
+      guest.controls = local.paused ? IDLE : this.host.resolveFlight?.(slot, controls) ?? controls;
       local.guestControls(guest.playerId, guest.shipId, guest.controls);
     }
   }

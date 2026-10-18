@@ -115,6 +115,7 @@ export class ThrottleLever {
     this.element.dataset.locked = String(state.locked);
     this.element.dataset.firing = String(state.firing);
     this.status.textContent = state.locked ? 'LOCK' : state.firing ? 'BURN' : 'IDLE';
-    this.track.title = state.locked ? 'Release engine / throttle controls to drag' : 'Drag to set throttle; hold engine control to burn';
+    this.track.title = state.locked ? 'Resume flight and release engine / throttle controls to drag'
+      : 'Drag to set thrust; release to keep burning; drag to 0% to coast. Engine / throttle controls override.';
   }
 }
