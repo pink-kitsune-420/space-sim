@@ -11,6 +11,17 @@ async function diagnostics(page: Page): Promise<Record<string, unknown>> {
 async function flightFocus(page: Page): Promise<void> {
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
 }
+/** Keep real networking/session checks within their budget on software GPUs. */
+async function preparePilot(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    localStorage.setItem('space-sim.graphics/1', 'low');
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = new Proxy(getContext, { apply(target, receiver, args) {
+      if (String(args[0]).startsWith('webgl')) return null;
+      return Reflect.apply(target, receiver, args);
+    } });
+  });
+}
 /** Each pilot is a separate browser profile. A small viewport keeps two software-rendered
  * pages from starving the other tests that run in parallel. */
 async function pilot(browser: Browser, url: string, name: string): Promise<Page> {
@@ -18,6 +29,7 @@ async function pilot(browser: Browser, url: string, name: string): Promise<Page>
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   (page as Page & { errors?: string[] }).errors = errors;
+  await preparePilot(page);
   await page.goto(url);
   await openPanel(page, 'multiplayer');
   await page.locator('#player-name').fill(name);
@@ -145,6 +157,7 @@ async function tab(context: BrowserContext, name: string): Promise<Page> {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   (page as Page & { errors?: string[] }).errors = errors;
+  await preparePilot(page);
   await page.goto('/');
   await openPanel(page, 'multiplayer');
   await page.locator('#player-name').fill(name);
@@ -193,6 +206,7 @@ test('a second tab of the same browser joins a hosting tab in one click, and pil
 });
 
 test('joining an address with no server explains how to start one', async ({ page }) => {
+  await preparePilot(page);
   await page.goto('/');
   await openPanel(page, 'multiplayer');
   await page.getByRole('tab', { name: 'Server' }).click();
@@ -205,6 +219,7 @@ test('a solo fleet keeps flying, switches ships and round-trips through a world 
   test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
+  await preparePilot(page);
   await page.goto('/');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
