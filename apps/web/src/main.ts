@@ -27,7 +27,10 @@ import builtinGame from '../../../games/space-sim/game.json' with { type: 'json'
 import builtinOrbitSandbox from '../../../games/orbit-sandbox/game.json' with { type: 'json' };
 import { initOrbitSandbox, type OrbitSandboxInstance } from '../../orbit-sandbox/src/main';
 import universeCatalog from '../../../games/space-sim/universes/catalog.json';
-import { encodeUniverseSave, decodeUniverseSave } from '../../../packages/game-library/src/save-package';
+import { universeSaveFormat } from '../../../packages/game-library/src/universe-save-services';
+import { createUniverseSaves } from '../../../modules/universe-saves/src/index';
+import { createUniverseFiles } from '../../../modules/universe-files/src/index';
+import { createUniverseSaveControls } from '../../../modules/universe-save-controls/src/index';
 import { decodeDataFile, encodeDataFile } from '../../../packages/game-library/src/data-file';
 import { encodeUniverse, decodeUniverse } from '../../../packages/game-library/src/universe';
 import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compression';
@@ -1475,7 +1478,8 @@ function loadActivationThrottles(): (number | undefined)[] {
 }
 
 function activationThrottle(slot: number): number {
-  return activationThrottles[slot] ?? session.world.context.vehicle.initialThrottle;
+  const ship = slot === 0 ? selectedShip() : splitScreen.guests.get(slot)?.ship(session);
+  return activationThrottles[slot] ?? (ship ? session.world.contextFor(ship) : session.world.context).vehicle.initialThrottle;
 }
 
 function rememberActivationThrottle(slot: number, value: number | undefined): void {
@@ -1584,7 +1588,7 @@ function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined
     if(entry.present&&body&&ship&&primary){
       readout.state=slot===0?primary.ship!.state:guest!.state!;readout.radius=body.radius;readout.spin=body.rotation?spinRate(body):0;
       readout.clearance=slot===0?primary.groundClearance:Math.max(0,Math.hypot(guest!.view!.position.x,guest!.view!.position.y)-body.radius);
-      readout.trajectory=slot===0?undefined:formatTrajectoryStats(guest!.state!,body,session.world.context);
+      readout.trajectory=slot===0?undefined:formatTrajectoryStats(guest!.state!,body,session.world.contextFor(guest!.ship(session)!));
       const plan=slot===0?primary.maneuver:undefined;readout.maneuver=plan?.valid&&Math.hypot(plan.deltaVelocity.x,plan.deltaVelocity.y)>0?Math.atan2(plan.deltaVelocity.y,plan.deltaVelocity.x):undefined;
     }
     readout.center=resolveNavballCenter(slot,width,height,scale);readout.scale=scale;readout.cameraRotation=slot===0?camera.rotation:guest?.camera.last.rotation??0;
@@ -3583,6 +3587,7 @@ function startAuthenticatedClient(connection: Connection, stage?: JoinStage): vo
     saveToken: (worldId, token, playerId) => identity.remember(worldId, token, playerId, client.hostSeat),
     lock: stage?.options.lock ?? joiningWorld.lock, simulationFingerprint: stage?.options.simulationFingerprint ?? joiningWorld.simulationFingerprint,
     createContext: stage?.options.createContext ?? installed?.createContext,
+    vehicles: stage?.options.vehicles ?? joiningWorld.vehicles,
     dataAdapters: stage?.options.dataAdapters ?? joiningWorld.dataAdapters,
     rules: stage?.options.rules ?? joiningWorld.rules, forces: stage?.options.forces ?? joiningWorld.forces, commands: stage?.options.commands ?? joiningWorld.commands,
     verifyCandidate: candidate => {
@@ -3781,37 +3786,25 @@ window.addEventListener('pagehide', () => {
   discovery = undefined;
 });
 
-// A universe save contains progress; reusable definitions export separately as .spacedata.
-element('save-world').addEventListener('click', async () => {
-  if (session !== local || local.world.soloPreview) return;
-  rememberToken(local.world.id, local.token, local.playerId);
-  const save = saveWorld(local.world, { players: local.host.roster(), hostId: local.playerId, paused: local.paused,
-    savedAt: new Date().toISOString() });
-  try {
-    downloadBytes(`${save.universe.id.replace(/[^a-z0-9._-]/gi, '-').slice(0, 80)}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.spaceuniverse`, await encodeUniverseSave(save));
-    notify(`Universe saved with ${save.ships.length} ${save.ships.length === 1 ? 'ship' : 'ships'}. A dedicated server can run it with --import.`);
-    profiler.event('world-save', { ships: save.ships.length });
-  } catch (error) { notify(`Universe was not saved: ${message(error)}`); }
-});
-const worldFileInput = element<HTMLInputElement>('world-file');
-element('load-world').addEventListener('click', () => worldFileInput.click());
-worldFileInput.addEventListener('change', async () => {
-  const file = worldFileInput.files?.[0];
-  if (!file) return;
-  const originalWorld = session.world;
-  try {
-    if (session !== local || local.hosting) throw new Error('Load universe saves in your solo game.');
-    if (file.size > 64 * 1024 * 1024) throw new Error('Universe save files must be at most 64 MiB.');
-    const saved = await decodeUniverseSave(new Uint8Array(await file.arrayBuffer()));
-    if (session.world !== originalWorld || session !== local || local.hosting) throw new Error('The active session changed while loading.');
+// Universe commands own IO/cancellation; the host retains consent and atomic game activation.
+const universeSaveProvider = createUniverseSaves({ save: saveWorld }, universeSaveFormat);
+const universeFiles = createUniverseFiles();
+const universeSaveUi = createUniverseSaveControls(universeFiles);
+const universeSaveCommands = universeSaveProvider.create({
+  current: () => ({ identity: session, world: session.world,
+    canSave: session === local && !local.world.soloPreview, canLoad: session === local && !local.hosting,
+    options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused } }),
+  async restore(saved, signal, guard) {
+    guard();
     let installedProfile = worldModules(local.world);
     const configuration = savedProgressConfiguration(saved);
     let restoredArtifacts: readonly import('../../../packages/game-runtime/src/artifact').CodeArtifact[] | undefined;
     let restoredCode: readonly import('../../../packages/game-api/src/index').RegisteredModule[] | undefined;
     if (configuration) {
-      await moduleLibrary.open();
+      await moduleLibrary.open(); guard();
       const restored = await reconstructProgress(configuration, moduleLibrary.store, environment(), { data: [...moduleLibrary.data.values()],
         code: GAME_EXAMPLES, allowRuntimeCode: ALLOW_RUNTIME_CODE, approvedLegacyDigests: new Set(configuration.code.map(ref => ref.digest)) });
+      guard();
       const active = local.world.configuration;
       if (canonicalJson(active ?? null) !== canonicalJson(configuration) && restored.executablePackages.length) {
         if (!ALLOW_RUNTIME_CODE) throw new Error('This build does not allow imported code');
@@ -3824,6 +3817,7 @@ worldFileInput.addEventListener('change', async () => {
     if (installedProfile?.runtime) {
       await moduleManager!.devices.loadWorldGame(installedProfile.runtime, { profile: installedProfile.profile, data: installedProfile.data,
         code: restoredCode ?? [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative')], configuration, restore: saved }, prepared => {
+        guard();
         checkCommandKeys(prepared.loaded.world.commands);
         rememberWorldModules(prepared.loaded.world, { ...installedProfile, createContext: prepared.createContext });
         const next = new LocalSession(prepared.loaded.world, { name: pilotName(), players: prepared.loaded.players,
@@ -3832,10 +3826,11 @@ worldFileInput.addEventListener('change', async () => {
         if (restoredArtifacts) moduleLibrary.replace([...moduleLibrary.artifacts.filter(m => m.manifest.authority === 'presentation'), ...restoredArtifacts]);
         moduleManager!.resetData(installedProfile!.data);
         local.dispose(); local = next; useSession(local, true); setPaused(true, 'Universe loaded');
-      });
+      }, signal);
       notify('Universe loaded.');
       return;
     }
+    guard();
     const loaded = loadInstalledWorld(saved, { environment: environment(),
       data: worldModules(local.world)?.data, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative'
         && worldModules(local.world)?.profile.modules.some(ref => ref.id === m.manifest.id))] });
@@ -3847,11 +3842,21 @@ worldFileInput.addEventListener('change', async () => {
     setPaused(true, 'Universe loaded');
     notify('Universe loaded.');
     profiler.event('world-load', { world: loaded.world.id, ships: loaded.world.size });
-  } catch (error) {
-    alert(`Universe was not loaded: ${message(error)}`);
-  } finally {
-    worldFileInput.value = '';
-  }
+  },
+});
+const universeSaveControl = universeSaveUi.mount({
+  root: element('save-world').closest<HTMLElement>('.world-files')!, commands: universeSaveCommands,
+  controls: { save: element<HTMLButtonElement>('save-world'), load: element<HTMLButtonElement>('load-world'), file: element<HTMLInputElement>('world-file') },
+  saved(save) {
+    if (local.world.id === save.worldId && local.playerId === save.hostId) rememberToken(local.world.id, local.token, local.playerId);
+    notify(`Universe saved with ${save.ships.length} ${save.ships.length === 1 ? 'ship' : 'ships'}. A dedicated server can run it with --import.`);
+    profiler.event('world-save', { ships: save.ships.length });
+  },
+  error(operation, error) { if (operation === 'save') notify(`Universe was not saved: ${message(error)}`); else alert(`Universe was not loaded: ${message(error)}`); },
+});
+window.addEventListener('pagehide', event => {
+  if (event.persisted) return;
+  universeSaveControl.dispose(); universeSaveUi.dispose(); universeSaveProvider.dispose(); universeFiles.dispose();
 });
 
 function executeAction(action: ActionId): void {
@@ -4229,8 +4234,13 @@ function updateBackground(): void {
   }
 }
 
+function activeMotion() {
+  const ship = selectedShip();
+  return ship ? session.world.contextFor(ship) : session.world.context;
+}
+
 function updatePrediction(seconds: number, engine: boolean): void {
-  prediction.update(session.world.context, state, activeBody, session.world.surface(activeBody.id),
+  prediction.update(activeMotion(), state, activeBody, session.world.surface(activeBody.id),
     selectedShip()?.id, seconds, engine, selectedShip()?.controls, session.world);
   maneuver.update(seconds, prediction, engine);
   const others = Math.max(0, connectedPilotIds.size - 1);
@@ -4267,7 +4277,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     water: state.water ?? null,
     waterDepth: Math.max(0, (world.surface(activeBody.id)?.seaRadiusMetres ?? 0) - magnitude(state.position)),
     predictionLast: prediction.path.at(-1) ?? null,
-    vehicle: world.context.vehicle, soloPreview: world.soloPreview,
+    vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
     model: MODEL, body: activeBody.id, system: world.systemId, universe: world.universe.id,
     session: session === local ? (local.hosting ? 'host' : 'local') : 'client', world: world.id,
     ship: selectedShipId ?? null, ships: world.size, asleep: world.asleepCount, fleetView: { ...fleetView.stats },
@@ -4287,9 +4297,9 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     stepSeconds: STEP, tick: world.tick, steps: session === local ? local.clockStats.steps : null,
     droppedSeconds: session === local ? local.clockStats.droppedSeconds : null,
     dynamics: state.dynamics ?? 'numerical', coastEpochSeconds: state.coast?.epochSeconds ?? null,
-    solver: state.solver ?? null, orbit: world.context.capabilities.orbitalDiagnostics ? world.context.services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
-    motionCapabilities: world.context.capabilities, modelIdentity: world.context.modelIdentity,
-    coastCache: world.context.coastCacheStats(state.coast),
+    solver: state.solver ?? null, orbit: activeMotion().capabilities.orbitalDiagnostics ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
+    motionCapabilities: activeMotion().capabilities, modelIdentity: activeMotion().modelIdentity,
+    coastCache: activeMotion().coastCacheStats(state.coast),
     samples: prediction.path.length, predictionEnd: prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd, predictionPasses: prediction.passCount,
     predictionWorkMs: prediction.lastPass.workMs, predictionCoarse: prediction.lastPass.coarse,
     otherOrbits: { ...otherOrbits.stats, mode: orbitMode.value, otherPilots: Math.max(0, connectedPilotIds.size - 1) },
@@ -4331,8 +4341,8 @@ function hud(engine: boolean): void {
   const burning = String(engine && !paused);
   if (shown.get('burn') !== burning) { element('burn').setAttribute('aria-pressed', burning); shown.set('burn', burning); }
   show('prediction', prediction.text(state));
-  const analytic = session.world.context.capabilities.orbitalDiagnostics;
-  const orbit = analytic && ship && state.status === 'flying' ? session.world.context.services.orbits.elements(activeOrbitSource(), activeBody.mu) : null;
+  const analytic = activeMotion().capabilities.orbitalDiagnostics;
+  const orbit = analytic && ship && state.status === 'flying' ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null;
   show('periapsis', !analytic ? 'Unavailable · custom motion' : !orbit ? '—'
     : `${(orbit.periapsis - activeBody.radius).toFixed(1)} m`);
   show('apoapsis', !analytic ? 'Unavailable · custom motion' : !orbit ? '—'
@@ -4431,7 +4441,7 @@ function otherShips(
 /** What the pilot sees, for presentation modules: interpolated, detached and frozen. */
 function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnapshot {
   const world = session.world, ship = selectedShip(), last = prediction.path.at(-1);
-  const analyticOrbits = world.context.capabilities.orbitalDiagnostics;
+  const analyticOrbits = activeMotion().capabilities.orbitalDiagnostics;
   return presentationSnapshot({
     time: view.time, tick: world.tick, paused: session.paused, elapsed,
     viewport: { width: canvas.clientWidth, height: canvas.clientHeight, pixelRatio: window.devicePixelRatio || 1 },
@@ -4439,8 +4449,8 @@ function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnaps
       ...(activeBody.rotation ? { spin: spinRate(activeBody) } : {}) },
     ...(ship ? { ship: { id: ship.id, name: ship.name, bodyId: activeBody.id, state: view, controls: ship.controls,
       position: { x: bodyPosition.x + view.position.x, y: bodyPosition.y + view.position.y }, ...(ship.fault ? { fault: ship.fault } : {}) } } : {}),
-    vehicle: world.context.vehicle, analyticOrbits,
-    orbit: analyticOrbits && ship && state.status === 'flying' ? world.context.services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
+    vehicle: activeMotion().vehicle, analyticOrbits,
+    orbit: analyticOrbits && ship && state.status === 'flying' ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
     groundClearance: ship ? groundClearance() : null,
     prediction: { status: !ship ? 'none' : prediction.pass && prediction.passKey !== prediction.pathKey ? 'tracing' : prediction.pathEnd,
       samples: prediction.path.length, ...(last ? { last } : {}) },
@@ -4655,6 +4665,7 @@ function frame(now: number): void {
     padPosition: padWorld,
     padNormal: pad && spinView.point(activeBody, view.time, pad.normal),
     shipLabel: ship?.name.toUpperCase(),
+    vehicleId: ship?.vehicleId,
     ships: others,
     showScale: hudVisibility.visible('scale'),
     showShipLabels: hudVisibility.visible('labels'),
@@ -4676,7 +4687,7 @@ function frame(now: number): void {
 
       const gEngine = guest.controls.engine && !session.paused;
       guest.prediction.update(
-        session.world.context,
+        session.world.contextFor(guestShip),
         guest.state,
         guest.body,
         session.world.surface(guest.body.id),
@@ -4768,6 +4779,7 @@ function frame(now: number): void {
         padPosition: gPadWorld,
         padNormal: gPad && spinView.point(guest.body, guest.view.time, gPad.normal),
         shipLabel: guestShip.name.toUpperCase(),
+        vehicleId: guestShip.vehicleId,
         ships: gOthers,
         showScale: hudVisibility.visible('scale'),
         showShipLabels: hudVisibility.visible('labels'),
@@ -4791,7 +4803,7 @@ function frame(now: number): void {
         {
           name: pilotName(),
           status: (godModeToggle.checked ? '[INVULNERABLE] ' : '') + (session.paused ? 'PAUSED' : !selectedShip() ? 'NO SHIP' : state.status.toUpperCase()),
-          text: selectedShip() ? formatTrajectoryStats(state, activeBody, session.world.context) : '',
+          text: selectedShip() ? formatTrajectoryStats(state, activeBody, activeMotion()) : '',
         },
         guest => {
           const s = guest.state;
@@ -4799,7 +4811,7 @@ function frame(now: number): void {
           if (!s || !b) return { status: 'NO SHIP', text: '' };
           return {
             status: (godModeToggle.checked ? '[INVULNERABLE] ' : '') + s.status.toUpperCase(),
-            text: formatTrajectoryStats(s, b, session.world.context),
+            text: formatTrajectoryStats(s, b, session.world.contextFor(guest.ship(session)!)),
           };
         },
       );

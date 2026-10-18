@@ -1,4 +1,4 @@
-import type { RenderMaterial, RenderPostEffect } from '../../game-api/src/index';
+import { captureVehicleDefinition, captureVehicleAppearance, type VehicleDefinition, type VehicleAppearance, type RenderMaterial, type RenderPostEffect } from '../../game-api/src/index';
 import type { ModuleDataExtension } from '../../game-api/src/index';
 import { captureDataAdapter } from './module-data';
 import type { ActionDefinitionV2, CapabilityBinding, Disposable, GuidePage, HostServiceAccess, InputSource, ManifestV2,
@@ -132,6 +132,14 @@ export class ModuleRegistryV2 {
           contributeDiscovery: provider => { mutable(); requireTier(['network'], 'discovery'); candidate.add('discovery', candidate.hooks.discovery(id, provider), 16); },
           contributeData: adapter => { mutable(); requireTier(['authoritative'], 'module data');
             const captured = captureDataAdapter(id, adapter); candidate.add('data', { moduleId: id, id: captured.id, value: captured }, 16, 128); },
+          contributeVehicle: vehicle => { mutable(); requireTier(['authoritative'], 'vehicles');
+            const value = captureVehicleDefinition(vehicle);
+            if (!value.id.startsWith(`${id}/`)) throw new Error(`Module ${id}: vehicle must use its module namespace`);
+            candidate.add('vehicle', { moduleId: id, id: value.id, value }, 16, 128); },
+          contributeVehicleAppearance: appearance => { mutable(); requireTier(['presentation'], 'vehicle appearance');
+            const value = captureVehicleAppearance(appearance);
+            if (candidate.contributions('vehicleAppearance').some(c => c.value.vehicleId === value.vehicleId)) throw new Error(`Duplicate appearance for ${value.vehicleId}`);
+            candidate.add('vehicleAppearance', { moduleId: id, id: `${id}/${value.vehicleId}`, value }, 16, 128); },
           contributeWindow: window => { mutable(); requireTier(['platform'], 'windows'); candidate.add('window', contribution(id, captureWindow(window)), 16); },
           contributeGuide: page => {
             // Static, validated Manual data is useful in every tier, including
@@ -174,6 +182,7 @@ function validateShader(assets: ModuleAssets, path: string): void {
   if (!text.trim() || new TextEncoder().encode(text).length > 256 * 1024) throw new Error('Shader must contain at most 256 KiB of text');
 }
 interface Contributions {
+  vehicle: VehicleDefinition; vehicleAppearance: VehicleAppearance;
   data: ModuleDataExtension; input: InputSource; transport: TransportProvider; discovery: DiscoveryProvider; window: WindowDefinition;
   guide: GuidePage; material: MaterialDefinition; post: PostEffectDefinition;
 }
@@ -185,6 +194,7 @@ export class ModuleCandidateV2 implements Disposable {
   private readonly owned = new WeakSet<Disposable>();
   private readonly services = new Map<string, { version: string; value: unknown }>();
   private readonly lists: { [K in keyof Contributions]: ModuleContribution<Contributions[K]>[] } = {
+    vehicle: [], vehicleAppearance: [],
     data: [], input: [], transport: [], discovery: [], window: [], guide: [], material: [], post: [],
   };
   private readonly actions: ActionDefinitionV2[] = [];

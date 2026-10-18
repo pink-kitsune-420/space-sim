@@ -1,3 +1,4 @@
+import { universeSaveFormatService } from '../../../packages/game-library/src/universe-save-services';
 import { progressConfiguration } from '../../../packages/game-library/src/progress-configuration';
 import { DEFAULT_PROFILE } from '../../../packages/modules/src/index';
 import { CORE_SESSION, type JoinOptions, type ManifestV2, type ModuleProfileV2 } from '../../../packages/game-api/src/index';
@@ -87,7 +88,7 @@ export class DeviceModuleManager {
     return manifests;
   }
   private services(host: BrowserModuleHost) {
-    return [...engineModuleServices(), ...host.hostServices(), { key: CORE_SESSION, service: browserSessionFactory,
+    return [universeSaveFormatService, ...engineModuleServices(), ...host.hostServices(), { key: CORE_SESSION, service: browserSessionFactory,
       tiers: ['platform', 'network'] as const, environments: ['browser', 'offline'] as const }];
   }
   /** Shared full-game metadata preview, including the legacy authority/viewer profile. */

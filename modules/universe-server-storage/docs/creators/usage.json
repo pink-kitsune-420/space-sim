@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Server universe storage",
+  "summary": "Server universe storage",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "universe.server-storage@1.0.0 requires node-only core.universe-disk. The host grants a directory, engine/package-aware restore and configuration-error classification. The module serializes writes through temporary-file flush and atomic replacement, preserves world.json and timestamped backup names, quarantines invalid data, and keeps configured backups. Missing required packages must report configurationError and are never quarantined. Native IO is borrowed; disposal blocks new operations and idle drains queued writes."
+    }
+  ]
+}

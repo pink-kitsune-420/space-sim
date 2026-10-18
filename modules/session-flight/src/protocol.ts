@@ -1,3 +1,4 @@
+import { captureVehicleCatalog, vehicleId, type VehicleCatalog } from '@space-sim/game-api';
 import type { ModuleDataSchema, ModuleDataCommand } from '@space-sim/game-api';
 import type { AuthoritativeLock, ModuleLock, WorldRuleState, UniverseDefinition, SavedShip } from '@space-sim/game-api';
 /** Flight protocol v5 command bounds; keep stable until a protocol revision. */
@@ -8,6 +9,7 @@ const MAX_COMMAND_PARAMETERS = 8;
  * the physics model, because clients predict with the same code the host runs. */
 export const PROTOCOL = 'space-sim-net/5';
 /** Explicit extension negotiation; legacy peers cannot silently omit required data. */
+export const VEHICLE_PROTOCOL = 'space-sim-vehicles/1';
 export const MODULE_DATA_PROTOCOL = 'space-sim-module-data/1';
 /** Clients only send small commands. */
 export const MAX_CLIENT_MESSAGE = 16 * 1024;
@@ -42,13 +44,13 @@ export interface SessionRules {
 }
 
 export type HostMessage =
-  | { readonly dataSchemas?: readonly ModuleDataSchema[]; readonly t: 'info'; readonly protocol: string; readonly model: string; readonly worldId: string;
+  | { readonly vehicles?: VehicleCatalog; readonly dataSchemas?: readonly ModuleDataSchema[]; readonly t: 'info'; readonly protocol: string; readonly model: string; readonly worldId: string;
       readonly name: string; readonly password: boolean; readonly players: number; readonly maxPlayers: number;
       readonly fingerprint?: string;
       /** The player seated in the hosting browser, if any. A browser that shares storage
        * with that host (another tab) must not present the host's token. */
       readonly host?: string }
-  | { readonly data?: unknown; readonly t: 'welcome'; readonly playerId: string; readonly token?: string; readonly universe: UniverseDefinition;
+  | { readonly vehicles?: VehicleCatalog; readonly data?: unknown; readonly t: 'welcome'; readonly playerId: string; readonly token?: string; readonly universe: UniverseDefinition;
       readonly systemId: string; readonly tick: number; readonly time: number; readonly paused: boolean; readonly reason?: string;
       readonly rules: SessionRules; readonly players: readonly NetPlayer[]; readonly ships: readonly NetShip[];
       readonly lock?: AuthoritativeLock | ModuleLock; readonly fingerprint?: string;
@@ -70,12 +72,12 @@ export type HostMessage =
 export type ErrorCode = 'version' | 'password' | 'full' | 'kicked' | 'replaced' | 'invalid' | 'rate' | 'timeout' | 'closing';
 
 export type ClientMessage =
-  | { readonly dataVersion?: string; readonly t: 'join'; readonly name: string; readonly token?: string; readonly password?: string }
+  | { readonly vehicleVersion?: string; readonly dataVersion?: string; readonly t: 'join'; readonly name: string; readonly token?: string; readonly password?: string }
   /** Held controls for one owned ship, effective from simulation `tick`. `set` also sets the
    * throttle at that tick (the throttle slider). */
   | { readonly t: 'input'; readonly seq: number; readonly ship: string; readonly tick: number;
       readonly turn: number; readonly throttle: number; readonly engine: boolean; readonly set?: number }
-  | { readonly t: 'spawn'; readonly preset?: string }
+  | { readonly t: 'spawn'; readonly preset?: string; readonly vehicleId?: string }
   | { readonly t: 'respawn'; readonly ship: string; readonly preset?: string }
   | { readonly t: 'remove'; readonly ship: string }
   | { readonly t: 'god'; readonly ship: string; readonly on: boolean }
@@ -143,7 +145,7 @@ export function parseClientMessage(raw: string): ClientMessage {
     case 'join': {
       const token = optional(m.token, v => typeof v === 'string' && /^[0-9a-f]{32}$/.test(v) ? v : bad('token must be 32 hex digits'));
       const password = optional(m.password, v => text(v, MAX_PASSWORD, 'password'));
-      return { ...(m.dataVersion !== undefined ? { dataVersion: text(m.dataVersion, 64, 'dataVersion') } : {}), t: 'join', name: text(m.name, 64, 'name'), ...(token ? { token } : {}), ...(password !== undefined ? { password } : {}) };
+      return { ...(m.vehicleVersion !== undefined ? { vehicleVersion: text(m.vehicleVersion, 64, 'vehicleVersion') } : {}), ...(m.dataVersion !== undefined ? { dataVersion: text(m.dataVersion, 64, 'dataVersion') } : {}), t: 'join', name: text(m.name, 64, 'name'), ...(token ? { token } : {}), ...(password !== undefined ? { password } : {}) };
     }
     case 'data-command': {
       const request = object(m.request);
@@ -159,7 +161,7 @@ export function parseClientMessage(raw: string): ClientMessage {
     }
     case 'spawn': {
       const preset = optional(m.preset, v => ident(v, 'preset'));
-      return { t: 'spawn', ...(preset ? { preset } : {}) };
+      return { ...(m.vehicleId !== undefined ? { vehicleId: vehicleId(m.vehicleId) } : {}), t: 'spawn', ...(preset ? { preset } : {}) };
     }
     case 'respawn': {
       const preset = optional(m.preset, v => ident(v, 'preset'));
@@ -250,7 +252,7 @@ export function parseHostMessage(raw: string): HostMessage {
       if (typeof m.password !== 'boolean') bad('password must be boolean');
       const fingerprint = optional(m.fingerprint, v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v) ? v : bad('fingerprint must be 64 hex digits'));
       const host = optional(m.host, v => ident(v, 'host'));
-      return { ...(m.dataSchemas !== undefined ? { dataSchemas: dataSchemas(m.dataSchemas) } : {}), t: 'info', protocol: text(m.protocol, 64, 'protocol'), model: text(m.model, 128, 'model'),
+      return { ...(m.vehicles !== undefined ? { vehicles: captureVehicleCatalog(m.vehicles) } : {}), ...(m.dataSchemas !== undefined ? { dataSchemas: dataSchemas(m.dataSchemas) } : {}), t: 'info', protocol: text(m.protocol, 64, 'protocol'), model: text(m.model, 128, 'model'),
         worldId: ident(m.worldId, 'worldId'), name: text(m.name, 80, 'name'), password: m.password,
         players: int(m.players, 'players'), maxPlayers: int(m.maxPlayers, 'maxPlayers'),
         ...(fingerprint ? { fingerprint } : {}), ...(host ? { host } : {}) };
@@ -266,7 +268,7 @@ export function parseHostMessage(raw: string): HostMessage {
       });
       const fingerprint = optional(m.fingerprint, v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v) ? v : bad('fingerprint must be 64 hex digits'));
       const moduleState = optional(m.moduleState, parseRuleStates);
-      return { ...(m.data !== undefined ? { data: m.data } : {}), t: 'welcome', playerId: ident(m.playerId, 'playerId'), ...(token ? { token } : {}),
+      return { ...(m.vehicles !== undefined ? { vehicles: captureVehicleCatalog(m.vehicles) } : {}), ...(m.data !== undefined ? { data: m.data } : {}), t: 'welcome', playerId: ident(m.playerId, 'playerId'), ...(token ? { token } : {}),
         universe: object(m.universe) as unknown as UniverseDefinition, systemId: ident(m.systemId, 'systemId'),
         ...clock(m),
         rules: { maxPlayers: int(r.maxPlayers, 'rules.maxPlayers'), maxShipsPerPlayer: int(r.maxShipsPerPlayer, 'rules.maxShipsPerPlayer'),

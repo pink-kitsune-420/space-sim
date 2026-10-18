@@ -89,8 +89,8 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
   /** Drop interpolation history, e.g. after a reset. */
   settle(): void { this.clock.reset(); this.settled = true; }
 
-  spawn(presetId: string, godMode: boolean): string | undefined {
-    return this.host.spawnShip(this.playerId, presetId, godMode).id;
+  spawn(presetId: string, godMode: boolean, vehicleId?: string): string | undefined {
+    return this.host.spawnShip(this.playerId, presetId, godMode, vehicleId).id;
   }
   respawn(shipId: string, presetId: string): void {
     const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
@@ -163,7 +163,7 @@ export class RemoteSession implements GameSession {
     this.client.control(shipId, controls);
     return this.client.update();
   }
-  spawn(presetId: string): undefined { this.client.spawn(presetId); return undefined; }
+  spawn(presetId: string, _godMode?: boolean, vehicleId?: string): undefined { this.client.spawn(presetId, vehicleId); return undefined; }
   respawn(shipId: string, presetId: string): void { this.client.respawn(shipId, presetId); }
   teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void {
     if (this.client.rules && !this.client.rules.allowGodMode) throw new SessionError('Cheats (teleport, throw, orbit) are disabled on this server.');

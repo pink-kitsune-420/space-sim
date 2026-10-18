@@ -2,7 +2,7 @@ import type { ModuleDataCommand } from '@space-sim/game-api';
 import type { Controls, Vec, SavedPlayer, Ship, WorldEvent, CommandEffect, WorldControl, WorldChanges, FlightSessionServices } from '@space-sim/game-api';
 import type { TextConnection as Connection } from '@space-sim/game-api';
 import {
-  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, MODULE_DATA_PROTOCOL, ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
+  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, VEHICLE_PROTOCOL, MODULE_DATA_PROTOCOL, ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
   type NetShip, type SessionRules,
 } from './protocol';
 import { newPlayerId, newToken, sha256Hex } from './sha256';
@@ -185,7 +185,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
     this.peers.add(peer);
     connection.onmessage = text => this.receive(peer, text);
     connection.onclose = reason => this.disconnected(peer, reason);
-    this.send(peer, { ...(this.world.data.schemas.length ? { dataSchemas: this.world.data.schemas } : {}), t: 'info', protocol: PROTOCOL, model: this.services.clock.model, worldId: this.world.id, name: this.settings.name,
+    this.send(peer, { ...(this.world.vehicles ? { vehicles: this.world.vehicles } : {}), ...(this.world.data.schemas.length ? { dataSchemas: this.world.data.schemas } : {}), t: 'info', protocol: PROTOCOL, model: this.services.clock.model, worldId: this.world.id, name: this.settings.name,
       password: this.settings.password !== '', players: this.connectedCount(), maxPlayers: this.settings.maxPlayers,
       fingerprint: this.world.simulationFingerprint, ...(this.hostId ? { host: this.hostId } : {}) });
   }
@@ -241,14 +241,17 @@ export class HostSession<W extends WorldControl = WorldControl> {
   }
 
   // Commands, shared by remote players and the host seat. Each throws a SessionError to refuse.
-  spawnShip(playerId: string, presetId?: string, godMode = false): Ship {
+  spawnShip(playerId: string, presetId?: string, godMode = false, vehicleId?: string): Ship {
     this.assertActive();
     this.requirePlayer(playerId);
     const owned = this.ownedCount(playerId);
     if (owned >= this.settings.maxShipsPerPlayer) throw new SessionError(`Ship limit reached (${this.settings.maxShipsPerPlayer} per pilot).`);
     if (this.pilotedShips() >= this.settings.maxShips) throw new SessionError('This world has reached its ship limit.');
     if (presetId !== undefined && !this.world.system.presets.some(p => p.id === presetId)) throw new SessionError(`Unknown start ${presetId}.`);
-    const ship = this.world.spawn({ ownerId: playerId, presetId: presetId ?? this.settings.spawnPreset,
+    if (vehicleId !== undefined) {
+      try { this.world.contextFor({ vehicleId }); } catch (error) { throw new SessionError((error as Error).message); }
+    }
+    const ship = this.world.spawn({ vehicleId, ownerId: playerId, presetId: presetId ?? this.settings.spawnPreset,
       godMode: godMode && this.settings.allowGodMode });
     this.changed();
     return ship;
@@ -680,7 +683,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
       if (!player) { this.drop(peer, 'invalid', 'Join first.'); return; }
       switch (message.t) {
         case 'input': this.input(player, message); break;
-        case 'spawn': this.spawnShip(player.id, message.preset); break;
+        case 'spawn': this.spawnShip(player.id, message.preset, false, message.vehicleId); break;
         case 'respawn': this.respawnShip(player.id, message.ship, message.preset); break;
         case 'remove': this.removeShip(player.id, message.ship); break;
         case 'god': this.setGodMode(player.id, message.ship, message.on); break;
@@ -716,6 +719,9 @@ export class HostSession<W extends WorldControl = WorldControl> {
 
   private join(peer: Peer, message: Extract<ClientMessage, { t: 'join' }>): void {
     if (peer.player) { this.drop(peer, 'invalid', 'Already joined.'); return; }
+    if (this.world.vehicles && message.vehicleVersion !== VEHICLE_PROTOCOL) {
+      this.drop(peer, 'version', 'Missing required mixed-vehicle replication support.'); return;
+    }
     if (this.world.data.schemas.length && message.dataVersion !== MODULE_DATA_PROTOCOL) {
       this.drop(peer, 'version', 'Missing required module-data replication support.'); return;
     }
@@ -749,7 +755,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
       try { this.spawnShip(playerId); } catch (error) { if (!(error instanceof SessionError)) throw error; }
     }
     this.log(`${player.name} joined (${peer.connection.label})`);
-    this.send(peer, { ...(this.world.data.schemas.length ? { data: this.world.data.snapshot() } : {}), t: 'welcome', playerId, ...(token ? { token } : {}), universe: this.world.universe,
+    this.send(peer, { ...(this.world.vehicles ? { vehicles: this.world.vehicles } : {}), ...(this.world.data.schemas.length ? { data: this.world.data.snapshot() } : {}), t: 'welcome', playerId, ...(token ? { token } : {}), universe: this.world.universe,
       systemId: this.world.systemId, tick: this.world.tick, time: this.world.time, paused: this.paused,
       ...(this.paused && this.pauseReason ? { reason: this.pauseReason } : {}),
       ...(this.warp > 1 ? { warp: this.warp } : {}),

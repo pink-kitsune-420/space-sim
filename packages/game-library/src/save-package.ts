@@ -74,7 +74,7 @@ export function inspectSaveFiles(files: PackageFiles): WorldSave {
   const dataRecords = d.format === 'spacelab-universe-save/2' ? unchunk(d.data, 'data', 4096) : undefined;
   if ([...files.keys()].some(path => !paths.has(path))) throw new Error('Unexpected save entry; universe saves never contain executable modules');
   const state = object(parsePackageJson(requiredFile(files, d.state), 'Universe state'), 'Universe state');
-  keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId'], 'Universe state');
+  keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId', 'vehicles'], 'Universe state');
   if (state.format !== 'space-sim-world') throw new Error('Unsupported saved state');
   const modules = object(parsePackageJson(requiredFile(files, d.modules), 'Saved module state'), 'Saved module state');
   keys(modules, ['lock', 'simulationFingerprint', 'moduleState', 'configuration', 'data'], 'Saved module state');
@@ -82,7 +82,7 @@ export function inspectSaveFiles(files: PackageFiles): WorldSave {
   const players = parsePackageJson(requiredFile(files, d.pilots), 'Saved pilots');
   if (!Array.isArray(players) || players.length > 512) throw new Error('Invalid saved pilot count');
   const universe = parsePackageJson(requiredFile(files, d.definition), 'Saved universe definition');
-  if ((dataRecords && (state.version !== 3 || modules.data === undefined)) || (!dataRecords && modules.data !== undefined)) throw new Error('Module-data save layout/version mismatch');
+  if ((dataRecords && ((state.version !== 3 && state.version !== 4) || modules.data === undefined)) || (!dataRecords && modules.data !== undefined)) throw new Error('Module-data save layout/version mismatch');
   const data = dataRecords ? { ...object(modules.data, 'Saved module data'), records: dataRecords } : undefined;
   // The engine receives precisely the same save value as before container migration.
   return { ...state, universe, players, ships, ...modules, ...(data ? { data } : {}) } as unknown as WorldSave;

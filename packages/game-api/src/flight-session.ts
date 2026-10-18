@@ -37,7 +37,7 @@ export interface FlightHost extends Disposable {
   playerList(): SessionPlayer[]; roster(): SavedPlayer[]; playerName(id: string): string | undefined;
   setPaused(paused: boolean, reason?: string): void; canWarp(playerId?: string): boolean;
   setWarp(factor: number, playerId?: string): { readonly granted: number; readonly reason?: string };
-  spawnShip(playerId: string, presetId?: string, godMode?: boolean): Ship;
+  spawnShip(playerId: string, presetId?: string, godMode?: boolean, vehicleId?: string): Ship;
   respawnShip(playerId: string, shipId: string, presetId?: string, godMode?: boolean): Ship;
   removeShip(playerId: string, shipId: string): void;
   setGodMode(playerId: string, shipId: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;

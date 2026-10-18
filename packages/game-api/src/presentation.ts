@@ -34,6 +34,7 @@ export interface RenderBody {
 }
 /** Another vessel in the same world: one of this player's fleet, or someone else's. */
 export interface RenderShip {
+  readonly vehicleId?: string;
   readonly id: string;
   /** System world coordinates. */
   readonly position: Vec;
@@ -48,6 +49,7 @@ export interface RenderShip {
   readonly rock?: boolean;
 }
 export interface RenderFrame {
+  readonly vehicleId?: string;
   /** Presentation snapshot; may be interpolated between fixed physics steps. */
   readonly state: State;
   /** Ghost samples with exact velocities. Closed loops are drawn whole; open paths start at the ship. */

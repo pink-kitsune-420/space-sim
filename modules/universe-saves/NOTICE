@@ -1,0 +1,1 @@
+Space Sim first-party universe save/load commands, extracted from the existing progress workflow. Engine validation and container codecs are supplied by the host. Licensed under MIT.

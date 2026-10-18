@@ -1,3 +1,4 @@
+import { VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -535,11 +536,12 @@ export class CanvasRenderer implements Renderer {
     const drawShip = (at: Vec, heading: number, status: string, burning: boolean, throttle: number, size: number, fill: string): void => {
       ctx.save(); ctx.translate(at.x, at.y); ctx.rotate(-heading - camera.rotation);
       if (size !== 1) ctx.scale(size, size);
-      if (burning && status === 'flying') {
-        ctx.fillStyle = '#e0a665'; ctx.beginPath(); ctx.moveTo(-7, -3); ctx.lineTo(-15 - throttle * 15, 0); ctx.lineTo(-7, 3); ctx.fill();
+      const artwork = this.ports.vehicles?.get(frame.vehicleId), hull = artwork?.hull ?? VEHICLE_MARKER, flame = artwork?.flame;
+      if (flame && burning && status === 'flying') {
+        ctx.fillStyle = '#e0a665'; ctx.beginPath(); ctx.moveTo(flame.x, -flame.halfWidth); ctx.lineTo(flame.x - flame.length - throttle * flame.throttleLength, 0); ctx.lineTo(flame.x, flame.halfWidth); ctx.fill();
       }
       ctx.fillStyle = status === 'crashed' ? '#ef8c7a' : fill; ctx.strokeStyle = '#080f19';
-      ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-7, -6); ctx.lineTo(-4, 0); ctx.lineTo(-7, 6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(hull[0]!.x, hull[0]!.y); for (let i = 1; i < hull.length; i++) ctx.lineTo(hull[i]!.x, hull[i]!.y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
     };
     ctx.font = '11px ui-monospace, monospace'; ctx.textAlign = 'left';
     this.drawRocks(frame.ships ?? [], toScreen, width, height);
@@ -618,24 +620,32 @@ export class CanvasRenderer implements Renderer {
   private drawShipBatch(others: readonly RenderShip[], toScreen: (p: Vec) => Vec, rotation: number,
     width: number, height: number): void {
     const { ctx } = this;
-    const placed: { readonly x: number; readonly y: number; readonly c: number; readonly s: number; readonly ship: RenderShip }[] = [];
+    const placed: { readonly x: number; readonly y: number; readonly c: number; readonly s: number; readonly ship: RenderShip; readonly artwork?: VehicleAppearance }[] = [];
     for (const other of others) {
       if (other.rock) continue;
       const at = toScreen(other.position);
       if (at.x < -40 || at.x > width + 40 || at.y < -40 || at.y > height + 40) continue;
       const angle = -other.heading - rotation;
-      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * 0.8, s: Math.sin(angle) * 0.8, ship: other });
+      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * 0.8, s: Math.sin(angle) * 0.8, ship: other, artwork: this.ports.vehicles?.get(other.vehicleId) });
     }
     if (!placed.length) return;
     const hull = (p: typeof placed[number]): void => {
-      const pt = (x: number, y: number): [number, number] => [p.x + x * p.c - y * p.s, p.y + x * p.s + y * p.c];
-      ctx.moveTo(...pt(11, 0)); ctx.lineTo(...pt(-7, -6)); ctx.lineTo(...pt(-4, 0)); ctx.lineTo(...pt(-7, 6)); ctx.closePath();
+      const points = p.artwork?.hull ?? VEHICLE_MARKER;
+      const first = points[0]!;
+      ctx.moveTo(p.x + first.x * p.c - first.y * p.s, p.y + first.x * p.s + first.y * p.c);
+      for (let i = 1; i < points.length; i++) {
+        const v = points[i]!; ctx.lineTo(p.x + v.x * p.c - v.y * p.s, p.y + v.x * p.s + v.y * p.c);
+      }
+      ctx.closePath();
     };
     ctx.beginPath();
     for (const p of placed) {
-      if (!p.ship.engine || p.ship.status !== 'flying') continue;
-      const pt = (x: number, y: number): [number, number] => [p.x + x * p.c - y * p.s, p.y + x * p.s + y * p.c];
-      ctx.moveTo(...pt(-7, -3)); ctx.lineTo(...pt(-15 - p.ship.throttle * 15, 0)); ctx.lineTo(...pt(-7, 3)); ctx.closePath();
+      const f = p.artwork?.flame;
+      if (!f || !p.ship.engine || p.ship.status !== 'flying') continue;
+      const tip = f.x - f.length - p.ship.throttle * f.throttleLength;
+      ctx.moveTo(p.x + f.x * p.c + f.halfWidth * p.s, p.y + f.x * p.s - f.halfWidth * p.c);
+      ctx.lineTo(p.x + tip * p.c, p.y + tip * p.s);
+      ctx.lineTo(p.x + f.x * p.c - f.halfWidth * p.s, p.y + f.x * p.s + f.halfWidth * p.c); ctx.closePath();
     }
     ctx.fillStyle = '#e0a665'; ctx.fill();
     for (const [fill, match] of [['#9fbfc9', (s: RenderShip) => s.status !== 'crashed' && !s.foreign],

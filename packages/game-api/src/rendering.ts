@@ -2,6 +2,10 @@ import type { Disposable } from './modules';
 import type { ServiceKey } from './modules-v2';
 import type { Camera, RenderBody, RenderFrame, RenderThemeOptions, Renderer, RenderTimer, ShaderPack } from './presentation';
 import type { SurfaceProfile, SurfaceQuery } from './surface';
+import type { VehicleArtwork } from './vehicles';
+
+/** Generic position marker when a game omits a vehicle's optional appearance. */
+export const VEHICLE_MARKER = Object.freeze([Object.freeze({x: 3, y: -3}), Object.freeze({x: -3, y: -3}), Object.freeze({x: -3, y: 3}), Object.freeze({x: 3, y: 3})]);
 
 /** Read-only physical geometry; render quality must never change collision geometry. */
 export interface RenderGeometry { querySurface(profile: SurfaceProfile, angle: number): SurfaceQuery }
@@ -15,6 +19,7 @@ export interface SceneFrame extends Pick<RenderFrame, 'camera' | 'bodies' | 'ove
 export interface SceneRenderer extends Renderer { dispose(): void; drawScene(frame: SceneFrame, timer?: RenderTimer): void }
 export interface BodyPreview extends Disposable { readonly ready: boolean; readonly error?: string; draw(body: RenderBody, fill?: number): void }
 export interface Render2DOptions {
+  readonly vehicles?: VehicleArtwork;
   /** Presentation resolution cap, 0.5–4; never changes physical geometry. */
   readonly maxPixelRatio?: number;
   readonly geometry?: RenderGeometry;

@@ -49,7 +49,7 @@ export class FleetView implements FlightFleetView {
         const coast = ship.state.coast;
         let placed = this.placed.get(ship.id);
         if (!placed || placed.coast !== coast) {
-          const orbit = world.context.services.orbits.elements(coast, coast.mu);
+          const orbit = world.contextFor(ship).services.orbits.elements(coast, coast.mu);
           placed = { coast, time: NaN, position: coast.position, rp: orbit.periapsis, ra: orbit.apoapsis ?? Infinity,
             vMax: Math.sqrt(Math.max(0, 2 * (orbit.energy + coast.mu / orbit.periapsis))) };
           this.placed.set(ship.id, placed);
@@ -58,7 +58,7 @@ export class FleetView implements FlightFleetView {
         const dx = bodyAt.x - camera.center.x, dy = bodyAt.y - camera.center.y, d = Math.hypot(dx, dy);
         if (d - placed.ra > viewRadius || placed.rp - d > viewRadius) { stats.culledByOrbit++; continue; }
         if (!(Math.abs(time - placed.time) * placed.vMax * scale < this.stillPixels)) {
-          const result = world.context.coastAt(coast, time, world.body(ship.bodyId), world.surface(ship.bodyId), { cache: false });
+          const result = world.contextFor(ship).coastAt(coast, time, world.body(ship.bodyId), world.surface(ship.bodyId), { cache: false });
           if (result.ok) { placed.position = result.state.position; placed.time = time; stats.solved++; }
         } else stats.reused++;
         state = { ...ship.state, position: placed.position };
@@ -78,7 +78,7 @@ export class FleetView implements FlightFleetView {
       const pilot = foreign ? input.playerName(ship.ownerId) : undefined;
       // Ships without a pilot (stress-test asteroids) are drawn as rocks, unlabeled.
       const rock = input.isRock?.(ship) ?? false;
-      out.push({ id: ship.id, position: { x, y }, heading: state.heading, status: state.status,
+      out.push({ ...(ship.vehicleId ? { vehicleId: ship.vehicleId } : {}), id: ship.id, position: { x, y }, heading: state.heading, status: state.status,
         engine: ship.controls.engine && !input.paused, throttle: state.throttle,
         label: rock ? '' : this.label(ship, pilot), foreign: foreign && pilot !== undefined,
         ...(rock ? { rock } : {}) });

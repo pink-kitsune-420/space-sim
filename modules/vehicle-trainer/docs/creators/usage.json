@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Portable trainer",
+  "summary": "Portable trainer",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Contribute namespaced vehicle definitions with contributeVehicle. World creation receives a space-sim-vehicles/1 catalog built from enabled authoritative contributions. The trainer inherits the selected system vehicleDefaults; fixed-handling craft can coexist. contextFor(ship) selects the craft handling for simulation, prediction and observations. Exact packages are required for version 4 saves and vehicle-aware sessions; legacy craft map to spacelab.trainer/orbit-trainer without altering their state."
+    }
+  ]
+}

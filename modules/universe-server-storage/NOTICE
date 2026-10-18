@@ -1,0 +1,1 @@
+Space Sim first-party server universe storage policy, extracted from serialized atomic saves, backup retention and validated recovery. Native filesystem operations are supplied by the host. Licensed under MIT.

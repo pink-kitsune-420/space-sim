@@ -1,4 +1,5 @@
 import type { ModuleDataAdapter } from './module-data';
+import type { VehicleDefinition, VehicleAppearance } from './vehicles';
 import type { Disposable, ModuleEnvironment, ModuleInitialization, ModuleReference, NumberSetting } from './modules';
 import type { ActionDefinitionV2, DiscoveryProvider, GuidePage, InputSource, MaterialDefinition,
   PostEffectDefinition, TransportProvider, WindowDefinition } from './platform';
@@ -74,6 +75,8 @@ export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'asse
   contributeDiscovery(provider: DiscoveryProvider): void;
   /** Authoritative records shared by saves and compatible session replication. */
   contributeData(adapter: ModuleDataAdapter): void;
+  contributeVehicle(vehicle: VehicleDefinition): void;
+  contributeVehicleAppearance(appearance: VehicleAppearance): void;
   contributeWindow(window: WindowDefinition): void;
   /** Bounded structured Manual data, available in every tier without a UI dependency. */
   contributeGuide(page: GuidePage): void;

@@ -667,7 +667,7 @@ and view allocation through public typed services. Generic device sources accept
 flight mappings remain explicit compatibility adapters. A controller routes intent through an adapter
 that validates the session player's ownership. Local seat, player, entity and viewport identities are
 separate. Each viewport gets its own camera; view allocation never advances a world. The remaining
-Space Sim composition and camera migrations are in progress.</p>
+Space Sim manifest composition remains in progress. The reusable follow camera and its explicit flight adapter are available in <code>modules/camera-follow</code>.</p>
 <p>The editable <code>net-websocket</code> package provides <code>WEBSOCKET_TRANSPORT</code>
 (<code>net.websocket@1.0.0</code>) for ordered text connections. It owns URL handling, timeout,
 message limits, cancellation and cleanup; it has no flight, renderer or UI dependency. Declare the
@@ -675,6 +675,34 @@ capability before requesting it, and pass an abort signal when connecting. Cance
 link; replacing or removing its provider disposes its connections. Native WebSocket support is
 needed only when connecting. A compatible session adapter must still agree commands, snapshots,
 saves and replay; sharing a transport alone does not establish multiplayer compatibility.</p>
+<h3>Universe saving modules</h3>
+<p>Saved progress is a <b>universe</b>: use <b>Save universe</b> and <b>Load universe…</b>
+with <code>.spaceuniverse</code> files. Reusable setup and planet definitions export separately.</p>
+<p><code>modules/universe-saves</code> supplies cancellable save/load commands over engine validation
+and the host's existing container codecs. <code>modules/universe-files</code> owns browser file IO and
+downloads; <code>modules/universe-save-controls</code> mounts independent controls over those commands.
+A compatible host still owns package approval and atomic world activation. The supplied guard rejects
+loads if the session changes while a file or package is being prepared.</p>
+<p><code>modules/universe-server-storage</code> owns serialized saves, atomic file replacement,
+backup retention and recovery over borrowed native disk operations. Existing server file names and
+formats are preserved. Missing exact gameplay packages require explicit recovery and never authorize
+code installation from a universe file. Storage and UI providers can be replaced independently.</p>
+<h3>Portable trainer vehicles</h3>
+<p><code>modules/vehicle-trainer</code> contributes <code>spacelab.trainer/orbit-trainer</code>
+through <code>contributeVehicle</code>. A compatible game supplies shared physics, valid starts and
+session ownership. Build a <code>space-sim-vehicles/1</code> catalogue from enabled authoritative
+vehicle contributions and pass it to world creation. The trainer inherits the selected system's
+<code>vehicleDefaults</code>; another craft can declare fixed handling in the same world.
+Use <code>world.contextFor(ship)</code> for that craft's motion, prediction and flight observations.</p>
+<p>Vehicle-aware saves use version 4, retaining every craft's identity and the exact catalogue.
+Legacy saves map to the trainer without changing flight state. Loading or joining requires the
+matching gameplay packages; a missing vehicle produces a recovery message. Saves never install code.
+Controls, cameras and per-view instruments remain independently replaceable.</p>
+<p><code>modules/appearance-trainer</code> owns the optional chevron and flame. Collect
+<code>contributeVehicleAppearance</code> results with <code>createVehicleArtwork</code> and pass the
+result as <code>Render2DOptions.vehicles</code>. Set <code>vehicleId</code> on primary and fleet render
+records. Canvas and WebGL consume the same immutable vectors. Missing artwork leaves a small
+position marker; headless flight needs no artwork, renderer or device.</p>
 <p>Portable <code>render.canvas</code> and <code>render.webgl</code> factories draw public flight frames or
 body-only scenes with independent cameras. A scene needs no trainer, flight HUD or world scheduler.
 Supply physical bodies and a read-only surface-query port; compatibility defaults remain in the host

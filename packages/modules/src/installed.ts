@@ -98,7 +98,7 @@ export async function preparePeerWorld(plan: InstalledGamePlan | undefined, stor
         throw new Error('Server pack cannot reproduce the offered authoritative lock and simulation fingerprint');
       await prepared.candidate.start(signal); signal.throwIfAborted();
       return { options: { name: 'Pilot', lock: world.lock, simulationFingerprint: world.simulationFingerprint,
-        createContext: prepared.createContext, dataAdapters: world.dataAdapters, rules: world.rules, forces: world.forces, commands: world.commands,
+        createContext: prepared.createContext, vehicles: world.vehicles, dataAdapters: world.dataAdapters, rules: world.rules, forces: world.forces, commands: world.commands,
         verifyCandidate: candidate => {
           if (candidate.fingerprint !== offer.fingerprint || sha256Hex(canonicalJson(candidate.lock)) !== offer.lockDigest)
             return { ok: false, reason: 'The host changed its enabled game while joining' };
@@ -113,7 +113,7 @@ export async function preparePeerWorld(plan: InstalledGamePlan | undefined, stor
     if (world.soloPreview || sha256Hex(canonicalJson(world.lock)) !== offer.lockDigest || world.simulationFingerprint !== offer.fingerprint)
       throw new Error('Server pack cannot reproduce the offered authoritative lock and simulation fingerprint');
     return { options: { name: 'Pilot', lock: world.lock, simulationFingerprint: world.simulationFingerprint,
-      createContext: prepared.createContext, dataAdapters: world.dataAdapters, rules: world.rules, forces: world.forces, commands: world.commands,
+      createContext: prepared.createContext, vehicles: world.vehicles, dataAdapters: world.dataAdapters, rules: world.rules, forces: world.forces, commands: world.commands,
       verifyCandidate(candidate) {
         if (!prepared.candidate.available || !candidate.lock || candidate.fingerprint !== offer.fingerprint
           || sha256Hex(canonicalJson(candidate.lock)) !== offer.lockDigest) return { ok: false, reason: 'The host changed its enabled game while joining' };

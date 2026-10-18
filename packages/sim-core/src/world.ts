@@ -1,3 +1,5 @@
+import { captureVehicleCatalog, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
+import { canonicalJson, sha256Hex } from '../../game-runtime/src/authoritative';
 import { ModuleDataStore } from '../../game-runtime/src/module-data';
 import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
@@ -63,6 +65,8 @@ export class World implements WorldControl {
   readonly universe: UniverseDefinition;
   readonly system: LoadedSystem;
   readonly context: SimulationContext;
+  readonly vehicles: WorldOptions['vehicles'];
+  private readonly vehicleContexts = new Map<string, SimulationContext>();
   readonly rules: readonly WorldRuleExtension[];
   readonly forces: readonly ForceExtension[];
   readonly commands: readonly CommandExtension[];
@@ -110,6 +114,7 @@ export class World implements WorldControl {
 
   readonly configuration: WorldOptions['configuration'];
   constructor(universe: UniverseDefinition, options: WorldOptions = {}) {
+    this.vehicles = options.vehicles === undefined ? undefined : captureVehicleCatalog(options.vehicles);
     this.data = new ModuleDataStore(options.dataAdapters);
     this.configuration = options.configuration;
     this.id = options.id ?? 'local';
@@ -153,11 +158,14 @@ export class World implements WorldControl {
         physicalGeometry: geometries,
       };
     }
-    this.simulationFingerprint = options.simulationFingerprint ?? (
+    const baseFingerprint = options.simulationFingerprint ?? (
       this.lock && this.lock.format === 'space-sim-auth-lock/1'
         ? computeSimulationFingerprint(this.lock as AuthoritativeLock)
         : this.computeDefaultFingerprint()
     );
+
+    this.simulationFingerprint = options.simulationFingerprint ?? (this.vehicles
+      ? sha256Hex(canonicalJson({ simulation: baseFingerprint, vehicles: this.vehicles, systemHandling: this.system.vehicleDefaults })) : baseFingerprint);
 
     this.soloPreview = options.soloPreview !== undefined
       ? options.soloPreview
@@ -169,6 +177,23 @@ export class World implements WorldControl {
       throw new Error('World context must match the system vehicle settings and fixed step');
     }
     try {
+      for (const definition of this.vehicles?.definitions ?? []) {
+        const handling = definition.handling ?? settings;
+        let context = this.context;
+        if (handling.acceleration !== settings.acceleration || handling.turnRate !== settings.turnRate || handling.initialThrottle !== settings.initialThrottle) {
+          context = this.createContext(handling, {
+            worldRules: this.rules.length > 0,
+            worldRuleIdentity: this.rules.length ? JSON.stringify(this.rules.map(r => [r.moduleId, r.version, r.hook.modelIdentity, r.hook.initialState, r.hook.seed])) : undefined,
+          });
+          if (context.stepSeconds !== STEP || context.vehicle.acceleration !== handling.acceleration
+            || context.vehicle.turnRate !== handling.turnRate || context.vehicle.initialThrottle !== handling.initialThrottle
+            || context.services.bodies !== this.context.services.bodies || context.services.surfaces !== this.context.services.surfaces
+            || (this.rules.length && (context.capabilities.analyticCoast || context.capabilities.rails))) {
+            context.dispose(); throw new Error(`Vehicle ${definition.id}: incompatible motion context`);
+          }
+        }
+        this.vehicleContexts.set(definition.id, context);
+      }
       const profiles = new Map<string, SurfaceProfile>();
       const identities = new Map<string, SurfaceProfile>();
       for (const body of this.system.getAllBodies()) if (body.surface && body.surfaceFeatures !== 'star') {
@@ -181,9 +206,29 @@ export class World implements WorldControl {
       // Validate every start before the world is used, so a bad universe fails on load.
       for (const p of this.system.presets) this.system.initialState(p.id, profiles.get(p.bodyId));
     } catch (error) {
-      this.context.dispose();
+      try { this.dispose(); }
+      catch (cleanup) { throw new AggregateError([error, cleanup], 'World construction and cleanup failed'); }
       throw error;
     }
+  }
+
+  /** Selection is constant-time; contexts/caches are constructed outside the step loop. */
+  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext {
+    const id = ship.vehicleId ?? TRAINER_VEHICLE_ID;
+    if (!this.vehicles && id === TRAINER_VEHICLE_ID) return this.context;
+    const context = this.vehicleContexts.get(id);
+    if (!context) throw new VehicleConfigurationError(`Missing required vehicle ${id}. Enable its exact gameplay package before loading or joining.`);
+    return context;
+  }
+
+  private normalizedVehicle(ship: Ship): Ship {
+    this.contextFor(ship);
+    if (this.vehicles && ship.vehicleId === undefined) return { ...ship, vehicleId: TRAINER_VEHICLE_ID };
+    if (!this.vehicles && ship.vehicleId !== undefined) {
+      const { vehicleId: _vehicle, ...legacy } = ship;
+      return legacy;
+    }
+    return ship;
   }
 
   restoreClock(tick: number, time: number): void {
@@ -225,7 +270,7 @@ export class World implements WorldControl {
    * idle step from it only moves its clock, so time warp may treat it as on rails already. */
   settles(id: string): boolean {
     const ship = this.fleet.get(id);
-    return !!ship && this.awake.has(id) && this.rails && !this.rules.length && this.context.capabilities.rails
+    return !!ship && this.awake.has(id) && this.rails && !this.rules.length && this.contextFor(ship).capabilities.rails
       && this.restingState(ship) !== undefined;
   }
   /** Ships changed by a command, replacement or fault, and ships removed, since the last
@@ -271,7 +316,7 @@ export class World implements WorldControl {
     if (!ship) return undefined;
     const { state } = ship;
     if (!this.asleepRails.has(id) || !state.coast || state.dynamics !== 'kepler' || state.time === time) return state;
-    const result = this.context.coastAt(state.coast, time, this.body(ship.bodyId), this.surfaces.get(ship.bodyId), { cache: false });
+    const result = this.contextFor(ship).coastAt(state.coast, time, this.body(ship.bodyId), this.surfaces.get(ship.bodyId), { cache: false });
     return result.ok ? { ...state, time, position: result.state.position, velocity: result.state.velocity } : state;
   }
   hasBody(id: string): boolean { return this.bodyIds.has(id); }
@@ -290,13 +335,18 @@ export class World implements WorldControl {
     return { state: groundPreset(state, this.body(start.body.id), p.kind === 'state'), bodyId: start.body.id };
   }
 
-  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean }): Ship {
+  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship {
+    const selectedId = options.vehicleId ?? this.vehicles?.defaultId;
+    const context = this.contextFor({ vehicleId: selectedId });
+    const vehicleId = this.vehicles ? selectedId : undefined;
+    const fixedHandling = this.vehicles?.definitions.find(d => d.id === vehicleId)?.handling;
     const n = this.nextShipNumber++;
     const start = this.presetState(options.presetId);
     const ship: Ship = {
       id: `ship-${n}`, name: cleanName(options.name) || defaultName(n), ownerId: options.ownerId,
       bodyId: start.bodyId, controls: IDLE,
-      state: options.godMode ? { ...start.state, godMode: true } : start.state,
+      ...(vehicleId ? { vehicleId } : {}),
+      state: { ...start.state, ...(fixedHandling ? { throttle: context.vehicle.initialThrottle } : {}), ...(options.godMode ? { godMode: true } : {}) },
     };
     this.own(ship);
     this.fleet.set(ship.id, ship);
@@ -312,8 +362,9 @@ export class World implements WorldControl {
     const ship = this.require(shipId);
     const start = this.presetState(presetId);
     const isGod = godMode !== undefined ? godMode : !!ship.state.godMode;
-    const next: Ship = { id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId: start.bodyId, controls: IDLE,
-      state: { ...start.state, revision: ship.state.revision + 1, ...(isGod ? { godMode: true } : {}) } };
+    const fixedHandling = this.vehicles?.definitions.find(d => d.id === ship.vehicleId)?.handling;
+    const next: Ship = { id: ship.id, name: ship.name, ownerId: ship.ownerId, ...(ship.vehicleId ? { vehicleId: ship.vehicleId } : {}), bodyId: start.bodyId, controls: IDLE,
+      state: { ...start.state, ...(fixedHandling ? { throttle: this.contextFor(ship).vehicle.initialThrottle } : {}), revision: ship.state.revision + 1, ...(isGod ? { godMode: true } : {}) } };
     this.fleet.set(ship.id, next);
     this.prior.delete(ship.id);
     this.wake(ship.id);
@@ -330,6 +381,7 @@ export class World implements WorldControl {
     const dir = speed > 1e-6 ? Math.atan2(velocity.y, velocity.x) : Math.atan2(position.y, position.x) + Math.PI / 2;
     const h = heading ?? dir;
     const next: Ship = {
+      ...(ship.vehicleId ? { vehicleId: ship.vehicleId } : {}),
       id: ship.id,
       name: ship.name,
       ownerId: ship.ownerId,
@@ -378,7 +430,7 @@ export class World implements WorldControl {
     this.prior.clear();
     this.asleepRails.clear();
     this.wakeQueue.clear();
-    this.context.dispose();
+    this.dispose();
     this.tick = 0; this.time = 0; this.nextShipNumber = 1;
     this.ruleState = initialRuleState(this.rules); this.paused = false; this.fault = undefined;
   }
@@ -441,6 +493,7 @@ export class World implements WorldControl {
   put(ship: Ship): void {
     if (!SHIP_ID_PATTERN.test(ship.id)) throw new Error(`Invalid ship id ${ship.id}`);
     if (!this.hasBody(ship.bodyId)) throw new Error(`Ship ${ship.id}: unknown body ${ship.bodyId}`);
+    ship = this.normalizedVehicle(ship);
     this.own(ship);
     this.fleet.set(ship.id, ship.state.time === this.time ? ship : { ...ship, state: { ...ship.state, time: this.time } });
     this.asleepRails.delete(ship.id);
@@ -607,7 +660,7 @@ export class World implements WorldControl {
   /** Clones all authoritative rule/RNG/ship state; derived caches belong to the clone. */
   cloneForPrediction(): World {
     const clone = new World(this.universe, { id: this.id, systemId: this.selectedSystemId,
-      createContext: this.createContext, dataAdapters: this.dataAdapters, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
+      vehicles: this.vehicles, createContext: this.createContext, dataAdapters: this.dataAdapters, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
       lock: this.lock, simulationFingerprint: this.simulationFingerprint, saveVersion: this.saveVersion });
     clone.tick = this.tick; clone.time = this.time; clone.nextShipNumber = this.nextShipNumber;
     clone.rails = false;
@@ -648,7 +701,7 @@ export class World implements WorldControl {
    * failure returns the ship stopped with a fault. */
   private stepShip(ship: Ship, events: WorldEvent[]): Ship {
     try {
-      let state = this.context.advance(ship.state, ship.controls, STEP, this.body(ship.bodyId), this.surfaces.get(ship.bodyId));
+      let state = this.contextFor(ship).advance(ship.state, ship.controls, STEP, this.body(ship.bodyId), this.surfaces.get(ship.bodyId));
       let bodyId = ship.bodyId;
       const contact = state.contact, status = state.status;
       const soi = this.system.checkSOI(this.customFrames ? motionRuleStateCopy(state) : state, bodyId, state.time);
@@ -656,7 +709,7 @@ export class World implements WorldControl {
         if (!soi || typeof soi.switched !== 'boolean' || !soi.newBody || !this.hasBody(soi.newBody.id)
           || !soi.newState || soi.newState.time !== state.time || !Number.isSafeInteger(soi.newState.revision)
           || soi.newState.revision !== state.revision + (soi.switched ? 1 : 0)) throw new Error('Invalid body/frame transition');
-        this.context.validateState(soi.newState, this.body(soi.newBody.id), this.surface(soi.newBody.id));
+        this.contextFor(ship).validateState(soi.newState, this.body(soi.newBody.id), this.surface(soi.newBody.id));
       }
       if (contact) events.push({ type: 'contact', shipId: ship.id, contact, status });
       if (soi.switched) {
@@ -664,7 +717,10 @@ export class World implements WorldControl {
         bodyId = soi.newBody.id;
         state = soi.newState;
       }
-      return { id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId, state, controls: ship.controls };
+      const next: { -readonly [K in keyof Ship]: Ship[K] } = {
+        id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId, state, controls: ship.controls };
+      if (ship.vehicleId !== undefined) next.vehicleId = ship.vehicleId;
+      return next;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       events.push({ type: 'fault', shipId: ship.id, message });
@@ -681,6 +737,7 @@ export class World implements WorldControl {
     if (!SHIP_ID_PATTERN.test(record.id)) throw new Error(`Invalid ship id ${record.id}`);
     if (!this.hasBody(record.bodyId)) throw new Error(`Ship ${record.id}: unknown body ${record.bodyId}`);
     const events: WorldEvent[] = [];
+    record = this.normalizedVehicle(record);
     this.own(record);
     // Nothing to replay and every step an idle coast: no steps at all.
     if (!before && ticks > 0 && this.rails && this.sleepNow(record, this.tick - ticks, ticks)) {
@@ -708,7 +765,7 @@ export class World implements WorldControl {
   /** Put a just-stepped ship to sleep when its next steps are known in closed form and no
    * event can interrupt them before a provable horizon. */
   private sleep(ship: Ship, tick: number): void {
-    if (this.rules.length || !this.context.capabilities.rails) return;
+    if (this.rules.length || !this.contextFor(ship).capabilities.rails) return;
     const { state, controls } = ship;
     if (state.contact || state.waterEntry) return;
     let horizon: number;
@@ -727,7 +784,7 @@ export class World implements WorldControl {
         horizon = Infinity;
       } else if (state.dynamics === 'kepler' && state.coast && state.water === undefined) {
         const body = this.body(ship.bodyId);
-        horizon = this.railsHorizon(this.system, body, state, state.coast, state.time,
+        horizon = this.railsHorizon(this.contextFor(ship), this.system, body, state, state.coast, state.time,
           this.surfaces.get(ship.bodyId)?.bounds.maxRadius ?? body.radius);
       } else return;
     }
@@ -742,9 +799,9 @@ export class World implements WorldControl {
     if (wake !== Infinity) this.wakeQueue.push(wake, ship.id, generation);
   }
 
-  private railsHorizon(system: LoadedSystem, body: ResolvedBody, state: State | Coast, epoch: Coast, time: number, top: number): number {
+  private railsHorizon(context: SimulationContext, system: LoadedSystem, body: ResolvedBody, state: State | Coast, epoch: Coast, time: number, top: number): number {
     try {
-      const horizon = this.context.services.rails.horizon(system, body, state, epoch, time, top);
+      const horizon = context.services.rails.horizon(system, body, state, epoch, time, top);
       return typeof horizon === 'number' && horizon >= 0 ? horizon : 0;
     } catch { return 0; }
   }
@@ -755,7 +812,7 @@ export class World implements WorldControl {
    * (spawns, saves, snapshots, engine cuts) skip their first step. `tick` is the record's.
    * The stored record gets the coast its steps evaluate (the one `advance` would make). */
   private sleepNow(ship: Ship, tick: number, need: number): boolean {
-    if (this.rules.length || !this.context.capabilities.rails) return false;
+    if (this.rules.length || !this.contextFor(ship).capabilities.rails) return false;
     const { state, controls } = ship;
     if (state.status !== 'flying') {
       // Resting on the ground: asleep until a command wakes it.
@@ -771,12 +828,12 @@ export class World implements WorldControl {
     const body = this.body(ship.bodyId), surface = this.surfaces.get(ship.bodyId);
     let coast: Coast | undefined;
     try {
-      if (surface) this.context.services.surfaces.validate(body, surface);
-      coast = this.context.keplerCoast(state, body, surface);
+      if (surface) this.contextFor(ship).services.surfaces.validate(body, surface);
+      coast = this.contextFor(ship).keplerCoast(state, body, surface);
     } catch { return false; }
     if (!coast) return false;
     // A new coast is this very state, frozen (its elements are already cached).
-    const skip = Math.floor(this.railsHorizon(this.system, body, state.coast === coast ? state : coast, coast, state.time,
+    const skip = Math.floor(this.railsHorizon(this.contextFor(ship), this.system, body, state.coast === coast ? state : coast, coast, state.time,
       surface?.bounds.maxRadius ?? body.radius) / STEP) - 1;
     if (!(skip >= need)) return false;
     const generation = ++this.generation;
@@ -809,7 +866,7 @@ export class World implements WorldControl {
       const sea = this.surfaces.get(ship.bodyId)?.seaRadiusMetres;
       if (sea !== undefined && magnitude(state.position) < sea) return undefined;
     }
-    try { this.context.validateState(state, this.body(ship.bodyId), this.surfaces.get(ship.bodyId)); } catch { return undefined; }
+    try { this.contextFor(ship).validateState(state, this.body(ship.bodyId), this.surfaces.get(ship.bodyId)); } catch { return undefined; }
     if (state.dynamics === 'numerical' && !state.coast && !state.solver && !state.moduleState) return state;
     const rest: { -readonly [K in keyof State]: State[K] } = { time: state.time, position: state.position,
       velocity: state.velocity, heading: state.heading, throttle: state.throttle, status: state.status,
@@ -832,7 +889,7 @@ export class World implements WorldControl {
     if (state.status === 'crashed') next = { ...state, time: this.time };
     else if (state.status === 'landed') next = { ...state, time: this.time, revision: state.revision + steps };
     else {
-      const result = this.context.coastAt(state.coast!, this.time, this.body(ship.bodyId), this.surfaces.get(ship.bodyId), { cache: false });
+      const result = this.contextFor(ship).coastAt(state.coast!, this.time, this.body(ship.bodyId), this.surfaces.get(ship.bodyId), { cache: false });
       if (!result.ok) {
         // Never expected for a coast that was valid when it fell asleep; stop it like any
         // other motion failure rather than guess.
@@ -848,14 +905,21 @@ export class World implements WorldControl {
       next = coasting;
     }
     rail.tick = this.tick;
-    const record: Ship = { id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId: ship.bodyId, state: next,
+    const record: { -readonly [K in keyof Ship]: Ship[K] } = { id: ship.id, name: ship.name, ownerId: ship.ownerId, bodyId: ship.bodyId, state: next,
       controls: ship.controls, ...(ship.fault ? { fault: ship.fault } : {}) };
+    if (ship.vehicleId !== undefined) record.vehicleId = ship.vehicleId;
     this.fleet.set(id, record);
     return record;
   }
 
   /** Release the owned motion caches when this world is retired. */
-  dispose(): void { this.context.dispose(); }
+  dispose(): void {
+    let errors: unknown[] | undefined;
+    for (const context of new Set([this.context, ...this.vehicleContexts.values()])) {
+      try { context.dispose(); } catch (error) { (errors ??= []).push(error); }
+    }
+    if (errors) throw new AggregateError(errors, 'World motion context cleanup failed');
+  }
 
   /** Return a ship to per-step advancing (after any command or replacement). */
   private wake(id: string): void {

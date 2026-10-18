@@ -71,7 +71,7 @@ describe('complete-world saves', () => {
 
   it.each<[string, (save: Record<string, any>) => void, string]>([
     ['another format', s => { s.format = 'space-sim-shaders/1'; }, `not a ${SAVE_FORMAT} file`],
-    ['a newer version', s => { s.version = 4; }, 'Unsupported save version 4'],
+    ['a newer version', s => { s.version = 5; }, 'Unsupported save version 5'],
     ['another physics model', s => { s.model = 'other'; }, `physics model other differs from ${MODEL}`],
     ['other units', s => { s.units.length = 'foot'; }, 'units must be metre'],
     ['an unknown system', s => { s.systemId = 'nowhere'; }, 'unknown system nowhere'],

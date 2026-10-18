@@ -1,10 +1,12 @@
+import { captureVehicleCatalog } from '@space-sim/game-api';
 import type { ModuleDataCommand, ModuleDataExtension } from '@space-sim/game-api';
 import type { WorldControl, WorldFactory, AuthoritativeLock, CommandExtension, ForceExtension, JoinOptions, ModuleLock, SimulationContextFactory, WorldRuleExtension, Controls, Vec, Ship, WorldEvent, FlightSessionServices, TextConnection as Connection } from '@space-sim/game-api';
 import {
-  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, MODULE_DATA_PROTOCOL, parseHostMessage, type ClientMessage, type HostMessage, type NetPlayer, type NetShip, type SessionRules,
+  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, MODULE_DATA_PROTOCOL, VEHICLE_PROTOCOL, parseHostMessage, type ClientMessage, type HostMessage, type NetPlayer, type NetShip, type SessionRules,
 } from './protocol';
 
 export interface ClientOptions {
+  readonly vehicles?: JoinOptions['vehicles'];
   readonly dataAdapters?: readonly ModuleDataExtension[];
   readonly createContext?: SimulationContextFactory;
   readonly worldFactory?: WorldFactory;
@@ -139,7 +141,7 @@ export class ClientSession {
     const ship = this.world?.ship(shipId);
     if (ship) this.input(shipId, this.sent.get(shipId) ?? ship.controls, Math.max(0, Math.min(1, throttle)));
   }
-  spawn(presetId?: string): void { this.send({ t: 'spawn', ...(presetId ? { preset: presetId } : {}) }); }
+  spawn(presetId?: string, vehicleId?: string): void { this.send({ ...(vehicleId ? { vehicleId } : {}), t: 'spawn', ...(presetId ? { preset: presetId } : {}) }); }
   respawn(shipId: string, presetId?: string): void {
     this.sent.delete(shipId);
     this.send({ t: 'respawn', ship: shipId, ...(presetId ? { preset: presetId } : {}) });
@@ -423,6 +425,8 @@ export class ClientSession {
    * verified is still shown where the host says it is, stopped. */
   private verified(raw: NetShip, time: number): Ship | undefined {
     const world = this.world!;
+    if (world.vehicles && !raw.vehicleId) throw new Error('Mixed-vehicle snapshot is missing a required vehicle identity');
+    world.contextFor(raw);
     let ship: Ship;
     try { ship = this.services.save.shipFromSaved(world, raw, 'Ship', time); } catch (error) {
       try {
@@ -516,6 +520,10 @@ export class ClientSession {
           this.fail(`Simulation mismatch: host fingerprint is ${message.fingerprint}, but local fingerprint is ${this.options.simulationFingerprint}. Presentation-only differences are allowed, but authoritative simulation must match.`);
           return;
         }
+        const expectedVehicles = this.options.vehicles ? captureVehicleCatalog(this.options.vehicles) : undefined;
+        if (JSON.stringify(expectedVehicles) !== JSON.stringify(message.vehicles)) {
+          this.fail('Missing or incompatible required vehicle packages. Load the same exact gameplay packages as the host.'); return;
+        }
         const expectedData = (this.options.dataAdapters ?? []).map(({ id, version, scope }) => ({ id, version, scope }));
         const offeredData = message.dataSchemas ?? [];
         if (expectedData.length !== offeredData.length || expectedData.some(e => !offeredData.some(s => s.id === e.id && s.version === e.version && s.scope === e.scope))) {
@@ -529,7 +537,7 @@ export class ClientSession {
           const token = this.options.token?.(message.worldId, message.host);
           const join = (token: string | undefined): void => {
             if (this.phase !== 'connecting') return;
-            this.send({ ...(offeredData.length ? { dataVersion: MODULE_DATA_PROTOCOL } : {}), t: 'join', name: this.options.name, ...(token ? { token } : {}),
+            this.send({ ...(message.vehicles ? { vehicleVersion: VEHICLE_PROTOCOL } : {}), ...(offeredData.length ? { dataVersion: MODULE_DATA_PROTOCOL } : {}), t: 'join', name: this.options.name, ...(token ? { token } : {}),
               ...(this.options.password ? { password: this.options.password } : {}) });
           };
           if (typeof token === 'string' || token === undefined) join(token);
@@ -544,6 +552,7 @@ export class ClientSession {
           this.fail('The server simulation changed while joining. Try again.');
           return;
         }
+        if (JSON.stringify(this.options.vehicles ? captureVehicleCatalog(this.options.vehicles) : undefined) !== JSON.stringify(message.vehicles)) throw new Error('Required vehicle packages changed while joining');
         const universe = this.services.motion.validateUniverse(message.universe);
         let expectedFingerprint = this.options.simulationFingerprint;
         if (this.options.verifyCandidate) {
@@ -570,6 +579,7 @@ export class ClientSession {
           systemId: message.systemId,
           id: this.worldId,
           createContext: this.options.createContext ?? this.services.motion.createContext,
+          vehicles: this.options.vehicles,
           dataAdapters: this.options.dataAdapters,
           rules: this.options.rules,
           forces: this.options.forces,

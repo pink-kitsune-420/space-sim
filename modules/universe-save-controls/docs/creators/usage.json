@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Universe save controls",
+  "summary": "Universe save controls",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "ui.universe-saves@1.0.0 requires universe.files. Mount over caller-owned universe save commands, borrowing explicit buttons/file input or creating independent controls. Save universe and Load universe use .spaceuniverse files. Disposal aborts pending operations, removes listeners, restores generated DOM and suppresses stale notifications. Hosts retain availability and permission checks. No module enables code from a save."
+    }
+  ]
+}

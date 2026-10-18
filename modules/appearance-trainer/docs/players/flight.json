@@ -1,0 +1,12 @@
+{
+  "id": "flight",
+  "audience": "players",
+  "title": "Trainer appearance",
+  "summary": "Trainer appearance",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The trainer uses the familiar chevron and throttle-scaled flame in both Canvas and WebGL. Changing or removing its appearance leaves flight and saved progress unchanged."
+    }
+  ]
+}

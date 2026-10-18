@@ -1,3 +1,5 @@
+import { universeSaveFormatService } from '../../../packages/game-library/src/universe-save-services';
+import { universeDiskService } from './universe-disk';
 import { createJoinPacks } from '../../../modules/session-join/src/index';
 import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
 import type { GamePackage } from '../../../packages/game-library/src/archive';
@@ -102,7 +104,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     const runtime = installed.runtime!;
     const prepared = await prepareInstalledWorld(runtime.plan, runtime.store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
       approvedDigests: new Set(runtime.plan.packages.map(ref => ref.digest)) }, {
-      hostServices: engineModuleServices(), inspect: inspectRuntimePackage, profile: installed.bundle?.profile,
+      hostServices: [universeSaveFormatService, universeDiskService, ...engineModuleServices()], inspect: inspectRuntimePackage, profile: installed.bundle?.profile,
       data: installed.bundle?.modules, code: installed.code, restore,
       configuration: progressConfiguration(installed.bundle?.profile ?? DEFAULT_PROFILE, installed.bundle?.modules ?? [], installed.code, runtime.game.runtime!),
       universe: restore ? undefined : await resolveUniverse(config.universe, dataDir),
@@ -126,7 +128,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       const plan = restored.runtime.plans.node!;
       const prepared = await prepareInstalledWorld(plan, packageStore, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
         approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...restored, configuration,
-        hostServices: engineModuleServices(), inspect: inspectRuntimePackage, restore: raw,
+        hostServices: [universeSaveFormatService, universeDiskService, ...engineModuleServices()], inspect: inspectRuntimePackage, restore: raw,
         configure(modules) {
           if (modules.lock.providers.renderer || modules.contributions('input').length || modules.contributions('window').length || modules.contributions('material').length
             || modules.contributions('post').length || modules.core.layers.length || modules.core.panels.length || modules.core.cameras.length)
@@ -350,7 +352,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
         // sockets as idle HTTP connections and destroyed them mid-goodbye.
         setTimeout(() => server.closeAllConnections(), 500).unref();
       })]);
-      host.dispose(); world.dispose();
+      host.dispose(); world.dispose(); store.dispose();
       log('Stopped.');
     })();
     return stopping;

@@ -1,3 +1,4 @@
+export * from './universe-saving';
 /** Public simulation contracts. No implementation or platform dependencies. */
 export type * from './state';
 export type * from './orbit';
@@ -49,3 +50,4 @@ export * from './rotation';
 
 export { APPEARANCE_TUNING } from './universe';
 export * from './planet-designer';
+export * from './vehicles';

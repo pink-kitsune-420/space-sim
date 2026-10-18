@@ -55,7 +55,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "773cca967cb31e54f310395f901dec97ae2bf45b1524e7ae0b8d76a6f187569a"
+    "inputsDigest": "b7b99340e7d506f7ef18f7654396aedf5dc848516be2924acf1b3d7a177904ad"
   },
   "compatibility": {
     "deterministic": true,
@@ -87,13 +87,13 @@
     },
     {
       "path": "game-api/context.ts",
-      "sha256": "2a816e753e0af866825ee51c064addf9a31eb433a693bac01e9d2f53020d821e",
+      "sha256": "7559b2f18790ea9f71256f58ae14f704a797b4105f2e580b6760a167d4a4e631",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
     {
       "path": "game-api/engine.ts",
-      "sha256": "13a3a9733136e2f47e9b4b1d07b97624556d79c4103ab1750512e079cec11bd1",
+      "sha256": "0f33a4a250fd770cd515f662dcf6a3a4ceb48e9a62e2311c6741bbe5808e832f",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -105,7 +105,7 @@
     },
     {
       "path": "game-api/flight-session.ts",
-      "sha256": "384b6bc5072db06cc0733e847fd63121ce1ad8a01ac6c6578410a47ab0735cda",
+      "sha256": "0fd857020fcafd72f99bb92115868a54ce176d3d78cdd710e4a2efd63e5925e6",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -123,7 +123,7 @@
     },
     {
       "path": "game-api/index.ts",
-      "sha256": "ed3c72393cdeb42602dee3e9ce03f3e9441d4c5b218dc70baee48147611c392d",
+      "sha256": "4e3bb5092320031b622977a7ef70c39a48d1dc602a35b67a054256a439c79e68",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -171,7 +171,7 @@
     },
     {
       "path": "game-api/modules-v2.ts",
-      "sha256": "629f2911525c66d4d3797b132e5ef3ca82ad4156947786c5f63af8243adce5f4",
+      "sha256": "7ead57ae2ba0dd530786d6754c27777ae97642653fe12d1c1e9495f0f697f47b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -213,7 +213,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "f7336d53c4a3ce9b964edd75cc532912b4a47a8f3dce22fbe0c0fa2e2cbc4b7f",
+      "sha256": "4a4a3ba2a6e658220413b278323f884d6d574fcc710e1b9ffbc8759801a2cda5",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -231,7 +231,7 @@
     },
     {
       "path": "game-api/rendering.ts",
-      "sha256": "c262f6dd56686efb38f63241ffab49f71485489cfbfb40b70830ecd0d1ac1abf",
+      "sha256": "33a09451236f840a33e86906b52324160b4339524898b7fbddcc47f55ded4835",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -261,7 +261,7 @@
     },
     {
       "path": "game-api/session.ts",
-      "sha256": "85d03a5471e6e71c4cb30a86f707cca6cfbc818901e6859a6a0693e2bb626fec",
+      "sha256": "49ce762b273b3f4ad819fd32c3062b85bc98ee2dc00ccb8b12296929c2e3c3a3",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -302,8 +302,20 @@
       "attribution": "Space Sim first-party public API"
     },
     {
+      "path": "game-api/universe-saving.ts",
+      "sha256": "0219843e7393051a95fe4b7eb62c5cf689e90c477033b38b1a60c8e324b0f524",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
       "path": "game-api/universe.ts",
       "sha256": "1554b25fde9d223f6084b0a100689b9ff0da754accb494419ddbecd4c4c8e353",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/vehicles.ts",
+      "sha256": "8c8467b9dcd1c024bf66b8075e2f89d4cfd3d9f70e2709f26e790e45bd42c4c1",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -339,13 +351,13 @@
     },
     {
       "path": "game-api/world.ts",
-      "sha256": "88eb2f57e5663afd1f59f3741b45074fc8e34367ed549eb5dc0e3425e23cb2d3",
+      "sha256": "1e381cc6cfe96474a5456ad1ea01764d51e14ebfc19dbb6b4d9a6c932c34af40",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
     {
       "path": "src/client.ts",
-      "sha256": "0fedff7d0d14f37d84178cdecf7a6711fcfb19ce3f59d3e03973379cffacf16c",
+      "sha256": "61a596d0beaa5b3ceba386c81a0c193809649cea1a41246f82702e05dc7798d9",
       "license": "MIT",
       "attribution": "Space Sim first-party explicit flight session, host/client prediction, text protocol and pilot-token implementation. Licensed under MIT.\n"
     },
@@ -357,7 +369,7 @@
     },
     {
       "path": "src/host.ts",
-      "sha256": "1e196714fb2a979a87b2a171f8edb07f5737bdf6629443ebb3520d9afddc9e58",
+      "sha256": "79f465b0891ded92564780442fb885b292ece16a66fc5acf8244a5caba2e49b1",
       "license": "MIT",
       "attribution": "Space Sim first-party explicit flight session, host/client prediction, text protocol and pilot-token implementation. Licensed under MIT.\n"
     },
@@ -369,13 +381,13 @@
     },
     {
       "path": "src/protocol.ts",
-      "sha256": "24218f184ac521f59b51bdb88e11c4547cd204b3f69e304acaf86389e8dbf437",
+      "sha256": "54fb3ab2e9367d65d6b994289dcd1b60156625c392bd645356f645b50425f383",
       "license": "MIT",
       "attribution": "Space Sim first-party explicit flight session, host/client prediction, text protocol and pilot-token implementation. Licensed under MIT.\n"
     },
     {
       "path": "src/session.ts",
-      "sha256": "7eaec1887d46c45373ad617a50e542fdd5b1eac7767f0183ae12cf63eadd3336",
+      "sha256": "547288236d7cf7e624de78ec8bd3ebfeba83fbbd4c85667afa4ffacaa0df50bd",
       "license": "MIT",
       "attribution": "Space Sim first-party explicit flight session, host/client prediction, text protocol and pilot-token implementation. Licensed under MIT.\n"
     },
@@ -387,7 +399,7 @@
     },
     {
       "path": "src/world-read.ts",
-      "sha256": "376a7ad34a79b2ca48310a32e1fcdc3b8a51e1c9e4d2616fae97e2bf05d8ba26",
+      "sha256": "77ddd05c501ab3510384d8c77a8475859fb7c68e048f230008496bb8639fbf95",
       "license": "MIT",
       "attribution": "Space Sim first-party explicit flight session, host/client prediction, text protocol and pilot-token implementation. Licensed under MIT.\n"
     }
