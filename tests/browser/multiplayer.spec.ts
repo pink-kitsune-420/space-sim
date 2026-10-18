@@ -293,13 +293,15 @@ test('other pilots get slow coast previews with automatic crowd control and an o
     await expect(guest.locator('.connection')).toContainText('ONLINE');
     await openPanel(guest, 'setup');
     await guest.locator('#preset').selectOption('planet-orbit');
-    await expect.poll(async () => (await stats(host)).paths).toBe(1);
+    // Firefox throttles background rAF; inspect/profile the visible host's preview.
+    await host.bringToFront();
+    await expect.poll(async () => (await stats(host)).paths, { timeout: 15000 }).toBe(1);
     expect((await stats(host)).enabled).toBe(true);
     await openPanel(host, 'multiplayer');
     await host.locator('#other-orbit-mode').selectOption('off');
     await expect.poll(async () => (await stats(host)).paths).toBe(0);
     await host.locator('#other-orbit-mode').selectOption('always');
-    await expect.poll(async () => (await stats(host)).paths).toBe(1);
+    await expect.poll(async () => (await stats(host)).paths, { timeout: 15000 }).toBe(1);
     // Sample several refresh cycles for a bounded forecast-rate/performance record.
     const samples: Record<string, unknown>[] = [];
     const sampleStart = Date.now();

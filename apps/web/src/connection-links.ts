@@ -20,6 +20,13 @@ export function serverLink(address: string, secure = false): string {
   return url.href;
 }
 
+/** The server marker identifies this page as the client for its serving endpoint.
+ * Preserve a reverse proxy's directory prefix; root servers keep their familiar address. */
+export function serverAddressForPage(page: string): string {
+  const base = new URL('./', page);
+  return base.pathname === '/' ? base.origin : new URL('ws', base).href;
+}
+
 /** Accept either a pasted raw offer or a shared game link. No navigation is performed. */
 export function inviteFromText(text: string): string {
   const value = text.trim();

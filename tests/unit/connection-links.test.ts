@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { connectionRequest, inviteFromText, inviteLink, serverLink } from '../../apps/web/src/connection-links';
+import { connectionRequest, inviteFromText, inviteLink, serverLink, serverAddressForPage } from '../../apps/web/src/connection-links';
 
 it('keeps shared browser invites in the fragment and accepts pasted links', () => {
   const link = inviteLink('https://game.example/play/?game=space-sim', 'SSO1.rabc')!;
@@ -17,4 +17,12 @@ it('shares dedicated-server page URLs with explicit join intent and no secrets',
   expect(() => serverLink('wss://user:secret@play.example/ws')).toThrow('password field');
   expect(connectionRequest('#join=1')).toEqual({ join: true });
   expect(connectionRequest('#app').join).toBe(false);
+});
+
+it('keeps a server page’s proxy prefix when turning its shared link back into a join address', () => {
+  expect(serverAddressForPage('https://play.example/#join=1')).toBe('https://play.example');
+  expect(serverAddressForPage('https://play.example/index.html#join=1')).toBe('https://play.example');
+  const address = 'wss://play.example/game/ws';
+  expect(serverAddressForPage(serverLink(address))).toBe('https://play.example/game/ws');
+  expect(serverAddressForPage('https://play.example/game/index.html#join=1')).toBe('https://play.example/game/ws');
 });

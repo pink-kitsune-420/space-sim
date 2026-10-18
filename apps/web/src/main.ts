@@ -64,7 +64,7 @@ import { STRESS_OWNER, STRESS_ROCK_PREFIX, clearStress, populateStress } from '.
 import { LocalSession, RemoteSession, SessionError, type ChatLine, type GameSession } from './session';
 import { joinTokenFor, rememberJoinToken, rememberToken, saveName, savedName, tokenFor } from './identity';
 import { answerInvite, createInvite, isInviteCode, isReplyCode, type ConnectionDiagnostics, type Invite, type Reply } from './webrtc';
-import { connectionRequest, inviteFromText, inviteLink, serverLink } from './connection-links';
+import { connectionRequest, inviteFromText, inviteLink, serverLink, serverAddressForPage } from './connection-links';
 
 let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
@@ -4665,8 +4665,8 @@ if (requestedGame === 'orbit-sandbox') {
 }
 if (document.querySelector('meta[name="space-sim-server"]')) {
   // This page came from a dedicated server: joining it is one click away.
-  joinInput.value = location.origin;
-  serverShareAddress = location.origin;
+  joinInput.value = serverAddressForPage(location.href);
+  serverShareAddress = joinInput.value;
   setMpMode('server', false);
   mpStatus('This page comes from a Space Sim server. Enter your pilot name and choose Join.');
 }
