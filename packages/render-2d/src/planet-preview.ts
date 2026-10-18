@@ -16,6 +16,8 @@ export class PlanetPreview {
   private resolution: WebGLUniformLocation | null = null;
   private count: WebGLUniformLocation | null = null;
   private noiseLoc: WebGLUniformLocation | null = null;
+  private starsVisibleLoc: WebGLUniformLocation | null = null;
+  private starDensityLoc: WebGLUniformLocation | null = null;
   /** Why the shader could not be used, once it has failed. */
   error: string | undefined;
   private readonly noise: WebGLTexture;
@@ -50,6 +52,8 @@ export class PlanetPreview {
     this.resolution = this.gl.getUniformLocation(program, 'u_resolution');
     this.count = this.gl.getUniformLocation(program, 'u_bodyCount');
     this.noiseLoc = this.gl.getUniformLocation(program, 'u_noise');
+    this.starsVisibleLoc = this.gl.getUniformLocation(program, 'u_starsVisible');
+    this.starDensityLoc = this.gl.getUniformLocation(program, 'u_starDensity');
     return true;
   }
 
@@ -65,6 +69,8 @@ export class PlanetPreview {
     gl.useProgram(this.program!);
     gl.uniform2f(this.resolution, width, height);
     gl.uniform1i(this.count, 1);
+    gl.uniform1i(this.starsVisibleLoc, 1);
+    gl.uniform1f(this.starDensityLoc, 1);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_3D, this.noise);
     gl.uniform1i(this.noiseLoc, 1);

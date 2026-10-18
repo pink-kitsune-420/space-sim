@@ -34,6 +34,9 @@ uniform int u_bodyCount;
 uniform Body u_bodies[8];
 uniform highp sampler3D u_noise; // optional for shader packs: random lattice for the procedural surfaces
 uniform float u_time;
+uniform float u_nebulaTime;  // wall-clock seconds, held at zero when nebula animation is off
+uniform int u_starsVisible;
+uniform float u_starDensity;
 uniform int u_bgMode;        // 0: classic, 1: nebula, 2: carina, 3: galactic, 4: aurora, 5: supernova, 6: void
 uniform int u_gridEnabled;   // 0: off, 1: on
 uniform int u_gridMode;      // 0: cartesian, 1: polar, 2: dots, 3: hex
@@ -506,7 +509,7 @@ void main() {
     float cSeed = cos(seedAngle), sSeed = sin(seedAngle);
     vec2 seedOffset = vec2(fract(u_worldSeed * 0.317) - 0.5, fract(u_worldSeed * 0.619) - 0.5) * 0.35;
     vec2 parPos = vec2(celUV.x * cSeed - celUV.y * sSeed, celUV.x * sSeed + celUV.y * cSeed) + seedOffset;
-    float t = u_time * 0.02;
+    float t = u_nebulaTime * 0.02;
     float bgDust = 0.0;
 
 #ifndef SCENE_LITE
@@ -655,9 +658,9 @@ void main() {
         vec3 mwTotal = mwStarCol * mwStream * (1.0 - dustRift * 0.75) + bulgeCol * (1.0 - dustRift * 0.60) + hAlphaCol;
         col += mwTotal * (0.35 * max(0.0, u_nebulaIntensity));
       } else if (u_bgMode == 4) { // Auroral Veil: Undulating emerald green & violet solar wind ribbons
-        float wave = sin(parPos.x * 4.5 + u_time * 0.35) * 0.14 + sin(parPos.x * 11.0 - u_time * 0.2) * 0.06;
+        float wave = sin(parPos.x * 4.5 + u_nebulaTime * 0.35) * 0.14 + sin(parPos.x * 11.0 - u_nebulaTime * 0.2) * 0.06;
         float ribbon = exp(-pow(parPos.y - wave - 0.08, 2.0) * 22.0);
-        float n = noise3(vec3(parPos.x * 7.5, parPos.y * 2.5, u_time * 0.1));
+        float n = noise3(vec3(parPos.x * 7.5, parPos.y * 2.5, u_nebulaTime * 0.1));
         vec3 aurCol = mix(vec3(0.02, 0.22, 0.14), vec3(0.12, 0.05, 0.20), smoothstep(0.2, 0.8, parPos.y));
         col += aurCol * ribbon * (0.65 + 0.35 * n) * (0.42 * max(0.0, u_nebulaIntensity));
       } else if (u_bgMode == 5) { // Supernova Remnant: Filamentary shockwave webbing & synchrotron core (Crab / Veil Nebula)
@@ -726,7 +729,7 @@ void main() {
           vec2 astOffset = (astGrid + vec2(hash(astGrid + 3.1), hash(astGrid + 7.4))) / 38.0;
           float dAst = length(parPos - astOffset) * 38.0;
           if (dAst < 0.45) {
-            float tumble = pow(max(0.0, sin(u_time * (1.5 + astSeed * 3.0) + astSeed * 45.0)), 22.0);
+            float tumble = pow(max(0.0, sin(u_nebulaTime * (1.5 + astSeed * 3.0) + astSeed * 45.0)), 22.0);
             vec3 astCol = mix(vec3(0.42, 0.38, 0.34), vec3(1.0, 0.95, 0.85), tumble);
             col += astCol * (1.0 - dAst / 0.45) * (0.4 + 1.2 * tumble);
           }
@@ -737,10 +740,11 @@ void main() {
 
     // 3. Procedural Background Stars with Celestial Rotation (Zero Translational Drift & Beer-Lambert Extinction)
     vec2 celPixel = vec2(relPos.x * cRot - relPos.y * sRot, relPos.x * sRot + relPos.y * cRot) + seedOffset * 600.0;
-    vec2 gridCoord = floor(celPixel / 44.0);
+    float starSpacing = 44.0 / sqrt(clamp(u_starDensity, 0.2, 2.5));
+    vec2 gridCoord = floor(celPixel / starSpacing);
     float starVal = hash(gridCoord * 17.13 + fract(u_worldSeed * 0.053) * 100.0);
-    if (starVal > 0.28) {
-      vec2 starPos = (gridCoord + vec2(hash(gridCoord + 1.0), hash(gridCoord + 2.0))) * 44.0;
+    if (u_starsVisible == 1 && starVal > 0.28) {
+      vec2 starPos = (gridCoord + vec2(hash(gridCoord + 1.0), hash(gridCoord + 2.0))) * starSpacing;
       float starDist = length(celPixel - starPos);
       float maxR = starVal > 0.92 ? 1.6 : (starVal > 0.75 ? 1.2 : 0.95);
       if (starDist < maxR) {

@@ -308,6 +308,27 @@ describe('theme system', () => {
       } as unknown as CanvasRenderingContext2D;
     }
 
+    it('draws increasing star densities without exhausting the deterministic pool', () => {
+      const camera = { center: { x: 0, y: 0 }, scale: 1, rotation: 0 };
+      let previous = 0;
+      for (const starDensity of [0.2, 0.5, 1, 2, 2.5]) {
+        const ctx = createMock2dContext();
+        drawProceduralBackdrop(ctx, 3600, 3600, camera, {
+          ...DEFAULT_THEME_SETTINGS, backdropStyle: 'void', nebulaVisible: false,
+          galaxiesVisible: false, starDensity,
+        }, 0, false);
+        const count = vi.mocked(ctx.arc).mock.calls.length;
+        expect(count).toBeGreaterThan(previous);
+        previous = count;
+      }
+      const ctx = createMock2dContext();
+      drawProceduralBackdrop(ctx, 3600, 3600, camera, {
+        ...DEFAULT_THEME_SETTINGS, backdropStyle: 'void', nebulaVisible: false,
+        galaxiesVisible: false, starsVisible: false, starDensity: 2,
+      }, 0, false);
+      expect(ctx.arc).not.toHaveBeenCalled();
+    });
+
     it('renders all backdrop and grid combinations without error', () => {
       const ctx = createMock2dContext();
       const camera = { center: { x: 500, y: 300 }, scale: 0.05, rotation: 0.1 };

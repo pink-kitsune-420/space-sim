@@ -10,7 +10,7 @@ import { prepareGame } from '../../packages/modules/src/index';
 import { SAVE_FORMAT, SAVE_UNITS, SAVE_VERSION } from '../../packages/sim-core/src/save';
 import { PROTOCOL } from '../../packages/net/src/protocol';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
-import { TERRAIN_UNIVERSE } from '../../packages/scenarios/builtin';
+import { SOLAR_UNIVERSE, TERRAIN_UNIVERSE } from '../../packages/scenarios/builtin';
 import { populateStress } from '../../packages/scenarios/stress';
 
 const gc = (globalThis as { gc?: () => void }).gc;
@@ -26,7 +26,7 @@ function worldRun(kind: 'launch-cutoff' | 'terrain' | 'fleet') {
   gc!();
   const before = process.memoryUsage();
   const buildStart = performance.now();
-  const prepared = prepareGame({ environment: 'node', universe: kind === 'terrain' ? TERRAIN_UNIVERSE : DEFAULT_UNIVERSE,
+  const prepared = prepareGame({ environment: 'node', universe: kind === 'terrain' ? TERRAIN_UNIVERSE : kind === 'fleet' ? SOLAR_UNIVERSE : DEFAULT_UNIVERSE,
     ...(kind === 'terrain' ? { systemId: 'cratered' } : kind === 'fleet' ? { systemId: 'solar-system' } : {}) });
   prepared.runtime.activate(prepared.candidate);
   const world = prepared.world;

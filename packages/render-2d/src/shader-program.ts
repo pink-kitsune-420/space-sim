@@ -28,6 +28,9 @@ function checkInterface(gl: WebGL2RenderingContext, program: WebGLProgram, pass:
     uniforms.u_gridOpacity = gl.FLOAT;
     uniforms.u_gridColor = gl.FLOAT_VEC3;
     uniforms.u_nebulaIntensity = gl.FLOAT;
+    uniforms.u_nebulaTime = gl.FLOAT;
+    uniforms.u_starsVisible = gl.INT;
+    uniforms.u_starDensity = gl.FLOAT;
     uniforms.u_highQuality = gl.INT;
     uniforms.u_galaxiesVisible = gl.INT;
     uniforms.u_worldSeed = gl.FLOAT;

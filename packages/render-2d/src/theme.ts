@@ -440,7 +440,9 @@ function createCelestialStars(count = 420): readonly CelestialStar[] {
   return Object.freeze(stars);
 }
 
-const CELESTIAL_STARS = createCelestialStars(1100);
+const BASE_STAR_COUNT = 1100;
+const MAX_STAR_DENSITY = 2.5;
+const CELESTIAL_STARS = createCelestialStars(BASE_STAR_COUNT * MAX_STAR_DENSITY);
 
 /** Wraps a celestial coordinate within a virtual sphere span to prevent edge clipping. */
 function wrapCelestialCoord(coord: number, span = 3600): number {
@@ -1071,8 +1073,8 @@ function drawRealisticStarfield(
   timeSec: number,
   highQuality: boolean,
 ): void {
-  const density = Math.max(0.2, Math.min(2.5, theme.starDensity));
-  const starCount = Math.floor(CELESTIAL_STARS.length * density);
+  const density = Math.max(0.2, Math.min(MAX_STAR_DENSITY, theme.starDensity));
+  const starCount = Math.floor(BASE_STAR_COUNT * density);
   const maxViewR = Math.hypot(width * 0.5, height * 0.5) + 30;
 
   ctx.save();

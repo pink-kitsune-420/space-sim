@@ -17,7 +17,9 @@ for (const name of names.length ? names : ['chromium', 'firefox']) {
     const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, offline: true });
     const page = await context.newPage();
     await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
+    await page.locator('[data-workspace="setup"]').click();
     await page.locator('#preset').selectOption('planet-orbit');
+    await page.locator('#setup-window [data-window-close]').click();
     await page.waitForFunction(() => JSON.parse(document.querySelector('#debug').textContent || '{}').predictionEnd === 'closed');
     await page.waitForTimeout(12000);
     const metrics = JSON.parse(await page.locator('#debug').textContent());

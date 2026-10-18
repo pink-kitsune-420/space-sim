@@ -28,7 +28,7 @@ async function collect(path) {
     else if (entry.isFile()) inputPaths.push(next);
   }
 }
-for (const dir of ['apps', 'packages', 'examples', 'scripts', 'tests']) await collect(dir);
+for (const dir of ['apps', 'packages', 'games', 'examples', 'scripts', 'tests']) await collect(dir);
 inputPaths.push('package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'vite.server.config.ts');
 const inputs = [];
 for (const path of inputPaths.sort()) inputs.push({ path, sha256: sha(await readFile(path)) });
@@ -74,10 +74,12 @@ for (const name of names) {
           const ext = context?.getExtension('WEBGL_debug_renderer_info');
           return context ? String(context.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : context.RENDERER)) : 'none';
         });
+        await page.locator('[data-workspace="setup"]').click();
         const traceStart = performance.now();
         await page.locator('#preset').selectOption('planet-orbit');
         await page.waitForFunction(() => JSON.parse(document.querySelector('#debug').textContent || '{}').predictionEnd === 'closed');
         traceMs = performance.now() - traceStart;
+        await page.locator('#setup-window [data-window-close]').click();
         // The existing profiler keeps 600 frames. Same 12-second observation as measure_browser.mjs.
         await page.waitForTimeout(12000);
         metrics = JSON.parse(await page.locator('#debug').textContent());

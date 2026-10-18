@@ -85,6 +85,9 @@ export class WebGLRenderer implements Renderer {
   private disposed = false;
   private readonly quadBuffer!: WebGLBuffer;
   private sceneTimeLoc: WebGLUniformLocation | null = null;
+  private nebulaTimeLoc: WebGLUniformLocation | null = null;
+  private starsVisibleLoc: WebGLUniformLocation | null = null;
+  private starDensityLoc: WebGLUniformLocation | null = null;
   private vectorTimeLoc: WebGLUniformLocation | null = null;
   private textTimeLoc: WebGLUniformLocation | null = null;
   private readonly quadVao!: WebGLVertexArrayObject;
@@ -269,6 +272,9 @@ export class WebGLRenderer implements Renderer {
     this.quadBodyCountLoc = gl.getUniformLocation(program, 'u_bodyCount');
     this.quadNoiseLoc = gl.getUniformLocation(program, 'u_noise');
     this.sceneTimeLoc = gl.getUniformLocation(program, 'u_time');
+    this.nebulaTimeLoc = gl.getUniformLocation(program, 'u_nebulaTime');
+    this.starsVisibleLoc = gl.getUniformLocation(program, 'u_starsVisible');
+    this.starDensityLoc = gl.getUniformLocation(program, 'u_starDensity');
     this.bgModeLoc = gl.getUniformLocation(program, 'u_bgMode');
     this.gridEnabledLoc = gl.getUniformLocation(program, 'u_gridEnabled');
     this.gridModeLoc = gl.getUniformLocation(program, 'u_gridMode');
@@ -350,8 +356,7 @@ export class WebGLRenderer implements Renderer {
     gl.disable(gl.BLEND);
     gl.useProgram(this.quadProgram);
     const realTimeSec = (typeof performance !== 'undefined' ? performance.now() * 0.001 : state.time) % 3600;
-    const animTime = (frame.theme?.animatedNebula ?? true) ? realTimeSec : 0.0;
-    if (this.sceneTimeLoc) gl.uniform1f(this.sceneTimeLoc, animTime);
+    if (this.sceneTimeLoc) gl.uniform1f(this.sceneTimeLoc, realTimeSec);
     if (this.vectorTimeLoc) {
       gl.useProgram(this.vectorProgram);
       gl.uniform1f(this.vectorTimeLoc, realTimeSec);
@@ -391,6 +396,9 @@ export class WebGLRenderer implements Renderer {
     let count = 0;
     const overflow: typeof visible = [];
     const theme = frame.theme ? { ...getActiveTheme(), ...frame.theme } : getActiveTheme();
+    if (this.nebulaTimeLoc) gl.uniform1f(this.nebulaTimeLoc, theme.animatedNebula ? realTimeSec : 0);
+    if (this.starsVisibleLoc) gl.uniform1i(this.starsVisibleLoc, theme.starsVisible ? 1 : 0);
+    if (this.starDensityLoc) gl.uniform1f(this.starDensityLoc, Math.max(0.2, Math.min(2.5, theme.starDensity)));
     const worldSeed = (theme.shaderSeed && theme.shaderSeed !== 0)
       ? theme.shaderSeed
       : (frame.theme?.worldSeed ?? theme.worldSeed ?? 0.0);
