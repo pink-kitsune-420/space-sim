@@ -350,20 +350,28 @@ Only the scale changes.</p>`)}`,
 <p>Open <b>Online</b>. Everyone shares one sky and one clock, and each pilot has their own ships.</p>
 <dl>
   <dt>This browser</dt><dd>Open the game in a second browser tab and choose <b>Join</b>. This is the quickest way to try it out.</dd>
+  <dt>Server link</dt><dd>The easiest way to play on different devices. Open the host's game link and join automatically.
+    If the world has a password, enter it and choose <b>Join</b>. Once connected, <b>Copy game link</b> invites more friends.
+    Your password is never included in the link. A link to <code>localhost</code> only works on the same computer.</dd>
   <dt>Invite code</dt><dd>
     <ol>
-      <li>The host chooses <b>Host this world</b>, then <b>Create invite</b>, and sends the code to a friend.</li>
-      <li>The friend pastes it, chooses <b>Make reply code</b> and sends that code back.</li>
-      <li>The host pastes the reply and chooses <b>Connect player</b>.</li>
+      <li>The host chooses <b>Host this world</b>, then <b>Create invite</b>, and sends <b>Copy invite link</b> to a friend.</li>
+      <li>The friend opens the link; their reply code is prepared automatically. They choose <b>Copy reply</b> and send it back.</li>
+      <li>The host pastes the reply and connects automatically. <b>Connect player</b> also works if the code was typed or filled another way.</li>
     </ol>
-    Make one invite per player. Tick <b>Across the internet</b> if your friend is on a different network.</dd>
+    Make one invite per player. <b>Across the internet</b> is on by default; turn it off for local play without public address discovery.
+    Offline HTML files use <b>Copy invite</b> instead of a web link; paste the code in your own copy of the game to prepare a reply.
+    Reply codes last 10 minutes. Keep the host page open. If a direct link fails, use a server link.
+    <b>Save connection report</b> downloads candidate counts and error codes without addresses or invite secrets.</dd>
   <dt>Server</dt><dd>Type a server address (like <code>192.168.1.20:6464</code>) and choose <b>Join</b>, or use
     <b>Scan local network</b>. A dedicated server keeps the world running and saves it on its own.</dd>
 </dl>
 <p class="manual-note">When a browser tab hosts, the world runs in that tab. Keep it visible, because browsers slow down hidden tabs.</p>
 ${deeper('running a dedicated server', `
 <p>Download the server program from the project's releases page and start it. It prints the address players
-should use, and it also serves the game page itself, so players can open that address in a browser.</p>
+should use, including a link that joins automatically. It also serves the game page itself, so guests need only a browser.
+From a source checkout with Node and dependencies installed, run <code>npm run host</code> to build the game, start the server and open it.
+Send friends on your Wi-Fi the LAN link printed by the server, not its localhost link.</p>
 <ul>
   <li>The world runs at 100 physics steps per second and sends players 20 updates per second.</li>
   <li>It saves to <code>space-sim-data/world.json</code> every minute, when the last player leaves and on shutdown, and keeps timestamped backups.</li>
@@ -373,8 +381,18 @@ should use, and it also serves the game page itself, so players can open that ad
 <p><b>How sync works.</b> The simulation is deterministic: the same inputs always give the same result on
 every computer. Each world has a fingerprint of its physics, modules and settings, and a player whose setup
 doesn't match can't join. Invite codes use WebRTC, a direct browser-to-browser link. <b>Across the internet</b>
-asks a public STUN server for each side's public address. Some strict networks still block the link, and a
-dedicated server works there.</p>`)}`,
+asks Google STUN for public addresses. STUN cannot relay traffic through a blocked direct path; a reachable dedicated server avoids that requirement.</p>
+<p><b>Optional self-hosted web setup.</b> With Docker installed, run from the repository root:</p>
+<pre><code>docker compose -f deploy/multiplayer/compose.yaml up -d --build</code></pre>
+<p>Open <code>http://your-computer-address/#join=1</code> on your LAN. Worlds and backups persist in the Docker volume.
+For internet play, point a domain at a reachable server, allow inbound TCP 80 and 443, and set <code>GAME_ADDRESS</code> to your domain
+before running the same command. Caddy then handles HTTPS and secure WebSocket connections. Optional <code>GAME_NAME</code> and
+<code>GAME_PASSWORD</code> set the world name and joining password. Share <code>https://your-domain/#join=1</code>.
+For example, in a POSIX shell:</p>
+<pre><code>GAME_ADDRESS=play.example.com docker compose -f deploy/multiplayer/compose.yaml up -d --build</code></pre>
+<p>On PowerShell, set <code>$env:GAME_ADDRESS='play.example.com'</code> first. Stop with
+<code>docker compose -f deploy/multiplayer/compose.yaml down</code>; keep the volumes to keep the world.
+A home router behind carrier NAT may not accept incoming connections; use a reachable machine for internet hosting.</p>`)}`,
   },
   {
     id: 'settings',
@@ -547,7 +565,8 @@ prediction and camera. If a hook throws an error, only that contribution is swit
     title: 'Rules for simulation modules',
     summary: 'Keep worlds identical on every computer',
     html: `
-<p>In multiplayer, every computer runs the same simulation and must get exactly the same result. Simulation
+<p>Determinism means that the same starting state and inputs produce exactly the same result.
+In multiplayer, every computer runs the same simulation and must get exactly the same result. Simulation
 modules have to follow a few rules for that to work:</p>
 <ul>
   <li>Use the maths functions from the API (<code>sin</code>, <code>cos</code>, <code>atan2</code>, <code>exp</code> and so on) instead of <code>Math.sin</code> and friends.</li>

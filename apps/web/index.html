@@ -151,6 +151,7 @@
                   <div id="password-row" hidden><label for="join-password">Server password</label><input id="join-password" type="password" autocomplete="off" /></div>
                   <div class="actions"><button id="scan-lan" type="button">Scan local network</button></div>
                   <ul id="lan-servers" class="player-list mp-list" aria-label="Servers found" hidden></ul>
+                  <p class="control-note">For friends on other devices, the easiest option is a server link. The server runs separately and also serves the game. Open Manual → Multiplayer for setup.</p>
                 </div>
                 <div class="actions mp-host"><button id="host-game" type="button">Host this world</button></div>
               </div>
@@ -158,21 +159,23 @@
                 <label for="reply-code">2 · Send this reply code back to the host</label>
                 <textarea id="reply-code" readonly rows="3"></textarea>
                 <div class="actions"><button id="cancel-join" type="button">Cancel</button><button id="copy-reply" type="button">Copy reply</button></div>
-                <p class="mp-warning" role="note"><b>Not connected yet.</b> Send the code above back to the host. You join automatically once they paste it and choose Connect player.</p>
+                <p class="mp-warning" role="note"><b>Not connected yet.</b> Send the code above back to the host. You join automatically when they paste it. This reply lasts 10 minutes.</p>
               </div>
               <div id="mp-hosting" hidden>
                 <div class="actions"><button id="stop-hosting" type="button">Stop hosting</button><button id="create-invite" type="button">Create invite</button></div>
-                <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" /><span>Across the internet<small>New invites also use a public STUN server (Google) to find your address; the player's side follows the invite. Off: same network only.</small></span></label>
+                <label class="god-mode" id="internet-row"><input id="internet-play" type="checkbox" checked /><span>Across the internet<small>Uses Google STUN to find public addresses. Some networks need a dedicated server instead. Off: same network only.</small></span></label>
                 <div id="invite-panel" hidden>
                   <label for="invite-code">1 · Send this invite to one player</label>
                   <textarea id="invite-code" readonly rows="3"></textarea>
-                  <div class="actions"><button id="cancel-invite" type="button">Cancel</button><button id="copy-invite" type="button">Copy invite</button></div>
+                  <div class="actions"><button id="cancel-invite" type="button">Cancel</button><button id="copy-invite" type="button">Copy invite</button><button id="copy-invite-link" type="button">Copy invite link</button></div>
                   <label for="host-reply">2 · Paste their reply code</label>
                   <textarea id="host-reply" rows="3" spellcheck="false"></textarea>
                   <div class="actions"><button id="accept-reply" type="button">Connect player</button></div>
                 </div>
               </div>
               <div id="mp-online" hidden><div class="actions"><button id="leave-game" type="button">Leave game</button></div></div>
+              <div class="actions"><button id="copy-server-link" type="button" hidden>Copy game link</button><button id="mp-diagnostics" type="button" hidden>Save connection report</button></div>
+              <textarea id="mp-share-link" readonly rows="3" aria-label="Link to share" hidden></textarea>
               <p id="mp-status" class="control-note" role="status">Single player. Host this world for friends, or join a server.</p>
               <ul id="player-list" class="player-list" aria-label="Players"></ul>
             </section>

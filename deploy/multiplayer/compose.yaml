@@ -1,0 +1,29 @@
+services:
+  game:
+    build:
+      context: ../..
+      dockerfile: deploy/multiplayer/Dockerfile
+    restart: unless-stopped
+    init: true
+    command: ["node", "server.cjs", "--data", "/data", "--host", "0.0.0.0", "--name", "${GAME_NAME:-Space Sim server}", "--password", "${GAME_PASSWORD:-}"]
+    stop_grace_period: 20s
+    volumes:
+      - worlds:/data
+  web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      GAME_ADDRESS: ${GAME_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    depends_on:
+      - game
+volumes:
+  worlds:
+  certificates:
+  caddy_config:

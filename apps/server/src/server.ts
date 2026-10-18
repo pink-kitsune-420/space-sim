@@ -360,12 +360,12 @@ export async function run(argv: readonly string[], assets?: Readonly<Record<stri
     `  Space Sim server ${version} · ${PROTOCOL}`,
     `  ${config.name} · world ${host.world.id} · ${host.world.system.system.name}`,
     `  Data folder: ${dataDir} (autosave every ${config.autosaveSeconds} s)`,
-    config.serveGame ? `  Players open the game at ${[local, ...lan.map(a => `http://${a}:${port}`)].join('  or  ')}` : '',
+    config.serveGame ? `  Players open the game at ${[local, ...lan.map(a => `http://${a}:${port}`)].map(url => `${url}/#join=1`).join('  or  ')}` : '',
     `  or choose Multiplayer → Join in the game and enter ${lan[0] ?? 'this computer\'s address'}:${port}`,
     `  Type "help" for commands. Ctrl+C saves and stops.`,
     '',
   ].filter(Boolean).join('\n'));
-  if (cli.open) openBrowser(local);
+  if (cli.open) openBrowser(`${local}/#join=1`);
 
   let exiting = false;
   const exit = (reason: string, code = 0): void => {

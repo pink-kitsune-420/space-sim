@@ -62,7 +62,8 @@ import { FleetView } from './fleet-view';
 import { STRESS_OWNER, STRESS_ROCK_PREFIX, clearStress, populateStress } from '../../../packages/scenarios/stress';
 import { LocalSession, RemoteSession, SessionError, type ChatLine, type GameSession } from './session';
 import { joinTokenFor, rememberJoinToken, rememberToken, saveName, savedName, tokenFor } from './identity';
-import { answerInvite, createInvite, isInviteCode, type Invite, type Reply } from './webrtc';
+import { answerInvite, createInvite, isInviteCode, isReplyCode, type ConnectionDiagnostics, type Invite, type Reply } from './webrtc';
+import { connectionRequest, inviteFromText, inviteLink, serverLink } from './connection-links';
 
 let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
@@ -3067,6 +3068,11 @@ let pending: ClientSession | undefined;
 let localHost: LocalHost | undefined;
 let discovery: LocalDiscovery | undefined;
 let scan: AbortController | undefined;
+let connectingServer = false;
+let serverShareAddress: string | undefined;
+let recentConnectionReport: (() => ConnectionDiagnostics) | undefined;
+let inviteGeneration = 0;
+let inviteGathering: AbortController | undefined;
 const sameBrowser = typeof BroadcastChannel === 'function';
 nameInput.value = savedName();
 nameInput.addEventListener('change', () => {
@@ -3117,7 +3123,9 @@ function updateMultiplayer(): void {
   element('mp-hosting').hidden = !hosting;
   element('invite-panel').hidden = !invite;
   element('mp-online').hidden = session === local;
-  joinButton.disabled = !!pending;
+  joinButton.disabled = !!pending || connectingServer;
+  element('copy-server-link').hidden = !serverShareAddress;
+  element('mp-diagnostics').hidden = !invite && !reply && !recentConnectionReport;
   element<HTMLButtonElement>('answer-invite').disabled = answering || !!pending;
   if (session !== local) {
     connectionLabel.innerHTML = '<i></i> ONLINE';
@@ -3193,6 +3201,25 @@ async function copy(textarea: HTMLTextAreaElement): Promise<void> {
     mpStatus(document.execCommand('copy') ? 'Copied.' : 'Select the code and copy it.');
   }
 }
+async function copyLink(value: string): Promise<void> {
+  const output = element<HTMLTextAreaElement>('mp-share-link');
+  output.value = value;
+  output.hidden = false;
+  await copy(output);
+}
+element('copy-server-link').addEventListener('click', () => {
+  if (serverShareAddress) void copyLink(serverLink(serverShareAddress, location.protocol === 'https:'));
+});
+element('copy-invite-link').addEventListener('click', () => {
+  if (!invite) return;
+  const link = inviteLink(location.href, invite.code);
+  if (link) void copyLink(link);
+  else mpStatus('This game is an offline file. Use Copy invite; your friend can paste it into their own copy.');
+});
+element('mp-diagnostics').addEventListener('click', () => {
+  const report = invite?.diagnostics() ?? reply?.diagnostics() ?? recentConnectionReport?.();
+  if (report) download('space-sim-connection.json', JSON.stringify({ version: 1, ...report }, null, 2));
+});
 
 element('host-game').addEventListener('click', () => {
   if (session !== local || local.hosting) return;
@@ -3213,6 +3240,12 @@ element('host-game').addEventListener('click', () => {
   updateMultiplayer();
 });
 function cancelInvite(): void {
+  inviteGeneration++;
+  inviteGathering?.abort();
+  inviteGathering = undefined;
+  element<HTMLButtonElement>('create-invite').disabled = false;
+  element('mp-share-link').hidden = true;
+  recentConnectionReport = invite?.diagnostics ?? recentConnectionReport;
   invite?.cancel();
   invite = undefined;
   updateMultiplayer();
@@ -3235,23 +3268,32 @@ element('stop-hosting').addEventListener('click', () => {
 element('create-invite').addEventListener('click', async () => {
   const button = element<HTMLButtonElement>('create-invite');
   button.disabled = true;
-  mpStatus('Preparing an invite…');
+  mpStatus('Preparing an invite… Finding addresses can take up to 45 seconds.');
+  element('mp-share-link').hidden = true;
+  const generation = ++inviteGeneration;
+  const gathering = new AbortController();
+  inviteGathering?.abort();
+  inviteGathering = gathering;
   try {
     invite?.cancel();
     invite = undefined;
-    const made = await createInvite(stunToggle.checked);
-    if (!isHosting()) { made.cancel(); return; }
+    const made = await createInvite(stunToggle.checked, gathering.signal);
+    if (!isHosting() || generation !== inviteGeneration) { made.cancel(); return; }
     invite = made;
+    recentConnectionReport = made.diagnostics;
     element<HTMLTextAreaElement>('invite-code').value = made.code;
     element<HTMLTextAreaElement>('host-reply').value = '';
     mpStatus(made.stun
-      ? 'Send the invite to one player, anywhere. Paste the reply code they send back in step 2.'
+      ? 'Send the invite link or code to one friend. Paste their reply here. Some networks need a server link instead.'
       : 'Send the invite to one player on your network. Paste the reply code they send back in step 2.');
   } catch (error) {
-    invite = undefined;
-    mpStatus(`Could not create an invite: ${message(error)}`);
+    if (generation === inviteGeneration) {
+      invite = undefined;
+      mpStatus(`Could not create an invite: ${message(error)}`);
+    }
   } finally {
-    button.disabled = false;
+    if (generation === inviteGeneration) button.disabled = false;
+    if (inviteGathering === gathering) inviteGathering = undefined;
     updateMultiplayer();
   }
 });
@@ -3271,11 +3313,19 @@ element('accept-reply').addEventListener('click', async () => {
     local.accept(connection);
     mpStatus('Player connected. Create another invite for the next player.');
   } catch (error) {
+    recentConnectionReport = current.diagnostics;
     if (invite === current) mpStatus(message(error));
   } finally {
     button.disabled = false;
     updateMultiplayer();
   }
+});
+element<HTMLTextAreaElement>('host-reply').addEventListener('paste', event => {
+  const code = event.clipboardData?.getData('text').trim();
+  if (!code || !isReplyCode(code)) return;
+  event.preventDefault();
+  element<HTMLTextAreaElement>('host-reply').value = code;
+  element<HTMLButtonElement>('accept-reply').click();
 });
 
 function startClient(connection: Connection): void {
@@ -3333,6 +3383,7 @@ async function answerInviteCode(text: string): Promise<void> {
   }
   if (session !== local || isHosting() || pending) { answer.cancel(); return; }
   reply = answer;
+  recentConnectionReport = answer.diagnostics;
   element<HTMLTextAreaElement>('reply-code').value = answer.code;
   mpStatus('Step 2: send this reply code to the host.');
   updateMultiplayer();
@@ -3345,22 +3396,30 @@ async function answerInviteCode(text: string): Promise<void> {
     // Cancelled or replaced: whatever came after owns the panel now.
     if (reply !== answer) return;
     reply = undefined;
+    recentConnectionReport = answer.diagnostics;
     mpStatus(message(error));
   }
   updateMultiplayer();
 }
 element('answer-invite').addEventListener('click', () => {
-  const text = element<HTMLTextAreaElement>('invite-input').value.trim();
+  const text = inviteFromText(element<HTMLTextAreaElement>('invite-input').value);
   if (!text) { mpStatus('Paste the invite code the host sent you.'); return; }
   void answerInviteCode(text);
+});
+element<HTMLTextAreaElement>('invite-input').addEventListener('paste', event => {
+  const code = inviteFromText(event.clipboardData?.getData('text') ?? '');
+  if (!isInviteCode(code)) return;
+  event.preventDefault();
+  element<HTMLTextAreaElement>('invite-input').value = code;
+  void answerInviteCode(code);
 });
 
 const isLoopback = (url: string): boolean => {
   try { return /^(localhost|127(\.\d{1,3}){3}|\[::1\]|0\.0\.0\.0)$/i.test(new URL(url).hostname); } catch { return false; }
 };
 async function join(): Promise<void> {
-  const text = joinInput.value.trim();
-  if (!text || pending || reply || session !== local || isHosting()) return;
+  const text = inviteFromText(joinInput.value);
+  if (!text || pending || reply || connectingServer || session !== local || isHosting()) return;
   // An invite pasted where a server address goes.
   if (isInviteCode(text)) {
     element<HTMLTextAreaElement>('invite-input').value = text;
@@ -3372,13 +3431,19 @@ async function join(): Promise<void> {
   let url: string;
   try { url = serverUrl(text, location.protocol === 'https:'); } catch (error) { mpStatus(message(error)); return; }
   mpStatus(`Connecting to ${url}…`);
+  connectingServer = true;
   joinButton.disabled = true;
-  try { startClient(await connectWebSocket(url)); } catch (error) {
+  try {
+    const connection = await connectWebSocket(url);
+    if (session !== local || isHosting() || pending || reply) { connection.close('Another connection was selected.'); return; }
+    serverShareAddress = url;
+    startClient(connection);
+  } catch (error) {
     mpStatus(location.protocol === 'https:' && url.startsWith('ws:') ? `${message(error)} Secure pages can only reach wss:// servers.`
       : isLoopback(url) ? `Could not reach a Space Sim server on ${new URL(url).host}. Start the dedicated server first `
         + '(npm run server, or the space-sim-server program). To play with another tab of this browser, use This browser instead.'
       : `${message(error)} Check the address and that the server is running and reachable (firewall, same network).`);
-  } finally { updateMultiplayer(); }
+  } finally { connectingServer = false; updateMultiplayer(); }
 }
 async function joinLocal(host: string): Promise<void> {
   if (pending || reply || session !== local || isHosting()) return;
@@ -4569,8 +4634,24 @@ if (requestedGame === 'orbit-sandbox') {
 if (document.querySelector('meta[name="space-sim-server"]')) {
   // This page came from a dedicated server: joining it is one click away.
   joinInput.value = location.origin;
+  serverShareAddress = location.origin;
   setMpMode('server', false);
   mpStatus('This page comes from a Space Sim server. Enter your pilot name and choose Join.');
 }
+function connectFromLink(): void {
+  const requestedConnection = connectionRequest(location.hash);
+  if (!requestedConnection.invite && !requestedConnection.join) return;
+  // Consume once. Reloading must not silently claim another seat or reuse an expired offer.
+  history.replaceState(null, '', location.pathname + location.search);
+  workspace.open('multiplayer');
+  if (requestedConnection.invite) {
+    setMpMode('invite', false);
+    element<HTMLTextAreaElement>('invite-input').value = requestedConnection.invite;
+    void answerInviteCode(requestedConnection.invite);
+  } else if (document.querySelector('meta[name="space-sim-server"]')) void join();
+}
+window.addEventListener('hashchange', connectFromLink);
+connectFromLink();
+updateMultiplayer();
 profiler.event('session', { model: MODEL, userAgent: navigator.userAgent });
 requestAnimationFrame(frame);

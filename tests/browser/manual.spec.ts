@@ -4,6 +4,15 @@ import { openPanel } from '../helpers/workspace';
 test.describe.configure({ timeout: 90000 });
 
 test('manual shows player and creator docs with live keys', async ({ page }) => {
+  // This verifies documentation/navigation; renderer behavior has separate coverage.
+  await page.addInitScript(() => {
+    localStorage.setItem('space-sim.graphics/1', 'low');
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = new Proxy(getContext, { apply(target, receiver, args) {
+      if (String(args[0]).startsWith('webgl')) return null;
+      return Reflect.apply(target, receiver, args);
+    } });
+  });
   await page.goto('/');
   await expect(page.locator('#status')).toHaveText('LANDED');
   await openPanel(page, 'manual');
@@ -25,6 +34,13 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await expect(manual.locator('.manual-topic b')).toHaveText(['Rules for simulation modules']);
   await manual.locator('#manual-search').fill('zzzz');
   await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');
+  await manual.locator('#manual-search').fill('');
+  await manual.locator('#manual-tab-players').click();
+  await manual.locator('.manual-topic[data-page="multiplayer"]').click();
+  await expect(manual.locator('#manual-page')).toContainText('npm run host');
+  await expect(manual.locator('#manual-page')).toContainText('GAME_ADDRESS');
+  await manual.locator('#manual-tab-creators').click();
+  await manual.locator('.manual-topic[data-page="shaders"]').click();
 
   // The chosen audience and page survive a reload.
   await page.reload();

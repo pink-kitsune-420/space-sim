@@ -16,6 +16,7 @@
     "package": "node scripts/package.mjs",
     "desktop": "node dist-desktop/space-sim-desktop.cjs",
     "server": "node dist-server/space-sim-server.cjs",
+    "host": "npm run build && node dist-server/space-sim-server.cjs --open",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:browser": "playwright test",

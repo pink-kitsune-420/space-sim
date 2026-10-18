@@ -1,7 +1,7 @@
 import { openPanel } from '../helpers/workspace';
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -37,6 +37,19 @@ async function pilot(browser: Browser, url: string, name: string): Promise<Page>
   return page;
 }
 const errorsOf = (page: Page): string[] => (page as Page & { errors?: string[] }).errors ?? [];
+
+/** Exercise actual clipboard-paste behavior without depending on system clipboard access. */
+async function paste(page: Page, selector: string, text: string): Promise<void> {
+  await page.locator(selector).evaluate((input, value) => {
+    const clipboard = new DataTransfer();
+    clipboard.setData('text/plain', value);
+    const event = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+    // Firefox strips data passed to synthetic ClipboardEvent constructors. Supply the
+    // test clipboard explicitly; real user paste events already carry native data.
+    Object.defineProperty(event, 'clipboardData', { value: clipboard });
+    input.dispatchEvent(event);
+  }, text);
+}
 
 interface Server { readonly url: string; readonly child: ChildProcess; output(): string }
 async function startServer(dataDir: string): Promise<Server> {
@@ -118,6 +131,7 @@ test('a browser host invites a player with codes and both fly in one world', asy
   const guest = await pilot(browser, '/', 'Gus');
   await host.getByRole('button', { name: 'Host this world' }).click();
   await expect(host.locator('.connection')).toContainText('HOSTING');
+  await host.locator('#internet-play').uncheck(); // Network smoke must not depend on public STUN availability.
   await host.getByRole('button', { name: 'Create invite' }).click();
   await expect(host.locator('#invite-code')).toHaveValue(/^SSO1\./);
   await guest.getByRole('tab', { name: 'Invite code' }).click();
@@ -149,6 +163,67 @@ test('a browser host invites a player with codes and both fly in one world', asy
   await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
   await expect(guest.locator('#mp-status')).toContainText('stopped hosting');
   expect([...errorsOf(host), ...errorsOf(guest)]).toEqual([]);
+});
+
+test('an invite link prepares the reply and pasting it connects without another button', async ({ browser, browserName }) => {
+  test.skip(browserName === 'webkit', 'WebRTC data channels are not verified in Playwright WebKit');
+  test.setTimeout(60000);
+  const host = await pilot(browser, '/', 'Link host');
+  const guest = await pilot(browser, '/', 'Link guest');
+  try {
+    await host.getByRole('button', { name: 'Host this world' }).click();
+    await host.locator('#internet-play').uncheck();
+    await host.getByRole('button', { name: 'Create invite' }).click();
+    await expect(host.locator('#invite-code')).toHaveValue(/^SSO1\./);
+    await host.getByRole('button', { name: 'Copy invite link' }).click();
+    const link = await host.locator('#mp-share-link').inputValue();
+    expect(new URL(link).hash).toMatch(/^#invite=SSO1/);
+    expect(new URL(link).searchParams.has('invite')).toBe(false);
+    await guest.goto(link);
+    await expect(guest.locator('#reply-code')).toHaveValue(/^SSA1\./);
+    expect(new URL(guest.url()).hash).toBe('');
+    await paste(host, '#host-reply', await guest.locator('#reply-code').inputValue());
+    await expect(guest.locator('.connection')).toContainText('ONLINE');
+    await expect(host.locator('.connection')).toContainText('2 PILOTS');
+    const downloading = host.waitForEvent('download');
+    await host.getByRole('button', { name: 'Save connection report' }).click();
+    const report = JSON.parse(await readFile(await (await downloading).path(), 'utf8'));
+    expect(report.connection).toBe('connected');
+    expect(report.candidates.host).toBeGreaterThan(0);
+    expect(report).not.toHaveProperty('sdp');
+    expect([...errorsOf(host), ...errorsOf(guest)]).toEqual([]);
+  } finally {
+    await host.context().close(); await guest.context().close();
+  }
+});
+
+test('server game links autojoin and still ask for a world password', async ({ browser }) => {
+  test.setTimeout(60000);
+  const dataDir = await mkdtemp(join(tmpdir(), 'space-sim-link-'));
+  await writeFile(join(dataDir, 'server.json'), JSON.stringify({ password: 'orbit' }));
+  const server = await startServer(dataDir);
+  const guest = await pilot(browser, server.url, 'Link pilot');
+  try {
+    await guest.goto(`${server.url}/#join=1`);
+    await expect(guest.locator('#password-row')).toBeVisible();
+    expect(new URL(guest.url()).hash).toBe('');
+    await guest.locator('#join-password').fill('orbit');
+    let opened = 0;
+    guest.on('websocket', () => { opened++; });
+    await guest.locator('#join-address').evaluate(input => {
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    });
+    await expect(guest.locator('.connection')).toContainText('ONLINE');
+    expect(opened).toBe(1);
+    await guest.getByRole('button', { name: 'Copy game link' }).click();
+    await expect(guest.locator('#mp-share-link')).toHaveValue(`${server.url}/#join=1`);
+    expect(await guest.locator('#mp-share-link').inputValue()).not.toContain('orbit');
+    expect(errorsOf(guest)).toEqual([]);
+  } finally {
+    await guest.context().close(); await stopServer(server);
+    await rm(dataDir, { recursive: true, force: true });
+  }
 });
 
 /** Tabs of one browser share storage and a BroadcastChannel. */
