@@ -12,3 +12,7 @@ export type * from './rules';
 export type * from './commands';
 export type * from './presentation';
 export * as deterministicMath from './math';
+export * from './platform';
+export type * from './modules-v2';
+export * from './engine';
+export * from './session';

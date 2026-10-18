@@ -1,0 +1,63 @@
+color.txt
+MIT
+Space Sim first-party authoring example. Licensed under MIT.
+
+game-api/commands.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/context.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/index.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/math.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/modules.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/motion.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/orbit.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/presentation.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/rules.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/services.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/state.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/surface.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/universe.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+game-api/world.ts
+LicenseRef-Project
+Space Sim first-party public API
+
+main.ts
+MIT
+Space Sim first-party authoring example. Licensed under MIT.

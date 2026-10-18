@@ -1,0 +1,678 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:spacelab:portable-package:1",
+  "title": "Portable module/data descriptor. Runtime additionally validates bytes, paths, licenses and source/bundle freshness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "manifest",
+    "compatibility",
+    "assets",
+    "data",
+    "guides",
+    "inputs",
+    "sourceStatus"
+  ],
+  "properties": {
+    "format": {
+      "enum": [
+        "spacelab-module-package/1",
+        "spacelab-data-package/1"
+      ]
+    },
+    "manifest": {
+      "$ref": "#/$defs/manifest"
+    },
+    "entry": {
+      "type": "string",
+      "maxLength": 240,
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bundle",
+        "toolchain",
+        "inputsDigest"
+      ],
+      "properties": {
+        "bundle": {
+          "const": "dist/module.js"
+        },
+        "toolchain": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "inputsDigest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic",
+        "multiplayer"
+      ],
+      "properties": {
+        "deterministic": {
+          "type": "boolean"
+        },
+        "multiplayer": {
+          "type": "boolean"
+        }
+      },
+      "if": {
+        "properties": {
+          "multiplayer": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "deterministic": {
+            "const": true
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "mediaType"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "maxLength": 240,
+            "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+          },
+          "mediaType": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "path"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "content",
+              "universe",
+              "shaders",
+              "theme",
+              "guides"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 240,
+            "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+          }
+        }
+      }
+    },
+    "guides": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 240,
+        "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "license",
+          "attribution"
+        ],
+        "properties": {
+          "license": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 240,
+            "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "sourceStatus": {
+      "enum": [
+        "included",
+        "legacy-unavailable"
+      ]
+    },
+    "legacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "format"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 240,
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
+        },
+        "format": {
+          "type": "string"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "manifest": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/manifestV1"
+        },
+        {
+          "$ref": "#/$defs/manifestV2"
+        }
+      ]
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "manifestV1": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "apiVersion",
+        "id",
+        "name",
+        "version",
+        "kind",
+        "authority",
+        "environments",
+        "dependencies",
+        "provides",
+        "requires",
+        "slots",
+        "before",
+        "after",
+        "settings",
+        "license"
+      ],
+      "properties": {
+        "format": {
+          "const": "space-sim-module/1"
+        },
+        "apiVersion": {
+          "const": "space-sim-game-api/1"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "provider",
+            "data"
+          ]
+        },
+        "authority": {
+          "enum": [
+            "authoritative",
+            "presentation"
+          ]
+        },
+        "environments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "browser",
+              "offline",
+              "node"
+            ]
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "maxLength": 256
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "maxLength": 256
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "provides": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "requires": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "slots": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "before": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "after": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "default",
+              "minimum",
+              "maximum"
+            ],
+            "properties": {
+              "type": {
+                "const": "number"
+              },
+              "default": {
+                "type": "number"
+              },
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "manifestV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "apiVersion",
+        "id",
+        "name",
+        "version",
+        "kind",
+        "environments",
+        "dependencies",
+        "provides",
+        "requires",
+        "slots",
+        "before",
+        "after",
+        "settings",
+        "license",
+        "tier",
+        "conflicts"
+      ],
+      "properties": {
+        "format": {
+          "const": "space-sim-module/2"
+        },
+        "apiVersion": {
+          "const": "space-sim-game-api/2"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "provider",
+            "data"
+          ]
+        },
+        "environments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "browser",
+              "offline",
+              "node"
+            ]
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "maxLength": 256
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "version"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+                "maxLength": 256
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "provides": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        },
+        "requires": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "version"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$"
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "optional": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "slots": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "before": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "after": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "default",
+              "minimum",
+              "maximum"
+            ],
+            "properties": {
+              "type": {
+                "const": "number"
+              },
+              "default": {
+                "type": "number"
+              },
+              "minimum": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "tier": {
+          "enum": [
+            "authoritative",
+            "presentation",
+            "platform",
+            "network"
+          ]
+        },
+        "beforeIfPresent": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "afterIfPresent": {
+          "type": "array",
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      }
+    }
+  }
+}

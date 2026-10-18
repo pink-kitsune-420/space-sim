@@ -1,11 +1,11 @@
-import type { AuthoritativeLock, Coast, ModuleLock, ModuleState, State, WorldRuleState } from '../../game-api/src/index';
+import type { AuthoritativeLock, Coast, ModuleLock, ModuleState, State, WorldRuleState, SavedShip, SavedPlayer, WorldSave, WorldRead } from '../../game-api/src/index';
 import { validateModuleState } from '../../game-runtime/src/motion';
 import { DEFAULT_BUILTIN_LOCK, migrateModuleState } from '../../game-runtime/src/authoritative';
 export { DEFAULT_BUILTIN_LOCK };
 import { IDLE, MODEL, READABLE_MODELS, STEP } from './constants';
 import { magnitude } from './context';
 import { surfaceIdentity } from './surface';
-import { validateUniverse, type UniverseDefinition } from './universe';
+import { validateUniverse } from './universe';
 import { MAX_SHIP_NAME, SHIP_ID_PATTERN, World, cleanName, type Ship, type WorldOptions } from './world';
 
 /** Complete-world save: every ship at one shared simulation epoch. */
@@ -18,60 +18,7 @@ export const MAX_SAVE_PLAYERS = 512;
 export const MAX_PLAYER_NAME = 24;
 const TOKEN_HASH = /^[0-9a-f]{64}$/;
 
-type Pair = readonly [number, number];
-export interface SavedCoast {
-  readonly epochSeconds: number;
-  readonly position: Pair;
-  readonly velocity: Pair;
-  readonly revision: number;
-}
-/** Body-relative Float64 state. Derived caches and per-step diagnostics are rebuilt. */
-export interface SavedShip {
-  readonly id: string;
-  readonly name: string;
-  readonly ownerId: string;
-  readonly bodyId: string;
-  readonly position: Pair;
-  readonly velocity: Pair;
-  readonly heading: number;
-  readonly throttle: number;
-  readonly status: State['status'];
-  readonly revision: number;
-  readonly godMode?: boolean;
-  readonly water?: 'submerged' | 'floating';
-  /** Present while coasting: the epoch this ship's exact Kepler motion is evaluated from. */
-  readonly coast?: SavedCoast;
-  readonly fault?: string;
-  readonly moduleState?: Readonly<Record<string, ModuleState>>;
-}
-/** A player identity. Only a SHA-256 hash of the secret reconnect token is stored. */
-export interface SavedPlayer {
-  readonly id: string;
-  readonly name: string;
-  readonly tokenHash?: string;
-}
-export interface WorldSave {
-  readonly format: typeof SAVE_FORMAT;
-  readonly version: number;
-  readonly model: string;
-  readonly units: typeof SAVE_UNITS;
-  readonly worldId: string;
-  readonly savedAt?: string;
-  /** The full universe, so a save is portable between browsers and servers. */
-  readonly universe: UniverseDefinition;
-  readonly systemId: string;
-  readonly tick: number;
-  readonly time: number;
-  readonly paused?: boolean;
-  readonly nextShipNumber: number;
-  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */
-  readonly hostId?: string;
-  readonly players: readonly SavedPlayer[];
-  readonly ships: readonly SavedShip[];
-  readonly lock?: AuthoritativeLock | ModuleLock;
-  readonly simulationFingerprint?: string;
-  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
-}
+export type { SavedCoast, SavedShip, SavedPlayer, WorldSave } from '../../game-api/src/index';
 export interface LoadedWorld {
   readonly world: World;
   readonly players: readonly SavedPlayer[];
@@ -79,6 +26,7 @@ export interface LoadedWorld {
   readonly paused: boolean;
 }
 
+type Pair = readonly [number, number];
 const pair = (v: { readonly x: number; readonly y: number }): Pair => [v.x, v.y];
 
 export function shipToSaved(ship: Ship): SavedShip {
@@ -122,7 +70,7 @@ function id(value: unknown, context: string): string {
 /** Rebuild and validate one ship against `world`'s bodies and terrain, at the world's clock
  * or at an earlier `time` (a snapshot's). A coast epoch must reproduce the stored position;
  * a trial step must accept the state. */
-export function shipFromSaved(world: World, raw: unknown, context = 'Ship', time = world.time): Ship {
+export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', time = world.time): Ship {
   const s = record(raw, context);
   const shipId = id(s.id, `${context} id`);
   context = `Ship ${shipId}`;
@@ -201,7 +149,7 @@ export function playerFromSaved(raw: unknown, context = 'Player'): SavedPlayer {
   return { id: playerId, name, ...(p.tokenHash ? { tokenHash: p.tokenHash as string } : {}) };
 }
 
-export function saveWorld(world: World, extra: {
+export function saveWorld(world: WorldRead, extra: {
   readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;
   readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;

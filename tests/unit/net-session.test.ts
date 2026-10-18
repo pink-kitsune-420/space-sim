@@ -12,6 +12,38 @@ const BURN: Controls = { turn: 0, throttle: 0, engine: true };
 const shipOf = (game: Game, index: number): string => game.pilots[index]!.client.ownShips()[0]!.id;
 
 describe('host and client sessions', () => {
+  it('waits for a reserved reconnect token before sending join', async () => {
+    const [host, connection] = loopback();
+    const sent: string[] = [];
+    host.onmessage = text => sent.push(text);
+    let reserve!: (token: string) => void;
+    const client = new ClientSession(connection, { name: 'Ada', token: () => new Promise<string>(done => { reserve = done; }) });
+    host.send(JSON.stringify({ t: 'info', protocol: PROTOCOL, model: MODEL, worldId: 'world', name: 'Server',
+      password: false, players: 0, maxPlayers: 16 }));
+    await Promise.resolve();
+    expect(sent).toEqual([]);
+    reserve('a'.repeat(32));
+    await Promise.resolve(); await Promise.resolve();
+    expect(sent.map(text => JSON.parse(text))).toEqual([{ t: 'join', name: 'Ada', token: 'a'.repeat(32) }]);
+    client.leave();
+  });
+
+  it('does not send a late join after disconnecting during token reservation', async () => {
+    const [host, connection] = loopback();
+    const sent: string[] = [];
+    host.onmessage = text => sent.push(text);
+    let reserve!: (token: string) => void;
+    const client = new ClientSession(connection, { name: 'Ada', token: () => new Promise<string>(done => { reserve = done; }) });
+    host.send(JSON.stringify({ t: 'info', protocol: PROTOCOL, model: MODEL, worldId: 'world', name: 'Server',
+      password: false, players: 0, maxPlayers: 16 }));
+    await Promise.resolve();
+    client.leave();
+    reserve('a'.repeat(32));
+    await Promise.resolve(); await Promise.resolve();
+    expect(sent).toEqual([]);
+    expect(client.phase).toBe('closed');
+  });
+
   it('admit players with their own first ship, tokens and a shared roster', () => {
     const game = new Game();
     const a = game.join('Ada'), b = game.join('Bo');

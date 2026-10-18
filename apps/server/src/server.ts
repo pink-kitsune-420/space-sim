@@ -1,3 +1,4 @@
+import { decodeUniverseSave } from '../../../packages/game-library/src/save-package';
 import { builtinContextFactory, prepareGame, loadInstalledWorld } from '../../../packages/modules/src/index';
 import { spawn } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
@@ -23,6 +24,10 @@ import { USAGE, loadConfig, parseCommandLine, type ServerConfig } from './config
 import { serverModules } from './modules';
 import { WorldStore } from './store';
 import { acceptWebSocket } from './websocket';
+import { prepareInstalledWorld } from '../../../packages/modules/src/installed';
+import { inspectRuntimePackage } from '../../../packages/game-library/src/runtime-package';
+import { engineModuleServices } from '../../../packages/sim-core/src/module-services';
+import { ALLOW_RUNTIME_CODE } from '../../../packages/game-runtime/src/build-policy';
 
 /** A bundled web-game file (base64), keyed by URL path. */
 export interface ClientAsset { readonly type: string; readonly data: string }
@@ -83,11 +88,29 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   const config = await loadConfig(dataDir, options.overrides);
   const createContext = builtinContextFactory('node');
   const installed = await serverModules(config, dataDir);
-  const restore = (raw: unknown) => loadInstalledWorld(raw, { environment: 'node', code: installed.code, data: installed.bundle?.modules });
+  const prepareMixed = async (restore?: unknown) => {
+    const runtime = installed.runtime!;
+    const prepared = await prepareInstalledWorld(runtime.plan, runtime.store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE,
+      approvedDigests: new Set(runtime.plan.packages.map(ref => ref.digest)) }, {
+      hostServices: engineModuleServices(), inspect: inspectRuntimePackage, profile: installed.bundle?.profile,
+      data: installed.bundle?.modules, code: installed.code, restore,
+      universe: restore ? undefined : await resolveUniverse(config.universe, dataDir),
+      universeKey: installed.bundle?.selection.universe, systemId: config.system || installed.bundle?.selection.system, id: newWorldId(),
+      configure(modules) {
+        if (modules.contributions('input').length || modules.contributions('window').length || modules.contributions('material').length
+          || modules.contributions('post').length || modules.core.layers.length || modules.core.panels.length || modules.core.cameras.length)
+          throw new Error('Server target contains viewer hooks; choose a headless runtime target');
+      },
+    }, new AbortController().signal);
+    try { await prepared.candidate.start(new AbortController().signal); return prepared; }
+    catch (error) { prepared.candidate.dispose(); throw error; }
+  };
+  const restore = async (raw: unknown) => installed.runtime ? (await prepareMixed(raw)).loaded
+    : loadInstalledWorld(raw, { environment: 'node', code: installed.code, data: installed.bundle?.modules });
   const store = new WorldStore(dataDir, config.keepBackups, log, createContext, restore);
 
   if (options.importSave) {
-    const imported = restore(JSON.parse(await readFile(options.importSave, 'utf8')));
+    const imported = await restore(await decodeUniverseSave(new Uint8Array(await readFile(options.importSave))));
     const previous = await store.backup();
     if (previous) log(`Backed up the previous world to ${previous}.`);
     await store.save(saveWorld(imported.world, { players: imported.players, savedAt: new Date().toISOString() }));
@@ -106,11 +129,14 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
       + `${world.size} ships, ${players.length} known players.`);
     if (existing.from === store.file) await store.backup();
   } else {
+    if (installed.runtime) world = (await prepareMixed()).loaded.world;
+    else {
     const prepared = prepareGame({ environment: 'node', universe: await resolveUniverse(config.universe, dataDir),
       ...(config.system ? { systemId: config.system } : installed.bundle?.selection.system ? { systemId: installed.bundle.selection.system } : {}),
       data: installed.bundle?.modules, code: installed.code, profile: installed.bundle?.profile, universeKey: installed.bundle?.selection.universe, id: newWorldId() });
     prepared.runtime.activate(prepared.candidate);
     world = prepared.world;
+    }
     log(`Created world ${world.id}: ${world.universe.name} · ${world.system.system.name}.`);
   }
   if (world.soloPreview) { world.dispose(); throw new Error('Server module profile requires deterministic multiplayer support'); }

@@ -44,8 +44,9 @@ describe('Spacelab portable games and plugins', () => {
   it('round trips a self-contained compressed game with code, data, settings and exact identity', async () => {
     const source = game();
     const bytes = await encodePackage(source);
-    expect([...bytes.slice(0, 2)]).toEqual([0x1f, 0x8b]);
-    expect(bytes.length).toBeLessThan(JSON.stringify(source).length);
+    expect([...bytes.slice(0, 2)]).toEqual([0x50, 0x4b]);
+    // ZIP exports also carry integrity, exact lock and independently editable members.
+    expect(bytes.length).toBeLessThan(MAX_ARCHIVE_BYTES);
     const restored = await decodePackage(bytes);
     expect(restored).toEqual(source);
     expect(Object.isFrozen(restored)).toBe(true);

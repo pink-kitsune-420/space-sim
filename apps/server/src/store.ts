@@ -17,7 +17,7 @@ export class WorldStore {
 
   constructor(readonly dir: string, private readonly keepBackups: number, private readonly log: (message: string) => void = () => {},
     private readonly createContext: SimulationContextFactory = builtinContextFactory('node'),
-    private readonly restore?: (raw: unknown) => LoadedWorld) {
+    private readonly restore?: (raw: unknown) => LoadedWorld | Promise<LoadedWorld>) {
     this.file = join(dir, 'world.json');
     this.backups = join(dir, 'backups');
   }

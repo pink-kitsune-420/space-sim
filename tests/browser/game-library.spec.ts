@@ -1,3 +1,4 @@
+import { useCanvas } from '../helpers/canvas';
 import { openPanel, closePanel } from '../helpers/workspace';
 import { test, expect, type Page } from '@playwright/test';
 import { copyFile, readFile } from 'node:fs/promises';
@@ -9,9 +10,10 @@ import type { GamePackage, LabPackage } from '../../packages/game-library/src/ar
 import builtin from '../../games/space-sim/game.json' with { type: 'json' };
 import gentle from '../../examples/modules/gentle-flight.json' with { type: 'json' };
 import type { DataModule } from '../../packages/game-api/src/index';
-import { gzipSync, gunzipSync } from 'node:zlib';
+import { packageContracts } from '../../packages/module-tools/package.mjs';
+import { gzipSync } from 'node:zlib';
 const encodePackage = async (value: LabPackage) => gzipSync(JSON.stringify(value));
-const decodePackage = async (value: Uint8Array): Promise<LabPackage> => JSON.parse(gunzipSync(value).toString('utf8'));
+const decodePackage = async (value: Uint8Array): Promise<LabPackage> => (await packageContracts()).decodePackage(new Uint8Array(value));
 
 test.describe.configure({ timeout: 90000 });
 let force: CodeArtifact, telemetry: CodeArtifact;
@@ -39,6 +41,8 @@ async function play(page: Page, name: string) {
   await card(page, name).getByRole('button', { name: 'Play · new world', exact: true }).click();
   await expect(page.locator('#lab-status')).toContainText(`Playing ${name}`);
 }
+
+test.beforeEach(async ({ page }) => { await useCanvas(page); });
 
 test('a data plugin installs inertly, applies with code controls, and saves/exports an organized persistent game', async ({ page }, testInfo) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));

@@ -28,6 +28,7 @@ Usage:
 Targets:
   --target=desktop-exe    Build standalone game executable for current OS (default)
   --target=server-exe     Build standalone dedicated server executable
+  --target=multiplayer    Build matching standalone game and server executables
   --target=offline        Build single-file offline HTML game (space-lab-offline.html)
   --target=tauri          Build native desktop application via Tauri v2 (requires Rust)
   --target=android        Prepare & build Android mobile package (Capacitor / Tauri)
@@ -108,14 +109,16 @@ function checkEnvironment() {
   console.log('-------------------------------\n');
 }
 
+let distributionBuilt = false;
 function buildWebAssets() {
-  if (existsSync(join(root, 'dist', 'index.html')) && existsSync(join(root, 'dist-desktop', 'space-sim-desktop.cjs'))) {
-    return;
-  }
+  // Existing output may belong to older source or a different multiplayer protocol.
+  // Refresh it once per invocation, including when packaging several targets.
+  if (distributionBuilt) return;
   runStep('Building web distribution & offline artifacts', () => {
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
     execFileSync(npmCmd, ['run', 'build'], { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
   });
+  distributionBuilt = true;
 }
 
 
@@ -256,6 +259,10 @@ function main() {
       packageDesktopExe();
       break;
     case 'server-exe':
+      packageServerExe();
+      break;
+    case 'multiplayer':
+      packageDesktopExe();
       packageServerExe();
       break;
     case 'offline':

@@ -1,5 +1,4 @@
-import { encodePackage, MAX_ARCHIVE_BYTES, validatePackage, type GamePackage, type PluginPackage } from '../../../packages/game-library/src/archive';
-import { readJsonFile } from '../../../packages/game-library/src/compression';
+import { decodeLabFile, encodePackage, MAX_ARCHIVE_BYTES, validatePackage, type GamePackage, type PluginPackage } from '../../../packages/game-library/src/archive';
 import { validateUniverse } from '../../../packages/sim-core/src/universe';
 import type { UniverseDefinition } from '../../../packages/game-api/src/index';
 import { parseCodeArtifact } from '../../../packages/game-runtime/src/artifact';
@@ -16,10 +15,11 @@ export class LabManager {
     readonly builtin: GamePackage;
     readonly builtins?: readonly GamePackage[];
     readonly install: (plugin: PluginPackage) => void;
+    readonly installDevicePackage?: (bytes: Uint8Array, source: string) => Promise<boolean>;
     readonly legacy: (text: string) => void;
     readonly universe: (universe: UniverseDefinition) => void;
-    readonly capture: () => GamePackage;
-    readonly play: (game: GamePackage) => void;
+    readonly capture: () => GamePackage | Promise<GamePackage>;
+    readonly play: (game: GamePackage) => void | Promise<void>;
     readonly editable: () => boolean;
     readonly world: () => object;
   }) {
@@ -31,7 +31,8 @@ export class LabManager {
       try {
         if (file.size > MAX_ARCHIVE_BYTES) throw new Error('Package must be at most 32 MiB');
         const bytes = new Uint8Array(await file.arrayBuffer());
-        const raw = await readJsonFile(bytes) as { format?: string; schemaVersion?: number; bodies?: unknown[]; systems?: unknown[] };
+        if (await options.installDevicePackage?.(bytes, file.name)) { this.status('Installed device module. Code has not run. Review and enable it in Plugins.'); return; }
+        const raw = await decodeLabFile(bytes) as { format?: string; schemaVersion?: number; bodies?: unknown[]; systems?: unknown[] };
         if (options.world() !== world) throw new Error('The active session changed while importing');
         if (raw && (Array.isArray(raw.systems) || Array.isArray(raw.bodies)) && !raw.format) {
           if (!options.editable()) throw new Error('Import a universe in your solo game');
@@ -40,6 +41,8 @@ export class LabManager {
           this.status(`Loaded universe ${universe.name}. Save as a game to keep and share its setup.`);
           return;
         }
+        if (raw?.format === 'space-sim-world') throw new Error('This file is saved progress. Use Fleet → Load universe… to continue it.');
+        if (raw?.format === 'space-sim-shaders/1') throw new Error('Use Tools → Load shader… for shader data.');
         let imported;
         if (raw?.format === 'space-lab-game/1' || raw?.format === 'space-lab-plugin/1') imported = validatePackage(raw);
         else if (raw?.format === 'space-sim-code-module/1') {
@@ -64,13 +67,13 @@ export class LabManager {
       } finally { input.value = ''; }
     }); };
     element('lab-save').onclick = () => { void this.run(async () => {
-      const game = this.capture();
+      const game = await this.capture();
       await this.library.put(game, { folder: element<HTMLInputElement>('game-folder').value });
-      this.status(`Saved ${game.info.name} to the library. This game starts a fresh world; use Save world for flight progress.`);
+      this.status(`Saved ${game.info.name} to the library. This game starts a fresh world; use Save universe for flight progress.`);
       this.refresh();
     }); };
     element('lab-export').onclick = () => { void this.run(async () => {
-      const game = this.capture();
+      const game = await this.capture();
       await this.export(game);
       this.status(`Exported ${game.info.name} with its selected plugins, data and settings.`);
     }); };
@@ -104,9 +107,9 @@ export class LabManager {
     element('game-empty').hidden = visible.length > 0;
     for (const id of ['lab-save', 'lab-export']) element<HTMLButtonElement>(id).disabled = !this.options.editable() || this.busy;
   }
-  private capture(): GamePackage {
+  private async capture(): Promise<GamePackage> {
     if (!this.options.editable()) throw new Error('Save or export games from your solo world');
-    const game = this.options.capture();
+    const game = await this.options.capture();
     return { ...game, info: { ...game.info, name: element<HTMLInputElement>('game-name').value.trim() || `${game.info.name} remix` } };
   }
   private card(entry: LibraryGame): HTMLElement {
@@ -118,7 +121,7 @@ export class LabManager {
     const actions = document.createElement('div'); actions.className = 'lab-actions';
     actions.append(this.button('Play · new world', async () => {
       if (!this.options.editable()) throw new Error('Leave multiplayer before switching games');
-      this.options.play(entry.game);
+      await this.options.play(entry.game);
       show('active-game', entry.game.info.name);
       document.title = `Spacelab · ${entry.game.info.name}`;
       element<HTMLInputElement>('game-name').value = `${entry.game.info.name} remix`;

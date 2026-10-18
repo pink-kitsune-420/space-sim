@@ -5,11 +5,16 @@ import { builtinUniverses, environment } from './startup';
 import { moduleLibrary } from './module-library';
 import type { Presentation } from './presentation';
 import { element, message, show, downloadBytes } from './ui';
-import { encodePackage, artifactModules, validatePackage, type PluginPackage } from '../../../packages/game-library/src/archive';
+import { decodePackage, artifactModules, validatePackage, type PluginPackage } from '../../../packages/game-library/src/archive';
 import { parseCodeArtifact } from '../../../packages/game-runtime/src/artifact';
+import { decodeModulePackage, encodeModuleFiles, packageFiles, wrapLegacyCode, wrapLegacyData } from '../../../packages/game-library/src/portable';
+import { isZip } from '../../../packages/game-library/src/zip';
+import { DeviceModuleManager } from './device-module-manager';
+import { ALLOW_RUNTIME_CODE } from '../../../packages/game-runtime/src/build-policy';
 
 /** Installation never enables code. Authority is applied as a complete new-world profile. */
 export class ModuleManager {
+  readonly devices: DeviceModuleManager;
   private data = new Map<string, DataModule>();
   private universes = new Map<string, UniverseDefinition>();
   resetData(data: readonly DataModule[]): void { this.data = new Map(data.map(m => [m.manifest.id, m])); }
@@ -17,18 +22,43 @@ export class ModuleManager {
     readonly current: () => { readonly profile: ModuleProfile; readonly data: readonly DataModule[]; readonly editable: boolean;
       readonly universe: UniverseDefinition; readonly resolvedUniverse: UniverseDefinition; readonly universeKey: string; readonly systemId: string };
     readonly apply: (profile: ModuleProfile, data: readonly DataModule[], selection: { universe: string; system: string }) => void;
+    readonly world: () => object;
   }) {
+    this.devices = new DeviceModuleManager(moduleLibrary.store, { editable: () => this.options.current().editable, world: options.world,
+      activeLegacyIds: () => new Set([...this.options.current().profile.modules, ...(this.presentation.profile?.modules ?? [])].map(ref => ref.id)), restart: () => {
+      const current = this.options.current();
+      this.options.apply(current.profile, current.data, { universe: current.universeKey, system: current.systemId });
+    } });
+    element('plugin-manager').append(this.devices.root);
     element('plugin-universe').addEventListener('change', () => this.syncSystems());
     element('authoritative-module-list').addEventListener('change', () => this.syncUniverses(
       element<HTMLSelectElement>('plugin-universe').value, element<HTMLSelectElement>('plugin-system').value));
+    const preview = document.createElement('p'); preview.id = 'module-change-preview'; preview.setAttribute('role', 'status');
+    element('authoritative-module-list').after(preview);
+    element('authoritative-module-list').addEventListener('change', () => this.preview());
+    void moduleLibrary.open().then(() => {
+      for (const data of moduleLibrary.data.values()) if (!this.data.has(data.manifest.id)) this.data.set(data.manifest.id, data);
+      for (const artifact of moduleLibrary.artifacts) if (artifact.manifest.authority === 'presentation' && !this.presentation.registry.getManifest(artifact.manifest.id))
+        this.presentation.install(artifactModules([artifact], environment())[0]!);
+      this.refresh();
+      show('code-module-status', moduleLibrary.storageStatus);
+      return this.devices.refresh().catch(() => { /* The library already reports storage denial. */ });
+    });
     const input = element<HTMLInputElement>('code-module-file');
     element('install-code-module').addEventListener('click', () => input.click());
     input.addEventListener('change', async () => {
       try {
         const file = input.files?.[0];
         if (!file) return;
-        if (file.size > 4 * 1024 * 1024) throw new Error('Code artifact must be at most 4 MiB');
-        const artifact = parseCodeArtifact(await file.text());
+        if (file.size > 32 * 1024 * 1024) throw new Error('Module package must be at most 32 MiB');
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        if (await this.installDevicePackage(bytes, file.name)) return;
+        if (isZip(bytes)) {
+          const plugin = await decodePackage(bytes);
+          if (plugin.format !== 'space-lab-plugin/1') throw new Error('Import game collections in the Library');
+          this.install(plugin); return;
+        }
+        const artifact = parseCodeArtifact(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
         this.install({ format: 'space-lab-plugin/1', info: { id: artifact.manifest.id, name: artifact.manifest.name, description: '' }, data: [], code: [artifact] });
       } catch (error) { show('code-module-status', `Module was not installed: ${message(error)}`); }
       finally { input.value = ''; }
@@ -62,9 +92,19 @@ export class ModuleManager {
       } catch (error) { show('code-module-status', `Profile was not enabled: ${message(error)}`); }
     });
   }
+  async installDevicePackage(bytes: Uint8Array, source: string): Promise<boolean> {
+    if (!isZip(bytes)) return false;
+    let checked;
+    try { checked = await decodeModulePackage(Uint8Array.from(bytes)); } catch { return false; }
+    if (checked.descriptor.manifest.format !== 'space-sim-module/2') return false;
+    await this.devices.install(bytes, source);
+    show('code-module-status', 'Installed on this device. Code has not run. Open Device and network modules to review and enable it.');
+    return true;
+  }
   install(plugin: PluginPackage): void {
     const checked = validatePackage(plugin);
     if (checked.format !== 'space-lab-plugin/1') throw new Error('Expected a plugin package');
+    if (!ALLOW_RUNTIME_CODE && checked.code.length) throw new Error('This build does not allow imported code');
     plugin = checked;
     this.refreshData();
     const registry = this.registry();
@@ -73,16 +113,32 @@ export class ModuleManager {
         throw new Error(`Module ${entry.manifest.id}: duplicate installed ID; disable and remove it first`);
     }
     // All IDs and artifacts have been inspected before mutating either registry.
-    for (const data of plugin.data) this.data.set(data.manifest.id, data);
+    for (const data of plugin.data) { this.data.set(data.manifest.id, data); moduleLibrary.installData(data); }
     for (const artifact of plugin.code) {
-      moduleLibrary.install(JSON.stringify(artifact));
+      moduleLibrary.install(artifact);
       if (artifact.manifest.authority === 'presentation') this.presentation.install(artifactModules([artifact], environment())[0]!);
     }
     show('code-module-status', `Installed ${plugin.info.name}. Code has not run. Select plugins and apply to enable them. Save as a game to keep the selection.`);
     this.refresh();
+    void moduleLibrary.flush().then(() => show('code-module-status', `Installed ${plugin.info.name}. Code has not run. ${moduleLibrary.storageStatus}`));
   }
   private refreshData(): void {
     for (const data of this.options.current().data) this.data.set(data.manifest.id, data);
+  }
+  private preview(): void {
+    const current = this.options.current();
+    const refs = [...element('authoritative-module-list').querySelectorAll<HTMLInputElement>('input[data-enable]:checked')]
+      .map(input => ({ id: input.dataset.enable!, version: input.dataset.version! }));
+    try {
+      const closure = this.registry().closure(refs), selected = new Set(closure.map(ref => ref.id));
+      const added = closure.filter(ref => !refs.some(request => request.id === ref.id)).map(ref => ref.id);
+      const removed = current.profile.modules.filter(ref => !selected.has(ref.id)).map(ref => ref.id);
+      const parts = ['Applying this selection starts a new world.'];
+      if (added.length) parts.push(`Required dependencies will also be enabled: ${added.join(', ')}.`);
+      if (removed.length) parts.push(`Modules removed from the new world: ${removed.join(', ')}.`);
+      parts.push(`Dependency order: ${closure.map(ref => ref.id).join(' → ')}.`);
+      show('module-change-preview', parts.join(' '));
+    } catch (error) { show('module-change-preview', `Selection cannot be applied: ${message(error)}`); }
   }
   private registry() {
     return createBuiltinRegistry([...this.data.values()],
@@ -131,16 +187,17 @@ export class ModuleManager {
       }
       const exportButton = document.createElement('button'); exportButton.textContent = 'Export plugin'; exportButton.type = 'button';
       exportButton.onclick = async () => {
-        try { downloadBytes(`${m.id}.spaceplugin`, await encodePackage({ format: 'space-lab-plugin/1',
-          info: { id: m.id, name: m.name, description: '' },
-          data: artifact.format === 'space-sim-data-module/1' ? [artifact] : [],
-          code: artifact.format === 'space-sim-code-module/1' ? [artifact] : [] })); }
+        try {
+          const files = packageFiles(artifact) ?? (artifact.format === 'space-sim-data-module/1'
+            ? wrapLegacyData(artifact, `Legacy data; declared license: ${artifact.manifest.license}`) : wrapLegacyCode(artifact));
+          downloadBytes(`${m.id}.${m.kind === 'data' ? 'spacedata' : 'spacemod'}`, await encodeModuleFiles(files));
+        }
         catch (error) { show('code-module-status', message(error)); }
       };
       const remove = document.createElement('button'); remove.textContent = 'Remove'; remove.type = 'button'; remove.disabled = active;
       remove.title = active ? 'Disable the module before removing it' : 'Remove this installed artifact';
       remove.onclick = () => {
-        try { if (artifact.format === 'space-sim-data-module/1') this.data.delete(m.id);
+        try { if (artifact.format === 'space-sim-data-module/1') { this.data.delete(m.id); moduleLibrary.remove(m.id); }
           else { if (m.authority === 'presentation') this.presentation.remove(m.id); moduleLibrary.remove(m.id); }
           this.refresh(); }
         catch (error) { show('code-module-status', message(error)); }
@@ -157,6 +214,7 @@ export class ModuleManager {
       }
       return item;
     }));
+    this.preview();
   }
   private syncUniverses(preferred: string, system?: string): void {
     const current = this.options.current();

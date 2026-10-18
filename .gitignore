@@ -37,6 +37,8 @@ dist-orbit-sandbox/
 game-ideas.md
 bugs.md
 ROADMAP.md
+/tk
+/.tickets/
 
 # Local archive for sidetracked and retired plans
 archive/
@@ -74,6 +76,13 @@ pnpm-debug.log*
 .eslintcache
 *.tsbuildinfo
 .aider*
+
+# Rebuilt example inventories (bundles are already covered by dist/).
+examples/packages/*/integrity.json
+
+# Private research requested at repository-root paths.
+/orbital-sandbox-refactor.md
+/rocket-collision-research.md
 
 # Local credentials, agent state and private working notes.
 .aws/

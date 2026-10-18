@@ -1,5 +1,4 @@
 import { Clock, IDLE, type Controls, type Vec } from '../../../packages/sim-core/src/index';
-import type { SavedPlayer } from '../../../packages/sim-core/src/save';
 import type { Ship, World, WorldEvent } from '../../../packages/sim-core/src/world';
 import { HostSession, SessionError } from '../../../packages/net/src/host';
 import type { ClientSession } from '../../../packages/net/src/client';
@@ -7,50 +6,9 @@ import type { Connection } from '../../../packages/net/src/connection';
 import type { NetPlayer } from '../../../packages/net/src/protocol';
 import { newToken } from '../../../packages/net/src/sha256';
 
-export type ChatLine = { readonly from?: string; readonly name: string; readonly text: string };
-
-/** What the flight loop needs from a game, whether this browser owns the world or follows
- * someone else's. */
-export interface GameSession {
-  readonly kind: 'local' | 'client';
-  readonly world: World;
-  readonly playerId: string;
-  readonly paused: boolean;
-  readonly pauseReason: string;
-  readonly warp: number;
-  readonly requestedWarp: number;
-  readonly warpReason: string;
-  /** True if this seat controls time warp (only the host can activate warp). */
-  readonly canWarp: boolean;
-  setWarp(factor: number): void;
-  /** Presentation fraction of the next fixed step. */
-  readonly alpha: number;
-  /** Ship record before the latest fixed step, for interpolation. */
-  previous(shipId: string): Ship | undefined;
-  /** Fading body-relative display correction; zero for local worlds. */
-  displayOffset(shipId: string): Vec;
-  /** Advance by wall-clock seconds. Held controls apply to `shipId` only. */
-  update(seconds: number, shipId: string | undefined, controls: Controls): WorldEvent[];
-  /** Returns the new ship's id when it exists immediately (local worlds). */
-  spawn(presetId: string, godMode: boolean): string | undefined;
-  respawn(shipId: string, presetId: string): void;
-  /** Place an owned ship (throw, orbit and teleport cheats). Local worlds apply it now or
-   * throw a SessionError; remote hosts check it and answer with the next snapshot or a notice. */
-  teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void;
-  remove(shipId: string): void;
-  setThrottle(shipId: string, throttle: number): void;
-  setGodMode(shipId: string, enabled: boolean): void;
-  setGodModeAll(enabled: boolean): void;
-  /** A module command for an owned ship. Local worlds apply it now through the host's
-   * checks (or throw a SessionError); remote results arrive with the next snapshot. */
-  command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void;
-  players(): readonly NetPlayer[];
-  playerName(id: string): string | undefined;
-  /** Say something to everyone in this world (just this pilot when playing alone). */
-  chat(text: string): void;
-  /** Every chat line in this world, this pilot's own included. */
-  onchat: ((line: ChatLine) => void) | null;
-}
+export type { ChatLine } from '../../../packages/game-api/src/index';
+import type { SessionRead, ChatLine, LocalSessionOptions } from '../../../packages/game-api/src/index';
+export interface GameSession extends SessionRead { readonly world: World }
 
 /** This browser's own world: single player, or the authoritative host for remote players. */
 export class LocalSession implements GameSession {
@@ -66,8 +24,7 @@ export class LocalSession implements GameSession {
   private settled = true;
   private controlled?: string;
 
-  constructor(world: World, options: { readonly name: string; readonly token?: string; readonly hostId?: string;
-    readonly players?: readonly SavedPlayer[] }) {
+  constructor(world: World, options: LocalSessionOptions) {
     this.host = new HostSession(world, { maxShipsPerPlayer: 16, maxShips: 64, maxPlayers: 8 }, { players: options.players ?? [] });
     this.token = options.token ?? newToken();
     this.playerId = this.host.seatHost(options.name, this.token, options.hostId);

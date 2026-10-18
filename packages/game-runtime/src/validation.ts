@@ -17,7 +17,7 @@ export function moduleId(raw: unknown, label: string): string {
   if (!/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(id)) throw new Error(`${label}: expected a namespaced module ID`);
   return id;
 }
-function version(raw: unknown, label: string): string {
+export function version(raw: unknown, label: string): string {
   const value = string(raw, label);
   if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(value)) throw new Error(`${label}: expected an exact semantic version`);
   return value;
@@ -26,7 +26,7 @@ function list(raw: unknown, label: string): unknown[] {
   if (!Array.isArray(raw) || raw.length > 256) throw new Error(`${label}: expected a list of at most 256 entries`);
   return raw;
 }
-function strings(raw: unknown, label: string): string[] {
+export function strings(raw: unknown, label: string): string[] {
   const values = list(raw, label).map(v => string(v, label));
   if (new Set(values).size !== values.length) throw new Error(`${label}: duplicate entry`);
   return values;
@@ -41,7 +41,7 @@ function references(raw: unknown, label: string): ModuleReference[] {
   return values;
 }
 /** Dependencies and conflicts name a version range; profiles and locks stay exact. */
-function ranges(raw: unknown, label: string): ModuleDependency[] {
+export function ranges(raw: unknown, label: string): ModuleDependency[] {
   const values = list(raw, label).map(value => {
     const ref = object(value, label);
     keys(ref, ['id', 'version'], label);

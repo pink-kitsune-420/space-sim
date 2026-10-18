@@ -14,8 +14,8 @@ export interface TestScenario {
 export const TEST_SCENARIOS: readonly TestScenario[] = [
   {
     id: 'figure-eight',
-    name: 'Figure-8 3-Body Choreography',
-    description: 'Moore (1993) three equal masses chasing each other along a periodic figure-eight curve.',
+    name: 'Figure-8 3-Body Choreography (Broken)',
+    description: 'Known issue: the bodies collide and fly away instead of following the intended Moore (1993) periodic figure-eight curve.',
     camera: { center: { x: 0, y: 0 }, scale: 0.025 },
     mode: 'nbody',
     build: () => {

@@ -29,9 +29,18 @@
     "check:licenses": "node scripts/check_licenses.mjs",
     "check": "npm run check:modules && npm run build && npm test && node scripts/check_licenses.mjs && python3 scripts/verify_project.py",
     "check:modules": "node packages/module-tools/check-boundaries.mjs",
-    "module:build": "node packages/module-tools/author.mjs build",
-    "module:validate": "node packages/module-tools/author.mjs validate",
-    "measure:code-modules": "node scripts/measure_code_modules.mjs"
+    "module:build": "node packages/module-tools/package.mjs build",
+    "module:validate": "node packages/module-tools/package.mjs validate",
+    "measure:code-modules": "node scripts/measure_code_modules.mjs",
+    "module:new": "node packages/module-tools/package.mjs new",
+    "module:convert": "node packages/module-tools/package.mjs convert",
+    "module:pack": "node packages/module-tools/package.mjs pack",
+    "module:unpack": "node packages/module-tools/package.mjs unpack",
+    "game:build": "node packages/module-tools/package.mjs game-build",
+    "game:validate": "node packages/module-tools/package.mjs game-validate",
+    "file:pack": "node packages/module-tools/package.mjs pack",
+    "file:unpack": "node packages/module-tools/package.mjs unpack",
+    "file:validate": "node packages/module-tools/package.mjs validate"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

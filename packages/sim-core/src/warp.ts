@@ -1,5 +1,6 @@
 import { magnitude } from './context';
-import type { World } from './world';
+import type { WorldRead, WarpSafety } from '../../game-api/src/index';
+export type { WarpSafety } from '../../game-api/src/index';
 
 /** Standard stepped time-warp factors (1x to 100,000x), calibrated for smooth, predictable acceleration. */
 export const WARP_FACTORS = Object.freeze([
@@ -11,20 +12,11 @@ export const MAX_WARP = 100_000;
 /** Maximum warp permitted while numerical integration is active (thrust or proximity). */
 export const PHYSICAL_WARP_MAX = 4;
 
-export interface WarpSafety {
-  /** Maximum warp factor permitted under current flight conditions. */
-  readonly maxGranted: number;
-  /** Human-readable explanation if warp is restricted below requested. */
-  readonly reason?: string;
-  /** True if all ships are coasting on rails or landed (eligible for analytical time skip). */
-  readonly railsEligible: boolean;
-}
-
 /** Evaluates whether high-warp time acceleration is safe for the current world state.
  * High warp (>4x) is only permitted when all ships are on rails (unpowered Kepler coast,
  * landed, or crashed) and no custom world rules require per-step execution.
  * Warp is also safely calibrated against orbital periods and planetary surface proximity. */
-export function checkWarpSafety(world: World): WarpSafety {
+export function checkWarpSafety(world: WorldRead): WarpSafety {
   if (world.paused) {
     return { maxGranted: 1, reason: world.fault ? `World fault: ${world.fault}` : 'Simulation is paused', railsEligible: false };
   }

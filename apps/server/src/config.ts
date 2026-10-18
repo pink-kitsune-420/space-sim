@@ -106,12 +106,12 @@ Settings live in <data>/server.json, created on first run; options override them
   --host <address>       Interface to listen on (default: 0.0.0.0, all)
   --name <text>          Server name shown to players
   --password <text>      Require a password to join
-  --universe <name|file> New worlds only: default, terrain, ocean, solar, full, JSON or .spaceuniverse
+  --universe <name|file> New worlds only: default, terrain, ocean, solar, full, JSON or .spacedata (old .spaceuniverse definitions work)
   --system <id>          New worlds only: system to load
   --module-directory <dir> Owner-installed trusted *.module.json code (relative to data)
   --module-profile <file> Local exported data/code profile for new worlds
   --game <file>          Owner-selected .spacegame package (relative to data)
-  --import <save.json>   Replace the world with a save exported from the game
+  --import <save.spaceuniverse>   Load universe progress (legacy save.json also works)
   --new                  Start a new world (the current one is backed up first)
   --open                 Open the game in this computer's browser
   --version              Print the version

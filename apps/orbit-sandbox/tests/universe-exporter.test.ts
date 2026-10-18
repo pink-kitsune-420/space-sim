@@ -1,3 +1,4 @@
+import { decodeUniverse } from '../src/spacelab/game-library';
 import { describe, it, expect } from 'vitest';
 import {
   compileToUniverse,
@@ -35,7 +36,7 @@ describe('Universe Exporter & Space Sim Bridge', () => {
     expect(() => validateUniverse(universe)).not.toThrow();
   });
 
-  it('compresses universe to valid gzip binary (.spaceuniverse)', async () => {
+  it('exports reusable definitions as a lossless .spacedata ZIP', async () => {
     const bodies = [
       instantiateBody('star', { x: 0, y: 0 }, { x: 0, y: 0 }),
       instantiateBody('oceanic', { x: 10000, y: 0 }, { x: 0, y: 50 }),
@@ -46,20 +47,13 @@ describe('Universe Exporter & Space Sim Bridge', () => {
     expect(compressedBytes).toBeInstanceOf(Uint8Array);
     expect(compressedBytes.length).toBeGreaterThan(0);
 
-    // Standard gzip magic number check: 0x1f 0x8b
-    expect(compressedBytes[0]).toBe(0x1f);
-    expect(compressedBytes[1]).toBe(0x8b);
-
-    // Decompress and verify content round-trip
-    const decompressedStream = new Blob([compressedBytes as Uint8Array<ArrayBuffer>])
-      .stream()
-      .pipeThrough(new DecompressionStream('gzip'));
-    const response = new Response(decompressedStream);
-    const text = await response.text();
-    const parsed = JSON.parse(text);
+    expect(compressedBytes[0]).toBe(0x50);
+    expect(compressedBytes[1]).toBe(0x4b);
+    const parsed = await decodeUniverse(compressedBytes);
+    expect(parsed).toEqual(universe);
 
     expect(parsed.id).toBe(universe.id);
-    expect(parsed.systems[0].bodies.length).toBe(bodies.length);
+    expect(parsed.systems[0]!.bodies.length).toBe(bodies.length);
   });
 
   it('stages universe in localStorage with deep link', () => {

@@ -1,4 +1,4 @@
-import type { AuthoritativeLock, CommandExtension, ForceExtension, ModuleLock, SimulationContextFactory, WorldRuleExtension } from '../../game-api/src/index';
+import type { AuthoritativeLock, CommandExtension, ForceExtension, JoinOptions, ModuleLock, SimulationContextFactory, WorldRuleExtension } from '../../game-api/src/index';
 import { createSimulationContext } from '../../sim-core/src/context';
 import { IDLE, MODEL, magnitude, type Controls, type Vec } from '../../sim-core/src/index';
 import { shipFromSaved } from '../../sim-core/src/save';
@@ -14,8 +14,9 @@ export interface ClientOptions {
   readonly name: string;
   readonly password?: string;
   /** A reconnect token saved for this world, if any. `hostId` is the player seated in the
-   * hosting browser: a browser sharing storage with it must not present that seat's token. */
-  readonly token?: (worldId: string, hostId?: string) => string | undefined;
+   * hosting browser: a browser sharing storage with it must not present that seat's token.
+   * May await a browser lock to avoid reclaiming a seat in use by another window. */
+  readonly token?: JoinOptions['token'];
   /** Store a newly issued token; it reclaims this player's ships later. */
   readonly saveToken?: (worldId: string, token: string, playerId: string) => void;
   /** Milliseconds on a monotonic clock. */
@@ -26,7 +27,7 @@ export interface ClientOptions {
   readonly forces?: readonly ForceExtension[];
   /** This client's installed command definitions; the matching fingerprint pins them to the host's. */
   readonly commands?: readonly CommandExtension[];
-  readonly verifyCandidate?: (candidate: { lock?: AuthoritativeLock | ModuleLock; fingerprint?: string }) => { ok: boolean; reason?: string } | boolean;
+  readonly verifyCandidate?: JoinOptions['verifyCandidate'];
 }
 
 type Snapshot = Extract<HostMessage, { t: 'snapshot' }>;
@@ -106,6 +107,7 @@ export class ClientSession {
   private samples: Array<{ readonly offset: number; readonly at: number }> = [];
   /** The newest tick the host has reported (snapshots, pongs). */
   private hostTick = 0;
+  private hostFingerprint?: string;
   /** When the complete world was last requested; deltas wait for it. */
   private resyncAt = -Infinity;
 
@@ -509,35 +511,51 @@ export class ClientSession {
     const now = this.now();
     switch (message.t) {
       case 'info':
+        if (this.worldId) { this.fail('Unexpected server greeting.'); return; }
         if (message.protocol !== PROTOCOL || message.model !== MODEL) {
           this.fail(`Version mismatch: the host runs ${message.protocol} / ${message.model}; this game runs ${PROTOCOL} / ${MODEL}.`);
           return;
         }
-        if (this.options.simulationFingerprint && message.fingerprint && message.fingerprint !== this.options.simulationFingerprint) {
+        if (!this.options.verifyCandidate && this.options.simulationFingerprint && message.fingerprint && message.fingerprint !== this.options.simulationFingerprint) {
           this.fail(`Simulation mismatch: host fingerprint is ${message.fingerprint}, but local fingerprint is ${this.options.simulationFingerprint}. Presentation-only differences are allowed, but authoritative simulation must match.`);
           return;
         }
         this.worldId = message.worldId;
         this.hostName = message.name;
         this.hostSeat = message.host;
+        this.hostFingerprint = message.fingerprint;
         {
           const token = this.options.token?.(message.worldId, message.host);
-          this.send({ t: 'join', name: this.options.name, ...(token ? { token } : {}),
-            ...(this.options.password ? { password: this.options.password } : {}) });
+          const join = (token: string | undefined): void => {
+            if (this.phase !== 'connecting') return;
+            this.send({ t: 'join', name: this.options.name, ...(token ? { token } : {}),
+              ...(this.options.password ? { password: this.options.password } : {}) });
+          };
+          if (typeof token === 'string' || token === undefined) join(token);
+          else void token.then(join, () => {
+            if (this.phase === 'connecting') this.fail('Could not reserve your pilot. Try joining again.');
+          });
         }
         return;
       case 'welcome': {
         if (this.phase !== 'connecting' || !this.worldId) throw new Error('unexpected welcome');
-        if (this.options.simulationFingerprint && message.fingerprint && message.fingerprint !== this.options.simulationFingerprint) {
-          this.fail(`Simulation mismatch: host fingerprint is ${message.fingerprint}, but local fingerprint is ${this.options.simulationFingerprint}. Presentation-only differences are allowed, but authoritative simulation must match.`);
+        if (this.hostFingerprint && message.fingerprint !== this.hostFingerprint) {
+          this.fail('The server simulation changed while joining. Try again.');
           return;
         }
+        const universe = validateUniverse(message.universe);
+        let expectedFingerprint = this.options.simulationFingerprint;
         if (this.options.verifyCandidate) {
-          const res = this.options.verifyCandidate({ lock: message.lock, fingerprint: message.fingerprint });
+          const res = this.options.verifyCandidate({ lock: message.lock, fingerprint: message.fingerprint, universe, systemId: message.systemId });
           if (res === false || (typeof res === 'object' && !res.ok)) {
             this.fail(typeof res === 'object' && res.reason ? res.reason : 'Host module configuration is incompatible.');
             return;
           }
+          if (typeof res === 'object' && res.simulationFingerprint) expectedFingerprint = res.simulationFingerprint;
+        }
+        if (expectedFingerprint && message.fingerprint !== expectedFingerprint) {
+          this.fail(`Simulation mismatch: host fingerprint is ${message.fingerprint}, but local fingerprint is ${expectedFingerprint}. Presentation-only differences are allowed, but authoritative simulation must match.`);
+          return;
         }
         if (this.options.lock && message.lock) {
           const localModules = new Set((this.options.lock.modules ?? []).map(m => m.id));
@@ -547,7 +565,7 @@ export class ClientSession {
             return;
           }
         }
-        const world = new World(validateUniverse(message.universe), {
+        const world = new World(universe, {
           systemId: message.systemId,
           id: this.worldId,
           createContext: this.options.createContext ?? createSimulationContext,

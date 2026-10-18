@@ -1,6 +1,9 @@
 import type { Renderer, RendererProvider, ShaderPack } from '../../../packages/game-api/src/index';
 import { DEFAULT_SHADERS, MAX_SHADER_FILE_BYTES, parseShaderFile } from '../../../packages/render-2d/src/index';
-import { element, show, download, message } from './ui';
+import { decodeDataFile, encodeDataFile } from '../../../packages/game-library/src/data-file';
+import { isZip } from '../../../packages/game-library/src/zip';
+import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compression';
+import { element, show, downloadBytes, message } from './ui';
 
 type EventSink = (kind: string, detail: Record<string, string>) => void;
 
@@ -77,10 +80,14 @@ export class Rendering {
       input.value = '';
       show('shader-status', `Loading ${file.name}…`);
       try {
-        if (file.size > MAX_SHADER_FILE_BYTES) throw new Error('Shader files must be at most 1 MiB.');
-        const text = await file.text();
+        if (file.size > MAX_ARCHIVE_BYTES) throw new Error('Shader package must be at most 32 MiB.');
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const packaged = isZip(bytes);
+        if (!packaged && file.size > MAX_SHADER_FILE_BYTES) throw new Error('Shader files must be at most 1 MiB.');
+        const text = packaged ? JSON.stringify(await decodeDataFile(bytes, 'shaders'))
+          : new TextDecoder('utf-8', { fatal: true }).decode(bytes);
         if (version !== this.loadVersion) return;
-        useShaders(parseShaderFile(text, file.name));
+        useShaders(parseShaderFile(text, packaged ? 'shaders.json' : file.name));
       } catch (error) {
         if (version !== this.loadVersion) return;
         show('shader-status', `Shader was not loaded: ${message(error)}`);
@@ -97,6 +104,9 @@ export class Rendering {
         }
       } catch (error) { show('shader-status', `Default could not be restored: ${message(error)}`); }
     });
-    element('export-shader').addEventListener('click', () => download('space-sim-shaders.json', JSON.stringify(this.shaders, null, 2)));
+    element('export-shader').addEventListener('click', async () => {
+      try { downloadBytes('shaders.spacedata', await encodeDataFile('shaders', this.shaders)); }
+      catch (error) { show('shader-status', `Shaders were not exported: ${message(error)}`); }
+    });
   }
 }

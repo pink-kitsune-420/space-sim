@@ -1,5 +1,5 @@
 import type { DynamicsProvider, MotionServices, ModuleEnvironment, ModuleProfile, RegisteredModule, SimulationContextFactory, UniverseDefinition } from '../../game-api/src/index';
-import { ModuleRegistry, ModuleRuntime, validateProfile, computeAuthoritativeLock, canonicalJson, sha256Hex, type ModuleCandidate } from '../../game-runtime/src/index';
+import { ModuleRegistry, ModuleRuntime, validateProfile, computeAuthoritativeLock, canonicalJson, sha256Hex, physicalUniverseDigest, type ModuleCandidate } from '../../game-runtime/src/index';
 import { freezeJson } from '../../game-runtime/src/validation';
 import { BUILTIN_SERVICES } from '../../sim-core/src/services';
 import { DEFAULT_UNIVERSE } from '../../sim-core/src/universe';
@@ -44,14 +44,6 @@ export interface PreparedGame {
   readonly world: World;
   readonly profile: ModuleProfile;
   readonly createContext: SimulationContextFactory;
-}
-/** Display metadata and palette choices are not physical content. Keep surfaceFeatures:
- * its star classification participates in surface eligibility. */
-function physicalUniverseDigest(universe: UniverseDefinition): string {
-  const visual = new Set(['name', 'description', 'author', 'color', 'accentColor',
-    'atmosphereColor', 'horizonColor', 'skyColor', 'zoom']);
-  return sha256Hex(canonicalJson(JSON.parse(JSON.stringify(universe,
-    (key, value: unknown) => visual.has(key) ? undefined : value))));
 }
 /** The app commits this candidate only after constructing its local session/UI state. */
 export function prepareGame(options: { readonly environment: ModuleEnvironment; readonly id?: string;

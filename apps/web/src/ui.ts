@@ -1,3 +1,5 @@
+import { isZip } from '../../../packages/game-library/src/zip';
+import { isCompressed } from '../../../packages/game-library/src/compression';
 export const cache = new Map<string, HTMLElement>();
 export function element<T extends HTMLElement>(id: string): T {
   let el = cache.get(id);
@@ -18,7 +20,7 @@ export function download(name: string, text: string): void {
   downloadBlob(name, new Blob([text], { type: 'application/json' }));
 }
 export function downloadBytes(name: string, bytes: Uint8Array<ArrayBuffer>): void {
-  downloadBlob(name, new Blob([bytes], { type: 'application/gzip' }));
+  downloadBlob(name, new Blob([bytes], { type: isZip(bytes) ? 'application/zip' : isCompressed(bytes) ? 'application/gzip' : 'application/octet-stream' }));
 }
 export function downloadBlob(name: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);

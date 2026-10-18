@@ -1,3 +1,5 @@
+import { sha256Hex } from '../../../packages/net/src/sha256';
+
 /** This browser's pilot name and per-world reconnect tokens. A token is issued by each host
  * and only ever sent back to that world, so one host cannot impersonate a player elsewhere.
  * Storage can be unavailable (private windows, some file:// pages); everything still works
@@ -51,6 +53,53 @@ export function joinTokenFor(worldId: string, hostId?: string): string | undefin
 export function rememberJoinToken(worldId: string, token: string, playerId: string, hostId?: string): void {
   const shared = entry(worldId, 'shared');
   rememberToken(worldId, token, playerId, hostId !== undefined && shared?.playerId === hostId ? 'tab' : 'shared');
+  rememberToken(worldId, token, playerId, 'tab');
+}
+
+/** Reserve a saved remote pilot for this connection. Another window using the same
+ * browser storage gets a new pilot instead of disconnecting the current one. Locks are
+ * released by the browser on a crash; session storage preserves this window's seat on reload.
+ * Without usable Web Locks, only this window's session token is safe to reuse. */
+export class JoinIdentity {
+  private closed = false;
+  private releaseSeat?: () => void;
+
+  async token(worldId: string, hostId?: string): Promise<string | undefined> {
+    const own = entry(worldId, 'tab');
+    const candidate = own ?? entry(worldId, 'shared');
+    if (!candidate || candidate.playerId === hostId) return undefined;
+    const reserved = await this.reserve(worldId, candidate.token);
+    if (this.closed || reserved === false || (reserved === undefined && !own)) return undefined;
+    rememberToken(worldId, candidate.token, candidate.playerId, 'tab');
+    return candidate.token;
+  }
+
+  remember(worldId: string, token: string, playerId: string, hostId?: string): void {
+    if (this.closed) return;
+    // Queue the reservation before publishing the new token to shared storage.
+    void this.reserve(worldId, token);
+    rememberJoinToken(worldId, token, playerId, hostId);
+  }
+
+  release(): void {
+    this.closed = true;
+    this.releaseSeat?.();
+    this.releaseSeat = undefined;
+  }
+
+  private reserve(worldId: string, token: string): Promise<boolean | undefined> {
+    if (this.closed) return Promise.resolve(false);
+    if (typeof navigator === 'undefined' || !navigator.locks) return Promise.resolve(undefined);
+    return new Promise(resolve => {
+      // Lock names contain a digest, never the reconnect secret itself.
+      try {
+        void navigator.locks.request(`space-sim-pilot/${worldId}/${sha256Hex(token)}`, { ifAvailable: true }, lock => {
+          if (!lock || this.closed) { resolve(false); return; }
+          return new Promise<void>(release => { this.releaseSeat = release; resolve(true); });
+        }).catch(() => resolve(undefined));
+      } catch { resolve(undefined); }
+    });
+  }
 }
 
 export function rememberToken(worldId: string, token: string, playerId: string, scope: Scope = 'shared'): void {

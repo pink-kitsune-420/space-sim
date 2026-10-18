@@ -1,9 +1,12 @@
 import { openPanel } from '../helpers/workspace';
+import { useCanvas } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { copyFile, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import gentle from '../../examples/modules/gentle-flight.json' with { type: 'json' };
+
+test.beforeEach(async ({ page }) => { await useCanvas(page); });
 
 const payload = (value: unknown) => ({ name: 'module.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(value)) });
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }

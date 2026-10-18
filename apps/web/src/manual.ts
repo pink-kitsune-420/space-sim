@@ -1,5 +1,29 @@
 import { ACTION_DEFINITIONS, formatKeyCode, loadKeybindings, type ActionCategory, type ActionId, type KeyBindings } from './input-config';
 import { MANUAL, type ManualAudience, type ManualPage } from './manual-content';
+import type { Disposable } from '../../../packages/game-api/src/index';
+import type { ModuleCandidateV2 } from '../../../packages/game-runtime/src/modules-v2';
+
+interface ImportedPage extends ManualPage { readonly audience: ManualAudience; readonly render: () => HTMLElement }
+const importedPages = new Map<symbol, readonly ImportedPage[]>();
+function pages(audience: ManualAudience): readonly ManualPage[] {
+  return [...MANUAL[audience].pages, ...[...importedPages.values()].flat().filter(page => page.audience === audience)];
+}
+/** Structured imported pages share the existing Players/Creators navigation. */
+export function registerModuleGuides(candidate: ModuleCandidateV2): Disposable {
+  const token = Symbol(), imported = candidate.contributions('guide').map(entry => {
+    const document = JSON.parse(candidate.guideDocuments.get(entry.id)!) as { blocks: { type: string; text: string }[] };
+    const page: ImportedPage = { ...entry.value, id: entry.id, html: '', render: () => {
+      const root = window.document.createElement('div'), title = window.document.createElement('h2'); title.textContent = page.title; root.append(title);
+      for (const block of document.blocks) {
+        const node = window.document.createElement(block.type === 'heading' ? 'h3' : block.type === 'code' ? 'pre' : 'p');
+        node.textContent = block.text; root.append(node);
+      }
+      return root;
+    } }; return page;
+  });
+  importedPages.set(token, imported); document.dispatchEvent(new Event('module-guides-change'));
+  return { dispose: () => { importedPages.delete(token); document.dispatchEvent(new Event('module-guides-change')); } };
+}
 
 const STORAGE_KEY = 'space-sim:manual:1';
 const CATEGORY_TITLES: Readonly<Record<ActionCategory, string>> = { flight: 'Flight', warp: 'Time warp', view: 'Camera & view', system: 'System' };
@@ -28,18 +52,21 @@ export function initManual(): void {
   const article = root.querySelector<HTMLElement>('#manual-page')!;
   // Plain text per page, for search; built once because page HTML is static.
   const searchText = new Map<ManualPage, string>();
-  for (const id of AUDIENCES) for (const page of MANUAL[id].pages) searchText.set(page, `${page.title} ${page.summary} ${page.html.replace(/<[^>]+>|\{\{[^}]+\}\}/g, ' ')}`.toLowerCase());
+  const indexPages = (): void => {
+    searchText.clear();
+    for (const id of AUDIENCES) for (const page of pages(id)) searchText.set(page, `${page.title} ${page.summary} ${page.html.replace(/<[^>]+>|\{\{[^}]+\}\}/g, ' ')}`.toLowerCase());
+  }; indexPages();
 
   const currentPage = (): ManualPage => {
-    const pages = MANUAL[state.audience].pages;
-    return pages.find(page => page.id === state.page[state.audience]) ?? pages[0]!;
+    const available = pages(state.audience);
+    return available.find(page => page.id === state.page[state.audience]) ?? available[0]!;
   };
 
   const renderTopics = (): void => {
     const query = search.value.trim().toLowerCase();
-    const pages = MANUAL[state.audience].pages.filter(page => !query || searchText.get(page)!.includes(query));
+    const available = pages(state.audience).filter(page => !query || searchText.get(page)!.includes(query));
     const active = currentPage();
-    topics.replaceChildren(...pages.map(page => {
+    topics.replaceChildren(...available.map(page => {
       const item = document.createElement('li');
       const button = document.createElement('button');
       button.type = 'button';
@@ -52,7 +79,7 @@ export function initManual(): void {
       item.append(button);
       return item;
     }));
-    if (!pages.length) {
+    if (!available.length) {
       const empty = document.createElement('li');
       empty.className = 'manual-empty';
       empty.textContent = 'No pages match.';
@@ -63,6 +90,7 @@ export function initManual(): void {
   const renderPage = (): void => {
     const page = currentPage();
     const bindings = loadKeybindings();
+    if ('render' in page && typeof page.render === 'function') { article.replaceChildren(page.render()); return; }
     article.innerHTML = `<h2>${page.title}</h2>${expandKeys(page.html, bindings)}`;
     for (const slot of article.querySelectorAll<HTMLElement>('[data-manual-controls]')) slot.replaceWith(controlsTable(bindings));
     for (const link of article.querySelectorAll<HTMLAnchorElement>('a[data-page]')) link.href = `#manual-${link.dataset.page}`;
@@ -117,6 +145,7 @@ export function initManual(): void {
     if ((event as CustomEvent<{ id: string }>).detail?.id === 'manual' && root.offsetParent !== null) renderPage();
   });
   render();
+  document.addEventListener('module-guides-change', () => { indexPages(); render(); });
 }
 
 function expandKeys(html: string, bindings: KeyBindings): string {

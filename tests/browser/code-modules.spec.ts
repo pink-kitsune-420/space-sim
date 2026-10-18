@@ -1,3 +1,5 @@
+import { useCanvas } from '../helpers/canvas';
+import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { openPanel } from '../helpers/workspace';
 import { test, expect, type Page } from '@playwright/test';
 import { copyFile, mkdtemp, readFile, mkdir, writeFile, rm } from 'node:fs/promises';
@@ -28,6 +30,19 @@ async function enable(page: Page, id: string) {
   await page.locator('#apply-code-modules').click();
   await expect(page.locator('#code-module-status')).toContainText('Profile enabled');
 }
+
+test.beforeEach(async ({ page }) => { await useCanvas(page); });
+
+test('installed legacy modules survive reload without becoming enabled', async ({ page }) => {
+  await page.goto('/'); await manager(page);
+  const fingerprint = (await debug(page)).fingerprint;
+  await page.locator('#code-module-file').setInputFiles(payload(force));
+  await expect(page.locator('#code-module-status')).toContainText('saved on this device');
+  await page.reload(); await manager(page);
+  await expect(page.locator('#installed-code-modules')).toContainText(force.manifest.id);
+  await expect(page.locator(`#authoritative-module-list input[data-enable="${force.manifest.id}"]`)).not.toBeChecked();
+  expect((await debug(page)).fingerprint).toBe(fingerprint);
+});
 
 test('installed code stays inactive until enabled; settings, fork/export, dependency errors and removal preserve the right world', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -72,10 +87,10 @@ test('installed code stays inactive until enabled; settings, fork/export, depend
   await expect.poll(async () => (await debug(page)).fingerprint).toBe(changed.fingerprint);
   await openPanel(page, 'fleet');
   const saveDownload = page.waitForEvent('download'); await page.locator('#save-world').click();
-  const saved = JSON.parse(await readFile(await (await saveDownload).path(), 'utf8'));
+  const saved = await (await packageContracts()).decodeUniverseSave(new Uint8Array(await readFile(await (await saveDownload).path())));
   await page.locator('#world-file').setInputFiles(payload(saved));
   await expect(page.locator('#status')).toHaveText('PAUSED');
-  await expect(page.locator('#flight-message')).toContainText('World loaded');
+  await expect(page.locator('#flight-message')).toContainText('Universe loaded');
   await expect.poll(async () => (await debug(page)).fingerprint).toBe(changed.fingerprint);
   expect(errors).toEqual([]);
 });
@@ -102,7 +117,7 @@ test('copied and renamed offline HTML imports presentation and replacement code 
   await page.locator('#installed-code-modules').getByRole('button', { name: 'Remove', exact: true }).click();
   await page.locator('#code-module-file').setInputFiles(payload(numerical));
   await enable(page, numerical.manifest.id);
-  expect((await debug(page)).motionCapabilities.analyticCoast).toBe(false);
+  await expect.poll(async () => (await debug(page)).motionCapabilities.analyticCoast).toBe(false);
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
   await page.keyboard.down('Space'); await expect(page.locator('#status')).toHaveText('FLYING'); await page.keyboard.up('Space');
   await openPanel(page, 'setup');
@@ -137,7 +152,9 @@ test('a browser with the same locally enabled artifact can join its dedicated se
     expect((await debug(page)).fingerprint).toBe(fingerprint);
     await openPanel(page, 'library');
     await expect(page.locator('#load-module')).toBeDisabled();
-    await expect(page.locator('.game-card').getByRole('button', { name: 'Play · new world', exact: true })).toBeDisabled();
+    const playButtons = page.locator('.game-card').getByRole('button', { name: 'Play · new world', exact: true });
+    expect(await playButtons.count()).toBeGreaterThan(0);
+    for (const button of await playButtons.all()) await expect(button).toBeDisabled();
     await expect(page.locator('#lab-save')).toBeDisabled();
     await expect(page.locator('#lab-export')).toBeDisabled();
   } finally {

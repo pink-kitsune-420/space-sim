@@ -13,7 +13,7 @@ const digest = text => createHash('sha256').update(text).digest('hex');
 let contracts;
 export async function authorContracts() {
   if (!contracts) contracts = (async () => {
-    const bundle = await rolldown({ input: resolve(project, 'packages/game-runtime/src/artifact.ts') });
+    const bundle = await rolldown({ input: resolve(project, 'packages/game-runtime/src/loader.ts') });
     try {
       const { output } = await bundle.generate({ format: 'esm' });
       return import(`data:text/javascript;base64,${Buffer.from(output[0].code).toString('base64')}`);
@@ -53,8 +53,17 @@ export function inspectAuthorSource(source, path) {
 export async function buildModule(configPath, outputPath, { typecheck = true } = {}) {
   const kit = await authorContracts();
   configPath = await realpath(resolve(configPath));
-  const root = dirname(configPath), config = JSON.parse(await readFile(configPath, 'utf8'));
-  config.manifest = kit.validateManifest(config.manifest);
+  const root = dirname(configPath);
+  let config = JSON.parse(await readFile(configPath, 'utf8'));
+  if (config.format === 'spacelab-module-package/1') {
+    const portable = config;
+    config = { manifest: portable.manifest, entry: portable.entry,
+      assets: portable.assets.filter(a => a.mediaType.startsWith('text/') || a.mediaType === 'application/json').map(a => a.path),
+      compatibility: portable.compatibility, attribution: await readFile(resolve(root, 'NOTICE'), 'utf8'),
+      inputs: Object.fromEntries(portable.inputs.filter(i => i.path.startsWith('src/') || portable.assets.some(a => a.path === i.path && (a.mediaType.startsWith('text/') || a.mediaType === 'application/json'))).map(i => [i.path, { license: i.license, attribution: i.attribution }])) };
+  }
+  const isV2 = config.manifest.format === 'space-sim-module/2';
+  config.manifest = isV2 ? kit.validateManifestV2(config.manifest) : kit.validateManifest(config.manifest);
   for (const key of Object.keys(config)) if (!['manifest', 'entry', 'assets', 'compatibility', 'attribution', 'inputs'].includes(key)) throw new Error(`Unknown module.json field ${key}`);
   if (config.assets !== undefined && (!Array.isArray(config.assets) || config.assets.length > 128)) throw new Error('module.json assets: expected at most 128 paths');
   if (config.inputs !== undefined && (!config.inputs || typeof config.inputs !== 'object' || Array.isArray(config.inputs))) throw new Error('module.json inputs: expected license records');
@@ -123,7 +132,8 @@ export async function buildModule(configPath, outputPath, { typecheck = true } =
   for (const path of Object.keys(config.inputs ?? {})) if (!inputs.has(path)) throw new Error(`License input ${path} was not bundled`);
   const body = { format: 'space-sim-code-module/1', manifest: config.manifest, source, assets,
     inputs: [...inputs.values()].sort((a, b) => a.path.localeCompare(b.path)), compatibility: config.compatibility };
-  const artifact = kit.parseCodeArtifact(JSON.stringify({ ...body, digest: kit.artifactDigest(body) }));
+  const artifact = isV2 ? { ...body, format: 'space-sim-build/2', digest: digest(source) } : kit.parseCodeArtifact(JSON.stringify({ ...body, digest: kit.artifactDigest(body) }));
+  if (isV2 && outputPath) throw new Error('V2 modules must be exported as .spacemod packages');
   if (outputPath) {
     await mkdir(dirname(resolve(outputPath)), { recursive: true });
     await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`);

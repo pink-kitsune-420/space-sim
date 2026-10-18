@@ -7,7 +7,8 @@ import { EXAMPLE_NAMES, GAME_EXAMPLES, exampleProfile, type ExampleName } from '
 import { moduleLibrary } from './module-library';
 import { checkCommandKeys } from './commands';
 
-const modules = new WeakMap<World, { readonly data: readonly DataModule[]; readonly profile: ModuleProfile; readonly universeKey: string; readonly baseUniverse: UniverseDefinition; readonly createContext: SimulationContextFactory }>();
+const modules = new WeakMap<World, { readonly data: readonly DataModule[]; readonly profile: ModuleProfile; readonly universeKey: string; readonly baseUniverse: UniverseDefinition; readonly createContext: SimulationContextFactory;
+  readonly runtime?: import('../../../packages/game-library/src/runtime-selection').RuntimeSelection }>();
 export function worldModules(world: World) { return modules.get(world); }
 export function rememberWorldModules(world: World, value: NonNullable<ReturnType<typeof worldModules>>): void { modules.set(world, value); }
 export const environment = (): 'offline' | 'browser' => location.protocol === 'file:' ? 'offline' : 'browser';

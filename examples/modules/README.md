@@ -46,3 +46,6 @@ Install the artifact in **Module manager · local trusted code**, then explicitl
 enable it. Only import code you trust; it runs with the application's privileges.
 Share artifacts alongside exported profiles; saves contain state and required
 identities, never executable code.
+
+Editable ZIP versions of these starters live in [examples/packages](../packages/README.md).
+Use `module:new`, `module:build`, `module:pack` and `module:unpack` for `.spacemod` files.

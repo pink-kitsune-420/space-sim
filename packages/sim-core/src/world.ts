@@ -1,4 +1,4 @@
-import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, ModuleState } from '../../game-api/src/index';
+import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import { createSimulationContext, ghostSample, magnitude, normalizeAngle, setGodMode } from './context';
@@ -42,22 +42,7 @@ interface Rail {
   readonly generation: number;
 }
 
-export interface WorldOptions {
-  /** Authority without declared deterministic multiplayer support stays in solo preview. */
-  readonly soloPreview?: boolean;
-  readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;
-  readonly systemId?: string;
-  readonly id?: string;
-  /** Receives the system's immutable settings. The world owns the returned context. */
-  readonly createContext?: SimulationContextFactory;
-  readonly rules?: readonly WorldRuleExtension[];
-  readonly forces?: readonly ForceExtension[];
-  /** Pilot commands the authoritative host may apply between steps (never during one). */
-  readonly commands?: readonly CommandExtension[];
-  readonly lock?: AuthoritativeLock | ModuleLock;
-  readonly simulationFingerprint?: string;
-  readonly saveVersion?: number;
-}
+export type { WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 
 /** Every vessel in one loaded system, advanced together on a single simulation clock.
  * Ships never interact with each other; each one runs the same `advance` as single
@@ -68,7 +53,7 @@ export interface WorldOptions {
  * (see `soiHorizon`); landed and wrecked ships at rest sleep until commanded. Reading a
  * sleeping ship evaluates the same expressions the per-step path would have produced, bit
  * for bit, so sleeping never changes results. */
-export class World {
+export class World implements WorldControl {
   readonly soloPreview: boolean;
   readonly migrateState?: WorldOptions['migrateState'];
   readonly id: string;
@@ -193,6 +178,23 @@ export class World {
       this.context.dispose();
       throw error;
     }
+  }
+
+  restoreClock(tick: number, time: number): void {
+    if (!Number.isSafeInteger(tick) || tick < 0 || !Number.isFinite(time) || time < 0) throw new Error('Invalid world clock');
+    this.tick = tick; this.time = time;
+  }
+  subscribeChanges(): WorldChanges {
+    if (this.trackChanges) throw new Error('World already has a change consumer');
+    this.trackChanges = true; this.changedIds.clear(); this.removedIds.clear();
+    let active = true;
+    return Object.freeze({ take: () => {
+      if (!active) throw new Error('World change consumer is disposed');
+      return this.takeChanges();
+    }, dispose: () => {
+      if (!active) return; active = false; this.trackChanges = false;
+      this.changedIds.clear(); this.removedIds.clear();
+    } });
   }
 
   get systemId(): string { return this.system.system.id; }

@@ -1,3 +1,4 @@
+import { parsePackageJson } from './json';
 export const MAX_ARCHIVE_BYTES = 32 * 1024 * 1024;
 export const MAX_EXPANDED_BYTES = 64 * 1024 * 1024;
 export const isCompressed = (bytes: Uint8Array): boolean => bytes[0] === 0x1f && bytes[1] === 0x8b;
@@ -32,5 +33,5 @@ export async function readJsonFile(bytes: Uint8Array<ArrayBuffer>, compressedOnl
   if (compressedOnly && !compressed) throw new Error('Expected a gzip-compressed file');
   const expanded = compressed
     ? await bounded(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip')), MAX_EXPANDED_BYTES) : bytes;
-  return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(expanded));
+  return parsePackageJson(expanded, 'Legacy JSON file', MAX_EXPANDED_BYTES, 4 * 1024 * 1024);
 }

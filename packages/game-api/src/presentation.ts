@@ -133,6 +133,7 @@ export interface ShaderControl {
 /** Optional features of a renderer instance. Applications discover them here, never by class. */
 export interface RendererFeatures {
   readonly shaders?: ShaderControl;
+  readonly effects?: import('./platform').ShaderEffects;
   /** Finish deferred raster work so profiler sections are attributed precisely. */
   readonly flush?: () => void;
 }
@@ -147,6 +148,7 @@ export interface RendererCapabilities {
   readonly shaders: boolean;
   /** Draws `RenderFrame.overlays`. */
   readonly overlays: boolean;
+  readonly effects?: boolean;
 }
 /** The `renderer` slot of a presentation profile. A stateless factory: each renderer owns
  * everything it allocates (contexts, programs, buffers, textures) and frees it in dispose(),

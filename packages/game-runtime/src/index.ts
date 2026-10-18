@@ -282,3 +282,7 @@ export class ModuleRuntime implements Disposable {
   }
   dispose(): void { this.active?.dispose(); this.active = undefined; }
 }
+export * from './validation-v2';
+export * from './resolver-v2';
+export * from './modules-v2';
+export * from './loader';

@@ -1,3 +1,4 @@
+import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { openPanel } from '../helpers/workspace';
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -344,11 +345,32 @@ test('joining an address with no server explains how to start one', async ({ pag
   await openPanel(page, 'multiplayer');
   await page.getByRole('tab', { name: 'Server' }).click();
   await page.locator('#join-address').fill('localhost:1');
+  await page.getByRole('button', { name: 'Scan local network', exact: true }).click();
   await page.getByRole('button', { name: 'Join', exact: true }).click();
   await expect(page.locator('#mp-status')).toContainText('Start the dedicated server first');
+  await expect(page.getByRole('button', { name: 'Scan local network', exact: true })).toBeVisible();
 });
 
-test('a solo fleet keeps flying, switches ships and round-trips through a world file', async ({ page }) => {
+test('a discovered server with another protocol offers its matching game', async ({ page }) => {
+  await preparePilot(page);
+  await page.routeWebSocket('ws://localhost:6464/ws', socket => {
+    socket.send(JSON.stringify({ t: 'info', protocol: 'space-sim-net/old', model: 'old', worldId: 'old-world',
+      name: 'Older server', password: false, players: 0, maxPlayers: 16 }));
+  });
+  await page.goto('/');
+  await openPanel(page, 'multiplayer');
+  await page.getByRole('tab', { name: 'Server', exact: true }).click();
+  await page.getByRole('button', { name: 'Scan local network', exact: true }).click();
+  const server = page.locator('#lan-servers li').filter({ hasText: 'Older server' });
+  await expect(server).toContainText('other version');
+  await expect(server.getByRole('button', { name: /Join Older server/ })).toBeDisabled();
+  const link = server.getByRole('link', { name: 'Open server game' });
+  await expect(link).toHaveAttribute('href', 'http://localhost:6464/#join=1');
+  await expect(link).toHaveAttribute('target', '_blank');
+  await page.getByRole('button', { name: 'Stop scan', exact: true }).click();
+});
+
+test('a solo fleet keeps flying, switches ships and round-trips through a universe save', async ({ page }) => {
   test.setTimeout(90000);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -370,9 +392,9 @@ test('a solo fleet keeps flying, switches ships and round-trips through a world 
 
   await openPanel(page, 'fleet');
   const pending = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Save world' }).click();
-  const file = await readFile(await (await pending).path(), 'utf8');
-  const save = JSON.parse(file) as { format: string; ships: unknown[]; hostId: string; players: Array<{ id: string }> };
+  await page.getByRole('button', { name: 'Save universe' }).click();
+  const file = await readFile(await (await pending).path());
+  const save = await (await packageContracts()).decodeUniverseSave(new Uint8Array(file)) as { format: string; ships: unknown[]; hostId: string; players: Array<{ id: string }> };
   expect(save.format).toBe('space-sim-world');
   expect(save.ships).toHaveLength(2);
   expect(save.players.map(p => p.id)).toEqual([save.hostId]);
@@ -380,9 +402,9 @@ test('a solo fleet keeps flying, switches ships and round-trips through a world 
   await page.getByRole('button', { name: 'Remove ship' }).click();
   await expect(page.locator('#ship-list button')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Remove ship' })).toBeDisabled();
-  await page.locator('#world-file').setInputFiles({ name: 'world.json', mimeType: 'application/json', buffer: Buffer.from(file) });
+  await page.locator('#world-file').setInputFiles({ name: 'flight.spaceuniverse', mimeType: 'application/zip', buffer: file });
   await expect(page.locator('#status')).toHaveText('PAUSED');
-  await expect(page.locator('#flight-message')).toContainText('World loaded');
+  await expect(page.locator('#flight-message')).toContainText('Universe loaded');
   await expect(page.locator('#ship-list button')).toHaveCount(2);
   await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Resume', exact: true }).click();

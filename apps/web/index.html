@@ -84,7 +84,7 @@
                   <label for="universe-select">Universe</label>
                   <div class="universe-actions">
                     <button id="load-universe" type="button" title="Import a universe from JSON, .spaceuniverse or .json.gz">Import…</button>
-                    <input id="universe-file" type="file" accept=".spaceuniverse,.json,.gz,application/gzip,application/json" hidden />
+                    <input id="universe-file" type="file" accept=".spacedata,.spaceuniverse,.json,.gz,application/gzip,application/json" hidden />
                     <button id="export-universe" type="button" title="Download this universe with all its planets as a losslessly compressed .spaceuniverse file">Export</button>
                     <button id="export-universe-json" type="button" title="Download editable, uncompressed universe JSON">JSON</button>
                   </div>
@@ -129,7 +129,7 @@
               <ul id="ship-list" class="ship-list" aria-label="Ships"></ul>
               <div class="actions"><button id="remove-ship" type="button">Remove ship</button><button id="spawn-ship" type="button">Launch another</button></div>
               <p class="control-note">New ships start at the selected scenario. Unpiloted ships keep flying. Switch with <kbd>\</kbd> or click below.</p>
-              <div class="world-files"><button id="save-world" type="button" title="Download the whole world: clock, every ship and pilot">Save world</button><button id="load-world" type="button" title="Continue a saved world">Load world…</button><input id="world-file" type="file" accept=".json,application/json" hidden /></div>
+              <div class="world-files"><button id="save-world" type="button" title="Save universe progress: clock, every ship and pilot">Save universe</button><button id="load-world" type="button" title="Continue a saved universe">Load universe…</button><input id="world-file" type="file" accept=".spaceuniverse,.json,.gz,application/zip,application/json" hidden /></div>
             </section>
             <section class="card multiplayer" aria-labelledby="mp-title"><p class="eyebrow">MULTIPLAYER</p><h2 id="mp-title">Fly together</h2>
               <label for="player-name">Pilot name</label>
@@ -508,20 +508,20 @@
           <div id="toast-container" class="toast-container"></div>
         </div>
         <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
-          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
+          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / YOUR WORKSHOP</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
           <p id="lab-status" role="status">Space Sim is ready to fly. Import a game, or build a remix with plugins.</p>
           <details class="library-settings" open><summary>Game library (Load game)</summary>
             <p id="library-storage" class="control-note">Opening your local library…</p>
             <p class="control-note">Play enables a game’s plugins. Only play code plugins you trust; they run with this page’s privileges.</p>
             <div class="library-tools"><label>Find a game or collection<input id="game-search" type="text" placeholder="Search your library" /></label><label>Sort<select id="game-sort"><option value="name">Name</option><option value="folder">Collection</option></select></label><label class="favorite-filter"><input id="game-favorites" type="checkbox" /> Favorites only</label></div>
             <ul id="game-list" class="game-list" aria-label="Game library"></ul><p id="game-empty" hidden>No games match your search.</p>
-            <div class="game-save"><h3>Make a game from this world’s setup</h3><p>Bundle selected plugins, data and settings. Use Save world in Fleet to keep your flight progress.</p><div class="library-tools"><label>Game name<input id="game-name" type="text" value="Space Sim remix" maxlength="256" /></label><label>Collection<input id="game-folder" type="text" placeholder="My experiments" maxlength="80" /></label></div><div class="lab-actions"><button id="lab-save" type="button">Save as game</button><button id="lab-export" type="button">Export .spacegame</button></div></div>
+            <div class="game-save"><h3>Make a game from this world’s setup</h3><p>Bundle selected plugins, data and settings. Use Save universe in Fleet to keep your flight progress.</p><div class="library-tools"><label>Game name<input id="game-name" type="text" value="Space Sim remix" maxlength="256" /></label><label>Collection<input id="game-folder" type="text" placeholder="My experiments" maxlength="80" /></label></div><div class="lab-actions"><button id="lab-save" type="button">Save as game</button><button id="lab-export" type="button">Export .spacegame</button></div></div>
             <p class="control-note">Explore a built-in world</p><div class="surface-worlds" aria-label="Explore planet surfaces"><button id="try-terrain" type="button">Terrain worlds</button><button id="try-ocean" type="button">Ocean world</button></div>
           </details>
           <section id="plugin-manager" aria-label="Plugin configuration">
         <details class="code-module-settings"><summary>Plugins · simulation, data & settings</summary>
           <p>Only import code from sources you trust. Do not import untrustworthy code: code modules run with this page’s privileges and can access its data or make network requests. Installation does not enable code. Authoritative changes start a new world.</p>
-          <button id="install-code-module" type="button" hidden>Install code artifact…</button><input id="code-module-file" type="file" accept=".json,application/json" hidden />
+          <button id="install-code-module" type="button" hidden>Install code artifact…</button><input id="code-module-file" type="file" accept=".spacemod,.json,application/json" hidden />
           <ul id="installed-code-modules" class="module-list"></ul>
           <details><summary>Simulation setup & exposed settings</summary>
             <div class="library-tools"><label>Starting universe<select id="plugin-universe"></select></label><label>Starting system<select id="plugin-system"></select></label></div>
@@ -539,8 +539,8 @@
           <p id="presentation-status" role="status">Using the built-in presentation.</p>
         </details>
         <details class="module-settings"><summary>Data & legacy profiles</summary><p class="manager-current">Current: <output id="module-name">Built-in default</output></p>
-          <div class="shader-actions"><button id="load-module" type="button">Load module/profile…</button><input id="module-file" type="file" accept=".json,application/json" hidden /><button id="export-module" type="button" disabled>Export module</button><button id="export-profile" type="button">Export profile</button><button id="reset-modules" type="button">Use built-in default</button></div>
-          <p>Loading a data module starts a new world. Edit vehicle settings, universes, presets or body colors in JSON. Compatible profiles support world saves and multiplayer. Profiles may enable installed code; only enable code from sources you trust.</p>
+          <div class="shader-actions"><button id="load-module" type="button">Load module/profile…</button><input id="module-file" type="file" accept=".spacedata,.json,application/json" hidden /><button id="export-module" type="button" disabled>Export module</button><button id="export-profile" type="button">Export profile</button><button id="reset-modules" type="button">Use built-in default</button></div>
+          <p>Loading a data module starts a new world. Edit vehicle settings, universes, presets or body colors in JSON. Compatible profiles support universe saves and multiplayer. Profiles may enable installed code; only enable code from sources you trust.</p>
           <button id="enable-imported-profile" type="button" hidden>Enable imported trusted code profile · new world</button>
           <p id="module-status" role="status">Using the built-in default profile.</p>
         </details>
@@ -549,7 +549,7 @@
         <div class="utility-grid" aria-label="Additional tools">
         <details class="planet-designer"><summary>Planet designer</summary><div id="planet-designer"></div></details>
         <details class="shader-settings"><summary>Shaders</summary><p class="manager-current">Current: <output id="shader-name">Default</output></p>
-          <div class="shader-actions"><button id="load-shader" type="button">Load shader…</button><input id="shader-file" type="file" accept=".json,.frag,.glsl,application/json,text/plain" hidden /><button id="export-shader" type="button">Export shaders</button><button id="reset-shader" type="button">Restore default</button></div>
+          <div class="shader-actions"><button id="load-shader" type="button">Load shader…</button><input id="shader-file" type="file" accept=".spacedata,.spacemod,.json,.frag,.glsl,application/json,text/plain" hidden /><button id="export-shader" type="button">Export shaders</button><button id="reset-shader" type="button">Restore default</button></div>
           <p>Change the look with a local shader file. Export the current shaders as a starting point, edit the GLSL, then load your copy. A .frag or .glsl file changes the scene; a JSON pack can also change the ship, paths and labels. Requires WebGL 2.</p>
           <p id="shader-status" role="status">Using Default. Shader choices last for this session; export to keep a copy.</p>
         </details>

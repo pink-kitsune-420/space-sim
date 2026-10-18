@@ -43,7 +43,7 @@ without ever reaching the ground. That path is called an <b>orbit</b>.</p>
 <ul>
   <li><b>Setup</b>: pick the universe, the star system and where your ship starts. <b>Reset flight</b> is here too.</li>
   <li><b>Ship</b>: throttle, turning and engine buttons for touch and mouse.</li>
-  <li><b>Fleet</b>: your ships, plus <b>Save world</b> and <b>Load world…</b>.</li>
+  <li><b>Fleet</b>: your ships, plus <b>Save universe</b> and <b>Load universe…</b>.</li>
   <li><b>Online</b>: host friends or join a server.</li>
   <li><b>Instruments</b>, <b>Trajectory</b> and <b>Telemetry</b>: choose what the flight view shows.</li>
   <li><b>Settings</b>, <b>Tools</b>, <b>Manual</b> and <b>Library</b>: display options, creator tools, this manual, and other games and plugins.</li>
@@ -238,7 +238,7 @@ ${deeper('what the telemetry numbers mean', `
 <p>For a fully autonomous maneuver, choose <b>Execute burn</b>. It warps toward the selected node, returns to normal speed, turns toward the burn direction, fires the engine around the node time, and cuts off after delivering the planned Δv. It adjusts the final tick's throttle for small burns and leaves throttle at zero when complete. Allow enough time before the node for alignment and half the burn duration. Autonomous execution is available in solo play and for the host's selected ship; remote pilots can still plan and fly manually.</p>
 <p><b>Abort burn</b> immediately releases engine and steering control. Manual steering, engine or throttle input, changing warp, pausing, opening Controls, hiding the tab, switching ships, disabling the instrument or a changed trajectory also aborts. A partly executed burn needs a new plan. Execution stays at normal speed after cutoff.</p>
 <p>Use <b>Delete node</b> to remove the plan. Close the editor and reopen it from the <b>Maneuver</b> dock button. Disable the tool in <b>Instruments → Maneuver planner</b>.</p>
-<p>Each piloted ship has one local plan for this flight session. Plans are not included in world saves or sent to other players. Manual thrust, resets and changes of reference body mark an old plan for replanning.</p>
+<p>Each piloted ship has one local plan for this flight session. Plans are not included in universe saves or sent to other players. Manual thrust, resets and changes of reference body mark an old plan for replanning.</p>
 ${deeper('precision and limits', `<p>The preview applies the entire Δv instantly at the node, then uses the same isolated trajectory predictor as the coast line. Real engine burns take time, so long burns differ from the preview. Prograde follows velocity and radial follows position; those directions are not perpendicular on an eccentric orbit. Burn duration uses the magnitude of their combined vector and the engine's maximum acceleration.</p>
 <p>The preview uses the current body's gravity and stops at contact or its prediction limit. It does not forecast subsequent sphere-of-influence encounters. Custom worlds requiring numerical or whole-world prediction cannot use this analytic planner.</p>`)}`,
   },
@@ -346,7 +346,7 @@ Only the scale changes.</p>`)}`,
   <li><b>Fleet → Launch another</b> adds a ship at the chosen starting point. Ships you aren't flying keep orbiting and falling on their own.</li>
   <li>{{key:cycleShip}} and {{key:cycleShipPrev}} switch between ships, or click one in the Fleet list.
     <b>Remove ship</b> deletes the ship you are flying.</li>
-  <li><b>Save world</b> downloads the whole world, with its clock and every ship, as a file. <b>Load world…</b> picks up where you left off.</li>
+  <li><b>Save universe</b> downloads progress as a <code>.spaceuniverse</code> file, with the clock, ships and pilots. <b>Load universe…</b> picks up where you left off.</li>
   <li>{{key:reset}} (<b>Reset flight</b>) returns only the ship you are flying to the chosen scenario, preserving the world clock and the other ships. <b>Setup → Reset world</b> restarts the whole world and rewinds the clock; only the host can do this.</li>
 </ul>`,
   },
@@ -356,6 +356,11 @@ Only the scale changes.</p>`)}`,
     summary: 'Host friends or join a server',
     html: `
 <p>Open <b>Online</b>. Everyone shares one sky and one clock, and each pilot has their own ships.</p>
+<p>Separate windows of the same browser can join a server as separate pilots, including from the offline HTML.
+Reload a window to reconnect to that window's ships.</p>
+<p>Joining uses the server's saved universe, including older worlds. Your enabled local game modules
+must reproduce its exact simulation identity; code and physics settings still need to match.
+Leaving returns you to your own paused world.</p>
 <dl>
   <dt>This browser</dt><dd>Open the game in a second browser tab and choose <b>Join</b>. This is the quickest way to try it out.</dd>
   <dt>Server link</dt><dd>The easiest way to play on different devices. Open the host's game link and join automatically.
@@ -372,7 +377,9 @@ Only the scale changes.</p>`)}`,
     Reply codes last 10 minutes. Keep the host page open. If a direct link fails, use a server link.
     <b>Save connection report</b> downloads candidate counts and error codes without addresses or invite secrets.</dd>
   <dt>Server</dt><dd>Type a server address (like <code>192.168.1.20:6464</code>) and choose <b>Join</b>, or use
-    <b>Scan local network</b>. A dedicated server keeps the world running and saves it on its own.</dd>
+    <b>Scan local network</b>. A dedicated server keeps the world running and saves it on its own.
+    If a result says <b>other version</b>, the client and server use different multiplayer versions: choose
+    <b>Open server game</b> to use its matching client, or update both together.</dd>
 </dl>
 <p class="manual-note">When a browser tab hosts, the world runs in that tab. Keep it visible, because browsers slow down hidden tabs.</p>
 <p><b>Other pilots’ orbits.</b> Faint amber lines preview their current coast, refreshed about once per second.
@@ -385,6 +392,10 @@ ${deeper('running a dedicated server', `
 should use, including a link that joins automatically. It also serves the game page itself, so guests need only a browser.
 From a source checkout with Node and dependencies installed, run <code>npm run host</code> to build the game, start the server and open it.
 Send friends on your Wi-Fi the LAN link printed by the server, not its localhost link.</p>
+<p>To build matching standalone game and server programs from source, run
+<code>npm run package -- --target=multiplayer</code>. This rebuilds current sources before packaging both.
+<code>npm run build</code> updates the web and JavaScript bundles; it does not replace existing standalone executables.
+After rebuilding, stop the old server and restart the new program, then reopen or reload the game.</p>
 <ul>
   <li>The world runs at 100 physics steps per second and sends players 20 updates per second.</li>
   <li>It saves to <code>space-sim-data/world.json</code> every minute, when the last player leaves and on shutdown, and keeps timestamped backups.</li>
@@ -473,7 +484,7 @@ instruments use this: the velocity arrow, orbit markers and telemetry panel all 
   <li><b>Easiest:</b> use <b>Tools → Planet designer</b>, or open the <b>Orbit Sandbox</b> game from the Library,
     fling planets into orbit, then choose <b>Export to Space Sim</b>.</li>
   <li><b>Full control:</b> <b>Setup → Export</b> saves the current universe as a file. Edit it, then load it with
-    <b>Setup → Import…</b>. Both <code>.spaceuniverse</code> and <code>.json</code> work.</li>
+    <b>Setup → Import…</b>. Definitions export as <code>.spacedata</code>. Legacy <code>.spaceuniverse</code> definitions, JSON and gzip still import.</li>
 </ul>
 <p>The universes that come with the game, in <code>games/space-sim/universes/</code>, are good examples to copy.</p>
 ${deeper('the main fields', `
@@ -499,7 +510,7 @@ ground is √(μ/R). Small, dense bodies give short orbits that are quick to pla
     summary: 'Change the look of the scene with GLSL',
     html: `
 <ol>
-  <li>Open <b>Tools → Shaders</b> and choose <b>Export shaders</b>. This saves a JSON pack with all the current shaders.</li>
+  <li>Open <b>Tools → Shaders</b> and choose <b>Export shaders</b>. This saves a <code>.spacedata</code> file with all the current shaders. Legacy shader JSON and GLSL still import.</li>
   <li>Edit the GLSL in any text editor.</li>
   <li>Choose <b>Load shader…</b> to apply your copy.</li>
 </ol>
@@ -530,7 +541,7 @@ Space Sim and Orbit Sandbox are both games.</p>
 </ol>
 <p>Others load it with <b>Import game, plugin or universe…</b> and start it with <b>Play · new world</b>.</p>
 ${deeper('games, saves and code', `
-<p>A game stores setup. A world save (from <b>Fleet</b>) stores progress: the clock, ships and pilots. To continue
+<p>A game stores setup. A universe save (from <b>Fleet</b>) stores progress: the clock, ships and pilots. To continue
 a save made with a custom game, start that game first, then load the save.</p>
 <p>Importing a game never runs its code. Code runs only when you choose to play it, and a failed start leaves
 your current world running. Exported <code>.spacegame</code> files are compressed and include the exact code,
@@ -550,13 +561,71 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
   <dt>Presentation</dt><dd>Changes only what you see: overlays, panels and camera modes. You can switch these on
     and off at any time. The built-in instruments, including the navball, are presentation modules.</dd>
 </dl>
-<h3>Build one</h3>
+<h3>Build and share an editable package</h3>
 <ol>
-  <li>Copy a starter from <code>examples/modules/</code>: <code>force</code>, <code>numerical</code>, <code>telemetry</code> or <code>state</code>.</li>
-  <li>Change <code>id</code> and <code>name</code> in its manifest, then edit <code>main.ts</code>.</li>
-  <li>Run <code>npm run module:build -- my-module/module.json my-module.module.json</code>. This checks types, bundles the code and validates the result.</li>
-  <li>In the Library, choose <b>Install code artifact…</b>, select the module and apply.</li>
+  <li>Run <code>npm run module:new -- local.my-module my-module</code>, or copy a starter from
+    <code>examples/packages/</code>: <code>force</code>, <code>numerical</code>, <code>telemetry</code> or <code>state</code>.</li>
+  <li>Set your namespaced <code>id</code>, name and licence in <code>module.json</code>. Edit <code>src/main.ts</code>,
+    and include the licence texts and credits in <code>LICENSE</code> and <code>NOTICE</code>.</li>
+  <li>Run <code>npm run module:build -- my-module/module.json my-module.spacemod</code>. This checks types,
+    bundles the code and includes your editable source. Write the archive outside the source folder.</li>
+  <li>Choose <b>Library → Import game, plugin or universe…</b> and select the <code>.spacemod</code>.
+    Installation only inspects it. Select the module in Plugins and apply to enable it.</li>
 </ol>
+<p>A <code>.spacemod</code> is a standard ZIP file. To edit a received package, run
+<code>npm run module:unpack -- received.spacemod my-copy</code> with a new or empty destination.
+After editing, run <code>npm run module:build -- my-copy/module.json</code>, then
+<code>npm run module:pack -- my-copy edited.spacemod</code>.
+Validate a file with <code>npm run module:validate -- edited.spacemod</code>.</p>
+<p>The browser cannot compile TypeScript. Missing or stale bundles need a local rebuild. Binary assets
+are preserved; API v1 exposes text assets only. Structured guides belong in <code>docs/players/</code>
+or <code>docs/creators/</code>. API v2 device modules can contribute these pages to the Manual.</p>
+<h3>Installed modules and device modules</h3>
+<p>Imported modules are stored on this device without running their code. Reloading the page restores
+the installed files; it does not enable them. If storage is unavailable or full, the Library reports
+session-only installation. Export a copy to keep it. Removing an installed module does not delete saved universes.</p>
+<p>Open <b>Library → Device and network modules</b> for packages using <code>space-sim-game-api/2</code>.
+Choose an exact installed version, review its dependencies, then select <b>Apply device modules and restart</b>.
+This starts a fresh world. Device modules remain disabled in other games and after a page reload.
+Saving or exporting a game includes its applied selection, exact versions and editable packages.
+Choose Play in the Library to enable that game's selection again. Unapplied edits are not exported.
+The exported server target omits device-only modules.</p>
+<p>V2 device packages declare a <code>platform</code> or <code>network</code> tier and versioned capability
+requirements. Their synchronous initializer can contribute actions, input sources, transports,
+declarative controls and structured Manual pages. Typed host services are imported as keys such as
+<code>CORE_UI</code>, then requested with <code>context.use(CORE_UI)</code>. Declare
+<code>{ name: 'core.ui', version: '^1.0.0' }</code> in the manifest's requirements before using it.
+V2 authoritative modules can be included in a game's explicit runtime target alongside its legacy base profile.
+Browser and dedicated-server targets use the same package resolver and world adapter. Load that exact game
+before restoring its universe progress; progress files contain no executable modules.
+The device-only selection rejects simulation hooks. V2 renderer hooks still require the renderer adapter;
+keep renderer layers, panels and cameras in the legacy presentation profile for now.</p>
+<p>Legacy <code>.module.json</code> and <code>.spaceplugin</code> files still import. A legacy code artifact
+contains bundled JavaScript and source hashes, so its ZIP wrapper is labelled “original source unavailable”.
+Use <code>module:convert old/module.json new-folder</code> with the original source folder to make a fully editable package.
+Package hashes cover every file, including code, docs and licences. Recompressing a ZIP preserves the hash;
+editing a file changes it. A matching hash identifies bytes; it does not establish that code is safe.</p>
+<h3>Keep setup, data and progress separate</h3>
+<ul>
+  <li><code>.spacegame</code>: game setup and its exact module selection; code lives in <code>modules/</code>, reusable data in <code>data/</code>.</li>
+  <li><code>.spacemod</code>: a code module with its editable source, assets and licence.</li>
+  <li><code>.spacedata</code>: universe definitions, shader packs or reusable content. Definitions describe the universe; they contain no flight progress.</li>
+  <li><code>.spaceuniverse</code>: saved progress. <code>save.json</code> describes the save;
+    <code>state/</code> holds the clock, pilots, ship chunks and module state; <code>data/universe.json</code>
+    holds a snapshot of the definitions needed to resume it. Saves never embed code.</li>
+</ul>
+<p>Use <b>Fleet → Save universe</b> and <b>Load universe…</b> for progress. Use <b>Setup → Export</b> and
+<b>Import…</b> for definitions, or import reusable data in the Library. Old save JSON still loads. Older
+<code>.spaceuniverse</code> definition files still import through Setup or the Library; their contents identify them.</p>
+<h3>Build a game collection</h3>
+<p><b>Export game</b> writes a ZIP <code>.spacegame</code> containing <code>game.json</code>, an exact
+<code>game.lock.json</code> and its selected custom modules. Built-in v1 providers remain supplied by the engine.
+The exact package identities are separate from legacy simulation identities, so old saves keep their locks.</p>
+<p>For local tooling, use <code>npm run game:build -- game.json my-game.spacegame</code> and
+<code>npm run game:validate -- my-game.spacegame</code>. The builder accepts existing game descriptors,
+legacy plugin collections and profiles whose exact code is supplied. Unpack a game with
+<code>module:unpack</code>, rebuild its embedded modules, then run <code>game:build</code> on its
+<code>game.json</code> to refresh the exact lock. No import runs tests, compiles code or fetches dependencies.</p>
 <p class="manual-warn">A code module can do anything the page or server can. Only install code from people you trust.</p>
 ${deeper('the API surface', `
 <p>A module exports one synchronous <code>initialize(context)</code> function. From the context it can:</p>
@@ -602,10 +671,10 @@ the same one.</p>`)}`,
     summary: 'Exports, credits and trust',
     html: `
 <ul>
-  <li>To share your work, send the exported file: <code>.spaceuniverse</code>, <code>.spacegame</code>,
-    <code>.spaceplugin</code>, a shader <code>.json</code> or a <code>.module.json</code>.</li>
+  <li>To share your work, send the exported file: <code>.spaceuniverse</code> (progress), <code>.spacedata</code> (reusable definitions), <code>.spacegame</code> (setup),
+    <code>.spacemod</code> (editable module), a legacy <code>.spaceplugin</code>, a shader <code>.json</code> or a <code>.module.json</code>.</li>
   <li>Spacelab uses the MIT licence. Give your module a licence, and credit any code or data you include.</li>
-  <li>World saves hold state and the names of the modules they need. They never contain code.</li>
+  <li>Universe saves hold state and the names of the modules they need. They never contain code.</li>
 </ul>`,
   },
 ];

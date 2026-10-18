@@ -1,7 +1,10 @@
+import { openPanel } from '../helpers/workspace';
+import { useCanvas } from '../helpers/canvas';
+import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import defaultUniverse from '../../games/space-sim/universes/sandbox/default/universe.json' with { type: 'json' };
-import { gzipSync, gunzipSync } from 'node:zlib';
+import { gzipSync } from 'node:zlib';
 import { copyFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -26,10 +29,12 @@ function terrainUniverse() {
   })) };
 }
 
+test.beforeEach(async ({ page }) => { await useCanvas(page); });
+
 test('custom surface settings survive universe loading and JSON export', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/');
+  await page.goto('/'); await openPanel(page, 'setup');
   await page.locator('#universe-file').setInputFiles({ name: 'terrain.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(terrainUniverse())) });
   await expect(page.locator('#universe-select')).toHaveValue('terrain-import');
@@ -50,7 +55,7 @@ test('custom surface settings survive universe loading and JSON export', async (
 });
 
 test('oversized terrain import reports a clear error and keeps the active universe', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openPanel(page, 'setup');
   const invalid = terrainUniverse();
   Object.assign(primus(invalid), { surface: { ...surface, sampleCount: 65537 } });
   const dialogMessage = new Promise<string>(resolve => page.once('dialog', async dialog => {
@@ -65,20 +70,21 @@ test('oversized terrain import reports a clear error and keeps the active univer
 });
 
 test('compressed universe export preserves every planet and can be imported through either picker', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openPanel(page, 'setup');
   const universe = terrainUniverse();
   await page.locator('#universe-file').setInputFiles({ name: 'planets.json.gz', mimeType: 'application/gzip', buffer: gzipSync(JSON.stringify(universe)) });
   await expect(page.locator('#universe-select')).toHaveValue('terrain-import');
   await expect(page.locator('#universe-status')).toContainText('Loaded Terrain import');
   const pending = page.waitForEvent('download'); await page.locator('#export-universe').click();
-  const download = await pending; expect(download.suggestedFilename()).toBe('terrain-import.spaceuniverse');
+  const download = await pending; expect(download.suggestedFilename()).toBe('terrain-import.spacedata');
   const bytes = await readFile(await download.path());
-  const restored = JSON.parse(gunzipSync(bytes).toString('utf8'));
+  const restored = await (await packageContracts()).decodeDataFile(new Uint8Array(bytes), 'universe') as any;
   expect(primus(restored).surface).toEqual(surface);
   expect(restored.systems.map((s: { bodies: unknown[] }) => s.bodies.length)).toEqual(universe.systems.map(s => s.bodies.length));
-  expect(bytes.length).toBeLessThan(Buffer.byteLength(JSON.stringify(restored)));
-  await expect(page.locator('#universe-status')).toContainText('smaller than JSON');
+  expect(bytes.length).toBeLessThan(32 * 1024 * 1024);
+  await expect(page.locator('#universe-status')).toContainText('reusable universe definitions');
   await page.locator('#universe-select').selectOption('default-universe');
+  await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'shared.spaceuniverse', mimeType: 'application/gzip', buffer: bytes });
   await expect(page.locator('#lab-status')).toContainText('Loaded universe Terrain import');
   await expect(page.locator('#universe-select')).toHaveValue('terrain-import');
@@ -87,8 +93,9 @@ test('compressed universe export preserves every planet and can be imported thro
 });
 
 test('invalid compressed universe data keeps the old world and names the problem', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/'); await openPanel(page, 'setup');
   const before = JSON.parse(await page.locator('#debug').textContent() || '{}').world;
+  await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'broken.spaceuniverse', mimeType: 'application/gzip', buffer: gzipSync(JSON.stringify({ ...terrainUniverse(), schemaVersion: 999 })) });
   await expect(page.locator('#lab-status')).toContainText('Unsupported universe schemaVersion');
   await expect(page.locator('#universe-select')).toHaveValue('default-universe');
@@ -97,10 +104,10 @@ test('invalid compressed universe data keeps the old world and names the problem
 
 test('standalone Spacelab imports and exports compressed planets without a network', async ({ page, context }, testInfo) => {
   const file = testInfo.outputPath('universe-workshop.html'); await copyFile(resolve('dist/space-lab-offline.html'), file);
-  await context.setOffline(true); await page.goto(pathToFileURL(file).href);
+  await context.setOffline(true); await page.goto(pathToFileURL(file).href); await openPanel(page, 'setup');
   await page.locator('#universe-file').setInputFiles({ name: 'offline.spaceuniverse', mimeType: 'application/gzip', buffer: gzipSync(JSON.stringify(terrainUniverse())) });
   await expect(page.locator('#universe-select')).toHaveValue('terrain-import');
   const pending = page.waitForEvent('download'); await page.locator('#export-universe').click();
-  const restored = JSON.parse(gunzipSync(await readFile(await (await pending).path())).toString('utf8'));
+  const restored = await (await packageContracts()).decodeDataFile(new Uint8Array(await readFile(await (await pending).path())), 'universe') as any;
   expect(primus(restored).surface).toEqual(surface);
 });

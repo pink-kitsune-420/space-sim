@@ -1,3 +1,4 @@
+import { encodeUniverse } from './spacelab/game-library';
 import type { UniverseDefinition, SystemDefinition, CelestialBodyDefinition, PresetDefinition } from './spacelab/sim-core';
 import { validateUniverse } from './spacelab/sim-core';
 import type { CelestialBody } from './types';
@@ -131,15 +132,9 @@ export function compileToUniverse(
   return validateUniverse(universe);
 }
 
-export async function compressUniverse(universe: UniverseDefinition): Promise<Uint8Array> {
-  const json = JSON.stringify(universe);
-  const stream = new Blob([new TextEncoder().encode(json)])
-    .stream()
-    .pipeThrough(new CompressionStream('gzip'));
-
-  const response = new Response(stream);
-  const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
+/** Reusable definitions share the host's .spacedata codec; this never saves simulation progress. */
+export async function compressUniverse(universe: UniverseDefinition): Promise<Uint8Array<ArrayBuffer>> {
+  return encodeUniverse(universe);
 }
 
 export function downloadFile(filename: string, content: BlobPart, mimeType: string): void {

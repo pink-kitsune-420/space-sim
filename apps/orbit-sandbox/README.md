@@ -1,6 +1,6 @@
 # Orbit Sandbox (Interactive Planet Creator & Gravity Playground)
 
-A standalone Spacelab application for dynamically creating, customizing, and slinging celestial bodies into orbit, simulating emergent gravitational interactions (Kepler 2-Body, N-Body, and Full Body Physics), and exporting custom universes (`.spaceuniverse` and `.json`) to Space Sim.
+A standalone Spacelab application for dynamically creating, customizing, and slinging celestial bodies into orbit, simulating emergent gravitational interactions (Kepler 2-Body, N-Body, and Full Body Physics), and exporting custom universes (`.spacedata` and `.json`) to Space Sim.
 
 ---
 
@@ -69,7 +69,7 @@ Open your browser to `http://127.0.0.1:5174/`.
 - **Direct Validation**: Verified against `games/space-sim/universes/universe.schema.json` via `@spacelab/sim-core` `validateUniverse`.
 - **Export Formats**:
   - Uncompressed `.json` file download.
-  - Losslessly compressed `.spaceuniverse` (gzip binary) download.
+  - Lossless `.spacedata` (standard ZIP) definition download. Universe saves use `.spaceuniverse` in Space Sim.
   - Clipboard JSON copy.
   - Direct Flight Console deep-link staging into `localStorage`.
 

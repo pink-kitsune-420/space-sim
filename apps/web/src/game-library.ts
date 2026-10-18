@@ -1,10 +1,14 @@
-import { validatePackage, type GamePackage } from '../../../packages/game-library/src/archive';
+import { ALLOW_RUNTIME_CODE } from '../../../packages/game-runtime/src/build-policy';
+import { decodePackage, encodePackage, validatePackage, type GamePackage } from '../../../packages/game-library/src/archive';
+import { runtimeContainsCode } from '../../../packages/game-library/src/runtime-selection';
 
 export interface LibraryGame {
   readonly id: string;
   readonly game: GamePackage;
   readonly folder: string;
   readonly favorite: boolean;
+  /** Inert ZIP bytes preserve source through storage; older records retain their v1 value. */
+  readonly archive?: Uint8Array<ArrayBuffer>;
 }
 /** Browser storage contains inert packages. Restoring the library never enables a plugin. */
 export class GameLibrary {
@@ -28,7 +32,7 @@ export class GameLibrary {
       });
       for (const entry of entries) {
         try {
-          const game = validatePackage(entry.game);
+          const game = entry.archive ? await decodePackage(entry.archive) : validatePackage(entry.game);
           if (game.format === 'space-lab-game/1' && typeof entry.id === 'string'
             && typeof entry.folder === 'string' && typeof entry.favorite === 'boolean') this.games.set(entry.id, { ...entry, game });
         } catch { /* A corrupt entry cannot prevent the bundled game from starting. */ }
@@ -39,9 +43,10 @@ export class GameLibrary {
   async put(game: GamePackage, options: { id?: string; folder?: string; favorite?: boolean } = {}): Promise<LibraryGame> {
     const checked = validatePackage(game);
     if (checked.format !== 'space-lab-game/1') throw new Error('Expected a game');
+    if (!ALLOW_RUNTIME_CODE && (checked.plugins.length || checked.runtime && await runtimeContainsCode(checked.runtime))) throw new Error('This build does not allow imported code');
     if (!options.id && this.games.size >= 128) throw new Error('The library is full (128 games); remove a game first');
     const entry: LibraryGame = { id: options.id ?? crypto.randomUUID(), game: checked,
-      folder: (options.folder ?? '').trim().slice(0, 80), favorite: options.favorite ?? false };
+      folder: (options.folder ?? '').trim().slice(0, 80), favorite: options.favorite ?? false, archive: await encodePackage(checked) };
     await this.write(store => store.put(entry));
     this.games.set(entry.id, entry);
     return entry;

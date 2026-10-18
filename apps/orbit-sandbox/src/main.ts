@@ -1,3 +1,4 @@
+import { decodeUniverse } from './spacelab/game-library';
 import type { Vec } from './spacelab/sim-core';
 import { createDefaultSolarSystem, instantiateBody, PRESET_TEMPLATES, createRingBelt } from './presets';
 import { computeCircularVelocity, distance, findDominantBody, predictGhostTrajectory, stepSimulation, DEFAULT_FULL_BODY_OPTIONS } from './physics';
@@ -799,7 +800,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   btnDownloadSpaceUniverse?.addEventListener('click', async () => {
     try {
       const { compressedBytes, universe } = await exportUniverseFiles(bodies, inpUniverseId.value, inpUniverseName.value);
-      downloadFile(`${universe.id}.spaceuniverse`, compressedBytes as unknown as BlobPart, 'application/octet-stream');
+      downloadFile(`${universe.id}.spacedata`, compressedBytes as unknown as BlobPart, 'application/octet-stream');
       showToast(`Downloaded ${universe.id}.spaceuniverse`);
     } catch (err) {
       alert(`Export error: ${(err as Error).message}`);
@@ -994,20 +995,21 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     }
     addResult('Universe Schema Validation', schemaPass, schemaMsg, performance.now() - t3);
 
-    // 5. Gzip Binary Compression Roundtrip Test
+    // 5. Reusable universe definition package check
     const t4 = performance.now();
-    let gzipPass = false;
-    let gzipMsg = '';
+    let dataPass = false;
+    let dataMsg = '';
     try {
-      const { universe } = await exportUniverseFiles(bodies, 'gzip-test', 'Gzip Test');
+      const { universe } = await exportUniverseFiles(bodies, 'data-test', 'Data Test');
       const bytes = await compressUniverse(universe);
-      const hasHeader = bytes[0] === 0x1f && bytes[1] === 0x8b;
-      gzipPass = hasHeader && bytes.length > 0;
-      gzipMsg = `Gzip magic header 0x1f 0x8b verified. Size: ${(bytes.length / 1024).toFixed(1)} KiB`;
+      const hasHeader = bytes[0] === 0x50 && bytes[1] === 0x4b;
+      const restored = await decodeUniverse(bytes);
+      dataPass = hasHeader && restored.id === universe.id && restored.systems[0]!.bodies.length === universe.systems[0]!.bodies.length;
+      dataMsg = `Universe data package verified. Size: ${(bytes.length / 1024).toFixed(1)} KiB`;
     } catch (err) {
-      gzipMsg = (err as Error).message;
+      dataMsg = (err as Error).message;
     }
-    addResult('Lossless Gzip (.spaceuniverse) Roundtrip', gzipPass, gzipMsg, performance.now() - t4);
+    addResult('Reusable universe definitions (.spacedata)', dataPass, dataMsg, performance.now() - t4);
   }
 
   btnRunDiagnostics?.addEventListener('click', runBrowserDiagnostics);

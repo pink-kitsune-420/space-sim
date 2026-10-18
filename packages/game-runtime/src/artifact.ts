@@ -1,6 +1,7 @@
 import type { ModuleEnvironment, ModuleInitialization, ModuleManifest, RegisteredModule } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from './authoritative';
 import { freezeJson, keys, object, string, validateManifest } from './validation';
+import { ALLOW_RUNTIME_CODE } from './build-policy';
 
 export { validateManifest } from './validation';
 
@@ -70,6 +71,7 @@ export function parseCodeArtifact(text: string): CodeArtifact {
 /** Call only following a local enable action (or server-owner configuration).
  * Trusted JavaScript has full environment privileges. This is not a sandbox. */
 export function enableCodeArtifact(artifact: CodeArtifact, environment: ModuleEnvironment): RegisteredModule {
+  if (!ALLOW_RUNTIME_CODE) throw new Error('This build does not allow imported code');
   const checked = parseCodeArtifact(JSON.stringify(artifact));
   if (!checked.manifest.environments.includes(environment)) throw new Error(`Module ${checked.manifest.id}: unsupported environment ${environment}`);
   const initialize: unknown = new Function(`"use strict";\n${checked.source}\n;return SpaceSimModule.default;`)();

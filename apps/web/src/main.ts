@@ -1,4 +1,5 @@
-import { createBuiltinRegistry, loadInstalledWorld, DEFAULT_PROFILE, MAX_MODULE_BYTES, exportDataModule, universeDataModule, validateDataModule, type DataModule } from '../../../packages/modules/src/index';
+import { isZip } from '../../../packages/game-library/src/zip';
+import { createBuiltinRegistry, loadInstalledWorld, DEFAULT_PROFILE, MAX_MODULE_BYTES, universeDataModule, validateDataModule, type DataModule } from '../../../packages/modules/src/index';
 import { GAME_EXAMPLES, PRESENTATION_EXAMPLES, exampleProfile } from '../../../examples/modules/index';
 import { moduleLibrary } from './module-library';
 import { ModuleManager } from './module-manager';
@@ -15,6 +16,8 @@ import builtinGame from '../../../games/space-sim/game.json' with { type: 'json'
 import builtinOrbitSandbox from '../../../games/orbit-sandbox/game.json' with { type: 'json' };
 import { initOrbitSandbox, type OrbitSandboxInstance } from '../../orbit-sandbox/src/main';
 import universeCatalog from '../../../games/space-sim/universes/catalog.json';
+import { encodeUniverseSave, decodeUniverseSave } from '../../../packages/game-library/src/save-package';
+import { decodeDataFile, encodeDataFile } from '../../../packages/game-library/src/data-file';
 import { encodeUniverse, decodeUniverse } from '../../../packages/game-library/src/universe';
 import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compression';
 import { parseModuleImport, type ModuleBundle } from './modules';
@@ -32,7 +35,7 @@ import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvid
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
 import { CameraController, findSmartThrowTarget, type SmartCandidate } from './camera';
-import { CommandBar } from './commands';
+import { CommandBar, checkCommandKeys } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
 import { Prediction } from './prediction';
 import { OtherOrbits, showOtherOrbits, type OtherOrbitMode } from './other-orbits';
@@ -63,7 +66,8 @@ import { Profiler, createRows } from './profiler';
 import { FleetView } from './fleet-view';
 import { STRESS_OWNER, STRESS_ROCK_PREFIX, clearStress, populateStress } from '../../../packages/scenarios/stress';
 import { LocalSession, RemoteSession, SessionError, type ChatLine, type GameSession } from './session';
-import { joinTokenFor, rememberJoinToken, rememberToken, saveName, savedName, tokenFor } from './identity';
+import { JoinIdentity, rememberToken, saveName, savedName, tokenFor } from './identity';
+import { verifyServerCandidate } from './multiplayer-candidate';
 import { answerInvite, createInvite, isInviteCode, isReplyCode, type ConnectionDiagnostics, type Invite, type Reply } from './webrtc';
 import { connectionRequest, inviteFromText, inviteLink, serverLink, serverAddressForPage } from './connection-links';
 
@@ -775,7 +779,7 @@ function syncLocks(): void {
     || (moduleState && moduleState.profile.id !== DEFAULT_PROFILE.id ? moduleState.profile.id : 'Built-in default'));
   element<HTMLButtonElement>('export-module').disabled = !moduleState?.data.length;
   const fpText = session.world.simulationFingerprint ? ` (${session.world.simulationFingerprint.slice(0, 8)})` : '';
-  show('module-status', session.world.soloPreview ? 'Solo preview. Export module/profile to keep your settings. World saves and hosting are unavailable for this profile.' : `Using compatible simulation profile${fpText}.`);
+  show('module-status', session.world.soloPreview ? 'Solo preview. Export module/profile to keep your settings. Universe saves and hosting are unavailable for this profile.' : `Using compatible simulation profile${fpText}.`);
   moduleManager?.refresh();
   labManager?.refresh();
   pauseButton.disabled = session !== local;
@@ -995,6 +999,7 @@ function controls(elapsed = 0): Controls {
   return { turn, throttle, engine };
 }
 function release(): void {
+  moduleManager?.devices.release();
   keys.clear(); pointers.clear();
   if (local && session === local) for (const guest of splitScreen.guests.values()) {
     guest.controls = IDLE;
@@ -2702,9 +2707,8 @@ exportUniverseBtn.addEventListener('click', async () => {
   try {
     const universe = session.world.universe;
     const bytes = await encodeUniverse(universe);
-    downloadBytes(`${universe.id}.spaceuniverse`, bytes);
-    const original = new TextEncoder().encode(JSON.stringify(universe)).length;
-    show('universe-status', `Exported ${universe.name}: ${(bytes.length / 1024).toFixed(1)} KiB compressed, ${Math.round((1 - bytes.length / original) * 100)}% smaller than JSON.`);
+    downloadBytes(`${universe.id}.spacedata`, bytes);
+    show('universe-status', `Exported ${universe.name}: ${(bytes.length / 1024).toFixed(1)} KiB of reusable universe definitions (.spacedata).`);
   } catch (error) { show('universe-status', `Universe was not exported: ${message(error)}`); }
 });
 element('export-universe-json').addEventListener('click', () => {
@@ -2719,8 +2723,11 @@ moduleInput.addEventListener('change', async () => {
   const file = moduleInput.files?.[0], originalWorld = session.world;
   if (!file) return;
   try {
-    if (file.size > MAX_MODULE_BYTES) throw new Error('Module files must be at most 4 MiB.');
-    const text = await file.text();
+    if (file.size > MAX_ARCHIVE_BYTES) throw new Error('Data files must be at most 32 MiB.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const packaged = isZip(bytes);
+    if (!packaged && file.size > MAX_MODULE_BYTES) throw new Error('Legacy module files must be at most 4 MiB.');
+    const text = packaged ? JSON.stringify(await decodeDataFile(bytes, 'content')) : new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     if (session.world !== originalWorld) throw new Error('The active session changed while loading.');
     loadModuleText(text);
   } catch (error) { show('module-status', `Module was not loaded: ${message(error)}`); }
@@ -2748,7 +2755,7 @@ function loadModuleText(text: string): void {
     prepared.runtime.activate(prepared.candidate);
     reset();
     focusOnShipForNewWorld();
-    show('module-status', local.world.soloPreview ? 'Module loaded into a new solo preview. World saves and hosting are unavailable; export the module/profile to keep it.' : 'Module profile loaded into a new world.');
+    show('module-status', local.world.soloPreview ? 'Module loaded into a new solo preview. Universe saves and hosting are unavailable; export the module/profile to keep it.' : 'Module profile loaded into a new world.');
   };
   const enable = element<HTMLButtonElement>('enable-imported-profile');
   enable.hidden = true;
@@ -2762,10 +2769,12 @@ element('reset-modules').addEventListener('click', () => {
   if (session !== local || local.hosting) return;
   setUniverse(DEFAULT_UNIVERSE);
 });
-element('export-module').addEventListener('click', () => {
+element('export-module').addEventListener('click', async () => {
   const data = worldModules(session.world)?.data;
-  if (data?.length === 1) download(`${data[0]!.manifest.id}.json`, exportDataModule(data[0]!));
-  else if (data?.length) exportModuleProfile();
+  try {
+    if (data?.length === 1) downloadBytes(`${data[0]!.manifest.id}.spacedata`, await encodeDataFile('content', data[0]!));
+    else if (data?.length) exportModuleProfile();
+  } catch (error) { show('module-status', `Data was not exported: ${message(error)}`); }
 });
 function currentModuleBundle(): ModuleBundle {
   const current = worldModules(session.world);
@@ -3192,7 +3201,7 @@ function updateMultiplayer(): void {
   // Other tabs' worlds are listed while this one could join them.
   if (offline && sameBrowser && !discovery) discovery = new LocalDiscovery(renderLocalWorlds);
   else if (!offline && discovery) { discovery.close(); discovery = undefined; }
-  if (!offline) stopScan();
+  if (!offline || pending || reply || answering || connectingServer) stopScan();
   renderLocalWorlds(discovery?.worlds() ?? []);
   lastLists = -Infinity;
 }
@@ -3386,12 +3395,23 @@ element<HTMLTextAreaElement>('host-reply').addEventListener('paste', event => {
 });
 
 function startClient(connection: Connection): void {
+  const identity = new JoinIdentity();
+  const joiningWorld = local.world;
+  const installed = worldModules(joiningWorld);
+  const code = [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative')];
   const client: ClientSession = new ClientSession(connection, {
     name: pilotName(), ...(passwordInput.value ? { password: passwordInput.value } : {}),
-    token: joinTokenFor, saveToken: (worldId, token, playerId) => rememberJoinToken(worldId, token, playerId, client.hostSeat),
-    lock: local.world.lock, simulationFingerprint: local.world.simulationFingerprint,
-    createContext: worldModules(local.world)?.createContext,
-    rules: local.world.rules, forces: local.world.forces, commands: local.world.commands,
+    token: (worldId, hostId) => identity.token(worldId, hostId),
+    saveToken: (worldId, token, playerId) => identity.remember(worldId, token, playerId, client.hostSeat),
+    lock: joiningWorld.lock, simulationFingerprint: joiningWorld.simulationFingerprint,
+    createContext: installed?.createContext,
+    rules: joiningWorld.rules, forces: joiningWorld.forces, commands: joiningWorld.commands,
+    verifyCandidate: candidate => {
+      if (local.world !== joiningWorld) return { ok: false, reason: 'Your local game changed while joining. Try joining again.' };
+      if (!installed) return { ok: false, reason: 'Load an installed game before joining this server.' };
+      if (installed.runtime) return moduleManager!.devices.verifyCandidate(candidate);
+      return verifyServerCandidate(candidate, { environment: environment(), profile: installed.profile, data: installed.data, code });
+    },
   });
   pending = client;
   updateMultiplayer();
@@ -3410,6 +3430,7 @@ function startClient(connection: Connection): void {
   client.onplayers = () => { lastLists = -Infinity; };
   client.onnotice = text => { notify(text); logChatMessage('system', text); };
   client.onclose = reason => {
+    identity.release();
     if (pending === client) pending = undefined;
     if (remote?.client === client) {
       remote = undefined;
@@ -3487,6 +3508,7 @@ async function join(): Promise<void> {
   }
   let url: string;
   try { url = serverUrl(text, location.protocol === 'https:'); } catch (error) { mpStatus(message(error)); return; }
+  stopScan();
   mpStatus(`Connecting to ${url}…`);
   connectingServer = true;
   joinButton.disabled = true;
@@ -3542,12 +3564,22 @@ element('scan-lan').addEventListener('click', async () => {
     onprogress: (done, total) => { if (scan === current) mpStatus(`Scanning ${done}/${total}… ${found ? `${found} found.` : ''}`); },
     onfound: server => {
       found++;
-      list.append(joinRow(server.name, `${server.address} · ${server.players}/${server.maxPlayers}${server.password ? ' · password' : ''}`
+      const row = joinRow(server.name, `${server.address} · ${server.players}/${server.maxPlayers}${server.password ? ' · password' : ''}`
         + `${server.compatible ? '' : ' · other version'}`, `Join ${server.name} at ${server.address}`, () => {
         joinInput.value = server.address;
         if (server.password) element('password-row').hidden = false;
         void join();
-      }, !server.compatible));
+      }, !server.compatible);
+      if (!server.compatible) {
+        const link = document.createElement('a');
+        link.href = serverLink(server.address);
+        link.textContent = 'Open server game';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.title = 'The client and server use different multiplayer versions. Open the matching game served by this server, or update both together.';
+        row.querySelector('small')!.append(' · ', link);
+      }
+      list.append(row);
     },
   });
   if (scan !== current) return;
@@ -3565,15 +3597,17 @@ window.addEventListener('pagehide', () => {
   discovery = undefined;
 });
 
-// World files: the whole world (clock, every ship, pilots) as portable JSON.
-element('save-world').addEventListener('click', () => {
+// A universe save contains progress; reusable definitions export separately as .spacedata.
+element('save-world').addEventListener('click', async () => {
   if (session !== local || local.world.soloPreview) return;
   rememberToken(local.world.id, local.token, local.playerId);
   const save = saveWorld(local.world, { players: local.host.roster(), hostId: local.playerId, paused: local.paused,
     savedAt: new Date().toISOString() });
-  download(`space-sim-world-${local.world.id}.json`, JSON.stringify(save, null, 1));
-  notify(`World saved with ${local.world.size} ${local.world.size === 1 ? 'ship' : 'ships'}. A dedicated server can run it with --import.`);
-  profiler.event('world-save', { ships: local.world.size });
+  try {
+    downloadBytes(`${save.universe.id.replace(/[^a-z0-9._-]/gi, '-').slice(0, 80)}-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.spaceuniverse`, await encodeUniverseSave(save));
+    notify(`Universe saved with ${save.ships.length} ${save.ships.length === 1 ? 'ship' : 'ships'}. A dedicated server can run it with --import.`);
+    profiler.event('world-save', { ships: save.ships.length });
+  } catch (error) { notify(`Universe was not saved: ${message(error)}`); }
 });
 const worldFileInput = element<HTMLInputElement>('world-file');
 element('load-world').addEventListener('click', () => worldFileInput.click());
@@ -3582,12 +3616,24 @@ worldFileInput.addEventListener('change', async () => {
   if (!file) return;
   const originalWorld = session.world;
   try {
-    if (session !== local || local.hosting) throw new Error('Load worlds in your solo game.');
-    if (file.size > 64 * 1024 * 1024) throw new Error('World files must be at most 64 MiB.');
-    const text = await file.text();
+    if (session !== local || local.hosting) throw new Error('Load universe saves in your solo game.');
+    if (file.size > 64 * 1024 * 1024) throw new Error('Universe save files must be at most 64 MiB.');
+    const saved = await decodeUniverseSave(new Uint8Array(await file.arrayBuffer()));
     if (session.world !== originalWorld || session !== local || local.hosting) throw new Error('The active session changed while loading.');
     const installedProfile = worldModules(local.world);
-    const loaded = loadInstalledWorld(JSON.parse(text), { environment: environment(),
+    if (installedProfile?.runtime) {
+      await moduleManager!.devices.loadWorldGame(installedProfile.runtime, { profile: installedProfile.profile, data: installedProfile.data,
+        code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative')], restore: saved }, prepared => {
+        checkCommandKeys(prepared.loaded.world.commands);
+        rememberWorldModules(prepared.loaded.world, { ...installedProfile, createContext: prepared.createContext });
+        const next = new LocalSession(prepared.loaded.world, { name: pilotName(), players: prepared.loaded.players,
+          ...(prepared.loaded.hostId ? { hostId: prepared.loaded.hostId } : {}) });
+        local.world.dispose(); local = next; useSession(local, true); setPaused(true, 'Universe loaded');
+      });
+      notify('Universe loaded.');
+      return;
+    }
+    const loaded = loadInstalledWorld(saved, { environment: environment(),
       data: worldModules(local.world)?.data, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative'
         && worldModules(local.world)?.profile.modules.some(ref => ref.id === m.manifest.id))] });
     if (loaded.prepared) rememberWorldModules(loaded.world, { data: worldModules(local.world)?.data ?? [], profile: loaded.prepared.profile,
@@ -3595,10 +3641,11 @@ worldFileInput.addEventListener('change', async () => {
       universeKey: installedProfile?.universeKey ?? `builtin.content/${loaded.world.universe.id}`, createContext: loaded.prepared.createContext });
     if (!universes.has(loaded.world.universe.id)) universes.set(loaded.world.universe.id, loaded.world.universe);
     replaceLocalWorld(loaded.world, { players: loaded.players, ...(loaded.hostId ? { hostId: loaded.hostId } : {}) });
-    setPaused(true, 'World loaded');
+    setPaused(true, 'Universe loaded');
+    notify('Universe loaded.');
     profiler.event('world-load', { world: loaded.world.id, ships: loaded.world.size });
   } catch (error) {
-    alert(`World was not loaded: ${message(error)}`);
+    alert(`Universe was not loaded: ${message(error)}`);
   } finally {
     worldFileInput.value = '';
   }
@@ -4181,6 +4228,7 @@ function frame(now: number): void {
   const elapsed = lastWall === undefined ? 0 : (now - lastWall) / 1000;
   lastWall = now;
   profiler.begin(elapsed * 1000);
+  moduleManager?.devices.sample(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden);
   splitScreen.pollPads();
   splitScreen.sync();
   splitScreen.applyInput(elapsed);
@@ -4605,6 +4653,7 @@ session = local;
 syncPresetSelect();
 local.spawn(local.world.presetId(preset.value || 'pad'), false);
 moduleManager = new ModuleManager(presentation, {
+  world: () => session.world,
   current: () => ({ profile: worldModules(local.world)?.profile ?? DEFAULT_PROFILE,
     data: worldModules(local.world)?.data ?? [], editable: session === local && !local.hosting,
     universe: worldModules(local.world)?.baseUniverse ?? local.world.universe, universeKey: worldModules(local.world)?.universeKey ?? `builtin.content/${local.world.universe.id}`,
@@ -4612,6 +4661,7 @@ moduleManager = new ModuleManager(presentation, {
     systemId: local.world.systemId }),
   apply: (profile, data, selection) => {
     const current = worldModules(local.world);
+    if (current?.runtime) throw new Error('This game uses a v2 simulation selection. Load its game package to restart it with the complete selection.');
     const prepared = prepareLocalWorld(current?.baseUniverse ?? local.world.universe, selection.system,
       { data, profile, universeKey: selection.universe });
     replaceLocalWorld(prepared.world);
@@ -4622,6 +4672,7 @@ moduleManager = new ModuleManager(presentation, {
 });
 function switchToOrbitSandbox(): void {
   if (orbitSandboxInstance?.isOpen()) return;
+  moduleManager?.devices.clear();
   setPaused(true, 'Playing Orbit Sandbox');
   const flightConsole = document.getElementById('flight-console');
   const sandboxWorkspace = document.getElementById('orbit-sandbox-workspace');
@@ -4665,21 +4716,24 @@ labManager = new LabManager({
   builtin: defaultGame,
   builtins: [defaultGame, orbitSandboxGame],
   install: plugin => moduleManager!.install(plugin), legacy: loadModuleText,
+  installDevicePackage: (bytes, source) => moduleManager!.installDevicePackage(bytes, source),
   universe: universe => { importUniverse(universe); show('universe-status', `Loaded ${universe.name}. Export a compressed universe or save its setup as a game.`); },
   editable: () => session === local && !local.hosting,
   world: () => session.world,
-  capture: () => {
+  capture: async () => {
     const bundle = currentModuleBundle();
+    const world = local.world, runtime = await moduleManager!.devices.capture();
+    if (local.world !== world || session !== local || local.hosting) throw new Error('The active session changed while exporting');
     return { format: 'space-lab-game/1', info: { ...activeGameInfo, id: `local.game-${crypto.randomUUID()}` }, bundle,
-      plugins: moduleLibrary.artifacts.filter(a => bundle.code?.some(ref => ref.id === a.manifest.id)) };
+      plugins: moduleLibrary.artifacts.filter(a => bundle.code?.some(ref => ref.id === a.manifest.id)), ...(runtime ? { runtime } : {}) };
   },
-  play: game => {
+  play: async game => {
     if (session !== local || local.hosting) throw new Error('Leave multiplayer before switching games');
     if (game.info.id === 'builtin.orbit-sandbox') {
       switchToOrbitSandbox();
       return;
     }
-    switchToSpaceSim();
+    const previousWorld = local.world;
     const code = artifactModules(game.plugins, environment());
     const authoritative = [...GAME_EXAMPLES, ...code.filter(m => m.manifest.authority === 'authoritative')];
     const display = code.filter(m => m.manifest.authority === 'presentation');
@@ -4687,22 +4741,40 @@ labManager = new LabManager({
     // Resolve both profiles before any initializer or source evaluation.
     createBuiltinRegistry(game.bundle.modules, authoritative).resolve(game.bundle.profile, environment(), ['motion', 'content']);
     createPresentationRegistry([...PRESENTATION_EXAMPLES, ...display]).resolve(displayProfile, environment(), ['renderer']);
+    if (game.runtime) {
+      await moduleManager!.devices.loadWorldGame(game.runtime, { profile: game.bundle.profile, data: game.bundle.modules, code: authoritative,
+        universe: DEFAULT_UNIVERSE, universeKey: game.bundle.selection.universe, systemId: game.bundle.selection.system }, prepared => {
+        const next = new LocalSession(prepared.loaded.world, { name: pilotName() });
+        checkCommandKeys(prepared.loaded.world.commands);
+        presentation.applyGame(display, displayProfile);
+        rememberWorldModules(prepared.loaded.world, { data: game.bundle.modules, profile: game.bundle.profile,
+          baseUniverse: DEFAULT_UNIVERSE, universeKey: game.bundle.selection.universe, createContext: prepared.createContext, runtime: game.runtime });
+        switchToSpaceSim(); moduleLibrary.replace(game.plugins); moduleManager!.resetData(game.bundle.modules);
+        local.world.dispose(); local = next; activeGameInfo = { ...game.info };
+        useSession(local, true); reset(); focusOnShipForNewWorld();
+      });
+      return;
+    }
     const prepared = prepareLocalWorld(DEFAULT_UNIVERSE, game.bundle.selection.system,
       { data: game.bundle.modules, profile: game.bundle.profile, universeKey: game.bundle.selection.universe, code: authoritative });
     let next: LocalSession;
     try {
       next = new LocalSession(prepared.world, { name: pilotName() });
-      presentation.applyGame(display, displayProfile);
+      moduleManager!.devices.loadLegacyGame(() => {
+        if (local.world !== previousWorld || session !== local || local.hosting) throw new Error('The active session changed while loading');
+        presentation.applyGame(display, displayProfile);
+        prepared.runtime.activate(prepared.candidate);
+        switchToSpaceSim();
+        moduleLibrary.replace(game.plugins);
+        moduleManager!.resetData(game.bundle.modules);
+        local.world.dispose();
+        local = next;
+        activeGameInfo = { ...game.info };
+        useSession(local, true);
+        reset();
+        focusOnShipForNewWorld();
+      });
     } catch (error) { prepared.candidate.dispose(); throw error; }
-    prepared.runtime.activate(prepared.candidate);
-    moduleLibrary.replace(game.plugins);
-    moduleManager!.resetData(game.bundle.modules);
-    local.world.dispose();
-    local = next;
-    activeGameInfo = { ...game.info };
-    useSession(local, true);
-    reset();
-    focusOnShipForNewWorld();
   },
 });
 void labManager.start();

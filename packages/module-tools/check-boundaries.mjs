@@ -9,6 +9,12 @@ const publicEntry = 'packages/game-api/src/index';
 // These are composition/validation/platform bridges, not player-authored modules.
 // Keep exceptions exact so a new private dependency requires an explicit review.
 const bridges = {
+  // Mixed-game composition is an engine adapter, like index.ts; never a portable module.
+  'packages/modules/src/installed.ts': [
+    'packages/game-runtime/src/authoritative', 'packages/game-runtime/src/game-loader',
+    'packages/game-runtime/src/loader', 'packages/game-runtime/src/modules-v2', 'packages/game-runtime/src/package-store',
+    'packages/sim-core/src/module-world', 'packages/sim-core/src/save', 'packages/sim-core/src/world', 'packages/sim-core/src/universe',
+  ],
   'packages/modules/src/index.ts': [
     'packages/game-runtime/src/index', 'packages/game-runtime/src/validation',
     'packages/sim-core/src/services', 'packages/sim-core/src/universe', 'packages/sim-core/src/world', 'packages/sim-core/src/save',
@@ -33,7 +39,7 @@ export function checkSource(source, path) {
     if (!specifier || specifier.type !== 'Literal' || typeof specifier.value !== 'string') { errors.push(`${path}: computed module imports are unsupported`); return; }
     const raw = specifier.value;
     const target = relative(root, resolve(root, dirname(path), raw)).replaceAll('\\', '/').replace(/\.(ts|js|mjs)$/, '');
-    const localRoot = publicRoots.find(root => path.startsWith(root)) ?? `${path.split('/').slice(0, 3).join('/')}/`;
+    const localRoot = (path.startsWith('examples/packages/') ? `${path.split('/').slice(0, 3).join('/')}/` : undefined) ?? publicRoots.find(root => path.startsWith(root)) ?? `${path.split('/').slice(0, 3).join('/')}/`;
     const allowed = raw === '@space-sim/game-api' || raw.startsWith('.') && (target === publicEntry
       || (target.startsWith(localRoot) && target !== localRoot.slice(0, -1))
       || bridges[path]?.includes(target));
@@ -63,7 +69,7 @@ async function collect(path) {
   return files;
 }
 export async function checkBoundaries() {
-  const files = (await Promise.all(['packages/game-api/src', 'packages/game-runtime/src', 'packages/modules/src', 'examples/modules'].map(collect))).flat();
+  const files = (await Promise.all(['packages/game-api/src', 'packages/game-runtime/src', 'packages/modules/src', 'examples/modules', 'examples/packages'].map(collect))).flat();
   const errors = (await Promise.all(files.map(async path => checkSource(await readFile(resolve(root, path), 'utf8'), path)))).flat();
   if (errors.length) throw new Error(errors.join('\n'));
   return files.length;

@@ -1,0 +1,171 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "after": [],
+    "apiVersion": "space-sim-game-api/1",
+    "authority": "presentation",
+    "before": [],
+    "dependencies": [],
+    "environments": [
+      "browser",
+      "offline"
+    ],
+    "format": "space-sim-module/1",
+    "id": "local.telemetry",
+    "kind": "provider",
+    "license": "MIT",
+    "name": "Local telemetry",
+    "provides": [],
+    "requires": [],
+    "settings": {},
+    "slots": [],
+    "version": "0.1.0"
+  },
+  "entry": "src/entry.ts",
+  "build": {
+    "bundle": "dist/module.js",
+    "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/1",
+    "inputsDigest": "0ec381ba45144c47bfde871ddbf8e018857e17b4cd8281a9f7e58501723fc2e5"
+  },
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [
+    {
+      "path": "assets/color.txt",
+      "mediaType": "text/plain"
+    }
+  ],
+  "data": [],
+  "guides": [],
+  "inputs": [
+    {
+      "path": "assets/color.txt",
+      "sha256": "64a43947cf3f0a2f786df439f5ddd2bd23b85ec9d916aea5b997a056accea585",
+      "license": "MIT",
+      "attribution": "Space Sim first-party authoring example. Licensed under MIT."
+    },
+    {
+      "path": "game-api/commands.ts",
+      "sha256": "84acac405233c00e816e9b1237031053e42d6914704ae9ef8ff416bc277bd186",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/context.ts",
+      "sha256": "2a816e753e0af866825ee51c064addf9a31eb433a693bac01e9d2f53020d821e",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/engine.ts",
+      "sha256": "4c002bc613c0d1781c146e049a420859fb1fd37eae198de344b98ae41ce08eb7",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/index.ts",
+      "sha256": "264aa4018686a1ec2941195922485a34ad1d4208ead5c959ae1e21f361b89cae",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/math.ts",
+      "sha256": "62203a4f5d14a07e98963dbd4d20810dcd66cfce1ad502e2738e451fc417016c",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/modules-v2.ts",
+      "sha256": "fca2b614acf97f701283f0e22c01b40096d9898373d3abf428621e309db5243b",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/modules.ts",
+      "sha256": "141ba35f38c4a481469248f7138284d953fabc1c7a6fa234d3a7422c00e7dbc7",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/motion.ts",
+      "sha256": "f151758f7fc1b1bb44cacb75e8aa7283cf6f9a293c15d0d19174e59ec86e7d57",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/orbit.ts",
+      "sha256": "d7fb82248be53ea51b7469fc0c088bd9664cfec905e0b72c13fe14d03bdd97a5",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/platform.ts",
+      "sha256": "62dc8fef56ae0f52bcf21d4c41a8f74da07a3745442e93ff8dd29e02b00694ee",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/presentation.ts",
+      "sha256": "06f53f616e41960f554105ea477757ad40e4cfc1f5c972ebcb55a5cd39045a4f",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/rules.ts",
+      "sha256": "fa8c75da4f7a046e25ed12e25d388b878753eef6edbceca9c1298d4bd7d6d8ec",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/services.ts",
+      "sha256": "6f97c3c49149a5cff1d99f29db75ed118b614f7263817ed3628e04291cdbdfd9",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/session.ts",
+      "sha256": "d360a3deecb8956184cadaca4c00e94cebea7f97441ce7e5d69a4b08d17cd27f",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/state.ts",
+      "sha256": "a7d7a9a0df9a8fe85023257dc1d7752fece56870bddaa014eee19e09ae132c48",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/surface.ts",
+      "sha256": "0b0fb0eda442ae53c9fde6864ce7dc6e801333ef9eca857187c854558a19cf67",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/universe.ts",
+      "sha256": "016dfa7beef22caba7ca3c31121914cb5f7234934233bf1615341e66ec4b0d8d",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/world.ts",
+      "sha256": "88eb2f57e5663afd1f59f3741b45074fc8e34367ed549eb5dc0e3425e23cb2d3",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "src/entry.ts",
+      "sha256": "4221bc0791400ed987135fc2b4a3c3b8dea52754be0804d95fb08360c204a4af",
+      "license": "MIT",
+      "attribution": "color.txt\nMIT\nSpace Sim first-party authoring example. Licensed under MIT.\n\ngame-api/commands.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/context.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/index.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/math.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/modules.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/motion.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/orbit.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/presentation.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/rules.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/services.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/state.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/surface.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/universe.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/world.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\nmain.ts\nMIT\nSpace Sim first-party authoring example. Licensed under MIT.\n"
+    },
+    {
+      "path": "src/main.ts",
+      "sha256": "e60074ded94185341249d33c3850a8aafb5fb0aa02023891c6f9994ae5639940",
+      "license": "MIT",
+      "attribution": "Space Sim first-party authoring example. Licensed under MIT."
+    }
+  ],
+  "sourceStatus": "included"
+}

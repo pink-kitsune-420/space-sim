@@ -109,7 +109,13 @@ npm run test:browser
 ```
 
 ### Packaging Binaries
+Packaging rebuilds current sources before creating executables. `npm run build` alone
+updates bundles and offline HTML; it does not replace existing standalone executables.
+
 ```sh
+# Matching standalone desktop game and dedicated server (one shared build)
+npm run package -- --target=multiplayer
+
 # Standalone desktop game executable for current OS (dist-desktop/space-sim)
 npm run package -- --target=desktop-exe
 

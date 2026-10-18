@@ -5,6 +5,7 @@ import type {
   ModuleState,
   ModuleValue,
   WorldRuleExtension,
+  UniverseDefinition,
 } from '../../game-api/src/index';
 import { validateModuleState } from './motion';
 import { freezeJson } from './validation';
@@ -22,7 +23,11 @@ const K = new Uint32Array([
 ]);
 
 export function sha256Hex(text: string): string {
-  const data = new TextEncoder().encode(text);
+  return sha256Bytes(new TextEncoder().encode(text));
+}
+
+/** Hash raw bytes without decoding binary assets or normalizing source text. */
+export function sha256Bytes(data: Uint8Array): string {
   const blocks = Math.ceil((data.length + 9) / 64);
   const bytes = new Uint8Array(blocks * 64);
   bytes.set(data);
@@ -78,6 +83,12 @@ export function canonicalJson(value: unknown): string {
     return `{${entries.join(',')}}`;
   }
   throw new Error(`Cannot canonically serialize value of type ${typeof value}`);
+}
+
+/** Bind physical definitions while retaining viewer-only palette/labels outside authority. */
+export function physicalUniverseDigest(universe: UniverseDefinition): string {
+  const visual = new Set(['name', 'description', 'author', 'color', 'accentColor', 'atmosphereColor', 'horizonColor', 'skyColor', 'zoom']);
+  return sha256Hex(canonicalJson(JSON.parse(JSON.stringify(universe, (key, value: unknown) => visual.has(key) ? undefined : value))));
 }
 
 export interface AuthoritativeLockOptions {

@@ -44,6 +44,7 @@ function clientAssets(): Plugin {
 }
 
 export default defineConfig({
+  define: { __SPACE_SIM_ALLOW_RUNTIME_CODE__: JSON.stringify(process.env.SPACE_SIM_ALLOW_RUNTIME_CODE !== 'false') },
   publicDir: false,
   plugins: [clientAssets()],
   build: {

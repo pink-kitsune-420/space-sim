@@ -23,7 +23,7 @@ async function folder(): Promise<string> {
   return dir;
 }
 async function server(dataDir: string, extra: Partial<Parameters<typeof startServer>[0]> = {}): Promise<RunningServer> {
-  const running = await startServer({ dataDir, overrides: { port: 0, host: '127.0.0.1', ...extra.overrides }, log: () => {}, ...extra });
+  const running = await startServer({ dataDir, log: () => {}, ...extra, overrides: { port: 0, host: '127.0.0.1', ...extra.overrides } });
   cleanup.push(() => running.stop());
   return running;
 }

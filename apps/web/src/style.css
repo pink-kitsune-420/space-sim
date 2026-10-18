@@ -473,7 +473,7 @@ input[type=range] {
   vertical-align:middle;
   margin-right:7px
 }
-.help,.shader-settings,.module-settings,.code-module-settings,.presentation-settings,.stress-test,.planet-designer {
+.help,.shader-settings,.module-settings,.code-module-settings,.device-module-settings,.presentation-settings,.stress-test,.planet-designer {
   border:1px solid var(--ui-win-border);
   border-radius:7px;
   margin-top:22px;
@@ -494,7 +494,7 @@ input[type=range] {
   line-height:1.7;
   color:#8fa5b0
 }
-.shader-settings summary,.module-settings summary,.code-module-settings summary,.presentation-settings summary {
+.shader-settings summary,.module-settings summary,.code-module-settings summary,.device-module-settings summary,.presentation-settings summary {
   overflow-wrap:anywhere
 }
 #shader-status {

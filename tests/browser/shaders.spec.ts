@@ -1,3 +1,4 @@
+import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { openPanel } from '../helpers/workspace';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -34,8 +35,8 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   await page.locator('.shader-settings summary').click();
   const downloadEvent = page.waitForEvent('download');
   await page.locator('#export-shader').click();
-  const defaults = JSON.parse(await readFile(await (await downloadEvent).path(), 'utf8'));
-  expect(Object.keys(defaults.passes)).toEqual(['scene', 'vector', 'text']);
+  const defaults = await (await packageContracts()).decodeDataFile(new Uint8Array(await readFile(await (await downloadEvent).path())), 'shaders') as any;
+  expect(Object.keys(defaults.passes).sort()).toEqual(['scene', 'text', 'vector']);
   await load(page, pack({ scene: { fragment: scene } }));
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
@@ -47,12 +48,13 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   await openPanel(page, 'tools');
   const customDownload = page.waitForEvent('download');
   await page.locator('#export-shader').click();
-  const exported = await readFile(await (await customDownload).path(), 'utf8');
-  expect(JSON.parse(exported).passes.scene.fragment).toBe(scene);
+  const exported = await readFile(await (await customDownload).path());
+  const decoded = await (await packageContracts()).decodeDataFile(new Uint8Array(exported), 'shaders') as any;
+  expect(decoded.passes.scene.fragment).toBe(scene);
   await page.locator('#reset-shader').click();
   await expect(page.locator('#shader-name')).toHaveText('Default');
   expect(await pixel(page)).toEqual(original);
-  await load(page, exported);
+  await page.locator('#shader-file').setInputFiles({ name: 'shaders.spacedata', mimeType: 'application/zip', buffer: exported });
   expect(await pixel(page)).toEqual([51, 102, 153, 255]);
   await load(page, JSON.stringify(defaults));
   expect(await pixel(page)).toEqual(original);
@@ -150,7 +152,7 @@ test('full packs replace all stages and receive drawing roles, glyph textures an
   await page.locator('.shader-settings summary').click();
   const downloadEvent = page.waitForEvent('download');
   await page.locator('#export-shader').click();
-  const full = JSON.parse(await readFile(await (await downloadEvent).path(), 'utf8'));
+  const full = await (await packageContracts()).decodeDataFile(new Uint8Array(await readFile(await (await downloadEvent).path())), 'shaders') as any;
   full.name = 'All stages';
   full.passes.scene.fragment = scene;
   full.passes.vector.fragment = `#version 300 es
