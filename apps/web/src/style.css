@@ -3697,3 +3697,24 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
 .maneuver-adjust button { flex: 1; min-height: 32px; font-size: 11px; }
 .maneuver-window output { display: block; font-size: 12px; line-height: 1.5; }
 #maneuver-status, #maneuver-summary { color: #f7c775; }
+
+/* Responsive defaults and optional, saved HUD positions. Translation preserves each default anchor. */
+#flight-console .hud-quickbar, #flight-console .view-time { position:relative; inset:auto }
+#flight-console .hud-top-stacked .hud-top-right { top:var(--hud-status-bottom,56px) }
+#flight-message { top:var(--hud-message-top,62px) }
+#terrain-notice { top:var(--hud-notice-top,94px) }
+#flight-console .telemetry { bottom:max(12px,var(--hud-touch-inset,0px)) }
+.chat-overlay { bottom:max(12px,var(--hud-touch-inset,0px)) }
+#flight-console .viewport.chat-overlaps-telemetry > .telemetry { bottom:var(--chat-telemetry-inset,12px) }
+.hud-move-handle { display:none; position:absolute; left:4px; top:0; z-index:2; max-width:100%; padding:4px 7px; border:1px solid var(--ui-win-accent); border-radius:5px; background:var(--ui-win-bg); color:var(--ui-win-accent); font:10px ui-monospace,monospace; cursor:move; touch-action:none; pointer-events:auto; white-space:nowrap }
+.hud-editing .hud-move-handle { display:block }
+.hud-editing .hud-movable { outline:1px dashed var(--ui-win-accent); outline-offset:3px; overflow:visible!important }
+.hud-editing #flight-message { min-height:30px; border-radius:8px }
+.hud-editing .hud-movable:has(> .hud-move-handle:focus-visible) { outline:2px solid var(--ui-win-accent) }
+.hud-layout-toolbar { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); z-index:80; max-width:calc(100% - 24px); display:flex; align-items:center; gap:10px; padding:10px; border:1px solid var(--ui-win-accent); border-radius:8px; background:var(--ui-win-bg); color:var(--ui-win-text); font-size:12px; pointer-events:auto }
+.hud-layout-toolbar[hidden] { display:none }
+.hud-layout-toolbar button { padding:6px 12px; white-space:nowrap }
+@media(max-width:650px) {
+  #flight-console .telemetry,.chat-overlay { bottom:max(8px,var(--hud-touch-inset,0px)) }
+  .hud-layout-toolbar { flex-wrap:wrap; justify-content:center }
+}

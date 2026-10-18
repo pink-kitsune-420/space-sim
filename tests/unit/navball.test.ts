@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PresentationSnapshot, State, Vec } from '../../packages/game-api/src/index';
 import { validateOverlay } from '../../packages/game-runtime/src/index';
-import { autoFrame, drawNavball, navballState, wrapAngle } from '../../packages/modules/src/base/toolset/navball';
+import { autoFrame, drawNavball, navballFootprint, navballState, wrapAngle } from '../../packages/modules/src/base/toolset/navball';
 import { screenOverlays } from '../../packages/render-2d/src/index';
 
 const R = 512, SPIN = -2 * Math.PI / 600;
@@ -78,6 +78,19 @@ describe('navball state', () => {
 });
 
 describe('navball dial', () => {
+  it('keeps phone readout lines separated at the unscaled font size and inside the shared footprint', () => {
+    const state = navballState(view({ x: 0, y: 640 }, { x: 143, y: 0 }), 'orbit')!;
+    const center = { x: 200, y: 150 }, scale = .65;
+    const primitives = drawNavball(state, center, 0, 'horizon', undefined, 'P2', scale, 'Alt 128 m · Pe 128 m · Ap 128 m');
+    const lines = primitives.filter(p => p.kind === 'text' && p.at.y > center.y);
+    expect(lines).toHaveLength(4);
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i]!, previous = lines[i - 1]!;
+      if (line.kind === 'text' && previous.kind === 'text') expect(line.at.y - previous.at.y).toBeGreaterThanOrEqual(14);
+    }
+    const footprint = navballFootprint(scale, true);
+    for (const line of lines) if (line.kind === 'text') expect(line.at.y).toBeLessThan(center.y + footprint.below);
+  });
   it('stays within the overlay limits and draws in screen space', () => {
     const s = navballState(view({ x: 0, y: 640 }, { x: 143, y: 0 }, 1), 'orbit')!;
     const primitives = validateOverlay(drawNavball(s, { x: 400, y: 450 }, Math.PI / 2 - s.zenith, 'horizon'));

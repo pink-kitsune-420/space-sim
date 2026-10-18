@@ -92,6 +92,10 @@ export class FloatingWindow {
     const observer = new ResizeObserver(() => this.position());
     observer.observe(container);
     observer.observe(panel);
+    document.addEventListener('hud-layout-reset', () => {
+      this.settings.x = this.settings.y = this.settings.width = this.settings.height = undefined;
+      this.position(); this.save();
+    });
     this.render();
   }
 

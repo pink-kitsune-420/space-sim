@@ -240,7 +240,8 @@ export function drawNavball(
   }
 
   // Readout beneath the dial.
-  const y = center.y + track + glyph + 18 * scale;
+  // Overlay fonts remain 11 CSS pixels when the dial shrinks: keep baseline spacing readable.
+  const y = center.y + track + glyph + 18;
   if (state.maneuver !== undefined) {
     const p = at(state.maneuver, track + 4 * scale), size = 4 * scale;
     out.push({ kind: 'line', space: 'screen', color: '#f7c775', width: 2, closed: true,
@@ -250,12 +251,12 @@ export function drawNavball(
   const steer = state.steering === undefined ? '' : `  Δ ${state.steering >= 0 ? '+' : ''}${Math.round(state.steering * 180 / Math.PI)}°`;
   out.push({ kind: 'text', space: 'screen', at: { x: center.x, y }, color: LABEL, align: 'center',
     text: `${playerLabel ? playerLabel + ' · ' : ''}${state.frame === 'orbit' ? 'ORB' : 'SRF'} · ${orientation === 'horizon' ? 'HRZ' : 'CAM'}` });
-  out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: y + 14 * scale }, color: LABEL, align: 'center',
+  out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: y + 14 }, color: LABEL, align: 'center',
     text: `PITCH ${pitch > 0 ? '+' : ''}${pitch}°${steer}` });
-  out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: y + 28 * scale }, color: LABEL, align: 'center',
+  out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: y + 28 }, color: LABEL, align: 'center',
     text: `${state.speed < 100 ? state.speed.toFixed(1) : Math.round(state.speed).toLocaleString('en-US')} m/s` });
   if (trajectoryText) {
-    out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: y + 42 * scale }, color: accentColor ?? LABEL, align: 'center',
+    out.push({ kind: 'text', space: 'screen', at: { x: center.x, y: y + 42 }, color: accentColor ?? LABEL, align: 'center',
       text: trajectoryText });
   }
   return out;
@@ -263,6 +264,13 @@ export function drawNavball(
 
 /** Room the dial and its readout take beside and below the centre. */
 export const SIDE = TRACK + GLYPH + 3, BELOW = TRACK + GLYPH + 18 + 28 + 6;
+
+/** Conservative CSS-pixel footprint, including handles/banner and unscaled readout text.
+ * Trajectory summaries need extra width and a fourth line. Does not change saved placement. */
+export function navballFootprint(scale = 1, trajectory = false): { side: number; above: number; below: number } {
+  return { side: Math.max(79 * scale, trajectory ? 130 : 100), above: 86 * scale + 14,
+    below: (TRACK + GLYPH) * scale + (trajectory ? 66 : 52) };
+}
 
 export interface NavballPlacementDetail {
   readonly x: number;

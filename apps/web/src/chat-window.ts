@@ -12,6 +12,7 @@ export function initChatWindow(): void {
     for (const key of ['x', 'y', 'width', 'height'] as const) if (Number.isFinite(saved[key]) && ((key === 'x' || key === 'y') || saved[key]! > 0)) layout[key] = saved[key];
   } catch { /* Layout is optional. */ }
   const notify = (): void => { viewport.dispatchEvent(new Event('hud-layout-change')); };
+  viewport.addEventListener('hud-layout-reset', () => { layout = {}; position(); save(); });
   function save(): void {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(layout)); } catch { /* Session-only layout. */ }
     notify();

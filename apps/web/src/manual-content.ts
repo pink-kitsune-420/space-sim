@@ -50,6 +50,10 @@ without ever reaching the ground. That path is called an <b>orbit</b>.</p>
 </ul>
 <p>Click a dock button again or press <kbd>Esc</kbd> to close its window. The <b>pin</b> button keeps a window open
 while you fly. Press {{key:pause}} to pause.</p>
+<p>Open <b>Settings → Edit HUD layout</b> to move the dock, flight controls, clock, status, readings and hints.
+Drag a move handle, or focus it and use the arrow keys. Hold Shift for larger steps. Choose <b>Done</b> when finished.
+Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
+Windows and chat move by their title bars; navballs unlock with their pin buttons. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
 <h3>Where to start</h3>
 <ol>
   <li>Look over <a data-page="controls">Controls</a>, or hold {{key:engine}} to fire the engine and steer with {{key:turnLeft}} {{key:turnRight}}.</li>
@@ -117,8 +121,9 @@ ${deeper('the numbers behind this launch', `
 μ/R² = <b>50 m/s²</b>, about five times Earth's. Your engine gives up to 125 m/s², so at full throttle the
 <b>thrust-to-weight ratio</b> is 2.5. At the default half throttle it is 1.25, barely enough to lift off.</p>
 <p>A circular orbit 128 m up (r = 640 m from the centre) needs a speed of √(μ/r) ≈ <b>143 m/s</b> and takes
-2πr/v ≈ <b>28 s</b> per lap. Anything below 143 m/s at that height falls back down. Above √(2μ/r) ≈ 202 m/s
-you escape Primus entirely.</p>
+2πr/v ≈ <b>28 s</b> per lap when moving along the local horizon. A slower sideways speed lowers the opposite side
+of the orbit; check whether Pe clears the terrain to know if you will hit the ground. The two-body escape speed
+there is √(2μ/r) ≈ <b>202 m/s</b>.</p>
 <p>A <b>gravity turn</b> is the steady tilt in step 2. Climbing straight up the whole way wastes fuel because
 the engine spends all its effort holding you up against gravity. Tilting early puts that effort into
 sideways speed, which you need for orbit anyway.</p>`)}`,
@@ -570,7 +575,7 @@ prediction and camera. If a hook throws an error, only that contribution is swit
   {
     id: 'determinism',
     title: 'Rules for simulation modules',
-    summary: 'Keep worlds identical on every computer',
+    summary: 'Determinism: keep worlds identical on every computer',
     html: `
 <p>Determinism means that the same starting state and inputs produce exactly the same result.
 In multiplayer, every computer runs the same simulation and must get exactly the same result. Simulation

@@ -26,7 +26,7 @@ import { GamepadManager, isButtonDown } from './gamepad';
 import { TouchControlsManager, type TouchMode } from './touch-controls';
 import { SplitScreen, GuestPilot } from './split-screen';
 import { ControllerMenu } from './controller-menu';
-import { PLAYER_COLORS, setPlayerCount, computeNavballCenter, setSlotNavball, defaultNavballPlacement } from './local-players';
+import { PLAYER_COLORS, setPlayerCount, setSlotNavball, defaultNavballPlacement } from './local-players';
 import { shipNavballState, shipAutoFrame, drawNavball, setNavballPlacementProvider, TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH, type NavballFrame } from '../../../packages/modules/src/base/toolset/navball';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
@@ -89,7 +89,7 @@ const workspace = new Workspace(() => release(), () => {
   }
 });
 
-initHudLayout();
+const hudLayout = initHudLayout();
 initFlightWindows(workspace);
 initManual();
 
@@ -264,7 +264,7 @@ const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship
 const maneuver = new ManeuverPlanner(workspace, {
   flight: () => ({ world: session.world, ship: selectedShip(), body: activeBody,
     enabled: presentation.isEnabled('builtin.maneuver-planner'), canWarp: session.canWarp,
-    paused: session.paused, inputBlocked: controlsDialog.open || document.hidden,
+    paused: session.paused, inputBlocked: controlsDialog.open || hudLayout.editing || document.hidden,
     warp: session.warp, requestedWarp: session.requestedWarp }),
   setThrottle: (shipId, throttle) => session.setThrottle(shipId, throttle),
   releaseControls: shipId => {
@@ -310,7 +310,7 @@ const splitScreen = new SplitScreen(viewport, {
   presetId: () => preset.value || 'pad',
   isGodMode: () => godModeToggle.checked,
   keyboardFlight: () => keyboardFlight(),
-  inputEnabled: () => !controlsDialog.open && !document.hidden,
+  inputEnabled: () => !controlsDialog.open && !hudLayout.editing && !document.hidden,
   consumesPad: (slot, pad) => controllerConsumesFlight(slot, pad),
   execute: action => executeAction(action),
   notify: text => notify(text),
@@ -320,6 +320,12 @@ const splitScreen = new SplitScreen(viewport, {
   },
   onGuestPointer: (guest, action, event) => handleGuestPointer(guest, action, event),
   isSlotThrowing: slot => isSlotThrowing(slot),
+});
+viewport.addEventListener('hud-layout-edit', () => { release(); workspace.close(); });
+viewport.addEventListener('hud-layout-reset', () => {
+  let config = splitScreen.config;
+  for (let slot = 0; slot < config.slots.length; slot++) config = setSlotNavball(config, slot, defaultNavballPlacement(slot));
+  splitScreen.setConfig(config);
 });
 controllerMenu = new ControllerMenu(
   splitScreen,
@@ -920,7 +926,7 @@ function showSurfaceWorld(u: UniverseDefinition): void {
 }
 
 function keyboardFlight(): Controls {
-  if (controlsDialog.open || document.hidden) return IDLE;
+  if (controlsDialog.open || hudLayout.editing || document.hidden) return IDLE;
   let kbTurn = 0;
   if (isActionActive('turnLeft')) kbTurn += 1;
   if (isActionActive('turnRight')) kbTurn -= 1;
@@ -931,7 +937,7 @@ function keyboardFlight(): Controls {
 }
 
 function controls(elapsed = 0): Controls {
-  if (controlsDialog.open || document.hidden) return IDLE;
+  if (controlsDialog.open || hudLayout.editing || document.hidden) return IDLE;
   const held = new Set([...pointers.values()]);
   const touch = touchControls.pollFlight();
 
@@ -1489,6 +1495,13 @@ interface NavballHitResult {
   pinned: boolean;
 }
 
+/** Use identical fitted geometry for drawing and pointer/controller picking in every pane. */
+function resolveNavballCenter(slot: number, width: number, height: number, scale: number): Vec {
+  const placement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
+  const paneCanvas = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot)?.canvas ?? canvas : canvas;
+  return hudLayout.navballCenter(placement, width, height, scale, paneCanvas, slot > 0);
+}
+
 function hitTestNavball(
   screenPos: Vec,
   targetSlot: number | 'all',
@@ -1505,7 +1518,7 @@ function hitTestNavball(
     if (targetSlot === 'all' && slot > 0 && splitScreen.isSeparated(slot)) continue;
     const placement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
     const scale = Math.min(1, Math.max(0.65, Math.min(viewportWidth / 600, viewportHeight / 450)));
-    const center = computeNavballCenter(placement, viewportWidth, viewportHeight, scale);
+    const center = resolveNavballCenter(slot, viewportWidth, viewportHeight, scale);
     const pinPos: Vec = { x: center.x + (NAVBALL_TRACK + 2) * scale * 0.72, y: center.y - (NAVBALL_TRACK + 2) * scale * 0.72 };
 
     const dPin = Math.hypot(screenPos.x - pinPos.x, screenPos.y - pinPos.y);
@@ -1726,7 +1739,7 @@ function controllerConsumesFlight(slot: number, padIndex: number): boolean {
 }
 
 function updateControllerCursors(elapsed: number): void {
-  if (!gamepadManager.enabled || controlsDialog.open || document.hidden) { cancelControllerCursors(); return; }
+  if (!gamepadManager.enabled || controlsDialog.open || hudLayout.editing || document.hidden) { cancelControllerCursors(); return; }
   const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
   const maxSlot = splitScreen.active;
 
@@ -1844,7 +1857,7 @@ function updateControllerCursors(elapsed: number): void {
         if (!interactBtn && cursor.interactingPad === padIndex) cursor.interactingPad = undefined;
         const navPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
         const navScale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
-        const navCenter = computeNavballCenter(navPlacement, width, height, navScale);
+        const navCenter = resolveNavballCenter(slot, width, height, navScale);
         const navPinPos: Vec = { x: navCenter.x + (NAVBALL_TRACK + 2) * navScale * 0.72, y: navCenter.y - (NAVBALL_TRACK + 2) * navScale * 0.72 };
         const dPin = Math.hypot(cursor.screenPos.x - navPinPos.x, cursor.screenPos.y - navPinPos.y);
         const dDial = Math.hypot(cursor.screenPos.x - navCenter.x, cursor.screenPos.y - navCenter.y);
@@ -2577,7 +2590,7 @@ setNavballPlacementProvider(() => {
   const w = canvas.clientWidth;
   const h = canvas.clientHeight;
   const scale = Math.min(1, Math.max(0.65, Math.min(w / 600, h / 450)));
-  const center = computeNavballCenter(p1Placement, w, h, scale);
+  const center = resolveNavballCenter(0, w, h, scale);
   const isDragging = activeNavballDrag?.slot === 0;
   return {
     x: center.x,
@@ -3570,7 +3583,7 @@ worldFileInput.addEventListener('change', async () => {
 });
 
 function executeAction(action: ActionId): void {
-  if (controlsDialog.open) return;
+  if (controlsDialog.open || hudLayout.editing) return;
   if (isSlotThrowing(0)) {
     const cameraAlteringActions = new Set<ActionId>([
       'camera', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
@@ -3648,7 +3661,7 @@ throwCheatToggle?.addEventListener('change', () => {
 });
 
 window.addEventListener('keydown', event => {
-  if (controlsDialog.open) return;
+  if (controlsDialog.open || hudLayout.editing) return;
   if (event.target && (event.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return;
   const actions = keyLookup.get(event.code);
   if (actions?.includes('throwShip')) {
@@ -3968,6 +3981,12 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     session: session === local ? (local.hosting ? 'host' : 'local') : 'client', world: world.id,
     ship: selectedShipId ?? null, ships: world.size, asleep: world.asleepCount, fleetView: { ...fleetView.stats },
     players: session.players().filter(p => p.connected).length,
+    hud: { editing: hudLayout.editing, navballs: Array.from({ length: splitScreen.active }, (_, slot) => {
+      const pane = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot)?.canvas ?? canvas : canvas;
+      const width = pane.clientWidth, height = pane.clientHeight;
+      const scale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
+      return { slot, ...resolveNavballCenter(slot, width, height, scale), scale, width, height };
+    }) },
     localPlayers: { count: splitScreen.active, screenMode: splitScreen.config.screenMode,
       guests: [...splitScreen.guests].map(([slot, guest]) => ({ slot, ship: guest.shipId,
         status: guest.state?.status, controls: guest.controls, separated: splitScreen.isSeparated(slot) })),
@@ -4322,7 +4341,7 @@ function frame(now: number): void {
         const gTurn = Math.PI / 2 - gNavState.zenith;
         const gScale = Math.min(1, Math.max(0.65, Math.min(width / 600, height / 450)));
         const gPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
-        const gCenter = computeNavballCenter(gPlacement, width, height, gScale);
+        const gCenter = resolveNavballCenter(slot, width, height, gScale);
         const gTraj = formatTrajectoryStats(guest.state, guest.body, session.world.context);
         const isDragging = activeNavballDrag?.slot === slot;
         const guestNavPrimitives = drawNavball(
@@ -4451,7 +4470,7 @@ function frame(now: number): void {
         const gTurn = Math.PI / 2 - gNavState.zenith;
         const gScale = Math.min(1, Math.max(0.65, Math.min(gWidth / 600, gHeight / 450)));
         const gPlacement = splitScreen.config.slots[slot]?.navball ?? defaultNavballPlacement(slot);
-        const gCenter = computeNavballCenter(gPlacement, gWidth, gHeight, gScale);
+        const gCenter = resolveNavballCenter(slot, gWidth, gHeight, gScale);
         const gTraj = formatTrajectoryStats(guest.state, guest.body, session.world.context);
         const isDragging = activeNavballDrag?.slot === slot;
         gOverlays.push(...drawNavball(
