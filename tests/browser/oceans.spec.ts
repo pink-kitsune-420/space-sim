@@ -5,6 +5,8 @@ import { pathToFileURL } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import ocean from '../../games/space-sim/universes/sandbox/ocean/universe.json' with { type: 'json' };
 import { openPanel } from '../helpers/workspace';
+import { useCanvas } from '../helpers/canvas';
+import { packageContracts } from '../../packages/module-tools/package.mjs';
 
 let script: string;
 test.beforeAll(async () => {
@@ -92,15 +94,17 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   test.setTimeout(60000);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
+  await useCanvas(page);
   await context.setOffline(true);
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
+  await expect(page.locator('#status')).toHaveText('LANDED');
   await page.locator('#universe-file').setInputFiles({ name: 'ocean.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(ocean)) });
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect.poll(async () => (await debug(page)).position?.y).toBe(520);
   const pendingDownload = page.waitForEvent('download');
   await page.locator('#export-universe').click();
-  const exported = JSON.parse(await readFile(await (await pendingDownload).path(), 'utf8'));
-  expect(exported.systems[0].bodies[0].surface).toEqual(ocean.systems[0]!.bodies[0]!.surface);
+  const exported = await (await packageContracts()).decodeDataFile(new Uint8Array(await readFile(await (await pendingDownload).path())), 'universe') as typeof ocean;
+  expect(exported.systems[0]!.bodies[0]!.surface).toEqual(ocean.systems[0]!.bodies[0]!.surface);
   await page.locator('#preset').evaluate(el => {
     (el as HTMLSelectElement).value = 'heavy'; el.dispatchEvent(new Event('change'));
     document.getElementById('pause')!.click();
@@ -123,7 +127,6 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   await expect(page.locator('#flight-message')).toContainText('depth');
   await expect(page.locator('#status')).toHaveText('FLOATING', { timeout: 20000 });
   await openPanel(page, 'settings');
-  await page.locator('#renderer-toggle').click();
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: 2D');
   // Turn inward and burn from rest to demonstrate powered sinking.
   await page.locator('#flight-view').focus();

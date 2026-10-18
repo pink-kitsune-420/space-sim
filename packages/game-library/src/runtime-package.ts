@@ -3,7 +3,7 @@ import { loadCodeModuleV2, loadCodeModules, normalizeLegacyModule } from '../../
 import type { LoadPolicy } from '../../game-runtime/src/loader';
 import type { InspectedRuntimePackage } from '../../game-runtime/src/game-loader';
 import { moduleAssets } from '../../game-runtime/src/modules-v2';
-import { decodeModulePackage, requiredFile, type InspectedModule } from './portable';
+import { decodeModulePackage, requiredFile, type InspectedModule, type ShippedPackageOptions } from './portable';
 
 /** Pure inspection adapter shared by all hosts; no evaluation on decode or store replay. */
 export function runtimePackage(checked: InspectedModule, makeAssets: (files: ReadonlyMap<string, Uint8Array>) => ModuleAssets = moduleAssets): InspectedRuntimePackage {
@@ -31,6 +31,6 @@ export function runtimePackage(checked: InspectedModule, makeAssets: (files: Rea
       return { module: normalizeLegacyModule(module, assets, Object.keys(code.assets)), assets };
     } });
 }
-export async function inspectRuntimePackage(bytes: Uint8Array): Promise<InspectedRuntimePackage> {
-  return runtimePackage(await decodeModulePackage(Uint8Array.from(bytes)));
+export async function inspectRuntimePackage(bytes: Uint8Array, options: ShippedPackageOptions = {}): Promise<InspectedRuntimePackage> {
+  return runtimePackage(await decodeModulePackage(Uint8Array.from(bytes), options));
 }

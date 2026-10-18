@@ -1,0 +1,31 @@
+.hud-dock { position:absolute; right:12px; top:64px; z-index:20; display:flex; flex-direction:column; gap:4px; padding:5px; max-height:calc(100% - 120px); overflow-y:auto; scrollbar-width:none; background:color-mix(in srgb,var(--ui-win-bg) 72%,transparent); border:1px solid var(--ui-win-border); border-radius:12px; backdrop-filter:blur(8px); box-shadow:0 6px 20px #0005 }
+.dock-group { display:flex; flex-direction:column; gap:2px }
+.dock-group + .dock-group { border-top:1px solid var(--ui-win-border); padding-top:4px }
+.dock-item { position:relative; display:flex; flex-direction:column; align-items:center; gap:4px; width:60px; padding:7px 2px 6px; border:1px solid transparent; border-radius:8px; background:transparent; color:#aebfc5; font:600 9px Inter,ui-sans-serif,system-ui,sans-serif; letter-spacing:.2px; line-height:1; transition:background .15s,color .15s }
+.dock-item .ui-icon { width:20px; height:20px; stroke-width:1.6 }
+.dock-item.front::before { box-shadow:0 0 8px var(--ui-win-accent) }
+.window-layer { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none }
+.window-layer > * { pointer-events:auto }
+.dock-item:hover { background:var(--ui-win-hover-bg); color:#fff }
+.dock-item[aria-expanded=true],.dock-item[aria-pressed=true] { color:#fff; background:color-mix(in srgb,var(--ui-win-accent) 13%,transparent); border-color:transparent; box-shadow:none }
+.dock-item[aria-expanded=true] .ui-icon,.dock-item[aria-pressed=true] .ui-icon { color:var(--ui-win-accent) }
+.dock-item[aria-expanded=true]::before,.dock-item[aria-pressed=true]::before { content:''; position:absolute; left:-4px; top:10px; bottom:10px; width:3px; border-radius:2px; background:var(--ui-win-accent) }
+@media(max-width:900px) {
+  .hud-dock { top:108px; max-height:calc(100% - 170px) }
+}
+@media(max-width:650px) {
+  .hud-dock { top:8px; left:8px; right:8px; bottom:auto; max-height:none; flex-direction:row; justify-content:space-between; gap:2px; padding:3px; overflow:visible }
+  .dock-group { flex:1 1 auto; flex-direction:row; justify-content:space-around; gap:0 }
+  .dock-group + .dock-group { border-top:0; padding-top:0; border-left:1px solid var(--ui-win-border); padding-left:2px }
+  .dock-item { flex:1 1 0; width:auto; min-width:0; padding:7px 0 }
+  .dock-item .ui-icon { width:18px; height:18px }
+  .dock-item span { display:none }
+  .dock-item[aria-expanded=true]::before,.dock-item[aria-pressed=true]::before { left:28%; right:28%; top:auto; bottom:-2px; width:auto; height:3px }
+}
+@media(max-height:720px) and (min-width:651px) {
+  .dock-item { width:42px; padding:7px 0 }
+  .dock-item span { display:none }
+}
+@media(max-height:500px) {
+  .dock-item { padding:5px 0 }
+}

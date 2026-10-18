@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "LAN discovery",
+  "summary": "Bounded discovery with borrowed transport and explicit session greeting adapters.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides net.lan-discovery@1.0.0 in browser, offline and Node. No required services and no network IO during initialization. Create a discovery instance with a borrowed reliable text transport, expected protocol ID and bounded greeting parser from a compatible session adapter. Model matching is optional and explicit."
+    },
+    {
+      "type": "paragraph",
+      "text": "Candidate generation uses private IPv4 hint subnets, common home subnets and localhost at an explicitly selected port. Scan defaults to 32 concurrent probes, capped at 64, with 800 ms probe timeout. Disposing an instance/provider or aborting a scan cancels pending and established probes, removes timers and suppresses late reports. No world, pilot, renderer or authoritative persistence is owned by discovery."
+    },
+    {
+      "type": "paragraph",
+      "text": "Discovery reports compatibility metadata only. Joining still requires matching state/command schemas, package identity, authentication and ownership checks. Optional removal leaves manual server addresses available. Build, edit, rebuild and replace the .spacemod through ordinary consent."
+    }
+  ]
+}

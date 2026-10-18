@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
+  resolve: { alias: { '@space-sim/game-api': fileURLToPath(new URL('./packages/game-api/src/index.ts', import.meta.url)) } },
   define: { __SPACE_SIM_ALLOW_RUNTIME_CODE__: JSON.stringify(process.env.SPACE_SIM_ALLOW_RUNTIME_CODE !== 'false') },
   root: 'apps/web',
   base: './',

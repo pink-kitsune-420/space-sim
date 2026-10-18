@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Theme controls",
+  "summary": "Public ui.theme-customizer@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Creates the reusable settings dialog, presets, import/export controls and optional toolbar buttons over an injected theme controller and borrowed root. The host can scope shortcuts to the active view. Disposal removes created DOM, cancels timers and subscriptions, and aborts every listener. No game, physics or renderer implementation is imported."
+    }
+  ]
+}

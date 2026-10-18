@@ -1,0 +1,24 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Manual WebRTC transport",
+  "summary": "Reliable ordered text using a manual invite and reply exchange.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides net.webrtc-signaling@1.0.0 in browser and offline environments. No required services, session, planet, renderer or flight imports. Initialization performs no network IO. The public manual signaling service preserves SSO1/SSA1 codes, explicit STUN selection, candidate counts and error diagnostics without exposing addresses."
+    },
+    {
+      "type": "paragraph",
+      "text": "Create an invite with an explicit STUN choice and share its code. Answer returns a reply code before its connection Promise resolves. Send that reply to the host and call accept. Replies expire after ten minutes. Google STUN is contacted only when the host requests it; it is not a relay. Session compatibility, authentication and ownership remain the responsibility of the selected session adapter."
+    },
+    {
+      "type": "paragraph",
+      "text": "AbortSignal owns gathering, pending connection and the established text link. Dispose handles or replace/remove the provider to close peers, channels and timers. There is no authoritative state or save migration. Reliable ordered text is chunked with Unicode boundaries preserved; malformed framing or oversized messages close the link."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use normal .spacemod build/unpack/edit/rebuild/import consent and choose a compatible replacement service. Removing an optional direct transport leaves other transports available; required consumers must select a replacement."
+    }
+  ]
+}

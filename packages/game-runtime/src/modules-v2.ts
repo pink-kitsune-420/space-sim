@@ -1,3 +1,6 @@
+import type { RenderMaterial, RenderPostEffect } from '../../game-api/src/index';
+import type { ModuleDataExtension } from '../../game-api/src/index';
+import { captureDataAdapter } from './module-data';
 import type { ActionDefinitionV2, CapabilityBinding, Disposable, GuidePage, HostServiceAccess, InputSource, ManifestV2,
   MaterialDefinition, ModuleAssets, ModuleContribution, ModuleEnvironment, ModuleInitializationV2, ModuleLockV2,
   ModuleProfileV2, PostEffectDefinition, RegisteredModuleV2, ServiceKey, TransportProvider, DiscoveryProvider,
@@ -7,7 +10,10 @@ import { artifactPath } from './artifact';
 import { DeviceHooks, captureActions, captureEffect, captureGuide, captureWindow, validateGuideDocument } from './hooks-v2';
 import { resolveModulesV2 } from './resolver-v2';
 import { version } from './validation';
+import { satisfies } from './semver';
 import { capabilityName, validateManifestV2 } from './validation-v2';
+import type {ModuleLogger,ModuleLogService} from '../../game-api/src/index';
+import {diagnostic,diagnosticLogger} from './diagnostics';
 
 /** Candidate-only assets. Only declared paths are visible and binary reads are defensive. */
 export function moduleAssets(files: ReadonlyMap<string, Uint8Array> = new Map(),
@@ -29,7 +35,7 @@ export class ModuleRegistryV2 {
   private readonly assets = new Map<string, ModuleAssets>();
   private readonly prepared = new WeakMap<ModuleCandidateV2, ModuleEnvironment>();
   private readonly host: readonly HostServiceAccess[];
-  constructor(hostServices: readonly HostServiceAccess[] = []) {
+  constructor(hostServices: readonly HostServiceAccess[] = [],private readonly logs?:ModuleLogService) {
     const seen = new Set<string>();
     this.host = Object.freeze(hostServices.map(h => {
       const slot = capabilityName(h.key.slot); version(h.key.version, `Host service ${slot}`);
@@ -54,7 +60,10 @@ export class ModuleRegistryV2 {
     this.assets.set(manifest.id, assets);
   }
   resolve(profile: unknown, environment: ModuleEnvironment, slots: readonly string[] = []): ModuleLockV2 {
-    return resolveModulesV2(this.manifests, profile, environment, slots, this.host);
+    const log=diagnosticLogger(this.logs,{id:'builtin.engine',version:'1.0.0'});
+    try{const lock=resolveModulesV2(this.manifests, profile, environment, slots, this.host);diagnostic(log,'debug','graph.resolved',`Resolved ${lock.modules.length} modules for ${environment}`);return lock;}
+    catch(error){diagnostic(log,'error','graph.rejected',error instanceof Error?error.message:'Module resolution failed');throw error;}
+    finally{try{log?.dispose();}catch{/* Optional diagnostics. */}}
   }
   prepare(profile: ModuleProfileV2, environment: ModuleEnvironment, slots: readonly string[] = []): ModuleCandidateV2 {
     const lock = this.resolve(profile, environment, slots);
@@ -63,7 +72,8 @@ export class ModuleRegistryV2 {
       return module.manifest.tier === 'authoritative' && !id.startsWith('builtin.') && !module.supportsMultiplayer
         && (!module.manifest.slots.length || Object.values(lock.providers).includes(id));
     });
-    const candidate = new ModuleCandidateV2(lock, soloPreview);
+    const log=diagnosticLogger(this.logs,{id:'builtin.engine',version:'1.0.0'});
+    const candidate = new ModuleCandidateV2(lock, soloPreview,log);
     try {
       for (const id of candidate.lock.order) {
         const m = this.modules.get(id)!, manifest = m.manifest;
@@ -76,7 +86,7 @@ export class ModuleRegistryV2 {
         const rawAssets = this.assets.get(id)!;
         const assets: ModuleAssets = Object.freeze({ text: rawAssets.text.bind(rawAssets), bytes: rawAssets.bytes.bind(rawAssets),
           url: (path: string) => candidate.own(rawAssets.url(path)) });
-        const context = Object.freeze<ModuleInitializationV2>({ settings: candidate.lock.settings[id]!, assets,
+        const context = Object.freeze<ModuleInitializationV2>({ module:Object.freeze({id,version:manifest.version}),settings: candidate.lock.settings[id]!, assets,
           own: <T extends Disposable>(resource: T): T => { return candidate.own(resource); },
           selected: (slot: string) => candidate.lock.providers[slot] === id,
           provide: <T>(key: ServiceKey<T>, service: T): void => {
@@ -87,6 +97,17 @@ export class ModuleRegistryV2 {
           use: <T>(key: ServiceKey<T>): T => {
             mutable(); checkKey(key); const binding = candidate.lock.capabilities[id]?.[key.slot];
             if (!binding || binding.version !== key.version) throw new Error(`Module ${id}: undeclared or incompatible service ${key.slot}@${key.version}`);
+            if (binding.provider.id === 'builtin.engine') return this.host.find(h => h.key.slot === key.slot)!.service as T;
+            return candidate.boundService<T>(binding);
+          },
+          tryUse: <T>(key: ServiceKey<T>): T | undefined => {
+            mutable(); checkKey(key);
+            const need = manifest.requires.find(need => need.name === key.slot);
+            if (!need?.optional || !satisfies(key.version, need.version))
+              throw new Error(`Module ${id}: undeclared or incompatible optional service ${key.slot}@${key.version}`);
+            const binding = candidate.lock.capabilities[id]?.[key.slot];
+            if (!binding) return undefined;
+            if (binding.version !== key.version) throw new Error(`Module ${id}: incompatible optional service ${key.slot}@${key.version}`);
             if (binding.provider.id === 'builtin.engine') return this.host.find(h => h.key.slot === key.slot)!.service as T;
             return candidate.boundService<T>(binding);
           },
@@ -109,32 +130,40 @@ export class ModuleRegistryV2 {
           contributeActions: actions => { mutable(); requireTier(['platform'], 'actions'); candidate.addActions(id, captureActions(actions, id)); },
           contributeTransport: provider => { mutable(); requireTier(['network'], 'transport'); candidate.add('transport', candidate.hooks.transport(id, provider), 16); },
           contributeDiscovery: provider => { mutable(); requireTier(['network'], 'discovery'); candidate.add('discovery', candidate.hooks.discovery(id, provider), 16); },
+          contributeData: adapter => { mutable(); requireTier(['authoritative'], 'module data');
+            const captured = captureDataAdapter(id, adapter); candidate.add('data', { moduleId: id, id: captured.id, value: captured }, 16, 128); },
           contributeWindow: window => { mutable(); requireTier(['platform'], 'windows'); candidate.add('window', contribution(id, captureWindow(window)), 16); },
           contributeGuide: page => {
-            mutable(); requireTier(['platform', 'presentation'], 'guides'); const captured = captureGuide(page);
+            // Static, validated Manual data is useful in every tier, including
+            // headless physics and transport packages. This grants no UI hooks.
+            mutable(); const captured = captureGuide(page);
             const document = assets.text(captured.asset); validateGuideDocument(document, captured);
             candidate.add('guide', { moduleId: id, id: `${id}/${captured.id}`, value: captured }, 256, 256);
             candidate.guideDocuments.set(`${id}/${captured.id}`, document);
           },
           contributeMaterial: material => {
             mutable(); requireTier(['presentation'], 'materials'); const captured = captureEffect(material, false);
-            validateShader(assets, captured.fragmentAsset); candidate.add('material', contribution(id, captured), 8, 8);
+            validateShader(assets, captured.fragmentAsset); candidate.effectSources.set(`${id}/${captured.fragmentAsset}`, assets.text(captured.fragmentAsset)); candidate.add('material', contribution(id, captured), 8, 8);
           },
           contributePostEffect: effect => {
             mutable(); requireTier(['presentation'], 'post effects'); const captured = captureEffect(effect, true);
-            validateShader(assets, captured.fragmentAsset); candidate.add('post', contribution(id, captured), 4, 4);
+            validateShader(assets, captured.fragmentAsset); candidate.effectSources.set(`${id}/${captured.fragmentAsset}`, assets.text(captured.fragmentAsset)); candidate.add('post', contribution(id, captured), 4, 4);
           },
         });
+        const moduleLog=diagnosticLogger(this.logs,manifest);
+        if(moduleLog)candidate.own({dispose(){diagnostic(moduleLog,'debug','module.disposed','Module resources disposed');try{moduleLog.dispose();}catch{/* Optional diagnostics. */}}});
+        diagnostic(moduleLog,'debug','module.initializing','Initializing module');
         try {
           const result: unknown = m.initialize(context);
           if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
             // Observe rejection while rejecting asynchronous initialization itself.
             void Promise.resolve(result).catch(() => {}); throw new Error('Initialization must be synchronous');
           }
-        } catch (error) { throw new Error(`Module ${id} initialization: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
+        } catch (error) {diagnostic(moduleLog,'error','module.failed',error instanceof Error?error.message:'Module initialization failed');throw new Error(`Module ${id} initialization: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }
+        diagnostic(moduleLog,'info','module.initialized','Module initialized');
       }
       candidate.seal(); this.prepared.set(candidate, environment); return candidate;
-    } catch (error) { candidate.dispose(); throw error; }
+    } catch (error) {diagnostic(log,'error','candidate.rejected',error instanceof Error?error.message:'Candidate preparation failed');candidate.dispose(); throw error; }
   }
   preparedFor(candidate: ModuleCandidateV2, environment: ModuleEnvironment): boolean { return this.prepared.get(candidate) === environment; }
 }
@@ -145,7 +174,7 @@ function validateShader(assets: ModuleAssets, path: string): void {
   if (!text.trim() || new TextEncoder().encode(text).length > 256 * 1024) throw new Error('Shader must contain at most 256 KiB of text');
 }
 interface Contributions {
-  input: InputSource; transport: TransportProvider; discovery: DiscoveryProvider; window: WindowDefinition;
+  data: ModuleDataExtension; input: InputSource; transport: TransportProvider; discovery: DiscoveryProvider; window: WindowDefinition;
   guide: GuidePage; material: MaterialDefinition; post: PostEffectDefinition;
 }
 export class ModuleCandidateV2 implements Disposable {
@@ -156,14 +185,15 @@ export class ModuleCandidateV2 implements Disposable {
   private readonly owned = new WeakSet<Disposable>();
   private readonly services = new Map<string, { version: string; value: unknown }>();
   private readonly lists: { [K in keyof Contributions]: ModuleContribution<Contributions[K]>[] } = {
-    input: [], transport: [], discovery: [], window: [], guide: [], material: [], post: [],
+    data: [], input: [], transport: [], discovery: [], window: [], guide: [], material: [], post: [],
   };
   private readonly actions: ActionDefinitionV2[] = [];
   readonly actionIds = new Set<string>();
+  readonly effectSources = new Map<string, string>();
   readonly guideDocuments = new Map<string, string>();
   private sealed = false;
   private disposed = false;
-  constructor(readonly lock: ModuleLockV2, readonly soloPreview = false) {
+  constructor(readonly lock: ModuleLockV2, readonly soloPreview = false,private readonly log?:ModuleLogger) {
     this.core = new ModuleCandidate({ format: 'space-sim-lock/1', profileId: lock.profileId, modules: lock.modules,
       order: lock.order, providers: lock.providers, settings: lock.settings });
     this.core.own(this.hooks);
@@ -171,6 +201,17 @@ export class ModuleCandidateV2 implements Disposable {
   get available(): boolean { return !this.disposed; }
   get actionDefinitions(): readonly ActionDefinitionV2[] { return Object.freeze([...this.actions]); }
   contributions<K extends keyof Contributions>(kind: K): readonly ModuleContribution<Contributions[K]>[] { return Object.freeze([...this.lists[kind]]); }
+  /** Resolve declared text assets without executing GPU code or touching the active viewer. */
+  renderEffects(): { readonly materials: readonly RenderMaterial[]; readonly post: readonly RenderPostEffect[] } {
+    if (this.disposed) throw new Error('Module candidate is disposed');
+    const fragment = (moduleId: string, path: string): string => {
+      const text = this.effectSources.get(`${moduleId}/${path}`); if (text === undefined) throw new Error('Missing declared effect source'); return text;
+    };
+    return Object.freeze({
+      materials: Object.freeze(this.lists.material.map(({moduleId,id,value}) => Object.freeze({id,bodyIds:value.bodyIds,uniforms:value.uniforms,fragment:fragment(moduleId,value.fragmentAsset)}))),
+      post: Object.freeze(this.lists.post.map(({moduleId,id,value}) => Object.freeze({id,after:value.after,scale:value.scale,uniforms:value.uniforms,fragment:fragment(moduleId,value.fragmentAsset)}))),
+    });
+  }
   assertInitializing(): void { if (this.sealed || this.disposed) throw new Error('Module candidate is sealed or disposed'); }
   own<T extends Disposable>(resource: T): T {
     if (!resource || typeof resource.dispose !== 'function') throw new Error('Owned resource must have a dispose method');
@@ -212,7 +253,10 @@ export class ModuleCandidateV2 implements Disposable {
   seal(): void {
     this.assertInitializing();
     for (const [slot, id] of Object.entries(this.lock.providers)) if (!this.services.has(slot)) throw new Error(`Module ${id} did not provide service ${slot}`);
-    for (const window of this.lists.window) for (const control of window.value.controls) if ('action' in control && !this.actionIds.has(control.action)) throw new Error(`Window ${window.id}: unknown action ${control.action}`);
+    for (const window of this.lists.window) {
+      const controls = [...window.value.controls, ...(window.value.content ?? []).flatMap(section => 'controls' in section ? section.controls : [])];
+      for (const control of controls) if ('action' in control && !this.actionIds.has(control.action)) throw new Error(`Window ${window.id}: unknown action ${control.action}`);
+    }
     const bodies = new Map<string, string>();
     for (const material of this.lists.material) for (const id of material.value.bodyIds) {
       if (bodies.has(id)) throw new Error(`Body ${id} has conflicting materials ${bodies.get(id)} and ${material.id}`); bodies.set(id, material.id);
@@ -226,8 +270,9 @@ export class ModuleCandidateV2 implements Disposable {
     this.lists.post = order; this.sealed = true; this.core.seal();
   }
   dispose(): void {
-    if (this.disposed) return; this.disposed = true; this.core.dispose(); this.services.clear(); this.actions.length = 0; this.actionIds.clear();
-    this.guideDocuments.clear(); for (const list of Object.values(this.lists)) list.length = 0;
+    if (this.disposed) return; this.disposed = true;diagnostic(this.log,'debug','candidate.disposing','Disposing candidate');this.core.dispose(); this.services.clear(); this.actions.length = 0; this.actionIds.clear();
+    this.effectSources.clear(); this.guideDocuments.clear(); for (const list of Object.values(this.lists)) list.length = 0;
+    diagnostic(this.log,'info','candidate.disposed','Candidate disposed');try{this.log?.dispose();}catch{/* Optional diagnostics. */}
   }
 }
 export class ModuleRuntimeV2 implements Disposable {

@@ -1,3 +1,5 @@
+import type { ServiceKey } from './modules-v2';
+import type { SimulationContextFactory } from './context';
 import type { Body, Controls, Vec } from './state';
 import type { Elements, OrbitalState, Propagation, SolverOptions } from './orbit';
 import type { LoadedSystem, ResolvedBody, UniverseDefinition } from './universe';
@@ -63,3 +65,10 @@ export interface RuleCommand {
   readonly controls?: Controls;
   readonly throttle?: number;
 }
+
+/** Existing independently replaceable motion slots, with explicit v2 service versions. */
+export const MOTION_CONTEXTS: ServiceKey<SimulationContextFactory> = Object.freeze({ slot: 'motion', version: '1.0.0' });
+export const ORBITAL_MOTION: ServiceKey<OrbitalProvider> = Object.freeze({ slot: 'orbits', version: '1.0.0' });
+export const BODY_FRAMES: ServiceKey<BodyFrameProvider> = Object.freeze({ slot: 'bodies', version: '1.0.0' });
+export const SURFACE_GEOMETRY: ServiceKey<SurfaceProvider> = Object.freeze({ slot: 'surfaces', version: '1.0.0' });
+export const RAILS_POLICY: ServiceKey<RailsProvider> = Object.freeze({ slot: 'rails', version: '1.0.0' });

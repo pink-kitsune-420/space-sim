@@ -16,14 +16,16 @@ import { browserSessionFactory } from './module-session';
 import { environment } from './startup';
 import { message } from './ui';
 import { prepareInstalledWorld, verifyInstalledWorldCandidate, type InstalledWorldOptions } from '../../../packages/modules/src/installed';
+import {moduleLogs} from './module-logging';
+import {createModMenu} from '../../../modules/mod-menu/src/index';
+import type {ModMenuModuleView} from '../../../packages/game-api/src/index';
 
 /** App adapter around the shared v2 loader. Shipped v1 systems remain enabled as before;
  * imported device modules are scoped to this game and applied only at an explicit restart. */
 export class DeviceModuleManager {
   readonly root = document.createElement('details');
-  private readonly list = document.createElement('ul');
-  private readonly status = document.createElement('p');
-  private readonly apply = document.createElement('button');
+  private readonly modMenu=createModMenu();
+  private readonly editor:ModMenuModuleView;
   private readonly selected = new Map<string, string>();
   private readonly providers: Record<string, string> = Object.create(null);
   private readonly capabilities: Record<string, Record<string, string>> = Object.create(null);
@@ -40,21 +42,20 @@ export class DeviceModuleManager {
     readonly pilots: import('../../../packages/game-api/src/index').PilotRegistry; readonly editable: () => boolean; readonly world: () => object;
     readonly base: () => { profile: ModuleProfileV2; applied: ModuleProfileV2; manifests: ReadonlyMap<string, ManifestV2> };
     readonly editBase: (profile: ModuleProfileV2) => void;
-    readonly apply: (selection: RuntimeSelection) => Promise<void>;
+    readonly apply: (selection: RuntimeSelection,signal?:AbortSignal) => Promise<void>;
   }) {
-    this.root.className = 'device-module-settings';
-    const summary = document.createElement('summary'); summary.textContent = 'Device and network modules';
-    const warning = document.createElement('p'); warning.textContent = 'Code modules have full access to this game, saved data, input and the network. Enable code only from people you trust. Applying starts a new world.';
-    this.status.setAttribute('role', 'status'); this.status.id = 'device-module-status'; this.list.id = 'device-module-list';
-    this.apply.type = 'button'; this.apply.textContent = 'Apply device modules and restart'; this.apply.id = 'apply-device-modules';
-    this.apply.onclick = () => { void this.activate(); };
-    const dependencies = document.createElement('button'); dependencies.type = 'button'; dependencies.textContent = 'Include required modules';
-    dependencies.onclick = () => { this.preview(true); this.draw(); };
-    const dependents = document.createElement('button'); dependents.type = 'button'; dependents.textContent = 'Remove dependent modules';
-    dependents.onclick = () => { this.preview(false, true); this.draw(); };
-    const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = 'Cancel module application'; cancel.id = 'cancel-device-modules';
-    cancel.onclick = () => this.transition.cancel();
-    this.root.append(summary, warning, this.list, dependencies, dependents, this.apply, cancel, this.status);
+    this.root.className='device-module-settings';
+    this.editor=this.modMenu.modules(this.root,{
+      state:()=>({installed:[...this.catalog.values()],selected:Object.fromEntries(this.selected),providers:this.providers,capabilities:this.capabilities,settings:this.settings,activeDigests:this.mixed?.identity.packages.map(ref=>ref.digest)??[],editable:this.options.editable(),busy:this.busy}),
+      compatible:need=>[...this.catalog.values()].filter(provider=>provider.manifest.provides.some(capability=>capability.name===need.name&&satisfies(capability.version,need.version))),
+      select:(id,digest)=>{if(digest)this.selected.set(id,digest);else this.selected.delete(id);this.preview();},
+      version:(id,digest)=>{delete this.settings[id];if(this.selected.has(id))this.selected.set(id,digest);this.preview();},
+      setting:(id,key,value)=>{(this.settings[id]??={})[key]=value;this.preview();},
+      capability:(id,name,digest)=>{if(!digest)delete(this.capabilities[id]??={})[name];else{const chosen=this.catalog.get(digest);if(!chosen)throw new Error('This provider is no longer installed');this.selected.set(chosen.manifest.id,digest);(this.capabilities[id]??={})[name]=chosen.manifest.id;}this.preview();},
+      provider:(slot,id,digest)=>{this.providers[slot]=id;this.selected.set(id,digest);this.preview();},
+      includeRequired:()=>{this.preview(true);},removeDependents:()=>{this.preview(false,true);},cancel:()=>this.transition.cancel(),apply:signal=>this.activate(signal),
+      remove:async(digest,signal)=>{signal.throwIfAborted();if(this.mixed?.identity.packages.some(ref=>ref.digest===digest))throw new Error('Disable this version before removing it');const entry=this.catalog.get(digest);await this.store.remove(digest);signal.throwIfAborted();if(entry&&this.selected.get(entry.manifest.id)===digest)this.selected.delete(entry.manifest.id);await this.refresh();}
+    },{prefix:'device-module',title:'Device and network modules',notice:'Code modules have full access to this game, saved data, input and the network. Enable code only from people you trust. Applying starts a new world.',applyLabel:'Apply device modules and restart',ids:{list:'device-module-list',status:'device-module-status',apply:'apply-device-modules',cancel:'cancel-device-modules'}});
   }
   async refresh(): Promise<void> {
     this.catalog.clear();
@@ -70,58 +71,10 @@ export class DeviceModuleManager {
   async install(bytes: Uint8Array, source: string): Promise<void> {
     await installPackage(bytes, this.store, inspectRuntimePackage, { source, installedAt: new Date().toISOString() },
       { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE });
-    await this.refresh(); this.status.textContent = 'Installed on this device. Code has not run. Select modules, review dependencies and apply to enable them.';
+    await this.refresh(); this.editor.status('Installed on this device. Code has not run. Select modules, review dependencies and apply to enable them.');
     this.root.open = true;
   }
-  private draw(): void {
-    const grouped = new Map<string, { manifest: ManifestV2; digest: string }[]>();
-    for (const entry of this.catalog.values()) grouped.set(entry.manifest.id, [...grouped.get(entry.manifest.id) ?? [], entry]);
-    this.list.replaceChildren(...[...grouped].map(([id, entries]) => {
-      const item = document.createElement('li'), label = document.createElement('label'), checkbox = document.createElement('input'), versions = document.createElement('select');
-      checkbox.type = 'checkbox'; checkbox.dataset.moduleId = id; checkbox.checked = this.selected.has(id);
-      versions.setAttribute('aria-label', `Version of ${id}`);
-      for (const entry of entries) { const option = document.createElement('option'); option.value = entry.digest; option.textContent = `${entry.manifest.version} · SHA-256 ${entry.digest}`; versions.append(option); }
-      versions.value = this.selected.get(id) ?? entries[0]!.digest;
-      checkbox.disabled = versions.disabled = this.busy || !this.options.editable();
-      checkbox.onchange = () => { if (checkbox.checked) this.selected.set(id, versions.value); else this.selected.delete(id); this.preview(); };
-      versions.onchange = () => { delete this.settings[id]; if (checkbox.checked) this.selected.set(id, versions.value); this.draw(); this.preview(); };
-      const entry = entries.find(e => e.digest === versions.value)!;
-      label.append(checkbox, ` ${entry.manifest.name} · ${entry.manifest.tier}`); item.append(label, versions);
-      const needs = document.createElement('p'); needs.textContent = `Requires: ${[...entry.manifest.dependencies.map(d => `${d.id}@${d.version}`), ...entry.manifest.requires.map(c => `${c.name}@${c.version}${c.optional ? ' (optional)' : ''}`)].join(', ') || 'none'}.`; item.append(needs);
-      for (const [key, schema] of Object.entries(entry.manifest.settings)) {
-        const label = document.createElement('label'), input = document.createElement('input');
-        input.type = 'number'; input.step = 'any'; input.min = String(schema.minimum); input.max = String(schema.maximum);
-        input.value = String(this.settings[id]?.[key] ?? schema.default); input.disabled = checkbox.disabled;
-        input.onchange = () => { (this.settings[id] ??= {})[key] = Number(input.value); this.preview(); };
-        label.append(`${key} `, input); item.append(label);
-      }
-      for (const need of entry.manifest.requires.filter(need => !need.name.startsWith('core.'))) {
-        const label = document.createElement('label'), select = document.createElement('select'), automatic = document.createElement('option');
-        automatic.value = ''; automatic.textContent = 'Automatic among enabled modules'; select.append(automatic); select.disabled = checkbox.disabled;
-        for (const provider of this.catalog.values()) if (provider.manifest.provides.some(capability => capability.name === need.name && satisfies(capability.version, need.version))) {
-          const option = document.createElement('option'); option.value = provider.digest; option.textContent = `${provider.manifest.name}@${provider.manifest.version}`; select.append(option);
-          if (this.capabilities[id]?.[need.name] === provider.manifest.id && this.selected.get(provider.manifest.id) === provider.digest) select.value = provider.digest;
-        }
-        select.onchange = () => {
-          if (!select.value) delete (this.capabilities[id] ??= {})[need.name];
-          else { const chosen = this.catalog.get(select.value)!; this.selected.set(chosen.manifest.id, chosen.digest); (this.capabilities[id] ??= {})[need.name] = chosen.manifest.id; }
-          this.draw(); this.preview();
-        };
-        label.append(`Provider for ${need.name} `, select); item.append(label);
-      }
-      for (const slot of entry.manifest.slots) {
-        const select = document.createElement('input'), label = document.createElement('label'); select.type = 'radio'; select.name = `device-provider-${slot}`;
-        select.checked = this.providers[slot] === id; select.disabled = checkbox.disabled;
-        select.onchange = () => { this.providers[slot] = id; this.selected.set(id, versions.value); this.draw(); this.preview(); };
-        label.append(select, ` Use for ${slot}`); item.append(label);
-      }
-      const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove installed version';
-      remove.disabled = this.busy || this.mixed?.identity.packages.some(ref => ref.digest === versions.value) === true;
-      remove.onclick = () => { void this.store.remove(versions.value).then(() => { if (this.selected.get(id) === versions.value) this.selected.delete(id); return this.refresh(); }).catch(error => { this.status.textContent = message(error); }); };
-      item.append(remove); return item;
-    }));
-    this.apply.disabled = this.busy || !this.options.editable() || !this.catalog.size;
-  }
+  private draw(): void {this.editor.refresh();}
   private profile(): ModuleProfileV2 {
     return { format: 'space-sim-profile/2', id: this.activePlan?.profile.id ?? 'local.device-modules', modules: [...this.selected].map(([id, digest]) => ({ id, version: this.catalog.get(digest)!.manifest.version })),
       providers: Object.fromEntries(Object.entries(this.providers).filter(([, id]) => this.selected.has(id))),
@@ -171,7 +124,7 @@ export class DeviceModuleManager {
       text = error instanceof ModuleResolutionError
         ? `${error.message} ${error.diagnostic.actions.join(' ')}${error.diagnostic.candidates.length ? ` Available: ${error.diagnostic.candidates.map(c => `${c.name} (${c.id}@${c.version})`).join(', ')}.` : ''}` : message(error);
     } finally { host.dispose(); }
-    if (announce) this.status.textContent = text;
+    if (announce) this.editor.status(text);
     return text;
   }
   /** Capture pending exact edits only for an explicit Apply action. */
@@ -196,12 +149,12 @@ export class DeviceModuleManager {
     }
     return attachRuntimeFiles(validateRuntimeSelection({ format: 'spacelab-runtime-selection/2', plans }), files);
   }
-  private async activate(): Promise<void> {
+  private async activate(signal?:AbortSignal): Promise<void> {
     if (this.busy || !this.options.editable()) return;
     try {
-      const selection = await this.proposal();
-      if (selection) await this.options.apply(selection);
-    } catch (error) { this.status.textContent = `Modules were not enabled: ${message(error)}`; }
+      signal?.throwIfAborted();const selection = await this.proposal();signal?.throwIfAborted();
+      if (selection) await this.options.apply(selection,signal);
+    } catch (error) { this.editor.status(`Modules were not enabled: ${message(error)}`); }
   }
   /** Capture the committed selection, rather than unchecked edits in the manager. */
   async capture(): Promise<RuntimeSelection | undefined> { if (this.mixed && !this.mixed.available) this.clear(); return this.activeSelection; }
@@ -210,11 +163,11 @@ export class DeviceModuleManager {
   }
   /** Prepare simulation and device hooks together, before publishing either host's game. */
   async loadWorldGame(selection: RuntimeSelection, options: Omit<InstalledWorldOptions, 'hostServices' | 'inspect' | 'configure' | 'dispose'> & { readonly install?: () => Promise<void> },
-    publish: (prepared: Awaited<ReturnType<typeof prepareInstalledWorld>>) => void): Promise<void> {
+    publish: (prepared: Awaited<ReturnType<typeof prepareInstalledWorld>>) => void,signal?:AbortSignal): Promise<void> {
     const generation = ++this.generation;
     const previousWorld = this.options.world(), previousHost = this.host;
     this.busy = true; this.draw();
-    const host = new BrowserModuleHost(error => { this.status.textContent = error; }, this.options.pilots);
+    const host = new BrowserModuleHost(error => { this.editor.status(error); }, this.options.pilots);
     let prepared: Awaited<ReturnType<typeof prepareInstalledWorld>> | undefined;
     try {
       let plan!: InstalledGamePlan;
@@ -227,7 +180,7 @@ export class DeviceModuleManager {
       await this.refresh();
       signal.throwIfAborted();
       prepared = await prepareInstalledWorld(plan, this.store, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE,
-        approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...options, configuration: options.configuration ?? progressConfiguration(options.profile ?? DEFAULT_PROFILE, options.data ?? [], options.code ?? [], selection), hostServices: this.services(host),
+        approvedDigests: new Set(plan.packages.map(ref => ref.digest)) }, { ...options,logs:options.logs??moduleLogs,configuration: options.configuration ?? progressConfiguration(options.profile ?? DEFAULT_PROFILE, options.data ?? [], options.code ?? [], selection), hostServices: this.services(host),
         inspect: async bytes => runtimePackage(await decodeModulePackage(Uint8Array.from(bytes)), browserModuleAssets),
         configure(modules) {
           host.configure(modules);
@@ -238,7 +191,7 @@ export class DeviceModuleManager {
       }, () => {
       if (!prepared) throw new Error('Game candidate was not prepared');
       if (this.options.world() !== previousWorld || !this.options.editable()) throw new Error('The active session changed while loading');
-      host.activate(this.root); publish(prepared); host.commit();
+      host.activate(document.querySelector<HTMLElement>('#flight-console .viewport') ?? this.root); publish(prepared); host.commit();
       const previousMixed = this.mixed;
       this.mixed = prepared.candidate; this.host = host; this.activePlan = plan; this.activeSelection = selection;
       this.selected.clear(); for (const ref of plan.packages) this.selected.set(ref.id, ref.digest);
@@ -247,8 +200,8 @@ export class DeviceModuleManager {
       for (const [id, choices] of Object.entries(plan.profile.capabilities)) this.capabilities[id] = { ...choices };
       for (const [id, values] of Object.entries(plan.profile.settings)) this.settings[id] = { ...values };
       previousMixed?.dispose(); previousHost?.dispose();
-      this.status.textContent = 'Game modules enabled for this game after restart. Save or export to keep the applied selection.';
-      });
+      this.editor.status('Game modules enabled for this game after restart. Save or export to keep the applied selection.');
+      },signal);
     } catch (error) { prepared?.candidate.dispose(); host.dispose(); throw error; }
     finally { if (this.generation === generation) { this.busy = false; this.draw(); } }
   }
@@ -264,6 +217,6 @@ export class DeviceModuleManager {
     ++this.generation; this.busy = false; this.transition.cancel(); this.mixed?.dispose(); this.host?.dispose(); this.mixed = undefined;
     this.host = undefined; this.activePlan = undefined; this.activeSelection = undefined; this.selected.clear();
     for (const record of [this.providers, this.capabilities, this.settings]) for (const key of Object.keys(record)) delete record[key];
-    this.status.textContent = 'Device modules are disabled for this game. Installed files remain on this device.'; this.draw();
+    this.editor.status('Device modules are disabled for this game. Installed files remain on this device.'); this.draw();
   }
 }

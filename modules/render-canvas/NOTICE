@@ -1,0 +1,2 @@
+Space Sim first-party canvas 2d implementation, MIT licensed.
+Shared local drawing helpers preserve the original first-party renderer algorithms.

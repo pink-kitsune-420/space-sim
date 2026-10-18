@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Vector shaders",
+  "summary": "Public render.vector-shaders@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Owns the six editable GLSL assets for the three-pass scene/vector/text ABI. Provides immutable defaults and bounded file/partial-pack parsing. No graphics context is created at module initialization. The renderer validates GPU interfaces and retains prior programs when a replacement fails. Shader packs are presentation data and do not alter physical geometry or authority."
+    }
+  ]
+}

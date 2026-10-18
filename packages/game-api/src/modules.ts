@@ -15,6 +15,11 @@ export interface ModuleReference { readonly id: string; readonly version: string
 export interface ModuleDependency { readonly id: string; readonly version: string }
 export interface NumberSetting {
   readonly type: 'number';
+  readonly label?: string;
+  /** Plain-text help for module configuration controls. */
+  readonly description?: string;
+  /** Optional numeric increment, measured from minimum. Omitted means continuous. */
+  readonly step?: number;
   readonly default: number;
   readonly minimum: number;
   readonly maximum: number;

@@ -1,0 +1,16 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Independent fleet views",
+  "summary": "Read-only selected-physics coast evaluation with per-view caches.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.fleet@1.0.0 creates one read-only fleet builder per view. Supply WorldRead, presentation time/alpha, camera/viewport, pilot identity, previous state, display-frame adapters and names. It never steps a world. Sleeping coasts use the selected context orbital provider and guarded coastAt, preserving custom compatible model identities instead of consulting the default global kernel."
+    },
+    {
+      "type": "paragraph",
+      "text": "Each instance owns its position/label caches and counters; world replacement clears them. Distinct guest instances use their own pilot identity for foreign labels. Conservative annulus/screen culling and bounded sub-pixel position reuse preserve original defaults; marginPixels and stillPixels configure viewer cost only. Dispose drops retained world/cache references and rejects future builds. No renderer, device or DOM dependency; browser/offline/node are supported."
+    }
+  ]
+}

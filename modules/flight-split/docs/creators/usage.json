@@ -1,0 +1,32 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Flight split screen",
+  "summary": "Independent local flight seats and split/dynamic panes over a borrowed session.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Requires input.local-pilots, input.flight-profiles, view.flight-camera, view.prediction, view.fleet and view.local@1.0.0. input.gamepad@1.0.0 is optional. Keyboard-only local pilots work without gamepad code. Browser and offline; platform authority."
+    },
+    {
+      "type": "paragraph",
+      "text": "This explicit flight compatibility adapter retains the original shared and separated viewport behavior. Generic non-flight games use input.controller and view.local with their own compatible state adapter. Current Space Sim composition still supplies the camera, prediction and fleet factories until their scheduled extraction."
+    },
+    {
+      "type": "paragraph",
+      "text": "The host resolves its current primary canvas through primaryCanvas(), because renderer replacement can change the element. Seat, device and target changes release prior input and commands. Local views never advance the world; the authoritative session steps once per tick regardless of pane count."
+    },
+    {
+      "type": "paragraph",
+      "text": "Existing local-player preferences and legacy controller settings remain compatible. Panes, cameras, predictions, fleet caches, observers, styles and owned gamepad managers are released on disposal. HUD instruments remain optional and will attach through the separately approved shared per-view lifecycle; this package does not require a navball or throttle instrument."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/flight-split/module.json /tmp/flight-split.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild/repack and import into a compatible game. Downloaded code requires explicit consent and has full application privileges. Building a package does not establish runtime acceptance."
+    }
+  ]
+}

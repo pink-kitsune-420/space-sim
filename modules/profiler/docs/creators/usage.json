@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Frame profiler",
+  "summary": "Optional bounded viewer diagnostics.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Require diagnostics.profiler@^1.0.0 and use PROFILERS to create independent viewer-local profilers. Call begin with the wall-frame interval, lap after timed sections and end once per rendered frame. Fixed ring buffers retain 600 frames and 1000 events. Percentile/group/history calculations run on request; diagnostic timing never changes deterministic simulation. Precise mode invokes the supplied optional renderer flush. Removing the package leaves gameplay and renderer lifetime independent."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use summary/history/log for a window, text log or export; drawGraph optionally renders a canvas graph. Dispose an instance or its provider to stop collection and release retained events. Browsers, offline viewers and headless diagnostic consumers can compose the same service; initialization requires no DOM, ship, world or renderer."
+    },
+    {
+      "type": "paragraph",
+      "text": "Configuration: precise is 0 (normal) or 1 (flush deferred raster work at each lap). longWorkMs sets the diagnostic slow-work threshold, default 11 ms. These viewer-only values never affect simulation."
+    }
+  ]
+}

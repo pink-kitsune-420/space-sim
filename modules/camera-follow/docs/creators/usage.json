@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Independent follow cameras",
+  "summary": "Named target tracking, independent view state and optional flight-specific focus.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.camera@1.0.0 supplies independent camera instances by viewport identity. Bind any named target with focus(id); frame receives read-only system-metre positions and radians through transform(id), elapsed wall seconds and viewport CSS pixels. It never steps a world. Missing targets retain the last view; focus(undefined) enters a free stationary view. Each view keeps its own zoom and orientation. Returned frame storage is reused: copy it only when retaining historical snapshots."
+    },
+    {
+      "type": "paragraph",
+      "text": "The same package supplies the explicit view.flight-camera@1.0.0 adapter used by flight-split. It preserves body-relative ship following, horizon orientation, planet/free views, module camera modes, focus, smart throw and rebasing. Generic consumers need no ship, body, flight state or physics API. Flight target selection stays in this adapter."
+    },
+    {
+      "type": "paragraph",
+      "text": "initialZoom, referenceMetres and orientationSeconds configure presentation defaults. Existing flight defaults are 10, 1500 metres and 0.12 wall seconds. Each instance owns presentation state; dispose releases target and fling state, and provider removal disposes its instances. No renderer, DOM, device, simulation state or saved vehicle identity is owned here. A local-view composition declares a required view.camera provider; removing it gives dependency recovery rather than silently selecting a different provider."
+    }
+  ]
+}

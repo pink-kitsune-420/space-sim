@@ -1,0 +1,24 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Install on join",
+  "summary": "Explicit exact-offer consent and bounded prejoin game-pack transfers.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides session.join-pack@1.0.0 in browser, offline and Node. The separate spacelab-prejoin/1 route negotiates before the selected authenticated session constructs a mirror. Explicit legacy flight info messages pass unchanged to space-sim-net/5. Other session/state schemas must declare compatibility explicitly."
+    },
+    {
+      "type": "paragraph",
+      "text": "The host adapter exports only its enabled distributable game and exact authority. Offers identify protocol, model, entity schema, lock/fingerprint, package inventory, code/data, source, licenses and total bytes. Client build policy can reject code before download. Approval is separate from cached bytes and scoped to the source/session and exact offer; changed data requires review too."
+    },
+    {
+      "type": "paragraph",
+      "text": "Only one game pack is transferred at a time. Stop-and-wait text chunks carry at most 48 KiB decoded data, with 96 KiB prejoin message and 32 MiB pack limits. Sequence, size and whole-pack SHA-256 are verified before staging. Human review expires after ten minutes and transfer after two minutes. Existing gameplay command limits remain unchanged."
+    },
+    {
+      "type": "paragraph",
+      "text": "Public host ports must independently inspect every package/code flag and prepare/recompute exact authoritative identity before evaluation or publication. The host rechecks its offered configuration before verified installation. Cancellation, tamper, changed offers or failed preparation discard the candidate and retain the current game. The authenticated session still checks passwords and ownership. Provider disposal owns pending negotiations; the accepting session owns links after handoff."
+    }
+  ]
+}

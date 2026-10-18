@@ -1,0 +1,1 @@
+Space Sim first-party motion-provider composition over the fixed shared physics kernel. Original numerical/rails/contact implementations remain in the shared engine. Licensed under MIT.

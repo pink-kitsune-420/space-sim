@@ -15,7 +15,7 @@ import { FilePackageStore } from './package-store';
 /** Paths come only from the server owner's configuration. Merely inspecting artifacts
  * does not execute their source. Profiles never embed or download executable code. */
 export async function serverModules(config: ServerConfig, dataDir: string): Promise<{
-  readonly code: readonly RegisteredModule[]; readonly bundle?: ModuleBundle;
+  readonly code: readonly RegisteredModule[]; readonly bundle?: ModuleBundle; readonly game?: GamePackage; readonly artifacts?: readonly CodeArtifact[];
   readonly runtime?: { readonly plan: InstalledGamePlan; readonly store: FilePackageStore; readonly game: GamePackage };
 }> {
   const local = (path: string) => isAbsolute(path) ? path : join(dataDir, path);
@@ -31,7 +31,7 @@ export async function serverModules(config: ServerConfig, dataDir: string): Prom
     const store = new FilePackageStore(join(dataDir, 'packages'));
     await installGamePackages(game, store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE }, `Owner game: ${config.gameFile}`);
     const plan = game.runtime ? await installRuntimeSelection(game.runtime, store, { environment: 'node', allowRuntimeCode: ALLOW_RUNTIME_CODE }, `Owner game: ${config.gameFile}`) : undefined;
-    return { code: artifactModules(game.plugins.filter(a => a.manifest.authority === 'authoritative'), 'node'), bundle: game.bundle,
+    return { game, artifacts: game.plugins, code: artifactModules(game.plugins.filter(a => a.manifest.authority === 'authoritative'), 'node'), bundle: game.bundle,
       ...(plan ? { runtime: { plan, store, game } } : {}) };
   }
   const artifacts = new Map<string, CodeArtifact>();
@@ -69,5 +69,5 @@ export async function serverModules(config: ServerConfig, dataDir: string): Prom
     }
   }
   const code = artifactModules([...artifacts.values()].filter(a => a.manifest.authority === 'authoritative'), 'node');
-  return { code, ...(bundle ? { bundle } : {}) };
+  return { code, artifacts: [...artifacts.values()], ...(bundle ? { bundle } : {}) };
 }

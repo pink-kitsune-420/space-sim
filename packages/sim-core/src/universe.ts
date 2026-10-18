@@ -1,3 +1,4 @@
+import { APPEARANCE_TUNING } from '../../game-api/src/index';
 import type { AppearanceStyle, AppearanceTuning, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 import defaultUniverseJson from '../../../games/space-sim/universes/sandbox/default/universe.json';
@@ -28,7 +29,7 @@ function bodySurfaceFeatures(b: Pick<CelestialBodyDefinition, 'id' | 'name' | 'p
 const APPEARANCE_STYLES: readonly AppearanceStyle[] = ['rocky', 'arid', 'oceanic', 'banded', 'icy', 'hazy', 'volcanic', 'star'];
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 /** Tunable appearance settings, in shader order (see BodyAppearance). */
-export const APPEARANCE_TUNING: readonly AppearanceTuning[] = ['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow'];
+export { APPEARANCE_TUNING } from '../../game-api/src/index';
 
 function validateAppearance(raw: unknown, where: string): BodyAppearance {
   if (!raw || typeof raw !== 'object') throw new Error(`${where} must be an object`);

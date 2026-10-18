@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Procedural sound",
+  "summary": "Public audio.procedural@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Retains the builtin.audio identity and the original sample-free recipes. Creating the provider/output is silent; a browser gesture resumes the AudioContext. Engine voices are reused, contact/notification voices are bounded. Removal releases voices and contexts. The host sound-control adapter handles activation, visibility and preferences independently of renderer lifetime. No music or MIDI is required."
+    }
+  ]
+}

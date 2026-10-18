@@ -20,6 +20,7 @@ export function crc32(bytes: Uint8Array): number {
 }
 export const isZip = (bytes: Uint8Array): boolean => bytes[0] === 0x50 && bytes[1] === 0x4b;
 export function fileLimit(path: string): number {
+  if (path === 'game.spacegame') return MAX_ARCHIVE_BYTES; // bounded prejoin wire container member
   return path === 'module.json' || path === 'data.json' || path === 'save.json' || path === 'game.json' || path === 'game.lock.json' || path === 'integrity.json'
     || path.endsWith('.json') && (path.startsWith('docs/') || path.startsWith('assets/') || path.startsWith('data/') || path.startsWith('state/')) ? 1024 * 1024
     : path === 'dist/module.js' ? 4 * 1024 * 1024 : (path.startsWith('modules/') && path.endsWith('.spacemod') || path.startsWith('data/') && path.endsWith('.spacedata')) ? MAX_ARCHIVE_BYTES

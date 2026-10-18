@@ -1,0 +1,1 @@
+Space Sim flight split-screen implementation. Camera, prediction and fleet factories are injected through public contracts. Licensed under MIT.

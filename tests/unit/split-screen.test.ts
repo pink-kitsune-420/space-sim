@@ -20,7 +20,7 @@ import {
 import { SplitScreen } from '../../apps/web/src/split-screen';
 import { CameraController } from '../../apps/web/src/camera';
 import { GamepadManager, DEFAULT_PAD_BUTTONS, DEFAULT_CONTROLLER_PROFILE, readPad, isButtonDown } from '../../apps/web/src/gamepad';
-import { drawNavball, type NavballState } from '../../packages/modules/src/base/toolset/navball';
+import { drawNavball, type NavballState } from '../../modules/navball/src/drawing';
 import { IDLE, type State } from '../../packages/sim-core/src/index';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
@@ -73,6 +73,7 @@ function createMockElement(tag = 'div'): any {
   const styleObj: any = {
     setProperty: (k: string, v: string) => styleProps.set(k, v),
     getPropertyValue: (k: string) => styleProps.get(k) ?? '',
+    removeProperty: (k: string) => { const value = styleProps.get(k) ?? ''; styleProps.delete(k); return value; },
   };
 
   const el: any = {
@@ -99,7 +100,7 @@ function createMockElement(tag = 'div'): any {
     after: (sibling: any) => {
       children.push(sibling);
     },
-    remove: () => {},
+    remove: vi.fn(),
     replaceWith: () => {},
     setPointerCapture: vi.fn(),
     releasePointerCapture: vi.fn(),
@@ -149,6 +150,24 @@ describe('split-screen configuration and dynamic viewports', () => {
   });
 
   describe('LocalPlayersConfig & Device Assignments', () => {
+    it('requires neutral flight input after release, disable and a polled disconnect', () => {
+      const pad = { index: 0, connected: true, id: 'Test pad', axes: [0, 0, 0, 0],
+        buttons: Array.from({ length: 18 }, () => ({ pressed: false, value: 0 })) };
+      let connected = true;
+      vi.stubGlobal('navigator', { getGamepads: () => connected ? [pad] : [] });
+      const pads = new GamepadManager();
+      const poll = () => pads.update(() => DEFAULT_CONTROLLER_PROFILE, () => {});
+      poll(); pad.buttons[7] = { pressed: true, value: 1 }; poll(); expect(pads.flight(0).engine).toBe(true);
+      pads.release(0); poll(); expect(pads.flight(0).engine).toBe(false);
+      pad.buttons[7] = { pressed: false, value: 0 }; poll();
+      pad.buttons[7] = { pressed: true, value: 1 }; poll(); expect(pads.flight(0).engine).toBe(true);
+      connected = false; poll(); expect(pads.flight(0).engine).toBe(false);
+      connected = true; poll(); expect(pads.flight(0).engine).toBe(false);
+      pad.buttons[7] = { pressed: false, value: 0 }; poll();
+      pad.buttons[7] = { pressed: true, value: 1 }; poll(); expect(pads.flight(0).engine).toBe(true);
+      pads.setEnabled(false); poll(); pads.setEnabled(true); poll(); expect(pads.flight(0).engine).toBe(false);
+      pads.dispose();
+    });
     it('initializes with default 1 player and dynamic screen mode', () => {
       const config = defaultLocalPlayers();
       expect(config.count).toBe(1);
@@ -255,10 +274,12 @@ describe('split-screen configuration and dynamic viewports', () => {
   });
 
   describe('SplitScreen Dynamic Split Logic', () => {
-    function createMockSplitScreen(): {
+    function createMockSplitScreen(withGamepads = true): {
       split: SplitScreen;
       p1Camera: CameraController;
       container: any;
+      local: any;
+      gamepads: GamepadManager;
     } {
       const container = createMockElement('div');
       const canvas = createMockElement('canvas');
@@ -288,23 +309,79 @@ describe('split-screen configuration and dynamic viewports', () => {
       };
 
       const split = new SplitScreen(container, {
-        gamepads,
+        gamepads: withGamepads ? gamepads : undefined,
         session: () => mockSession as any,
         ownWorld: () => mockSession as any,
         presetId: () => 'pad',
         isGodMode: () => false,
-        keyboardFlight: () => IDLE,
+        keyboardFlight: () => withGamepads ? IDLE : { turn: 1, throttle: 0, engine: true },
         execute: () => {},
         notify: () => {},
         changed: () => {},
       });
 
-      return { split, p1Camera: new CameraController(), container };
+      return { split, p1Camera: new CameraController(), container, local: mockSession, gamepads };
     }
 
     function mockState(x: number, y: number, status: 'landed' | 'flying' | 'crashed' = 'landed'): State {
       return { time: 10, position: { x, y }, velocity: { x: 0, y: 0 }, heading: 0, throttle: 0, revision: 1, status };
     }
+
+    it('routes a keyboard-owned guest without connected gamepad support', () => {
+      const { split, local } = createMockSplitScreen(false);
+      const controls = vi.spyOn(local, 'guestControls');
+      split.setConfig(assignDevice(setPlayerCount(split.config, 2), 1, 'keyboard')); split.sync();
+      split.pollPads(); split.applyInput(.01);
+      const guest = split.guests.get(1)!;
+      expect(split.keyboardSlot).toBe(1); expect(split.padsOf(1)).toEqual([]);
+      expect(controls).toHaveBeenCalledWith(guest.playerId, guest.shipId, { turn: 1, throttle: 0, engine: true });
+      split.dispose();
+      expect(controls).toHaveBeenLastCalledWith(guest.playerId, guest.shipId, IDLE);
+    });
+
+    it('attaches guest panes to the current canvas after renderer replacement', () => {
+      const { split, container } = createMockSplitScreen();
+      const replacement = createMockElement('canvas'), originalQuery = container.querySelector;
+      replacement.after = vi.fn();
+      container.querySelector = (selector: string) => selector === 'canvas#flight-view' ? replacement : originalQuery(selector);
+      split.setConfig({ ...split.config, count: 2 }); split.sync();
+      expect(replacement.after).toHaveBeenCalledWith(split.guests.get(1)!.pane);
+      expect(replacement.getAttribute('data-local-primary')).toBe('');
+    });
+
+    it('releases the old guest target before selecting another vessel', () => {
+      const { split, local } = createMockSplitScreen();
+      split.setConfig({ ...split.config, count: 2 }); split.sync();
+      const guest = split.guests.get(1)!, oldShip = guest.shipId!;
+      const release = vi.fn(); local.guestControls = release;
+      guest.controls = { turn: 1, throttle: 0, engine: true };
+      guest.select('replacement-ship');
+      expect(release).toHaveBeenCalledWith(guest.playerId, oldShip, IDLE);
+      expect(guest.controls).toEqual(IDLE); expect(guest.shipId).toBe('replacement-ship');
+    });
+
+    it('releases an auto-owned pad when another seat claims it', () => {
+      const { split, gamepads } = createMockSplitScreen(), release = vi.spyOn(gamepads, 'release');
+      vi.spyOn(gamepads, 'connected').mockReturnValue([0]);
+      let next = setPlayerCount(split.config, 2); next = assignDevice(next, 1, 'pad:0');
+      split.setConfig(next); expect(release).toHaveBeenCalledWith(0);
+      gamepads.dispose();
+    });
+
+    it('closes every guest resource and removes panes when a renderer fails during disposal', () => {
+      const { split, local } = createMockSplitScreen();
+      split.setConfig({ ...split.config, count: 3 }); split.sync();
+      const first = split.guests.get(1)!, second = split.guests.get(2)!;
+      const camera = vi.spyOn(first.camera, 'dispose'), prediction = vi.spyOn(first.prediction, 'dispose');
+      const fleet = vi.spyOn(first.fleetView, 'dispose'), secondCamera = vi.spyOn(second.camera, 'dispose');
+      local.unseatGuest = vi.fn();
+      first.renderer = { dispose() { throw new Error('Broken renderer cleanup'); } } as any;
+      expect(() => split.dispose()).toThrow('Split-screen cleanup failed');
+      expect(camera).toHaveBeenCalledTimes(1); expect(prediction).toHaveBeenCalledTimes(1); expect(fleet).toHaveBeenCalledTimes(1);
+      expect(secondCamera).toHaveBeenCalledTimes(1); expect(first.pane.remove).toHaveBeenCalled(); expect(second.pane.remove).toHaveBeenCalled();
+      expect(local.unseatGuest).toHaveBeenCalledTimes(2); expect(split.guests.size).toBe(0);
+      split.dispose(); expect(camera).toHaveBeenCalledTimes(1);
+    });
 
     it('splits immediately if either player opens a map or non-follow view', () => {
       const { split, p1Camera } = createMockSplitScreen();

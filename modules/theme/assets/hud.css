@@ -1,0 +1,357 @@
+/* ==========================================================================
+   THEME CUSTOMIZER & HUD THEMES
+   ========================================================================== */
+
+/* Toolbar Buttons */
+#grid-toggle.active {
+  background: var(--ui-win-active-bg);
+  border-color: var(--ui-win-border);
+  color: var(--ui-win-accent);
+}
+
+/* Base HUD Glow effect */
+#flight-console.hud-glow .view-time,
+#flight-console.hud-glow .telemetry,
+.theme-hud-preview-box.hud-glow .preview-time,
+.theme-hud-preview-box.hud-glow .preview-telemetry {
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.28);
+}
+
+/* Base Scanlines effect */
+#flight-console.hud-scanlines .view-time::before,
+#flight-console.hud-scanlines .telemetry::before,
+.theme-hud-preview-box.hud-scanlines .preview-time::before,
+.theme-hud-preview-box.hud-scanlines .preview-telemetry::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.22) 0px,
+    rgba(0, 0, 0, 0.22) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  border-radius: inherit;
+  z-index: 10;
+}
+
+/* Chamfered corners */
+#flight-console.hud-chamfer .view-time,
+.theme-hud-preview-box.hud-chamfer .preview-time {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+#flight-console.hud-chamfer .telemetry,
+.theme-hud-preview-box.hud-chamfer .preview-telemetry {
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+}
+
+/* Compact HUD */
+#flight-console.compact-hud .telemetry,
+.theme-hud-preview-box.compact-hud .preview-telemetry {
+  padding: 3px 4px;
+}
+#flight-console.compact-hud .telemetry > div,
+.theme-hud-preview-box.compact-hud .preview-telemetry > div {
+  padding: 0 8px;
+}
+#flight-console.compact-hud .telemetry output,
+.theme-hud-preview-box.compact-hud .preview-telemetry output {
+  font-size: 13px;
+}
+
+/* --- THEME 1: CYBER NEON HUD --- */
+#flight-console[data-hud-theme="cyber"] .view-time,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-time {
+  background: rgba(3, 15, 26, 0.94);
+  border: 1px solid #00f0ff;
+  color: #00f0ff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(0, 240, 255, 0.12);
+  font-family: 'Courier New', ui-monospace, monospace;
+}
+#flight-console[data-hud-theme="cyber"] .view-time #time,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-time output {
+  color: #00f0ff;
+  text-shadow: 0 0 8px #00f0ff;
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="cyber"] .view-time span,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-time span {
+  color: #ff007f;
+  text-shadow: 0 0 6px rgba(255, 0, 127, 0.65);
+  letter-spacing: 1px;
+}
+#flight-console[data-hud-theme="cyber"] .telemetry,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-telemetry {
+  background: rgba(3, 15, 26, 0.94);
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.35), inset 0 0 12px rgba(0, 240, 255, 0.1);
+}
+#flight-console[data-hud-theme="cyber"] .telemetry > div,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-telemetry > div {
+  border-right: 1px solid rgba(0, 240, 255, 0.4);
+}
+#flight-console[data-hud-theme="cyber"] .telemetry span,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-telemetry span {
+  color: #00f0ff;
+  letter-spacing: 1.2px;
+  text-shadow: 0 0 6px rgba(0, 240, 255, 0.6);
+}
+#flight-console[data-hud-theme="cyber"] .telemetry output,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-telemetry output {
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.9);
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="cyber"] .telemetry small,
+.theme-hud-preview-box[data-hud-theme="cyber"] .preview-telemetry small {
+  color: #ff007f;
+  text-shadow: 0 0 6px rgba(255, 0, 127, 0.7);
+}
+
+/* --- THEME 2: APOLLO 1969 RETRO CRT AMBER --- */
+#flight-console[data-hud-theme="apollo"] .view-time,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-time {
+  background: #0d0901;
+  border: 2px solid #a66a0a;
+  border-radius: 4px;
+  color: #ffb300;
+  box-shadow: 0 0 14px rgba(255, 179, 0, 0.3), inset 0 0 12px rgba(255, 140, 0, 0.18);
+  font-family: ui-monospace, monospace;
+}
+#flight-console[data-hud-theme="apollo"] .view-time #time,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-time output {
+  color: #ffc107;
+  text-shadow: 0 0 8px rgba(255, 193, 7, 0.8);
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="apollo"] .view-time span,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-time span {
+  color: #ff9800;
+}
+#flight-console[data-hud-theme="apollo"] .telemetry,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-telemetry {
+  background: #0d0901;
+  border: 2px solid #a66a0a;
+  border-radius: 6px;
+  box-shadow: 0 0 16px rgba(255, 179, 0, 0.3), inset 0 0 14px rgba(255, 140, 0, 0.15);
+}
+#flight-console[data-hud-theme="apollo"] .telemetry > div,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-telemetry > div {
+  border-right: 1px solid #5a3804;
+}
+#flight-console[data-hud-theme="apollo"] .telemetry span,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-telemetry span {
+  color: #ff9800;
+  letter-spacing: 1px;
+}
+#flight-console[data-hud-theme="apollo"] .telemetry output,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-telemetry output {
+  color: #ffe082;
+  text-shadow: 0 0 10px rgba(255, 193, 7, 0.8);
+}
+#flight-console[data-hud-theme="apollo"] .telemetry small,
+.theme-hud-preview-box[data-hud-theme="apollo"] .preview-telemetry small {
+  color: #ffb300;
+}
+
+/* --- THEME 3: DEEP SPACE TACTICAL --- */
+#flight-console[data-hud-theme="tactical"] .view-time,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-time {
+  background: #0f1318;
+  border: 1px solid #ff6600;
+  border-left: 4px solid #ff6600;
+  border-radius: 2px;
+  color: #f0f0f0;
+}
+#flight-console[data-hud-theme="tactical"] .view-time #time,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-time output {
+  color: #ff6600;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+#flight-console[data-hud-theme="tactical"] .view-time span,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-time span {
+  color: #ffd000;
+  font-weight: 600;
+}
+#flight-console[data-hud-theme="tactical"] .telemetry,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-telemetry {
+  background: #0f1318;
+  border: 1px solid #333d47;
+  border-bottom: 3px solid #ff6600;
+  border-radius: 2px;
+}
+#flight-console[data-hud-theme="tactical"] .telemetry > div,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-telemetry > div {
+  border-right: 1px solid #232a32;
+}
+#flight-console[data-hud-theme="tactical"] .telemetry span,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-telemetry span {
+  color: #ffd000;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+#flight-console[data-hud-theme="tactical"] .telemetry output,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-telemetry output {
+  color: #ffffff;
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="tactical"] .telemetry small,
+.theme-hud-preview-box[data-hud-theme="tactical"] .preview-telemetry small {
+  color: #ff6600;
+  font-weight: 700;
+}
+
+/* --- THEME 4: AURORA FROST / GLASS --- */
+#flight-console[data-hud-theme="aurora"] .view-time,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-time {
+  background: rgba(8, 24, 30, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 245, 160, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 245, 160, 0.18), inset 0 0 12px rgba(0, 245, 160, 0.08);
+  border-radius: 10px;
+  color: #e0fff4;
+}
+#flight-console[data-hud-theme="aurora"] .view-time #time,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-time output {
+  color: #00ffaa;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.65);
+}
+#flight-console[data-hud-theme="aurora"] .view-time span,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-time span {
+  color: #b088ff;
+}
+#flight-console[data-hud-theme="aurora"] .telemetry,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-telemetry {
+  background: rgba(8, 24, 30, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 245, 160, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 245, 160, 0.18);
+  border-radius: 12px;
+}
+#flight-console[data-hud-theme="aurora"] .telemetry > div,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-telemetry > div {
+  border-right: 1px solid rgba(0, 245, 160, 0.25);
+}
+#flight-console[data-hud-theme="aurora"] .telemetry span,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-telemetry span {
+  color: #a8dcd1;
+}
+#flight-console[data-hud-theme="aurora"] .telemetry output,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-telemetry output {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(0, 255, 170, 0.55);
+}
+#flight-console[data-hud-theme="aurora"] .telemetry small,
+.theme-hud-preview-box[data-hud-theme="aurora"] .preview-telemetry small {
+  color: #b088ff;
+}
+
+/* --- THEME 5: SOLAR GOLD --- */
+#flight-console[data-hud-theme="solar"] .view-time,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-time {
+  background: rgba(22, 15, 5, 0.94);
+  border: 1px solid #d4af37;
+  color: #ffd700;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.3);
+  border-radius: 6px;
+}
+#flight-console[data-hud-theme="solar"] .view-time #time,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-time output {
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="solar"] .view-time span,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-time span {
+  color: #ff5722;
+}
+#flight-console[data-hud-theme="solar"] .telemetry,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-telemetry {
+  background: rgba(22, 15, 5, 0.94);
+  border: 1px solid #d4af37;
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+}
+#flight-console[data-hud-theme="solar"] .telemetry > div,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-telemetry > div {
+  border-right: 1px solid rgba(212, 175, 55, 0.4);
+}
+#flight-console[data-hud-theme="solar"] .telemetry span,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-telemetry span {
+  color: #e6b800;
+}
+#flight-console[data-hud-theme="solar"] .telemetry output,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-telemetry output {
+  color: #fff8e1;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.75);
+}
+#flight-console[data-hud-theme="solar"] .telemetry small,
+.theme-hud-preview-box[data-hud-theme="solar"] .preview-telemetry small {
+  color: #ff5722;
+}
+
+/* --- THEME 6: CUSTOM CHROMA HUD (ANY COLOR & USER STYLING) --- */
+#flight-console[data-hud-theme="custom"] .view-time,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-time {
+  background: rgba(10, 16, 26, 0.94);
+  border: 1px solid var(--ui-hud-custom-color, #38bdf8);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 35%, transparent),
+              inset 0 0 10px color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 12%, transparent);
+  color: var(--ui-hud-custom-color, #38bdf8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+#flight-console[data-hud-theme="custom"] .view-time #time,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-time output {
+  color: var(--ui-hud-custom-color, #38bdf8);
+  text-shadow: 0 0 8px var(--ui-hud-custom-color, #38bdf8);
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="custom"] .view-time span,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-time span {
+  color: color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 70%, #ffffff);
+  letter-spacing: 0.8px;
+}
+#flight-console[data-hud-theme="custom"] .telemetry,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-telemetry {
+  background: rgba(10, 16, 26, 0.94);
+  border: 1px solid var(--ui-hud-custom-color, #38bdf8);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 35%, transparent),
+              inset 0 0 12px color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 10%, transparent);
+}
+#flight-console[data-hud-theme="custom"] .telemetry > div,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-telemetry > div {
+  border-right: 1px solid color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 30%, transparent);
+}
+#flight-console[data-hud-theme="custom"] .telemetry span,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-telemetry span {
+  color: color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 70%, #ffffff);
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+#flight-console[data-hud-theme="custom"] .telemetry output,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-telemetry output {
+  color: #ffffff;
+  text-shadow: 0 0 10px var(--ui-hud-custom-color, #38bdf8);
+  font-weight: 700;
+}
+#flight-console[data-hud-theme="custom"] .telemetry small,
+.theme-hud-preview-box[data-hud-theme="custom"] .preview-telemetry small {
+  color: var(--ui-hud-custom-color, #38bdf8);
+  font-weight: 700;
+}
+
+/* Enhanced Glow for Custom HUD */
+#flight-console.hud-glow[data-hud-theme="custom"] .view-time,
+#flight-console.hud-glow[data-hud-theme="custom"] .telemetry,
+.theme-hud-preview-box.hud-glow[data-hud-theme="custom"] .preview-time,
+.theme-hud-preview-box.hud-glow[data-hud-theme="custom"] .preview-telemetry {
+  box-shadow: 0 0 22px color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 55%, transparent),
+              inset 0 0 14px color-mix(in srgb, var(--ui-hud-custom-color, #38bdf8) 20%, transparent);
+}
+

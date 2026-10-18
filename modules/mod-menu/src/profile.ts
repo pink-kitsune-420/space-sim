@@ -1,0 +1,37 @@
+import type {ModuleManifest,NumberSetting,ModMenuProfileElements,ModMenuProfilePort,ModMenuProfileState,ModMenuProfileView} from '@space-sim/game-api';
+/** Legacy profile UI over public manifests. The host retains compatibility, codecs and execution. */
+export function createProfileEditor(e:ModMenuProfileElements,port:ModMenuProfilePort,initial:ModMenuProfileState['applied']):ModMenuProfileView {
+ const document=e.list.ownerDocument,Controller=document.defaultView?.AbortController??AbortController,previous={list:[...e.list.childNodes],providers:[...e.providers.childNodes],installed:[...e.installed.childNodes],disabled:e.apply.disabled};
+ let disposed=false,rows=new Controller(),state:ModMenuProfileState={applied:initial,available:[],installed:[],editable:false};
+ let selected=new Set(initial.modules.map(ref=>ref.id)),providers={...initial.providers};
+ let values:Record<string,Record<string,number>>=Object.create(null);const tasks=new Set<AbortController>();
+ const run=async(action:(signal:AbortSignal)=>Promise<void>)=>{if(disposed)return;const task=new AbortController();tasks.add(task);try{await action(task.signal);}catch(error){if(!disposed&&!task.signal.aborted)port.error(error instanceof Error?error.message:String(error));}finally{tasks.delete(task);}};
+ const settings=(manifest:ModuleManifest,current:Readonly<Record<string,number>>,setup:(input:HTMLInputElement,key:string,schema:NumberSetting)=>void):HTMLElement[]=>Object.entries(manifest.settings).map(([key,schema])=>{
+  const label=document.createElement('label'),input=document.createElement('input');input.type='number';input.step=String(schema.step??'any');input.min=String(schema.minimum);input.max=String(schema.maximum);input.value=String(current[key]??schema.default);input.dataset.setting=key;setup(input,key,schema);label.append(`${schema.label??key} [${schema.minimum}, ${schema.maximum}] `,input);
+  if(schema.description){const help=document.createElement('small');help.className='module-note';help.textContent=schema.description;label.append(help);}return label;
+ });
+ function render():void {
+  if(disposed)return;rows.abort();rows=new Controller();
+  e.list.replaceChildren(...state.available.map(manifest=>{
+   const item=document.createElement('li'),label=document.createElement('label'),box=document.createElement('input');box.type='checkbox';box.dataset.enable=manifest.id;box.dataset.version=manifest.version;box.checked=selected.has(manifest.id);box.disabled=!state.editable;box.addEventListener('change',()=>{if(box.checked)selected.add(manifest.id);else selected.delete(manifest.id);port.changed();},{signal:rows.signal});label.append(box,` ${manifest.name} · ${manifest.id}@${manifest.version}`);item.append(label);
+   if(manifest.dependencies.length){const note=document.createElement('p');note.className='module-note';note.textContent=`Requires ${manifest.dependencies.map(ref=>`${ref.id}@${ref.version}`).join(', ')}`;item.append(note);}
+   item.append(...settings(manifest,values[manifest.id]??{},(input,key,schema)=>{input.dataset.owner=manifest.id;input.disabled=!state.editable;(values[manifest.id]??={})[key]=Number(input.value??schema.default);input.addEventListener('change',()=>{values[manifest.id]![key]=Number(input.value);port.changed();},{signal:rows.signal});}));return item;
+  }));
+  const slots=[...new Set(state.available.flatMap(manifest=>[...manifest.slots]))];e.providers.replaceChildren(...slots.map(slot=>{
+   const label=document.createElement('label'),select=document.createElement('select'),automatic=document.createElement('option');select.dataset.slot=slot;select.disabled=!state.editable;automatic.value='';automatic.textContent='Automatic';select.append(automatic);
+   for(const manifest of state.available.filter(manifest=>manifest.slots.includes(slot))){const option=document.createElement('option');option.value=manifest.id;option.textContent=manifest.name;select.append(option);}select.value=providers[slot]??'';select.addEventListener('change',()=>{if(select.value)providers[slot]=select.value;else delete providers[slot];port.changed();},{signal:rows.signal});label.append(`${slot} `,select);return label;
+  }));
+  e.apply.disabled=!state.editable;
+  e.installed.replaceChildren(...state.installed.map(entry=>{
+   const manifest=entry.manifest,item=document.createElement('li'),detail=document.createElement('p');detail.textContent=`${manifest.name} · ${manifest.id}@${manifest.version} · ${entry.active?'active':'installed'} · ${manifest.authority} · ${manifest.license} · ${entry.digest?`SHA-256 ${entry.digest}`:'data'}`;item.append(detail);
+   if(entry.inputs){const notices=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('pre');summary.textContent='Bundled inputs and attribution';text.textContent=entry.inputs.map(input=>`${input.path} · ${input.license}\n${input.attribution}`).join('\n\n');notices.append(summary,text);item.append(notices);}
+   const exportButton=document.createElement('button'),remove=document.createElement('button');exportButton.type=remove.type='button';exportButton.textContent='Export plugin';remove.textContent='Remove';remove.disabled=entry.active;remove.title=entry.active?'Disable the module before removing it':'Remove this installed artifact';exportButton.addEventListener('click',()=>{void run(signal=>port.exportModule(manifest.id,signal));},{signal:rows.signal});remove.addEventListener('click',()=>{void run(signal=>port.removeModule(manifest.id,signal));},{signal:rows.signal});item.append(exportButton,remove);
+   if(entry.values&&Object.keys(manifest.settings).length){const inputs:HTMLInputElement[]=[];item.append(...settings(manifest,entry.values,input=>inputs.push(input)));const apply=document.createElement('button');apply.type='button';apply.textContent='Apply presentation settings';apply.addEventListener('click',()=>{void run(signal=>port.presentationSettings(manifest.id,Object.fromEntries(inputs.map(input=>[input.dataset.setting!,Number(input.value)])),signal));},{signal:rows.signal});item.append(apply);}return item;
+  }));
+ }
+ return {refresh(next){if(disposed)return;state=next;selected=new Set(next.applied.modules.map(ref=>ref.id));providers={...next.applied.providers};values=Object.fromEntries(Object.entries(next.applied.settings).map(([id,values])=>[id,{...values}]));render();},
+  draft(){const enabled=state.available.filter(manifest=>selected.has(manifest.id));return {format:'space-sim-profile/1',id:state.applied.id,modules:enabled.map(({id,version})=>({id,version})),providers:{...providers},settings:Object.fromEntries(Object.entries(values).filter(([id])=>enabled.some(manifest=>manifest.id===id)).map(([id,values])=>[id,{...values}]))};},
+  select(modules){if(disposed)return;selected=new Set(modules.map(ref=>ref.id));render();},
+  dispose(){if(disposed)return;disposed=true;rows.abort();for(const task of tasks)task.abort(new Error('Profile editor removed'));tasks.clear();e.list.replaceChildren(...previous.list);e.providers.replaceChildren(...previous.providers);e.installed.replaceChildren(...previous.installed);e.apply.disabled=previous.disabled;}
+ };
+}

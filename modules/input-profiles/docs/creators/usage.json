@@ -1,0 +1,28 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Flight controller profiles",
+  "summary": "Editable flight mappings and legacy controller preference migration.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides input.flight-profiles@1.0.0 without loading any gamepad device code. No required services. Browser and offline environments; platform authority only."
+    },
+    {
+      "type": "paragraph",
+      "text": "Owns the original standard button/axis defaults, validated per-player profiles and migration from space-sim:gamepad:v1. Device sampling remains a separate optional package. Local preferences do not change authoritative simulation identity."
+    },
+    {
+      "type": "paragraph",
+      "text": "The codec owns no listeners or devices. Consumers retain their independent profile state; disabling this provider is rejected while a required consumer remains selected. Replace with a compatible codec through prepare/activate/dispose."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/input-profiles/module.json /tmp/input-profiles.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild/repack and import into a compatible game. Downloaded code requires explicit consent and has full application privileges. Building a package does not establish runtime acceptance."
+    }
+  ]
+}

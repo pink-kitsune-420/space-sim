@@ -1,0 +1,26 @@
+/* Planet designer */
+.planet-designer-content { display:grid; gap:12px; margin-top:12px; font-size:11px; color:#c3d3d6 }
+.planet-designer-content h3 { margin:4px 0 0; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#8fa5b0 }
+.designer-intro,.designer-status { margin:0; line-height:1.6; color:#8fa5b0 }
+.designer-status { color:#c3d3d6; overflow-wrap:anywhere; white-space:pre-wrap; max-height:160px; overflow:auto }
+.designer-stage { display:flex; flex-wrap:wrap; gap:12px; align-items:center }
+.planet-preview { width:min(260px,100%); aspect-ratio:1; height:auto; border:1px solid var(--ui-win-border); border-radius:7px; background:var(--ui-win-card-bg) }
+.designer-view { display:grid; gap:8px }
+.designer-presets { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:6px }
+.designer-preset { display:flex; align-items:center; gap:7px; font-size:11px; text-align:left; padding:6px 8px }
+.designer-swatch { flex:none; width:16px; height:16px; border-radius:50%; border:1px solid #ffffff30 }
+.designer-row,.designer-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+.designer-row input[type=number] { width:76px }
+.designer-colors { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:6px }
+.designer-colors label { display:flex; align-items:center; gap:4px }
+.designer-colors input[type=color] { width:30px; height:22px; padding:0; border:1px solid var(--ui-win-border); background:none }
+.designer-tuning { display:grid; gap:6px }
+.designer-tuning label { display:grid; grid-template-columns:96px 1fr; align-items:center; gap:8px }
+.planet-designer-content button.primary { border-color:var(--ui-win-accent); color:var(--ui-win-accent) }
+.planet-designer-content button:disabled { opacity:.45; cursor:default }
+.designer-row input[type=text] { flex:1; min-width:140px }
+.designer-library { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:6px }
+.designer-saved { display:flex; gap:4px; min-width:0 }
+.designer-saved .designer-preset { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.designer-saved button:not(.designer-preset) { font-size:11px; padding:4px 8px }
+

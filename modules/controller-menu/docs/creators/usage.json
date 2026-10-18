@@ -1,0 +1,28 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Controller menu",
+  "summary": "Editable local-player and controller settings UI.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Requires input.local-pilots, input.flight-profiles and input.flight-actions@1.0.0. input.gamepad@1.0.0 is optional: keyboard-controlled seats and saved profile editing work without a gamepad backend. Browser and offline only; platform authority."
+    },
+    {
+      "type": "paragraph",
+      "text": "Create a menu with a caller-owned root, configuration controller and pilot-name/open-state callbacks. The package owns its markup, style, capture listeners and animation loop. Close/dispose cancels capture; provider disposal closes every owned menu. It never steps a world or grants session ownership."
+    },
+    {
+      "type": "paragraph",
+      "text": "Preferences use the local-pilot/profile services and preserve existing storage migration. Missing gamepad support disables capture and live device diagnostics, rather than implying that connecting a physical pad can activate an absent module."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/controller-menu/module.json /tmp/controller-menu.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild/repack and import into a compatible game. Downloaded code requires explicit consent and has full application privileges. Building a package does not establish runtime acceptance."
+    }
+  ]
+}

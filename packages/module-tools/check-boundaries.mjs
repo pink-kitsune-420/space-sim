@@ -18,15 +18,15 @@ const bridges = {
   'packages/modules/src/index.ts': [
     'packages/game-runtime/src/index', 'packages/game-runtime/src/validation',
     'packages/sim-core/src/services', 'packages/sim-core/src/universe', 'packages/sim-core/src/world', 'packages/sim-core/src/save',
+    'packages/sim-core/src/module-services', 'modules/physics-rails/src/legacy',
   ],
   'packages/modules/src/data.ts': [
     'packages/game-runtime/src/index', 'packages/game-runtime/src/validation', 'packages/sim-core/src/universe',
   ],
   'packages/modules/src/profile.ts': ['packages/game-runtime/src/index', 'packages/game-runtime/src/validation'],
-  'packages/modules/src/browser.ts': ['packages/game-runtime/src/index', 'packages/game-runtime/src/validation'],
+  'packages/modules/src/browser.ts': ['packages/game-runtime/src/index', 'packages/game-runtime/src/validation', 'packages/render-2d/src/index', 'modules/audio-procedural/src/synth', 'modules/navball/src/drawing'],
+  'packages/modules/src/base/toolset/index.ts': ['modules/maneuver-display/src/overlay'],
   'packages/modules/src/base/content.ts': ['packages/scenarios/builtin'],
-  'packages/modules/src/base/motion.ts': ['packages/sim-core/src/context', 'packages/sim-core/src/services'],
-  'packages/modules/src/base/renderers.ts': ['packages/render-2d/src/index'],
 };
 /** Folders whose modules are written exactly like player modules: public API and siblings only. */
 const publicRoots = ['examples/modules/', 'packages/modules/src/base/toolset/'];
@@ -39,7 +39,9 @@ export function checkSource(source, path) {
     if (!specifier || specifier.type !== 'Literal' || typeof specifier.value !== 'string') { errors.push(`${path}: computed module imports are unsupported`); return; }
     const raw = specifier.value;
     const target = relative(root, resolve(root, dirname(path), raw)).replaceAll('\\', '/').replace(/\.(ts|js|mjs)$/, '');
-    const localRoot = (path.startsWith('examples/packages/') ? `${path.split('/').slice(0, 3).join('/')}/` : undefined) ?? publicRoots.find(root => path.startsWith(root)) ?? `${path.split('/').slice(0, 3).join('/')}/`;
+    const localRoot = (path.startsWith('modules/') ? `${path.split('/').slice(0, 2).join('/')}/` : undefined)
+      ?? (path.startsWith('examples/packages/') ? `${path.split('/').slice(0, 3).join('/')}/` : undefined)
+      ?? publicRoots.find(root => path.startsWith(root)) ?? `${path.split('/').slice(0, 3).join('/')}/`;
     const allowed = raw === '@space-sim/game-api' || raw.startsWith('.') && (target === publicEntry
       || (target.startsWith(localRoot) && target !== localRoot.slice(0, -1))
       || bridges[path]?.includes(target));
@@ -69,7 +71,7 @@ async function collect(path) {
   return files;
 }
 export async function checkBoundaries() {
-  const files = (await Promise.all(['packages/game-api/src', 'packages/game-runtime/src', 'packages/modules/src', 'examples/modules', 'examples/packages'].map(collect))).flat();
+  const files = (await Promise.all(['packages/game-api/src', 'packages/game-runtime/src', 'packages/modules/src', 'examples/modules', 'examples/packages', 'modules'].map(collect))).flat();
   const errors = (await Promise.all(files.map(async path => checkSource(await readFile(resolve(root, path), 'utf8'), path)))).flat();
   if (errors.length) throw new Error(errors.join('\n'));
   return files.length;

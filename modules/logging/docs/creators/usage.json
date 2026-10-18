@@ -1,0 +1,32 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Module logging",
+  "summary": "Bounded module-scoped diagnostics with explicit dependencies.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "diagnostics.logs@1.0.0 is an optional platform service for browser, offline and Node hosts. It owns a bounded in-memory ring; each entry captures module ID and exact version, severity, event, monotonic diagnostic wall milliseconds and optional scalar fields. This time never advances simulation or belongs in authoritative data."
+    },
+    {
+      "type": "paragraph",
+      "text": "A platform or network consumer declares diagnostics.logs@^1.0.0 as an optional requirement, captures it synchronously with tryUse during initialization and owns its scoped logger. Absence leaves the feature working without diagnostics; a broken or incompatible selected provider still fails service resolution. Current tier rules prevent authoritative and presentation modules from depending on a platform provider. Host lifecycle observation can describe all tiers without injecting logging into deterministic hooks."
+    },
+    {
+      "type": "code",
+      "text": "const logs = context.tryUse(MODULE_LOGS);\nconst log = logs && context.module\n  ? context.own(logs.logger(context.module)) : undefined;\nlog?.write('info', 'viewer.ready', 'Viewer ready', { views: 1 });\n// Capture log once; do not call context.tryUse from runtime callbacks.\nlog?.write('debug', 'viewer.detail', () => expensiveDiagnosticText());"
+    },
+    {
+      "type": "paragraph",
+      "text": "Call path: manifest requirement \u2192 initialization binding \u2192 scoped logger \u2192 severity/rate filtering \u2192 immutable ring entry \u2192 entries query or player diagnostics export. The provider owns history; the consumer owns its logger and releases it on removal. Disposal makes stale loggers inert. Host diagnostics are injected separately and observe resolution, initialization failure and candidate cleanup without modifying locks or world fingerprints."
+    },
+    {
+      "type": "paragraph",
+      "text": "Default settings retain 512 info-or-higher entries with console mirroring off, cap each logger at 100 accepted entries per wall second, and truncate messages to 2048 characters. Fields allow at most 32 scalar values, 64-character keys and 1024-character strings. History is best effort: filtered, invalid, excess and old entries are dropped. Do not log every frame, serialize live worlds or use logs for game logic. No responsiveness benchmark is claimed."
+    },
+    {
+      "type": "paragraph",
+      "text": "Try a small non-flight consumer: log a document opening, remove it, confirm stale callbacks produce no entry, then export the diagnostic report. Fork/rebuild the provider to change retention defaults. Required identities and exact game pins remain explicit; importing the package does not enable it. The future log menu can read filtered snapshots without a separate logging database."
+    }
+  ]
+}

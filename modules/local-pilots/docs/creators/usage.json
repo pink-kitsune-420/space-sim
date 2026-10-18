@@ -1,0 +1,32 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Local pilot registry",
+  "summary": "Adapts one to four active local seats to borrowed session identities and device preferences.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Adapts one to four active local seats to borrowed session identities and device preferences."
+    },
+    {
+      "type": "paragraph",
+      "text": "Provides input.local-pilots@1.0.0. Optional input.flight-profiles@1.0.0 supplies flight preference defaults/migration; the generic seat registry works without it. Constructors receive identity, assignment and release callbacks."
+    },
+    {
+      "type": "paragraph",
+      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+    },
+    {
+      "type": "paragraph",
+      "text": "Owns the existing local-player preference codec and migration, including independent names, device assignments and navball placements. Session credentials remain session-owned. This registry never grants network ownership. Device changes release held input first; disposal releases the registry."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/local-pilots/module.json /tmp/local-pilots.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+    }
+  ]
+}

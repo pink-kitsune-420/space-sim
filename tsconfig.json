@@ -21,6 +21,7 @@
     "apps/desktop/**/*.ts",
     "apps/orbit-sandbox/**/*.ts",
     "packages/**/*.ts",
+    "modules/**/*.ts",
     "examples/**/*.ts",
     "tests/**/*.ts",
     "scripts/stress/module-baseline.ts",

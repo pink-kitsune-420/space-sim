@@ -29,6 +29,8 @@ export interface CandidateResources extends Disposable {
   activate?(): void;
 }
 export interface EngineAdapters {
+  /** Optional host diagnostics; excluded from locks, fingerprints and simulation state. */
+  readonly logs?:import('../../game-api/src/index').ModuleLogService;
   readonly hostServices: readonly HostServiceAccess[];
   readonly staticModules: readonly RegisteredModuleV2[];
   inspect(bytes: Uint8Array): Promise<InspectedRuntimePackage>;
@@ -97,7 +99,7 @@ export class CandidateGame implements Disposable {
 export async function prepareInstalledGame(plan: InstalledGamePlan, store: PackageStore, policy: LoadPolicy,
   adapters: EngineAdapters, signal: AbortSignal): Promise<CandidateGame> {
   plan = { profile: validateProfileV2(plan.profile), packages: plan.packages.map(ref => ({ ...ref })), requiredSlots: [...plan.requiredSlots] };
-  const registry = new ModuleRegistryV2(adapters.hostServices), references = plan.packages.map(ref => Object.freeze({ ...ref }));
+  const registry = new ModuleRegistryV2(adapters.hostServices,adapters.logs), references = plan.packages.map(ref => Object.freeze({ ...ref }));
   if (references.length > 256 || new Set(references.map(ref => ref.id)).size !== references.length) throw new Error('Duplicate or excessive game packages');
   const staticIds = new Set(adapters.staticModules.map(m => m.manifest.id));
   for (const ref of references) if (staticIds.has(ref.id)) throw new Error(`Package ${ref.id} cannot replace a shipped identity`);

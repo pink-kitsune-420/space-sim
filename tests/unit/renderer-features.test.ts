@@ -90,9 +90,12 @@ describe('renderer features', () => {
   it('draw WebGL overlays through private passes, compiling the label pass only when needed', () => {
     const { stats, canvas } = fakeGl();
     const renderer = new WebGLRenderer(canvas);
-    // Three pack programs (the scene in its lite build), the private colored pass, and the full
-    // scene linking in the background.
-    expect(stats.programs).toBe(5);
+    // Three pack programs (including the lite scene) plus the private colored pass.
+    // Low graphics must never compile the unused full procedural scene.
+    expect(stats.programs).toBe(4);
+    renderer.draw({ ...frame(OVERLAYS.slice(0, 2)), theme: { highQuality: false } });
+    expect(stats.programs).toBe(4);
+    expect(stats.created).toBe(4);
     renderer.draw(frame(OVERLAYS.slice(0, 2)));
     expect(stats.programs).toBe(4); // the full scene replaced the lite one
     renderer.draw(frame(OVERLAYS));

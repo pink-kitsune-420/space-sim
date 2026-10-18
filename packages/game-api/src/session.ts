@@ -1,3 +1,4 @@
+import type { ModuleDataCommand, ModuleDataExtension } from './module-data';
 import type { Disposable, AuthoritativeLock, ModuleLock } from './modules';
 import type { Controls, Vec } from './state';
 import type { Ship, WorldEvent } from './world';
@@ -52,6 +53,7 @@ export interface SessionRead {
   playerName(id: string): string | undefined;
   /** Say something to everyone in this world (just this pilot when playing alone). */
   chat(text: string): void;
+  dataCommand(request: ModuleDataCommand): void;
   /** Every chat line in this world, this pilot's own included. */
   onchat: ((line: ChatLine) => void) | null;
 }
@@ -62,6 +64,7 @@ export interface LocalSessionOptions {
   readonly name: string; readonly token?: string; readonly hostId?: string; readonly players?: readonly SavedPlayer[];
 }
 export interface JoinOptions {
+  readonly dataAdapters?: readonly ModuleDataExtension[];
   readonly createContext?: SimulationContextFactory; readonly name: string; readonly password?: string;
   /** May reserve a saved pilot asynchronously before sending the join request. */
   readonly token?: (worldId: string, hostId?: string) => string | undefined | Promise<string | undefined>;

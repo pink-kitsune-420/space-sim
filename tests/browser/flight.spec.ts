@@ -65,7 +65,9 @@ test('launch, input release, pause and reset work in the production build', asyn
 });
 
 test('orbit, camera, zoom, heading and sampled prediction stay coherent', async ({ page }) => {
+  await useCanvas(page);
   await page.goto('/');
+  await expect(page.locator('#status')).toHaveText('LANDED');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect(page.locator('#status')).toHaveText('FLYING');
@@ -75,7 +77,10 @@ test('orbit, camera, zoom, heading and sampled prediction stay coherent', async 
   await expect(page.locator('#apoapsis')).toHaveText('128.0 m');
   const orbit = await diagnostics(page);
   expect(orbit.dynamics).toBe('kepler');
-  expect(orbit.coastEpochSeconds).toBe(0);
+  // Selecting a preset uses the running world's epoch, rather than resetting its clock.
+  expect(orbit.coastEpochSeconds).toEqual(expect.any(Number));
+  expect(orbit.coastEpochSeconds as number).toBeGreaterThanOrEqual(0);
+  expect(orbit.coastEpochSeconds as number).toBeLessThanOrEqual(orbit.time as number);
   await flightFocus(page);
   await page.keyboard.down('ArrowLeft');
   await expect.poll(async () => Number(await page.locator('#heading').textContent())).toBeGreaterThan(10);
@@ -99,7 +104,9 @@ test('orbit, camera, zoom, heading and sampled prediction stay coherent', async 
 
 test('mouse drag pans a rotated view and follow restores without changing flight state', async ({ page }) => {
   test.slow();
+  await useCanvas(page);
   await page.goto('/');
+  await expect(page.locator('#status')).toHaveText('LANDED');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
   await expect.poll(async () => (await diagnostics(page)).dynamics).toBe('kepler');
@@ -304,9 +311,12 @@ test('starts with WebGL 2 renderer by default and toggles cleanly to 2D and back
 });
 
 test('suborbital coast on Earth finishes tracing to impact without restarting every frame', async ({ page }) => {
+  await useCanvas(page);
   await page.goto('/');
+  await expect(page.locator('#status')).toHaveText('LANDED');
   await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
+  await expect(page.locator('#preset option[value="earth-pad"]')).toHaveCount(1);
   await page.locator('#preset').selectOption('earth-pad');
   await flightFocus(page);
   await page.keyboard.down('Space');

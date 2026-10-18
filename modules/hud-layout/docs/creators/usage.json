@@ -1,0 +1,16 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "HUD layout and visibility",
+  "summary": "Optional viewer layout, movement and visibility with complete cleanup.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Require ui.hud-layout@^1.0.0 with shared ui.windows icons. Create a layout for your viewport; optionally supply an editor toggle/reset, named movable items, viewer preference storage and responsive DOM roles. Fitting measures obstacles on layout changes and returns CSS-pixel rectangles without stepping a world. Instrument-specific geometry remains a read-only adapter."
+    },
+    {
+      "type": "paragraph",
+      "text": "Visibility receives caller-defined labels, selectors, defaults and optional container classes. External tools can bind their existing enabled state without a second store; dispose the returned binding on removal. The game chooses applicable groups and keeps a recovery path reachable. Editor/layout/visibility disposal aborts listeners, cancels pending animation work, disconnects observers, removes controls and restores borrowed presentation state. This preserves the existing narrow layout tools; broader HUD customization remains separate."
+    }
+  ]
+}

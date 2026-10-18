@@ -35,6 +35,24 @@ test.beforeEach(async ({ page }) => {
   await expect(track(page)).toBeVisible();
 });
 
+test('every active view owns one HUD lifecycle and removal releases guest instruments while retaining Player 1',async({page})=>{
+  await page.evaluate(()=>{(window as any).primaryLever=document.querySelector('.throttle-lever[data-slot="0"]');});
+  for(const count of [1,2,3,4,2,1]){
+    await openPanel(page,'settings');await page.locator('#players-toggle').click();
+    await page.locator(`.split-count [data-count="${count}"]`).click();
+    await page.locator('#controls-close').click();await closePanel(page);
+    await expect.poll(async()=>{const d=await debug(page);return d.hud.views.length;}).toBe(count);
+    await expect(page.locator('.throttle-lever')).toHaveCount(count);
+    const views=(await debug(page)).hud.views;
+    expect(new Set(views.map((view:any)=>view.seat)).size).toBe(count);expect(new Set(views.map((view:any)=>view.viewport)).size).toBe(count);
+    expect(views.every((view:any)=>view.instruments===2)).toBe(true);
+    expect(await page.evaluate(()=>(window as any).primaryLever===document.querySelector('.throttle-lever[data-slot="0"]'))).toBe(true);
+  }
+  await openPanel(page,'settings');await page.locator('#hud-visible-navball').uncheck();
+  await expect(page.locator('.throttle-lever')).toHaveCount(0);
+  await expect.poll(async()=>(await debug(page)).hud.views[0].instruments).toBe(0);
+});
+
 test('keyboard ramp persists, fine taps and cut synchronize with the unchanged lever', async ({ page }) => {
   await power(page, 0);
   await page.locator('#flight-view').focus();
@@ -381,4 +399,29 @@ test('controller throttle follows the same readout and locks pointer input', asy
   await page.locator('[data-window-option="apollo"]').click();
   await expect(lever(page).locator('output')).toHaveCSS('color', 'rgb(255, 179, 0)');
   await expect(lever(page).locator('.throttle-lever-handle')).toHaveCSS('border-top-color', 'rgb(255, 179, 0)');
+});
+
+test('HUD target rebind and viewport resize preserve one instrument pair per seat and leave removed controls inert',async({page})=>{
+  await page.evaluate(()=>{(window as any).primaryLever=document.querySelector('.throttle-lever[data-slot="0"]');});
+  await drag(page,.25);await power(page,25);
+  const previous=(await debug(page)).ship;await openPanel(page,'fleet');await page.getByRole('button',{name:'Launch another',exact:true}).click();
+  await expect.poll(async()=>(await debug(page)).ship).not.toBe(previous);
+  await expect.poll(async()=>{const d=await debug(page);return d.hud.views[0].target===d.ship;}).toBe(true);
+  await closePanel(page);await power(page,0);expect((await debug(page)).engine).toBe(false);
+  await openPanel(page,'settings');await page.locator('#players-toggle').click();await page.locator('.split-count [data-count="3"]').click();await page.locator('#controls-close').click();await closePanel(page);
+  await expect(page.locator('.throttle-lever')).toHaveCount(3);
+  for(const mode of ['split','dynamic']){
+    await openPanel(page,'settings');await page.locator('#players-toggle').click();await page.locator('#split-screen-mode').selectOption(mode);await page.locator('#controls-close').click();await closePanel(page);
+    for(const size of [{width:1280,height:900},{width:960,height:720}]){
+      await page.setViewportSize(size);
+      await expect.poll(async()=>{const views=(await debug(page)).hud.views;return views.length===3&&new Set(views.map((v:any)=>v.viewport)).size===3&&views.every((v:any)=>v.instruments===2);}).toBe(true);
+      for(let slot=0;slot<3;slot++)await expect(track(page,slot)).toBeVisible();
+    }
+  }
+  await page.evaluate(()=>{(window as any).removedSlider=document.querySelector('.throttle-lever[data-slot="2"] [role="slider"]');});
+  await openPanel(page,'settings');await page.locator('#players-toggle').click();await page.locator('.split-count [data-count="1"]').click();await page.locator('#controls-close').click();await closePanel(page);
+  await expect(page.locator('.throttle-lever')).toHaveCount(1);
+  await page.evaluate(()=>{const stale=(window as any).removedSlider;stale.dispatchEvent(new KeyboardEvent('keydown',{code:'End',key:'End',bubbles:true}));});
+  await expect.poll(async()=>(await debug(page)).hud.views.length).toBe(1);await power(page,0);expect((await debug(page)).engine).toBe(false);
+  expect(await page.evaluate(()=>(window as any).primaryLever===document.querySelector('.throttle-lever[data-slot="0"]'))).toBe(true);
 });

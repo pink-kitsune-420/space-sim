@@ -35,13 +35,15 @@ export interface ServerConfig {
   readonly moduleProfile: string;
   /** Owner-selected portable Spacelab game; includes its exact plugins and data. */
   readonly gameFile: string;
+  /** Offer only the enabled distributable game to joining peers after explicit review. */
+  readonly offerGamePack: boolean;
 }
 
 export const DEFAULT_CONFIG: ServerConfig = Object.freeze({
   name: 'Space Sim server', host: '0.0.0.0', port: DEFAULT_PORT, password: '', maxPlayers: 16,
   maxShipsPerPlayer: 5, maxShips: 128, allowGodMode: true, pauseWhenEmpty: true, autosaveSeconds: 60,
   backupMinutes: 15, keepBackups: 24, snapshotsPerSecond: 20, universe: 'default', system: '', spawnPreset: '',
-  serveGame: true, moduleDirectory: '', moduleProfile: '', gameFile: '',
+  serveGame: true, moduleDirectory: '', moduleProfile: '', gameFile: '', offerGamePack: false,
 });
 
 const LIMITS: Partial<Record<keyof ServerConfig, readonly [number, number]>> = {
@@ -111,6 +113,7 @@ Settings live in <data>/server.json, created on first run; options override them
   --module-directory <dir> Owner-installed trusted *.module.json code (relative to data)
   --module-profile <file> Local exported data/code profile for new worlds
   --game <file>          Owner-selected .spacegame package (relative to data)
+  --offer-game-pack      Offer required enabled packages for explicit install-on-join
   --import <save.spaceuniverse>   Load universe progress (legacy save.json also works)
   --new                  Start a new world (the current one is backed up first)
   --open                 Open the game in this computer's browser
@@ -126,7 +129,7 @@ export function parseCommandLine(argv: readonly string[]): CommandLine {
       data: { type: 'string' }, port: { type: 'string' }, host: { type: 'string' }, name: { type: 'string' },
       password: { type: 'string' }, universe: { type: 'string' }, system: { type: 'string' },
       'module-directory': { type: 'string' }, 'module-profile': { type: 'string' },
-      game: { type: 'string' },
+      game: { type: 'string' }, 'offer-game-pack': { type: 'boolean' },
       import: { type: 'string' }, new: { type: 'boolean' }, open: { type: 'boolean' },
       version: { type: 'boolean', short: 'v' }, help: { type: 'boolean', short: 'h' },
     },
@@ -135,6 +138,7 @@ export function parseCommandLine(argv: readonly string[]): CommandLine {
   if (values['module-directory'] !== undefined) overrides.moduleDirectory = values['module-directory'];
   if (values['module-profile'] !== undefined) overrides.moduleProfile = values['module-profile'];
   if (values.game !== undefined) overrides.gameFile = values.game;
+  if (values['offer-game-pack'] !== undefined) overrides.offerGamePack = values['offer-game-pack'];
   if (values.port !== undefined) {
     if (!/^\d+$/.test(values.port)) throw new Error('--port must be a number');
     overrides.port = Number(values.port);

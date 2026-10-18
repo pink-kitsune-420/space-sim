@@ -1,0 +1,16 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "WebGL 2",
+  "summary": "Public render.webgl@1.0.0 service and lifecycle.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Draws flight/body scenes and body previews. Supply the selected shader pack, public surface-query port and optional theme artwork. Owns contexts, programs, buffers, textures and optional effect targets. Creation and shader/effect replacement fail atomically; removing the provider releases its instances. Canvas remains a separate shader-free replacement. Shader u_time follows real presentation seconds, even while physics is paused; presentationTime explicitly controls body-only viewer animation."
+    },
+    {
+      "type": "paragraph",
+      "text": "Effects accept resolved source and exact namespaced IDs. Material fragments define vec4 material(vec2 position); position is body-local, normalized by physical radius with +Y up. Fixed u_resolution is CSS pixels, u_time viewer seconds, u_radiusMetres physical metres; m_* uniforms are finite float32 scalars. The renderer masks smooth discs and the authoritative radial outline. Post fragments define vec4 effect(vec2 uv, vec4 color), with bottom-left UV, sampler2D u_scene, pixel u_resolution/u_sourceResolution and p_* float uniforms. Stable dependency ordering, at most eight materials and four post passes, source at most 256 KiB, scales 1 or 0.5. RGBA8 targets use linear sampling/clamped edges; optional terrain masks use DEPTH24_STENCIL8. Targets are pooled per resolution, absent when effects are unused; candidate programs and targets validate before swapping."
+    }
+  ]
+}

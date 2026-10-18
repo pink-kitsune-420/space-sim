@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { TouchControlsManager } from '../../apps/web/src/touch-controls';
 
 function createMockElement(tag = 'div'): any {
@@ -33,6 +33,9 @@ function createMockElement(tag = 'div'): any {
       for (const h of listeners[e.type] || []) h(e);
       return true;
     },
+    removeEventListener: (type: string, handler: Function) => { listeners[type] = (listeners[type] ?? []).filter(h => h !== handler); },
+    querySelectorAll: () => children.filter(c => c.className.includes('active') || c.className.includes('holding')),
+    remove: vi.fn(),
     setPointerCapture: vi.fn(),
     getBoundingClientRect: () => ({ left: 20, top: 20, width: 110, height: 110 }),
     querySelector: (sel: string): any => {
@@ -80,6 +83,8 @@ class MockPointerEvent {
   }
 }
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe('touchscreen overlay controller', () => {
   let mockStorage: Record<string, string> = {};
 
@@ -91,12 +96,24 @@ describe('touchscreen overlay controller', () => {
       removeItem: (key: string) => { delete mockStorage[key]; },
       clear: () => { mockStorage = {}; },
     });
-    vi.stubGlobal('document', {
-      createElement: (tag: string) => createMockElement(tag),
-    });
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('document', Object.assign(new EventTarget(), { hidden: false, createElement: (tag: string) => createMockElement(tag) }));
     vi.stubGlobal('PointerEvent', MockPointerEvent);
   });
 
+  it('releases a burn on blur and removes its style, controls and listeners on disposal', () => {
+    const manager = new TouchControlsManager(), container = createMockElement('div');
+    manager.saveMode('always'); manager.attach(container);
+    const burn = container.querySelector('#touch-burn');
+    burn.dispatchEvent(new MockPointerEvent('pointerdown'));
+    expect(manager.pollFlight().engine).toBe(true);
+    window.dispatchEvent(new Event('blur')); expect(manager.pollFlight().engine).toBe(false);
+    const callback = vi.fn(); manager.onShortcut(callback);
+    manager.dispose(); manager.dispose();
+    container.querySelector('#touch-warp-up').dispatchEvent(new MockPointerEvent('pointerdown'));
+    expect(callback).not.toHaveBeenCalled(); expect(container.querySelector('#touch-overlay').remove).toHaveBeenCalledOnce();
+    expect(() => manager.attach(container)).toThrow('disposed');
+  });
   it('initializes with auto mode by default', () => {
     const manager = new TouchControlsManager();
     expect(manager.getMode()).toBe('auto');

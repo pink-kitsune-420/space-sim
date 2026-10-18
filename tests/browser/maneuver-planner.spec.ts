@@ -107,10 +107,9 @@ test('Execute burn warps, aligns, fires and cuts off autonomously', async ({ pag
   await expect(page.locator('#maneuver-abort')).toBeVisible();
   await expect.poll(async () => (await debug(page)).maneuver?.execution).not.toBeNull();
   await expect(page.locator('#maneuver-status')).toContainText('Burn complete', { timeout: 25000 });
+  // The editor status refreshes independently of the 4-Hz diagnostic snapshot.
+  await expect.poll(async () => { const done = await debug(page); return { execution: done.maneuver?.execution, engine: done.engine, valid: done.maneuver?.valid }; }).toEqual({ execution: null, engine: false, valid: false });
   const done = await debug(page);
-  expect(done.maneuver.execution).toBeNull();
-  expect(done.engine).toBe(false);
-  expect(done.maneuver.valid).toBe(false);
   await expect(page.locator('#warp-factor')).toHaveText('1×');
   await expect(page.locator('#throttle-value')).toHaveText('0%');
   await expect(page.locator('#maneuver-abort')).toBeHidden();

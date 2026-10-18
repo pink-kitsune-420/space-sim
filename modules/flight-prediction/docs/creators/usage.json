@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Progressive flight prediction",
+  "summary": "Isolated, bounded and removable preview state.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.prediction@1.0.0 creates one progressive flight preview per consumer. Pass a compatible public SimulationContext, detached ship state, active body/surface and selected ship identity; world-aware rule previews additionally receive WorldRead. The owner supplies SI body-relative state and elapsed wall seconds. Prediction clones own their caches/state; the live world is never advanced by the view."
+    },
+    {
+      "type": "paragraph",
+      "text": "Ship, body, surface, motion identity and relevant command epochs invalidate a preview. While tracing, only the new path prefix is shown. Invalidation, completion, generator failure and provider removal close both the generator and isolated context, even if one cleanup fails. A disposed instance rejects updates. Independent views retain separate budgets/jobs."
+    },
+    {
+      "type": "paragraph",
+      "text": "maxMs, traceSamplesPerSecond and numericalSamplesPerSecond change viewer work scheduling, preserving original default budgets and numerical results. Explicit guest maxMs takes precedence. A generic non-flight game need not select this flight-specific service. A game requiring prediction declares view.prediction as required; optional omission removes the preview instead of inventing a provider. Manifest selection replaces compatibility app construction in Phase 4."
+    }
+  ]
+}

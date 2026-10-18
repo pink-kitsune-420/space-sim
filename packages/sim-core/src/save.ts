@@ -38,7 +38,8 @@ export function shipToSaved(ship: Ship): SavedShip {
     ...(state.godMode ? { godMode: true } : {}),
     ...(state.water ? { water: state.water } : {}),
     ...(state.coast ? { coast: { epochSeconds: state.coast.epochSeconds, position: pair(state.coast.position),
-      velocity: pair(state.coast.velocity), revision: state.coast.revision } } : {}),
+      velocity: pair(state.coast.velocity), revision: state.coast.revision,
+      ...(state.coast.modelIdentity !== undefined ? { modelIdentity: state.coast.modelIdentity } : {}) } } : {}),
     ...(state.moduleState && Object.keys(state.moduleState).length ? { moduleState: state.moduleState } : {}) as { moduleState?: Readonly<Record<string, ModuleState>> },
     ...(ship.fault ? { fault: ship.fault } : {}),
   };
@@ -108,7 +109,10 @@ export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', 
   };
   if (s.coast !== undefined) {
     const c = record(s.coast, `${context} coast`);
+    if (c.modelIdentity !== undefined && (typeof c.modelIdentity !== 'string' || !c.modelIdentity.length || c.modelIdentity.length > 65536))
+      fail(context, 'coast model identity must be a nonempty string of at most 65536 characters');
     const coast: Coast = Object.freeze({
+      ...(c.modelIdentity !== undefined ? { modelIdentity: c.modelIdentity as string } : {}),
       bodyId, epochSeconds: finite(c.epochSeconds, `${context} coast epoch`),
       position: Object.freeze(vec(c.position, `${context} coast position`)),
       velocity: Object.freeze(vec(c.velocity, `${context} coast velocity`)),
@@ -155,7 +159,9 @@ export function saveWorld(world: WorldRead, extra: {
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
 } = {}): WorldSave {
   if (world.soloPreview) throw new Error('Custom authoritative module profiles are solo previews; world saves require declared deterministic multiplayer support. Export the module/profile instead.');
-  const version = extra.version ?? (world.saveVersion === 1 ? 1 : SAVE_VERSION);
+  const hasData = world.data.schemas.length > 0;
+  const version = extra.version ?? (hasData ? 3 : world.saveVersion === 1 ? 1 : SAVE_VERSION);
+  if (hasData && version < 3) throw new Error('Module-data adapters require save version 3');
   if (version === 1) {
     return {
       format: SAVE_FORMAT, version: 1, model: MODEL, units: SAVE_UNITS, worldId: world.id,
@@ -176,7 +182,7 @@ export function saveWorld(world: WorldRead, extra: {
   const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
   return {
     ...(world.configuration ? { configuration: world.configuration } : {}),
-    format: SAVE_FORMAT, version: SAVE_VERSION, model: MODEL, units: SAVE_UNITS, worldId: world.id,
+    format: SAVE_FORMAT, version, model: MODEL, units: SAVE_UNITS, worldId: world.id,
     ...(extra.savedAt ? { savedAt: extra.savedAt } : {}),
     universe: world.universe, systemId: world.systemId, tick: world.tick, time: world.time,
     ...(extra.paused !== undefined ? { paused: extra.paused } : {}),
@@ -187,6 +193,7 @@ export function saveWorld(world: WorldRead, extra: {
     ...(lock ? { lock } : {}),
     ...(simulationFingerprint ? { simulationFingerprint } : {}),
     ...(ruleState ? { moduleState: ruleState } : {}),
+    ...(hasData ? { data: world.data.snapshot() } : {}),
   };
 }
 
@@ -200,12 +207,12 @@ export function migrateSave(raw: Record<string, unknown>): Record<string, unknow
       moduleState: {},
     };
   }
-  if (raw.version === SAVE_VERSION) return raw;
+  if (raw.version === SAVE_VERSION || raw.version === 3) return raw;
   throw new Error(`Unsupported save version ${String(raw.version)}; this game reads version ${SAVE_VERSION}`);
 }
 
 /** Validate everything before building a world; a rejected save never touches live state. */
-export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState'>> = {}): LoadedWorld {
+export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters'>> = {}): LoadedWorld {
   const input = record(raw, 'Save');
   if (input.format !== SAVE_FORMAT) fail('Save', `not a ${SAVE_FORMAT} file`);
   const originalVersion = Number(input.version);
@@ -270,6 +277,11 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
     saveVersion: originalVersion,
   });
   try {
+    if (save.version === 3 && save.data === undefined) throw new Error('Save version 3 requires module-data state');
+    if (save.data !== undefined) {
+      if (save.version !== 3) throw new Error('Module-data state requires save version 3');
+      world.data.restore(save.data);
+    }
     world.tick = tick;
     world.time = time;
     if (ruleState) {

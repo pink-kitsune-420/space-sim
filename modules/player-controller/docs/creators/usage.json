@@ -1,0 +1,36 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Player controller",
+  "summary": "Routes namespaced intent to a compatible entity/session adapter without advancing a world.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Routes namespaced intent to a compatible entity/session adapter without advancing a world."
+    },
+    {
+      "type": "paragraph",
+      "text": "Capabilities: input.controller@1.0.0; no required or optional services. Constructors receive a spacelab-control-target/1 adapter."
+    },
+    {
+      "type": "paragraph",
+      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+    },
+    {
+      "type": "paragraph",
+      "text": "No stored authoritative state. The adapter owns session identity and validates ownership and supported actions. Separate seat/player/entity/viewport IDs. Select, release, ownership change and disposal clear held intent. Every instance is independent."
+    },
+    {
+      "type": "paragraph",
+      "text": "The factory optionally borrows a local pilot number and ordered input sources. bindInput replaces that binding after releasing old intent; sample uses fixed buffers and routes only target-declared namespaced actions. The last source write wins, missing values release prior intent, and suppression/target changes/disposal release device state. Sources remain owned by their device providers. Existing flight precedence belongs to its explicit adapter."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/player-controller/module.json /tmp/player-controller.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+    }
+  ]
+}

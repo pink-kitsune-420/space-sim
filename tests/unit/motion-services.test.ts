@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { BodyFrameProvider, ModuleProfile, OrbitalProvider, RailsProvider, RegisteredModule, State, SurfaceProvider } from '../../packages/game-api/src/index';
-import { DEFAULT_PROFILE, builtinManifest, prepareGame } from '../../packages/modules/src/index';
+import { DEFAULT_PROFILE, builtinManifest, prepareGame, loadInstalledWorld } from '../../packages/modules/src/index';
 import { createSimulationContext, initialState, planet } from '../../packages/sim-core/src/context';
 import { BUILTIN_SERVICES } from '../../packages/sim-core/src/services';
 import { IDLE, STEP } from '../../packages/sim-core/src/constants';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
 import { TERRAIN_UNIVERSE } from '../../packages/scenarios/builtin';
 import { World } from '../../packages/sim-core/src/world';
+import { saveWorld } from '../../packages/sim-core/src/save';
 import { createSurfaceProfile } from '../../packages/sim-core/src/surface';
 
 const identity = (id: string) => ({ id, version: '0.1.0', modelIdentity: `${id}/v1` });
@@ -25,6 +26,26 @@ describe('selected motion services', () => {
     expect(prepared.world.context.modelIdentity).toBe(createSimulationContext().modelIdentity);
     expect(prepared.world.soloPreview).toBe(false);
     prepared.candidate.dispose();
+  });
+
+  it('restores a selected custom orbital provider coast only with the same model identity', () => {
+    const selected = installed('orbits', orbit()), code = selected.code.map(module => ({ ...module, supportsMultiplayer: true }));
+    const prepared = prepareGame({ environment: 'node', ...selected, code });
+    try {
+      const ship = prepared.world.spawn({ ownerId: 'pilot', presetId: 'planet-orbit' });
+      for (let tick = 0; tick < 50; tick++) prepared.world.step();
+      const save = JSON.parse(JSON.stringify(saveWorld(prepared.world)));
+      expect(save.ships[0].coast).toBeDefined();
+      const loaded = loadInstalledWorld(save, { environment: 'node', code });
+      try {
+        expect(loaded.world.ship(ship.id)!.state.coast?.modelIdentity).toBe(prepared.world.context.modelIdentity);
+        for (let tick = 0; tick < 50; tick++) { expect(loaded.world.step()).toEqual(prepared.world.step()); }
+        expect(loaded.world.ship(ship.id)!.state.position).toEqual(prepared.world.ship(ship.id)!.state.position);
+        expect(loaded.world.ship(ship.id)!.state.velocity).toEqual(prepared.world.ship(ship.id)!.state.velocity);
+      } finally { loaded.world.dispose(); }
+      save.ships[0].coast.modelIdentity = 'other-model';
+      expect(() => loadInstalledWorld(save, { environment: 'node', code })).toThrow('coast epoch is unusable');
+    } finally { prepared.candidate.dispose(); }
   });
 
   it('checks replacement propagation against an independent circular solution and uses it in prediction', () => {

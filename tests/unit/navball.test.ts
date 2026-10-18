@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PresentationSnapshot, State, Vec } from '../../packages/game-api/src/index';
 import { validateOverlay } from '../../packages/game-runtime/src/index';
-import { autoFrame, drawNavball, navballFootprint, navballState, wrapAngle } from '../../packages/modules/src/base/toolset/navball';
+import { autoFrame, drawNavball, navballFootprint, navballState, wrapAngle } from '../../modules/navball/src/drawing';
 import { screenOverlays } from '../../packages/render-2d/src/index';
 
 const R = 512, SPIN = -2 * Math.PI / 600;

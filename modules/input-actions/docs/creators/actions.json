@@ -1,0 +1,28 @@
+{
+  "id": "actions",
+  "audience": "creators",
+  "title": "Portable flight actions",
+  "summary": "Namespaced actions and legacy keyboard bindings.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "The Flight actions package owns the existing flight definitions and legacy keyboard-binding codec. Its v2 initializer contributes spacelab.input-actions/<action> through the public registry. Device sampling, action meaning, seats and control targets are separate concerns."
+    },
+    {
+      "type": "paragraph",
+      "text": "The module requires no services and owns no running resources. Its platform contributions run in browser and offline games and stay outside authoritative identity. Removing it removes its contributed flight actions. Default app composition migration is in progress."
+    },
+    {
+      "type": "paragraph",
+      "text": "The space-sim:keybindings:v1 codec retains customized bindings and unavailable actions while migrating exact former throttle defaults. Legacy action IDs map explicitly to lowercase namespaced IDs."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/input-actions/module.json /tmp/input-actions.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack the archive, edit its source, rebuild and repack it, then explicitly enable the trusted package in a compatible game. Device providers consume active action definitions; this package does not step a world."
+    }
+  ]
+}

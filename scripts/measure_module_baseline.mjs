@@ -28,7 +28,7 @@ async function collect(path) {
     else if (entry.isFile()) inputPaths.push(next);
   }
 }
-for (const dir of ['apps', 'packages', 'games', 'examples', 'scripts', 'tests']) await collect(dir);
+for (const dir of ['apps', 'packages', 'games', 'examples', 'scripts', 'tests', 'modules']) await collect(dir);
 inputPaths.push('package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', 'vite.server.config.ts');
 const inputs = [];
 for (const path of inputPaths.sort()) inputs.push({ path, sha256: sha(await readFile(path)) });

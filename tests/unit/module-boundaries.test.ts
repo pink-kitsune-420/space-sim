@@ -7,11 +7,13 @@ describe('module public imports', () => {
   });
   it('keeps the headless server free of renderer, browser and presentation-module code', async () => {
     const files = [...await reachable('apps/server/src/cli.ts')];
-    expect(files).toEqual(expect.arrayContaining(['apps/server/src/server.ts', 'packages/modules/src/base/motion.ts', 'packages/net/src/host.ts']));
+    expect(files).toEqual(expect.arrayContaining(['apps/server/src/server.ts', 'modules/physics-rails/src/legacy.ts', 'packages/net/src/host.ts', 'modules/net-node-ws/src/connection.ts']));
     expect(files.filter(f => /^(packages\/render-2d\/|apps\/web\/|examples\/modules\/|packages\/modules\/src\/(browser|base\/renderers|base\/toolset\/|base\/audio\/))/.test(f))).toEqual([]);
+    expect(files.filter(f => /^modules\/(render-canvas|render-webgl|shaders-vector|theme|theme-customizer|audio-procedural|audio-controls)\//.test(f))).toEqual([]);
     // The browser graph does load them, so the check above is meaningful.
     const browser = [...await reachable('apps/web/src/main.ts')];
     expect(browser).toEqual(expect.arrayContaining(['packages/render-2d/src/webgl.ts', 'packages/modules/src/base/toolset/telemetry.ts', 'examples/modules/lead-camera.ts']));
+    expect(browser.filter(f => /^(apps\/server\/|modules\/net-node-ws\/)/.test(f))).toEqual([]);
   }, 20000);
   it('lets first-party toolset modules import only the public API and each other', () => {
     expect(checkSource("import type { FlightDataApi } from './flight-data';", 'packages/modules/src/base/toolset/telemetry.ts')).toEqual([]);
@@ -31,5 +33,13 @@ describe('module public imports', () => {
     expect(checkSource("import type { State } from '../../packages/game-api/src/index';", 'examples/modules/check.ts')).toEqual([]);
     expect(checkSource("import { World } from '../../sim-core/src/world';", 'packages/game-runtime/src/new.ts').length).toBeGreaterThan(0);
     expect(checkSource("// import x from 'private';\nconst message = 'import private';", 'examples/modules/check.ts')).toEqual([]);
+  });
+  it('isolates each extracted module, including nested source folders', () => {
+    const path = 'modules/input-actions/src/index.ts';
+    expect(checkSource("import { actions } from './bindings';", path)).toEqual([]);
+    expect(checkSource("import type { InputSource } from '@space-sim/game-api';", path)).toEqual([]);
+    expect(checkSource("import { sample } from '../../input-keyboard/src/index';", path)).not.toEqual([]);
+    expect(checkSource("import { actions } from '../../../apps/web/src/input-config';", path)).not.toEqual([]);
+    expect(checkSource("export * from '../../../packages/game-api/src/platform';", path)).not.toEqual([]);
   });
 });

@@ -1,0 +1,36 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "ModMenu",
+  "summary": "Game library, exact module drafts and legacy profile configuration over explicit host ports.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "ui.mod-menu@1.0.0 creates a reusable browser/offline library view. Initialization needs no other capability. Each instance requires explicit DOM roles and a ModMenuLibraryPort; its host owns verified packages, persistence, code approval, exact profiles, world publication and download encoding. Shared floating chrome can host these roles without becoming a library database."
+    },
+    {
+      "type": "paragraph",
+      "text": "entries() returns display metadata only: opaque item ID, purpose, collection/favorite, explicit built-in status and code/data counts. Search, sorting and card rendering never receive archive blobs or live worlds. The current app adapter still opens/decodes its existing store; indexed metadata/lazy inspection optimization remains separate measured work."
+    },
+    {
+      "type": "paragraph",
+      "text": "The same owner creates modules(root, port, options) for exact v2 releases/capability/provider/settings drafts and profile(elements, port, initial) for intentional v1 compatibility. Host compatible() supplies metadata suggestions; this UI contains no second dependency resolver. A module dependency, capability contract and singleton provider choice stay distinct. Numeric help/defaults/bounds/steps are displayed without changing schemas or activating a draft."
+    },
+    {
+      "type": "paragraph",
+      "text": "The legacy profile editor exposes draft() and select() over public v1 manifests; it does not manufacture a v2 lock. Installed attribution, export/removal and compatible presentation settings route through explicit host commands. Active artifacts remain protected from removal. The host revalidates commands and exact candidate state before publication. Importing inert bytes, editing a draft and enabling a game are separate actions."
+    },
+    {
+      "type": "paragraph",
+      "text": "Import, save, export, play, organize and remove are explicit async host commands with an AbortSignal. Import must verify/install inert bytes and never implicitly activate code. Play must validate and stage a compatible candidate before publication. The host must check cancellation before changing the active world; committed inert storage writes need not be rolled back by view disposal. Organizing metadata must not silently change exact enabled package pins."
+    },
+    {
+      "type": "paragraph",
+      "text": "One command runs at a time. Rebuilding cards aborts their event handlers; removing a view aborts its pending command and restores borrowed list/status/disabled state. A late result cannot update the removed UI. The provider owns views and styles and rejects creation after disposal. Preserve minimal import/dependency recovery if this optional view is absent."
+    },
+    {
+      "type": "paragraph",
+      "text": "Current extraction preserves the existing game-library collection label and favorite UI. It does not implement hierarchical module folders, a collection archive format, workers, a marketplace, version upgrades or offline application generation. Portable game packs and ready-to-play offline applications are distinct. Public creator guidance and examples remain in the offline Creators Manual."
+    }
+  ]
+}

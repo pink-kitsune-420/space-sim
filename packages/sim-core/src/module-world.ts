@@ -41,7 +41,11 @@ export function moduleWorldConfiguration(candidate: ModuleCandidateV2, identity:
   const universe = validateUniverse(selected);
   const createContext = candidate.lock.providers.motion ? service<SimulationContextFactory>('motion') : createSimulationContext;
   const dynamics = candidate.lock.providers.dynamics ? service<DynamicsProvider>('dynamics') : undefined;
-  const services: Partial<MotionServices> = Object.fromEntries(Object.keys(BUILTIN_SERVICES).filter(slot => candidate.lock.providers[slot]).map(slot => [slot, service(slot)]));
+  // Selecting the fixed built-in service is not a model override. Preserve its legacy
+  // coast identity/fast path, as v1 composition does; only real replacements enter options.
+  const services: Partial<MotionServices> = Object.fromEntries(Object.keys(BUILTIN_SERVICES)
+    .filter(slot => candidate.lock.providers[slot]).map(slot => [slot, service(slot)] as const)
+    .filter(([slot, provider]) => provider !== BUILTIN_SERVICES[slot as keyof MotionServices]));
   const forces = candidate.core.forceExtensions, rules = candidate.core.worldRules, commands = candidate.core.commands;
   const manifests = new Map(identity.manifests.map(manifest => {
     const { tier, provides: _provides, requires: _requires, ...common } = manifest;
@@ -56,5 +60,5 @@ export function moduleWorldConfiguration(candidate: ModuleCandidateV2, identity:
       ...Object.fromEntries(identity.packages.filter(ref => manifests.get(ref.id)?.authority === 'authoritative').map(ref => [ref.id, ref.digest])) } });
   const factory: SimulationContextFactory = (settings, options) => createContext(settings, { ...options, dynamics, forces, services, worldRules: rules.length > 0 });
   return { universe, options: { id: options.id, systemId: options.systemId, createContext: factory,
-    rules, forces, commands, lock, soloPreview: candidate.soloPreview, migrateState: candidate.core.migrateState } };
+    dataAdapters: candidate.contributions('data').map(c => c.value), rules, forces, commands, lock, soloPreview: candidate.soloPreview, migrateState: candidate.core.migrateState } };
 }

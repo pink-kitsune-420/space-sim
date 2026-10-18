@@ -1,0 +1,32 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Touch input",
+  "summary": "Samples caller-supplied pointer controls and namespaced actions; retains the editable flight overlay and its styles.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Samples caller-supplied pointer controls and namespaced actions; retains the editable flight overlay and its styles."
+    },
+    {
+      "type": "paragraph",
+      "text": "Capabilities: input.touch@1.0.0; no required or optional services. Constructors receive active actions, controls and local seat assignment."
+    },
+    {
+      "type": "paragraph",
+      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+    },
+    {
+      "type": "paragraph",
+      "text": "Generic sources have no persistence. Flight overlay mode uses space-sim:touch-controls:v1. Cancel/lost capture, reassignment, hidden/blur and disposal release gestures; overlay disposal removes its DOM and stylesheet."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/input-touch/module.json /tmp/input-touch.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+    }
+  ]
+}

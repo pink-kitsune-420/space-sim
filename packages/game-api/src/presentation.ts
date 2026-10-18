@@ -69,6 +69,10 @@ export interface RenderFrame {
   readonly shipLabel?: string;
   /** Viewer-only annotations; omitted preserves the default visible labels and scale bar. */
   readonly showScale?: boolean;
+  readonly showShip?: boolean;
+  readonly showPad?: boolean;
+  /** Optional explicit viewer animation epoch, seconds. Never advances a simulation. */
+  readonly presentationTime?: number;
   readonly showShipLabels?: boolean;
   /** Other vessels, drawn beneath the piloted ship. */
   readonly ships?: readonly RenderShip[];
@@ -103,6 +107,8 @@ export interface RenderThemeOptions {
   readonly gridColor?: string;
   readonly windowStyle?: ThemeWindowStyle;
   readonly windowColor?: string;
+  /** Window background alpha, 0.4–1; text and controls remain fully visible. */
+  readonly windowOpacity?: number;
   readonly counterTheme?: ThemeCounterStyle;
   readonly hudColor?: string;
   readonly hudScanlines?: boolean;

@@ -1,3 +1,4 @@
+import { ModuleDataStore } from '../../game-runtime/src/module-data';
 import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
@@ -54,6 +55,8 @@ export type { WorldCreationOptions as WorldOptions } from '../../game-api/src/in
  * sleeping ship evaluates the same expressions the per-step path would have produced, bit
  * for bit, so sleeping never changes results. */
 export class World implements WorldControl {
+  readonly data: ModuleDataStore;
+  get dataAdapters(): WorldOptions['dataAdapters'] & {} { return this.data.extensions; }
   readonly soloPreview: boolean;
   readonly migrateState?: WorldOptions['migrateState'];
   readonly id: string;
@@ -107,6 +110,7 @@ export class World implements WorldControl {
 
   readonly configuration: WorldOptions['configuration'];
   constructor(universe: UniverseDefinition, options: WorldOptions = {}) {
+    this.data = new ModuleDataStore(options.dataAdapters);
     this.configuration = options.configuration;
     this.id = options.id ?? 'local';
     this.migrateState = options.migrateState;
@@ -157,7 +161,7 @@ export class World implements WorldControl {
 
     this.soloPreview = options.soloPreview !== undefined
       ? options.soloPreview
-      : (this.rules.length > 0 || !this.context.capabilities.legacyCompatible);
+      : (this.data.schemas.length > 0 || this.rules.length > 0 || !this.context.capabilities.legacyCompatible);
     const settings = this.system.vehicleDefaults;
     if (this.context.stepSeconds !== STEP || this.context.vehicle.acceleration !== settings.acceleration
       || this.context.vehicle.turnRate !== settings.turnRate || this.context.vehicle.initialThrottle !== settings.initialThrottle) {
@@ -364,6 +368,7 @@ export class World implements WorldControl {
 
   /** Remove every ship and rewind the clock: a fresh flight in the same system. */
   reset(): void {
+    this.data.clear();
     if (this.trackChanges) for (const id of this.fleet.keys()) { this.changedIds.delete(id); this.removedIds.add(id); }
     this.version++;
     this.fleet.clear();
@@ -602,11 +607,12 @@ export class World implements WorldControl {
   /** Clones all authoritative rule/RNG/ship state; derived caches belong to the clone. */
   cloneForPrediction(): World {
     const clone = new World(this.universe, { id: this.id, systemId: this.selectedSystemId,
-      createContext: this.createContext, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
+      createContext: this.createContext, dataAdapters: this.dataAdapters, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
       lock: this.lock, simulationFingerprint: this.simulationFingerprint, saveVersion: this.saveVersion });
     clone.tick = this.tick; clone.time = this.time; clone.nextShipNumber = this.nextShipNumber;
     clone.rails = false;
     for (const ship of this.ships()) clone.put(structuredClone(ship));
+    if (this.data.schemas.length) clone.data.apply(this.data.snapshot());
     clone.ruleState = motionRuleStateCopy(this.ruleState);
     return clone;
   }

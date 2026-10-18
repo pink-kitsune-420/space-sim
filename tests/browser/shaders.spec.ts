@@ -5,6 +5,14 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
+// Shader compilation and renderer rebuilds require a wider test budget on software GPUs.
+test.describe.configure({timeout:90000});
+// ABI and lifetime assertions do not need expensive procedural detail on software WebGL.
+// Continuous trace screenshots force software WebGL readbacks on every frame.
+// Keep DOM/network tracing and capture the rendered failure once.
+test.use({ viewport: {width:800,height:600}, trace: {mode:'retain-on-failure', screenshots:false}, screenshot:'only-on-failure' });
+test.beforeEach(async ({page}) => { await page.addInitScript(() => { localStorage.setItem('space-sim.graphics/1','low'); localStorage.setItem('space-sim:theme:v5',JSON.stringify({backdropStyle:'void',starsVisible:false,nebulaVisible:false,galaxiesVisible:false,gridEnabled:false})); }); });
+
 const scene = '#version 300 es\nprecision highp float;\nout vec4 fragColor;\nvoid main(){fragColor=vec4(0.2,0.4,0.6,1.0);}';
 const pack = (passes: unknown, name = 'Custom sky') => JSON.stringify({ format: 'space-sim-shaders/1', name, passes });
 async function load(page: Page, content: string, name = 'custom.json'): Promise<void> {
@@ -21,7 +29,39 @@ async function pixel(page: Page): Promise<number[]> {
   }));
 }
 
-test('imports, exports, restores and retains custom shaders across renderer switches offline', async ({ page, context }) => {
+test('imports, exports and retains custom shaders across renderer switches offline', async ({ page, context }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await context.setOffline(true);
+  await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
+  // Some browser test environments only provide Canvas 2D; check its graceful fallback separately.
+  test.skip(await page.locator('#renderer-toggle').textContent() !== 'Renderer: WebGL', 'WebGL 2 unavailable in this browser environment');
+  await openPanel(page, 'setup');
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await openPanel(page, 'tools');
+  await page.locator('.shader-settings summary').click();
+  const downloadEvent = page.waitForEvent('download');
+  await page.locator('#export-shader').click();
+  const defaults = await (await packageContracts()).decodeDataFile(new Uint8Array(await readFile(await (await downloadEvent).path())), 'shaders') as any;
+  expect(Object.keys(defaults.passes).sort()).toEqual(['scene', 'text', 'vector']);
+  await load(page, pack({ scene: { fragment: scene } }));
+  await expect(page.locator('#shader-name')).toHaveText('Custom sky');
+  expect(await pixel(page)).toEqual([51, 102, 153, 255]);
+  await openPanel(page, 'settings');
+  await page.locator('#renderer-toggle').click();
+  await expect(page.locator('#shader-status')).toContainText('Canvas 2D');
+  await page.locator('#renderer-toggle').click();
+  expect(await pixel(page)).toEqual([51, 102, 153, 255]);
+  await openPanel(page, 'tools');
+  const customDownload = page.waitForEvent('download');
+  await page.locator('#export-shader').click();
+  const exported = await readFile(await (await customDownload).path());
+  const decoded = await (await packageContracts()).decodeDataFile(new Uint8Array(exported), 'shaders') as any;
+  expect(decoded.passes.scene.fragment).toBe(scene);
+  expect(errors).toEqual([]);
+});
+
+test('restores and reimports exported shaders, including raw sources while Canvas is active offline', async ({ page, context }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await context.setOffline(true);
@@ -39,13 +79,6 @@ test('imports, exports, restores and retains custom shaders across renderer swit
   expect(Object.keys(defaults.passes).sort()).toEqual(['scene', 'text', 'vector']);
   await load(page, pack({ scene: { fragment: scene } }));
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
-  expect(await pixel(page)).toEqual([51, 102, 153, 255]);
-  await openPanel(page, 'settings');
-  await page.locator('#renderer-toggle').click();
-  await expect(page.locator('#shader-status')).toContainText('Canvas 2D');
-  await page.locator('#renderer-toggle').click();
-  expect(await pixel(page)).toEqual([51, 102, 153, 255]);
-  await openPanel(page, 'tools');
   const customDownload = page.waitForEvent('download');
   await page.locator('#export-shader').click();
   const exported = await readFile(await (await customDownload).path());
@@ -94,7 +127,7 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
   await expect(page.locator('#shader-name')).toHaveText('Custom sky');
   const stats = () => page.evaluate(() => (window as unknown as { shaderStats: Record<string, number> }).shaderStats);
   const before = await stats();
-  expect(before.livePrograms).toBe(4); // Three pack programs plus the private terrain program.
+  expect(before.livePrograms).toBe(5); // Three pack programs plus private terrain and overlay text programs.
   expect(before.liveShaders).toBe(0);
   await page.waitForTimeout(250);
   expect(await stats()).toEqual(before); // No compilation, uniform lookups or GPU buffer allocation per frame.
@@ -109,7 +142,7 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
     await load(page, bad);
     await expect(page.locator('#shader-status')).toContainText('Shader was not loaded:');
     expect(await pixel(page)).toEqual([51, 102, 153, 255]);
-    expect((await stats()).livePrograms).toBe(4);
+    expect((await stats()).livePrograms).toBe(before.livePrograms);
     expect((await stats()).liveShaders).toBe(0);
   }
   await openPanel(page, 'settings');
@@ -120,7 +153,7 @@ test('shader replacement is atomic, rejects incompatible interfaces and releases
   await expect(page.locator('#shader-name')).toHaveText('Default');
   await openPanel(page, 'settings');
   await page.locator('#renderer-toggle').click();
-  expect((await stats()).livePrograms).toBe(4);
+  await expect.poll(async () => (await stats()).livePrograms).toBe(before.livePrograms);
   expect((await stats()).liveShaders).toBe(0);
 });
 
@@ -145,7 +178,11 @@ test('unavailable WebGL falls back to Canvas and reports shader loading errors w
   expect(errors).toEqual([]);
 });
 
-test('full packs replace all stages and receive drawing roles, glyph textures and simulation time', async ({ page }) => {
+test('full packs replace all stages and receive drawing roles, glyph textures and real-time shader clocks', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as any).shaderClock = 1000;
+    Object.defineProperty(performance,'now',{value:() => (window as any).shaderClock});
+  });
   await page.goto('/');
   test.skip(await page.locator('#renderer-toggle').textContent() !== 'Renderer: WebGL', 'WebGL 2 unavailable in this browser environment');
   await openPanel(page, 'tools');
@@ -189,12 +226,14 @@ test('full packs replace all stages and receive drawing roles, glyph textures an
   expect(before.ship[2]).toBe(51);
   expect(before.cyanGlyphs).toBeGreaterThan(10);
   expect(before.error).toBe(0);
+  await page.evaluate(() => { (window as any).shaderClock += 250; });
   await expect.poll(async () => (await vesselPixels()).ship[1]).not.toBe(before.ship[1]);
   await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const stopped = await vesselPixels();
-  await page.waitForTimeout(150);
-  expect((await vesselPixels()).ship).toEqual(stopped.ship);
+  expect(stopped.ship).toEqual([before.ship[0],64,51,255]);
+  await page.evaluate(() => { (window as any).shaderClock += 250; });
+  await expect.poll(async () => (await vesselPixels()).ship).toEqual([before.ship[0],128,51,255]);
   await load(page, await readFile(resolve('examples/shaders/violet.json'), 'utf8'));
   await expect(page.locator('#shader-name')).toHaveText('Violet');
   expect((await vesselPixels()).error).toBe(0);

@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Rails and shared motion services",
+  "summary": "Headless fixed kernel with independently replaceable providers.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "builtin.motion requires core.motion@^1.0.0 and supplies motion, orbits, bodies, surfaces and rails at version 1.0.0. Each singleton can be selected independently. The editable provider selects the existing fixed shared kernel: numerical thrust/contact, analytic two-body coasting, body frames/SOI, surface/water queries and conservative rails wake scheduling. There is no copied physics kernel, per-view step or new numerical model."
+    },
+    {
+      "type": "paragraph",
+      "text": "World composition passes selected providers into context creation. Context model identities and supported capabilities govern analytic diagnostics, prediction and safe rails sleep. A replacement without a verified compatible rails binding retains ordinary numerical flight and cannot claim analytic sleep. Missing required core.motion is an error; unsupported provider failures are not optional absence."
+    },
+    {
+      "type": "paragraph",
+      "text": "The explicit legacy adapter preserves builtin.motion 0.1.0 v1 manifest, locks, service references and existing saves. The v2 archive is recognized as builtin only through the shipped catalogue exact digest; recognition does not grant execution consent. Fork edited source into a creator namespace and rebuild. New package graph/save identity is explicit; do not silently replace an old save lock. Dynamic celestial state, N-body solver policies and model selection remain separate gates."
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { openPanel, closePanel } from '../helpers/workspace';
 import { ACTION_DEFINITIONS } from '../../apps/web/src/input-config';
 import { computeNavballCenter } from '../../apps/web/src/local-players';
-import { TRACK } from '../../packages/modules/src/base/toolset/navball';
+import { TRACK } from '../../modules/navball/src/drawing';
 
 interface TestPad { index: number; id: string; connected: boolean; axes: number[]; buttons: { pressed: boolean; value: number; touched: boolean }[] }
 declare global { interface Window { localPilotTestPads: (TestPad | null)[] } }
@@ -72,7 +72,9 @@ test('controller throws respect the cheat, remapping, enabled state and disconne
   const row = page.locator('#pad-bindings .key-action-row').filter({ hasText: name });
   await expect(row.locator('.key-chip')).toHaveCount(0); // Throw starts unbound; D-pad Up controls throttle.
   await row.locator('.add-key-btn').click(); await button(page, 0, 6, true);
-  await expect.poll(async () => (await stored(page)).slots[0].profile.buttons.throwShip).toEqual([6]);
+  // The first saved local-player record is created by the captured button on
+  // the next animation frame; polling must tolerate its initial absence.
+  await expect.poll(async () => (await stored(page))?.slots[0].profile.buttons.throwShip).toEqual([6]);
   await button(page, 0, 6, false);
   await page.locator('#controls-close').click(); await closePanel(page);
   await button(page, 0, 12, true);
@@ -87,6 +89,36 @@ test('controller throws respect the cheat, remapping, enabled state and disconne
   await page.locator('#controls-close').click(); await closePanel(page);
   await button(page, 1, 12, true);
   await expect.poll(async () => (await debug(page)).localPlayers.cursors).toEqual([]);
+});
+
+test('a held controller cannot transfer thrust to another seat or replay it after reconnect', async ({ page }) => {
+  // Isolate input routing from the brief launch/landing between connection checks.
+  await openPanel(page, 'settings'); await page.locator('#god-mode').check(); await closePanel(page);
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await button(page, 0, 7, true);
+  await expect.poll(async () => (await debug(page)).engine).toBe(true);
+  await players(page);
+  await page.getByLabel('Player 2 input', { exact: true }).selectOption('pad:0');
+  await page.locator('#controls-close').click(); await closePanel(page);
+  const start = (await debug(page)).time;
+  await expect.poll(async () => (await debug(page)).time).toBeGreaterThan(start + .2);
+  expect((await debug(page)).engine).toBe(false);
+  expect((await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
+  await button(page, 0, 7, false);
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await button(page, 0, 7, true);
+  await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(true);
+  const pad = await page.evaluate(() => { const pad = window.localPilotTestPads[0]!; window.localPilotTestPads[0] = null; return pad; });
+  await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
+  await page.evaluate(pad => { window.localPilotTestPads[0] = pad; }, pad);
+  const reconnected = (await debug(page)).time;
+  await expect.poll(async () => (await debug(page)).time).toBeGreaterThan(reconnected + .2);
+  expect((await debug(page)).localPlayers.guests[0].controls.engine).toBe(false);
+  await button(page, 0, 7, false);
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  await button(page, 0, 7, true);
+  await expect.poll(async () => (await debug(page)).localPlayers.guests[0].controls.engine).toBe(true);
+  expect((await debug(page)).engine).toBe(false);
 });
 
 test('a small guest pane draws and picks its navball pin consistently, and the instrument switch disables it', async ({ page }) => {

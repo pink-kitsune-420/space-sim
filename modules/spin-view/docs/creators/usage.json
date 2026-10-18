@@ -1,0 +1,16 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Body spin presentation",
+  "summary": "Optional display transforms without changing physical rotation.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.spin@1.0.0 requires core.rotation@^1.0.0, the fixed prescribed sidereal rotation queries. They use metres, seconds and radians and never step a world; dynamic N-body orientation is not implied. Each view owns hold/release offsets over borrowed body definitions. Terrain, pads and resting ships must use the same display transform to stay aligned."
+    },
+    {
+      "type": "paragraph",
+      "text": "holdRadiansPerFrame, resumeRatio and releaseSeconds preserve the existing 5-degree / 0.6 / 0.4-second anti-strobe defaults. Time rewind/reset clears derived offsets. Zero release easing snaps safely. No physical body angle, contact, state, save or fingerprint changes. Providers/instances release held sets and offsets; disposed views reject use. Browser/offline/node queries require no renderer or device."
+    }
+  ]
+}

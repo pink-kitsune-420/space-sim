@@ -1,0 +1,24 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "WebSocket transport",
+  "summary": "An ordered reliable text transport without flight or session implementation imports.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Provides net.websocket@1.0.0 and a transport contribution; no required services. Browser, offline and Node environments. Network tier; no authoritative persistence or migration. Native WebSocket support is required when connecting, not when importing the package."
+    },
+    {
+      "type": "paragraph",
+      "text": "The module owns URL normalization, connection timeout, cancellation, text-length validation and connection cleanup. It has no ship, planet, renderer or UI dependency. Existing 6464 /ws defaults and the received text limit are preserved; session semantics belong to a compatible adapter."
+    },
+    {
+      "type": "paragraph",
+      "text": "A signal cancels pending connections and closes established links. Disposing the provider cancels pending requests and closes its links. Optional removal leaves local play intact; required consumers must select a compatible transport before activation."
+    },
+    {
+      "type": "paragraph",
+      "text": "Build, export, unpack, edit and rebuild through module:build. Imported code requires explicit consent. Sharing a transport does not establish compatible commands, snapshots, saves or replay."
+    }
+  ]
+}

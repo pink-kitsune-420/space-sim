@@ -1,0 +1,32 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Independent local views",
+  "summary": "Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts."
+    },
+    {
+      "type": "paragraph",
+      "text": "Capabilities: view.local@1.0.0 requires view.camera@^1.0.0. No optional services. A renderer adapter supplies independent surfaces over borrowed read-only world state."
+    },
+    {
+      "type": "paragraph",
+      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+    },
+    {
+      "type": "paragraph",
+      "text": "No authoritative state or world stepping. Reflow occurs on size/layout/separation changes. Connected support is distinct from splitActive. Each viewport has separate focus/zoom; disposal releases every surface/camera. Production camera extraction and complete flight split-screen migration are still pending."
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- modules/local-views/module.json /tmp/local-views.spacemod"
+    },
+    {
+      "type": "paragraph",
+      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+    }
+  ]
+}

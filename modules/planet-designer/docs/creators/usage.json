@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Independent planet appearance designer",
+  "summary": "Viewer-only appearance editing over public read-only world and preview contracts.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "ui.planet-designer@1.0.0 requires fixed core.rotation@1.0.0 and accepts optional render.webgl/render.vector-shaders providers. Without both preview providers, appearance editing, My planets and JSON export still work; absence is distinct from provider failure. Each create call receives its own root, unique idPrefix, WorldRead getter, current-body getter, viewer storage and explicit download/confirm/optional clipboard commands. No mutable world or network authority is exposed."
+    },
+    {
+      "type": "paragraph",
+      "text": "Applied looks use the existing space-sim.planet-looks/1 viewer key scoped by universe/system/body; My planets uses space-sim.planet-library/1 and space-sim-planets/1 exports. Designs never enter saves or fingerprints. Imports validate styles, four hex colours and bounded finite seed/tuning; physical geometry and surface fields are excluded from exported appearance. Preview turn duration, initial sun angle and pre-parse import byte limit are described settings with unchanged defaults."
+    },
+    {
+      "type": "paragraph",
+      "text": "Call open/refresh as the host reveals a standalone editor or changes worlds. Distinct editors own previews, drafts and UI. Shared storage is explicit; each mounted editor reads a snapshot and writes only through its supplied viewer store. Dispose cancels animation, disables stale controls and asynchronous import/clipboard/PNG completion, releases its preview and restores borrowed root contents even if preview cleanup fails. Omit the module to remove authoring; the live renderer uses the body\u2019s original look."
+    }
+  ]
+}
