@@ -5,6 +5,8 @@ export class PilotThrottle {
   private world: object | undefined;
   private shipId = '';
   private direction = 0;
+  private held = 0;
+  private fine = false;
   private at: number | undefined;
   private inhibited = false;
   burning = false;
@@ -17,7 +19,7 @@ export class PilotThrottle {
 
   release(): void {
     this.burning = this.engine = this.inhibited = false;
-    this.direction = 0; this.at = undefined;
+    this.direction = this.held = 0; this.fine = false; this.at = undefined;
   }
 
   set(value: number): void { this.burning = value > 0; this.inhibited = false; }
@@ -37,12 +39,25 @@ export class PilotThrottle {
     }
     const direction = Math.sign(input.throttle);
     let value: number | undefined;
+    if (!direction) this.held = 0;
     if (direction) {
       // A short tap remains useful even between rendered frames. Holds integrate wall time
       // without a repeat delay or percentage quantization; warp never changes the feel.
       const fine = Math.abs(input.throttle) < .5;
-      const delta = pressed || direction !== this.direction ? (fine ? .002 : .01)
-        : Math.max(0, Math.min(.25, elapsed)) * (fine ? .04 : .2);
+      const fresh = pressed || direction !== this.direction;
+      if (fresh || fine !== this.fine) this.held = 0;
+      this.fine = fine;
+      let delta: number;
+      if (fresh) delta = fine ? .002 : .01;
+      else {
+        const dt = Math.max(0, Math.min(.25, elapsed));
+        // Rise from 1× to 1.5× over two wall seconds. Integrating the average
+        // multiplier keeps the acceleration equal across frame rates, including the cap.
+        const growing = Math.min(dt, 2 - this.held);
+        const average = 1 + (this.held + growing / 2) / 4;
+        this.held += growing;
+        delta = (fine ? .04 : .2) * (growing * average + (dt - growing) * 1.5);
+      }
       if (delta > 0) {
         const base = this.burning || input.engine || firing ? current : 0;
         value = Math.max(0, Math.min(1, base + direction * delta));
