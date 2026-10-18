@@ -393,8 +393,8 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     const clickScreen = { x: e.clientX, y: e.clientY };
     const clickWorld = screenToWorld(clickScreen, renderer.camera, width, height);
 
-    // Right-click or middle-click or Alt-click: Pan camera
-    if (e.button === 2 || e.button === 1 || e.altKey) {
+    // Right-click or middle-click: Pan camera
+    if (e.button === 2 || e.button === 1) {
       isDraggingCamera = true;
       lastPointerScreen = clickScreen;
       e.preventDefault();

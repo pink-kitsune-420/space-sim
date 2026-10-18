@@ -1,11 +1,11 @@
 import type { Controls } from '../../../packages/game-api/src/index';
 
-/** Wall-clock stepped input; simulation throttle rates remain zero, independent of warp. */
+/** Wall-clock ramped input; simulation throttle rates remain zero, independent of warp. */
 export class PilotThrottle {
   private world: object | undefined;
   private shipId = '';
   private direction = 0;
-  private repeat = 0;
+  private at: number | undefined;
   private inhibited = false;
   burning = false;
   engine = false;
@@ -17,16 +17,19 @@ export class PilotThrottle {
 
   release(): void {
     this.burning = this.engine = this.inhibited = false;
-    this.direction = this.repeat = 0;
+    this.direction = 0; this.at = undefined;
   }
 
   set(value: number): void { this.burning = value > 0; this.inhibited = false; }
 
-  /** Cut wins over already-held burn/step controls until they return to neutral. */
+  /** Cut wins over already-held burn/throttle controls until they return to neutral. */
   cut(held = true): void { this.release(); this.inhibited = held; }
 
-  /** Returns a new absolute throttle only on a step; no simulation-rate input is emitted. */
-  update(input: Controls, elapsed: number, current: number, activation: number, pressed = false, firing = false): number | undefined {
+  /** Returns absolute throttle for taps and continuous holds; no simulation-rate input is emitted. */
+  update(input: Controls, elapsed: number, current: number, activation: number, pressed = false, firing = false, now?: number): number | undefined {
+    // Keydown can land between frames: never charge time from before the press.
+    if (now !== undefined && this.at !== undefined) elapsed = Math.min(elapsed, now - this.at);
+    this.at = now;
     this.engine = false;
     if (this.inhibited) {
       if (!input.engine && input.throttle === 0) this.inhibited = false;
@@ -35,16 +38,14 @@ export class PilotThrottle {
     const direction = Math.sign(input.throttle);
     let value: number | undefined;
     if (direction) {
-      let steps = 0;
-      if (pressed || direction !== this.direction) { steps = 1; this.repeat = .35; }
-      else {
-        this.repeat -= Math.max(0, Math.min(.25, elapsed));
-        while (this.repeat <= 0) { steps++; this.repeat += .1; }
-      }
-      if (steps) {
+      // A short tap remains useful even between rendered frames. Holds integrate wall time
+      // without a repeat delay or percentage quantization; warp never changes the feel.
+      const fine = Math.abs(input.throttle) < .5;
+      const delta = pressed || direction !== this.direction ? (fine ? .002 : .01)
+        : Math.max(0, Math.min(.25, elapsed)) * (fine ? .04 : .2);
+      if (delta > 0) {
         const base = this.burning || input.engine || firing ? current : 0;
-        const step = Math.abs(input.throttle) < .5 ? .01 : .05;
-        value = Math.max(0, Math.min(1, Math.round((base + direction * step * steps) * 100) / 100));
+        value = Math.max(0, Math.min(1, base + direction * delta));
         this.burning = value > 0;
       }
     } else if (input.engine) {

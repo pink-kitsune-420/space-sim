@@ -105,7 +105,7 @@ export class ThrottleLever {
     if (this.power !== state.throttle) {
       this.element.style.setProperty('--throttle-position', String(state.throttle)); this.power = state.throttle;
     }
-    const percent = Math.round(state.throttle * 100);
+    const percent = Math.round(state.throttle * 1000) / 10;
     if (this.percent === percent && this.locked === state.locked && this.firing === state.firing) return;
     this.percent = percent; this.locked = state.locked; this.firing = state.firing;
     this.value.textContent = `${percent}%`;
@@ -116,6 +116,6 @@ export class ThrottleLever {
     this.element.dataset.firing = String(state.firing);
     this.status.textContent = state.locked ? 'LOCK' : state.firing ? 'BURN' : 'IDLE';
     this.track.title = state.locked ? 'Resume flight and release engine / throttle controls to drag'
-      : 'Drag to set thrust; release to keep burning; drag to 0% to coast. Throttle steps keep burning; held engine overrides. Use Cut Throttle to coast or Activate Remembered Throttle to resume.';
+      : 'Drag to set thrust; release to keep burning; drag to 0% to coast. Throttle adjustments keep burning; held engine overrides. Use Cut Throttle to coast or Activate Remembered Throttle to resume.';
   }
 }

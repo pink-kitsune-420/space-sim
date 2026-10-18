@@ -184,7 +184,8 @@ test('cancelling a guest slingshot abandons the throw without launching its ship
   const canvas = page.locator('.split-pane canvas');
   await expect(canvas).toBeVisible();
   const box = (await canvas.boundingBox())!;
-  const gesture = { pointerId: 7, pointerType: 'touch', altKey: true,
+  await page.locator('#flight-view').focus(); await page.keyboard.press('KeyT');
+  const gesture = { pointerId: 7, pointerType: 'touch',
     clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
   await canvas.dispatchEvent('pointerdown', gesture);
   await expect(page.locator('#flight-slingshot-hud')).not.toHaveClass(/hidden/);

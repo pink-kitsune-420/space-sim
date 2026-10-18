@@ -7,6 +7,7 @@ export type ActionId =
   | 'throttleFine'
   | 'throttleCut'
   | 'throttleRecall'
+  | 'throttleRemember'
   | 'warpUp'
   | 'warpDown'
   | 'warpReset'
@@ -61,19 +62,19 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
     id: 'throttleUp',
     name: 'Increase Throttle',
     category: 'flight',
-    defaultKeys: ['ArrowUp', 'KeyW'],
-    description: 'Increase persistent thrust by 5%; hold to repeat',
+    defaultKeys: ['ArrowUp'],
+    description: 'Increase persistent thrust by 1%; hold to ramp smoothly',
   },
   {
     id: 'throttleDown',
     name: 'Decrease Throttle',
     category: 'flight',
-    defaultKeys: ['ArrowDown', 'KeyS'],
-    description: 'Decrease persistent thrust by 5%; hold to repeat',
+    defaultKeys: ['ArrowDown'],
+    description: 'Decrease persistent thrust by 1%; hold to ramp smoothly',
   },
   {
     id: 'throttleFine', name: 'Fine Throttle', category: 'flight',
-    defaultKeys: ['ShiftLeft', 'ShiftRight'], description: 'Hold for 1% throttle steps instead of 5%',
+    defaultKeys: ['ControlLeft', 'ControlRight'], description: 'Hold for a slower throttle ramp and 0.2% taps',
   },
   {
     id: 'throttleCut', name: 'Cut Throttle', category: 'flight',
@@ -82,6 +83,10 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
   {
     id: 'throttleRecall', name: 'Activate Remembered Throttle', category: 'flight',
     defaultKeys: ['KeyZ'], description: 'Start a persistent burn at the remembered activation throttle',
+  },
+  {
+    id: 'throttleRemember', name: 'Remember Current Throttle', category: 'flight',
+    defaultKeys: ['Shift+KeyZ'], description: 'Save current active thrust as this player’s activation throttle',
   },
   {
     id: 'throwShip',
@@ -217,11 +222,14 @@ const STORAGE_KEY = 'space-sim:keybindings:v1';
 /** Maps KeyboardEvent.code strings to friendly human-readable glyphs or short labels. */
 export function formatKeyCode(code: string): string {
   if (!code) return '';
+  if (code.includes('+')) return code.split('+').map(formatKeyCode).join('+');
   if (code.startsWith('Key')) return code.slice(3).toUpperCase();
   if (code.startsWith('Digit')) return code.slice(5);
   if (code.startsWith('Numpad')) return 'Num ' + code.slice(6);
   switch (code) {
     case 'Space': return 'Space';
+    case 'ControlLeft': return 'Left Ctrl';
+    case 'ControlRight': return 'Right Ctrl';
     case 'ShiftLeft': return 'Left Shift';
     case 'ShiftRight': return 'Right Shift';
     case 'ArrowLeft': return '←';
@@ -266,8 +274,27 @@ export function loadKeybindings(): KeyBindings {
         result[def.id] = [...keys];
       }
     }
+    // Migrate only exact former defaults; retain custom throttle layouts and avoid
+    // assigning newly introduced keys already owned by another customized action.
+    const former = { throttleUp: ['ArrowUp', 'KeyW'], throttleDown: ['ArrowDown', 'KeyS'],
+      throttleFine: ['ShiftLeft', 'ShiftRight'] } as const;
+    const migrated = new Set<ActionId>();
+    for (const action of Object.keys(former) as (keyof typeof former)[]) {
+      const old = former[action];
+      if (Array.isArray(parsed[action]) && result[action].length === old.length
+        && result[action].every((code, i) => code === old[i])) {
+        result[action] = [...DEFAULT_KEYBINDINGS[action]];
+        migrated.add(action);
+      }
+    }
+    for (const action of Object.keys(former) as (keyof typeof former)[]) {
+      if (parsed[action] === undefined || migrated.has(action)) {
+        result[action] = result[action].filter(code => !Object.keys(parsed).some(other =>
+          other !== action && !migrated.has(other as ActionId) && result[other as ActionId]?.includes(code)));
+      }
+    }
     // Preserve older custom layouts when adding throttle actions to saved bindings.
-    for (const action of ['throttleFine', 'throttleCut', 'throttleRecall'] as const) {
+    for (const action of ['throttleFine', 'throttleCut', 'throttleRecall', 'throttleRemember'] as const) {
       if (parsed[action] !== undefined) continue;
       result[action] = result[action].filter(code => !Object.keys(parsed).some(other =>
         other !== action && result[other as ActionId]?.includes(code)));
@@ -325,4 +352,17 @@ export const FLIGHT_ACTIONS = new Set<ActionId>([
 /** Returns true if the action is a continuous flight hold action. */
 export function isFlightAction(action: ActionId): boolean {
   return FLIGHT_ACTIONS.has(action);
+}
+
+/** Encode a shortcut chord. Modifier-only flight controls keep their physical key code. */
+export function shortcutBinding(event: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'ctrlKey' | 'metaKey'>): string {
+  if (/^(Shift|Control|Meta|Alt)(Left|Right)$/.test(event.code)) return event.code;
+  return `${event.ctrlKey ? 'Ctrl+' : ''}${event.metaKey ? 'Meta+' : ''}${event.shiftKey ? 'Shift+' : ''}${event.code}`;
+}
+
+/** An explicit chord wins over its bare key; held fine controls still allow bare arrows. */
+export function resolveKeybinding(event: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'ctrlKey' | 'metaKey'>,
+  lookup: ReadonlyMap<string, readonly ActionId[]>): string {
+  const chord = shortcutBinding(event);
+  return lookup.has(chord) ? chord : event.code;
 }

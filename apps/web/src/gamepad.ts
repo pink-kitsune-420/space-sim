@@ -123,7 +123,7 @@ export interface ControllerProfile {
   /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */
   readonly turnAxis: number;
   readonly invertTurn: boolean;
-  /** Axis index for throttle steps [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */
+  /** Axis index for throttle adjustment [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */
   readonly throttleAxis: number;
   readonly invertThrottle: boolean;
   /** Axis index for analog zoom, or -1 for none. Default: 3 (Right Stick Y). */
@@ -142,6 +142,7 @@ export const DEFAULT_PAD_BUTTONS: Readonly<Record<ActionId, readonly number[]>> 
   throttleUp: [12],        // D-pad up
   throttleFine: [6],       // LT / L2
   throttleCut: [11],       // R3
+  throttleRemember: [],   // Optional per-controller binding
   throttleRecall: [0],     // A / Cross
   throttleDown: [13],      // D-pad down
   turnLeft: [],
@@ -216,7 +217,7 @@ export function normalizeProfile(raw: unknown): ControllerProfile {
   // Migrate the former default collision; retain other custom throw mappings.
   if (rawButtons.throttleRecall === undefined && buttons.throwShip.length === 1 && buttons.throwShip[0] === 12 && buttons.throttleUp.includes(12)) buttons.throwShip = [];
   // New defaults must not take buttons already assigned by an older custom layout.
-  for (const action of ['throttleFine', 'throttleCut', 'throttleRecall'] as const) {
+  for (const action of ['throttleFine', 'throttleCut', 'throttleRecall', 'throttleRemember'] as const) {
     if (rawButtons[action] !== undefined) continue;
     buttons[action] = buttons[action].filter(button => !Object.entries(rawButtons).some(([other, indices]) =>
       other !== action && Array.isArray(indices) && buttons[other as ActionId]?.includes(button)));
@@ -239,7 +240,7 @@ const ENABLED_KEY = 'space-sim:gamepad:v1';
 export interface GamepadFlightInput {
   /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */
   readonly turn: number;
-  /** Signed throttle step intent: ±1 normal, ±0.2 fine, 0 neutral. */
+  /** Signed throttle adjustment intent: ±1 normal, ±0.2 fine, 0 neutral. */
   readonly throttle: number;
   /** Engine burn state (held). */
   readonly engine: boolean;

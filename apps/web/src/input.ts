@@ -1,4 +1,4 @@
-const defaultFlightKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight']);
+const defaultFlightKeys = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight']);
 const defaultShortcuts = new Set([
   'KeyP', 'KeyR', 'KeyC', 'KeyH', 'KeyF', 'KeyT', 'Equal', 'NumpadAdd', 'Minus', 'NumpadSubtract',
   'Backquote', 'BracketLeft', 'BracketRight', 'Backslash', 'Backspace', 'Comma', 'Period', 'Slash',
@@ -10,6 +10,8 @@ export const RESERVED_KEYS: ReadonlySet<string> = new Set([...defaultFlightKeys,
 /** Browser keyboard and hold-button bindings. Own them once for the console lifetime. */
 export function bindFlightInput(options: {
   readonly keys: Set<string>;
+  /** Resolve explicitly bound shortcut chords before falling back to a bare key. */
+  readonly binding?: (event: KeyboardEvent) => string;
   readonly pointers: Map<number, string>;
   readonly paused: () => boolean;
   readonly shortcut: (code: string) => void;
@@ -28,8 +30,9 @@ export function bindFlightInput(options: {
 
   window.addEventListener('keydown', event => {
     if ((event.target as HTMLElement).closest('input, select, button, summary, a, textarea')) return;
-    const flight = isFlight(event.code);
-    const shortcut = isShortcut(event.code);
+    const code = options.binding?.(event) ?? event.code;
+    const flight = isFlight(code);
+    const shortcut = isShortcut(code);
     if (!flight && !shortcut) {
       if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || !options.command(event.code)) return;
       event.preventDefault();
@@ -44,7 +47,7 @@ export function bindFlightInput(options: {
       return;
     }
     if (event.repeat) return;
-    options.shortcut(event.code);
+    options.shortcut(code);
   });
   window.addEventListener('keyup', event => { options.keys.delete(event.code); });
   window.addEventListener('blur', () => options.autoPause('Window lost focus'));

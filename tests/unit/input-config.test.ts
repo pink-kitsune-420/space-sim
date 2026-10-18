@@ -8,6 +8,7 @@ import {
   loadKeybindings,
   resetKeybindings,
   saveKeybindings,
+  resolveKeybinding, shortcutBinding,
 } from '../../apps/web/src/input-config';
 import {
   GamepadManager,
@@ -99,13 +100,45 @@ describe('input configuration and keybindings', () => {
     expect(reset.warpDown).toContain('BracketLeft');
   });
 
+  it('migrates former throttle defaults and leaves customized actions intact', () => {
+    mockStorage['space-sim:keybindings:v1'] = JSON.stringify({
+      throttleUp: ['ArrowUp', 'KeyW'], throttleDown: ['ArrowDown', 'KeyS'],
+      throttleFine: ['ShiftLeft', 'ShiftRight'], camera: ['Shift+KeyZ'],
+    });
+    const migrated = loadKeybindings();
+    expect(migrated.throttleUp).toEqual(['ArrowUp']);
+    expect(migrated.throttleDown).toEqual(['ArrowDown']);
+    expect(migrated.throttleFine).toEqual(['ControlLeft', 'ControlRight']);
+    expect(migrated.throttleRemember).toEqual([]);
+    saveKeybindings(migrated);
+    expect(loadKeybindings()).toEqual(migrated);
+    migrated.throttleUp = ['KeyU']; migrated.throttleDown = [];
+    saveKeybindings(migrated);
+    expect(loadKeybindings().throttleUp).toEqual(['KeyU']);
+    expect(loadKeybindings().throttleDown).toEqual([]);
+    expect(formatKeyCode('ControlLeft')).toBe('Left Ctrl');
+    expect(buildKeyLookup(DEFAULT_KEYBINDINGS).get('ShiftLeft')).toBeUndefined();
+    expect(formatKeyCode('Shift+KeyZ')).toBe('Shift+Z');
+    expect(Object.values(DEFAULT_KEYBINDINGS).flat().some(code => code.startsWith('Alt'))).toBe(false);
+  });
+
+  it('resolves remember chords ahead of recall while Ctrl allows fine arrow input', () => {
+    const lookup = buildKeyLookup(DEFAULT_KEYBINDINGS);
+    const key = { code: 'KeyZ', shiftKey: true, ctrlKey: false, metaKey: false };
+    expect(shortcutBinding(key)).toBe('Shift+KeyZ');
+    expect(resolveKeybinding(key, lookup)).toBe('Shift+KeyZ');
+    expect(resolveKeybinding({ ...key, shiftKey: false }, lookup)).toBe('KeyZ');
+    expect(resolveKeybinding({ ...key, code: 'ArrowUp', shiftKey: false, ctrlKey: true }, lookup)).toBe('ArrowUp');
+  });
+
   it('preserves older custom keys without adding conflicting throttle actions', () => {
     mockStorage['space-sim:keybindings:v1'] = JSON.stringify({ camera: ['KeyZ'], pause: ['KeyX'], turnLeft: ['ShiftLeft'] });
     const loaded = loadKeybindings();
     expect(loaded.camera).toEqual(['KeyZ']);
     expect(loaded.throttleRecall).toEqual([]);
     expect(loaded.throttleCut).toEqual([]);
-    expect(loaded.throttleFine).toEqual(['ShiftRight']);
+    expect(loaded.throttleFine).toEqual(['ControlLeft', 'ControlRight']);
+    expect(loaded.throttleUp).toEqual(['ArrowUp']);
   });
 });
 

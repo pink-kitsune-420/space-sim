@@ -162,7 +162,7 @@ export interface SplitScreenHost {
   keyboardFlight(): Controls;
   /** Merge persistent console flight controls after held device input has been collected. */
   resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;
-  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall'): void;
+  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;
   /** Release persistent input before restarting a pilot's ship. */
   releaseFlight?(slot: number): void;
   /** Configuration dialogs consume controllers without sending gameplay input. */
@@ -290,7 +290,7 @@ export class SplitScreen {
       ]);
       if (cameraAlteringActions.has(action)) return;
     }
-    if (action === 'throttleCut' || action === 'throttleRecall') { this.host.throttleAction?.(slot, action); return; }
+    if (action === 'throttleCut' || action === 'throttleRecall' || action === 'throttleRemember') { this.host.throttleAction?.(slot, action); return; }
     const guest = this.guests.get(slot);
     if (slot === 0 || SHARED_ACTIONS.has(action) || !guest) { this.host.execute(action); return; }
     const session = this.host.session();

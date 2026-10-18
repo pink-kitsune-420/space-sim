@@ -36,7 +36,7 @@
               </div>
               <div id="flight-message" role="status">Ready on the pad. Hold Space to launch.</div>
               <section id="profiler" class="profiler" aria-label="Performance profiler" hidden><div class="profiler-head"><b>PROFILER</b><output id="profiler-fps">Measuring…</output></div><canvas id="profiler-graph" aria-hidden="true"></canvas><table><thead><tr><th scope="col">ms / frame</th><th scope="col">avg</th><th scope="col">p95</th><th scope="col">max</th></tr></thead><tbody id="profiler-rows"></tbody></table><p id="profiler-slow">No slow frames</p><div class="profiler-actions"><label title="Reads back one pixel after each section so the browser's deferred drawing cost is attributed to the section that caused it. Slower while enabled."><input id="profiler-precise" type="checkbox" /> Precise raster timing</label><button id="export-log" type="button" title="Download a local JSON diagnostic log. Nothing is uploaded.">Export log</button></div></section>
-              <!-- Flight Slingshot HUD (shown during Alt-drag or throw mode) -->
+              <!-- Flight Slingshot HUD (shown during throw mode) -->
               <div id="flight-slingshot-hud" class="slingshot-hud hidden">
                 <div class="hud-stat"><span class="hud-label">Launch Vel:</span> <span id="fhud-vel" class="hud-val">0 m/s</span></div>
                 <div class="hud-stat"><span class="hud-label">Circ. Speed:</span> <span id="fhud-circ" class="hud-val">—</span></div>
@@ -60,7 +60,7 @@
                   </div>
                 </div>
                 <div id="chat-messages" class="chat-messages">
-                  <div class="chat-msg system"><span class="chat-tag">SYSTEM</span> Flight console ready. Type <kbd>/help</kbd> for commands or <kbd>Alt+Drag</kbd> to throw ship.</div>
+                  <div class="chat-msg system"><span class="chat-tag">SYSTEM</span> Flight console ready. Type <kbd>/help</kbd> for commands or <kbd>T</kbd> then drag to throw ship.</div>
                 </div>
                 <form id="chat-form" class="chat-form" autocomplete="off">
                   <span class="chat-prompt">&gt;</span>
@@ -113,7 +113,7 @@
               </div>
               <div class="settings-group"><h3>Gameplay</h3>
                 <label class="god-mode" title="Impacts stop the ship safely"><input id="god-mode" type="checkbox"/><span>God mode<small>Impacts stop the ship safely.</small></span></label>
-                <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat<small>Drag to sling your ship anywhere (T or Alt-drag).</small></span></label>
+                <label class="god-mode" id="throw-cheat-row" title="Enable debug slingshot throw and orbital teleportation cheat"><input id="throw-cheat-toggle" type="checkbox"/><span>Throw / orbit cheat<small>Drag to sling your ship anywhere (T, then drag).</small></span></label>
                 <label class="god-mode" title="Keep the simulation running when the window or tab is in the background"><input id="run-in-background" type="checkbox"/><span>Run in background<small>Keep flying when this tab is hidden.</small></span></label>
               </div>
               <div class="settings-group"><h3>HUD visibility</h3>
@@ -124,7 +124,7 @@
                 <div class="settings-buttons"><button id="profiler-toggle" type="button" aria-pressed="false" aria-controls="profiler" title="Performance profiler (`)">Profiler</button><button id="chat-toggle" type="button" title="Toggle chat &amp; command bar (Enter or /)">Chat</button></div>
               </div>
             </section>
-            <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><label for="activation-pilot">Activation level for</label><select id="activation-pilot" aria-label="Activation throttle player"><option value="0">Player 1</option><option value="1">Player 2</option><option value="2">Player 3</option><option value="3">Player 4</option></select><label for="activation-throttle">Activation throttle (%)</label><input id="activation-throttle" type="number" min="0" max="100" step="1" value="50"/><button id="activation-throttle-reset" type="button">Reset activation level</button><p class="control-note">↑/↓ or W/S: 5% steps · Shift: 1%<br />X: cut · Z: activate remembered level</p><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
+            <section class="card controls"><p class="eyebrow">ENGINE & ATTITUDE</p><div class="throttle-heading"><h2>Throttle</h2><output id="throttle-value">50%</output></div><input id="throttle" type="range" min="0" max="100" value="50" aria-label="Throttle"/><div class="range-labels"><span>0%</span><span>100%</span></div><label for="activation-pilot">Activation level for</label><select id="activation-pilot" aria-label="Activation throttle player"><option value="0">Player 1</option><option value="1">Player 2</option><option value="2">Player 3</option><option value="3">Player 4</option></select><label for="activation-throttle">Activation throttle (%)</label><input id="activation-throttle" type="number" min="0" max="100" step="1" value="50"/><button id="activation-throttle-reset" type="button">Reset activation level</button><p class="control-note">↑/↓: tap or hold to ramp · Ctrl: fine<br />Z: activate · X: cut · Shift+Z: remember</p><div class="piloting"><button data-hold="left" aria-label="Turn left" type="button">↶</button><button data-hold="engine" id="burn" type="button">HOLD TO BURN <span>SPACE</span></button><button data-hold="right" aria-label="Turn right" type="button">↷</button></div><div id="module-commands" class="module-commands" aria-label="Module commands" hidden></div><p class="control-note">Thrust follows the ship’s nose.<br />A camera change won’t alter your course.</p></section>
 
             <section class="card instruments-card" aria-labelledby="instruments-title"><p class="eyebrow">INSTRUMENTS</p><h2 id="instruments-title">Flight information</h2>
               <div id="instruments" class="instruments" role="group" aria-label="Instruments"></div>

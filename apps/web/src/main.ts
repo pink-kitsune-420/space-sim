@@ -28,7 +28,7 @@ import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compressio
 import { parseModuleImport, type ModuleBundle } from './modules';
 import { bindFlightInput } from './input';
 import {
-  ACTION_DEFINITIONS, buildKeyLookup, formatKeyCode, isFlightAction, loadKeybindings,
+  ACTION_DEFINITIONS, buildKeyLookup, formatKeyCode, isFlightAction, loadKeybindings, resolveKeybinding, shortcutBinding,
   resetKeybindings, saveKeybindings, type ActionId, type KeyBindings,
 } from './input-config';
 import { GamepadManager, isButtonDown } from './gamepad';
@@ -458,7 +458,7 @@ function executeChatCommand(cmdStr: string): void {
     case 'help':
     case '?': {
       logChatMessage('system', 'Flight commands:');
-      logChatMessage('system', '/throw [on|off] — Toggle slingshot throw & teleport cheat (T or Alt+Drag)');
+      logChatMessage('system', '/throw [on|off] — Toggle slingshot throw & teleport cheat (T, then drag)');
       logChatMessage('system', '/orbit [body] [alt_km] — Teleport into circular orbit (e.g. /orbit Parvus 100)');
       logChatMessage('system', '/throw [vx] [vy] — Slingshot throw with velocity vector in m/s');
       logChatMessage('system', '/circ — Circularize current orbit around dominant body');
@@ -1600,17 +1600,23 @@ function setPilotThrottle(slot: number, shipId: string, value: number): void {
   }
 }
 
-function throttleAction(slot: number, action: 'throttleCut' | 'throttleRecall'): void {
+function throttleAction(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void {
   if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) return;
   const pilot = throttlePilot(slot);
   if (!pilot || pilot.ship.state.status === 'crashed' || pilot.ship.fault) return;
+  if (action === 'throttleRemember') {
+    const value = pilot.control.burning || pilot.ship.controls.engine ? pilot.ship.state.throttle : 0;
+    rememberActivationThrottle(slot, value);
+    notify(`Player ${slot + 1} throttle remembered: ${Math.round(value * 1000) / 10}%.`);
+    return;
+  }
   if (slot === 0) maneuver.cancel();
   const value = action === 'throttleCut' ? 0 : activationThrottle(slot);
   if (action === 'throttleCut') pilot.control.cut(throttleInputHeld(slot)); else pilot.control.set(value);
   setPilotThrottle(slot, pilot.ship.id, value);
 }
 
-/** Device steps and lever burns share the existing authoritative session input path. */
+/** Device ramps and lever burns share the existing authoritative session input path. */
 function withThrottleLever(slot: number, command: Controls, elapsed: number, pressed = false): Controls {
   const pilot = throttlePilot(slot);
   if (!pilot) { pilotThrottles[slot]!.release(); return command; }
@@ -1620,7 +1626,7 @@ function withThrottleLever(slot: number, command: Controls, elapsed: number, pre
     control.release(); return IDLE;
   }
   if (slot === 0 && command.throttle !== 0) maneuver.cancel();
-  const value = control.update(command, elapsed, ship.state.throttle, activationThrottle(slot), pressed, ship.controls.engine);
+  const value = control.update(command, elapsed, ship.state.throttle, activationThrottle(slot), pressed, ship.controls.engine, performance.now() / 1000);
   if (value !== undefined && value !== ship.state.throttle) setPilotThrottle(slot, ship.id, value);
   return { turn: command.turn, throttle: 0, engine: control.engine };
 }
@@ -1726,7 +1732,7 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
     }
 
     if (hudLayout.editing) return true;
-    const canThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding || event.altKey;
+    const canThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (!canThrow || !throwCheatEnabled) return false;
 
     const originWorld = screenToWorld(screenPos, guest.camera.last, gCanvas.clientWidth, gCanvas.clientHeight);
@@ -2458,7 +2464,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
 
   target.addEventListener('touchstart', event => {
     if (activeNavballDrag || hudLayout.editing) { event.preventDefault(); singleTouchLast = undefined; touchVelocityTracker.reset(); return; }
-    const wantsThrow = throwCheatEnabled && (isThrowModeActive || event.altKey || isThrowKeyDown || isTouchSlingHolding);
+    const wantsThrow = throwCheatEnabled && (isThrowModeActive || isThrowKeyDown || isTouchSlingHolding);
     if (wantsThrow) return;
     cameraControl.stopFling();
     if (event.touches.length >= 2) {
@@ -2583,7 +2589,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
     }
 
     if (hudLayout.editing) { event.preventDefault(); return; }
-    const wantsThrow = event.altKey || isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
+    const wantsThrow = isThrowModeActive || isThrowKeyDown || isTouchSlingHolding;
     if (wantsThrow) {
       if (!throwCheatEnabled) {
         notify('Throw cheat is disabled. Enable it in Settings or type /throw on in chat.');
@@ -3902,7 +3908,7 @@ function executeAction(action: ActionId): void {
     if (cameraAlteringActions.has(action)) return;
   }
   switch (action) {
-    case 'throttleCut': case 'throttleRecall': {
+    case 'throttleCut': case 'throttleRecall': case 'throttleRemember': {
       const slot = splitScreen.keyboardSlot;
       if (slot !== undefined) throttleAction(slot, action);
       break;
@@ -4009,6 +4015,7 @@ window.addEventListener('keyup', event => {
 });
 
 bindFlightInput({
+  binding: event => resolveKeybinding(event, keyLookup),
   keys, pointers, paused: () => session.paused, autoPause, autoResume, visibility: updateBackground,
   flightPress(code) {
     const actions = keyLookup.get(code);
@@ -4142,17 +4149,21 @@ window.addEventListener('keydown', (e) => {
   }
 
   const { action, keyIndex } = listeningChip;
+  // Held controls bind physical keys; shortcuts wait for the chord’s non-modifier key.
+  const held = isFlightAction(action) || action === 'throwShip';
+  if (!held && /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(e.code)) return;
+  const binding = held ? e.code : shortcutBinding(e);
   const list = keybindings[action] || [];
 
   if (keyIndex !== undefined) {
     if (e.code === 'Backspace' || e.code === 'Delete') {
       list.splice(keyIndex, 1);
     } else {
-      list[keyIndex] = e.code;
+      list[keyIndex] = binding;
     }
   } else {
-    if (!list.includes(e.code) && e.code !== 'Backspace' && e.code !== 'Delete') {
-      list.push(e.code);
+    if (!list.includes(binding) && e.code !== 'Backspace' && e.code !== 'Delete') {
+      list.push(binding);
     }
   }
 

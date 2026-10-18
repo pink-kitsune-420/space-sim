@@ -4,30 +4,51 @@ import { DEFAULT_CONTROLLER_PROFILE, normalizeProfile, readPad } from '../../app
 
 const idle = { turn: 0, throttle: 0, engine: false };
 
-describe('persistent throttle steps', () => {
-  it('starts at zero instead of the hidden preset, repeats after a delay and persists on release', () => {
+describe('persistent throttle ramp', () => {
+  it('gives fine taps, ramps without a repeat delay and persists on release', () => {
     const t = new PilotThrottle();
-    expect(t.update({ ...idle, throttle: 1 }, .016, .5, .5)).toBe(.05);
+    expect(t.update({ ...idle, throttle: 1 }, 0, .5, .5)).toBe(.01);
     expect(t.engine).toBe(true);
-    expect(t.update({ ...idle, throttle: 1 }, .2, .05, .5)).toBeUndefined();
-    expect(t.update({ ...idle, throttle: 1 }, .16, .05, .5)).toBe(.1);
-    expect(t.update(idle, .016, .1, .5)).toBeUndefined();
+    expect(t.update({ ...idle, throttle: 1 }, .1, .01, .5)).toBeCloseTo(.03);
+    expect(t.update(idle, .016, .03, .5)).toBeUndefined();
     expect(t.engine).toBe(true);
-    expect(t.update({ ...idle, throttle: -.2 }, .016, .1, .5)).toBe(.09);
+    expect(t.update({ ...idle, throttle: -.2 }, 0, .03, .5)).toBeCloseTo(.028);
+    expect(t.update({ ...idle, throttle: -.2 }, .1, .028, .5)).toBeCloseTo(.024);
     const takeover = new PilotThrottle();
-    expect(takeover.update({ ...idle, throttle: 1 }, 0, .4, .5, true, true)).toBe(.45);
+    expect(takeover.update({ ...idle, throttle: 1 }, 0, .4, .5, true, true)).toBeCloseTo(.41);
   });
 
-  it('clamps steps at both ends and cuts at zero', () => {
-    const t = new PilotThrottle(); t.set(.99);
-    expect(t.update({ ...idle, throttle: 1 }, 0, .99, .5)).toBe(1);
-    expect(t.update({ ...idle, throttle: -1 }, 0, .02, .5)).toBe(0);
+  it('ramps equally at different frame rates, preserves sub-percent changes and bounds stalls', () => {
+    for (const frames of [20, 60, 144]) {
+      const t = new PilotThrottle();
+      let value = t.update({ ...idle, throttle: 1 }, 0, 0, .5)!;
+      for (let i = 0; i < frames; i++) value = t.update({ ...idle, throttle: 1 }, 1 / frames, value, .5)!;
+      expect(value).toBeCloseTo(.21, 12);
+      value = t.update({ ...idle, throttle: 1 }, 10, value, .5)!;
+      expect(value).toBeCloseTo(.26, 12);
+      expect(t.update({ ...idle, throttle: 1 }, -1, value, .5)).toBeUndefined();
+    }
+  });
+
+  it('does not apply frame time from before a keyboard press', () => {
+    const t = new PilotThrottle();
+    t.update(idle, .2, 0, .5, false, false, 1);
+    let value = t.update({ ...idle, throttle: 1 }, 0, 0, .5, true, false, 1.19)!;
+    expect(value).toBe(.01);
+    value = t.update({ ...idle, throttle: 1 }, .2, value, .5, false, false, 1.2)!;
+    expect(value).toBeCloseTo(.012);
+  });
+
+  it('clamps at both ends, cuts at zero and handles opposing keys returning to neutral', () => {
+    const t = new PilotThrottle(); t.set(.999);
+    expect(t.update({ ...idle, throttle: 1 }, 0, .999, .5)).toBe(1);
+    expect(t.update({ ...idle, throttle: -1 }, 0, .005, .5)).toBe(0);
     expect(t.engine).toBe(false);
     expect(t.update(idle, 0, 0, .5)).toBeUndefined();
     expect(t.engine).toBe(false);
   });
 
-  it('cut suppresses a held burn and steps until neutral; recall and held activation work afterward', () => {
+  it('cut suppresses held controls until neutral; recall and short taps work afterward', () => {
     const t = new PilotThrottle(); t.set(.3); t.cut();
     expect(t.update({ ...idle, throttle: 1, engine: true }, .1, 0, .23)).toBeUndefined();
     expect(t.engine).toBe(false);
@@ -40,8 +61,8 @@ describe('persistent throttle steps', () => {
     t.update(idle, 0, .23, .23);
     expect(t.engine).toBe(false);
     t.cut(false);
-    expect(t.update({ ...idle, throttle: 1 }, 0, 0, .23, true)).toBe(.05);
-    expect(t.update({ ...idle, throttle: 1 }, 0, .05, .23, true)).toBe(.1);
+    expect(t.update({ ...idle, throttle: 1 }, 0, 0, .23, true)).toBe(.01);
+    expect(t.update({ ...idle, throttle: 1 }, 0, .01, .23, true)).toBe(.02);
   });
 
   it('releases burns on ship/world binding changes and lifecycle cleanup', () => {
