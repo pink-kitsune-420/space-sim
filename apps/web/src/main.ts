@@ -1197,9 +1197,11 @@ let lastPinchDistance: number | undefined;
 interface FlightSlingshot {
   pointerId: number;
   screenStart: Vec;
+  pointerScreen: { x: number; y: number };
   originWorld: Vec;
   dominantBody: ResolvedBody;
   dominantWorldPos: Vec;
+  readonly anchorRelPos: Vec;
   relPos: Vec;
   pointerWorld: Vec;
   pullVelocity: Vec;
@@ -1284,6 +1286,24 @@ function computeBodyCircularVelocity(relPos: Vec, dist: number, body: ResolvedBo
     return { velocity: dotCcw >= dotCw ? ccw : cw, speed: vCirc };
   }
   return { velocity: ccw, speed: vCirc };
+}
+
+/** Held placement belongs to the input screen. Reproject both endpoints each frame
+ * then derive the current body-relative placement and velocity. Release uses the displayed result. */
+function refreshFlightSlingshot(s: FlightSlingshot, camera: Camera, time: number, target: HTMLCanvasElement, event?: PointerEvent): void {
+  if (event) {
+    s.pointerScreen.x = event.clientX; s.pointerScreen.y = event.clientY;
+    s.isSnappingCircular = event.shiftKey;
+  }
+  const rect = target.getBoundingClientRect();
+  s.originWorld = screenToWorld({ x: s.screenStart.x - rect.left, y: s.screenStart.y - rect.top }, camera, target.clientWidth, target.clientHeight);
+  s.pointerWorld = screenToWorld({ x: s.pointerScreen.x - rect.left, y: s.pointerScreen.y - rect.top }, camera, target.clientWidth, target.clientHeight);
+  s.dominantWorldPos = session.world.system.getBodyPosition(s.dominantBody.id, time);
+  s.relPos = { x: s.originWorld.x - s.dominantWorldPos.x, y: s.originWorld.y - s.dominantWorldPos.y };
+  s.pullVelocity = { x: (s.originWorld.x - s.pointerWorld.x) * .5, y: (s.originWorld.y - s.pointerWorld.y) * .5 };
+  const circ = computeBodyCircularVelocity(s.relPos, Math.hypot(s.relPos.x, s.relPos.y), s.dominantBody, s.pullVelocity);
+  s.circularVelocity = circ.velocity; s.circularSpeed = circ.speed;
+  s.currentSpeed = s.isSnappingCircular ? circ.speed : Math.hypot(s.pullVelocity.x, s.pullVelocity.y);
 }
 
 function updateFlightSlingshotHud(): void {
@@ -1684,9 +1704,11 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
     activeFlightSlingshot = {
       pointerId: event.pointerId,
       screenStart: { x: event.clientX, y: event.clientY },
+      pointerScreen: { x: event.clientX, y: event.clientY },
       originWorld: { x: dom.bodyPos.x + dom.relPos.x, y: dom.bodyPos.y + dom.relPos.y },
       dominantBody: dom.body,
       dominantWorldPos: dom.bodyPos,
+      anchorRelPos: dom.relPos,
       relPos: { ...dom.relPos },
       pointerWorld: originWorld,
       pullVelocity: { x: 0, y: 0 },
@@ -1724,32 +1746,7 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
     }
 
     if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId && activeFlightSlingshot.slot === guest.slot) {
-      const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, guest.view.time);
-      activeFlightSlingshot.dominantWorldPos = curDomPos;
-      activeFlightSlingshot.originWorld = {
-        x: curDomPos.x + activeFlightSlingshot.relPos.x,
-        y: curDomPos.y + activeFlightSlingshot.relPos.y,
-      };
-      const rect = gCanvas.getBoundingClientRect();
-      const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      const pointerWorld = screenToWorld(screenPos, guest.camera.last, gCanvas.clientWidth, gCanvas.clientHeight);
-      activeFlightSlingshot.pointerWorld = pointerWorld;
-      const dragDx = activeFlightSlingshot.originWorld.x - pointerWorld.x;
-      const dragDy = activeFlightSlingshot.originWorld.y - pointerWorld.y;
-      const pullVel = { x: dragDx * 0.5, y: dragDy * 0.5 };
-      activeFlightSlingshot.pullVelocity = pullVel;
-      const circ = computeBodyCircularVelocity(
-        activeFlightSlingshot.relPos,
-        Math.hypot(activeFlightSlingshot.relPos.x, activeFlightSlingshot.relPos.y),
-        activeFlightSlingshot.dominantBody,
-        pullVel,
-      );
-      activeFlightSlingshot.circularVelocity = circ.velocity;
-      activeFlightSlingshot.circularSpeed = circ.speed;
-      activeFlightSlingshot.isSnappingCircular = event.shiftKey;
-      activeFlightSlingshot.currentSpeed = activeFlightSlingshot.isSnappingCircular
-        ? circ.speed
-        : Math.hypot(pullVel.x, pullVel.y);
+      refreshFlightSlingshot(activeFlightSlingshot, guest.camera.last, guest.view.time, gCanvas, event);
       updateFlightSlingshotHud();
       return true;
     }
@@ -1766,6 +1763,8 @@ function handleGuestPointer(guest: GuestPilot, action: 'down' | 'move' | 'up', e
 
     if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId && activeFlightSlingshot.slot === guest.slot) {
       const s = activeFlightSlingshot;
+      if (event.clientX !== s.pointerScreen.x || event.clientY !== s.pointerScreen.y || event.shiftKey !== s.isSnappingCircular)
+        refreshFlightSlingshot(s, guest.camera.last, guest.view.time, gCanvas, event);
       const dragDist = Math.hypot(event.clientX - s.screenStart.x, event.clientY - s.screenStart.y);
       const ship = s.targetShipId ? session.world.ship(s.targetShipId) : guest.ship(session);
       if (ship && event.type !== 'pointercancel') {
@@ -1824,8 +1823,9 @@ function cancelControllerCursors(): void {
   controllerCursors.clear();
   lastPadDpadUp.clear();
   lastPadAButton.clear();
-  p1ThrowFrozenCamera = undefined;
-  guestThrowFrozenCameras.clear();
+  const pointerSlot = activeFlightSlingshot ? activeFlightSlingshot.slot ?? 0 : undefined;
+  if (pointerSlot !== 0) p1ThrowFrozenCamera = undefined;
+  for (const slot of guestThrowFrozenCameras.keys()) if (slot !== pointerSlot) guestThrowFrozenCameras.delete(slot);
 }
 
 function isSlotThrowing(slot: number): boolean {
@@ -2324,6 +2324,8 @@ const endCameraDrag = (event: PointerEvent): void => {
   }
   if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId) {
     const s = activeFlightSlingshot;
+    if (event.clientX !== s.pointerScreen.x || event.clientY !== s.pointerScreen.y || event.shiftKey !== s.isSnappingCircular)
+      refreshFlightSlingshot(s, cameraControl.last, view.time, s.sourceCanvas ?? canvas, event);
     const dragDist = Math.hypot(event.clientX - s.screenStart.x, event.clientY - s.screenStart.y);
     const ship = s.targetShipId
       ? session.world.ship(s.targetShipId)
@@ -2562,9 +2564,11 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       activeFlightSlingshot = {
         pointerId: event.pointerId,
         screenStart: { x: event.clientX, y: event.clientY },
+      pointerScreen: { x: event.clientX, y: event.clientY },
         originWorld,
         dominantBody: dom.body,
         dominantWorldPos: dom.bodyPos,
+        anchorRelPos: dom.relPos,
         relPos: dom.relPos,
         pointerWorld: originWorld,
         pullVelocity: { x: 0, y: 0 },
@@ -2623,32 +2627,7 @@ function attachCanvasListeners(target: HTMLCanvasElement): void {
       return;
     }
     if (activeFlightSlingshot && activeFlightSlingshot.pointerId === event.pointerId) {
-      const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, view.time);
-      activeFlightSlingshot.dominantWorldPos = curDomPos;
-      activeFlightSlingshot.originWorld = {
-        x: curDomPos.x + activeFlightSlingshot.relPos.x,
-        y: curDomPos.y + activeFlightSlingshot.relPos.y,
-      };
-      const rect = target.getBoundingClientRect();
-      const screenPos = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      const pointerWorld = screenToWorld(screenPos, cameraControl.last, target.clientWidth, target.clientHeight);
-      activeFlightSlingshot.pointerWorld = pointerWorld;
-      const dragDx = activeFlightSlingshot.originWorld.x - pointerWorld.x;
-      const dragDy = activeFlightSlingshot.originWorld.y - pointerWorld.y;
-      const pullVel = { x: dragDx * 0.5, y: dragDy * 0.5 };
-      activeFlightSlingshot.pullVelocity = pullVel;
-      const circ = computeBodyCircularVelocity(
-        activeFlightSlingshot.relPos,
-        Math.hypot(activeFlightSlingshot.relPos.x, activeFlightSlingshot.relPos.y),
-        activeFlightSlingshot.dominantBody,
-        pullVel,
-      );
-      activeFlightSlingshot.circularVelocity = circ.velocity;
-      activeFlightSlingshot.circularSpeed = circ.speed;
-      activeFlightSlingshot.isSnappingCircular = event.shiftKey;
-      activeFlightSlingshot.currentSpeed = activeFlightSlingshot.isSnappingCircular
-        ? circ.speed
-        : Math.hypot(pullVel.x, pullVel.y);
+      refreshFlightSlingshot(activeFlightSlingshot, cameraControl.last, view.time, target, event);
       updateFlightSlingshotHud();
       return;
     }
@@ -4304,6 +4283,12 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     water: state.water ?? null,
     waterDepth: Math.max(0, (world.surface(activeBody.id)?.seaRadiusMetres ?? 0) - magnitude(state.position)),
     predictionLast: prediction.path.at(-1) ?? null,
+    throwPreview: activeFlightSlingshot ? { origin: activeFlightSlingshot.originWorld,
+      pointer: activeFlightSlingshot.pointerWorld, position: activeFlightSlingshot.relPos,
+      velocity: activeFlightSlingshot.isSnappingCircular ? activeFlightSlingshot.circularVelocity : activeFlightSlingshot.pullVelocity,
+      body: activeFlightSlingshot.dominantBody.id,
+      camera: activeFlightSlingshot.sourceCanvas === canvas ? cameraControl.last : splitScreen.guests.get(activeFlightSlingshot.slot ?? 0)?.camera.last,
+      width: activeFlightSlingshot.sourceCanvas?.clientWidth, height: activeFlightSlingshot.sourceCanvas?.clientHeight } : null,
     vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
     model: MODEL, body: activeBody.id, system: world.systemId, universe: world.universe.id,
     session: session === local ? (local.hosting ? 'host' : 'local') : 'client', world: world.id,
@@ -4621,7 +4606,7 @@ function frame(now: number): void {
   const p1AnchorBody = (p1Cursor?.isThrowing ? p1Cursor.dominantBody : undefined) ??
     (activeFlightSlingshot && (activeFlightSlingshot.slot ?? 0) === 0 ? activeFlightSlingshot.dominantBody : undefined);
   const p1AnchorRelPos = (p1Cursor?.isThrowing ? p1Cursor.relPos : undefined) ??
-    (activeFlightSlingshot && (activeFlightSlingshot.slot ?? 0) === 0 ? activeFlightSlingshot.relPos : undefined);
+    (activeFlightSlingshot && (activeFlightSlingshot.slot ?? 0) === 0 ? activeFlightSlingshot.anchorRelPos : undefined);
 
   if (isP1Throwing && p1AnchorBody && p1AnchorRelPos) {
     const curDomPos = session.world.system.getBodyPosition(p1AnchorBody.id, view.time);
@@ -4651,12 +4636,7 @@ function frame(now: number): void {
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
 
   if (activeFlightSlingshot && (!activeFlightSlingshot.slot || activeFlightSlingshot.slot === 0 || !splitScreen.isSeparated(activeFlightSlingshot.slot))) {
-    const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, view.time);
-    activeFlightSlingshot.dominantWorldPos = curDomPos;
-    activeFlightSlingshot.originWorld = {
-      x: curDomPos.x + activeFlightSlingshot.relPos.x,
-      y: curDomPos.y + activeFlightSlingshot.relPos.y,
-    };
+    refreshFlightSlingshot(activeFlightSlingshot, camera, view.time, canvas);
     const sList = buildSlingshotOverlay(activeFlightSlingshot, camera.scale, PLAYER_COLORS[activeFlightSlingshot.slot ?? 0]);
     overlays.push(...sList);
   }
@@ -4746,7 +4726,7 @@ function frame(now: number): void {
       const gAnchorBody = (gCursor?.isThrowing ? gCursor.dominantBody : undefined) ??
         (activeFlightSlingshot && activeFlightSlingshot.slot === slot ? activeFlightSlingshot.dominantBody : undefined);
       const gAnchorRelPos = (gCursor?.isThrowing ? gCursor.relPos : undefined) ??
-        (activeFlightSlingshot && activeFlightSlingshot.slot === slot ? activeFlightSlingshot.relPos : undefined);
+        (activeFlightSlingshot && activeFlightSlingshot.slot === slot ? activeFlightSlingshot.anchorRelPos : undefined);
 
       if (isGuestThrowing && gAnchorBody && gAnchorRelPos) {
         const curDomPos = session.world.system.getBodyPosition(gAnchorBody.id, guest.view.time);
@@ -4783,12 +4763,7 @@ function frame(now: number): void {
       const gOverlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, guest.view.time, guest.playerId ?? session.playerId, gCamera, gWidth, gHeight)];
       seatHuds.get(slot)?.hud.draw(gOverlays);
       if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
-        const curDomPos = session.world.system.getBodyPosition(activeFlightSlingshot.dominantBody.id, guest.view.time);
-        activeFlightSlingshot.dominantWorldPos = curDomPos;
-        activeFlightSlingshot.originWorld = {
-          x: curDomPos.x + activeFlightSlingshot.relPos.x,
-          y: curDomPos.y + activeFlightSlingshot.relPos.y,
-        };
+        refreshFlightSlingshot(activeFlightSlingshot, gCamera, guest.view.time, guest.canvas);
         gOverlays.push(...buildSlingshotOverlay(activeFlightSlingshot, gCamera.scale, PLAYER_COLORS[slot]));
       }
       const jCursor = controllerCursors.get(slot);
