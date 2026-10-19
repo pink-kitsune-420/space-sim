@@ -71,7 +71,7 @@ it('passes a zero-impulse review checkpoint crossed during a finite departure wi
  }finally{f.runner.dispose();f.session.dispose();}
 });
 
-it('flies a generated moon departure and capture using actual SOI reviews',()=>{
+it.each([false,true])('flies a generated moon departure and capture with actual SOI reviews and auto-warp %s',autoWarp=>{
  const f=fixture(),id=f.ships[0]!;
  try {
   const job=createTransferPlanner(createFlightPlans()).search(f.world,{shipId:id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
@@ -88,7 +88,8 @@ it('flies a generated moon departure and capture using actual SOI reviews',()=>{
   evaluation.return([]);expect(delta).toBeDefined();const expectedHeading=Math.atan2(delta!.y,delta!.x),headings:number[]=[];
   const send=f.options.fleet!.setControls;
   f.options.fleet!.setControls=(ship,controls)=>{if(ship===id&&controls.engine&&f.completed.mock.calls.length===0)headings.push(f.world.ship(id)!.state.heading);send(ship,controls);};
-  f.runner.arm(id);
+  if(autoWarp)f.options.fleet!.authorizeWarp=()=>true;
+  f.runner.arm(id,false,autoWarp);
   const until=f.intents.get(id)!.at(-1)!.time+1;
   for(let i=0;i<300000&&f.world.time<until&&f.runner.active;i++)f.tick();
   expect(f.completed.mock.calls,JSON.stringify({nodes:f.intents.get(id),time:f.world.time,body:f.world.ship(id)!.bodyId,notices:f.notify.mock.calls})).toHaveLength(2);
