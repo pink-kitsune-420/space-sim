@@ -45,6 +45,10 @@ test('camera buttons and Shift+arrows turn the camera in matching directions wit
   await page.keyboard.down('ArrowLeft');
   await expect.poll(async () => Math.abs((await debug()).heading - before.heading)).toBeGreaterThan(.05);
   await page.keyboard.up('ArrowLeft');
+  // Polling may let steering continue far enough to point below the launch angle.
+  // Restore the launch attitude before checking burn and reset independently.
+  await page.keyboard.press('KeyR');
+  await expect.poll(async () => (await debug()).heading).toBeCloseTo(before.heading, 7);
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('FLYING');
   await page.keyboard.up('Space');
