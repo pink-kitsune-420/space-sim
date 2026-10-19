@@ -5,7 +5,7 @@
     "apiVersion": "space-sim-game-api/2",
     "id": "spacelab.render-webgl",
     "name": "WebGL 2",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "kind": "provider",
     "environments": [
       "browser",
@@ -48,7 +48,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "5e13b184af487fdc4c61282ff5ab63b2ca595fb2fdf06f2ff321abbd2ed21a17"
+    "inputsDigest": "ef957d1dbda1a105419290a8f87200f5cf95a27dc6f7077f54d2d0ef86d3d522"
   },
   "compatibility": {
     "deterministic": true,
@@ -104,7 +104,7 @@
     },
     {
       "path": "game-api/flight-view.ts",
-      "sha256": "908d5d09c0a8df89c31ca8cd63a02d1bb4533585e1023ae1354e4e9dc9bb73a3",
+      "sha256": "0ee14d49c4ed4775213f24a8a59c0343d24c770054bb75a9facdd5d14946fbe6",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -134,7 +134,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "48335619dc86869a0f9565a19f1a3c87eae69a1fddbc4e4f7e4e80c526796825",
+      "sha256": "e99a325f9ee19b604ea7e8c9602a4ee4857f21f4c39af78da87489061c00d118",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -206,7 +206,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "4a4a3ba2a6e658220413b278323f884d6d574fcc710e1b9ffbc8759801a2cda5",
+      "sha256": "b86fbe26396f75f69c73db349c394bca440643f95750b2fe3d3bd729c4c77818",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -440,7 +440,7 @@
     },
     {
       "path": "src/webgl.ts",
-      "sha256": "2f6a228a57f405d946d07588b85a9da79b932ef31814c5a73818e421e0b56d21",
+      "sha256": "59ccffced3db6bd229135c1bcedc41e512f7ffa29d4c333babe783aea42213e3",
       "license": "MIT",
       "attribution": "Space Sim first-party webgl 2 implementation, MIT licensed.\nShared local drawing helpers preserve the original first-party renderer algorithms.\n"
     }

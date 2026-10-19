@@ -109,12 +109,12 @@ export function createChatConsole(options: ChatConsoleOptions): ChatConsole {
     if (event.code === 'Enter') {
       if (document.activeElement === chatInput) {
         // Handled by form submit
-      } else if (!document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
+      } else if (!document.activeElement?.closest('input, select, button, summary, a, textarea, [contenteditable]')) {
         event.preventDefault();
         setChatMinimized(false, true);
       }
     } else if (event.code === 'Slash') {
-      if (document.activeElement !== chatInput && !document.activeElement?.closest('input, select, textarea, [contenteditable]')) {
+      if (document.activeElement !== chatInput && !document.activeElement?.closest('input, select, button, summary, a, textarea, [contenteditable]')) {
         event.preventDefault();
         options.setVisible?.(true);
         setChatMinimized(false);

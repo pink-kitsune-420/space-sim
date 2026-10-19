@@ -5,7 +5,7 @@ const ITEMS = [
   ['message', 'Flight hints', '#flight-message'], ['terrain', 'Terrain notices', '#terrain-notice'],
   ['throw', 'Throw readings', '#flight-slingshot-hud'],
   ['players', 'Player readings', ''],
-  ['chat', 'Chat', '#chat-overlay'], ['scale', 'Scale bar', ''], ['labels', 'Ship labels', ''],
+  ['chat', 'Chat', '#chat-overlay'], ['scale', 'Scale bar', ''], ['labels', 'Ship labels', ''], ['planets', 'Planet labels', ''],
 ] as const;
 export type HudVisibilityId = typeof ITEMS[number][0] | 'profiler';
 

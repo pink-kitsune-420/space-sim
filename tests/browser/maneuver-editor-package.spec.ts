@@ -16,20 +16,39 @@ test.beforeAll(async()=>{
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
-async function setup(page:Page){
+async function setup(page:Page,noEngine=false){
  await page.goto('about:blank');await page.setContent('<main style="position:relative;width:800px;height:600px"></main>');await page.addScriptTag({content:hostSource});
- await page.evaluate(bundles=>{
+ await page.evaluate(({bundles,noEngine})=>{
   const api=(window as any).ManeuverHost,registry=new api.ModuleRegistryV2(api.engineModuleServices());
   for(const bundle of bundles){const initialize=new Function(`"use strict";${bundle.source};return SpaceSimModule.default;`)();registry.register({manifest:bundle.manifest,initialize},api.moduleAssets(new Map(bundle.assets.map(([path,text])=>[path,new TextEncoder().encode(text)]))));}
   const manifests=bundles.map(bundle=>bundle.manifest as any),profile={format:'space-sim-profile/2',id:'fixture.independent-maneuvers',modules:manifests.map(m=>({id:m.id,version:m.version})),providers:Object.fromEntries(manifests.flatMap(m=>m.slots.map((slot:string)=>[slot,m.id]))),capabilities:{},settings:{}};
-  const candidate=registry.prepare(profile,'browser'),factory=candidate.providedService(api.MANEUVER_PLANNERS),prediction=candidate.providedService(api.PREDICTIONS).create(()=>{}),world=new api.World(api.DEFAULT_UNIVERSE,{id:'independent-preview'}),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'});world.step();
+  const universe=noEngine?{...api.DEFAULT_UNIVERSE,systems:api.DEFAULT_UNIVERSE.systems.map((system:any)=>({...system,vehicleDefaults:{...system.vehicleDefaults,acceleration:0}}))}:api.DEFAULT_UNIVERSE;
+  const candidate=registry.prepare(profile,'browser'),factory=candidate.providedService(api.MANEUVER_PLANNERS),prediction=candidate.providedService(api.PREDICTIONS).create(()=>{}),world=new api.World(universe,{id:'independent-preview'}),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'});world.step();
   const current=()=>world.ship(ship.id),body=world.body(ship.bodyId);
   for(let frame=0;frame<200&&prediction.pathEnd!=='closed';frame++)prediction.update(world.context,current().state,body,world.surface(body.id),ship.id,.1,false,current().controls,world);
   if(prediction.pathEnd!=='closed')throw new Error('Fixture needs complete prediction');
   const origin=world.system.getBodyPosition(body.id,world.time),camera={center:origin,rotation:0,scale:.3},sample=prediction.path[Math.floor(prediction.path.length/3)],pointer=api.createProjector(camera,800,600)({x:origin.x+sample.position.x,y:origin.y+sample.position.y});
   (window as any).fixture={api,registry,candidate,factory,prediction,world,current,body,origin,camera,pointer,profile,root:document.querySelector('main')};
- },bundles);
+ },{bundles,noEngine});
 }
+
+test('coasting to a zero-delta node needs no engine and issues only warp commands',async({page})=>{
+ await setup(page,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:number[]=[];
+  let warp=1;const before=JSON.stringify(f.api.saveWorld(world));
+  const planner=factory.create({container:root,id:'coast-only',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp,requestedWarp:warp}),
+   setWarp(factor:number){warp=factor;commands.push(factor);},setThrottle(){throw new Error('Must not touch throttle');},releaseControls(){throw new Error('Must not arm execution');},notify(){}});
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const timing=document.getElementById('coast-only-time') as HTMLInputElement;timing.value='20';timing.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);
+  const button=document.getElementById('coast-only-warp') as HTMLButtonElement,enabled=!button.disabled;
+  button.click();planner.beforeAdvance({engine:false,turn:0,throttle:0});const warping=planner.diagnostics()?.warping,executing=planner.executing;
+  planner.cancel();planner.dispose();f.candidate.dispose();const preserved=JSON.stringify(f.api.saveWorld(world))===before,acceleration=world.context.vehicle.acceleration;world.dispose();
+  return{enabled,warping,executing,commands,preserved,acceleration};
+ });
+ expect(result).toMatchObject({enabled:true,warping:true,executing:false,preserved:true,acceleration:0});
+ expect(result.commands[0]).toBeGreaterThan(1);expect(result.commands.at(-1)).toBe(1);
+});
 
 test('independent read-only planner instances edit isolated candidate paths and dispose their windows, dock leases and stale controls',async({page})=>{
  await setup(page);

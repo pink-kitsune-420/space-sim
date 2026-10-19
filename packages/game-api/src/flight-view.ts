@@ -18,6 +18,8 @@ export interface CameraFocusTarget { readonly kind: 'ship' | 'body'; readonly id
 /** Compatibility view of today's flight camera; generic cameras use view.camera. */
 export interface FlightCameraController extends Disposable {
   mode: string; pan: Vec; zoom: number; rotation: number; horizon: boolean; dragged: boolean;
+  /** Optional fixed viewer orientation in radians; undefined follows the selected mode. */
+  manualRotation?: number;
   last: Camera; panVelocity: Vec; smartTarget: SmartTargetMatch | undefined; focusTarget: CameraFocusTarget | undefined;
   readonly follow: boolean;
   label(cameras: readonly CameraExtension[]): string;

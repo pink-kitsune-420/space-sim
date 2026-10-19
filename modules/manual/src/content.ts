@@ -56,7 +56,7 @@ the previous size and position. Focus a resize grip and use the arrow keys for s
 Drag a small grip, or focus it and use the arrow keys. Navballs can be dragged directly while editing, even when pinned. Hold Shift for larger steps. Choose <b>Done</b> when finished.
 Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
 Windows and chat move by their title bars. Outside the editor, unlock a navball with its pin button before dragging it. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
-<p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, labels and the scale bar. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
+<p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, ship labels, planet labels and the scale bar. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
 <h3>Where to start</h3>
 <ol>
   <li>Look over <a data-page="controls">Controls</a>, or hold {{key:engine}} to fire the engine and steer with {{key:turnLeft}} {{key:turnRight}}.</li>
@@ -215,7 +215,7 @@ hyperbola. When you cross a boundary, the game switches the path to the new body
   <li><b>Maneuver planner</b>: click or tap the coast line to place a planned burn. See <a data-page="maneuvers">Planning a maneuver</a>.</li>
   <li><b>Telemetry window</b>: your speed split into up-down and sideways parts, local gravity, and orbit timing.</li>
   <li><b>Camera</b>: {{key:camera}} switches between following the ship, a view of the planet, and free movement.
-    {{key:orientation}} switches between north-up and horizon-up. Zoom with {{key:zoomIn}} {{key:zoomOut}}.</li>
+    {{key:orientation}} switches between north-up and horizon-up. The camera's ↶ / ↷ buttons rotate the view by 15° (Shift: 1°); <b>N↑</b> resets to north up. This changes the view, leaving ship attitude alone. Zoom with {{key:zoomIn}} {{key:zoomOut}}.</li>
 </ul>
 <p>You can switch off any instrument in <b>ModMenu → Instruments &amp; display</b>.</p>
 ${deeper('what the telemetry numbers mean', `
@@ -238,8 +238,8 @@ ${deeper('what the telemetry numbers mean', `
 <ol>
   <li>Enter an unpowered orbit. Zoom out until you can see the coast line, then click or tap it. An amber diamond marks the node and the <b>Maneuver</b> window opens.</li>
   <li>Set <b>Prograde Δv</b> to add speed along your motion; a negative value is retrograde and slows you down. Set <b>Radial Δv</b> to push away from the body; a negative value pushes inward. Δv means a change in velocity, measured in metres per second.</li>
-  <li>The dashed amber line previews the coast after that burn. Click a different point on the original coast line to move the node, or edit <b>Burn in (s)</b>. The + and − buttons adjust by 1 m/s; Shift-click adjusts by 10 m/s.</li>
-  <li>Use the countdown and full-throttle burn estimate to prepare. <b>Warp to burn</b> approaches the node and returns to normal speed 10 seconds plus half the estimated burn duration beforehand. Only the host controls warp. Steering, thrust, pausing, hiding the tab or <b>Stop warp</b> cancels the approach.</li>
+  <li>The dashed amber line previews the coast after that burn. Drag the node's ◇ along the coast, click another point on the original line, or edit <b>Node in (s)</b> to move it. Drag <b>P±</b> handles for prograde/retrograde and <b>R±</b> for radial out/in. Choose an <b>Adjustment</b> size for buttons and handles; Shift makes it ten times finer. Map drags apply that step per 4 pixels. Escape cancels a drag; <b>Clear Δv</b> keeps the node and removes its burn.</li>
+  <li><b>Warp to node</b> coasts without firing the engine, including with zero Δv or no engine. It returns to normal speed 10 seconds plus half the estimated burn duration beforehand, when thrust is available. Only the host controls warp. Steering, thrust, pausing, hiding the tab or <b>Stop warp</b> cancels the approach.</li>
   <li>Turn toward the amber diamond on the navball and fire the engine yourself. Centre the estimated burn on the node time. The amber arrow at the node also shows the intended burn direction.</li>
 </ol>
 <p>For a fully autonomous maneuver, choose <b>Execute burn</b>. It warps toward the selected node, returns to normal speed, turns toward the burn direction, fires the engine around the node time, and cuts off after delivering the planned Δv. It adjusts the final tick's throttle for small burns and leaves throttle at zero when complete. Allow enough time before the node for alignment and half the burn duration. Autonomous execution is available in solo play and for the host's selected ship; remote pilots can still plan and fly manually.</p>

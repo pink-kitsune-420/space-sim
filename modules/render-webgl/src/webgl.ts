@@ -473,6 +473,7 @@ export class WebGLRenderer implements Renderer {
     const bodyLabels: PendingBodyLabel[] = [];
     const crowd = new BodyCrowd();
     for (const { b, pos, r, isStar } of visible) {
+      if (frame.showBodyLabels === false) break;
       if (!crowd.admit(pos.x, pos.y, r) || r > maxViewportDim * 0.9) continue;
       const text = b.name.toUpperCase();
       const labelY = r < 2.5

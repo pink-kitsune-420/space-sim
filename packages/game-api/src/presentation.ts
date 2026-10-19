@@ -76,6 +76,8 @@ export interface RenderFrame {
   /** Optional explicit viewer animation epoch, seconds. Never advances a simulation. */
   readonly presentationTime?: number;
   readonly showShipLabels?: boolean;
+  /** Celestial body names; defaults to visible. Independent of ship labels. */
+  readonly showBodyLabels?: boolean;
   /** Other vessels, drawn beneath the piloted ship. */
   readonly ships?: readonly RenderShip[];
   /** Validated presentation layers above the scene, in the overlay section: shapes in order,

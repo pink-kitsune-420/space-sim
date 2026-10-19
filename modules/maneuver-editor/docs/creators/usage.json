@@ -14,6 +14,10 @@
     },
     {
       "type": "paragraph",
+      "text": "Supply the optional map() callback with the current surface element, displayed camera and active-body world origin to enable on-map node and P\u00b1/R\u00b1 handles. Coordinates and dragging use CSS pixels. Map and window edits share the same local node; disposal removes map controls and listeners. Selected adjustment steps apply to buttons and map drags, with Shift for finer changes and Escape to cancel a drag. Warp to node is a separate coasting-only action and works with zero delta-v or no thrust; Execute burn remains explicitly opt-in."
+    },
+    {
+      "type": "paragraph",
       "text": "Each editor owns its window, dock lease, listeners, preview jobs and unfinished burn policy. Dispose cancels pending actions, releases host controls, aborts listeners and closes resources even after child failures. Provider removal closes every editor and its injected styles. previewMaxMs and uiRefreshMs preserve default 1 ms/100 ms viewer budgets. The default app adapter retains legacy control IDs and layout preferences until actual manifest startup in Phase 4."
     }
   ]

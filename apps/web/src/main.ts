@@ -290,6 +290,8 @@ const isSolo = (): boolean => session === local && !local.hosting;
 const ownShips = (): Ship[] => [...session.world.records()].filter(s => s.ownerId === session.playerId);
 const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship(selectedShipId) : undefined;
 const maneuver = new ManeuverPlanner(workspace, {
+  map: () => isSlotThrowing(0) || hudLayout.editing ? undefined : { element: canvas, camera: cameraControl.last,
+    origin: session.world.system.getBodyPosition(activeBody.id, view?.time ?? session.world.time) },
   flight: () => ({ world: session.world, ship: selectedShip(), body: activeBody,
     enabled: presentation.isEnabled('builtin.maneuver-planner'), canWarp: session.canWarp,
     paused: session.paused, inputBlocked: controlsDialog.open || hudLayout.editing || document.hidden,
@@ -1135,7 +1137,8 @@ function syncCameraButton(): void {
   cameraControl.retain(presentation.cameras);
   const label = cameraControl.label(presentation.cameras);
   if (cameraButton.textContent !== label) cameraButton.textContent = label;
-  const orientLabel = cameraControl.horizon ? 'Horizon up' : 'North up';
+  const orientLabel = cameraControl.manualRotation !== undefined && Math.abs(cameraControl.manualRotation) > 1e-6
+    ? `Rotation ${Math.round(cameraControl.manualRotation * 180 / Math.PI)}°` : cameraControl.horizon ? 'Horizon up' : 'North up';
   if (orientationButton.textContent !== orientLabel) orientationButton.textContent = orientLabel;
 }
 function toggleProfiler(): void {
@@ -2716,8 +2719,19 @@ function issueCommand(command: CommandExtension): void {
 }
 
 function toggleOrientation(): void {
-  cameraControl.horizon = !cameraControl.horizon; orientationButton.textContent = cameraControl.horizon ? 'Horizon up' : 'North up';
+  cameraControl.horizon = cameraControl.manualRotation !== undefined || !cameraControl.horizon;
+  cameraControl.manualRotation = undefined;
+  syncCameraButton();
 }
+function rotateCamera(radians: number): void {
+  cameraControl.manualRotation = Math.atan2(Math.sin((cameraControl.manualRotation ?? cameraControl.last.rotation) + radians),
+    Math.cos((cameraControl.manualRotation ?? cameraControl.last.rotation) + radians));
+  cameraControl.horizon = false;
+  syncCameraButton();
+}
+element('camera-rotate-left').addEventListener('click', event => rotateCamera(((event as MouseEvent).shiftKey ? 1 : 15) * Math.PI / 180));
+element('camera-rotate-right').addEventListener('click', event => rotateCamera(-((event as MouseEvent).shiftKey ? 1 : 15) * Math.PI / 180));
+element('camera-north').addEventListener('click', () => { cameraControl.manualRotation = 0; cameraControl.horizon = false; syncCameraButton(); });
 pauseButton.addEventListener('click', () => setPaused(!session.paused));
 warpDownButton.addEventListener('click', warpDown);
 warpUpButton.addEventListener('click', warpUp);
@@ -4674,6 +4688,7 @@ function frame(now: number): void {
     ships: others,
     showScale: hudVisibility.visible('scale'),
     showShipLabels: hudVisibility.visible('labels'),
+    showBodyLabels: hudVisibility.visible('planets'),
     theme: {
       ...themeCustomizer.getSettings(),
       highQuality: graphicsQuality === 'high',
@@ -4788,6 +4803,7 @@ function frame(now: number): void {
         ships: gOthers,
         showScale: hudVisibility.visible('scale'),
         showShipLabels: hudVisibility.visible('labels'),
+        showBodyLabels: hudVisibility.visible('planets'),
         theme: {
           ...themeCustomizer.getSettings(),
           highQuality: graphicsQuality === 'high',

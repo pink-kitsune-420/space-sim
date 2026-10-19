@@ -128,6 +128,8 @@ export class CameraController {
   pan: Vec = { x: 0, y: 0 };
   zoom = 10;
   rotation = 0;
+  /** Viewer-selected fixed orientation in radians, independent of ship attitude. */
+  manualRotation?: number;
   horizon = true;
   /** Free view reached by dragging, rather than the planet-centred overview. */
   dragged = false;
@@ -201,7 +203,7 @@ export class CameraController {
     const relative = this.mode === 'free' ? this.pan : this.mode === 'follow' ? ship
       : { x: this.last.center.x - body.x, y: this.last.center.y - body.y };
     this.pan = dragCamera({ center: relative, rotation: this.rotation, scale: this.scale(width, height) }, delta).center;
-    this.mode = 'free'; this.dragged = true; this.rotation = 0;
+    this.mode = 'free'; this.dragged = true; this.rotation = this.manualRotation ?? 0;
   }
 
   stopFling(): void {
@@ -317,9 +319,9 @@ export class CameraController {
 
     const relative = this.mode === 'follow' ? ship : this.mode === 'free' ? this.pan : undefined;
     const center = relative ? { x: body.x + relative.x, y: body.y + relative.y } : options.target!.center;
-    const goal = this.mode !== 'follow' && this.mode !== 'free' && options.target?.rotation !== undefined ? options.target.rotation
-      : (this.mode === 'follow' && this.horizon) ? Math.PI / 2 - Math.atan2(ship.y, ship.x) : 0;
-    this.rotation = this.mode === 'free' ? 0 : cameraRotation(this.rotation, goal, options.instant ? Infinity : options.elapsed, this.options);
+    const goal = this.manualRotation ?? (this.mode !== 'follow' && this.mode !== 'free' && options.target?.rotation !== undefined ? options.target.rotation
+      : (this.mode === 'follow' && this.horizon) ? Math.PI / 2 - Math.atan2(ship.y, ship.x) : 0);
+    this.rotation = this.mode === 'free' ? goal : cameraRotation(this.rotation, goal, options.instant ? Infinity : options.elapsed, this.options);
     this.last = { center, rotation: this.rotation, scale };
     return this.last;
   }

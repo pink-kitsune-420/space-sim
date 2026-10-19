@@ -437,7 +437,7 @@ export class CanvasRenderer implements Renderer {
       const isStar = b.surfaceFeatures === 'star';
       if (pos.x < -60 || pos.x > width + 60 || pos.y < -60 || pos.y > height + 60) continue;
       const labelY = r < 2.5 ? (isStar ? pos.y - 10 : pos.y - 7) : (r > 30 ? pos.y - r - 8 : pos.y + Math.min(r + 14, 24));
-      if (labels.tryPlace(labelRect(b.name.toUpperCase(), pos.x, labelY, 'center'))) labelled.add(b);
+      if (frame.showBodyLabels !== false && labels.tryPlace(labelRect(b.name.toUpperCase(), pos.x, labelY, 'center'))) labelled.add(b);
     }
 
     // 2. Draw each celestial body

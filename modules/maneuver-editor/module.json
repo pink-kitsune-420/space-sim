@@ -5,7 +5,7 @@
     "apiVersion": "space-sim-game-api/2",
     "id": "spacelab.maneuver-editor",
     "name": "Maneuver editor",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "kind": "provider",
     "environments": [
       "browser",
@@ -77,7 +77,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "8774c1ab610533c231a72668d62b3cd7963782242455f85a18e9ca1954a3e24c"
+    "inputsDigest": "d643970de1e4c71f0532ac46462f25e00754854dc88c5e54e354809f4312fc79"
   },
   "compatibility": {
     "deterministic": true,
@@ -96,7 +96,7 @@
   "inputs": [
     {
       "path": "assets/editor.css",
-      "sha256": "40377a752418cd48530dffb90e8de55ee7749b61345778192fae8d28379026fc",
+      "sha256": "edebeae71a306b0f7e2ea4e479da73b37e2be2b4c537c33bb7f39a8498d29e5c",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },
@@ -144,7 +144,7 @@
     },
     {
       "path": "game-api/flight-view.ts",
-      "sha256": "908d5d09c0a8df89c31ca8cd63a02d1bb4533585e1023ae1354e4e9dc9bb73a3",
+      "sha256": "0ee14d49c4ed4775213f24a8a59c0343d24c770054bb75a9facdd5d14946fbe6",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -174,7 +174,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "48335619dc86869a0f9565a19f1a3c87eae69a1fddbc4e4f7e4e80c526796825",
+      "sha256": "e99a325f9ee19b604ea7e8c9602a4ee4857f21f4c39af78da87489061c00d118",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -246,7 +246,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "4a4a3ba2a6e658220413b278323f884d6d574fcc710e1b9ffbc8759801a2cda5",
+      "sha256": "b86fbe26396f75f69c73db349c394bca440643f95750b2fe3d3bd729c4c77818",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -390,13 +390,19 @@
     },
     {
       "path": "src/editor.ts",
-      "sha256": "023178af7adcfc406288aa051a97e1bded017e69fd54fa8bd5ccb8464f7cecc6",
+      "sha256": "c6cdb5970364a2b2ec620bce7492a3980da2cbdc0713e2a4ef90fe067a9c1a82",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },
     {
       "path": "src/index.ts",
       "sha256": "f2148265655614ede138c6d98f4a14ffbd4a757abc4b6ac60a9aa22bb676134e",
+      "license": "MIT",
+      "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
+    },
+    {
+      "path": "src/map.ts",
+      "sha256": "596eac56e1b151fe91091c69e22f638a549aa69edc57b6fd7f64c14430c54254",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     }

@@ -28,6 +28,9 @@ export interface ManeuverFlight {
 export interface ManeuverPlannerOptions {
  readonly container: HTMLElement; readonly id?: string;
  readonly shell?: Pick<import('./window-shell').WindowShell, 'addInstrument'>;
+ /** Optional live map surface. Coordinates use CSS pixels and the displayed camera;
+  * origin is the active body's world position. Omit to use the window editor alone. */
+ map?(): { readonly element: HTMLElement; readonly camera: import('./presentation').Camera; readonly origin: Vec } | undefined;
  flight(): ManeuverFlight;
  setWarp(factor: number): void;
  setThrottle(shipId: string, throttle: number): void;

@@ -30,7 +30,7 @@ function fake2d() {
 }
 
 function fakeGl() {
-  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[] };
+  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], texts: [] as string[] };
   let program: unknown, linked = 0;
   const gl = new Proxy({} as Record<string, unknown>, {
     get(_target, key) {
@@ -50,13 +50,24 @@ function fakeGl() {
       }
     },
   });
-  const label = { setTransform() {}, measureText: (t: string) => ({ width: t.length * 7 }), fillText() {}, font: '', fillStyle: '', textAlign: '', textBaseline: '' };
+  const label = { setTransform() {}, measureText: (t: string) => ({ width: t.length * 7 }), fillText(text:string) { stats.texts.push(text); }, font: '', fillStyle: '', textAlign: '', textBaseline: '' };
   const canvas = { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => gl,
     ownerDocument: { createElement: () => ({ width: 0, height: 0, getContext: () => label }) } } as unknown as HTMLCanvasElement;
   return { stats, canvas };
 }
 
 describe('renderer features', () => {
+  it('hides celestial names in both renderers while retaining the body scene and other annotations', () => {
+    for (const visible of [true, false]) {
+      const scene: RenderFrame = { ...frame(), bodies: [{ id: 'home', name: 'Home', position: {x:0,y:0}, radius: 20 }], showBodyLabels: visible };
+      const canvas = fake2d(), canvasRenderer = new CanvasRenderer(canvas.canvas); canvasRenderer.draw(scene);
+      expect(canvas.calls.some(call => call.startsWith('fillText(HOME,'))).toBe(visible);
+      expect(canvas.calls.some(call => call.startsWith('arc('))).toBe(true); canvasRenderer.dispose();
+      const webgl = fakeGl(), webglRenderer = new WebGLRenderer(webgl.canvas); webglRenderer.draw(scene);
+      expect(webgl.stats.texts.includes('HOME')).toBe(visible);
+      expect(webgl.stats.draws.length).toBeGreaterThan(0); webglRenderer.dispose();
+    }
+  });
   it('declare optional features instead of being identified by class', () => {
     const canvas = new CanvasRenderer(fake2d().canvas);
     expect(canvas.features.shaders).toBeUndefined();

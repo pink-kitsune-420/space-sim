@@ -192,7 +192,7 @@ test('HUD switches persist, leave the dock reachable, and restore existing instr
   await expect(page.locator('#chat-input')).toBeVisible();
 });
 
-test('scale and ship-label switches remove the actual Canvas annotations', async ({ page }) => {
+test('scale, ship and planet label switches remove actual Canvas annotations and persist independently', async ({ page }) => {
   await page.addInitScript(() => {
     const state = window as unknown as { hudAnnotationTexts: string[] };
     state.hudAnnotationTexts = [];
@@ -208,12 +208,35 @@ test('scale and ship-label switches remove the actual Canvas annotations', async
     } });
   });
   await page.goto('/');
+  await page.locator('#camera').click();
   const annotations = () => page.evaluate(() => {
     const texts = (window as unknown as { hudAnnotationTexts: string[] }).hudAnnotationTexts;
-    return { ship: texts.some(text => text.startsWith('VESSEL')), scale: texts.some(text => /^\d+ m$/.test(text)) };
+    return { ship: texts.some(text => text.startsWith('VESSEL')), scale: texts.some(text => /^\d+ m$/.test(text)), planet: texts.includes('PRIMUS') };
   });
-  await expect.poll(annotations).toEqual({ ship: true, scale: true });
+  await expect.poll(annotations).toEqual({ ship: true, scale: true, planet: true });
   await openPanel(page, 'settings');
+  await page.locator('#hud-visible-planets').uncheck();
+  await expect.poll(annotations).toEqual({ ship: true, scale: true, planet: false });
   await page.locator('#hud-visible-labels').uncheck(); await page.locator('#hud-visible-scale').uncheck();
-  await expect.poll(annotations).toEqual({ ship: false, scale: false });
+  await expect.poll(annotations).toEqual({ ship: false, scale: false, planet: false });
+  await page.reload(); await openPanel(page, 'settings');
+  await expect(page.locator('#hud-visible-planets')).not.toBeChecked();
+  await page.getByRole('button', { name: 'Restore HUD visibility', exact: true }).click();
+  await expect(page.locator('#hud-visible-planets')).toBeChecked();
+});
+
+test('camera rotation buttons turn the view without turning the ship, and reset to north up', async ({ page }) => {
+  await page.goto('/'); await closePanel(page);
+  await page.locator('#pause').click(); await page.locator('#camera').click();
+  const debug = () => page.locator('#debug').evaluate(el => JSON.parse(el.textContent!));
+  await expect.poll(async () => (await debug()).camera.rotation).toBe(0);
+  const before = await debug();
+  await page.getByRole('button', { name: 'Rotate camera left', exact: true }).click();
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(Math.PI / 12, 4);
+  await page.getByRole('button', { name: 'Rotate camera right', exact: true }).click({ modifiers: ['Shift'] });
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(14 * Math.PI / 180, 4);
+  const after = await debug();
+  expect(after.tick).toBe(before.tick); expect(after.heading).toBe(before.heading); expect(after.velocity).toEqual(before.velocity);
+  await page.getByRole('button', { name: 'Reset camera to north up', exact: true }).click();
+  await expect.poll(async () => (await debug()).camera.rotation).toBe(0);
 });

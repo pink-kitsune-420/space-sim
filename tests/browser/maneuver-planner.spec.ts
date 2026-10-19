@@ -96,6 +96,62 @@ test('warp stops before the burn and a reset marks the old plan stale', async ({
   await expect(page.locator('#maneuver-status')).toContainText('replan');
 });
 
+test('an empty node can warp without arming a burn or changing throttle', async ({ page }) => {
+  await setup(page); await place(page);
+  await page.locator('#maneuver-time').fill('25'); await page.locator('#maneuver-time').press('Tab');
+  const before = await debug(page);
+  await expect(page.locator('#maneuver-execute')).toBeDisabled();
+  await page.locator('#pause').click();
+  await expect(page.locator('#maneuver-warp')).toBeEnabled();
+  await page.locator('#maneuver-warp').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.warping).toBe(true);
+  await expect.poll(async () => (await debug(page)).maneuver?.warping, { timeout: 15000 }).toBe(false);
+  await page.locator('#pause').click();
+  const after = await debug(page);
+  expect(after.time).toBeGreaterThan(before.time + 5);
+  expect(after.maneuver).toMatchObject({ valid: true, prograde: 0, radial: 0, execution: null });
+  expect(after.engine).toBe(false); expect(after.throttle).toBe(before.throttle);
+  expect(after.maneuver.time - after.time).toBeGreaterThan(5);
+  expect(after.maneuver.time - after.time).toBeLessThan(11);
+  await expect(page.locator('#warp-factor')).toHaveText('1×');
+});
+
+test('map handles shape and move the local plan, with fine controls and drag cancellation', async ({ page }) => {
+  await setup(page); await place(page);
+  const before = await debug(page);
+  const handle = page.getByRole('button', { name: 'Increase prograde velocity', exact: true });
+  const node = page.getByRole('button', { name: 'Move maneuver node along the coast; click to open editor', exact: true });
+  const center = (box: {x: number; y: number; width: number; height: number}) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+  const p = center((await handle.boundingBox())!), n = center((await node.boundingBox())!);
+  const length = Math.hypot(p.x - n.x, p.y - n.y), dx = (p.x - n.x) / length, dy = (p.y - n.y) / length;
+  await page.mouse.move(p.x, p.y); await page.mouse.down();
+  await page.mouse.move(p.x + dx * 32, p.y + dy * 32, { steps: 8 }); await page.mouse.up();
+  // Firefox rounds pointer positions to CSS pixels; a drag can differ by a fraction of a step.
+  await expect.poll(async () => Math.abs((await debug(page)).maneuver?.prograde - 8)).toBeLessThan(.5);
+  const dragged = (await debug(page)).maneuver.prograde;
+  await page.locator('#maneuver-increment').selectOption('0.1');
+  await handle.focus(); await page.keyboard.press('Enter');
+  await expect.poll(async () => (await debug(page)).maneuver?.prograde).toBeCloseTo(dragged + .1, 6);
+  const latest = center((await handle.boundingBox())!);
+  await page.mouse.move(latest.x, latest.y); await page.mouse.down();
+  await page.mouse.move(latest.x + dx * 40, latest.y + dy * 40, { steps: 8 });
+  await page.keyboard.press('Escape'); await page.mouse.up();
+  await expect.poll(async () => (await debug(page)).maneuver?.prograde).toBeCloseTo(dragged + .1, 6);
+  const box = (await page.locator('#flight-view').boundingBox())!, radius = Math.hypot(n.x - box.x - box.width / 2, n.y - box.y - box.height / 2);
+  const time = (await debug(page)).maneuver.time;
+  await page.mouse.move(n.x, n.y); await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + radius * Math.cos(2.2), box.y + box.height / 2 - radius * Math.sin(2.2), { steps: 12 }); await page.mouse.up();
+  await expect.poll(async () => (await debug(page)).maneuver?.time).not.toBe(time);
+  const after = await debug(page);
+  expect(after.tick).toBe(before.tick); expect(after.velocity).toEqual(before.velocity); expect(after.position).toEqual(before.position);
+  expect(after.camera).toEqual(before.camera); expect(after.engine).toBe(false);
+  await page.screenshot({ path: 'test-results/maneuver-map-handles.png' });
+  await page.locator('#maneuver-clear').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.prograde).toBe(0);
+  await page.locator('#maneuver-delete').click();
+  await expect(page.getByRole('group', { name: 'Maneuver map controls' })).toBeHidden();
+});
+
 test('Execute burn warps, aligns, fires and cuts off autonomously', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));

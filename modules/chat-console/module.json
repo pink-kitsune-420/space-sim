@@ -5,7 +5,7 @@
     "apiVersion": "space-sim-game-api/2",
     "id": "spacelab.chat-console",
     "name": "Chat console",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "kind": "provider",
     "environments": [
       "browser",
@@ -43,7 +43,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "797d06848a4ee4aa2bd51e8a24628faffced1b72a343330194a6a5862ae3d4b0"
+    "inputsDigest": "7be15a8db14e0f7398faaed94344906866d49eece3920cb80362ff1d67a0fbbb"
   },
   "compatibility": {
     "deterministic": true,
@@ -99,7 +99,7 @@
     },
     {
       "path": "game-api/flight-view.ts",
-      "sha256": "908d5d09c0a8df89c31ca8cd63a02d1bb4533585e1023ae1354e4e9dc9bb73a3",
+      "sha256": "0ee14d49c4ed4775213f24a8a59c0343d24c770054bb75a9facdd5d14946fbe6",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -129,7 +129,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "48335619dc86869a0f9565a19f1a3c87eae69a1fddbc4e4f7e4e80c526796825",
+      "sha256": "e99a325f9ee19b604ea7e8c9602a4ee4857f21f4c39af78da87489061c00d118",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -201,7 +201,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "4a4a3ba2a6e658220413b278323f884d6d574fcc710e1b9ffbc8759801a2cda5",
+      "sha256": "b86fbe26396f75f69c73db349c394bca440643f95750b2fe3d3bd729c4c77818",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -345,7 +345,7 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "db734d57d9e66bb728397a009ed875373b31c9fb9c4afd6b6247604bad178575",
+      "sha256": "ee03986f930fc764798098f4e224b0fc0537a6170f2aa882194628134f591a50",
       "license": "MIT",
       "attribution": "Space Sim first-party optional chat/command console, window layout, templates and styles. Licensed under MIT.\n"
     },

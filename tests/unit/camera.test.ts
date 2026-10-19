@@ -22,6 +22,21 @@ it('pans in screen coordinates at every camera rotation and zoom', () => {
   }
 });
 
+it('preserves a fixed viewer rotation through following, panning and zooming, then restores mode orientation', () => {
+  const camera = new CameraController(), body = { x: 1e10, y: -1e10 }, ship = { x: 200, y: 600 };
+  const frame = { body, ship, width: 800, height: 600, elapsed: .1, instant: true };
+  camera.manualRotation = .7;
+  expect(camera.update(frame).rotation).toBe(.7);
+  const point = { x: body.x + 350, y: body.y + 700 };
+  const before = project(point, camera.last, 800, 600);
+  camera.drag({ x: 40, y: -20 }, body, ship, 800, 600);
+  const after = project(point, camera.update(frame), 800, 600);
+  expect(after.x - before.x).toBeCloseTo(40, 4); expect(after.y - before.y).toBeCloseTo(-20, 4);
+  camera.changeZoom(2); expect(camera.update(frame).rotation).toBe(.7);
+  camera.manualRotation = undefined; expect(camera.update(frame).rotation).toBe(0);
+  camera.followShip(); expect(camera.update(frame).rotation).toBeCloseTo(Math.PI / 2 - Math.atan2(ship.y, ship.x));
+});
+
 it('blends the shortest angular path through wraparound and allows retargeting', () => {
   const degrees = Math.PI / 180;
   expect(Math.abs(blendAngle(179 * degrees, -179 * degrees, .5))).toBeCloseTo(Math.PI);
