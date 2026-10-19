@@ -31,17 +31,18 @@ export function frameSample(sample: GhostSample, bodyId: string, frameId: string
  * live flight. Outside a verified analytic interval, one yield performs one live step.
  * No renderer, browser, wall clock or authority writes. The caller owns this context. */
 export function* predictTrajectory(context: SimulationContext, initial: State, initialBody: ResolvedBody,
-  system: LoadedSystem, surfaces: ReadonlyMap<string, SurfaceProfile>, coarse = false): Generator<GhostSample, GhostEnd> {
+  system: LoadedSystem, surfaces: ReadonlyMap<string, SurfaceProfile>, coarse = false, endTime?: number): Generator<GhostSample, GhostEnd> {
   if (initial.status !== 'flying') return 'grounded';
+  if (endTime !== undefined && (!Number.isFinite(endTime) || endTime < initial.time || endTime > initial.time + TRAJECTORY_MAX_SECONDS)) return 'failed';
   let state = initial, body = initialBody, transitions = 0;
   const frameId = initialBody.id, orbits = context.services.orbits;
   const initialOrbit = orbits.elements(initial, body.mu);
   // Two starting periods for encounters, at least an hour, at most a Julian year.
   // A verified unobstructed single-body orbit below closes at its full period instead.
   const duration = Math.min(TRAJECTORY_MAX_SECONDS, Math.max(3600, 2 * (initialOrbit.period ?? 1800)));
-  const until = initial.time + duration;
+  const until = endTime ?? initial.time + duration;
   const initialTop = surfaces.get(body.id)?.bounds.maxRadius ?? body.radius;
-  const singlePeriod = initialOrbit.period !== null && initialOrbit.periapsis > initialTop + .01
+  const singlePeriod = endTime === undefined && initialOrbit.period !== null && initialOrbit.periapsis > initialTop + .01
     ? initial.time + initialOrbit.period : undefined;
   const firstCoast = context.capabilities.rails ? context.keplerCoast(initial, body, surfaces.get(body.id)) : undefined;
   if (firstCoast && singlePeriod !== undefined
@@ -51,6 +52,7 @@ export function* predictTrajectory(context: SimulationContext, initial: State, i
   let numericalSteps = 0;
   yield frameSample(ghostSample(state, body), body.id, frameId, system);
   for (let count = 1; count < TRAJECTORY_MAX_SAMPLES; count++) {
+    if (state.time >= until) return 'horizon';
     const surface = surfaces.get(body.id), top = surface?.bounds.maxRadius ?? body.radius;
     const coast = context.capabilities.rails ? context.keplerCoast(state, body, surface) : undefined;
     let horizon = 0;
@@ -58,31 +60,32 @@ export function* predictTrajectory(context: SimulationContext, initial: State, i
       const value = context.services.rails.horizon(system, body, state, coast, state.time, top);
       if (value >= 0) horizon = value;
     }
-    let dt = STEP;
-    if (coast && horizon > STEP * 2) {
+    let dt = Math.min(STEP, until - state.time);
+    if (coast && horizon > dt && (horizon > STEP * 2 || dt < STEP)) {
       const r = dm.hypot(state.position.x, state.position.y), speed = dm.hypot(state.velocity.x, state.velocity.y);
       const fall = body.mu / (2 * r * r), reach = r * (coarse ? .25 : .125);
       // Stay at least a tick short of the conservative event bound. Check that tick
       // normally, including moving moons. No root-finding on unchecked chords.
       const limit = Math.min(horizon - STEP, until - state.time, transitions === 0 && singlePeriod !== undefined ? singlePeriod - state.time : Infinity);
       while (dt * 2 <= limit && speed * dt * 2 + fall * (dt * 2) ** 2 <= reach) dt *= 2;
+      if (endTime !== undefined && until - state.time < STEP * 2 && horizon >= until - state.time) dt = until - state.time;
       const result = context.coastAt(coast, state.time + dt, body, surface, { cache: false });
       if (!result.ok) return 'failed';
       state = { ...state, ...result.state, time: state.time + dt, coast, dynamics: 'kepler' };
     } else {
       const previous = state;
-      state = context.advance(state, IDLE, STEP, body, surface);
+      state = context.advance(state, IDLE, dt, body, surface);
       if (!surface && state.status !== 'flying') {
         // Legacy circle motion stores resting velocity, without a terrain contact
         // record. Reconstruct its VERIFIED KDK drift event for display only.
         const p = previous.position, v = previous.velocity, r = dm.hypot(p.x, p.y), g = -body.mu / (r*r*r);
-        const drift = { x: p.x + (v.x + p.x*g*STEP/2)*STEP, y: p.y + (v.y + p.y*g*STEP/2)*STEP };
+        const drift = { x: p.x + (v.x + p.x*g*dt/2)*dt, y: p.y + (v.y + p.y*g*dt/2)*dt };
         const fraction = contactFraction(p, drift, body.radius);
         if (fraction !== undefined) {
           const x = p.x + (drift.x-p.x)*fraction, y = p.y + (drift.y-p.y)*fraction, length = dm.hypot(x,y);
-          const position = { x: x*body.radius/length, y: y*body.radius/length }, half = STEP*fraction/2;
+          const position = { x: x*body.radius/length, y: y*body.radius/length }, half = dt*fraction/2;
           const at = -body.mu/(body.radius*body.radius*body.radius);
-          yield frameSample({time:previous.time+STEP*fraction,position,
+          yield frameSample({time:previous.time+dt*fraction,position,
             velocity:{x:v.x+(p.x*g+position.x*at)*half,y:v.y+(p.y*g+position.y*at)*half},linear:true},body.id,frameId,system);
           return 'impact';
         }

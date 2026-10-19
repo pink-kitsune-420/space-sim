@@ -58,7 +58,7 @@ export type { WorldCreationOptions as WorldOptions } from '../../game-api/src/in
  * sleeping ship evaluates the same expressions the per-step path would have produced, bit
  * for bit, so sleeping never changes results. */
 export class World implements WorldControl {
-  readonly predictionFeatures = Object.freeze({ futureSeeds: true });
+  readonly predictionFeatures = Object.freeze({ futureSeeds: true, endTime: true });
   readonly data: ModuleDataStore;
   get dataAdapters(): WorldOptions['dataAdapters'] & {} { return this.data.extensions; }
   readonly soloPreview: boolean;
@@ -675,7 +675,7 @@ export class World implements WorldControl {
   /** Shared-world forecasts step an isolated fleet, preserving rule/command order.
    * Normal flight uses verified analytic intervals; rule/custom-frame fleets keep
    * their shared fixed-step order. All legs use the initial body frame. */
-  *predictShip(id: string, coarse = false, seed?: { readonly state: State; readonly bodyId: string }): Generator<GhostSample, GhostEnd> {
+  *predictShip(id: string, coarse = false, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd> {
     const initial = this.ship(id);
     if (!initial || (seed?.state ?? initial.state).status !== 'flying') return 'grounded';
     if (seed && (this.requiresWorldPrediction || !this.contextFor(initial).capabilities.analyticCoast)) return 'failed';
@@ -684,7 +684,7 @@ export class World implements WorldControl {
       try {
         const state = structuredClone(seed?.state ?? initial.state), body = this.body(seed?.bodyId ?? initial.bodyId);
         context.validateState(state, body, this.surface(body.id));
-        return yield* predictTrajectory(context, state, body, this.system, this.surfaces, coarse);
+        return yield* predictTrajectory(context, state, body, this.system, this.surfaces, coarse, seed?.until);
       }
       catch { return 'failed'; }
       finally { context.dispose(); }

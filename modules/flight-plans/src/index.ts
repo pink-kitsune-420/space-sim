@@ -1,4 +1,4 @@
-import { FLIGHT_PLANS, maneuverDelta, type EvaluatedFlightNode, type FlightPlan, 
+import { FLIGHT_PLANS, flightSampleInFrame, maneuverDelta, type EvaluatedFlightNode, type FlightPlan,
  type FlightPlanNode, type FlightPlanService, type ModuleInitializationV2, type State, type Vec } from '@space-sim/game-api';
 
 export const MAX_PLAN_NODES = 16;
@@ -47,38 +47,79 @@ export function createFlightPlans(): FlightPlanService {
    if(new Set(plans.map(plan=>plan.shipId)).size!==plans.length)fail('duplicate ship plans');
    return {format:'space-sim-flight-plans/1',plans};
   },
-  *predict(plan,world) {
-   const evaluated=service.evaluate(plan,world), valid=evaluated.filter(node=>node.valid), pending=evaluated.filter(node=>!node.intent.completed);
-   if(!valid.length)return 'failed';
-   let count=0;
-   for(let index=0;index<valid.length;index++) {
-    const node=valid[index]!,next=valid[index+1],job=world.predictShip(plan.shipId,false,{state:node.after!,bodyId:node.intent.bodyId});
-    try {
-     for(;;) {
-      const result=job.next();
-      if(result.done) {
-       if(next) {
-        if(result.value!=='closed')return 'open';
-        // A closed single-body orbit may be followed for another revolution.
-        // Exact event evaluation already validated the entire interval.
-        const context=world.contextFor(world.ship(plan.shipId)!),body=world.body(node.intent.bodyId),surface=world.surface(body.id);
-        const coast=context.keplerCoast(node.after!,body,surface);
-        if(!coast)return 'failed';
-        const period=context.services.orbits.elements(coast,body.mu).period;
-        if(!period)return 'failed';
-        for(let time=node.after!.time+period;time<next.intent.time;time+=period/64) {
-         const solved=context.coastAt(coast,time,body,surface,{cache:false});if(!solved.ok)return 'failed';
-         if(++count>16384)return 'open';yield{time,...solved.state};
+  *evaluateAsync(plan,world,traceCoasts=false) {
+   if(plan.nodes.length>MAX_PLAN_NODES)fail(`at most ${MAX_PLAN_NODES} nodes are supported`);
+   const ship=world.ship(plan.shipId),results:EvaluatedFlightNode[]=[];
+   let reason=plan.universeId!==world.universe.id||plan.systemId!==world.systemId||plan.fingerprint!==world.simulationFingerprint
+    ? 'World or physics changed. Review the plan.' : !ship?'This ship is unavailable.'
+    : !world.predictionFeatures?.futureSeeds?'This host does not support detached future prediction seeds.':'';
+   const context=ship?world.contextFor(ship).cloneForPrediction():undefined;
+   let seed:State={...plan.epoch,status:'flying',throttle:0,revision:0},bodyId=plan.bodyId;
+   try {
+    if(context&&(!context.capabilities.analyticCoast||!context.capabilities.rails||world.requiresWorldPrediction||context.modelIdentity!==plan.motionIdentity))
+     reason='This plan needs compatible analytic motion and SOI horizons.';
+    for(const [index,intent] of plan.nodes.entries()) {
+     if(intent.completed){results.push({intent,valid:false,reason:'Completed. Later nodes require review against actual flight.'});continue;}
+     let result:EvaluatedFlightNode={intent,valid:false,reason};
+     if(!reason&&context)try {
+      if(!world.hasBody(bodyId)||!world.hasBody(intent.bodyId))throw Error('The planned body is unavailable.');
+      if(intent.time<seed.time)throw Error('The node was missed. Delete it or mark it flown before reviewing later nodes.');
+      const body=world.body(bodyId),surface=world.surface(bodyId),coast=context.keplerCoast(seed,body,surface);
+      const horizon=coast?context.services.rails.horizon(world.system,body,seed,coast,seed.time,surface?.bounds.maxRadius??body.radius):0;
+      let before:State,localSeed=seed;
+      if(!traceCoasts&&coast&&bodyId===intent.bodyId&&horizon>=intent.time-seed.time) {
+       const solved=context.coastAt(coast,intent.time,body,surface,{cache:false});
+       if(!solved.ok)throw Error(solved.diagnostics.reason??'Coast could not be solved.');
+       before={...seed,...solved.state,time:intent.time,coast};
+      }else {
+       if(!world.predictionFeatures?.endTime)throw Error('Cross-body plans need exact-end-time prediction support.');
+       const forecast=world.predictShip(plan.shipId,false,{state:seed,bodyId,until:intent.time});
+       let last:import('@space-sim/game-api').GhostSample|undefined,end:import('@space-sim/game-api').GhostEnd='open';
+       try {
+        for(let count=0;count<=16384;count++) {
+         const step=forecast.next();if(step.done){end=step.value;break;}
+         last=step.value;
+         if(last.encounter) {
+          const local=flightSampleInFrame(last,last.bodyId!,world.system);
+          localSeed={...seed,time:local.time,position:local.position,velocity:local.velocity,coast:undefined};
+         }
+         yield{node:index,sample:step.value};
         }
-        yield next.before!;break;
-       }
-       return valid.length<pending.length?'open':valid.length>1&&result.value==='closed'?'horizon':result.value;
+       }finally{forecast.return('open');}
+       if(end!=='horizon'||!last||Math.abs(last.time-intent.time)>1e-7)throw Error(`Coast ended before the node (${end}); contact or prediction budget requires review.`);
+       if((last.bodyId??bodyId)!==intent.bodyId)throw Error('The coast does not reach the planned body at this time.');
+       const local=flightSampleInFrame({...last,bodyId:last.bodyId??bodyId},intent.bodyId,world.system);
+       before={...seed,time:intent.time,position:local.position,velocity:local.velocity,coast:undefined};
       }
-      if(next&&result.value.time>=next.intent.time) {yield next.before!;break;}
-      if(++count>16384)return 'open';yield result.value;
-     }
-    }finally{job.return('open');}
-   }
+      const delta=maneuverDelta(before,intent.prograde,intent.radial),
+       after:State={...before,coast:undefined,velocity:{x:before.velocity.x+delta.x,y:before.velocity.y+delta.y},revision:seed.revision+1};
+      result={intent,valid:true,reason:'',seed:localSeed,before,after,delta};seed=after;bodyId=intent.bodyId;
+     }catch(error){reason=error instanceof Error?error.message:'Plan evaluation failed.';result={intent,valid:false,reason};}
+     results.push(result);
+     if(traceCoasts&&result.after)yield{node:index,sample:{time:result.after.time,position:result.after.position,velocity:result.after.velocity,bodyId,frameId:bodyId}};
+    }
+   }finally{context?.dispose();}
+   return results;
+  },
+  *predict(plan,world) {
+   const evaluation=service.evaluateAsync!(plan,world,true);
+   let evaluated:readonly EvaluatedFlightNode[];
+   try {
+    for(;;){const step=evaluation.next();if(step.done){evaluated=step.value;break;}
+     if(step.value.sample)yield flightSampleInFrame(step.value.sample,plan.bodyId,world.system);
+    }
+   }finally{evaluation.return([]);}
+   const valid=evaluated.filter(node=>node.valid),pending=evaluated.filter(node=>!node.intent.completed),last=valid.at(-1);
+   if(!last)return 'failed';
+   if(valid.length<pending.length)return 'open';
+   const job=world.predictShip(plan.shipId,false,{state:last.after!,bodyId:last.intent.bodyId});
+   try {
+    for(let count=0;count<16384;count++) {
+     const step=job.next();
+     if(step.done)return valid.length>1&&step.value==='closed'?'horizon':step.value;
+     yield flightSampleInFrame({...step.value,bodyId:step.value.bodyId??last.intent.bodyId,frameId:step.value.frameId??last.intent.bodyId},plan.bodyId,world.system);
+    }
+   }finally{job.return('open');}
    return 'open';
   },
   evaluate(plan,world) {
@@ -96,12 +137,12 @@ export function createFlightPlans(): FlightPlanService {
      if(intent.completed){results.push({intent,valid:false,reason:'Completed. Later nodes require review against actual flight.'});continue;}
      let result:EvaluatedFlightNode={intent,valid:false,reason};
      if(!reason&&context)try {
-      if(intent.bodyId!==plan.bodyId||!world.hasBody(intent.bodyId))throw Error('Later-body planning is not supported by this chain evaluator.');
+      if(intent.bodyId!==plan.bodyId||!world.hasBody(intent.bodyId))throw Error('Later-body planning requires progressive evaluation.');
       if(intent.time<seed.time)throw Error('The node was missed. Delete it or mark it flown before reviewing later nodes.');
       const body=world.body(intent.bodyId),surface=world.surface(body.id),coast=context.keplerCoast(seed,body,surface);
       if(!coast)throw Error('No safe analytic coast reaches this node.');
       const horizon=context.services.rails.horizon(world.system,body,seed,coast,seed.time,surface?.bounds.maxRadius??body.radius);
-      if(!(horizon>=intent.time-seed.time))throw Error('A possible SOI or surface event requires a shorter leg or a new plan.');
+      if(!(horizon>=intent.time-seed.time))throw Error('A possible SOI or surface event requires progressive evaluation.');
       const solved=context.coastAt(coast,intent.time,body,surface,{cache:false});
       if(!solved.ok)throw Error(solved.diagnostics.reason??'Coast could not be solved.');
       const before:State={...seed,...solved.state,time:intent.time,coast}, delta=maneuverDelta(before,intent.prograde,intent.radial);

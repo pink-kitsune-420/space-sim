@@ -96,7 +96,7 @@ export interface WorldRead {
   readonly dataAdapters: readonly ModuleDataExtension[];
   readonly configuration?: SavedGameConfiguration;
   /** Absent on older hosts; planners must not assume optional seed arguments are understood. */
-  readonly predictionFeatures?: { readonly futureSeeds: boolean };
+  readonly predictionFeatures?: { readonly futureSeeds: boolean; readonly endTime?: boolean };
   readonly id: string; readonly tick: number; readonly time: number;
   readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;
   readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;
@@ -116,8 +116,9 @@ export interface WorldRead {
   hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;
   presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };
   /** Optional inert future seed is supported by independent analytic flight only;
-   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. */
-  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string }): Generator<GhostSample, GhostEnd>;
+   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most
+   * one year after the seed), disabling orbit closure; requires predictionFeatures.endTime. */
+  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
   cloneForPrediction(): WorldControl;
 }
 export interface WorldChanges extends Disposable {
