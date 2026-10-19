@@ -17,8 +17,10 @@ async function debug(page: Page) { return JSON.parse(await page.locator('#debug'
 test('clean menu exposes real controls and the full searchable bundled-source catalogue', async ({ page }, testInfo) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/'); await openPanel(page, 'library');
-  await expect(page.locator('#plugin-overview')).toHaveText('6 simulation options · 8 display options · 0 imported plugins');
-  await expect(page.locator('#presentation-list input')).toHaveCount(8);
+  await expect(page.locator('#plugin-overview')).toHaveText('6 simulation options · 9 display options · 0 imported plugins');
+  await expect(page.locator('#presentation-list input')).toHaveCount(9);
+  await expect(page.locator('#presentation-list input[data-module="builtin.throttle"]')).toBeChecked();
+  await expect(page.locator('#presentation-list input[data-module="builtin.navball"]')).toBeChecked();
   await expect(page.locator('#presentation-list')).toBeVisible();
   await expect(page.locator('.game-card').filter({ hasText: 'Space Sim' })).not.toContainText('0 code plugins');
   await page.locator('.code-module-settings > summary').click();

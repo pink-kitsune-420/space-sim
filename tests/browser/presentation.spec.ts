@@ -181,9 +181,10 @@ test('repeated presentation changes release GPU programs, panels and module reso
   await page.locator('#renderer-toggle').click();
   await expect.poll(programs).toBe(0);
   await openPanel(page, 'data');
+  const defaultModules = (await debug(page)).presentation.modules;
   for (let i = 0; i < 4; i++) {
-    for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball', 'Maneuver planner']) await instrument(page, name).click();
-    await expect.poll(async () => (await debug(page)).presentation.modules.length).toBe(i % 2 ? 7 : 1);
+    for (const name of ['Telemetry', 'Velocity', 'Orbit markers', 'Navball', 'Throttle', 'Maneuver planner']) await instrument(page, name).click();
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(i % 2 ? defaultModules : ['builtin.audio']);
     expect(await page.locator('.module-panel').count()).toBeLessThanOrEqual(1);
   }
   await openPanel(page, 'settings');
