@@ -27,7 +27,7 @@ export function createHudEditor(options:HudEditorOptions,icon:(name:WindowIcon)=
   const toolbar = document.createElement('div');
   toolbar.className = 'hud-layout-toolbar';
   toolbar.hidden = true;
-  toolbar.innerHTML = '<span>Drag grips or navballs to move.</span><button type="button">Done</button>';
+  toolbar.innerHTML = '<span>Drag grips to move.</span><button type="button">Done</button>';
   toolbar.querySelector('span')!.textContent=options.hint??'Drag grips to move.';
   viewport.append(toolbar);
   const save = (): void => {

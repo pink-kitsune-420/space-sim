@@ -573,13 +573,15 @@ matches what ships land on. Packs are GLSL text and can't run JavaScript.</p>`)}
     html: `
 <p>A <b>game</b> is a saved setup: which modules, content and settings to use, and where to start.
 Space Sim, Orbit Sandbox, Flight starter, Planet viewer and Survey fixture are bundled games. <b>Flight starter</b> uses the same rails flight
-physics as Space Sim with just the 2D renderer and navball selected for presentation. Choose it in
+physics as Space Sim with the 2D renderer, navball and throttle selected for presentation. Choose it in
 ModMenu to start a smaller display setup, then add instruments or sound.</p>
 <p>In a hosted or offline browser build, <code>?game=flight-starter</code> starts that bundled composition
 directly. Its presentation profile selects the renderer, instruments and their settings. Viewer switches
 keep the active modules' settings; reloading this startup URL restores that game's display choices.</p>
 <p><code>?game=planet-viewer</code> opens a static body viewer without creating a ship, flight session,
-audio or editor. <code>?game=survey-fixture</code> opens the bounded non-flight example: explicit
+audio or editor. WebGL is selected by default; choose <b>2D</b> under Renderer if needed. Detail switches between procedural artwork and simpler graphics. Drag to pan,
+pinch or scroll to zoom, or focus the view and use arrow keys, +/− and R to fit.
+<code>?game=survey-fixture</code> opens the bounded non-flight example: explicit
 shared ticks, observations, one to four independent views and validated saved state. Click a view
 before keyboard input. Survey state has its own versioned codec; it is not a flight universe save.</p>
 <p>In source builds, <code>games/&lt;game&gt;/targets.json</code> uses the existing runtime-selection
@@ -724,6 +726,16 @@ loads if the session changes while a file or package is being prepared.</p>
 backup retention and recovery over borrowed native disk operations. Existing server file names and
 formats are preserved. Missing exact gameplay packages require explicit recovery and never authorize
 code installation from a universe file. Storage and UI providers can be replaced independently.</p>
+</details><details class="manual-deeper"><summary>Customizable player views</summary>
+<p><code>modules/player-view</code> provides <code>PLAYER_VIEWS</code>, a shared foundation
+for each player's input, camera, HUD and appearance adapters. Games choose the parts they need.
+Controller, camera and HUD wrappers reuse the existing public interfaces; custom appearance adapters
+own their own settings and rendering hooks. Each mutable instance belongs to one player/view.</p>
+<p>Reassigning a target releases old input and gestures first. Replacing an adapter affects only that
+player; removing the view cleans up its owned parts. Borrow cameras already owned by local views.
+This lifecycle never creates or steps a world. The survey uses it for controls/cameras, and the flight
+host uses it for HUD/appearance. Further flight input/camera migration and customization screens
+remain future work; this does not add a new gameplay or saved-physics schema.</p>
 </details><details class="manual-deeper"><summary>Portable trainer vehicles</summary>
 <p><code>modules/vehicle-trainer</code> contributes <code>spacelab.trainer/orbit-trainer</code>
 through <code>contributeVehicle</code>. A compatible game supplies shared physics, valid starts and

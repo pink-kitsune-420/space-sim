@@ -25,6 +25,10 @@
           {
             "id": "spacelab.input-keyboard",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-view",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -32,7 +36,8 @@
           "view.camera": "spacelab.camera-follow",
           "view.local": "spacelab.local-views",
           "input.controller": "spacelab.player-controller",
-          "input.keyboard": "spacelab.input-keyboard"
+          "input.keyboard": "spacelab.input-keyboard",
+          "ui.player-view": "spacelab.player-view"
         },
         "capabilities": {},
         "settings": {
@@ -48,7 +53,8 @@
         "view.camera",
         "view.local",
         "input.controller",
-        "input.keyboard"
+        "input.keyboard",
+        "ui.player-view"
       ]
     },
     "offline": {
@@ -75,6 +81,10 @@
           {
             "id": "spacelab.input-keyboard",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-view",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -82,7 +92,8 @@
           "view.camera": "spacelab.camera-follow",
           "view.local": "spacelab.local-views",
           "input.controller": "spacelab.player-controller",
-          "input.keyboard": "spacelab.input-keyboard"
+          "input.keyboard": "spacelab.input-keyboard",
+          "ui.player-view": "spacelab.player-view"
         },
         "capabilities": {},
         "settings": {
@@ -98,7 +109,8 @@
         "view.camera",
         "view.local",
         "input.controller",
-        "input.keyboard"
+        "input.keyboard",
+        "ui.player-view"
       ]
     }
   }

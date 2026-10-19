@@ -1,0 +1,28 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Customizable player views",
+  "summary": "Connect independently replaceable input, camera, HUD and appearance adapters for each local player.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "A player view ties a seat, viewport, player and controlled target to independently owned adapters. Games supply compatible input/entity routing, camera, HUD instruments and appearance. No adapter is mandatory: headless controls and non-flight viewers can use only the parts they need. This service never creates a world, changes physics, polls devices or advances time."
+    },
+    {
+      "type": "code",
+      "text": "const players = context.use(PLAYER_VIEWS);\nconst view = players.create({ binding, adapters: {\n  input: players.controller(controller, 'owned'),\n  camera: players.camera(camera), // borrowed from local views\n  hud: players.hud(hud, 'owned'),\n  appearance: myAppearanceAdapter,\n} });\nview.bind({ ...view.binding, targetId: nextEntity });\nview.configure({ ...view.adapters, appearance: anotherAppearanceAdapter });\nview.dispose();"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each adapter exposes its underlying resource identity plus rebind, release and dispose. Mutable resources cannot be shared between players or roles. Controllers recheck entity ownership through their existing control-target adapter; seat/view identity never grants authority. Every old input/gesture is released before a new target is published. A failed rebind removes the adapters and leaves the view neutral until configured again. Failed configuration retains old adapters with intent released."
+    },
+    {
+      "type": "paragraph",
+      "text": "Standard controller, camera and HUD wrappers borrow their underlying instances unless ownership is explicitly owned. The view always owns its wrapper and disposes it when replaced or removed. Keep a camera borrowed when LocalViews already owns it. Camera wrappers enforce matching viewport identity. To wrap the same underlying resource differently, remove its old wrapper first. Separate players need independent instances."
+    },
+    {
+      "type": "paragraph",
+      "text": "Appearance adapters and custom parts own their typed settings, validation and rendering hooks. A future editor can configure those providers or replace one player\u2019s parts without putting game-specific theme, vehicle or physics schemas into this foundation. The flight host currently adopts the HUD/appearance lifecycle; its legacy flight input/camera wiring is still explicit. The Survey example composes controller and local camera through the same player-view service."
+    }
+  ]
+}

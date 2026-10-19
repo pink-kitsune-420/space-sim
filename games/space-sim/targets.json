@@ -77,6 +77,10 @@
           {
             "id": "spacelab.throttle-hud",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-view",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -97,7 +101,8 @@
           "render.canvas": "spacelab.render-canvas",
           "render.webgl": "spacelab.render-webgl",
           "ui.view-hud": "spacelab.view-hud",
-          "hud.throttle": "spacelab.throttle-hud"
+          "hud.throttle": "spacelab.throttle-hud",
+          "ui.player-view": "spacelab.player-view"
         },
         "capabilities": {},
         "settings": {}
@@ -116,7 +121,8 @@
         "render.webgl",
         "ui.view-hud",
         "input.flight-profiles",
-        "hud.throttle"
+        "hud.throttle",
+        "ui.player-view"
       ]
     },
     "offline": {
@@ -195,6 +201,10 @@
           {
             "id": "spacelab.throttle-hud",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-view",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -215,7 +225,8 @@
           "render.canvas": "spacelab.render-canvas",
           "render.webgl": "spacelab.render-webgl",
           "ui.view-hud": "spacelab.view-hud",
-          "hud.throttle": "spacelab.throttle-hud"
+          "hud.throttle": "spacelab.throttle-hud",
+          "ui.player-view": "spacelab.player-view"
         },
         "capabilities": {},
         "settings": {}
@@ -234,7 +245,8 @@
         "render.webgl",
         "ui.view-hud",
         "input.flight-profiles",
-        "hud.throttle"
+        "hud.throttle",
+        "ui.player-view"
       ]
     },
     "node": {

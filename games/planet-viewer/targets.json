@@ -13,11 +13,21 @@
           {
             "id": "spacelab.camera-follow",
             "version": "0.3.0"
+          },
+          {
+            "id": "spacelab.render-webgl",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.input-keyboard",
+            "version": "0.1.0"
           }
         ],
         "providers": {
           "render.canvas": "spacelab.render-canvas",
-          "view.camera": "spacelab.camera-follow"
+          "view.camera": "spacelab.camera-follow",
+          "render.webgl": "spacelab.render-webgl",
+          "input.keyboard": "spacelab.input-keyboard"
         },
         "capabilities": {},
         "settings": {
@@ -30,7 +40,9 @@
       "packages": [],
       "requiredSlots": [
         "render.canvas",
-        "view.camera"
+        "view.camera",
+        "render.webgl",
+        "input.keyboard"
       ]
     },
     "offline": {
@@ -45,11 +57,21 @@
           {
             "id": "spacelab.camera-follow",
             "version": "0.3.0"
+          },
+          {
+            "id": "spacelab.render-webgl",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.input-keyboard",
+            "version": "0.1.0"
           }
         ],
         "providers": {
           "render.canvas": "spacelab.render-canvas",
-          "view.camera": "spacelab.camera-follow"
+          "view.camera": "spacelab.camera-follow",
+          "render.webgl": "spacelab.render-webgl",
+          "input.keyboard": "spacelab.input-keyboard"
         },
         "capabilities": {},
         "settings": {
@@ -62,7 +84,9 @@
       "packages": [],
       "requiredSlots": [
         "render.canvas",
-        "view.camera"
+        "view.camera",
+        "render.webgl",
+        "input.keyboard"
       ]
     }
   }

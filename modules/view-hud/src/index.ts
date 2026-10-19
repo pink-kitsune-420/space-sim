@@ -26,6 +26,7 @@ export function createViewHud(options: ViewHudOptions): ViewHud {
   };
   const hud: ViewHud = {
     get binding(){return binding;},get count(){return active.size;},
+    cancel(){run(instrument=>instrument.cancel());},
     bind(value) {
       if(disposed)return;const next=capture(value);
       if(next.seatId!==binding.seatId || next.viewportId!==binding.viewportId)throw new Error('Create a new HUD for another seat or viewport');

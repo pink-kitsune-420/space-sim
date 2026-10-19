@@ -72,9 +72,13 @@ import audioControlsGuide from '../../../modules/audio-controls/docs/creators/us
 import throttleInitialize from '../../../modules/throttle-hud/src/index';
 import { manifest as throttleManifest, compatibility as throttleCompatibility } from '../../../modules/throttle-hud/module.json';
 import throttleGuide from '../../../modules/throttle-hud/docs/creators/usage.json';
+import playerViewInitialize from '../../../modules/player-view/src/index';
+import { manifest as playerViewManifest, compatibility as playerViewCompatibility } from '../../../modules/player-view/module.json';
+import playerViewGuide from '../../../modules/player-view/docs/creators/usage.json';
 
 /** Inert registrations. Only the exact references selected by a target initialize. */
 export const browserTargetModules = Object.freeze([
+  bundledRegistration({ manifest: playerViewManifest, compatibility: playerViewCompatibility }, playerViewInitialize, { 'docs/creators/usage.json': playerViewGuide }),
   bundledRegistration({ manifest: throttleManifest, compatibility: throttleCompatibility }, throttleInitialize, { 'docs/creators/usage.json': throttleGuide }),
   bundledRegistration({ manifest: viewHudManifest, compatibility: viewHudCompatibility }, viewHudInitialize, { 'docs/creators/usage.json': viewHudGuide }),
   bundledRegistration({ manifest: appearanceTrainerManifest, compatibility: appearanceTrainerCompatibility }, appearanceTrainerInitialize, { 'docs/creators/usage.json': appearanceTrainerGuide_0, 'docs/players/flight.json': appearanceTrainerGuide_1 }),

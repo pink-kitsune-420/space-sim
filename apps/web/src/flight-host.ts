@@ -45,7 +45,7 @@ import { PLAYER_COLORS, setPlayerCount, setSlotNavball, defaultNavballPlacement 
 import { TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH } from '../../../modules/navball/src/drawing';
 import { PilotThrottle } from './throttle-control';
 import type { ThrottleLeverState } from './throttle-lever';
-import { VIEW_HUD, FLIGHT_HUD_STATE, THROTTLE_HUD, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
+import { VIEW_HUD, FLIGHT_HUD_STATE, THROTTLE_HUD, PLAYER_VIEWS, type PlayerView, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
 import { navballInstrument } from '../../../modules/navball/src/index';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
@@ -1590,7 +1590,7 @@ const NAVBALL_INSTRUMENTS = Object.freeze([navballInstrument]);
 const THROTTLE_INSTRUMENTS = Object.freeze([throttleInstrument]);
 const NO_HUD_INSTRUMENTS = Object.freeze([]);
 type MutableHudReadout = { -readonly [K in keyof FlightHudReadout]: FlightHudReadout[K] };
-interface SeatHud { readonly hud: ViewHud; readonly readout: MutableHudReadout; readonly surface: { -readonly [K in keyof HudSurface]: HudSurface[K] }; present: boolean }
+interface SeatHud { readonly playerView: PlayerView; readonly hud: ViewHud; readonly readout: MutableHudReadout; readonly surface: { -readonly [K in keyof HudSurface]: HudSurface[K] }; present: boolean }
 const seatHuds = new Map<number,SeatHud>();
 
 /** Every local seat, including Player 1, uses the same selected instrument lifecycle. */
@@ -1598,7 +1598,7 @@ function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined
   const instruments = presentation.isEnabled('builtin.navball')
     ? presentation.isEnabled('builtin.throttle') ? HUD_INSTRUMENTS : NAVBALL_INSTRUMENTS
     : presentation.isEnabled('builtin.throttle') ? THROTTLE_INSTRUMENTS : NO_HUD_INSTRUMENTS;
-  for (const [slot,entry] of seatHuds) if(slot >= splitScreen.active) {entry.hud.dispose();seatHuds.delete(slot);}
+  for (const [slot,entry] of seatHuds) if(slot >= splitScreen.active) {entry.playerView.dispose();seatHuds.delete(slot);}
   for (let slot=0;slot<splitScreen.active;slot++) {
     const guest=slot>0?splitScreen.guests.get(slot):undefined;
     const ship=slot===0?selectedShip():guest?.ship(session), body=slot===0?activeBody:guest?.body;
@@ -1622,11 +1622,14 @@ function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined
           const cursor=controllerCursors.get(slot);if(cursor)cursor.interactingPad=undefined;
         }};
       const hud=hostFeatures.providedService(VIEW_HUD).create({binding:{seatId:`seat-${slot}`,viewportId:`pilot-view-${slot}`,session,context:session.world,playerId:slot===0?session.playerId:guest?.playerId,targetId:ship?.id},adapters:[{key:FLIGHT_HUD_STATE,service:adapter}],fault:(id,error)=>profiler.event('hud-failed',{id,error:String(error)})});
-      entry={hud,readout,present:false,surface:{root:pane.parentElement!,width:0,height:0,x:0,y:0}};seatHuds.set(slot,entry);
+      const players=hostFeatures.providedService(PLAYER_VIEWS);
+      const playerView=players.create({binding:hud.binding,adapters:{hud:players.hud(hud,'owned'),appearance:{resource:readout,
+        rebind(){readout.accentColor=PLAYER_COLORS[slot];},release(){},dispose(){}}}});
+      entry={playerView,hud,readout,present:false,surface:{root:pane.parentElement!,width:0,height:0,x:0,y:0}};seatHuds.set(slot,entry);
     }
     const binding=entry.hud.binding,playerId=slot===0?session.playerId:guest?.playerId;
     if(binding.session!==session||binding.context!==session.world||binding.playerId!==playerId||binding.targetId!==ship?.id)
-      entry.hud.bind({...binding,session,context:session.world,playerId,targetId:ship?.id});
+      entry.playerView.bind({...binding,session,context:session.world,playerId,targetId:ship?.id});
     entry.present=!!(primary&&ship&&body&&(slot===0||guest?.state&&guest.view));
     const width=pane.clientWidth,height=pane.clientHeight,scale=Math.min(1,Math.max(.65,Math.min(width/600,height/450)));
     const readout=entry.readout,placement=splitScreen.config.slots[slot]?.navball??defaultNavballPlacement(slot);
@@ -1639,7 +1642,7 @@ function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined
     readout.center=resolveNavballCenter(slot,width,height,scale);readout.scale=scale;readout.cameraRotation=slot===0?camera.rotation:guest?.camera.last.rotation??0;
     readout.frameSetting=slot===0?(presentation.profile?.settings['builtin.navball']?.frame??0):0;
     readout.orientation=slot===0&&(presentation.profile?.settings['builtin.navball']?.orientation??0)>=1?'camera':'horizon';
-    readout.accentColor=PLAYER_COLORS[slot];readout.playerLabel=slot>0?`P${slot+1}`:splitScreen.split?'P1':undefined;
+    readout.playerLabel=slot>0?`P${slot+1}`:splitScreen.split?'P1':undefined;
     readout.pinned=placement.pinned;readout.dragging=activeNavballDrag?.slot===slot;readout.editing=hudLayout.editing;
     const surface=entry.surface;surface.root=pane.parentElement!;surface.width=width;surface.height=height;surface.x=pane.offsetLeft;surface.y=pane.offsetTop;
     entry.hud.select(instruments);

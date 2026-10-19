@@ -27,12 +27,16 @@
       "id": "builtin.planet-viewer-presentation",
       "modules": [
         {
+          "id": "builtin.webgl",
+          "version": "0.1.0"
+        },
+        {
           "id": "builtin.canvas",
           "version": "0.1.0"
         }
       ],
       "providers": {
-        "renderer": "builtin.canvas"
+        "renderer": "builtin.webgl"
       },
       "settings": {}
     },

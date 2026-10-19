@@ -1,8 +1,12 @@
-import { CANVAS_DRAWING, KEYBOARD_INPUT, LOCAL_VIEWS, PLAYER_CONTROLLERS, VIEW_CAMERAS,
-  type Disposable, type LocalViews, type PlayerController, type RenderBody } from '../../../packages/game-api/src/index';
+import { CANVAS_DRAWING, WEBGL_DRAWING, KEYBOARD_INPUT, LOCAL_VIEWS, PLAYER_CONTROLLERS, VIEW_CAMERAS, PLAYER_VIEWS,
+  type Disposable, type LocalViews, type PlayerController, type PlayerView, type RenderBody, type SceneRenderer } from '../../../packages/game-api/src/index';
 import type { GamePackage } from '../../../packages/game-library/src/archive';
 import { createBuiltinRegistry } from '../../../packages/modules/src/index';
 import { loadSystem } from '../../../packages/sim-core/src/universe';
+import { generateSurface } from '../../../packages/sim-core/src/surface';
+import { DEFAULT_SHADERS } from '../../../packages/render-2d/src/shaders';
+import { loadGraphicsQuality } from './graphics';
+import { bindViewShortcuts, bindViewerControls } from './viewer-controls';
 import { SurveySessionHost, restoreSurvey, surveySnapshot } from '../../../examples/bounded-survey/session';
 import { SURVEY_ACTIONS } from '../../../examples/bounded-survey/world';
 import { prepareBrowserTarget } from './target-modules';
@@ -42,13 +46,13 @@ export function startNonFlight(game: GamePackage): Disposable {
   const help = document.createElement('details'), helpTitle = document.createElement('summary'), steps = document.createElement('ol');
   help.id = 'starter-help'; help.open = true; helpTitle.textContent = 'What to try';
   const suggestions = game.info.id === 'builtin.planet-viewer' ? [
-    'Choose a planet or moon with Body, then use Zoom in to inspect it.',
-    'Use Fit body to see the whole body again. This is a still view: time and orbits do not advance.',
+    'Choose a body, then zoom in to inspect it. Time is paused.',
+    'Drag to pan; pinch or scroll to zoom. Keyboard: arrows, +/−, R to fit.',
   ] : [
-    'Set Seats to 4 to compare four views of the same markers. Choose Keyboard seat to select the view you control.',
-    'Click Move right or Move left. Each camera follows its marker, so watch the other markers shift and the position numbers change. Movement stops at the small test area’s edges.',
-    'Click Record observation to add one to the selected marker’s counter. It is a test counter, not a scanning mission.',
-    'Try Zoom this view or Swap first two targets. Save survey state, move a marker, then Load survey state to restore it.',
+    'Choose up to four seats. Keyboard seat selects the view you control.',
+    'Move left or right. Each camera follows its marker.',
+    'Record observation adds one to the selected marker’s counter.',
+    'Try zooming, swapping targets, or saving and loading state.',
   ];
   for (const text of suggestions) { const item = document.createElement('li'); item.textContent = text; steps.append(item); }
   help.append(helpTitle, steps); headingArea.append(heading, description, navigation); sidebar.append(help, controls);
@@ -76,6 +80,7 @@ export function startNonFlight(game: GamePackage): Disposable {
   let draw: (elapsed: number) => void;
   try {
     if (game.info.id === 'builtin.planet-viewer') {
+      const theme = { highQuality: loadGraphicsQuality() === 'high' };
       const content = createBuiltinRegistry(game.bundle.modules).prepare(game.bundle.profile, environment(), ['content']); owned.push(content);
       const universe = content.service<ReadonlyMap<string, import('../../../packages/game-api/src/index').UniverseDefinition>>('content').get(game.bundle.selection.universe);
       if (!universe) throw new Error('Select a compatible body-content provider');
@@ -85,31 +90,62 @@ export function startNonFlight(game: GamePackage): Disposable {
         const position = system.getBodyPosition(body.id, epoch), dx = star.x - position.x, dy = star.y - position.y, distance = Math.hypot(dx, dy);
         return { id: body.id, name: body.name, radius: body.radius, position, color: body.color, accentColor: body.accentColor,
           atmosphereColor: body.atmosphereColor, skyColor: body.skyColor, horizonColor: body.horizonColor, surfaceFeatures: body.surfaceFeatures,
+          appearance: body.appearance, surface: body.surface && body.surfaceFeatures !== 'star' ? generateSurface(body) : undefined,
           ...(distance ? { sunDirection: { x: dx / distance, y: dy / distance } } : {}) };
       });
-      const canvas = document.createElement('canvas'); canvas.id = 'planet-view'; canvas.setAttribute('aria-label', 'Static celestial body view');
-      canvas.style.cssText = 'width:100%;height:100%;display:block'; stage.append(canvas);
-      const renderer = drawing.create(canvas), camera = target.providedService(VIEW_CAMERAS).create('planet-view'); owned.push(renderer, camera);
+      stage.classList.add('planet-stage'); stage.setAttribute('aria-label', 'Planet view: drag to pan, pinch or scroll to zoom');
+      stage.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight ArrowUp ArrowDown + - R Home');
+      const camera = target.providedService(VIEW_CAMERAS).create('planet-view'); owned.push(camera);
+      let renderer: SceneRenderer | undefined, rendererKind: 'webgl' | '2d' = 'webgl';
+      owned.push({ dispose() { renderer?.dispose(); } });
+      const pan = { x: 0, y: 0 }, view = { center: { x: 0, y: 0 }, rotation: 0, scale: 1 };
       group('Body and zoom');
       const focus = choose('Body', 'viewer-body', bodies.map(body => [body.id, body.name]), value => { camera.focus(value); fit(); });
       focus.value = bodies.some(body => body.id === 'planet') ? 'planet' : bodies[0]!.id; camera.focus(focus.value);
       const transform = (id: string) => { const body = bodies.find(body => body.id === id); return body ? { position: body.position, orientation: 0 } : undefined; };
-      const frame = () => camera.frame({ width: stage.clientWidth, height: stage.clientHeight, elapsed: .016, transform });
-      function updateViewer() { diagnostics({ kind: 'static-viewer', epoch, body: focus.value, camera: frame() }); }
-      function fit() { const body = bodies.find(body => body.id === focus.value)!; const current = frame(); camera.changeZoom(Math.min(stage.clientWidth, stage.clientHeight) / (body.radius * 2.6) / current.scale); updateViewer(); }
+      const frame = () => {
+        const tracked = camera.frame({ width: stage.clientWidth, height: stage.clientHeight, elapsed: .016, transform });
+        view.center.x = tracked.center.x + pan.x; view.center.y = tracked.center.y + pan.y;
+        view.rotation = tracked.rotation; view.scale = tracked.scale; return view;
+      };
+      function updateViewer() { diagnostics({ kind: 'static-viewer', epoch, body: focus.value, renderer: rendererKind, quality: theme.highQuality ? 'high' : 'low', camera: frame() }); }
+      function fit() { pan.x = pan.y = 0; const body = bodies.find(body => body.id === focus.value)!; const current = frame(); camera.changeZoom(Math.min(stage.clientWidth, stage.clientHeight) / (body.radius * 2.6) / current.scale); updateViewer(); }
       button('Zoom in', 'viewer-zoom-in', () => { camera.changeZoom(1.5); updateViewer(); }); button('Zoom out', 'viewer-zoom-out', () => { camera.changeZoom(1 / 1.5); updateViewer(); });
       button('Fit body', 'viewer-fit', fit); fit();
-      status.textContent = 'Static epoch. Select a body or zoom; no simulation is running.';
-      draw = () => { renderer.drawScene({ camera: frame(), bodies, time: epoch, showScale: true }); };
+      group('Graphics');
+      const rendererChoice = choose('Renderer', 'viewer-renderer', [['webgl', 'WebGL'], ['2d', '2D']], value => {
+        try { replaceRenderer(value as 'webgl' | '2d'); }
+        catch { rendererChoice.value = rendererKind; status.textContent = `${value === 'webgl' ? 'WebGL' : '2D'} unavailable; using ${rendererKind === 'webgl' ? 'WebGL' : '2D'}.`; }
+      });
+      function replaceRenderer(kind: 'webgl' | '2d') {
+        // Context types cannot be switched on the same canvas. Prepare first so a
+        // failed replacement leaves the current view and its controls usable.
+        const canvas = document.createElement('canvas'); canvas.id = 'planet-view'; canvas.setAttribute('aria-label', 'Static celestial body view');
+        canvas.style.cssText = 'width:100%;height:100%;display:block';
+        const next = kind === 'webgl' ? target.providedService(WEBGL_DRAWING).create(canvas, DEFAULT_SHADERS) : drawing.create(canvas);
+        stage.replaceChildren(canvas); renderer?.dispose(); renderer = next; rendererKind = kind; rendererChoice.value = kind;
+        status.textContent = 'Time paused.'; updateViewer();
+      }
+      try { replaceRenderer('webgl'); }
+      catch { replaceRenderer('2d'); status.textContent = 'WebGL unavailable; using 2D.'; }
+      const quality = choose('Detail', 'viewer-quality', [['high', 'Detailed'], ['low', 'Simple']], value => { theme.highQuality = value === 'high'; updateViewer(); });
+      quality.value = theme.highQuality ? 'high' : 'low';
+      const interactions = {
+        pan(x: number, y: number) { const scale = frame().scale; pan.x -= x / scale; pan.y += y / scale; updateViewer(); },
+        zoom(factor: number) { camera.changeZoom(factor); updateViewer(); }, fit,
+      };
+      const shortcuts = bindViewShortcuts(stage, target.providedService(KEYBOARD_INPUT), interactions);
+      owned.push(shortcuts, bindViewerControls(stage, interactions));
+      draw = elapsed => { shortcuts.sample(elapsed); renderer!.drawScene({ camera: frame(), bodies, time: epoch, theme, showScale: true }); };
     } else {
       const host = new SurveySessionHost(); owned.push(host);
-      const world = host.world, factory = target.providedService(PLAYER_CONTROLLERS), viewsFactory = target.providedService(LOCAL_VIEWS);
+      const world = host.world, factory = target.providedService(PLAYER_CONTROLLERS), viewsFactory = target.providedService(LOCAL_VIEWS), playerViews = target.providedService(PLAYER_VIEWS);
       const overlays = Array.from(world.positions, (x, index) => ({ kind: 'circle' as const, space: 'world' as const,
         center: { x, y: index }, radius: .25, color: COLORS[index]!, fill: true }));
       // One fixture unit must remain visible in the smallest four-seat pane.
       const zooms = new Float64Array([32, 32, 32, 32]);
       const targets = [0, 1, 2, 3], players = targets.map(index => world.binding(index).playerId);
-      let count = 1, pilot = 0, mode: 'split' | 'dynamic' = 'split', views: LocalViews | undefined, controllers: PlayerController[] = [];
+      let count = 1, pilot = 0, mode: 'split' | 'dynamic' = 'split', views: LocalViews | undefined, controllers: PlayerController[] = [], bases: PlayerView[] = [];
       const keyboard = target.providedService(KEYBOARD_INPUT).create({ actions: SURVEY_ACTIONS, pilot: () => pilot,
         bindings: { 'fixture.survey/move': ['ArrowRight', 'KeyD'], 'fixture.survey/record': ['Space'] } }); owned.push(keyboard);
       const snapshotKey = `spacelab:${game.info.id}:state/1`;
@@ -122,12 +158,13 @@ export function startNonFlight(game: GamePackage): Disposable {
       };
       const reflow = () => { views?.reflow(stage.clientWidth, stage.clientHeight); viewWidth = stage.clientWidth; viewHeight = stage.clientHeight; };
       const rebuild = () => {
+        for (const base of bases) base.dispose(); bases = [];
         for (const controller of controllers) controller.dispose(); controllers = [];
         views?.dispose(); views = undefined; stage.replaceChildren();
         const bindings = Array.from({ length: count }, (_, index) => {
           const targetIndex = targets[index]!, binding = { ...world.binding(targetIndex), playerId: players[index]!, seatId: `seat-${index + 10}`, viewportId: `map-${index + 20}` };
-          const controller = factory.create(world.controls, { pilot: index, sources: [keyboard] }); controller.select(binding); controllers.push(controller);
-          return { seatId: binding.seatId, viewportId: binding.viewportId, targetId: binding.entityId };
+          const controller = factory.create(world.controls, { pilot: index, sources: [keyboard] }); controllers.push(controller);
+          return { seatId: binding.seatId, viewportId: binding.viewportId, playerId: binding.playerId, targetId: binding.entityId };
         });
         views = viewsFactory.create({ bindings, mode, layout: 'auto', surface(binding) {
           const canvas = document.createElement('canvas'); canvas.setAttribute('aria-label', `Survey ${binding.seatId}`);
@@ -136,6 +173,9 @@ export function startNonFlight(game: GamePackage): Disposable {
             draw(camera) { const scale = String(camera.scale); if (canvas.dataset.scale !== scale) canvas.dataset.scale = scale; renderer.drawScene({ camera, time: world.tick, showScale: false, overlays }); },
             dispose() { renderer.dispose(); canvas.remove(); } };
         } });
+        for (let index = 0; index < count; index++) bases.push(playerViews.create({ binding: { ...bindings[index]!, session: host, context: world }, adapters: {
+          input: playerViews.controller(controllers[index]!), camera: playerViews.camera(views.camera(bindings[index]!.viewportId)),
+        } }));
         for (let index = 0; index < count; index++) views.camera(`map-${index + 20}`).changeZoom(zooms[index]!);
         reflow(); update();
       };
@@ -145,7 +185,7 @@ export function startNonFlight(game: GamePackage): Disposable {
       const pilotChoice = choose('Keyboard seat', 'survey-pilot', [0, 1, 2, 3].map(number => [String(number), String(number + 1)]), value => { if (Number(value) >= count) { pilotChoice.value = String(pilot); return; } for (const controller of controllers) controller.release(); pilot = Number(value); update(); });
       choose('Views', 'survey-mode', [['split', 'Split'], ['dynamic', 'Shared']], value => { mode = value as 'split' | 'dynamic'; rebuild(); });
       group('Move and record');
-      const instructions = document.createElement('p'); instructions.className = 'fixture-keyboard'; instructions.textContent = 'The buttons act immediately. For keyboard input, click a view, hold Right/D or Space, then click Advance one tick. Nothing advances automatically.'; controlTarget.append(instructions);
+      const instructions = document.createElement('p'); instructions.className = 'fixture-keyboard'; instructions.textContent = 'Keyboard: click a view, hold Right/D or Space, then Advance one tick.'; controlTarget.append(instructions);
       button('Advance one tick', 'survey-step', () => { for (const controller of controllers) controller.sample({ elapsed: .01, flightAllowed: false, shortcutsAllowed: true }); step(); });
       for (const [label, value] of [['Move left', -1], ['Move right', 1]] as const) button(label, `survey-${value < 0 ? 'left' : 'right'}`, () => { const controller = controllers[pilot]!; controller.set('fixture.survey/move', value); step(); controller.release(); });
       button('Record observation', 'survey-record', () => { const controller = controllers[pilot]!; controller.set('fixture.survey/record', 1); step(); controller.release(); });
@@ -157,7 +197,13 @@ export function startNonFlight(game: GamePackage): Disposable {
         for (let index = 0; index < 2; index++) world.transfer(targets[index]!, players[index]!);
         rebuild();
       });
-      button('Zoom this view', 'survey-zoom', () => { zooms[pilot] = zooms[pilot]! * 1.5; views!.camera(`map-${pilot + 20}`).changeZoom(1.5); update(); });
+      button('Zoom in this view', 'survey-zoom', () => { zooms[pilot] = zooms[pilot]! * 1.5; views!.camera(`map-${pilot + 20}`).changeZoom(1.5); update(); });
+      const zoomView = (factor: number) => { zooms[pilot] = zooms[pilot]! * factor; views!.camera(`map-${pilot + 20}`).changeZoom(factor); update(); };
+      button('Zoom out this view', 'survey-zoom-out', () => zoomView(1 / 1.5));
+      const fitView = () => zoomView(32 / zooms[pilot]!);
+      button('Reset this view', 'survey-fit', fitView);
+      const cameraHint = document.createElement('p'); cameraHint.className = 'fixture-keyboard'; cameraHint.textContent = 'Click a view: +/− to zoom, R to reset.'; controlTarget.append(cameraHint);
+      const shortcuts = bindViewShortcuts(stage, target.providedService(KEYBOARD_INPUT), { zoom: zoomView, fit: fitView }); owned.push(shortcuts);
       group('Saved state');
       button('Save survey state', 'survey-save', () => { localStorage.setItem(snapshotKey, JSON.stringify(surveySnapshot(world))); status.textContent = 'Survey state saved on this device.'; });
       button('Load survey state', 'survey-load', () => { const raw = localStorage.getItem(snapshotKey); if (!raw) throw new Error('No saved survey state');
@@ -165,9 +211,9 @@ export function startNonFlight(game: GamePackage): Disposable {
         const candidate = JSON.parse(raw); restoreSurvey(world, candidate);
         for (let index = 0; index < 4; index++) players[index] = world.binding(targets[index]!).playerId;
         rebuild(); status.textContent = 'Survey state loaded; held input was released.'; });
+      owned.push({ dispose() { for (const base of bases) base.dispose(); for (const controller of controllers) controller.dispose(); views?.dispose(); } });
       rebuild();
-      owned.push({ dispose() { for (const controller of controllers) controller.dispose(); views?.dispose(); } });
-      draw = elapsed => { if (stage.clientWidth !== viewWidth || stage.clientHeight !== viewHeight) reflow(); views!.render(elapsed, world.transform); };
+      draw = elapsed => { shortcuts.sample(elapsed); if (stage.clientWidth !== viewWidth || stage.clientHeight !== viewHeight) reflow(); views!.render(elapsed, world.transform); };
     }
   } catch (error) { close(); throw error; }
   let previous = performance.now();

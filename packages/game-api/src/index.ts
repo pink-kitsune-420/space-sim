@@ -42,6 +42,7 @@ export * from './window-content';
 export * from './window-shell';
 export * from './profiler';
 export * from './view-hud';
+export * from './player-view';
 export * from './hud-layout';
 export * from './logging';
 export * from './manual';

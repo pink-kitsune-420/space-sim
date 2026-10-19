@@ -11,7 +11,7 @@ import {bundledGameDefinition,bundledGameAdapters,bundledGameCategory} from './b
 
 function exportUnavailable(game:GamePackage):string|undefined {
  const bundled=bundledGameDefinition(game),adapter=bundled&&bundledGameAdapters.get(bundled.info.id);
- return adapter==='static-viewer'||adapter==='bounded-survey'?'Play this bundled starter here. Portable export needs a compatible non-flight game adapter.':undefined;
+ return adapter==='static-viewer'||adapter==='bounded-survey'?'Export isn’t available for this example yet.':undefined;
 }
 
 /** Host adapter: codecs, existing storage and world publication stay outside the reusable view. */

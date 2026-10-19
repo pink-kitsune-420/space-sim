@@ -28,6 +28,8 @@ export interface ViewHud extends Disposable {
   readonly count: number;
   bind(binding: HudBinding): void;
   select(instruments: readonly HudInstrumentDefinition[]): void;
+  /** Cancel instrument gestures without removing the current selection. */
+  cancel?(): void;
   resize(surface: HudSurface): void;
   update(elapsed: number): void;
   draw(into: OverlayPrimitive[]): void;
