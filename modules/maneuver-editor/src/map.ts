@@ -4,6 +4,9 @@ interface MapNode { readonly sample: GhostSample; readonly time: number; readonl
 type Axis = 'prograde' | 'radial';
 interface MapActions {
   node(): MapNode | undefined;
+  position?(): Vec | undefined;
+  begin?(): void;
+  finish?(): void;
   enabled(): boolean;
   increment(): number;
   adjust(axis: Axis, value: number): void;
@@ -26,6 +29,12 @@ export class ManeuverMap {
     this.root = document.createElement('div');
     this.root.className = 'maneuver-map'; this.root.hidden = true;
     this.root.setAttribute('role', 'group'); this.root.setAttribute('aria-label', 'Maneuver map controls');
+    // Pointer capture survives focus changes. Cancellation must follow the active
+    // gesture too, including when moving controls cause the browser to blur them.
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || !this.drag) return;
+      event.preventDefault(); event.stopPropagation(); this.finish(true);
+    }, { signal, capture: true });
     const controls = [
       ['node', '◇', 'Move maneuver node along the coast; click to open editor'],
       ['prograde/1', 'P+', 'Increase prograde velocity'], ['prograde/-1', 'P−', 'Decrease prograde velocity'],
@@ -44,7 +53,7 @@ export class ManeuverMap {
           direction: this.directions.get(button), axis: axis === 'node' ? undefined : axis as Axis,
           sign: Number(sign) || 1, step: actions.increment(), moved: false,
           time: node.time, prograde: node.prograde, radial: node.radial };
-        button.setPointerCapture(event.pointerId);
+        actions.begin?.();button.setPointerCapture(event.pointerId);
       }, { signal });
       button.addEventListener('pointermove', event => {
         const drag = this.drag; if (!drag || drag.id !== event.pointerId || drag.button !== button) return;
@@ -73,32 +82,31 @@ export class ManeuverMap {
         if (axis === 'node') actions.open();
         else actions.adjust(axis as Axis, node[axis as Axis] + Number(sign) * actions.increment());
       }, { signal });
-      button.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); this.finish(true); }
-      }, { signal });
     }
     options.container.append(this.root);
   }
   private finish(cancel: boolean): void {
     const drag = this.drag; if (!drag) return; this.drag = undefined;
     if (drag.button.hasPointerCapture(drag.id)) drag.button.releasePointerCapture(drag.id);
-    if (this.actions.node() !== drag.node || !this.actions.enabled()) return;
+    this.actions.finish?.();
+    if (this.actions.node() !== drag.node) return;
     if (cancel) this.actions.restore(drag.time, drag.prograde, drag.radial);
-    else if (!drag.moved) {
+    else if (this.actions.enabled() && !drag.moved) {
       if (drag.axis) this.actions.adjust(drag.axis, drag.node[drag.axis] + drag.sign * drag.step);
       else this.actions.open();
     }
   }
   update(): void {
-    const node = this.actions.node(), surface = node?.valid && this.actions.enabled() ? this.options.map?.() : undefined;
-    const hidden = !surface || !node?.valid || !this.actions.enabled();
+    const node = this.actions.node(), surface = node && this.actions.enabled() ? this.options.map?.() : undefined;
+    const hidden = !surface || !node || !this.actions.enabled();
     this.root.hidden = hidden;
     if (hidden) { this.finish(true); return; }
     const element = surface.element, width = element.clientWidth, height = element.clientHeight;
     this.root.style.left = `${element.offsetLeft}px`; this.root.style.top = `${element.offsetTop}px`;
     this.root.style.width = `${width}px`; this.root.style.height = `${height}px`;
     const project = createProjector(surface.camera, width, height);
-    const center = project({ x: node.sample.position.x + surface.origin.x, y: node.sample.position.y + surface.origin.y });
+    const position=this.actions.position?.()??node.sample.position;
+    const center = project({ x: position.x + surface.origin.x, y: position.y + surface.origin.y });
     const c = Math.cos(surface.camera.rotation), s = Math.sin(surface.camera.rotation);
     for (const button of this.buttons) {
       const [axis, sign] = button.dataset.mapControl!.split('/');
@@ -112,5 +120,5 @@ export class ManeuverMap {
       button.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     }
   }
-  dispose(): void { this.drag = undefined; this.root.remove(); }
+  dispose(): void { this.actions.finish?.(); this.drag = undefined; this.root.remove(); }
 }

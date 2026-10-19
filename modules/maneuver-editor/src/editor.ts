@@ -96,7 +96,8 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private readonly anchors = new Map<string, FlightPlan>();
   private readonly needsReview = new Set<string>();
   private readonly chains = new Map<string, { readonly source: WorldRead; readonly seed: State }>();
-  private planEvaluation?: { job: Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>; plan: FlightPlan; flight: Flight; nodes: Node[]; review: boolean };
+  private planEvaluation?: { job: Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>; plan: FlightPlan; flight: Flight; nodes: Node[]; review: boolean; editableNode?: Node };
+  private dragCoast?: {node:Node;path:readonly GhostSample[]};
   private nextNode = 1;
   private nodeSelect?: HTMLSelectElement;
   private world?: WorldRead;
@@ -138,43 +139,58 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       container: options.container,
       place: () => ({ x: 24, y: 100 }), className: 'maneuver-window' });
     this.window.body.innerHTML = `
-      <div id="${this.id}-plan-controls" ${services.plans ? '' : 'hidden'}>
-        <label>Plan node<select id="${this.id}-nodes" aria-label="Plan node"></select></label>
-        <div class="maneuver-adjust"><button id="${this.id}-add" type="button">Add node</button><button id="${this.id}-review" type="button">Review remaining</button><button id="${this.id}-flown" type="button">Mark flown</button></div>
-        <div class="maneuver-adjust"><button id="${this.id}-export" type="button">Export plan</button><button id="${this.id}-import" type="button">Load plan</button><input id="${this.id}-file" type="file" accept=".json,application/json" hidden></div>
+      <div class="maneuver-tabs" role="tablist" aria-label="Flight planning">
+        <button id="${this.id}-node-tab" type="button" role="tab" aria-controls="${this.id}-node-view" aria-selected="true">Burn editor</button>
+        <button id="${this.id}-transfers-tab" type="button" role="tab" aria-controls="${this.id}-transfers" aria-selected="false" ${services.transfers?'':'hidden'}>Transfer window</button>
       </div>
-      <details id="${this.id}-transfers" ${services.transfers ? '' : 'hidden'}></details>
-      <p class="maneuver-help">Click the coast line to place a node. Drag its ◇ to move it along the coast (the pointer may move away from the line); drag P± and R± handles to shape the burn. Hold Shift for finer adjustments.</p>
-      <output class="maneuver-status" id="${this.id}-status" aria-live="polite">No node. Choose a point on your coast trajectory.</output>
-      <div class="maneuver-fields">
-        <label>Node in (s)<input id="${this.id}-time" type="number" min="0.1" step="any" inputmode="decimal"></label>
-        <div class="maneuver-adjust"><button type="button" data-time="-10">− 10 s</button><button type="button" data-time="10">+ 10 s</button></div>
-        <label>Adjustment (m/s)<select id="${this.id}-increment"><option value="0.1">0.1 · fine</option><option value="1" selected>1 · normal</option><option value="10">10 · coarse</option><option value="100">100 · large</option></select></label>
-        <label>Prograde Δv (m/s)<input id="${this.id}-prograde" type="number" step="any" min="-1000000" max="1000000" value="0" inputmode="decimal"></label>
-        <div class="maneuver-adjust"><button type="button" data-adjust="prograde/-1">− Retrograde</button><button type="button" data-adjust="prograde/1">+ Prograde</button></div>
-        <label>Radial Δv (m/s)<input id="${this.id}-radial" type="number" step="any" min="-1000000" max="1000000" value="0" inputmode="decimal"></label>
-        <div class="maneuver-adjust"><button type="button" data-adjust="radial/-1">− In</button><button type="button" data-adjust="radial/1">+ Out</button></div>
-      </div>
-      <details id="${this.id}-alarms" ${services.alarms ? '' : 'hidden'}></details>
-      <output class="maneuver-summary" id="${this.id}-summary"></output><output id="${this.id}-result"></output>
-      <div class="maneuver-adjust"><button id="${this.id}-warp" type="button">Warp to node</button><button id="${this.id}-stop" type="button" hidden>Stop warp</button><button id="${this.id}-execute" type="button">Execute burn</button><button id="${this.id}-abort" type="button" hidden>Abort burn</button></div>
-      <div class="maneuver-adjust"><button id="${this.id}-clear" type="button">Clear Δv</button><button id="${this.id}-delete" type="button">Delete node</button></div>
-      <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; every automatic burn needs its own Execute action.</p></details>`;
+      <div class="maneuver-live-controls" id="${this.id}-live-controls" hidden><button id="${this.id}-stop" type="button" hidden>Stop warp</button><button id="${this.id}-abort" type="button" hidden>Abort burn</button></div>
+      <section id="${this.id}-transfers" role="tabpanel" aria-labelledby="${this.id}-transfers-tab" hidden></section>
+      <section id="${this.id}-node-view" role="tabpanel" aria-labelledby="${this.id}-node-tab" class="maneuver-node-view">
+        <div id="${this.id}-plan-controls" ${services.plans?'':'hidden'}>
+          <label class="maneuver-node-label">Plan node<select id="${this.id}-nodes" aria-label="Plan node"></select></label>
+          <button id="${this.id}-review" class="maneuver-review" type="button" hidden>Review remaining nodes</button>
+        </div>
+        <output class="maneuver-summary" id="${this.id}-summary"></output>
+        <output class="maneuver-status" id="${this.id}-status" aria-live="polite">Click the coast line to place a burn, or choose Transfer window.</output>
+        <div class="maneuver-fields">
+          <div class="maneuver-component"><label for="${this.id}-time">Node in <small>s</small></label><div class="maneuver-number"><button type="button" data-time="-10" aria-label="Move node 10 seconds earlier">−10</button><input id="${this.id}-time" type="number" min="0.1" step="any" inputmode="decimal"><button type="button" data-time="10" aria-label="Move node 10 seconds later">+10</button></div></div>
+          <div class="maneuver-component"><label for="${this.id}-prograde">Prograde <small>m/s</small></label><div class="maneuver-number"><button type="button" data-adjust="prograde/-1" aria-label="Decrease prograde delta-v">−</button><input id="${this.id}-prograde" aria-label="Prograde delta-v" type="number" step="any" min="-1000000" max="1000000" value="0" inputmode="decimal"><button type="button" data-adjust="prograde/1" aria-label="Increase prograde delta-v">+</button></div></div>
+          <div class="maneuver-component"><label for="${this.id}-radial">Radial <small>m/s</small></label><div class="maneuver-number"><button type="button" data-adjust="radial/-1" aria-label="Decrease radial delta-v">−</button><input id="${this.id}-radial" aria-label="Radial delta-v" type="number" step="any" min="-1000000" max="1000000" value="0" inputmode="decimal"><button type="button" data-adjust="radial/1" aria-label="Increase radial delta-v">+</button></div></div>
+        </div>
+        <label class="maneuver-step">Button step<select id="${this.id}-increment" aria-label="Adjustment step"><option value="0.1">0.1 m/s · fine</option><option value="1" selected>1 m/s · normal</option><option value="10">10 m/s · coarse</option><option value="100">100 m/s · large</option></select></label>
+        <div class="maneuver-adjust maneuver-flight-actions"><button id="${this.id}-warp" type="button">Warp to node</button><button id="${this.id}-execute" type="button">Execute burn</button></div>
+        <output class="maneuver-help" id="${this.id}-result"></output>
+        <details id="${this.id}-alarms" ${services.alarms?'':'hidden'}></details>
+        <details id="${this.id}-plan-actions" ${services.plans?'':'hidden'}><summary>Plan actions</summary>
+          <div class="maneuver-adjust"><button id="${this.id}-add" type="button">Add node</button><button id="${this.id}-flown" type="button">Mark flown</button></div>
+          <div class="maneuver-adjust"><button id="${this.id}-export" type="button">Export plan</button><button id="${this.id}-import" type="button">Load plan</button><input id="${this.id}-file" type="file" accept=".json,application/json" hidden></div>
+        </details>
+        <div class="maneuver-adjust maneuver-secondary"><button id="${this.id}-clear" type="button">Clear Δv</button><button id="${this.id}-delete" type="button">Delete node</button></div>
+        <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. Burn arrows show the delta-v direction at departure and arrival. Durations at the current throttle setting assume constant thrust and alignment; automatic execution still uses full throttle with a final-tick cutoff. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; every automatic burn needs its own Execute action.</p></details>
+      </section>`;
     const get = <T extends HTMLElement>(id: string): T => this.window.body.querySelector<T>(`#${this.id}-${id}`)!;
     if (services.transfers) this.transferControls = new TransferControls(get('transfers'), `${this.id}-transfer`, services.transfers, options, plan => {
       this.abortExecution(); this.stopWarp(); this.insertPlan(plan, this.options.flight());
-      this.current = this.nodes.get(plan.shipId); this.rebuildPlan(true); this.refreshInputs();
+      this.current = this.nodes.get(plan.shipId); this.rebuildPlan(true); this.refreshInputs(); this.showMode('node'); this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-node-tab`)!.focus({preventScroll:true});
     }, this.lifetime.signal);
     if (services.alarms) this.alarmControls = new NodeAlarms(get('alarms'), services.alarms, options,
       node => this.alarmDeadline(node as Node), () => this.collectAlarms(),
       () => { if(this.warping){this.lastRequest=this.options.flight().requestedWarp;if(this.lastRequest<=1)this.warping=false;} },
       () => { this.stopWarp(); if(this.options.flight().requestedWarp!==1)this.options.setWarp(1); }, this.lifetime.signal);
+    on(get('node-tab'),'click',()=>this.showMode('node'));
+    on(get('transfers-tab'),'click',()=>this.openTransfers());
+    on(this.window.body.querySelector('.maneuver-tabs')!,'keydown',event=>{
+      const key=(event as KeyboardEvent).key;if(!['ArrowLeft','ArrowRight','Home','End'].includes(key)||!services.transfers)return;
+      event.preventDefault();event.stopPropagation();const current=this.window.body.querySelector('[role="tab"][aria-selected="true"]')?.id.endsWith('node-tab')?'node':'transfers';
+      const next=key==='Home'?'node':key==='End'?'transfers':current==='node'?'transfers':'node';this.showMode(next);get<HTMLButtonElement>(`${next}-tab`).focus();
+    });
+    this.showMode(services.transfers?'transfers':'node');
     this.prograde = get('prograde'); this.radial = get('radial'); this.timing = get('time');
     this.increment = get('increment');
     this.status = get('status'); this.summary = get('summary'); this.result = get('result');
     this.warpButton = get('warp'); this.cancelWarp = get('stop');
     this.executeButton = get('execute'); this.abortButton = get('abort');
-    for (const input of [this.prograde, this.radial]) on(input, 'input', () => this.edit());
+    for (const [input,axis] of [[this.prograde,'prograde'],[this.radial,'radial']] as const) on(input, 'input', () => this.edit(axis));
     on(this.timing, 'change', () => {
       const node = this.current, flight = this.options.flight(), seconds = this.timing.valueAsNumber;
       if (!node || !node.valid || !Number.isFinite(seconds) || seconds < .1) { this.refreshInputs(); return; }
@@ -190,8 +206,8 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       }
       if (!button || !this.current?.valid || this.execution) return;
       const [axis, sign] = button.dataset.adjust!.split('/'), input = axis === 'prograde' ? this.prograde : this.radial;
-      input.value = String((input.valueAsNumber || 0) + Number(sign) * Number(this.increment.value) * ((event as MouseEvent).shiftKey ? .1 : 1));
-      this.edit();
+      input.value = String((axis==='prograde'?this.current.prograde:this.current.radial) + Number(sign) * Number(this.increment.value) * ((event as MouseEvent).shiftKey ? .1 : 1));
+      this.edit(axis==='prograde'?'prograde':'radial');
     });
     this.nodeSelect = get<HTMLSelectElement>('nodes');
     on(this.nodeSelect, 'change', () => {
@@ -238,7 +254,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     on(this.warpButton, 'click', () => {
       this.abortExecution();
       const flight = this.options.flight();
-      if (this.current?.valid && flight.canWarp && !flight.paused && !flight.inputBlocked && this.current.time > flight.world.time + 10) {
+      if (this.current?.valid && !this.waiting(this.current) && this.current.bodyId===flight.ship?.bodyId && flight.canWarp && !flight.paused && !flight.inputBlocked && this.current.time > flight.world.time + 10) {
         this.warping = true; this.lastRequest = flight.requestedWarp;
       }
     });
@@ -247,13 +263,17 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     on(this.abortButton, 'click', () => this.abortExecution('Autonomous burn aborted.'));
     on(document, 'visibilitychange', () => { if (document.hidden) { this.abortExecution('Autonomous burn aborted: tab hidden.'); this.stopWarp(); } });
     if (options.map) this.map = new ManeuverMap(options, {
-      node: () => this.current, enabled: () => !this.disposed && !!this.current?.valid && !this.execution && options.flight().enabled && !options.flight().inputBlocked,
+      node: () => this.current, position:()=>this.current?this.nodePosition(this.current):undefined, enabled: () => !this.disposed && !!this.current && (this.current.valid || this.planEvaluation?.editableNode===this.current) && !this.execution && options.flight().enabled && !options.flight().inputBlocked,
       increment: () => Number(this.increment.value), open: () => this.window.open(),
-      adjust: (axis, value) => { (axis === 'prograde' ? this.prograde : this.radial).value = String(value); this.edit(); },
+      begin:()=>{const node=this.current;if(node&&node.bodyId!==options.flight().body.id)this.dragCoast={node,path:this.preview.path.filter(point=>point.bodyId===node.bodyId&&point.time<=node.time+1e-7)};},
+      finish:()=>{this.dragCoast=undefined;},
+      adjust: (axis, value) => { (axis === 'prograde' ? this.prograde : this.radial).value = String(value); this.edit(axis); },
       move: pointer => {
         const surface = options.map?.(), prediction = this.prediction; if (!surface || !prediction) return;
-        const time = pickManeuverTime(prediction.path, prediction.pathEnd === 'closed', options.flight().world.time, pointer,
-          surface.camera, surface.origin, surface.element.clientWidth, surface.element.clientHeight, Infinity, prediction.path.find(point=>point.encounter)?.time);
+        const node=this.current,flight=options.flight(),laterBody=node&&node.bodyId!==flight.body.id;
+        const path=laterBody?(this.dragCoast?.node===node?this.dragCoast.path:this.preview.path.filter(point=>point.bodyId===node.bodyId&&point.time<=node.time+1e-7)):prediction.path;
+        const time = pickManeuverTime(path, !laterBody&&prediction.pathEnd === 'closed', flight.world.time, pointer,
+          surface.camera, surface.origin, surface.element.clientWidth, surface.element.clientHeight, Infinity, laterBody?Infinity:prediction.path.find(point=>point.encounter)?.time);
         if (time !== undefined) this.moveTime(time);
       },
       restore: (time, prograde, radial) => { this.moveTime(time); this.prograde.value = String(prograde); this.radial.value = String(radial); this.edit(); },
@@ -297,7 +317,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private execute(): void {
     const node = this.current, flight = this.options.flight(), plan = this.snapshot();
     if (!node?.valid || this.waiting(node) || !plan || !flight.canWarp || flight.paused || flight.inputBlocked || !flight.enabled || this.execution
-      || flight.ship?.id !== node.shipId || flight.ship.state.status !== 'flying' || !(plan.burnSeconds > 0)
+      || flight.ship?.id !== node.shipId || flight.ship.bodyId !== node.bodyId || flight.ship.state.status !== 'flying' || !(plan.burnSeconds > 0)
       || node.time - plan.burnSeconds / 2 - flight.world.time < this.alignmentSeconds(flight, plan.deltaVelocity) + .2) return;
     this.stopWarp();
     this.execution = { node, burn: this.services.burns.create(node.time, plan.deltaVelocity, flightMotion(flight).vehicle), initialThrottle: flight.ship.state.throttle };
@@ -363,10 +383,11 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       const plan = service.read({ format: 'space-sim-flight-plans/1', plans: [candidate] }).plans[0]!;
       if (review) this.needsReview.delete(ship.id);
       this.anchors.set(ship.id, plan);
+      const editableNode=this.current?.valid?this.current:this.planEvaluation?.editableNode;
       this.cancelPlanEvaluation();this.chains.delete(ship.id);
       for(const node of nodes)if(!node.completed){node.valid=false;node.reason='Evaluating coast and SOI handoffs…';}
       if(service.evaluateAsync) {
-        this.planEvaluation={job:service.evaluateAsync(plan,flight.world),plan,flight,nodes,review};
+        this.planEvaluation={job:service.evaluateAsync(plan,flight.world),plan,flight,nodes,review,editableNode};
         this.advancePlanEvaluation();
       }else this.finishPlanEvaluation(service.evaluate(plan,flight.world),plan,flight,nodes,review);
     } catch (error) {
@@ -445,7 +466,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     select.value = this.current?.id ?? ''; select.disabled = !!this.execution || !nodes.length;
     for (const name of ['add', 'review', 'flown']) {
       const button = this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-${name}`);
-      if (button) button.disabled = !!this.execution || !nodes.length || (name === 'add' && nodes.length >= 16) || (name === 'flown' && !!this.current?.completed);
+      if (button) { if(name==='review')button.hidden=!this.needsReview.has(this.current?.shipId??'')&&!nodes.some(node=>!node.completed&&!node.valid); button.disabled = !!this.execution || !nodes.length || (name === 'add' && nodes.length >= 16) || (name === 'flown' && !!this.current?.completed); }
     }
   }
   savePlans(): FlightPlanArchive {
@@ -462,7 +483,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate();
     const flight = this.options.flight(); this.world = flight.world;
     for (const plan of archive?.plans ?? []) this.insertPlan(plan, flight);
-    this.current = flight.ship ? this.nodes.get(flight.ship.id) : undefined; this.refreshInputs(); this.lastUi = -Infinity;
+    this.current = flight.ship ? this.nodes.get(flight.ship.id) : undefined; if(this.current)this.showMode('node'); this.refreshInputs(); this.lastUi = -Infinity;
   }
   private insertPlan(plan: FlightPlan, flight: Flight): void {
       const ship = flight.world.ship(plan.shipId); if (!ship) return;
@@ -472,6 +493,18 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         sample: seed, valid: false, reason: intent.completed ? 'Marked flown.' : 'Loaded plan. Review remaining nodes against actual flight.' }));
       for (const node of nodes) { const match = /^node-(\d+)$/.exec(node.id); if (match) this.nextNode = Math.max(this.nextNode, Number(match[1]) + 1); }
       this.plans.set(ship.id, nodes); if (nodes[0]) this.nodes.set(ship.id, nodes[0]);
+  }
+  private showMode(mode:'node'|'transfers'):void {
+    if(mode==='transfers'&&!this.services.transfers)mode='node';
+    for(const kind of ['node','transfers'] as const){
+      const selected=kind===mode,tab=this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-${kind}-tab`)!;
+      tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;
+      this.window.body.querySelector<HTMLElement>(`#${this.id}-${kind==='node'?'node-view':'transfers'}`)!.hidden=!selected;
+    }
+  }
+  openTransfers():void {
+    if(this.disposed||!this.services.transfers||!this.options.flight().enabled)return;
+    this.showMode('transfers');this.transferControls?.update();this.window.open();this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-transfers-tab`)!.focus({preventScroll:true});
   }
   private evaluate(seed: State, flight: Flight, time: number, body = flight.body): GhostSample | undefined {
     const context = flightMotion(flight), surface = flight.world.surface(body.id);
@@ -512,14 +545,14 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.plans.set(ship.id, existing?.length ? existing.map(value => value === previous ? node : value) : [node]);
     if (!previous || !this.waiting(node)) { this.anchors.delete(ship.id); this.needsReview.delete(ship.id); }
     this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate();
-    this.refreshInputs(); this.lastUi = -Infinity; this.window.open();
+    this.refreshInputs(); this.lastUi = -Infinity; this.showMode('node'); this.window.open();
     this.event('maneuver-node', { time, ship: ship.id });
     return true;
   }
-  private edit(): void {
+  private edit(axis?:'prograde'|'radial'): void {
     const node = this.current;
     if (!node || (!node.valid && !this.services.plans) || node.completed || !this.prograde.validity.valid || !this.radial.validity.valid) return;
-    const prograde = this.prograde.valueAsNumber, radial = this.radial.valueAsNumber;
+    const prograde = axis==='radial'?node.prograde:this.prograde.valueAsNumber, radial = axis==='prograde'?node.radial:this.radial.valueAsNumber;
     if (!Number.isFinite(prograde) || !Number.isFinite(radial)) return;
     this.abortExecution(); this.stopWarp(); node.prograde = prograde; node.radial = radial; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.lastUi = -Infinity;
   }
@@ -533,7 +566,11 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private refreshInputs(): void {
     this.refreshPlanList();
     this.alarmControls?.updateUi(this.current,!!this.execution);
-    this.prograde.value = String(this.current?.prograde ?? 0); this.radial.value = String(this.current?.radial ?? 0);
+    // Formatting is display only. Editing one component keeps the other intent
+    // at full double precision; archives never store these rounded strings.
+    const display=(value:number)=>Math.abs(value)<1e-9?'0':String(Number(value.toPrecision(8)));
+    this.prograde.value = display(this.current?.prograde ?? 0); this.radial.value = display(this.current?.radial ?? 0);
+    this.prograde.title=String(this.current?.prograde??0)+' m/s';this.radial.title=String(this.current?.radial??0)+' m/s';
     this.timing.value = this.current ? Math.max(0, this.current.time - this.options.flight().world.time).toFixed(1) : '';
   }
   private alarmDeadline(node:Node):number {
@@ -625,15 +662,25 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.map?.update();
     if (performance.now() - this.lastUi > (this.tuning.uiRefreshMs ?? 100)) { this.lastUi = performance.now(); this.updateUi(flight); }
   }
+  private nodePosition(node:Node,flight=this.options.flight()):Vec {
+    return flightSampleInFrame({...node.sample,frameId:node.bodyId,bodyId:node.bodyId},flight.body.id,flight.world.system).position;
+  }
   snapshot(): ManeuverPreview | undefined {
     if (this.disposed) return undefined;
     const node = this.current, flight = this.options.flight();
     if (!node || !flight.enabled) return undefined;
     const deltaVelocity = maneuverDelta(node.sample, node.prograde, node.radial), acceleration = flightMotion(flight).vehicle.acceleration;
-    const inFrame=(value:Node)=>flightSampleInFrame({...value.sample,frameId:value.bodyId,bodyId:value.bodyId},flight.body.id,flight.world.system).position;
-    return { nodes: (this.plans.get(node.shipId) ?? []).map(value => ({ id: value.id, time: value.time, position: inFrame(value), label: value.label, selected: value === node, valid: value.valid })),
+    const inFrame=(value:Node)=>this.nodePosition(value,flight);
+    const throttle=flight.ship?.state.throttle??0,thrust=acceleration*throttle;
+    return { nodes: (this.plans.get(node.shipId) ?? []).map(value => {
+      const deltaVelocity=maneuverDelta(value.sample,value.prograde,value.radial),dv=Math.hypot(deltaVelocity.x,deltaVelocity.y);
+      return {id:value.id,time:value.time,position:inFrame(value),label:value.label,selected:value===node,valid:value.valid,deltaVelocity,
+        throttleBurnSeconds:dv===0?0:thrust>0?dv/thrust:null};
+    }),
       time: node.time, position: inFrame(node), deltaVelocity, valid: node.valid,
-      burnSeconds: acceleration > 0 ? Math.hypot(deltaVelocity.x, deltaVelocity.y)/acceleration : 0, path: this.preview.path };
+      burnSeconds: acceleration > 0 ? Math.hypot(deltaVelocity.x, deltaVelocity.y)/acceleration : 0,
+      throttle,throttleBurnSeconds:Math.hypot(deltaVelocity.x,deltaVelocity.y)===0?0:thrust>0?Math.hypot(deltaVelocity.x,deltaVelocity.y)/thrust:null,
+      ...(this.execution?.node===node?{remainingDeltaV:this.execution.burn.remaining}:{}),path: this.preview.path };
   }
   diagnostics(): Record<string, unknown> | null {
     if (this.disposed) return null;
@@ -646,11 +693,11 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private updateUi(flight: Flight): void {
     const node = this.current, plan = this.snapshot(), dv = plan ? Math.hypot(plan.deltaVelocity.x, plan.deltaVelocity.y) : 0;
     const write = (element: HTMLElement, value: string): void => { if (element.textContent !== value) element.textContent = value; };
-    write(this.status, node ? node.valid ? `T${node.time >= flight.world.time ? '−' : '+'}${Math.abs(node.time - flight.world.time).toFixed(1)} s · ${this.execution ? this.warping ? 'auto warp' : `${this.execution.burn.phase} · ${this.execution.burn.remaining.toFixed(2)} m/s remaining` : this.warping ? 'coasting to node' : dv > 0 ? 'manual burn' : 'coast node'}` : node.reason
+    write(this.status, node ? node.valid ? `${this.waiting(node)?'Earlier burn pending · preview only · ':''}T${node.time >= flight.world.time ? '−' : '+'}${Math.abs(node.time - flight.world.time).toFixed(1)} s · ${this.execution ? this.warping ? 'auto warp' : `${this.execution.burn.phase} · ${this.execution.burn.remaining.toFixed(2)} m/s remaining` : this.warping ? 'coasting to node' : dv > 0 ? 'manual burn' : 'coast node'}` : node.reason
       : 'No node. Choose a point on your coast trajectory.');
     this.refreshPlanList();
     this.alarmControls?.updateUi(node,!!this.execution);
-    write(this.summary, node ? `${flight.world.hasBody(node.bodyId)?flight.world.body(node.bodyId).name+' · ':''}${this.waiting(node) ? 'Earlier node pending · preview only · ' : ''}Δv ${dv.toFixed(1)} m/s · ${flightMotion(flight).vehicle.acceleration > 0 ? `Full-throttle burn ≈ ${plan?.burnSeconds.toFixed(1) ?? '0'} s` : 'No engine thrust available'}` : '');
+    write(this.summary, node ? `${flight.world.hasBody(node.bodyId)?flight.world.body(node.bodyId).name+' · ':''}Δv ${dv.toFixed(1)} m/s\n${plan?.throttleBurnSeconds==null?'No thrust at current setting':`Burn ≈ ${plan.throttleBurnSeconds.toFixed(1)} s at ${((plan.throttle??0)*100).toFixed(0)}% throttle`} · ${flightMotion(flight).vehicle.acceleration > 0 ? `full ≈ ${plan?.burnSeconds.toFixed(1) ?? '0'} s` : 'No engine thrust available'}` : '');
     write(this.result, node?.valid && dv > 0 ? `${this.preview.text(node.seed)} · impulsive estimate` : '');
     if (this.document.activeElement !== this.timing) this.timing.value = node ? Math.max(0, node.time-flight.world.time).toFixed(1) : '';
     for (const input of [this.prograde, this.radial, this.timing]) input.disabled = !node || (!node.valid && !this.services.plans) || !!node.completed || !!this.execution;
@@ -658,6 +705,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       || flightMotion(flight).vehicle.acceleration <= 0 || node.time - plan.burnSeconds / 2 - flight.world.time < this.alignmentSeconds(flight, plan.deltaVelocity) + .2;
     this.executeButton.title = !flight.canWarp ? 'Autonomous execution is available on the host' : 'Warp, align, burn and cut off automatically; needs time to align before burn start';
     this.abortButton.hidden = !this.execution;
+    this.window.body.querySelector<HTMLElement>(`#${this.id}-live-controls`)!.hidden=!this.execution&&!this.warping;
     this.warpButton.disabled = node?.bodyId !== flight.body.id || !!this.execution || !!node && this.waiting(node) || this.warping || !node?.valid || !flight.canWarp || flight.paused || flight.inputBlocked || !plan
       || node.time - flight.world.time <= 10 + plan.burnSeconds/2;
     this.warpButton.title = !flight.canWarp ? 'Only the host controls time warp' : 'Stops 10 seconds plus half the estimated burn duration before the node';

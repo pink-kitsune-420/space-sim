@@ -75,7 +75,7 @@ for (const canvas of [false, true]) {
     await expect(page.locator('#status')).toHaveText('LANDED');
     await page.locator('#preset').selectOption('orbit');
     await expect.poll(async () => (await diagnostics(page)).predictionEnd).toBe('closed');
-    expect((await diagnostics(page)).dynamics).toBe('kepler');
+    await expect.poll(async () => (await diagnostics(page)).dynamics).toBe('kepler');
     await openPanel(page, 'settings');
     await page.locator('#god-mode').uncheck();
     expect(errors).toEqual([]);

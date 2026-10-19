@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "flight.plans@1.0.0 captures and validates inert SI plan archives for up to 64 ships and 16 nodes per ship. Every node identifies its body and time. No thrust, warp, arming or execution state is stored. Evaluate through the selected public motion/orbit/surface/rails contracts; the initial evaluator supports safe same-body chains and reports possible SOI crossings explicitly. Headless use needs no UI, camera, prediction, audio or split-screen module."
+      "text": "flight.plans@1.0.0 captures and validates inert SI plan archives for up to 64 ships and 16 nodes per ship. Every node identifies its body and time. No thrust, warp, arming or execution state is stored. Evaluate through the selected public motion/orbit/surface/rails contracts; evaluateAsync progressively validates exact-time coasts through moving SOIs and contact checks; evaluate retains fast same-body compatibility. Cross-body hosts declare predictionFeatures.endTime. Samples and encounter snapshots use the initial translating nonrotating frame, including velocity conversion. Cancel generators to release forecasts and cloned contexts. Headless use needs no UI, camera, prediction, audio or split-screen module."
     }
   ]
 }

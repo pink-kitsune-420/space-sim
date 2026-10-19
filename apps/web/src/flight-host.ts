@@ -309,6 +309,9 @@ const maneuver = new ManeuverPlanner(workspace, {
   setWarp, setPaused: value => setPaused(value, 'Burn alarm'), notify, event: (kind, detail) => profiler.event(kind, detail),
 }, { alarms: hostFeatures.lock.providers[ORBITAL_ALARMS.slot] ? hostFeatures.providedService(ORBITAL_ALARMS) : undefined, plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
   transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined });
+const transferShortcut=element<HTMLButtonElement>('plan-transfer');
+transferShortcut.hidden=!hostFeatures.lock.providers[TRANSFERS.slot];
+transferShortcut.addEventListener('click',()=>maneuver.openTransfers());
 const alarmPanel = hostFeatures.lock.providers[ALARM_PANELS.slot] ? hostFeatures.providedService(ALARM_PANELS).create({
   container: document.querySelector<HTMLElement>('#flight-console .viewport')!, shell: workspace, session: () => session.world,
   windows: { create: options => new FloatingWindow(options) },
@@ -4331,6 +4334,7 @@ function activeMotion() {
 function updatePrediction(seconds: number, engine: boolean): void {
   prediction.update(activeMotion(), state, activeBody, session.world.surface(activeBody.id),
     selectedShip()?.id, seconds, engine, selectedShip()?.controls, session.world);
+  transferShortcut.disabled=!presentation.isEnabled('builtin.maneuver-planner');
   maneuver.update(seconds, prediction, engine);
   alarmPanel?.update();
   const others = Math.max(0, connectedPilotIds.size - 1);

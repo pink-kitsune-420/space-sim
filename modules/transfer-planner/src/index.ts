@@ -1,25 +1,18 @@
-import { FLIGHT_PLANS, TRANSFERS, deterministicMath as dm, maneuverDelta,
+import { FLIGHT_PLANS, TRANSFERS, maneuverDelta,
  type FlightPlanNode, type FlightPlanService, type ModuleInitializationV2, type State, type TransferOption,
- type TransferPlanner, type TransferResult, type Vec } from '@space-sim/game-api';
+ type TransferPlanner, type TransferResult } from '@space-sim/game-api';
 
 const MAX_SECONDS=365.25*86400;
 const FACTORS=[1,1.25,1.6,2,4,8,.9,.75,.5,.25] as const;
-const radius=(v:Vec)=>dm.hypot(v.x,v.y);
-const tolerance=(r:number)=>Math.max(.01,r*1e-7);
-/** Existing planner's bases are not generally orthogonal: prograde follows velocity. */
-export function deltaComponents(position:Vec,velocity:Vec,delta:Vec):{prograde:number;radial:number}|undefined {
- const r=radius(position),v=radius(velocity);if(!(r>0&&v>0))return;
- const px=velocity.x/v,py=velocity.y/v,rx=position.x/r,ry=position.y/r,det=px*ry-py*rx;
- if(Math.abs(det)<1e-8)return;
- const prograde=(delta.x*ry-delta.y*rx)/det,radial=(px*delta.y-py*delta.x)/det;
- return Number.isFinite(prograde+radial)&&Math.abs(prograde)<=1e6&&Math.abs(radial)<=1e6?{prograde,radial}:undefined;
-}
+import {deltaComponents,radius,tolerance} from './math';
+export {deltaComponents} from './math';
+import {searchInterbody} from './interbody';
 const unsupported=(reason:string):TransferResult=>({options:[],reason});
 export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
- return Object.freeze<TransferPlanner>({relationships:Object.freeze(['same-body'] as const),*search(world,request){
+ return Object.freeze<TransferPlanner>({relationships:Object.freeze(['same-body','child','parent','sibling'] as const),*search(world,request){
   const ship=world.ship(request.shipId);
   if(!ship||ship.state.status!=='flying')return unsupported('Choose a flying ship in a bound orbit.');
-  if(request.destinationId!==ship.bodyId)return unsupported('Moon and planet transfers are not yet implemented in this increment. Choose the current body to raise or lower an orbit.');
+  if(request.destinationId!==ship.bodyId)return yield* searchInterbody(plans,world,request);
   if(ship.controls.engine)return unsupported('Stop thrust before searching for a transfer.');
   const context=world.contextFor(ship).cloneForPrediction(),body=world.body(ship.bodyId),surface=world.surface(body.id),orbits=context.services.orbits;
   try {
@@ -105,7 +98,7 @@ export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
  }});
 }
 export default function initialize(context:ModuleInitializationV2):void {
- context.contributeGuide({id:'flight',audience:'players',title:'Transfer window planning',summary:'Compare and review circular or elliptical orbit changes.',asset:'docs/players/flight.json'});
+ context.contributeGuide({id:'flight',audience:'players',title:'Transfer window planning',summary:'Compare and review circular or elliptical orbit changes and moon/planet transfers.',asset:'docs/players/flight.json'});
  context.provide(TRANSFERS,createTransferPlanner(context.use(FLIGHT_PLANS)));
- context.contributeGuide({id:'usage',audience:'creators',title:'Bounded orbital transfer search',summary:'Editable same-body transfer intent, including elliptical starts/targets and faster radius crossings.',asset:'docs/creators/usage.json'});
+ context.contributeGuide({id:'usage',audience:'creators',title:'Bounded orbital transfer search',summary:'Editable bounded same-body and interbody transfers over selected moving-frame prediction contracts.',asset:'docs/creators/usage.json'});
 }

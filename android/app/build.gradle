@@ -10,8 +10,8 @@ android {
         applicationId "com.spacelab.spacesim"
         minSdk 24
         targetSdk 34
-        versionCode 14
-        versionName "0.6.3-alpha"
+        versionCode 15
+        versionName "0.6.4-alpha"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

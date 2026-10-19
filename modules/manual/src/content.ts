@@ -305,10 +305,10 @@ Creating or editing one leaves your ship coasting.</p>
 <ol>
   <li>Choose <b>Circular orbit · 128 m altitude</b> in Setup. Cut thrust with {{key:throttleCut}}, pause with {{key:pause}}, and zoom out to see the coast line.</li>
   <li>Click or tap a point ahead on that line. An amber diamond appears and the <b>Maneuver</b> window opens.
-    Set <b>Node in (s)</b> to about 20 seconds for this practice orbit.</li>
+    Use <b>Burn editor</b> and set <b>Node in</b> to about 20 seconds for this practice orbit.</li>
   <li>Enter <b>10</b> for <b>Prograde Δv</b> and <b>0</b> for <b>Radial Δv</b>.
     The dashed amber path should rise on the far side of Primus. Negative prograde means retrograde; negative radial means inward.</li>
-  <li>Check the predicted path and full-throttle burn duration. At this scale the burn is very short;
+  <li>Check the predicted path, delta-v and burn duration at your current throttle setting. At this scale the burn is very short;
     use <b>Execute burn</b> for the first timing exercise, or choose the manual method below.</li>
   <li>Resume, then choose <b>Execute burn</b> while there is time to prepare. It warps, aligns the ship,
     burns around the node time and cuts thrust. Watch the actual coast path afterward.</li>
@@ -318,7 +318,7 @@ Automatic execution affects only the selected node. Each later node needs its ow
 <h3>Fly a node manually</h3>
 <p><b>Warp to node</b> only coasts. It returns to 1× about 10 seconds plus half the estimated full-throttle burn duration before the node.
 Point toward the amber diamond on the navball. For a short burn, aim to put half its duration before the node time and half after.
-The estimate assumes 100% thrust; using less power takes longer. Cut thrust yourself and inspect the result.</p>
+Use the displayed duration at your current throttle setting for manual flight; the full-throttle duration describes automatic execution. Burn arrows show direction at departure and arrival. Cut thrust yourself and inspect the result.</p>
 <p><b>Abort burn</b> releases automatic steering and engine control. Manual flight input also takes over.
 Pausing, changing warp, switching ships, hiding the tab or changing the flight can cancel the approach or burn.
 A partially flown burn needs replanning. Solo players and the host can use warp and automatic execution;
@@ -327,7 +327,7 @@ remote pilots can plan and fly manually.</p>
 <a data-page="transfers">Transfer plans</a> and <a data-page="burn-alarms">Burn reminders</a> for the next steps.</p>
 ${deeper('map handles and precision', `
 <p>Drag the node’s <b>◇</b> along the original coast line to change its time.
-Drag <b>P±</b> for prograde/retrograde or <b>R±</b> for radial out/in. <b>Adjustment (m/s)</b> sets the step;
+Drag <b>P±</b> for prograde/retrograde or <b>R±</b> for radial out/in. <b>Button step</b> sets the adjustment;
 Shift makes it ten times finer. Handles apply the step per 4 pixels. Escape cancels a drag.
 <b>Clear Δv</b> keeps the node time; <b>Delete node</b> removes that node.</p>
 <p>Prograde follows the predicted velocity <i>at the node</i>; radial follows position there.
@@ -336,8 +336,7 @@ not the sum of the two fields, determines Δv and estimated burn duration.</p>
 <p>The preview applies Δv instantaneously. Actual burns take time and automatic execution delivers a fixed inertial
 impulse vector while gravity continues acting. Long burns can differ substantially from the dashed path.
 Automatic cutoff accounts for delivered engine impulse and can reduce the last tick’s throttle; it does not guarantee the planned arrival orbit.</p>
-<p>The coast preview can cross SOIs, but the current node editor and chained plan evaluator require safe legs around the same body.
-Place a node before an encounter, then plan again after changing reference body. Custom numerical or whole-world motion can disable analytic planning.</p>`)}`,
+<p>The coast preview and compatible multi-node plans can cross moving SOIs. Click placement uses the initial coast before its first encounter; generated arrival nodes belong to the future body. Review against actual flight after a burn or reference-body change. Custom numerical or whole-world motion can disable analytic planning.</p>`)}`,
   },  {
     id: 'flight-plans',
     title: 'Multi-node plans and saves',
@@ -346,18 +345,18 @@ Place a node before an encounter, then plan again after changing reference body.
 <p>A flight plan can hold several future burns for a ship. The dashed preview assumes each earlier burn happens exactly as planned.
 Start with <a data-page="maneuvers">one maneuver</a>, then build a sequence.</p>
 <ol>
-  <li>Use <b>Add node</b> in Maneuver to append a burn. Choose which node to edit with <b>Plan node</b>.</li>
+  <li>Open <b>Burn editor → Plan actions</b> and choose <b>Add node</b> to append a burn. Choose which node to edit with <b>Plan node</b>.</li>
   <li>Set its time, prograde and radial Δv. Check the preview and each node’s status.
     Later nodes depend on earlier ones and cannot execute while an earlier node is pending.</li>
   <li>Fly the first burn manually or choose <b>Execute burn</b> for that node.</li>
-  <li>For a manual burn, use <b>Mark flown</b> on the node you flew. Automatic completion marks its own node flown.</li>
-  <li>Choose <b>Review remaining</b> to recalculate the remaining plan from the actual ship state.
+  <li>For a manual burn, use <b>Plan actions → Mark flown</b> on the node you flew. Automatic completion marks its own node flown.</li>
+  <li>Choose <b>Review remaining nodes</b> to recalculate the remaining plan from the actual ship state.
     Inspect the result, adjust it if needed, then choose how to fly the next burn.</li>
 </ol>
-<p><b>Review remaining</b> validates the edited intent against your current flight; it does not automatically correct
+<p><b>Review remaining nodes</b> validates the edited intent against your current flight; it does not automatically correct
 an inaccurate burn or optimise the arrival. A stale, missed or unsupported node needs editing, marking flown or deleting.</p>
 <h3>Save and resume</h3>
-<p><b>Export plan</b> downloads a plan JSON file. <b>Load plan</b> imports it.
+<p>Under <b>Burn editor → Plan actions</b>, <b>Export plan</b> downloads a plan JSON file and <b>Load plan</b> imports it.
 <b>Fleet → Save universe</b> also includes plans; load that universe to restore flight progress.
 Loaded plans need review before use. A plan file alone does not move your ship onto its original orbit.</p>
 <p>Plans store intent and reminder preferences. Loading, reviewing or generating a plan never arms a burn.
@@ -365,7 +364,7 @@ The current editor saves its plans locally or with your universe file; it does n
 ${deeper('compatibility and limits', `
 <p>The shared plan service supports up to 16 time-ordered nodes per ship, within one year of the plan epoch.
 It checks the ship, universe, system, physics identity, motion model and safe coast intervals.
-Current chains require the same reference body; possible SOI or surface events can invalidate a leg.</p>
+Each node names its body. Supported moving SOI handoffs are evaluated at the planned time with position and velocity frame changes. Contact or prediction limits can invalidate a leg; actual flight still needs review before later execution.</p>
 <p>The default game supplies the optional shared plan service. If a custom game omits it, the editor can retain
 its single-node planning mode, without the multi-node save controls. Loaded plans remain inert and require review.</p>`)}`,
   },
@@ -377,14 +376,14 @@ its single-node planning mode, without the multi-node save controls. Loaded plan
 <p><b>Goal:</b> generate a two-burn orbit change and understand the choices before flying it.</p>
 <p>Start in <b>Circular orbit · 128 m altitude</b> around Primus. Cut thrust and pause while comparing plans.</p>
 <ol>
-  <li>Open <b>Maneuver</b> from Instruments and expand <b>Transfer window</b>.</li>
+  <li>Choose <b>Transfers</b> in the flight toolbar, or the <b>Transfer window</b> tab in Maneuver. You do not need to place a node first.</li>
   <li>Keep <b>Destination</b> set to <b>Primus</b>. Leave <b>Circular target</b> checked and enter
     <b>768</b> for <b>Target low altitude (m)</b>.</li>
-  <li>Choose <b>Find options</b>. Compare the wait before departure, travel time, total Δv and both burn durations.</li>
-  <li>Choose <b>Use efficient plan</b>, or <b>Use faster plan</b> when offered.
+  <li>Choose <b>Find transfer windows</b>. Compare the wait before departure, travel time, total Δv and both burn durations.</li>
+  <li>Choose <b>Use plan</b> on the <b>Efficient</b> card, or the <b>Faster</b> card when offered. Expand <b>Burn estimates &amp; limits</b> for per-burn durations and uncertainty.
     This installs editable <b>Departure</b> and <b>Arrival</b> nodes; it replaces the ship’s current plan and leaves the engine off.</li>
   <li>Inspect Departure. Resume, then execute it explicitly or fly it manually. Afterward,
-    mark a manually flown node with <b>Mark flown</b> and choose <b>Review remaining</b>.
+    mark a manually flown node with <b>Mark flown</b> and choose <b>Review remaining nodes</b>.
     Inspect Arrival against the actual path before choosing its burn.</li>
 </ol>
 <p><b>Check:</b> adopting a plan creates two nodes without starting thrust.
@@ -392,11 +391,15 @@ After both burns, compare actual Pe and Ap with the 768 m target; adjust any rem
 <h3>Other orbit shapes</h3>
 <p>Starting orbits can be circular or elliptical. Uncheck <b>Circular target</b> to give the target separate low and high altitudes.
 Both must clear the highest terrain; low must not exceed high. Heights are measured above the body’s reference radius.</p>
-<p class="manual-note">This increment generates orbit changes around the <b>current body</b>.
-Automatic transfers to moons or planets remain in development. A destination appearing in the list does not mean a solver is available;
-unavailable choices are marked <b>not available yet</b> and explain the limit when selected.
-The list groups the current body, nearby moons, the parent body and farther destinations, and updates when your reference body changes.
-Try <a data-page="moon-flight">Reaching Parvus</a> for a manual transfer.</p>
+<h3>Moon and planet transfers</h3>
+<p>From a safe orbit around Primus, choose <b>Parvus</b> and a circular altitude of <b>100 m</b> for a moon transfer.
+Compare the sampled windows, then adopt the editable departure and arrival nodes. Planet transfers work between sibling planets around the same star.
+Direct parent/child and sibling bodies sharing a parent are supported; deeper destinations need separate legs.</p>
+<p>The search validates actual moving SOI handoffs, contact and a safe target revolution. Generated plans remain inert.
+Review actual flight after departure and after a reference-body change before choosing arrival execution.
+Both starting and target orbits may be elliptical. A long finite burn can change an encounter substantially.</p>
+<p>The list groups the current body, nearby moons, parent exits and farther destinations. Unsupported relationships explain the limit when selected.
+See <a data-page="moon-flight">Reaching Parvus</a> for the manual flight lesson.</p>
 ${deeper('what efficient and faster mean', `
 <p><b>Efficient</b> has the smallest total impulse cost among the validated sampled opportunities.
 <b>Faster</b>, when available, arrives earlier after including both wait and travel time.
@@ -543,6 +546,11 @@ Start higher to allow for alignment and corrections. At half throttle the availa
 <p><b>Goal:</b> distinguish reaching a moon’s orbit, encountering the moon and staying there.</p>
 <p>Practise <a data-page="maneuvers">maneuver planning</a> and <a data-page="change-orbit">orbit changes</a> first.
 Begin in Primus’s <b>Circular orbit · 128 m altitude</b>, moving in the same direction as Parvus.</p>
+<p>For a generated plan, open <b>Transfers</b> in the flight toolbar, choose <b>Parvus</b>,
+enter a circular target altitude of <b>100 m</b> and choose <b>Find transfer windows</b>.
+Compare wait, travel and Δv, then choose <b>Use plan</b>. Inspect both editable burn nodes
+and their current-throttle duration. Execute each burn separately and review actual flight after departure and SOI changes.</p>
+<p>To explore the encounter manually:</p>
 <ol>
   <li><b>Raise the far side.</b> Plan a prograde departure until Ap reaches roughly Parvus’s orbital distance.
     Merely crossing that distance does not guarantee a meeting.</li>
@@ -555,8 +563,9 @@ Begin in Primus’s <b>Circular orbit · 128 m altitude</b>, moving in the same 
 </ol>
 <p><b>Check:</b> entering the SOI is an encounter. Capture means you now have a bound, terrain-clearing moon orbit
 that stays within its SOI; otherwise you may fly past and return to Primus.</p>
-<p class="manual-note">Automatic moon and planet transfer generation is still in development.
-The current editor places nodes before the first encounter. Plan the arrival burn again in the moon’s frame after entering its SOI.</p>
+<p class="manual-note">Generated windows are bounded impulsive estimates. A finite burn can change the encounter;
+check the forecast and review or adjust the moon-centred arrival node before capture.
+See <a data-page="transfers">Transfer windows</a> for supported destinations and search limits.</p>
 ${deeper('a first estimate for the departure window', `
 <p>Ignore the moon’s gravity until the encounter and use a half-ellipse from r₁ = 640 m to
 r₂ = 15,360 m from Primus’s centre. Its semi-major axis is a = 8,000 m.</p>

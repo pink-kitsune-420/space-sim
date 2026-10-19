@@ -1,13 +1,45 @@
 .maneuver-window .flight-window-body { display: grid; gap: 10px; padding: 12px; }
-.maneuver-window .flight-window-body[hidden] { display: none; }
-.maneuver-help { margin: 0; font-size: 11px; line-height: 1.5; opacity: .85; }
-.maneuver-fields { display: grid; gap: 8px; }
-.maneuver-window .maneuver-fields label { display: grid; grid-template-columns: minmax(0, 1fr) 125px; align-items: center; gap: 8px; margin: 0; font-size: 12px; }
-.maneuver-window .maneuver-fields input, .maneuver-window .maneuver-fields select { width: 100%; min-width: 0; margin: 0; }
-.maneuver-adjust { display: flex; flex-wrap: wrap; gap: 6px; }
-.maneuver-adjust button { flex: 1; min-height: 32px; font-size: 11px; }
-.maneuver-window output { display: block; font-size: 12px; line-height: 1.5; }
-.maneuver-status, .maneuver-summary { color: #f7c775; }
+.maneuver-window [hidden] { display: none !important; }
+.maneuver-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border: 1px solid #346078; border-radius: 8px; }
+.maneuver-tabs:has(button[hidden]) { grid-template-columns: 1fr; }
+.maneuver-tabs button { margin: 0; min-height: 34px; padding: 6px; border-color: transparent; background: transparent; font-size: 12px; }
+.maneuver-tabs button[aria-selected="true"] { color: #f7c775; border-color: #b08a49; background: #f7c77512; }
+.maneuver-node-view, .maneuver-window [id$="-transfers"] { display: grid; gap: 9px; }
+.maneuver-help { margin: 0; font-size: 11px; line-height: 1.45; opacity: .8; }
+.maneuver-window .maneuver-node-label { display: grid; gap: 4px; margin: 0; font-size: 11px; opacity: .95; }
+.maneuver-window .maneuver-node-label select { width: 100%; margin: 0; min-height: 34px; }
+.maneuver-fields { display: grid; gap: 7px; }
+.maneuver-component { display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 7px; }
+.maneuver-component label { margin: 0; font-size: 12px; }
+.maneuver-component small { display: block; font-size: 10px; opacity: .65; }
+.maneuver-number { display: grid; grid-template-columns: 34px minmax(0, 1fr) 34px; gap: 3px; }
+.maneuver-window .maneuver-number input { width: 100%; min-width: 0; margin: 0; padding: 5px; min-height: 32px; font-size: 12px; font-variant-numeric: tabular-nums; appearance: textfield; }
+.maneuver-number input::-webkit-inner-spin-button, .maneuver-number input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.maneuver-window .maneuver-number button { margin: 0; padding: 3px; min-height: 32px; font-size: 11px; }
+.maneuver-window .maneuver-step { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 7px; align-items: center; margin: 0; font-size: 11px; opacity: .8; }
+.maneuver-window .maneuver-step select { width: 100%; min-width: 0; margin: 0; padding: 5px; min-height: 30px; font-size: 11px; }
+.maneuver-adjust, .maneuver-live-controls { display: flex; flex-wrap: wrap; gap: 6px; }
+.maneuver-adjust button, .maneuver-live-controls button { flex: 1; margin: 0; min-height: 32px; padding: 6px; font-size: 11px; }
+.maneuver-window .maneuver-flight-actions button { border-color: #b08a49; color: #f7c775; }
+.maneuver-window .maneuver-secondary button { min-height: 27px; background: transparent; opacity: .8; }
+.maneuver-window output { display: block; font-size: 12px; line-height: 1.45; }
+.maneuver-summary { white-space: pre-line; padding: 8px; border-left: 2px solid #c89d58; background: #f7c7750a; color: #f7c775; font-variant-numeric: tabular-nums; }
+.maneuver-summary:empty, .maneuver-window [id$="-result"]:empty { display: none; }
+.maneuver-status { font-size: 11px !important; opacity: .85; }
+.maneuver-review { width: 100%; margin: 6px 0 0; min-height: 28px; padding: 5px; border-color: #b08a49; color: #f7c775; font-size: 11px; }
+.maneuver-window details > summary { cursor: pointer; padding: 4px 0; font-size: 11px; opacity: .8; }
+.maneuver-window [id$="-plan-actions"] .maneuver-adjust { margin-top: 6px; }
+.maneuver-window [id$="-transfers"] > label { display: grid; gap: 4px; margin: 0; font-size: 12px; }
+.maneuver-window [id$="-transfers"] input, .maneuver-window [id$="-transfers"] select { width: 100%; min-width: 0; margin: 0; min-height: 32px; }
+.maneuver-window [id$="-transfers"] label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.maneuver-window [id$="-transfers"] input[type="checkbox"] { width: auto; min-height: 0; }
+.maneuver-window [id$="-find"] { color: #f7c775; border-color: #b08a49; }
+.transfer-option { display: grid; gap: 6px; padding: 9px; border: 1px solid #36566a; border-radius: 7px; margin-top: 8px; }
+.transfer-option header { padding: 0; margin: 0; border: 0; background: none; letter-spacing: normal; min-height: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.transfer-option strong { color: #f7c775; font-size: 12px; }
+.transfer-option header button { margin: 0; padding: 5px 9px; min-height: 29px; font-size: 11px; }
+.transfer-option .transfer-metrics { display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; font-size: 11px; }
+.transfer-option .transfer-warning { margin: 0; font-size: 10px; color: #f7c775; opacity: .9; }
 .maneuver-map { position: absolute; pointer-events: none; overflow: hidden; z-index: 4; }
 .maneuver-map[hidden], .maneuver-map button[hidden] { display: none; }
 .maneuver-map button { position: absolute; top: 0; left: 0; width: 34px; height: 34px; padding: 0; margin: 0;
