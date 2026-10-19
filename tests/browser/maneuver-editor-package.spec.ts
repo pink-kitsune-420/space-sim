@@ -275,7 +275,8 @@ test('cross-body transfer plans remain editable, frame-correct, inert and review
   const destination=document.getElementById('interbody-transfer-destination') as HTMLSelectElement;destination.value='moon';destination.dispatchEvent(new Event('input'));
   const low=document.getElementById('interbody-transfer-low') as HTMLInputElement;low.value='100';low.dispatchEvent(new Event('input'));
   document.getElementById('interbody-transfer-find')!.click();let frames=0;const started=performance.now();
-  while(!document.getElementById('interbody-transfer-use-efficient')&&performance.now()-started<25000){planner.update(.1,prediction,false);frames++;}
+  // Compare the completed search with Node; early best-so-far options may differ.
+  while(!(document.getElementById('interbody-transfer-cancel') as HTMLButtonElement).hidden&&performance.now()-started<25000){planner.update(.1,prediction,false);frames++;}
   if(!document.getElementById('interbody-transfer-use-efficient'))throw Error(document.getElementById('interbody-transfer-status')?.textContent??'No option');
   const comparison=document.getElementById('interbody-transfer-choices')?.textContent;
   document.getElementById('interbody-transfer-use-efficient')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
