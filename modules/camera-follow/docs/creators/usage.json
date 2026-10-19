@@ -2,7 +2,7 @@
   "id": "usage",
   "audience": "creators",
   "title": "Independent follow cameras",
-  "summary": "Named target tracking, independent view state and optional flight-specific focus.",
+  "summary": "Basic target tracking and flight camera control with optional independent smart behavior.",
   "blocks": [
     {
       "type": "paragraph",
@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "The same package supplies the explicit view.flight-camera@1.0.0 adapter used by flight-split. It preserves body-relative ship following, horizon orientation, planet/free views, module camera modes, focus, smart throw and rebasing. Generic consumers need no ship, body, flight state or physics API. Flight target selection stays in this adapter."
+      "text": "The package also supplies the explicit view.flight-camera@1.0.0 adapter used by flight-split: body-relative following, horizon orientation, planet/free views, pan, zoom, inertial dragging, module camera modes and rebasing. Smart targeting, guided arrival and retained focus belong to the separate camera-smart add-on. Its view.smart-camera@1.0.0 capability is optional and replaceable; without it the adapter ignores smart targets and keeps ordinary movement. Generic view.camera consumers need no ship, body, smart policy, flight state or physics API."
     },
     {
       "type": "paragraph",

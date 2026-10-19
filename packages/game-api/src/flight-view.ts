@@ -15,10 +15,13 @@ import type { FlightActionBindings } from './platform';
 export interface SmartCandidate { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly position: Vec; readonly isPilotedShip?: boolean }
 export interface SmartTargetMatch { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly isPilotedShip?: boolean }
 export interface CameraFocusTarget { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string }
-/** Compatibility view of today's flight camera; generic cameras use view.camera. */
+/** Flight adaptation of basic camera control; generic cameras use view.camera.
+ * Smart target/focus state is optional presentation policy. A provider without that
+ * add-on ignores smart assignments and retains ordinary follow/pan/zoom/inertia. */
 export interface FlightCameraController extends Disposable {
   mode: string; pan: Vec; zoom: number; rotation: number; horizon: boolean; dragged: boolean;
-  /** Optional fixed viewer orientation in radians; undefined follows the selected mode. */
+  /** Fixed viewer orientation in radians. Follow, recenter, mode changes and new focus
+   * release it; ordinary pan/zoom retain it. The chosen horizon preference is independent. */
   manualRotation?: number;
   last: Camera; panVelocity: Vec; smartTarget: SmartTargetMatch | undefined; focusTarget: CameraFocusTarget | undefined;
   readonly follow: boolean;

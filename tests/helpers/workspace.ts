@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 
-export type WorkspacePanel = 'setup' | 'ship' | 'fleet' | 'multiplayer' | 'data' | 'settings' | 'tools' | 'manual' | 'library';
+export type WorkspacePanel = 'setup' | 'fleet' | 'multiplayer' | 'data' | 'settings' | 'tools' | 'manual' | 'library';
 
 /** Open a section window from the dock (or bring it to the front if it is already open). */
 export async function openPanel(page: Page, panel: WorkspacePanel = 'setup'): Promise<void> {

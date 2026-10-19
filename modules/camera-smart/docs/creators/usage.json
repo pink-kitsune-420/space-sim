@@ -1,0 +1,20 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Smart camera add-on",
+  "summary": "Optional target selection, guided arrival and independent focus tracking.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.smart-camera@1.0.0 is an optional presentation policy. It does not own a base camera, renderer, input device, world, physics model or split-screen layout. Connect a compatible provider by capability; camera-follow requests it optionally for its explicit flight adapter. Basic follow, pan, zoom and inertial dragging remain useful without it. The Space Sim host explicitly connects the add-on to preserve existing behavior."
+    },
+    {
+      "type": "paragraph",
+      "text": "select(search) accepts named targets with read-only positions, CSS-pixel release velocity, camera rotation and CSS pixels per world metre. Candidate groups express game-specific priority; the policy has no ship/body requirement. create() returns one independent controller per view. start(target, followOnArrival) guides toward targetPosition in update(frame), then retains focus or requests the base camera’s own follow mode. origin, pan and velocity use world metres and wall seconds, never simulation stepping."
+    },
+    {
+      "type": "paragraph",
+      "text": "Output storage is borrowed and reused on the next update; copy it for historical snapshots. Missing targets release guidance and focus so the base camera can continue ordinary movement. stop() retains acquired focus; clear() releases both; disposal clears state. Provider removal owns all instances. Change supported module configurations with prepare/activate/dispose; live detachment inside an active graph is not assumed. Ships, body labels, local pilot ownership and return-to-ship semantics belong in the game adapter, not this policy."
+    }
+  ]
+}

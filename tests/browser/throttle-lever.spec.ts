@@ -93,7 +93,7 @@ test('keyboard ramp persists, fine taps and cut synchronize with the unchanged l
 });
 
 test('activation level can be remembered, recalled, reset and restored after reload', async ({ page }) => {
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   await page.locator('#throttle').fill('23'); await page.locator('#throttle').dispatchEvent('input');
   await expect(page.locator('#activation-throttle')).toHaveValue('23');
   await closePanel(page); await page.locator('#flight-view').focus();
@@ -104,11 +104,11 @@ test('activation level can be remembered, recalled, reset and restored after rel
   await page.locator('#flight-view').focus(); await page.keyboard.press('KeyZ'); await power(page, 23);
   await page.reload(); await closePanel(page); await page.locator('#flight-view').focus();
   await page.keyboard.press('KeyZ'); await power(page, 23);
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   await page.locator('#activation-throttle').fill('18'); await page.locator('#activation-throttle').press('Tab');
   await closePanel(page); await page.locator('#flight-view').focus();
   await page.keyboard.press('KeyZ'); await power(page, 18);
-  await openPanel(page, 'ship'); await page.locator('#activation-throttle-reset').click();
+  await openPanel(page, 'settings'); await page.locator('#activation-throttle-reset').click();
   await expect(page.locator('#activation-throttle')).toHaveValue('50');
   await closePanel(page); await page.locator('#flight-view').focus();
   await page.keyboard.press('KeyZ'); await power(page, 50);
@@ -283,7 +283,7 @@ test('keyboard throttle actions follow assignment and are inert when no pilot ow
   await page.locator('.split-count [data-count="2"]').click();
   await page.getByLabel('Player 2 input', { exact: true }).selectOption('keyboard');
   await page.locator('#controls-close').click();
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   await page.locator('#activation-pilot').selectOption('1');
   await page.locator('#activation-throttle').fill('20');
   await page.locator('#activation-throttle').press('Tab'); await closePanel(page);
@@ -322,7 +322,7 @@ test('guest controller reset clears only the guest burn', async ({ page }) => {
 });
 
 test('controller fine ramp, cut and recall belong only to the assigned guest', async ({ page }) => {
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   await page.locator('#activation-pilot').selectOption('1');
   await page.locator('#activation-throttle').fill('20');
   await page.locator('#activation-throttle').press('Tab');

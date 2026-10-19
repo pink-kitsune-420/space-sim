@@ -149,7 +149,7 @@ test('module commands bind keys and buttons and go through the host', async ({ p
   await expect(page.locator('#throttle-value')).toHaveText('0%');
   await page.keyboard.press('v');
   await expect(page.locator('#throttle-value')).toHaveText('10%');
-  await openPanel(page, 'ship');
+  await openPanel(page, 'data');
   await commands.getByRole('button', { name: /Full throttle/ }).click();
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   expect((await debug(page)).commands).toEqual(['example.maneuvers/full-throttle', 'example.maneuvers/cut-throttle', 'example.maneuvers/trim-throttle']);

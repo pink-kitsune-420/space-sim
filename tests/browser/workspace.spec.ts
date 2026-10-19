@@ -14,17 +14,75 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test('camera buttons and Shift+arrows turn the camera in matching directions without steering, while R resets flight', async ({ page }) => {
+  await page.goto('/');
+  const debug = async () => JSON.parse(await page.locator('#debug').textContent() || '{}');
+  await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyP');
+  await expect(page.locator('#status')).toHaveText('PAUSED');
+  await page.locator('#camera-north').click();
+  await expect.poll(async () => (await debug()).camera?.rotation).toBeCloseTo(0, 7);
+  const before = await debug();
+  await page.locator('#camera-rotate-left').click();
+  // The renderer projects the scene with +rotation, so a left camera turn uses -rotation.
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(-Math.PI / 12, 7);
+  await page.locator('#camera-rotate-right').click();
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(0, 7);
+  await page.locator('#camera-rotate-left').click({ modifiers: ['Shift'] });
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(-Math.PI / 180, 7);
+  await page.locator('#camera-north').click();
+  await page.locator('#flight-view').focus();
+  await page.keyboard.down('Shift');
+  await page.keyboard.down('ArrowLeft');
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(-Math.PI / 12, 7);
+  expect((await debug()).heading).toBeCloseTo(before.heading, 7);
+  await page.keyboard.up('ArrowLeft');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.up('Shift');
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(0, 7);
+  await page.keyboard.press('KeyP');
+  await page.keyboard.down('ArrowLeft');
+  await expect.poll(async () => Math.abs((await debug()).heading - before.heading)).toBeGreaterThan(.05);
+  await page.keyboard.up('ArrowLeft');
+  await page.keyboard.down('Space');
+  await expect(page.locator('#status')).toHaveText('FLYING');
+  await page.keyboard.up('Space');
+  await page.keyboard.press('KeyR');
+  await expect(page.locator('#status')).toHaveText('LANDED');
+  expect((await debug()).world).toBe(before.world);
+});
+
+test('mode and focus changes release manual rotation and restore automatic follow orientation', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#orientation')).toHaveText('Horizon up');
+  await page.locator('#camera-rotate-left').click();
+  await expect(page.locator('#orientation')).toContainText('Rotation');
+  await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyC');
+  await page.keyboard.press('KeyC');
+  await expect(page.locator('#camera')).toHaveText('Follow ship');
+  await expect(page.locator('#orientation')).toHaveText('Horizon up');
+  await page.locator('#camera-rotate-right').click();
+  await expect(page.locator('#orientation')).toContainText('Rotation');
+  await page.locator('#flight-view').focus(); await page.keyboard.press('KeyN');
+  await expect(page.locator('#orientation')).not.toContainText('Rotation');
+});
+
 for (const size of [{ width: 1350, height: 568 }, { width: 1280, height: 720 }, { width: 800, height: 600 }, { width: 390, height: 844 }]) {
   test(`flight fits one window at ${size.width} × ${size.height}`, async ({ page }, info) => {
     await page.setViewportSize(size);
     await page.goto('/');
     await expect(page.locator('#status')).toHaveText('LANDED');
+    await expect(page.locator('[data-workspace="ship"]')).toHaveCount(0);
+    await expect(page.locator('#ship-window')).toHaveCount(0);
     const report = await page.evaluate(() => {
       const scene = document.querySelector('#flight-view')!.getBoundingClientRect().toJSON();
       const telemetry = document.querySelector('.telemetry')!.getBoundingClientRect().toJSON();
       const dock = document.querySelector('.hud-dock')!.getBoundingClientRect().toJSON();
       const nothingOpenInitially = [...document.querySelectorAll<HTMLElement>('.panel-window')].every(window => window.hidden);
-      const panels = ['setup', 'ship', 'fleet', 'multiplayer', 'data', 'settings', 'tools', 'manual', 'library'].map(panel => {
+      const panels = ['setup', 'fleet', 'multiplayer', 'data', 'settings', 'tools', 'manual', 'library'].map(panel => {
         document.querySelector<HTMLButtonElement>(`[data-workspace="${panel}"]`)!.click();
         const window = document.getElementById(`${panel}-window`)!;
         return {

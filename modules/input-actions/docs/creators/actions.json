@@ -14,6 +14,10 @@
     },
     {
       "type": "paragraph",
+      "text": "camera-rotate-left and camera-rotate-right are press actions, bound by default to Shift+ArrowLeft and Shift+ArrowRight. They turn the owning player’s camera by 15 degrees without steering a ship. Left turns the camera counterclockwise (the renderer’s angle decreases); right turns clockwise. KeyR remains Reset. Device samplers must release a held bare key when a modifier resolves it to an explicit shortcut."
+    },
+    {
+      "type": "paragraph",
       "text": "The space-sim:keybindings:v1 codec retains customized bindings and unavailable actions while migrating exact former throttle defaults. Legacy action IDs map explicitly to lowercase namespaced IDs."
     },
     {

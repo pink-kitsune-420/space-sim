@@ -4,32 +4,29 @@ import type {
 } from '../../../packages/game-api/src/index';
 import { ModuleRuntime, PresentationHooks, frozenSnapshot, type ModuleCandidate } from '../../../packages/game-runtime/src/index';
 import {
-  BUILTIN_RENDERERS, CANVAS_RENDERER, INSTRUMENTS, PROCEDURAL_AUDIO, WEBGL_RENDERER, createPresentationRegistry, presentationProfile,
+  BUILTIN_RENDERERS, CANVAS_RENDERER, INSTRUMENTS, WEBGL_RENDERER, createPresentationRegistry,
 } from '../../../packages/modules/src/browser';
 import { PRESENTATION_EXAMPLES } from '../../../examples/modules/index';
 import { Rendering } from './rendering';
 import { environment } from './startup';
 import { element, message, show } from './ui';
 import { mountFlightAudio } from './audio';
+import { presentationPreferenceKey, presentationRoots, selectPresentationProfile } from './presentation-profile';
 
 type EventSink = (kind: string, detail: Record<string, unknown>) => void;
 /** The viewer's own changes to the default modules: a per-browser convenience, never shared or
  * saved with worlds. Stored relative to the defaults, so new default instruments still appear. */
-const STORAGE_KEY = 'space-sim.presentation/1';
 interface Choices { readonly off: readonly string[]; readonly on: readonly string[] }
 const ids = (value: unknown): string[] => Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string').slice(0, 64) : [];
-function stored(): Choices {
+function stored(key: string): Choices {
   try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Record<string, unknown> | null;
+    const value = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, unknown> | null;
     return { off: ids(value?.off), on: ids(value?.on) };
   } catch { return { off: [], on: [] }; }
 }
-function store(choices: Choices): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(choices)); } catch { /* storage unavailable: choices last for this page */ }
+function store(key: string, choices: Choices): void {
+  try { localStorage.setItem(key, JSON.stringify(choices)); } catch { /* storage unavailable: choices last for this page */ }
 }
-
-/** The instruments a new viewer starts with; their dependencies come along through the closure. */
-const DEFAULTS: readonly string[] = [...INSTRUMENTS.map(i => i.id), PROCEDURAL_AUDIO.id];
 
 /** A frozen copy of what the pilot sees: hooks can neither observe nor change live objects. */
 export function presentationSnapshot(raw: PresentationSnapshot): PresentationSnapshot { return frozenSnapshot(raw); }
@@ -51,12 +48,17 @@ export class Presentation {
   private explicit: readonly ModuleReference[] = [];
   private readonly examples = new Set(PRESENTATION_EXAMPLES.map(m => m.manifest.id));
   private imported: RegisteredModule[] = [];
+  private defaults: ModuleProfile;
+  private preferenceKey: string;
   private readonly panels = new Map<string, { readonly card: HTMLElement; readonly rows: HTMLElement }>();
 
   constructor(canvas: HTMLCanvasElement, private readonly options: {
+    readonly gameId: string; readonly profile: ModuleProfile;
     readonly perViewInstruments?: readonly string[];
     readonly onCanvas: (canvas: HTMLCanvasElement) => void; readonly release: () => void; readonly event: EventSink;
   }) {
+    this.defaults = options.profile;
+    this.preferenceKey = presentationPreferenceKey(options.gameId);
     const name = (provider: RendererProvider): string => this.registry.getManifest(provider.id)?.name ?? provider.label;
     this.rendering = new Rendering(canvas, name, () => {
       const shaders = BUILTIN_RENDERERS.find(p => p.capabilities.shaders);
@@ -95,15 +97,17 @@ export class Presentation {
   }
   /** Replace a game's imported presentation plugins as one candidate. Failed preparation
    * restores the registry and leaves the currently active hooks intact. */
-  applyGame(modules: readonly RegisteredModule[], profile: ModuleProfile): void {
+  applyGame(modules: readonly RegisteredModule[], profile: ModuleProfile, gameId: string): void {
     const previous = this.imported;
     for (const module of previous) this.registry.unregister(module.manifest.id);
     const added: string[] = [];
     try {
       for (const module of modules) { this.registry.register(module); added.push(module.manifest.id); }
       this.apply(profile);
+      this.defaults = profile;
+      this.preferenceKey = presentationPreferenceKey(gameId);
       this.imported = [...modules];
-      this.explicit = this.enabled;
+      this.explicit = presentationRoots(profile, this.registry);
     } catch (error) {
       for (const id of added) this.registry.unregister(id);
       for (const module of previous) this.registry.register(module);
@@ -111,10 +115,9 @@ export class Presentation {
     }
   }
   compatibleGameProfile(profile: ModuleProfile): ModuleProfile {
-    if (profile.providers.renderer !== WEBGL_RENDERER.id || !this.rendering.unavailable.has(WEBGL_RENDERER.id)) return profile;
-    return { ...profile, providers: { ...profile.providers, renderer: CANVAS_RENDERER.id },
-      modules: profile.modules.some(m => m.id === CANVAS_RENDERER.id) ? profile.modules
-        : [...profile.modules, { id: CANVAS_RENDERER.id, version: CANVAS_RENDERER.version }] };
+    if (profile.providers.renderer !== WEBGL_RENDERER.id || !this.rendering.unavailable.has(WEBGL_RENDERER.id)
+      || !profile.modules.some(ref => ref.id === CANVAS_RENDERER.id)) return profile;
+    return { ...profile, providers: { ...profile.providers, renderer: CANVAS_RENDERER.id } };
   }
   setSettings(id: string, settings: Readonly<Record<string, number>>): void {
     if (!this.profile) throw new Error('Presentation has not started');
@@ -134,28 +137,34 @@ export class Presentation {
 
   /** The default instruments, less any this viewer switched off, plus any they (or `requested`,
    * from `?presentation=`) switched on. `none` starts from no optional modules at all.
-   * WebGL first, then Canvas. */
+   * Try the manifest's renderer first, then its declared alternatives. */
   start(requested: readonly string[] = []): void {
-    const choices = stored();
-    const base = requested.includes('none') ? [] : DEFAULTS.filter(id => !choices.off.includes(id));
+    // Invalid manifest selections fail before any initializer can run. Recovery below is
+    // for local preferences or unavailable hardware, not replacement of a game's contract.
+    const lock = this.registry.resolve(this.defaults, environment(), ['renderer']);
+    const defaults = presentationRoots(this.defaults, this.registry);
+    const choices = stored(this.preferenceKey);
+    const base = requested.includes('none') ? [] : defaults.map(ref => ref.id).filter(id => !choices.off.includes(id));
     const ids = [...new Set([...base, ...(requested.includes('none') ? [] : choices.on), ...requested.filter(id => id !== 'none')])];
-    const wanted = ids.flatMap(id => { const m = this.registry.getManifest(id); return m && !m.slots.includes('renderer') ? [{ id, version: m.version }] : []; });
+    const wanted = ids.flatMap(id => { const m = this.registry.getManifest(id); return m && !m.slots.includes('renderer')
+      ? [this.defaults.modules.find(ref => ref.id === id) ?? { id, version: m.version }] : []; });
     const unknown = ids.filter(id => !wanted.some(m => m.id === id));
     let moduleError: unknown = unknown.length ? new Error(`not installed: ${unknown.join(', ')}`) : undefined, last: unknown;
     // Then the default instruments, then the bare renderer, so a broken module never blocks play.
-    const defaults = DEFAULTS.flatMap(id => { const m = this.registry.getManifest(id); return m ? [{ id, version: m.version }] : []; });
     const key = (refs: readonly ModuleReference[]): string => refs.map(m => m.id).join();
     const attempts = [wanted, defaults, []].filter((a, i, all) => all.findIndex(b => key(b) === key(a)) === i);
+    const renderers = [lock.providers.renderer!, ...this.defaults.modules
+      .filter(ref => ref.id !== lock.providers.renderer && this.registry.getManifest(ref.id)?.slots.includes('renderer')).map(ref => ref.id)];
     for (const explicit of attempts) {
-      for (const provider of [WEBGL_RENDERER, CANVAS_RENDERER]) {
+      for (const renderer of renderers) {
         try {
-          this.apply(presentationProfile(provider.id, this.registry.closure(explicit)));
+          this.apply(selectPresentationProfile(this.defaults, this.registry, explicit, renderer));
           this.explicit = explicit;
           if (explicit !== wanted || moduleError) show('presentation-status', `Some presentation modules were not enabled: ${message(moduleError)}`);
           return;
         } catch (error) {
           last = error;
-          if (explicit === wanted && provider === CANVAS_RENDERER) moduleError ??= error;
+          if (explicit === wanted && renderer === renderers.at(-1)) moduleError ??= error;
         }
       }
     }
@@ -189,7 +198,7 @@ export class Presentation {
 
   useRenderer(provider: RendererProvider): void {
     if (provider === this.rendering.provider) return;
-    this.apply({ ...presentationProfile(provider.id, this.enabled, this.profile?.providers.audio), settings: this.profile?.settings ?? {} });
+    this.apply(selectPresentationProfile(this.profile!, this.registry, this.enabled, provider.id));
   }
   toggleRenderer(): void {
     const index = BUILTIN_RENDERERS.indexOf(this.provider);
@@ -211,8 +220,7 @@ export class Presentation {
         next = next.filter(m => !dependents.includes(m.id));
       }
       const audio = manifest.slots.includes('audio') ? (on ? id : undefined) : this.profile?.providers.audio;
-      const profile = presentationProfile(this.provider.id, this.registry.closure(next), audio);
-      this.apply({ ...profile, settings: Object.fromEntries(Object.entries(this.profile?.settings ?? {}).filter(([id]) => profile.modules.some(m => m.id === id))) });
+      this.apply(selectPresentationProfile(this.profile!, this.registry, next, this.provider.id, { audio }));
     } catch (error) {
       show('presentation-status', `${manifest?.name ?? id} could not be ${on ? 'enabled' : 'disabled'}: ${message(error)}`);
       this.syncControls();
@@ -220,7 +228,8 @@ export class Presentation {
     }
     this.explicit = next;
     const chosen = next.map(m => m.id);
-    store({ off: DEFAULTS.filter(m => !chosen.includes(m)), on: chosen.filter(m => !DEFAULTS.includes(m)) });
+    const defaults = presentationRoots(this.defaults, this.registry).map(ref => ref.id);
+    store(this.preferenceKey, { off: defaults.filter(m => !chosen.includes(m)), on: chosen.filter(m => !defaults.includes(m)) });
     const after = new Set(this.enabled.map(m => m.id));
     const added = [...after].filter(m => !before.has(m) && m !== id), removed = [...before].filter(m => !after.has(m) && m !== id);
     show('presentation-status', on

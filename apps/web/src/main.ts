@@ -21,10 +21,9 @@ import { createChatConsole } from '../../../modules/chat-console/src/index';
 import { attachWindowResize, raiseWindow, releaseWindow } from './window-resize';
 import { initFlightWindows } from './flight-windows';
 import { initManual } from './manual';
-import { artifactModules, validatePackage, type GamePackage } from '../../../packages/game-library/src/archive';
-import { createPresentationRegistry, presentationProfile } from '../../../packages/modules/src/browser';
-import builtinGame from '../../../games/space-sim/game.json' with { type: 'json' };
-import builtinOrbitSandbox from '../../../games/orbit-sandbox/game.json' with { type: 'json' };
+import { artifactModules, type GamePackage } from '../../../packages/game-library/src/archive';
+import { createPresentationRegistry, presentationProfile, DEFAULT_PRESENTATION_PROFILE } from '../../../packages/modules/src/browser';
+import { bundledGames, defaultGame, orbitSandboxGame, requestedBuiltinGame } from './bundled-games';
 import { initOrbitSandbox, type OrbitSandboxInstance } from '../../orbit-sandbox/src/main';
 import universeCatalog from '../../../games/space-sim/universes/catalog.json';
 import { universeSaveFormat } from '../../../packages/game-library/src/universe-save-services';
@@ -95,12 +94,12 @@ import { desktopHostToken, hostOnComputer, type DesktopHost } from './desktop-ho
 let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
-const defaultGame = validatePackage(builtinGame) as GamePackage;
-const orbitSandboxGame = validatePackage(builtinOrbitSandbox) as GamePackage;
-let activeGameInfo = { ...defaultGame.info };
+const startupGame = requestedBuiltinGame(location.search);
+let activeGameInfo = { ...startupGame.info };
 let orbitSandboxInstance: OrbitSandboxInstance | undefined;
 /** Renderer provider, presentation modules and their hooks; started below once input exists. */
 const presentation = new Presentation(canvas, {
+  gameId: startupGame.info.id, profile: startupGame.bundle.presentation ?? DEFAULT_PRESENTATION_PROFILE,
   perViewInstruments: ['builtin.navball'],
   onCanvas: next => { canvas = next; cache.set('flight-view', next); attachCanvasListeners(next); },
   release: () => release(),
@@ -1137,8 +1136,10 @@ function syncCameraButton(): void {
   cameraControl.retain(presentation.cameras);
   const label = cameraControl.label(presentation.cameras);
   if (cameraButton.textContent !== label) cameraButton.textContent = label;
-  const orientLabel = cameraControl.manualRotation !== undefined && Math.abs(cameraControl.manualRotation) > 1e-6
-    ? `Rotation ${Math.round(cameraControl.manualRotation * 180 / Math.PI)}°` : cameraControl.horizon ? 'Horizon up' : 'North up';
+  const manual = cameraControl.manualRotation;
+  const orientLabel = manual !== undefined
+    ? Math.abs(manual) > 1e-6 ? `Rotation ${Math.round(manual * 180 / Math.PI)}°` : 'North up'
+    : cameraControl.horizon ? 'Horizon up' : 'North up';
   if (orientationButton.textContent !== orientLabel) orientationButton.textContent = orientLabel;
 }
 function toggleProfiler(): void {
@@ -2726,11 +2727,10 @@ function toggleOrientation(): void {
 function rotateCamera(radians: number): void {
   cameraControl.manualRotation = Math.atan2(Math.sin((cameraControl.manualRotation ?? cameraControl.last.rotation) + radians),
     Math.cos((cameraControl.manualRotation ?? cameraControl.last.rotation) + radians));
-  cameraControl.horizon = false;
   syncCameraButton();
 }
-element('camera-rotate-left').addEventListener('click', event => rotateCamera(((event as MouseEvent).shiftKey ? 1 : 15) * Math.PI / 180));
-element('camera-rotate-right').addEventListener('click', event => rotateCamera(-((event as MouseEvent).shiftKey ? 1 : 15) * Math.PI / 180));
+element('camera-rotate-left').addEventListener('click', event => rotateCamera(-((event as MouseEvent).shiftKey ? 1 : 15) * Math.PI / 180));
+element('camera-rotate-right').addEventListener('click', event => rotateCamera(((event as MouseEvent).shiftKey ? 1 : 15) * Math.PI / 180));
 element('camera-north').addEventListener('click', () => { cameraControl.manualRotation = 0; cameraControl.horizon = false; syncCameraButton(); });
 pauseButton.addEventListener('click', () => setPaused(!session.paused));
 warpDownButton.addEventListener('click', warpDown);
@@ -3882,7 +3882,7 @@ function executeAction(action: ActionId): void {
   if (orbitSandboxInstance?.isOpen() || controlsDialog.open || hudLayout.editing) return;
   if (isSlotThrowing(0)) {
     const cameraAlteringActions = new Set<ActionId>([
-      'camera', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
+      'camera', 'cameraRotateLeft', 'cameraRotateRight', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
     ]);
     if (cameraAlteringActions.has(action)) return;
   }
@@ -3910,6 +3910,13 @@ function executeAction(action: ActionId): void {
     case 'camera':
       toggleCamera();
       break;
+    case 'cameraRotateLeft': case 'cameraRotateRight': {
+      const slot = splitScreen.keyboardSlot;
+      if (slot === undefined) break;
+      if (slot > 0) splitScreen.action(slot, action);
+      else rotateCamera((action === 'cameraRotateLeft' ? -15 : 15) * Math.PI / 180);
+      break;
+    }
     case 'orientation':
       toggleOrientation();
       break;
@@ -4859,9 +4866,9 @@ function frame(now: number): void {
 }
 
 // Start: a solo world with one ship at the first scenario.
-const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, defaultGame.bundle.selection.system, {
-  data: defaultGame.bundle.modules, profile: requested.example ? exampleProfile(requested.example) : defaultGame.bundle.profile,
-  universeKey: defaultGame.bundle.selection.universe,
+const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, startupGame.bundle.selection.system, {
+  data: startupGame.bundle.modules, profile: requested.example ? exampleProfile(requested.example) : startupGame.bundle.profile,
+  universeKey: startupGame.bundle.selection.universe,
 });
 initialGame.runtime.activate(initialGame.candidate);
 local = new LocalSession(initialGame.world, { name: pilotName() });
@@ -4945,7 +4952,7 @@ function switchToOrbitSandbox(): void {
   workspace.close(false, false);
 }
 
-function switchToSpaceSim(): void {
+function switchToSpaceSim(info = defaultGame.info): void {
   if (orbitSandboxInstance?.isOpen()) {
     orbitSandboxInstance.stop();
   }
@@ -4953,14 +4960,14 @@ function switchToSpaceSim(): void {
   const flightConsole = document.getElementById('flight-console');
   if (sandboxWorkspace) sandboxWorkspace.hidden = true;
   if (flightConsole) flightConsole.hidden = false;
-  activeGameInfo = { ...defaultGame.info };
-  show('active-game', defaultGame.info.name);
-  document.title = `Spacelab · ${defaultGame.info.name}`;
+  activeGameInfo = { ...info };
+  show('active-game', info.name);
+  document.title = `Spacelab · ${info.name}`;
 }
 
 labManager = new LabManager({
   builtin: defaultGame,
-  builtins: [defaultGame, orbitSandboxGame],
+  builtins: bundledGames,
   install: plugin => moduleManager!.install(plugin), legacy: loadModuleText,
   installDevicePackage: (bytes, source) => moduleManager!.installDevicePackage(bytes, source),
   universe: universe => { importUniverse(universe); show('universe-status', `Loaded ${universe.name}. Export a compressed universe or save its setup as a game.`); },
@@ -4995,12 +5002,12 @@ labManager = new LabManager({
         const next = new LocalSession(prepared.loaded.world, { name: pilotName() });
         prepared.candidate.own({ dispose: () => next.host.dispose() });
         checkCommandKeys(prepared.loaded.world.commands);
-        presentation.applyGame(display, displayProfile);
+        presentation.applyGame(display, displayProfile, game.info.id);
         rememberWorldModules(prepared.loaded.world, { data: game.bundle.modules, profile: game.bundle.profile,
           baseUniverse: DEFAULT_UNIVERSE, universeKey: game.bundle.selection.universe, createContext: prepared.createContext, runtime: game.runtime });
-        switchToSpaceSim(); moduleLibrary.replace(game.plugins); moduleManager!.resetData(game.bundle.modules);
+        switchToSpaceSim(game.info); moduleLibrary.replace(game.plugins); moduleManager!.resetData(game.bundle.modules);
         for (const data of game.bundle.modules) moduleLibrary.installData(data);
-        local.dispose(); local = next; activeGameInfo = { ...game.info };
+        local.dispose(); local = next;
         useSession(local, true); reset(); focusOnShipForNewWorld();
       },signal);
       return;
@@ -5015,15 +5022,14 @@ labManager = new LabManager({
       next = new LocalSession(prepared.world, { name: pilotName() });
       moduleManager!.devices.loadLegacyGame(() => {
         if (local.world !== previousWorld || session !== local || local.hosting) throw new Error('The active session changed while loading');
-        presentation.applyGame(display, displayProfile);
+        presentation.applyGame(display, displayProfile, game.info.id);
         prepared.runtime.activate(prepared.candidate);
-        switchToSpaceSim();
+        switchToSpaceSim(game.info);
         moduleLibrary.replace(game.plugins);
         moduleManager!.resetData(game.bundle.modules);
         for (const data of game.bundle.modules) moduleLibrary.installData(data);
         local.dispose();
         local = next;
-        activeGameInfo = { ...game.info };
         useSession(local, true);
         reset();
         focusOnShipForNewWorld();
@@ -5034,9 +5040,11 @@ labManager = new LabManager({
 void labManager.start();
 element('presentation-list').addEventListener('change', () => moduleManager?.refresh());
 useSession(local);
-const requestedGame = new URLSearchParams(location.search).get('game');
-if (requestedGame === 'orbit-sandbox') {
+if (startupGame === orbitSandboxGame) {
   switchToOrbitSandbox();
+} else {
+  show('active-game', startupGame.info.name);
+  document.title = `Spacelab · ${startupGame.info.name}`;
 }
 if (document.querySelector('meta[name="space-sim-server"]')) {
   // This page came from a dedicated server: joining it is one click away.

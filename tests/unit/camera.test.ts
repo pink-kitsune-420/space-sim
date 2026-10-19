@@ -37,6 +37,26 @@ it('preserves a fixed viewer rotation through following, panning and zooming, th
   camera.followShip(); expect(camera.update(frame).rotation).toBeCloseTo(Math.PI / 2 - Math.atan2(ship.y, ship.x));
 });
 
+it('releases manual rotation on Follow, recenter, mode changes and new smart focus while retaining the chosen follow orientation', () => {
+  const camera = new CameraController(), body = { x: 0, y: 0 }, ship = { x: 200, y: 600 };
+  const frame = { body, ship, width: 800, height: 600, elapsed: .1, instant: true };
+  for (const restore of [() => camera.followShip(), () => camera.recenter(), () => camera.planetView(), () => camera.cycle([])]) {
+    camera.manualRotation = .7; restore(); expect(camera.manualRotation).toBeUndefined();
+  }
+  camera.horizon = true; camera.manualRotation = .7; camera.followShip();
+  expect(camera.update(frame).rotation).toBeCloseTo(Math.PI / 2 - Math.atan2(ship.y, ship.x));
+  camera.horizon = false; camera.manualRotation = .7; camera.recenter();
+  expect(camera.update(frame).rotation).toBe(0);
+  camera.mode = 'free'; camera.manualRotation = .7;
+  camera.focusTarget = { kind: 'body', id: 'moon', name: 'Moon' };
+  expect(camera.manualRotation).toBeUndefined();
+  camera.manualRotation = .7;
+  camera.fling({ x: -800, y: 0 }, 800, 600, { kind: 'body', id: 'beacon', name: 'Beacon' });
+  camera.update({ ...frame, focusPosition: { x: 300, y: 0 } });
+  expect(camera.manualRotation).toBeUndefined();
+  expect(camera.focusTarget?.id).toBe('beacon');
+});
+
 it('blends the shortest angular path through wraparound and allows retargeting', () => {
   const degrees = Math.PI / 180;
   expect(Math.abs(blendAngle(179 * degrees, -179 * degrees, .5))).toBeCloseTo(Math.PI);

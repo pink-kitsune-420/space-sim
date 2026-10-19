@@ -35,6 +35,12 @@ describe('input configuration and keybindings', () => {
   it('defines all required core actions and default settings', () => {
     expect(ACTION_DEFINITIONS.length).toBeGreaterThan(10);
     expect(DEFAULT_GAMEPAD_SETTINGS.enabled).toBe(true);
+    expect(DEFAULT_KEYBINDINGS.reset).toContain('KeyR');
+    expect(DEFAULT_KEYBINDINGS.cameraRotateLeft).toEqual(['Shift+ArrowLeft']);
+    expect(DEFAULT_KEYBINDINGS.cameraRotateRight).toEqual(['Shift+ArrowRight']);
+    const lookup = buildKeyLookup(DEFAULT_KEYBINDINGS);
+    expect(resolveKeybinding({ code: 'ArrowLeft', shiftKey: true, ctrlKey: false, metaKey: false }, lookup)).toBe('Shift+ArrowLeft');
+    expect(lookup.get('Shift+ArrowLeft')).toEqual(['cameraRotateLeft']);
   });
 
   it('includes [ and ] in default warp bindings', () => {
@@ -295,6 +301,30 @@ describe('gamepad manager', () => {
 });
 
 describe('bindFlightInput lifecycle events', () => {
+  it('releases held steering when a modifier selects a camera shortcut, without restoring stale intent', () => {
+    const handlers: Record<string, ((event: KeyboardEvent) => void)[]> = {};
+    const target = { addEventListener(type: string, fn: (event: KeyboardEvent) => void) { (handlers[type] ??= []).push(fn); }, removeEventListener() {} };
+    vi.stubGlobal('window', target);
+    vi.stubGlobal('document', { ...target, querySelectorAll: () => [] });
+    const keys = new Set<string>(), shortcuts: string[] = [], lookup = buildKeyLookup(DEFAULT_KEYBINDINGS);
+    const binding = bindFlightInput({ keys, pointers: new Map(), paused: () => false,
+      binding: event => resolveKeybinding(event, lookup),
+      isFlightKey: code => lookup.get(code)?.some(isFlightAction) ?? false,
+      isShortcutKey: code => lookup.get(code)?.some(action => !isFlightAction(action)) ?? false,
+      shortcut: code => { shortcuts.push(code); }, command: () => false, autoPause() {}, visibility() {} });
+    const down = (code: string, shiftKey = false) => {
+      const event = { code, shiftKey, ctrlKey: false, metaKey: false, altKey: false, repeat: false,
+        target: { closest: () => null }, preventDefault() {} } as unknown as KeyboardEvent;
+      for (const handler of handlers.keydown ?? []) handler(event);
+    };
+    down('ArrowLeft'); expect(keys.has('ArrowLeft')).toBe(true);
+    down('ShiftLeft', true); expect(keys.has('ArrowLeft')).toBe(false);
+    down('ArrowLeft', true); expect(shortcuts).toEqual(['Shift+ArrowLeft']); expect(keys.size).toBe(0);
+    down('ShiftLeft'); expect(keys.size).toBe(0);
+    down('ArrowLeft'); expect(keys.has('ArrowLeft')).toBe(true);
+    binding.dispose();
+  });
+
   it('calls autoPause on blur and pagehide, and autoResume on focus and pageshow', () => {
     const windowListeners: Record<string, Function[]> = {};
     const docListeners: Record<string, Function[]> = {};

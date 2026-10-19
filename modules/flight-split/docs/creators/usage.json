@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "This explicit flight compatibility adapter retains the original shared and separated viewport behavior. Generic non-flight games use input.controller and view.local with their own compatible state adapter. Current Space Sim composition still supplies the camera, prediction and fleet factories until their scheduled extraction."
+      "text": "This explicit flight adapter owns local pilot/view composition, while camera control, prediction and fleet display are separate compatible providers. Generic non-flight games use input.controller and view.local with their own state adapter. Space Sim’s host still connects the portable factories while manifest startup migrates. Per-player camera-rotate-left/right actions rotate only that guest camera; no extra world step is introduced."
     },
     {
       "type": "paragraph",

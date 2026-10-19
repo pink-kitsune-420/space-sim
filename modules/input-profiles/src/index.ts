@@ -19,6 +19,7 @@ export const DEFAULT_PAD_BUTTONS: Readonly<Record<ActionId, readonly number[]>> 
   pause: [9],              // Start / Menu / Options
   reset: [8, 17],          // Back / View / Share, PlayStation touchpad
   camera: [3],             // Y / Triangle
+  cameraRotateLeft: [], cameraRotateRight: [],
   orientation: [2],        // X / Square
   cycleShip: [1],          // B / Circle
   cycleShipPrev: [],

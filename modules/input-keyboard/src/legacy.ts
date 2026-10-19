@@ -27,6 +27,12 @@ export function bindFlightInput(options: FlightKeyboardOptions): Disposable {
 
   listen(window, 'keydown', event => {
     if ((event.target as HTMLElement).closest('input, select, button, summary, a, textarea')) return;
+    // A modifier can turn an already-held flight key into a shortcut. Release the
+    // old intent immediately; only a new bare-key press may restore it.
+    if (options.binding && /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(event.code)) {
+      for (const held of options.keys) if (!isFlight(options.binding({ ...event, code: held,
+        shiftKey: event.shiftKey, ctrlKey: event.ctrlKey, metaKey: event.metaKey }))) options.keys.delete(held);
+    }
     const code = options.binding?.(event) ?? event.code;
     const flight = isFlight(code);
     const shortcut = isShortcut(code);
@@ -36,6 +42,7 @@ export function bindFlightInput(options: FlightKeyboardOptions): Disposable {
       return;
     }
     event.preventDefault();
+    if (code !== event.code) options.keys.delete(event.code);
     if (flight) {
       if (!options.paused()) {
         options.keys.add(event.code);

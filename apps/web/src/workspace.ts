@@ -2,18 +2,17 @@ import { element } from './ui';
 import { FloatingWindow } from './floating-window';
 import { icon, type IconName } from './ui-icons';
 import { Workspace as SharedWorkspace } from '../../../modules/ui-shell/src/index';
-export type Panel = 'setup' | 'ship' | 'fleet' | 'multiplayer' | 'data' | 'settings' | 'tools' | 'manual' | 'library';
+export type Panel = 'setup' | 'fleet' | 'multiplayer' | 'data' | 'settings' | 'tools' | 'manual' | 'library';
 interface PanelSpec { readonly id:Panel; readonly title:string; readonly label:string; readonly icon:IconName; readonly hint:string; readonly sources:readonly string[] }
 /** Dock groups, top to bottom. Instrument windows join the second group as they are created. */
 const GROUPS: readonly (readonly PanelSpec[])[] = [[
   { id: 'setup', title: 'Flight setup', label: 'Setup', icon: 'setup', hint: 'Universe, system, scenario and reset', sources: ['.setup-card'] },
-  { id: 'ship', title: 'Ship controls', label: 'Ship', icon: 'ship', hint: 'Throttle, steering and engine', sources: ['.controls'] },
   { id: 'fleet', title: 'Fleet', label: 'Fleet', icon: 'fleet', hint: 'Ships in this world, saves', sources: ['.fleet-card'] },
   { id: 'multiplayer', title: 'Multiplayer', label: 'Online', icon: 'online', hint: 'Host or join a shared world', sources: ['.multiplayer'] },
 ], [
   { id: 'data', title: 'Instruments', label: 'Instruments', icon: 'instruments', hint: 'Choose what the flight view shows', sources: ['.instruments-card', '#module-panels'] },
 ], [
-  { id: 'settings', title: 'Settings', label: 'Settings', icon: 'settings', hint: 'Display, controls, gameplay and diagnostics', sources: ['.settings-card'] },
+  { id: 'settings', title: 'Settings', label: 'Settings', icon: 'settings', hint: 'Display, controls, gameplay and diagnostics', sources: ['.settings-card', '.controls'] },
   { id: 'tools', title: 'Tools', label: 'Tools', icon: 'tools', hint: 'Planet designer, shaders, stress test and diagnostics', sources: ['.utility-grid', '.debug'] },
   { id: 'manual', title: 'Manual', label: 'Manual', icon: 'manual', hint: 'How to play, and how to make your own content', sources: ['#game-manual'] },
   { id: 'library', title: 'ModMenu', label: 'ModMenu', icon: 'library', hint: 'Games, plugins and universes', sources: ['#lab-manager'] },

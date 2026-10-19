@@ -295,7 +295,7 @@ export class SplitScreen implements FlightSplitScreen {
   action(slot: number, action: ActionId): void {
     if (this.host.isSlotThrowing?.(slot)) {
       const cameraAlteringActions = new Set<ActionId>([
-        'camera', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
+        'camera', 'cameraRotateLeft', 'cameraRotateRight', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
       ]);
       if (cameraAlteringActions.has(action)) return;
     }
@@ -305,7 +305,15 @@ export class SplitScreen implements FlightSplitScreen {
     const session = this.host.session();
     switch (action) {
       case 'camera': guest.camera.cycle([], guest.body?.radius); break;
-      case 'orientation': guest.camera.horizon = !guest.camera.horizon; break;
+      case 'cameraRotateLeft': case 'cameraRotateRight': {
+        const rotation = (guest.camera.manualRotation ?? guest.camera.rotation) + (action === 'cameraRotateLeft' ? -15 : 15) * Math.PI / 180;
+        guest.camera.manualRotation = Math.atan2(Math.sin(rotation), Math.cos(rotation));
+        break;
+      }
+      case 'orientation':
+        guest.camera.horizon = guest.camera.manualRotation !== undefined || !guest.camera.horizon;
+        guest.camera.manualRotation = undefined;
+        break;
       case 'zoomIn': guest.camera.changeZoom(1.3); break;
       case 'zoomOut': guest.camera.changeZoom(1 / 1.3); break;
       case 'cycleShip': case 'cycleShipPrev': {

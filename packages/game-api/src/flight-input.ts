@@ -18,6 +18,8 @@ export type FlightActionId =
   | 'pause'
   | 'reset'
   | 'camera'
+  | 'cameraRotateLeft'
+  | 'cameraRotateRight'
   | 'orientation'
   | 'fullscreen'
   | 'profiler'

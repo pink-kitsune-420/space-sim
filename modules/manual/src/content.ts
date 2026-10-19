@@ -42,7 +42,6 @@ without ever reaching the ground. That path is called an <b>orbit</b>.</p>
 <p>The column of buttons at the edge of the screen opens windows:</p>
 <ul>
   <li><b>Setup</b>: pick the universe, the star system and where your ship starts. <b>Reset flight</b> is here too.</li>
-  <li><b>Ship</b>: throttle, turning and engine buttons for touch and mouse.</li>
   <li><b>Fleet</b>: your ships, plus <b>Save universe</b> and <b>Load universe…</b>.</li>
   <li><b>Online</b>: host friends or join a server.</li>
   <li><b>Instruments</b>, <b>Trajectory</b> and <b>Telemetry</b>: choose what the flight view shows.</li>
@@ -56,6 +55,7 @@ the previous size and position. Focus a resize grip and use the arrow keys for s
 Drag a small grip, or focus it and use the arrow keys. Navballs can be dragged directly while editing, even when pinned. Hold Shift for larger steps. Choose <b>Done</b> when finished.
 Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
 Windows and chat move by their title bars. Outside the editor, unlock a navball with its pin button before dragging it. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
+<p>Fly with the interactive navball and throttle lever. The dock has no separate Ship controls window. Activation throttle and fallback flight controls are in <b>Settings</b>; plugin command buttons are in <b>Instruments</b>. <b>Shift+← / Shift+→</b> rotate the camera by 15° without steering; <b>R</b> resets flight. Shift-click the rotation buttons for 1° steps. Follow, recenter, camera mode changes and new focus targets restore the mode’s normal orientation; manual rotation does not replace your chosen horizon setting.</p>
 <p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, ship labels, planet labels, planet orbit lines and the scale bar. Planet orbits can be hidden independently of ship trajectories. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
 <h3>Where to start</h3>
 <ol>
@@ -572,7 +572,12 @@ matches what ships land on. Packs are GLSL text and can't run JavaScript.</p>`)}
     summary: '.spacegame files: a whole setup in one file',
     html: `
 <p>A <b>game</b> is a saved setup: which modules, content and settings to use, and where to start.
-Space Sim and Orbit Sandbox are both games.</p>
+Space Sim, Orbit Sandbox and Flight starter are games. <b>Flight starter</b> uses the same rails flight
+physics as Space Sim with just the 2D renderer and navball selected for presentation. Choose it in
+ModMenu to start a smaller display setup, then add instruments or sound.</p>
+<p>In a hosted or offline browser build, <code>?game=flight-starter</code> starts that bundled composition
+directly. Its presentation profile selects the renderer, instruments and their settings. Viewer switches
+keep the active modules' settings; reloading this startup URL restores that game's display choices.</p>
 <ol>
   <li>Choose simulation plugins in <b>ModMenu → Plugins · simulation, data &amp; settings</b> and display modules in <b>Instruments &amp; display</b>.</li>
   <li>Under <b>Make a game from this world’s setup</b>, give it a name.</li>
@@ -591,7 +596,8 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
     title: 'Code modules',
     summary: 'Forces, rules, commands, instruments, cameras, sound',
     html: `
-<p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. There are three kinds:</p>
+<p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. Open a section below for the details and examples.</p>
+<details class="manual-deeper"><summary>Module kinds</summary>
 <dl>
   <dt>Data</dt><dd>Only JSON, for example vehicle settings. Try <code>examples/modules/gentle-flight.json</code> with
     <b>ModMenu → Advanced · data &amp; profiles → Load module/profile…</b>.</dd>
@@ -600,8 +606,11 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
   <dt>Presentation</dt><dd>Changes what you see or hear: overlays, panels, camera modes and sound. You can switch these on
     and off at any time. The built-in instruments and procedural sound are presentation modules.</dd>
 </dl>
+</details><details class="manual-deeper"><summary>Audio providers</summary>
 <p>The optional presentation <code>audio</code> provider exposes an <code>AudioProvider</code> factory. Its <code>AudioOutput</code> implements <code>resume</code>, <code>suspend</code>, <code>setVolume</code>, <code>setThrust</code>, <code>play</code> and <code>dispose</code>. Creation stays silent; the browser starts audio after user input and owns its lifetime independently of the renderer. Volume and thrust use levels from 0 to 1. Keep audio out of simulation state and saves. The bundled sample-free implementation is in <code>packages/modules/src/base/audio/</code>.</p>
-<h3>Build and share an editable package</h3>
+</details><details class="manual-deeper"><summary>Responsibilities and optional connections</summary>
+<p>Compose modules by their job: <code>camera-follow</code> owns basic camera control, <code>camera-smart</code> adds optional targeting and guided focus, <code>local-views</code> owns viewport layout, and input modules sample devices or define actions. The smart policy accepts arbitrary named targets and keeps separate state per camera. <code>ui-shell</code> owns the dock and workspace navigation, using shared window chrome from <code>ui-windows</code>.</p>
+</details><details class="manual-deeper"><summary>Build and share an editable package</summary>
 <ol>
   <li>For API v1, run <code>npm run module:new -- local.my-module my-module</code>, or copy a starter from
     <code>examples/packages/</code>: <code>force</code>, <code>numerical</code>, <code>telemetry</code> or <code>state</code>.
@@ -620,7 +629,7 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
 After editing, run <code>npm run module:build -- my-copy/module.json</code>, then
 <code>npm run module:pack -- my-copy edited.spacemod</code>.
 Validate a file with <code>npm run module:validate -- edited.spacemod</code>.</p>
-<h3>Module configuration</h3>
+</details><details class="manual-deeper"><summary>Module configuration</summary>
 <p>A module can declare numeric <code>settings</code> in its manifest, with a default, minimum,
 maximum and optional increment (<code>step</code>). Add a readable <code>label</code> and plain-text
 <code>description</code> so players know what each value does. The Plugins configuration displays
@@ -631,7 +640,7 @@ navball frame and orientation, sound defaults, renderer pixel-density caps and p
 Defaults preserve the existing game. Declare the public capabilities a module needs, including
 optional dependencies and compatible versions; changing a shared package also needs an appropriate
 module version bump and a rebuilt archive.</p>
-<h3>Module logging</h3>
+</details><details class="manual-deeper"><summary>Module logging</summary>
 <p><code>modules/logging</code> provides <code>MODULE_LOGS</code>
 (<code>diagnostics.logs@1.0.0</code>). A platform or network module declares this capability as optional,
 captures it with <code>context.tryUse(MODULE_LOGS)</code> during initialization, then owns a logger scoped
@@ -643,6 +652,7 @@ and stay outside simulation state, saves and fingerprints. Host lifecycle observ
 current tier rules keep a platform logging dependency out of authoritative and presentation modules.
 The existing <b>Export log</b> includes host events and selected module log histories. History is bounded
 and best effort; avoid frame-loop logging and live world objects. Nothing is uploaded automatically.</p>
+</details><details class="manual-deeper"><summary>Forking and package compatibility</summary>
 <p>To make your own version, run <code>npm run module:fork -- received.spacemod local.my-version my-copy</code>.
 This keeps the original credits and inventory reference, changes the module identity and literal source
 namespaces, and removes the compiled bundle. Review the source, edit it and rebuild before importing.
@@ -654,7 +664,7 @@ or override a build that disallows imported code.</p>
 <p>The browser cannot compile TypeScript. Missing or stale bundles need a local rebuild. Binary assets
 are preserved; API v1 exposes text assets only. Structured guides belong in <code>docs/players/</code>
 or <code>docs/creators/</code>. API v2 device modules can contribute these pages to the Manual.</p>
-<h3>Installed modules and device modules</h3>
+</details><details class="manual-deeper"><summary>Installed modules and device modules</summary>
 <p>Imported modules are stored on this device without running their code. Reloading the page restores
 the installed files; it does not enable them. If storage is unavailable or full, the ModMenu reports
 session-only installation. Export a copy to keep it. Removing an installed module does not delete saved universes.</p>
@@ -688,7 +698,7 @@ capability before requesting it, and pass an abort signal when connecting. Cance
 link; replacing or removing its provider disposes its connections. Native WebSocket support is
 needed only when connecting. A compatible session adapter must still agree commands, snapshots,
 saves and replay; sharing a transport alone does not establish multiplayer compatibility.</p>
-<h3>Universe saving modules</h3>
+</details><details class="manual-deeper"><summary>Universe saving modules</summary>
 <p>Saved progress is a <b>universe</b>: use <b>Save universe</b> and <b>Load universe…</b>
 with <code>.spaceuniverse</code> files. Reusable setup and planet definitions export separately.</p>
 <p><code>modules/universe-saves</code> supplies cancellable save/load commands over engine validation
@@ -700,7 +710,7 @@ loads if the session changes while a file or package is being prepared.</p>
 backup retention and recovery over borrowed native disk operations. Existing server file names and
 formats are preserved. Missing exact gameplay packages require explicit recovery and never authorize
 code installation from a universe file. Storage and UI providers can be replaced independently.</p>
-<h3>Portable trainer vehicles</h3>
+</details><details class="manual-deeper"><summary>Portable trainer vehicles</summary>
 <p><code>modules/vehicle-trainer</code> contributes <code>spacelab.trainer/orbit-trainer</code>
 through <code>contributeVehicle</code>. A compatible game supplies shared physics, valid starts and
 session ownership. Build a <code>space-sim-vehicles/1</code> catalogue from enabled authoritative
@@ -796,7 +806,7 @@ contains bundled JavaScript and source hashes, so its ZIP wrapper is labelled �
 Use <code>module:convert old/module.json new-folder</code> with the original source folder to make a fully editable package.
 Package hashes cover every file, including code, docs and licences. Recompressing a ZIP preserves the hash;
 editing a file changes it. A matching hash identifies bytes; it does not establish that code is safe.</p>
-<h3>Keep setup, data and progress separate</h3>
+</details><details class="manual-deeper"><summary>Keep setup, data and progress separate</summary>
 <ul>
   <li><code>.spacegame</code>: game setup and its exact module selection; code lives in <code>modules/</code>, reusable data in <code>data/</code>.</li>
   <li><code>.spacemod</code>: a code module with its editable source, assets and licence.</li>
@@ -808,7 +818,7 @@ editing a file changes it. A matching hash identifies bytes; it does not establi
 <p>Use <b>Fleet → Save universe</b> and <b>Load universe…</b> for progress. Use <b>Setup → Export</b> and
 <b>Import…</b> for definitions, or import reusable data in the ModMenu. Old save JSON still loads. Older
 <code>.spaceuniverse</code> definition files still import through Setup or the ModMenu; their contents identify them.</p>
-<h3>Build a game collection</h3>
+</details><details class="manual-deeper"><summary>Build a game collection</summary>
 <p><b>Export game</b> writes a ZIP <code>.spacegame</code> containing <code>game.json</code>, an exact
 <code>game.lock.json</code> and its selected custom modules. Built-in v1 providers remain supplied by the engine.
 The exact package identities are separate from legacy simulation identities, so old saves keep their locks.</p>
@@ -831,7 +841,7 @@ ${deeper('the API surface', `
 <p>Presentation hooks receive a frozen snapshot of the frame: ship state, orbit elements, ground clearance,
 prediction and camera. If a hook throws an error, only that contribution is switched off and the world keeps running.</p>
 <p>The build only accepts imports from <code>@space-sim/game-api</code> and files inside your module's folder.
-<code>examples/modules/README.md</code> lists every example and how to try it.</p>`)}`,
+<code>examples/modules/README.md</code> lists every example and how to try it.</p>`)}</details>`,
   },
   {
     id: 'determinism',

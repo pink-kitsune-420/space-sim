@@ -97,6 +97,14 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
 
   // View & Camera
   {
+    id: 'cameraRotateLeft', name: 'Rotate Camera Left', category: 'view',
+    defaultKeys: ['Shift+ArrowLeft'], description: 'Rotate only this player\'s view left by 15 degrees',
+  },
+  {
+    id: 'cameraRotateRight', name: 'Rotate Camera Right', category: 'view',
+    defaultKeys: ['Shift+ArrowRight'], description: 'Rotate only this player\'s view right by 15 degrees',
+  },
+  {
     id: 'camera',
     name: 'Cycle Camera Mode',
     category: 'view',

@@ -20,6 +20,7 @@ export * from './engine';
 export * from './session';
 export type * from './flight-input';
 export * from './flight-view';
+export * from './smart-camera';
 export * from './node-transport';
 export * from './tab-transport';
 export * from './webrtc-transport';

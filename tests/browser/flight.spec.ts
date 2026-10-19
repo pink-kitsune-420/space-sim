@@ -149,7 +149,7 @@ test('pointer cancellation and focus loss release the engine and pause without c
   await page.goto('/');
   await openPanel(page, 'setup');
   await page.locator('#preset').selectOption('planet-orbit');
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   const burn = page.locator('#burn');
   await burn.scrollIntoViewIfNeeded();
   await burn.evaluate(el => el.addEventListener('pointerdown', event => {
@@ -183,7 +183,7 @@ test('mobile viewport fits and pointer controls can launch', async ({ page, brow
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   await page.locator('#throttle').fill('100');
   await expect(page.locator('#throttle-value')).toHaveText('100%');
   const burn = page.locator('#burn');

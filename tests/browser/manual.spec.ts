@@ -56,6 +56,26 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await expect(manual.locator('#manual-page h2')).toHaveText('Shader packs');
 });
 
+test('Code modules uses compact expandable sections while all details remain searchable', async ({ page }) => {
+  await page.goto('/'); await openPanel(page, 'manual');
+  const manual = page.locator('#manual-window'), article = manual.locator('#manual-page');
+  await manual.locator('#manual-tab-creators').click();
+  await manual.locator('.manual-topic[data-page="modules"]').click();
+  const sections = article.locator(':scope > details');
+  expect(await sections.count()).toBeGreaterThan(8);
+  await expect(article.locator(':scope > details[open]')).toHaveCount(0);
+  const kinds = sections.filter({ has: page.locator('summary', { hasText: 'Module kinds' }) });
+  await kinds.locator('summary').focus(); await page.keyboard.press('Enter');
+  await expect(kinds).toHaveAttribute('open', '');
+  await expect(kinds.locator('dt')).toHaveText(['Data', 'Simulation', 'Presentation']);
+  await kinds.locator('summary').click(); await expect(kinds).not.toHaveAttribute('open');
+  await manual.locator('#manual-search').fill('AudioOutput');
+  await expect(manual.locator('.manual-topic[data-page="modules"]')).toBeVisible();
+  const audio = sections.filter({ has: page.locator('summary', { hasText: 'Audio providers' }) });
+  await audio.locator('summary').click(); await expect(audio).toHaveAttribute('open', '');
+  await expect(audio.locator('p')).toContainText('AudioOutput');
+});
+
 test('manual resizes from every side and maximizes back to its saved geometry without losing navigation', async ({ page }) => {
   await page.goto('/');
   await openPanel(page, 'manual');

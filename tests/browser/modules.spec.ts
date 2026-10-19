@@ -63,7 +63,7 @@ test('a copied offline HTML imports data and flies with networking disabled', as
   await page.locator('#module-file').setInputFiles(payload(gentle));
   await expect(page.locator('#module-name')).toHaveText('Gentle flight');
   // At half throttle the gentler engine cannot lift off; full throttle can.
-  await openPanel(page, 'ship');
+  await openPanel(page, 'settings');
   await page.locator('#throttle').fill('100');
   await page.locator('#throttle').dispatchEvent('input');
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });

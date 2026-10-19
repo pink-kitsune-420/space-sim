@@ -20,7 +20,14 @@ export function createKeyboardSource(options: KeyboardInputOptions): InputSource
   };
   const down = (event: KeyboardEvent): void => {
     if (disposed || !available() || (event.target as Element | null)?.closest?.('input, select, button, summary, a, textarea, [contenteditable="true"]')) return;
-    const chord = /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(event.code) ? event.code
+    const modifier = /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(event.code);
+    if (modifier) for (const key of held) {
+      const physical = key.slice(key.lastIndexOf('+') + 1);
+      if (/^(Shift|Control|Meta|Alt)(Left|Right)$/.test(physical)) continue;
+      const chord = `${event.ctrlKey ? 'Ctrl+' : ''}${event.metaKey ? 'Meta+' : ''}${event.shiftKey ? 'Shift+' : ''}${physical}`;
+      if ((known.has(chord) ? chord : physical) !== key) held.delete(key);
+    }
+    const chord = modifier ? event.code
       : `${event.ctrlKey ? 'Ctrl+' : ''}${event.metaKey ? 'Meta+' : ''}${event.shiftKey ? 'Shift+' : ''}${event.code}`;
     const key = known.has(chord) ? chord : event.code;
     if (!known.has(key) || event.altKey) return;

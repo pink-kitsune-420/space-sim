@@ -50,6 +50,72 @@ async function play(page: Page, name: string) {
 
 test.beforeEach(async ({ page }) => { await useCanvas(page); });
 
+for (const target of ['hosted', 'offline'] as const) {
+  test(`the ${target} flight starter boots directly from its manifest and remembers its own display choices`, async ({ page }) => {
+    const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    const url = target === 'offline' ? `${pathToFileURL(resolve('dist/space-lab-offline.html')).href}?game=flight-starter` : '/?game=flight-starter';
+    if (target === 'offline') await disableNetwork(page.context());
+    await page.goto(url);
+    await expect(page).toHaveTitle('Spacelab · Flight starter');
+    await expect(page.locator('#active-game')).toHaveText('Flight starter');
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.navball']);
+    expect((await debug(page)).renderer).toBe('builtin.canvas');
+    await openPanel(page, 'data');
+    await page.locator('#instruments').getByRole('button', { name: 'Navball', exact: true }).click();
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
+    await page.reload();
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
+    expect((await debug(page)).renderer).toBe('builtin.canvas');
+    expect(errors).toEqual([]);
+  });
+}
+
+test('the flight starter composes optional displays, preserves settings, and keeps its preferences separate', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.goto('/');
+  const original = await debug(page);
+  await play(page, 'Flight starter');
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.navball']);
+  expect((await debug(page)).fingerprint).toBe(original.fingerprint);
+  await openPanel(page, 'data');
+  await page.locator('#instruments').getByRole('button', { name: 'Telemetry', exact: true }).click();
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry']);
+  await openPanel(page, 'library');
+  await page.locator('#game-name').fill('Starter with telemetry');
+  await page.locator('#lab-save').click();
+  await expect(card(page, 'Starter with telemetry')).toBeVisible();
+  const download = page.waitForEvent('download');
+  await card(page, 'Starter with telemetry').getByRole('button', { name: 'Export game', exact: true }).click();
+  const file = await download, path = await file.path();
+  const exported = await decodePackage(new Uint8Array(await readFile(path!))) as GamePackage;
+  expect(exported.bundle.presentation?.providers).toEqual({ renderer: 'builtin.canvas' });
+  expect(exported.bundle.presentation?.modules.some(ref => ref.id === 'builtin.webgl' || ref.id === 'builtin.audio')).toBe(false);
+  expect(exported.bundle.presentation?.settings['builtin.navball']).toEqual({ frame: 1, orientation: 1 });
+  await play(page, 'Space Sim');
+  await expect.poll(async () => (await debug(page)).presentation.modules.includes('builtin.audio')).toBe(true);
+  await play(page, 'Starter with telemetry');
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry']);
+  await openPanel(page, 'data');
+  await page.locator('#instruments').getByRole('button', { name: 'Navball', exact: true }).click();
+  expect(await page.evaluate(() => localStorage.getItem('space-sim.presentation/1'))).toBeNull();
+  await page.reload();
+  await expect.poll(async () => (await debug(page)).presentation.modules.includes('builtin.navball')).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('an unavailable renderer without a declared fallback keeps the active game running', async ({ page }) => {
+  await page.goto('/?game=flight-starter');
+  const before = await debug(page);
+  const game = { ...builtin, info: { ...builtin.info, id: 'local.webgl-only', name: 'WebGL only' }, bundle: { ...builtin.bundle,
+    presentation: { ...builtin.bundle.presentation, modules: builtin.bundle.presentation.modules.filter(ref => ref.id !== 'builtin.canvas') } } } as GamePackage;
+  await importPackage(page, game);
+  await card(page, 'WebGL only').getByRole('button', { name: 'Play · new world', exact: true }).click();
+  await expect(page.locator('#lab-status')).toContainText('WebGL');
+  expect((await debug(page)).world).toBe(before.world);
+  expect((await debug(page)).presentation.modules).toEqual(['builtin.navball']);
+  await expect(page.locator('#active-game')).toHaveText('Flight starter');
+});
+
 test('a data plugin installs inertly, applies with code controls, and saves/exports an organized persistent game', async ({ page }, testInfo) => {
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto('/');
