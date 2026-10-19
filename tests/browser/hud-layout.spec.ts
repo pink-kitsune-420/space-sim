@@ -236,9 +236,9 @@ test('camera rotation buttons turn the view without turning the ship, and reset 
   await expect.poll(async () => (await debug()).camera.rotation).toBe(0);
   const before = await debug();
   await page.getByRole('button', { name: 'Rotate camera left', exact: true }).click();
-  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(Math.PI / 12, 4);
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(-Math.PI / 12, 4);
   await page.getByRole('button', { name: 'Rotate camera right', exact: true }).click({ modifiers: ['Shift'] });
-  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(14 * Math.PI / 180, 4);
+  await expect.poll(async () => (await debug()).camera.rotation).toBeCloseTo(-14 * Math.PI / 180, 4);
   const after = await debug();
   expect(after.tick).toBe(before.tick); expect(after.heading).toBe(before.heading); expect(after.velocity).toEqual(before.velocity);
   await page.getByRole('button', { name: 'Reset camera to north up', exact: true }).click();
