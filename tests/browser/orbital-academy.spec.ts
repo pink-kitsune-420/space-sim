@@ -91,7 +91,9 @@ test('reaches a safe engine-off first orbit using ordinary launch and steering k
         pulsed = true;
       }
     }
-    if (state.orbit?.kind === 'elliptic' && state.orbit.periapsis > 535 && state.orbit.apoapsis < 40000) { safe = true; break; }
+    // The lesson first requires a 100 m climb. A lower safe orbit alone can
+    // remain below that checkpoint forever, so leave some clearance margin.
+    if (state.groundClearance >= 120 && state.orbit?.kind === 'elliptic' && state.orbit.periapsis > 535 && state.orbit.apoapsis < 40000) { safe = true; break; }
     if (!pulsed) await page.waitForTimeout(50);
   }
   await page.keyboard.up('Space');
