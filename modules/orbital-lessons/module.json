@@ -33,7 +33,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "a8a6a60d57e32c210ad7f740ea3f75d3757a97019476bfda03abb80b220c04d8"
+    "inputsDigest": "f8821bb81a0891e99773d6f9514b7fbf0f0675736f28c996b5be50428274a319"
   },
   "compatibility": {
     "deterministic": true,
@@ -132,7 +132,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "a14c42aaa050f2becb5010516f034703ec3ebdba3796d7600b129a814a1462ab",
+      "sha256": "5539b0e4f3b78a66b4adfb47c3a34ddab6ff405e8a12520fda10bcb5fb466f69",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -210,7 +210,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "2e524e1c5eb7ff12082c8f8cfe1843f2eaa501d5b25f4d70a017fb144216934a",
+      "sha256": "c22cf4c28ea0d8abc0105585f0c9b95438fa0ca172a3e587887e9c1bfba439c1",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -306,7 +306,7 @@
     },
     {
       "path": "game-api/transfers.ts",
-      "sha256": "c354d80dad93289fd21556ebc2cb5fff813441c1a60af7b8e75bf91f3824f861",
+      "sha256": "a624df7d522bc86436dc2ba8543663bd77c5e32bcab2afabff584397585f1706",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -372,7 +372,7 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "c4d355194989d5a4074c282c636550aa46bfcc9b884822619aba2c53d0f07bc9",
+      "sha256": "efdb52c96167a26576e28cf32ce1c45079b7520d9c08dbe31c7037a4ee14ff5d",
       "license": "MIT",
       "attribution": "Spacelab first-party Orbital mechanics course. Copyright 2026 Spacelab Contributors. MIT license; see LICENSE.\n"
     }

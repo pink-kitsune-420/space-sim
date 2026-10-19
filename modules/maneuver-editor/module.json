@@ -92,7 +92,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "01f6ba4574b96bfa1221641cefe0b43ce7210ac834e46c56321199fdaa874c6a"
+    "inputsDigest": "127fabac503fdd877d9a7755ee4339c629d77cf8d1f82371dbf8d3c8af01081d"
   },
   "compatibility": {
     "deterministic": true,
@@ -183,7 +183,7 @@
     },
     {
       "path": "game-api/index.ts",
-      "sha256": "6f559f0da08a3911b5ba040ddaf3c0205c9176de62f3fd5b417fbdc1249a055f",
+      "sha256": "f5af22cdd8dc018d5c31b065361b3f1ece016a3ff18660723e8406c6d22ebb48",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -375,7 +375,13 @@
     },
     {
       "path": "game-api/transfers.ts",
-      "sha256": "c354d80dad93289fd21556ebc2cb5fff813441c1a60af7b8e75bf91f3824f861",
+      "sha256": "a624df7d522bc86436dc2ba8543663bd77c5e32bcab2afabff584397585f1706",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/tutorials.ts",
+      "sha256": "17596e38ac2993dbf0721f835b036128f7cf6d6ee70314ad536d3236b82d1ab1",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -459,7 +465,7 @@
     },
     {
       "path": "src/transfers.ts",
-      "sha256": "aad05f04ad016a037de91c94deb42c660177dbaacecef496342babc1424ea47a",
+      "sha256": "fae059e38170ff79ffb3a8adb270ce0425dff89749db3707a997cbc07c60e4ff",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     }

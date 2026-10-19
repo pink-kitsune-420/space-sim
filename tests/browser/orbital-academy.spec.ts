@@ -124,7 +124,7 @@ test('recognizes a generated two-node transfer while flight remains paused', asy
   const dx = r * Math.cos(angle) - d.position.x, dy = r * Math.sin(angle) - d.position.y, c = Math.cos(d.camera.rotation), s = Math.sin(d.camera.rotation);
   await page.mouse.click(box.x + box.width / 2 + (c * dx - s * dy) * d.camera.scale, box.y + box.height / 2 - (s * dx + c * dy) * d.camera.scale);
   await expect(page.locator('#maneuver-window')).toBeVisible();
-  await page.locator('#maneuver-transfers > summary').click();
+  await page.locator('#maneuver-transfers-tab').click();
   await page.locator('#maneuver-transfer-low').fill('1536'); await page.locator('#maneuver-transfer-find').click();
   await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
   await page.locator('#maneuver-transfer-use-efficient').click();
