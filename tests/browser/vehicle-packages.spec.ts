@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { cp, mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { rolldown } from 'rolldown';
@@ -7,10 +7,16 @@ import { buildPortableModule } from '../../packages/module-tools/package.mjs';
 // Keep fixed physical pixel probes independent of the browser device preset.
 test.use({ deviceScaleFactor: 1 });
 let directory:string,script:string,bundles:any[];
+let airlessBodies: { id: string; name: string; radius: number; color?: string; accentColor?: string; atmosphereColor?: string }[];
 test.beforeAll(async()=>{
   const bundle=await rolldown({input:'tests/fixtures/vehicle-host.ts',platform:'browser'});
   try{script=(await bundle.generate({format:'iife',name:'VehicleHost',exports:'named'})).output[0]!.code;}finally{await bundle.close();}
   directory=await mkdtemp(join(tmpdir(),'vehicle-browser-'));bundles=[];
+  airlessBodies=[];
+  for(const path of ['sandbox/default','astronomy/solar-system','astronomy/full-solar-system']){
+    const universe=JSON.parse(await readFile(`games/space-sim/universes/${path}/universe.json`,'utf8'));
+    airlessBodies.push(universe.systems.flatMap((system:any)=>system.bodies).find((body:any)=>body.name===(path==='sandbox/default'?'Parvus':'Moon')));
+  }
   for(const name of ['vehicle-trainer','appearance-trainer','input-actions','player-controller','input-keyboard','input-touch','input-gamepad','camera-follow','local-views','render-canvas','render-webgl','shaders-vector','session-flight']){
     const source=join(directory,name);await cp(resolve('modules',name),source,{recursive:true});
     const built=await buildPortableModule(join(source,'module.json'),join(directory,`${name}.spacemod`),{typecheck:false,shippedBuild:true});
@@ -88,4 +94,30 @@ for(const renderer of ['canvas','webgl'] as const)test(`shared trainer vector da
     drawing.dispose();const unchanged=JSON.stringify(h.saveWorld(f.world))===before;f.candidate.dispose();f.world.dispose();return{trainer,flame,mixed,background,absent,marker,unchanged};
   },renderer);
   expect(result.unchanged).toBe(true);expect(result.trainer).not.toEqual(result.absent);expect(result.mixed).not.toEqual(result.background);expect(result.flame).not.toEqual(result.background);expect(result.marker).not.toEqual(result.background);
+});
+
+for(const renderer of ['canvas','webgl'] as const)test(`airless bundled moons have no orbital or surface atmosphere while lit worlds retain daylight with ${renderer}`,async({page})=>{
+  await load(page);
+  const results=await page.evaluate(({renderer,bodies})=>{
+    const f=(window as any).vehicle,h=f.h,canvas=document.getElementById('canvas') as HTMLCanvasElement;
+    const provider=f.get(renderer==='canvas'?h.CANVAS_DRAWING:h.WEBGL_DRAWING),shaders=f.get(h.VECTOR_SHADERS).defaults;
+    const drawing=renderer==='canvas'?provider.create(canvas):provider.create(canvas,shaders);
+    const pixel=(x:number,y:number)=>{if(renderer==='canvas')return Array.from(canvas.getContext('2d')!.getImageData(x,y,1,1).data);const gl=canvas.getContext('webgl2')!,bytes=new Uint8Array(4);gl.readPixels(x,canvas.height-y-1,1,1,gl.RGBA,gl.UNSIGNED_BYTE,bytes);return Array.from(bytes);};
+    const results=[];
+    for(const source of bodies)for(const surface of [false,true]){
+      const body={id:source.id,name:source.name,radius:source.radius,position:{x:0,y:0},color:source.color,accentColor:source.accentColor,atmosphereColor:source.atmosphereColor,sunDirection:{x:1,y:0}};
+      const camera={center:{x:0,y:surface?body.radius:0},rotation:0,scale:surface?2560/body.radius:70/body.radius};
+      const draw=(atmosphereColor:string)=>drawing.drawScene({time:0,camera,bodies:[{...body,atmosphereColor}],showScale:false,showBodyLabels:false});
+      draw(body.atmosphereColor!);const airless=pixel(160,surface?110:47),day=pixel(190,120),night=pixel(130,120);
+      draw('#00000000');const vacuum=pixel(160,surface?110:47);
+      draw('#48cae480');const atmospheric=pixel(160,surface?110:47);
+      results.push({name:body.name,surface,airless,vacuum,atmospheric,day,night});
+    }
+    drawing.dispose();f.candidate.dispose();f.world.dispose();return results;
+  },{renderer,bodies:airlessBodies});
+  for(const result of results){
+    expect(result.airless).toEqual(result.vacuum);
+    expect(result.atmospheric).not.toEqual(result.vacuum);
+    if(!result.surface)expect(result.day.slice(0,3).some((channel,index)=>channel>result.night[index]!+3)).toBe(true);
+  }
 });

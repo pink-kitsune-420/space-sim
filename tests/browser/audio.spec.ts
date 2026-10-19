@@ -3,10 +3,11 @@ import { test, expect, type Page } from '@playwright/test';
 import { useCanvas } from '../helpers/canvas';
 import { openPanel, closePanel } from '../helpers/workspace';
 import { resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 declare global {
-  interface Window { audioProbe: { contexts: AudioContext[]; meters: AnalyserNode[]; tones: OscillatorNode[]; peak: number;
+  interface Window { audioProbe: { contexts: AudioContext[]; meters: AnalyserNode[]; tones: OscillatorNode[]; bursts: AudioBufferSourceNode[]; peak: number;
     nativeConnect: typeof AudioNode.prototype.connect } }
 }
 
@@ -27,7 +28,7 @@ async function meter(page: Page): Promise<void> {
   await useCanvas(page);
   await page.addInitScript(() => {
     const connect = AudioNode.prototype.connect;
-    window.audioProbe = { contexts: [], meters: [], tones: [], peak: 0, nativeConnect: connect };
+    window.audioProbe = { contexts: [], meters: [], tones: [], bursts: [], peak: 0, nativeConnect: connect };
     const meters = new Map<BaseAudioContext, AnalyserNode>();
     AudioNode.prototype.connect = function (this: AudioNode, target: AudioNode | AudioParam, ...rest: number[]) {
       const tap = meters.get(this.context);
@@ -39,6 +40,11 @@ async function meter(page: Page): Promise<void> {
         const tone = super.createOscillator();
         window.audioProbe.tones.push(tone);
         return tone;
+      }
+      override createBufferSource(): AudioBufferSourceNode {
+        const burst = super.createBufferSource();
+        window.audioProbe.bursts.push(burst);
+        return burst;
       }
       constructor(options?: AudioContextOptions) {
         super(options);
@@ -154,8 +160,8 @@ test('hidden tabs suspend sound without replaying the held engine on return', as
   await expect.poll(() => rms(page)).toBeLessThan(.0001);
 });
 
-for (const terrain of [false, true]) {
-test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one audible thud and stays quiet while landed`, async ({ page }) => {
+for (const terrain of [false, true]) for (const attitude of ['upright', 'side-on', 'side-on-god'] as const) {
+test(`a gentle ${attitude} contact on ${terrain ? 'terrain' : 'a smooth planet'} plays one audible cue and stays quiet at rest`, async ({ page }) => {
   await meter(page);
   await page.goto('/');
   const universe = { schemaVersion: 1, id: 'audio-landing', name: 'Audio landing', defaultSystemId: 'test',
@@ -165,13 +171,14 @@ test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one
         pads: [{ id: 'pad', angleRadians: Math.PI / 2, widthMetres: 4, elevationMetres: 0 }] } } : {}) }],
       presets: [{ id: 'pad', name: 'Pad', bodyId: 'rock', kind: 'landed' },
         { id: 'descent', name: 'Gentle descent', bodyId: 'rock', kind: 'state', position: [0, 10.5],
-          velocity: [0, -.5], headingRadians: Math.PI / 2 }] }] };
+          velocity: [0, -.5], headingRadians: attitude === 'upright' ? Math.PI / 2 : 0 }] }] };
   await page.locator('#universe-file').setInputFiles({ name: 'landing.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(universe)) });
   await expect(page.locator('#status')).toHaveText('LANDED');
   await closePanel(page);
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
   await expect.poll(() => page.evaluate(() => window.audioProbe.contexts.at(-1)?.state)).toBe('running');
-  const before = await page.evaluate(() => window.audioProbe.tones.length);
+  if (attitude === 'side-on-god') { await openPanel(page, 'settings'); await page.locator('#god-mode').check(); await closePanel(page); }
+  const before = await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length);
   await page.evaluate(async () => {
     const tap = window.audioProbe.meters.at(-1)!;
     // Latch the real signal in the audio thread: a short thud can finish while
@@ -209,13 +216,24 @@ test(`a gentle touchdown on ${terrain ? 'terrain' : 'a smooth planet'} plays one
     select.value = 'descent'; select.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await expect(page.locator('#status')).toHaveText('FLYING');
-  await expect(page.locator('#status')).toHaveText('LANDED');
+  await expect(page.locator('#status')).toHaveText(attitude === 'side-on' ? 'CRASHED' : 'LANDED');
   await expect.poll(() => page.evaluate(() => window.audioProbe.peak)).toBeGreaterThan(.01);
   if (terrain) await expect.poll(async () => (await debug(page)).contact?.time).toEqual(expect.any(Number));
-  expect(await page.evaluate(() => window.audioProbe.tones.length)).toBe(before + 1);
+  expect(await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length)).toBe(before + 1);
   await page.waitForTimeout(350);
-  expect(await page.evaluate(() => window.audioProbe.tones.length)).toBe(before + 1);
+  expect(await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length)).toBe(before + 1);
   await expect.poll(() => rms(page)).toBeLessThan(.0001);
+  // A restored contact establishes a baseline; resuming emits only its normal cue.
+  const voices = await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length);
+  await openPanel(page, 'fleet');
+  const download = page.waitForEvent('download'); await page.locator('#save-world').click();
+  const bytes = await readFile(await (await download).path());
+  await page.locator('#world-file').setInputFiles({ name: 'contact.spaceuniverse', mimeType: 'application/zip', buffer: bytes });
+  await expect(page.locator('#flight-message')).toContainText('Universe loaded');
+  expect(await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length)).toBe(voices);
+  await closePanel(page); await page.locator('#pause').click();
+  await page.waitForTimeout(350);
+  expect(await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length)).toBe(voices + 1);
 });
 }
 
