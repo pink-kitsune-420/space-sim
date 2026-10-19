@@ -25,6 +25,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Require verified current main commit
         id: verified
         uses: actions/github-script@v8
@@ -34,20 +37,15 @@ jobs:
             const main = await github.rest.repos.getBranch({ owner, repo, branch: 'main' });
             const sha = context.eventName === 'workflow_run' ? context.payload.workflow_run.head_sha : context.sha;
             if (sha !== main.data.commit.sha) throw new Error('Only the current main commit can deploy.');
-            const runs = await github.rest.actions.listWorkflowRuns({ owner, repo, workflow_id: 'checks.yml', head_sha: sha, status: 'completed', per_page: 100 });
-            if (!runs.data.workflow_runs.some(run => run.head_branch === 'main' && run.conclusion === 'success' && run.event !== 'pull_request')) {
-              throw new Error('This main commit has not passed Build and flight checks.');
-            }
-            core.setOutput('sha', sha);
-      - uses: actions/checkout@v7
+            await require('./.github/scripts/verified-build.cjs')({ github, context, core,
+              sha, branch: 'main', attempts: 1 });
+      - name: Download tested site
+        uses: actions/download-artifact@v8
         with:
-          ref: ${{ steps.verified.outputs.sha }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.23.2'
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+          name: browser-build
+          run-id: ${{ steps.verified.outputs.run-id }}
+          github-token: ${{ github.token }}
+          path: .
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

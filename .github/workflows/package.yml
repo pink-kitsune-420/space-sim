@@ -7,11 +7,28 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
+
+concurrency:
+  group: package-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   verify:
-    uses: ./.github/workflows/checks.yml
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    outputs:
+      run-id: ${{ steps.build.outputs.run-id }}
+      sha: ${{ steps.build.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reuse successful checks for this exact commit
+        id: build
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await require('./.github/scripts/verified-build.cjs')({ github, context, core });
 
   package-desktop:
     needs: verify
@@ -39,7 +56,13 @@ jobs:
           node-version: '22.23.2'
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - name: Download tested distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: browser-build
+          run-id: ${{ needs.verify.outputs.run-id }}
+          github-token: ${{ github.token }}
+          path: .
       - run: npm run build:game-exe
       - run: npm run build:server-exe
       - uses: actions/upload-artifact@v4
@@ -52,70 +75,74 @@ jobs:
             dist-server/NODE-LICENSE.txt
           if-no-files-found: error
 
-  package-web-offline:
-    needs: verify
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.23.2'
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: space-sim-offline-html
-          path: |
-            dist/space-lab-offline.html
-            dist/space-lab-browser.zip
-            dist/space-sim.spacegame
-            dist/space-sim.spaceuniverse
-            dist/universes/
-
   package-android:
     needs: verify
     runs-on: ubuntu-24.04
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.23.2'
-          cache: npm
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
       - run: npm ci
-      - run: npm run build
+      - name: Download tested distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: browser-build
+          run-id: ${{ needs.verify.outputs.run-id }}
+          github-token: ${{ github.token }}
+          path: .
       - uses: gradle/actions/setup-gradle@v4
-      - name: Build Android APK via packaging tool
-        run: node scripts/package.mjs --target=android
+      - name: Stage tested web assets
+        run: |
+          rm -rf android/app/src/main/assets/public
+          mkdir -p android/app/src/main/assets/public
+          cp -a dist/. android/app/src/main/assets/public/
+      - name: Build Android APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+      - name: Verify Android embeds the tested offline player
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          with ZipFile('android/app/build/outputs/apk/debug/app-debug.apk') as apk:
+              assert apk.read('assets/public/space-lab-offline.html') == Path('dist/space-lab-offline.html').read_bytes()
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: space-sim-android-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-  release:
+  distribution:
     # Waits for the APK too, but still publishes the desktop builds if Android fails.
-    needs: [package-desktop, package-web-offline, package-android]
-    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.package-desktop.result == 'success' && needs.package-web-offline.result == 'success' }}
+    needs: [verify, package-desktop, package-android]
+    if: ${{ !cancelled() && needs.verify.result == 'success' && needs.package-desktop.result == 'success' }}
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
+    outputs:
+      version: ${{ steps.distribution.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: all-artifacts
+      - name: Download tested web distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: browser-build
+          run-id: ${{ needs.verify.outputs.run-id }}
+          github-token: ${{ github.token }}
+          path: verified-build
       - name: Prepare Release Distribution Files
         id: distribution
+        env:
+          BUILD_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('snapshot-{0}', github.sha) }}
         run: |
           mkdir -p release-files
-          TAG="${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}"
+          TAG="$BUILD_TAG"
 
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
@@ -169,16 +196,16 @@ jobs:
           fi
 
           # Offline Web & Bundles
-          if [ -f all-artifacts/space-sim-offline-html/space-lab-offline.html ]; then
-            cp all-artifacts/space-sim-offline-html/space-lab-offline.html "release-files/space-lab-${TAG}-offline.html"
+          if [ -f verified-build/dist/space-lab-offline.html ]; then
+            cp verified-build/dist/space-lab-offline.html "release-files/space-lab-${TAG}-offline.html"
           fi
-          cp all-artifacts/space-sim-offline-html/space-lab-browser.zip "release-files/spacelab-${TAG}-itch.zip"
+          cp verified-build/dist/space-lab-browser.zip "release-files/spacelab-${TAG}-itch.zip"
           cp LICENSE CREDITS.md release-files/
-          find all-artifacts/space-sim-offline-html -maxdepth 1 -name "*.spacegame" -exec cp {} release-files/ \;
-          find all-artifacts/space-sim-offline-html -maxdepth 1 -name "*.spaceuniverse" -exec cp {} release-files/ \;
+          find verified-build/dist -maxdepth 1 -name "*.spacegame" -exec cp {} release-files/ \;
+          find verified-build/dist -maxdepth 1 -name "*.spaceuniverse" -exec cp {} release-files/ \;
 
-          if [ -d all-artifacts/space-sim-offline-html/universes ]; then
-            tar -czf "release-files/space-sim-universes-${TAG}.tar.gz" -C all-artifacts/space-sim-offline-html universes
+          if [ -d verified-build/dist/universes ]; then
+            tar -czf "release-files/space-sim-universes-${TAG}.tar.gz" -C verified-build/dist universes
           fi
 
           # Android APK (debug-signed, for sideloading)
@@ -201,12 +228,40 @@ jobs:
           cd release-files
           sha256sum * > SHA256SUMS.txt
           ls -lh
-      - name: Publish or Update GitHub Release
+      - name: Verify prepared downloads
+        env:
+          BUILD_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('snapshot-{0}', github.sha) }}
+        run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: release-files/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: distribution
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-files
+          path: release-files
+      - name: Verify downloads after artifact transfer
+        env:
+          BUILD_TAG: ${{ github.ref_name }}
+        run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG"
+      - name: Publish verified downloads
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v0.1.0' }}
-          name: ${{ steps.distribution.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ needs.distribution.outputs.version }}
           prerelease: true
           files: release-files/*
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
