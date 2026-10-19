@@ -1,3 +1,6 @@
+import { createDockButton } from './dock';
+export { createActionDock } from './dock';
+export type { DockAction, ActionDock } from './dock';
 import { WINDOW_SHELL, WINDOWS, type Disposable, type ModuleInitializationV2, type WindowChrome, type WindowShellOptions, type WindowPanelSpec, type WindowSystem, type WindowShellFactory } from '@space-sim/game-api';
 const ESCAPE_TOGGLE_WAIT_MS = 300;
 /**
@@ -163,14 +166,8 @@ export class Workspace {
   }
 
   private dockItem(controls: string, label: string, window: WindowChrome, hint: string, activate: () => void, panel?: string): HTMLButtonElement {
-    const item = this.document.createElement('button');
-    item.type = 'button';
-    item.className = 'dock-item';
+    const item = createDockButton(this.document, this.windowsService.icon(window.icon), label, hint, controls);
     if (panel) item.dataset.workspace = panel;
-    item.title = `${label}: ${hint}`;
-    item.setAttribute('aria-label', label);
-    item.setAttribute('aria-controls', controls);
-    item.innerHTML = this.windowsService.icon(window.icon); const caption = this.document.createElement('span'); caption.textContent = label; item.append(caption);
     const controller=new (this.document.defaultView?.AbortController ?? AbortController)();
     item.addEventListener('click', activate, {signal:controller.signal});
     const sync = (): void => {

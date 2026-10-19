@@ -5,7 +5,7 @@
     "apiVersion": "space-sim-game-api/2",
     "id": "spacelab.ui-shell",
     "name": "Window shell and dock",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "kind": "provider",
     "environments": [
       "browser",
@@ -48,7 +48,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "d6d3e2a682c48f6d92b84c1a526a465d8efdd8d66274e762253b6c33b51f69a2"
+    "inputsDigest": "e606b2eb695c89b54d694e0e6407216de4bae8bc59da6ea81fe031eb39ada7b6"
   },
   "compatibility": {
     "deterministic": true,
@@ -115,7 +115,7 @@
     },
     {
       "path": "game-api/flight-view.ts",
-      "sha256": "908d5d09c0a8df89c31ca8cd63a02d1bb4533585e1023ae1354e4e9dc9bb73a3",
+      "sha256": "0ee14d49c4ed4775213f24a8a59c0343d24c770054bb75a9facdd5d14946fbe6",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -145,7 +145,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "48335619dc86869a0f9565a19f1a3c87eae69a1fddbc4e4f7e4e80c526796825",
+      "sha256": "e99a325f9ee19b604ea7e8c9602a4ee4857f21f4c39af78da87489061c00d118",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -163,7 +163,7 @@
     },
     {
       "path": "game-api/mod-menu.ts",
-      "sha256": "2302c62006aa037258b3af0f7945ae63e70368c005fcdaa045bd54b827794328",
+      "sha256": "fe65181295bd280dd6b857cfb4eb7350645e3098e0810ecd1de78a3e9712db64",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -217,7 +217,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "4a4a3ba2a6e658220413b278323f884d6d574fcc710e1b9ffbc8759801a2cda5",
+      "sha256": "b86fbe26396f75f69c73db349c394bca440643f95750b2fe3d3bd729c4c77818",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -360,8 +360,14 @@
       "attribution": "Space Sim first-party public API"
     },
     {
+      "path": "src/dock.ts",
+      "sha256": "124750551faac773f1a6d6fe282eb73cb7501fd517c5f8fa2c2e592779c3bd89",
+      "license": "MIT",
+      "attribution": "Space Sim first-party optional shared window shell and dock. Licensed under MIT.\n"
+    },
+    {
       "path": "src/index.ts",
-      "sha256": "f1712ce1137ae6e82d593bb5efde5987bd0280de1aa718e07018a1b3e2ef6372",
+      "sha256": "902bff386cba8c5058ad8cd5cc3a152ec5d9e3b66bed1006197ea29196613280",
       "license": "MIT",
       "attribution": "Space Sim first-party optional shared window shell and dock. Licensed under MIT.\n"
     }

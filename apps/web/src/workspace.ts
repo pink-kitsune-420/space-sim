@@ -24,7 +24,7 @@ export class Workspace extends SharedWorkspace {
  constructor(release:()=>void,onClose?:()=>void) {
   super({create:options=>new FloatingWindow(options),icon},{
    viewport:document.querySelector<HTMLElement>('#flight-console .viewport')!,overlayRoot:document.body,
-   groups:GROUPS.map(group=>group.map(spec=>({...spec,global:spec.id==='library',content:spec.sources.map(selector=>document.querySelector<HTMLElement>(selector)!)}))),
+   groups:GROUPS.map(group=>group.map(spec=>({...spec,global:spec.id==='library'||spec.id==='manual',content:spec.sources.map(selector=>document.querySelector<HTMLElement>(selector)!)}))),
    instrumentToggle:document.getElementById('chat-toggle') ?? undefined,release,onClose,
    focus(){const orbit=!document.getElementById('orbit-sandbox-workspace')?.hidden;(orbit?document.getElementById('orbit-canvas'):element('flight-view'))?.focus({preventScroll:true});},
    captureEscape(event){const controls=document.getElementById('controls-dialog') as HTMLDialogElement|null;return !!(controls?.open || event.target instanceof Node&&controls?.contains(event.target));},

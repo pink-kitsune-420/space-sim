@@ -423,7 +423,7 @@ function executeChatCommand(cmdStr: string): void {
       logChatMessage('system', '/spawn [preset] — Spawn a new vessel');
       logChatMessage('system', '/split [force|dynamic|1-4] — Toggle or configure split screen mode');
       logChatMessage('system', '/clear — Clear chat messages');
-      logChatMessage('system', 'Tip: Hold Alt and drag in space (or press T / click "Throw") to sling your ship into orbit!');
+      logChatMessage('system', 'Tip: Press T or click "Throw", then drag in space to sling your ship into orbit!');
       break;
     }
     case 'clear': {
@@ -476,7 +476,7 @@ function executeChatCommand(cmdStr: string): void {
       const sub = args[0]!.toLowerCase();
       if (sub === 'on' || sub === 'enable' || sub === 'true' || sub === '1') {
         setThrowCheat(true);
-        logChatMessage('success', 'Throw / orbit cheat ENABLED. Drag with Alt or press T to sling ship.');
+        logChatMessage('success', 'Throw / orbit cheat ENABLED. Press T, then drag to sling your ship.');
         return;
       }
       if (sub === 'off' || sub === 'disable' || sub === 'false' || sub === '0') {
@@ -4913,7 +4913,6 @@ moduleManager = new ModuleManager(presentation, {
   },
 });
 function switchToOrbitSandbox(): void {
-  if (orbitSandboxInstance?.isOpen()) return;
   moduleManager?.devices.clear();
   setPaused(true, 'Playing Orbit Sandbox');
   const flightConsole = document.getElementById('flight-console');
@@ -4924,6 +4923,7 @@ function switchToOrbitSandbox(): void {
   if (!orbitSandboxInstance) {
     orbitSandboxInstance = initOrbitSandbox({
       inputEnabled: () => !workspace.isOpen,
+      onOpenManual: () => workspace.open('manual'),
       onOpenMenu: () => {
         workspace.open('library');
       },
@@ -4935,6 +4935,7 @@ function switchToOrbitSandbox(): void {
       },
     });
   }
+  orbitSandboxInstance.reset();
   orbitSandboxInstance.start();
   activeGameInfo = { ...orbitSandboxGame.info };
   show('active-game', orbitSandboxGame.info.name);

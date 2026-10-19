@@ -1,3 +1,4 @@
+@import '../../../modules/ui-shell/assets/shell.css';
 @import '../../../modules/ui-windows/assets/windows.css';
 @import '../../../packages/render-2d/src/theme.css';
 
@@ -914,3 +915,14 @@ input[type="color"] {
 .sandbox-warp-controls { flex-wrap:wrap; }
 .sandbox-warp-status { flex-basis:100%; max-width:280px; font-size:11px; color:var(--accent-amber); }
 .sandbox-debug-limiter { margin:8px 0; color:var(--accent-amber); }
+
+.sandbox-warp-label { font-size:11px; color:var(--text-muted); }
+#sandbox-warp-factor { width:102px; min-height:32px; padding:4px 7px; border:1px solid var(--ui-win-border); border-radius:6px; background:var(--ui-win-card-bg); color:var(--ui-win-accent); text-align:left; }
+.sandbox-warp-keys { font-size:10px; color:var(--text-muted); white-space:nowrap; }
+
+.sandbox-dock.hud-dock { top:calc(var(--sandbox-header-height, 100px) + 10px); max-height:calc(100% - var(--sandbox-header-height, 100px) - 120px); }
+.sandbox-dock .dock-item { cursor:pointer; }
+@media(max-width:650px) {
+  .sandbox-dock.hud-dock { top:calc(var(--sandbox-header-height, 180px) + 6px); max-height:48px; }
+  .sandbox-dock .dock-item { min-height:32px; }
+}

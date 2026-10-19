@@ -68,6 +68,24 @@ test('portable layout and visibility restore borrowed DOM and preferences withou
  expect(result).toMatchObject({hidden:true,writes:0,editing:false,restored:'',handles:0,controls:0,visible:true,revisionUnchanged:true,rootClass:false,observers:0,styles:0});expect(result.translate[0]).toBe(12);expect(result.translate[1]??0).toBe(0);expect(JSON.parse(result.saved).box.x).toBeGreaterThan(0);
  expect(result.fit.x>=120||result.fit.x+result.fit.width<=20||result.fit.y>=60||result.fit.y+result.fit.height<=20).toBe(true);
 });
+test('game action docks retain borrowed controls, render labels as text and restore ownership on disposal or failure', async ({ page }) => {
+ await setup(page);
+ const result = await page.evaluate(bundle => {
+  const api = new Function(`"use strict";${bundle.source};return SpaceSimModule;`)();
+  const root = document.querySelector('main')!, original = document.createElement('button'), detached = document.createElement('button');
+  original.textContent = 'Original'; original.className = 'original-control'; original.setAttribute('data-kept', 'yes'); root.append(original);
+  let originalClicks = 0, ownedClicks = 0; original.addEventListener('click', () => originalClicks++);
+  const action = { id: 'test', label: '<img src=x>', hint: 'Action', icon: 'tools', button: original, activate: () => ownedClicks++ };
+  const dock = api.createActionDock({ container: root, icon: () => '', groups: [[action, { id: 'detached', label: 'Detached', hint: 'Action', icon: 'tools', button: detached }]] });
+  original.click(); const textOnly = original.textContent === '<img src=x>' && original.querySelector('img') === null;
+  dock.dispose(); dock.dispose(); original.click();
+  const restored = original.parentNode === root && original.textContent === 'Original' && original.className === 'original-control' && original.getAttribute('data-kept') === 'yes' && !original.hasAttribute('data-dock-action') && detached.parentNode === null;
+  let failed = false; try { api.createActionDock({ container: root, icon: () => '', groups: [[action, action]] }); } catch { failed = true; }
+  return { originalClicks, ownedClicks, textOnly, restored, failed, afterFailure: original.parentNode === root && original.textContent === 'Original', docks: root.querySelectorAll('.hud-dock').length };
+ }, shellBundle);
+ expect(result).toEqual({ originalClicks: 2, ownedClicks: 1, textOnly: true, restored: true, failed: true, afterFailure: true, docks: 0 });
+});
+
 test('portable dock leases restore borrowed content and stop callbacks on removal or failed creation',async({page})=>{
  await setup(page);
  await page.evaluate(shellBundle=>{

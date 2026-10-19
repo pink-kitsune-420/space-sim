@@ -24,11 +24,11 @@
         <button id="btn-play-pause" class="btn" title="Pause / resume [P or Space]" aria-pressed="false"><span id="play-icon">Pause</span></button>
         <div class="sandbox-warp-controls" role="group" aria-label="Time warp">
           <button id="sandbox-warp-down" class="btn" title="Decrease time warp [ or ," aria-label="Decrease time warp">−</button>
-          <output id="sandbox-warp-factor" aria-label="Time warp factor">1×</output>
+          <label class="sandbox-warp-label" for="sandbox-warp-factor">Warp</label><select id="sandbox-warp-factor" aria-label="Time warp factor" title="Choose any warp speed; [ / ] or , / . step; / resets"></select>
           <span id="sandbox-warp-status" class="sandbox-warp-status" role="status" hidden></span>
           <button id="sandbox-warp-up" class="btn" title="Increase time warp ] or ." aria-label="Increase time warp">+</button>
           <button id="sandbox-warp-reset" class="btn" title="Real time [/]">1×</button>
-          <button id="sandbox-warp-slow" class="btn" title="Slow motion">0.2×</button>
+          <span class="sandbox-warp-keys" title="Warp shortcuts">[ / ] · , / . · / reset</span>
         </div>
       </div>
 
@@ -55,7 +55,7 @@
         <button id="btn-toggle-grid" class="btn btn-pill active" title="Toggle Navigation Grid [G]">
           <span class="icon">⊞</span> Grid <span class="hotkey">G</span>
         </button>
-        <button id="btn-reset" class="btn btn-secondary" title="Reset to default Primus solar system">Reset</button>
+        <button id="btn-reset" class="btn btn-secondary" title="Reset to default Primus solar system [R]">Reset</button>
         <button id="btn-theme-open" class="btn btn-secondary" title="Customize Skybox, Procedural Nebulas, Grids & Timers">🎨 Theme</button>
         <button id="btn-testing-open" class="btn btn-secondary" title="Open Testing Lab & Physics Benchmarks [T]">🧪 Testing Lab</button>
         <button id="btn-export-open" class="btn btn-primary" title="Export universe to Space Sim">Export Universe</button>

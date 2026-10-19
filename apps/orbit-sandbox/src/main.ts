@@ -1,7 +1,8 @@
+import { createActionDock, type DockAction } from '../../../modules/ui-shell/src/index';
 import { createWindows } from '../../../modules/ui-windows/src/index';
 import type { WindowSystem } from './spacelab/game-api';
 import { advanceSandboxFrame, sustainableWarp, SANDBOX_MAX_WARP } from './simulation-clock';
-import { nextWarpFactor } from './spacelab/sim-core';
+import { nextWarpFactor, WARP_FACTORS } from './spacelab/sim-core';
 import { decodeUniverse } from './spacelab/game-library';
 import type { Vec } from './spacelab/sim-core';
 import { createDefaultSolarSystem, instantiateBody, PRESET_TEMPLATES, createRingBelt } from './presets';
@@ -17,6 +18,7 @@ export interface OrbitSandboxOptions {
   windows?: WindowSystem;
   inputEnabled?: () => boolean;
   onOpenMenu?: () => void;
+  onOpenManual?: () => void;
   onLaunchInSpaceSim?: (universe: UniverseDefinition) => void;
 }
 
@@ -85,10 +87,11 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   const btnDeleteBody = document.getElementById('btn-delete-body') as HTMLButtonElement;
   const btnCloseInspector = document.getElementById('btn-close-inspector') as HTMLButtonElement;
   const sandboxRoot = canvas.parentElement!;
-  const inspectorWindow = (options?.windows ?? createWindows()).create({
+  const windows = options?.windows ?? createWindows();
+  const inspectorWindow = windows.create({
     id: 'sandbox-inspector', title: 'Planet inspector', icon: 'tools', container: sandboxRoot,
     className: 'sandbox-inspector-window',
-    place: (container, panel) => ({ x: container.clientWidth - panel.offsetWidth - 16, y: (document.querySelector('.sandbox-header')?.clientHeight ?? 56) + 12 }),
+    place: (container, panel) => ({ x: container.clientWidth - panel.offsetWidth - (container.clientWidth > 650 ? 90 : 16), y: (document.querySelector('.sandbox-header')?.clientHeight ?? 56) + (container.clientWidth > 650 ? 12 : 58) }),
     decorate: panel => applyHudThemeToDom(getActiveTheme(), panel),
     onCloseButton: () => closeInspector(),
   });
@@ -548,7 +551,9 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   // --- Keyboard Shortcuts ---
   window.addEventListener('keydown', (e: KeyboardEvent) => {
     if (!isStarted || document.getElementById('orbit-sandbox-workspace')?.hidden || options?.inputEnabled?.() === false) return;
-    if ((e.target as HTMLElement)?.closest('input, select, textarea, button, summary, a, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if ((e.target as HTMLElement)?.closest('input, select, textarea, summary, a, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    // Space/Enter keep native button activation; warp keys work after toolbar clicks.
+    if ((e.target as HTMLElement)?.closest('button') && (e.code === 'Space' || e.code === 'Enter')) return;
 
     if (e.key === 'Escape') {
       e.stopPropagation();
@@ -587,6 +592,8 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
       e.preventDefault(); changeWarp(-1);
     } else if (e.code === 'Slash') {
       e.preventDefault(); setWarp(1);
+    } else if (e.code === 'KeyR') {
+      e.preventDefault(); resetWorld();
     } else if (e.code === 'KeyC') {
       toggleCircularize();
     } else if (e.code === 'KeyO') {
@@ -633,7 +640,11 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   btnPlayPause?.addEventListener('click', togglePlayPause);
 
   // Flight warp controls; the clock adds bounded numerical steps as warp increases.
-  const warpDisplay = document.getElementById('sandbox-warp-factor') as HTMLOutputElement;
+  const warpDisplay = document.getElementById('sandbox-warp-factor') as HTMLSelectElement;
+  for (const factor of [.2, ...WARP_FACTORS]) {
+    const option = document.createElement('option'); option.value = String(factor); option.textContent = `${factor}×`; warpDisplay.append(option);
+  }
+  warpDisplay.addEventListener('change', () => { setWarp(Number(warpDisplay.value)); canvas.focus({ preventScroll: true }); });
   const warpDown = document.getElementById('sandbox-warp-down') as HTMLButtonElement;
   const warpUp = document.getElementById('sandbox-warp-up') as HTMLButtonElement;
   const warpStatus = document.getElementById('sandbox-warp-status')!;
@@ -648,10 +659,9 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     warpStatus.hidden = !disableLimiter.checked;
     warpStatus.textContent = disableLimiter.checked ? 'CPU limiter off (debug)' : '';
     warpMultiplier = Math.max(.2, Math.min(SANDBOX_MAX_WARP, value));
-    warpDisplay.value = `${warpMultiplier}×`;
+    warpDisplay.value = String(warpMultiplier);
     warpDown.disabled = warpMultiplier <= .2;
     warpUp.disabled = warpMultiplier >= SANDBOX_MAX_WARP;
-    document.getElementById('sandbox-warp-slow')?.setAttribute('aria-pressed', String(warpMultiplier === .2));
   }
   function changeWarp(direction: -1 | 1): void {
     setWarp(direction < 0 && warpMultiplier <= 1 ? .2 : nextWarpFactor(warpMultiplier, direction, SANDBOX_MAX_WARP));
@@ -659,7 +669,6 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   warpDown?.addEventListener('click', () => changeWarp(-1));
   warpUp?.addEventListener('click', () => changeWarp(1));
   document.getElementById('sandbox-warp-reset')?.addEventListener('click', () => setWarp(1));
-  document.getElementById('sandbox-warp-slow')?.addEventListener('click', () => setWarp(.2));
   setWarp(1);
   disableLimiter.addEventListener('change', () => {
     overloadSeconds = integratedSeconds = sampledWallSeconds = 0;
@@ -683,13 +692,13 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   const btnNBody = document.getElementById('mode-nbody') as HTMLButtonElement;
   const btnFullBody = document.getElementById('mode-fullbody') as HTMLButtonElement;
 
-  function setPhysicsMode(mode: SimulationMode): void {
+  function setPhysicsMode(mode: SimulationMode, announce = true): void {
     simulationMode = mode;
     [btnKepler, btnNBody, btnFullBody].forEach(b => b?.classList.remove('active'));
     if (mode === 'kepler') btnKepler?.classList.add('active');
     if (mode === 'nbody') btnNBody?.classList.add('active');
     if (mode === 'full-body') btnFullBody?.classList.add('active');
-    showToast(`Physics Mode: ${mode.toUpperCase()}`);
+    if (announce) showToast(`Physics Mode: ${mode.toUpperCase()}`);
   }
   btnKepler?.addEventListener('click', () => setPhysicsMode('kepler'));
   btnNBody?.addEventListener('click', () => setPhysicsMode('nbody'));
@@ -749,14 +758,23 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     }
   });
 
-  // Reset & Clear
-  document.getElementById('btn-reset')?.addEventListener('click', () => {
+  // One fresh-world path for the toolbar, keyboard and library's Play action.
+  function resetWorld(): void {
     bodies = createDefaultSolarSystem();
-    closeInspector();
-    renderer.camera.center = { x: 12000, y: 0 };
-    renderer.camera.scale = 0.0075;
-    showToast('Solar system reset to default Primus');
-  });
+    simulationTimeSec = 0; isPaused = false;
+    activeCandidate = null; isSlingshotDragging = isDraggingCamera = false;
+    isCircularSnapActive = false; activeCandidatePresetId = 'oceanic';
+    renderer.hoveredBodyId = null; closeInspector();
+    renderer.camera.center = { x: 12000, y: 0 }; renderer.camera.scale = .0075; renderer.camera.rotation = 0;
+    Object.assign(fullBodyOptions, DEFAULT_FULL_BODY_OPTIONS); setPhysicsMode('full-body', false);
+    disableLimiter.checked = false; setWarp(1);
+    playIcon.textContent = 'Pause'; btnPlayPause.setAttribute('aria-pressed', 'false');
+    btnCircularizeToggle?.classList.remove('active');
+    setupPalette(); slingshotHud.classList.add('hidden');
+    for (const modal of [modalFullBody, modalExport, modalTesting]) modal.classList.add('hidden');
+    lastFrameTime = performance.now();
+  }
+  document.getElementById('btn-reset')?.addEventListener('click', () => { resetWorld(); showToast('Solar system reset to default Primus'); });
 
   document.getElementById('btn-clear')?.addEventListener('click', () => {
     bodies = [];
@@ -1079,6 +1097,22 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
 
   btnRunDiagnostics?.addEventListener('click', runBrowserDiagnostics);
 
+  // Reuse the same vector dock chrome as the flight workspace, with Sandbox actions.
+  const tools: DockAction[] = [
+    { id: 'physics', label: 'Physics', icon: 'setup', hint: 'Full Body settings', controls: 'modal-fullbody', button: btnFullBodySettings },
+    { id: 'appearance', label: 'Appearance', icon: 'settings', hint: 'Theme and graphics', button: btnThemeOpen ?? undefined },
+    { id: 'testing', label: 'Testing', icon: 'tools', hint: 'Scenarios, diagnostics and CPU limiter', controls: 'modal-testing', button: document.getElementById('btn-testing-open') as HTMLButtonElement },
+    { id: 'export', label: 'Export', icon: 'trajectory', hint: 'Export the current universe', controls: 'modal-export', button: document.getElementById('btn-export-open') as HTMLButtonElement },
+  ];
+  const general: DockAction[] = [];
+  if (btnSandboxMenu) general.push({ id: 'library', label: 'Load Game', icon: 'library', hint: 'Games and plugins', controls: 'library-window', button: btnSandboxMenu });
+  if (options?.onOpenManual) general.push({ id: 'manual', label: 'Manual', icon: 'manual', hint: 'Players and Creators help', controls: 'manual-window', activate: options.onOpenManual });
+  const dock = createActionDock({ container: sandboxRoot, groups: [tools, ...(general.length ? [general] : [])], icon: windows.icon, label: 'Orbit Sandbox tools' });
+  dock.element.classList.add('sandbox-dock');
+  const header = sandboxRoot.querySelector<HTMLElement>('.sandbox-header')!;
+  const updateHeaderHeight = () => sandboxRoot.style.setProperty('--sandbox-header-height', `${header.offsetHeight}px`);
+  new ResizeObserver(updateHeaderHeight).observe(header); updateHeaderHeight();
+
   // --- Main Simulation & Animation Loop ---
   let lastFrameTime = performance.now();
 
@@ -1130,12 +1164,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
         animFrameId = null;
       }
     },
-    reset() {
-      bodies = createDefaultSolarSystem();
-      closeInspector();
-      renderer.camera.center = { x: 12000, y: 0 };
-      renderer.camera.scale = 0.0075;
-    },
+    reset: resetWorld,
     resize() {
       resizeCanvas();
     },

@@ -38,7 +38,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "30c82ef88be0e517361f3361766a228a2438fc9aacc518c7a5d955b52c97e496"
+    "inputsDigest": "d1850fb9060fd9e0a5ef8552df7806a6821615cf85a24521f6fe4a6c0589b6fd"
   },
   "compatibility": {
     "deterministic": true,

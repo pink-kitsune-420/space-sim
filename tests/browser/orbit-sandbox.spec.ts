@@ -8,20 +8,21 @@ test('sandbox warp and pause shortcuts stay in the active game and titles follow
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?game=orbit-sandbox');
   await expect(page).toHaveTitle('Spacelab · Orbit Sandbox');
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('1×');
-  await page.locator('#orbit-canvas').focus();
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('1');
+  await page.locator('#sandbox-warp-reset').click();
   await page.keyboard.press('BracketRight');
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('2×');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('2');
   await page.keyboard.press('Period');
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('3×');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('3');
   await page.keyboard.press('Comma');
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('2×');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('2');
   await page.keyboard.press('Slash');
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('1×');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('1');
   await page.keyboard.press('KeyP');
   await expect(page.locator('#btn-play-pause')).toHaveText('Resume');
   await expect(page.locator('#btn-play-pause')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#status')).toHaveText('PAUSED');
+  await page.locator('#orbit-canvas').focus();
   await page.keyboard.press('Space');
   await expect(page.locator('#btn-play-pause')).toHaveText('Pause');
   await page.locator('#btn-play-pause').click();
@@ -30,10 +31,10 @@ test('sandbox warp and pause shortcuts stay in the active game and titles follow
     if (await page.locator('#sandbox-warp-up').isDisabled()) break;
     await page.locator('#sandbox-warp-up').click();
   }
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('100000×');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('100000');
   await expect(page.locator('#sandbox-warp-up')).toBeDisabled();
-  await page.locator('#sandbox-warp-slow').click();
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('0.2×');
+  await page.locator('#sandbox-warp-factor').selectOption('0.2');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('0.2');
   await expect(page.locator('#sandbox-warp-down')).toBeDisabled();
   await page.locator('#sandbox-warp-reset').click();
   await page.locator('#btn-testing-open').click();
@@ -61,11 +62,48 @@ test('sustained CPU overload warns and reduces sandbox warp automatically', asyn
     if (await page.locator('#sandbox-warp-up').isDisabled()) break;
     await page.locator('#sandbox-warp-up').click();
   }
-  await expect(page.locator('#sandbox-warp-factor')).toHaveText('100000×');
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('100000');
   await page.locator('#btn-play-pause').click();
-  await expect.poll(async () => Number((await page.locator('#sandbox-warp-factor').textContent())!.replace('×', '')), { timeout: 15000 }).toBeLessThan(100000);
+  await expect.poll(async () => Number(await page.locator('#sandbox-warp-factor').inputValue()), { timeout: 15000 }).toBeLessThan(100000);
   await expect(page.locator('#sandbox-warp-status')).toContainText('CPU limited');
   await expect(page.locator('#sandbox-disable-limiter')).not.toBeChecked();
+});
+
+test('new-world play, R and Reset restore the default system and Sandbox dock opens its own tools', async ({ page }) => {
+  await page.goto('/?game=orbit-sandbox');
+  const dock = page.getByRole('navigation', { name: 'Orbit Sandbox tools' });
+  await expect(dock).toBeVisible();
+  await dock.getByRole('button', { name: 'Manual', exact: true }).click();
+  await expect(page.locator('#manual-window')).toBeVisible();
+  await page.locator('#manual-search').fill('Orbit Sandbox');
+  await page.locator('#manual-close').click();
+  await dock.getByRole('button', { name: 'Physics', exact: true }).click();
+  await expect(page.locator('#modal-fullbody')).toBeVisible();
+  await page.locator('#btn-close-fullbody').click();
+  await page.locator('#btn-play-pause').click();
+  const canvas = (await page.locator('#orbit-canvas').boundingBox())!;
+  const star = { x: canvas.width / 2 - 90, y: canvas.height / 2 };
+  await page.locator('#orbit-canvas').click({ position: star });
+  await page.locator('#inp-body-name').fill('Changed star');
+  await page.locator('#sandbox-inspector-close').click();
+  await page.locator('#sandbox-warp-factor').selectOption('50');
+  await page.locator('#mode-kepler').click();
+  await dock.getByRole('button', { name: 'Load Game', exact: true }).click();
+  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Orbit Sandbox', exact: true }) }).getByRole('button', { name: 'Play · new world', exact: true }).click();
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('1');
+  await expect(page.locator('#btn-play-pause')).toHaveText('Pause');
+  await expect(page.locator('#mode-fullbody')).toHaveClass(/active/);
+  await page.locator('#orbit-canvas').click({ position: star });
+  await expect(page.locator('#inp-body-name')).toHaveValue('Lumen (Star)');
+  await page.locator('#inp-body-name').fill('Keyboard reset');
+  await page.locator('#sandbox-inspector-close').click();
+  await page.keyboard.press('KeyR');
+  await page.locator('#orbit-canvas').click({ position: star });
+  await expect(page.locator('#inp-body-name')).toHaveValue('Lumen (Star)');
+  await page.locator('#inp-body-name').fill('Button reset');
+  await page.locator('#btn-reset').click();
+  await page.locator('#orbit-canvas').click({ position: star });
+  await expect(page.locator('#inp-body-name')).toHaveValue('Lumen (Star)');
 });
 
 test('sandbox planet inspector uses shared window controls and palette fits a phone', async ({ page }, info) => {

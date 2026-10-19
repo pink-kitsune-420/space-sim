@@ -15,6 +15,10 @@
     {
       "type": "paragraph",
       "text": "Configuration: escapeToggleMs sets the minimum wall-time interval between Escape/fullscreen toggles (default 300 ms). Existing panel layout and preferences keep their defaults."
+    },
+    {
+      "type": "paragraph",
+      "text": "Game composition can also use the exported createActionDock helper for grouped game-specific actions. It shares native vector button chrome with workspace windows, can borrow existing controls without replacing their listeners, and restores those controls when its lease is disposed. A dock does not create gameplay or session services."
     }
   ]
 }

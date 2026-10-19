@@ -208,6 +208,23 @@ test('a hidden hosting tab releases guest thrust while its world keeps running',
   }
 });
 
+test('Alt drag cannot start a throw; T still arms the slingshot', async ({ page }) => {
+  await page.goto('/');
+  await openPanel(page, 'settings'); await page.locator('#throw-cheat-toggle').check();
+  await closePanel(page); await page.locator('#flight-view').focus();
+  const canvas = page.locator('#flight-view'), box = (await canvas.boundingBox())!;
+  await page.keyboard.down('Alt');
+  await canvas.dispatchEvent('pointerdown', { pointerId: 73, pointerType: 'mouse', button: 0, buttons: 1, altKey: true, clientX: box.x + box.width * .3, clientY: box.y + box.height * .4 });
+  await expect(page.locator('#flight-slingshot-hud')).toHaveClass(/hidden/);
+  await canvas.dispatchEvent('pointerup', { pointerId: 73, pointerType: 'mouse', button: 0, buttons: 0 });
+  await page.keyboard.up('Alt'); await page.locator('#flight-view').focus();
+  await page.keyboard.press('KeyT');
+  await canvas.dispatchEvent('pointerdown', { pointerId: 74, pointerType: 'mouse', button: 0, buttons: 1, clientX: box.x + box.width * .3, clientY: box.y + box.height * .4 });
+  await expect(page.locator('#flight-slingshot-hud')).not.toHaveClass(/hidden/);
+  await canvas.dispatchEvent('pointercancel', { pointerId: 74, pointerType: 'mouse', button: 0, buttons: 0 });
+  await expect(page.locator('#throw-ship-toggle')).toHaveAttribute('title', 'Slingshot Throw / Teleport mode (T, then drag)');
+});
+
 test('cancelling a guest slingshot abandons the throw without launching its ship', async ({ page }) => {
   await players(page);
   await page.locator('#split-screen-mode').selectOption('split');

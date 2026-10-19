@@ -82,6 +82,6 @@ Open your browser to `http://127.0.0.1:5174/`.
 - `C`: Toggle circularize mode on/off.
 - `O`: Toggle planetary orbit lines on/off.
 - `Delete` / `Backspace`: Delete currently selected celestial body.
-- Right-click / Middle-click / Alt-click + Drag: Pan camera.
+- Right-click / Middle-click + Drag: Pan camera.
 - Mouse Wheel: Zoom in / out centered on cursor.
 
