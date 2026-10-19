@@ -29,6 +29,12 @@ export class ManeuverMap {
     this.root = document.createElement('div');
     this.root.className = 'maneuver-map'; this.root.hidden = true;
     this.root.setAttribute('role', 'group'); this.root.setAttribute('aria-label', 'Maneuver map controls');
+    // Pointer capture survives focus changes. Cancellation must follow the active
+    // gesture too, including when moving controls cause the browser to blur them.
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape' || !this.drag) return;
+      event.preventDefault(); event.stopPropagation(); this.finish(true);
+    }, { signal, capture: true });
     const controls = [
       ['node', '◇', 'Move maneuver node along the coast; click to open editor'],
       ['prograde/1', 'P+', 'Increase prograde velocity'], ['prograde/-1', 'P−', 'Decrease prograde velocity'],
@@ -75,9 +81,6 @@ export class ManeuverMap {
         const node = actions.node(), [axis, sign] = key!.split('/'); if (!node) return;
         if (axis === 'node') actions.open();
         else actions.adjust(axis as Axis, node[axis as Axis] + Number(sign) * actions.increment());
-      }, { signal });
-      button.addEventListener('keydown', event => {
-        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); this.finish(true); }
       }, { signal });
     }
     options.container.append(this.root);
