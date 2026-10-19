@@ -96,7 +96,7 @@ test('orbit, camera, zoom, heading and sampled prediction stay coherent', async 
   await page.keyboard.down('ArrowLeft');
   await expect.poll(async () => Number(await page.locator('#heading').textContent())).toBeGreaterThan(10);
   await page.keyboard.up('ArrowLeft');
-  await openPanel(page, 'setup');
+  await closePanel(page);
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
   const before = await diagnostics(page);
@@ -105,7 +105,7 @@ test('orbit, camera, zoom, heading and sampled prediction stay coherent', async 
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
   await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Planet view' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'North up' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'North up', exact: true })).toBeVisible();
   const after = await diagnostics(page);
   expect(after.position).toEqual(before.position);
   expect(after.velocity).toEqual(before.velocity);
@@ -301,10 +301,10 @@ test('zooming out from Earth pad transitions smoothly between horizon and planet
   await openPanel(page, 'setup');
   await page.locator('#universe-select').selectOption('solar-system-universe');
   await page.locator('#preset').selectOption('earth-pad');
+  await closePanel(page);
   for (let i = 0; i < 4; i++) {
     await page.getByRole('button', { name: 'Zoom out', exact: true }).click();
   }
-  await closePanel(page);
   await page.waitForTimeout(200);
   await page.screenshot({ path: `test-results/earth-horizon-zoomout-${test.info().project.name}.png` });
 });
