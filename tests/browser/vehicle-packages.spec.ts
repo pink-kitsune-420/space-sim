@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { rolldown } from 'rolldown';
 import { buildPortableModule } from '../../packages/module-tools/package.mjs';
+// Keep fixed physical pixel probes independent of the browser device preset.
+test.use({ deviceScaleFactor: 1 });
 let directory:string,script:string,bundles:any[];
 test.beforeAll(async()=>{
   const bundle=await rolldown({input:'tests/fixtures/vehicle-host.ts',platform:'browser'});

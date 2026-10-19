@@ -1,3 +1,4 @@
+import { disableNetwork } from '../helpers/offline';
 import { test, expect, type Page } from '@playwright/test';
 import { closePanel, openPanel } from '../helpers/workspace';
 import { useCanvas } from '../helpers/canvas';
@@ -173,7 +174,7 @@ test('dragging launches without a burn button and zero throttle leaves the ship 
 });
 
 test('the offline file preserves lever thrust and keyboard takeover', async ({ page, context }) => {
-  await context.setOffline(true);
+  await disableNetwork(context);
   await page.goto(pathToFileURL(resolve('dist/space-lab-offline.html')).href);
   await closePanel(page);
   await drag(page, .3); await power(page, 30);

@@ -48,6 +48,7 @@ jobs:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
+        shard: [1, 2, 3]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -71,14 +72,14 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           if [ "${{ matrix.browser }}" = "firefox" ]; then
-            xvfb-run --auto-servernum npm run test:browser -- --project=firefox --headed
+            xvfb-run --auto-servernum npm run test:browser -- --project=firefox --headed --shard=${{ matrix.shard }}/3
           else
-            npm run test:browser -- --project=${{ matrix.browser }}
+            npm run test:browser -- --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/3
           fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: browser-evidence-${{ matrix.browser }}
+          name: browser-evidence-${{ matrix.browser }}-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
   server-executables:

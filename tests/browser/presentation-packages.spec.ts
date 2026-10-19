@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import { buildPortableModule } from '../../packages/module-tools/package.mjs';
 let directory: string;
 let bundles: Record<string, { source: string; assets: Record<string,string> }>;
-test.use({ viewport: {width:800,height:600} });
+// Pixel probes below use physical coordinates; high-DPI overlays have separate coverage.
+test.use({ viewport: {width:800,height:600}, deviceScaleFactor: 1 });
 test.beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(),'portable-viewer-browser-')); bundles = {};
   for (const name of ['render-canvas','render-webgl','shaders-vector','theme','theme-customizer','audio-procedural','audio-controls']) {

@@ -61,12 +61,18 @@ test('window styles, custom accents, effects and reset stay synchronized across 
     await expect(page.locator('#window-style-selector .theme-option-card.active')).toHaveCSS('border-top-color', accent!);
     await expect(page.locator('#throttle')).toHaveCSS('accent-color', accent!);
     await expect(page.locator('.chat-msg.system').first()).toHaveCSS('color', accent!);
-    await expect(page.locator('.key-chip').first()).toHaveCSS('color', accent!);
     const colors = await palette(page);
-    await expect(page.locator('.key-action-row').first()).toHaveCSS('background-color', colors.card);
     await expect(page.locator('.theme-checkbox-card:visible').first()).toHaveCSS('border-top-color', colors.border);
-    expect(await palette(page, '#controls-dialog')).toEqual(colors);
     expect(await palette(page, '#orbit-sandbox-workspace')).toEqual(colors);
+    // Check inherited styles when the controls are shown. WebKit caches computed
+    // values inside a closed dialog until its contents participate in layout.
+    await page.locator('#theme-close').click();
+    await page.locator('#controls-toggle').click();
+    await expect(page.locator('.key-chip').first()).toHaveCSS('color', accent!);
+    await expect(page.locator('.key-action-row').first()).toHaveCSS('background-color', colors.card);
+    expect(await palette(page, '#controls-dialog')).toEqual(colors);
+    await page.locator('#controls-close').click();
+    await openTheme(page);
   }
   await page.locator('#inp-window-color').evaluate((input: HTMLInputElement) => {
     input.value = '#a855f7';

@@ -70,12 +70,12 @@ test('declining preserves the local game; accepted data installs once and reconn
     await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused();
     await expect(dialog).toContainText('example.gentle-flight'); await expect(dialog).toContainText('Data');
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await expect(page.locator('#mp-status')).toContainText('cancelled'); expect(await localIdentity(page)).toEqual(original);
+    await expect(page.locator('#mp-status')).toContainText('cancelled'); await expect.poll(() => localIdentity(page)).toEqual(original);
     await connect(page, host.url); await expect(dialog).toBeVisible(); await dialog.getByRole('button', { name: 'Install and join', exact: true }).click();
     await expect(page.locator('.connection')).toContainText('ONLINE');
     expect((await localIdentity(page)).fingerprint).not.toBe(original.fingerprint);
     await page.locator('#leave-game').click(); await expect(page.locator('.connection')).toContainText('LOCAL FLIGHT');
-    expect(await localIdentity(page)).toEqual(original);
+    await expect.poll(() => localIdentity(page)).toEqual(original);
     await connect(page, host.url); await expect(page.locator('.connection')).toContainText('ONLINE'); await expect(dialog).toHaveCount(0);
     await page.locator('#leave-game').click(); expect(errors).toEqual([]);
   } finally { await host.stop(); }
@@ -109,7 +109,7 @@ test('code runs only after exact approval, optional host windows stay optional, 
     await page.evaluate(() => (globalThis as any).__joinSocket.send(JSON.stringify({ t: 'data-command', request: { adapter: 'fixture.join-force/inventory', id: 'world', command: 'record', args: 1 } })));
     await expect.poll(() => page.evaluate(() => (globalThis as any).__joinData)).toBe(1);
     await page.locator('#leave-game').click(); await expect(page.locator('.connection')).toContainText('LOCAL FLIGHT');
-    expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBe(0); expect(await localIdentity(page)).toEqual(original);
+    expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBe(0); await expect.poll(() => localIdentity(page)).toEqual(original);
     await page.reload(); expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBeUndefined();
     await connect(page, host.url); await expect(page.locator('.connection')).toContainText('ONLINE'); await expect(dialog).toHaveCount(0);
     expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBe(1);
@@ -139,6 +139,6 @@ test('a browser tab host offers the same reviewed data pack and stopping hosting
     await expect(guest.locator('.connection')).toContainText('ONLINE');
     expect((await localIdentity(guest)).fingerprint).toBe((await localIdentity(host)).fingerprint);
     await host.locator('#debug-stop-hosting').click(); await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
-    expect(await localIdentity(guest)).toEqual(original); expect(errors).toEqual([]);
+    await expect.poll(() => localIdentity(guest)).toEqual(original); expect(errors).toEqual([]);
   } finally { await context.close(); }
 });

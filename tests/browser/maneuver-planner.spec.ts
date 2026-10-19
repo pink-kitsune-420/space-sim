@@ -141,26 +141,28 @@ test('Abort burn releases thrust during a finite burn and requires replanning', 
   expect((await debug(page)).maneuver.valid).toBe(false);
 });
 
-test('manual steering, pause and reset cancel armed execution', async ({ page }) => {
-  await setup(page); await place(page);
-  await page.locator('#maneuver-prograde').fill('10');
-  await page.locator('#maneuver-time').fill('10'); await page.locator('#maneuver-time').press('Tab');
-  await page.locator('#pause').click();
-  await page.locator('#maneuver-execute').click();
-  await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
-  await page.keyboard.down('ArrowLeft');
-  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
-  await page.keyboard.up('ArrowLeft');
-  await page.locator('#maneuver-execute').click();
-  await page.locator('#pause').click();
-  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
-  await page.locator('#pause').click();
-  await page.locator('#maneuver-execute').click();
-  await openPanel(page, 'setup');
-  await page.locator('#reset').click();
-  await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
-  await expect.poll(async () => (await debug(page)).maneuver?.valid).toBe(false);
-});
+for (const cancellation of ['manual steering', 'pause', 'reset'] as const) {
+  test(`${cancellation} cancels armed execution`, async ({ page }) => {
+    // Each cancellation starts with a fresh future node: steering can leave the
+    // previous node too close for another safe automatic alignment.
+    await setup(page); await place(page);
+    await page.locator('#maneuver-prograde').fill('10');
+    await page.locator('#maneuver-time').fill('10'); await page.locator('#maneuver-time').press('Tab');
+    await page.locator('#pause').click();
+    await page.locator('#maneuver-execute').click();
+    if (cancellation === 'manual steering') {
+      await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+      await page.keyboard.down('ArrowLeft');
+    } else if (cancellation === 'pause') await page.locator('#pause').click();
+    else {
+      await openPanel(page, 'setup');
+      await page.locator('#reset').click();
+    }
+    await expect.poll(async () => (await debug(page)).maneuver?.execution).toBeNull();
+    if (cancellation === 'manual steering') await page.keyboard.up('ArrowLeft');
+    if (cancellation === 'reset') await expect.poll(async () => (await debug(page)).maneuver?.valid).toBe(false);
+  });
+}
 
 test.describe('touch planning', () => {
   test.use({ hasTouch: true });
