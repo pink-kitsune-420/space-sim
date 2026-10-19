@@ -82,7 +82,8 @@ export function startNonFlight(game: GamePackage): Disposable {
       const world = host.world, factory = target.providedService(PLAYER_CONTROLLERS), viewsFactory = target.providedService(LOCAL_VIEWS);
       const overlays = Array.from(world.positions, (x, index) => ({ kind: 'circle' as const, space: 'world' as const,
         center: { x, y: index }, radius: .25, color: COLORS[index]!, fill: true }));
-      const zooms = new Float64Array([1, 1, 1, 1]);
+      // One fixture unit must remain visible in the smallest four-seat pane.
+      const zooms = new Float64Array([32, 32, 32, 32]);
       const targets = [0, 1, 2, 3], players = targets.map(index => world.binding(index).playerId);
       let count = 1, pilot = 0, mode: 'split' | 'dynamic' = 'split', views: LocalViews | undefined, controllers: PlayerController[] = [];
       const keyboard = target.providedService(KEYBOARD_INPUT).create({ actions: SURVEY_ACTIONS, pilot: () => pilot,
@@ -106,7 +107,7 @@ export function startNonFlight(game: GamePackage): Disposable {
         });
         views = viewsFactory.create({ bindings, mode, layout: 'auto', surface(binding) {
           const canvas = document.createElement('canvas'); canvas.setAttribute('aria-label', `Survey ${binding.seatId}`);
-          canvas.style.position = 'absolute'; stage.append(canvas); const renderer = drawing.create(canvas);
+          canvas.style.cssText = 'position:absolute;outline:1px solid #263844;outline-offset:-1px'; stage.append(canvas); const renderer = drawing.create(canvas);
           return { resize(rect, _width, _height, visible) { canvas.hidden = !visible; canvas.style.left = `${rect.x * 100}%`; canvas.style.top = `${rect.y * 100}%`; canvas.style.width = `${rect.w * 100}%`; canvas.style.height = `${rect.h * 100}%`; },
             draw(camera) { const scale = String(camera.scale); if (canvas.dataset.scale !== scale) canvas.dataset.scale = scale; renderer.drawScene({ camera, time: world.tick, showScale: false, overlays }); },
             dispose() { renderer.dispose(); canvas.remove(); } };
