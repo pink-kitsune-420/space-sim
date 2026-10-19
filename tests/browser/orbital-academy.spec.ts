@@ -77,27 +77,46 @@ test('launches through normal controls and detects lift-off and engine-off coast
 test('reaches a safe engine-off first orbit using ordinary launch and steering keys', async ({ page }) => {
   test.setTimeout(90000);
   await load(page); await practice(page, 'first-orbit'); await fly(page);
-  await page.keyboard.down('Space');
-  let safe = false;
-  const until = Date.now() + 30000;
-  while (Date.now() < until) {
-    const state = await debug(page), p = state.position;
-    let pulsed = false;
-    if (state.groundClearance >= 20) {
-      const target = Math.atan2(p.y, p.x) - Math.PI / 2, error = Math.atan2(Math.sin(target - state.heading), Math.cos(target - state.heading));
-      if (Math.abs(error) > .08) {
-        // Short physical key pulses avoid browser protocol latency leaving a turn held.
-        await page.keyboard.press(error > 0 ? 'ArrowLeft' : 'ArrowRight', { delay: Math.min(150, Math.abs(error) / state.vehicle.turnRate * 1000) });
-        pulsed = true;
+  // Drive the ordinary key bindings in the page so CI protocol latency cannot
+  // leave a steering pulse or thrust held past its physical cutoff.
+  const result = await page.evaluate(async () => {
+    const viewport = document.querySelector<HTMLElement>('#flight-view')!, output = document.querySelector('#debug')!;
+    const held = new Set<string>();
+    const key = (code: string, down: boolean) => {
+      if (held.has(code) === down) return;
+      if (down) held.add(code); else held.delete(code);
+      viewport.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { code, key: code === 'Space' ? ' ' : code, bubbles: true, cancelable: true }));
+    };
+    let captured = false, safe = false, turnUntil = 0, previousTime = -1, state: any;
+    const until = performance.now() + 30000;
+    try {
+      key('Space', true);
+      while (performance.now() < until) {
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        const now = performance.now();
+        if (now >= turnUntil) { key('ArrowLeft', false); key('ArrowRight', false); }
+        state = JSON.parse(output.textContent || '{}');
+        if (state.time === previousTime) continue;
+        previousTime = state.time;
+        if (!captured && state.orbit?.kind === 'elliptic' && state.orbit.periapsis > 535 && state.orbit.apoapsis > 652 && state.orbit.apoapsis < 40000) {
+          captured = true; key('Space', false); key('ArrowLeft', false); key('ArrowRight', false);
+        }
+        // A safe coast may be established before the climb checkpoint. Let it
+        // climb engine-off instead of continuing to accelerate toward escape.
+        if (captured) { if (state.groundClearance >= 120) { safe = true; break; } continue; }
+        if (state.groundClearance >= 20 && now >= turnUntil) {
+          const p = state.position, target = Math.atan2(p.y, p.x) - Math.PI / 2 + .15,
+            error = Math.atan2(Math.sin(target - state.heading), Math.cos(target - state.heading));
+          if (Math.abs(error) > .08) {
+            key(error > 0 ? 'ArrowLeft' : 'ArrowRight', true);
+            turnUntil = now + Math.min(100, Math.abs(error) / state.vehicle.turnRate * 1000);
+          }
+        }
       }
-    }
-    // The lesson first requires a 100 m climb. A lower safe orbit alone can
-    // remain below that checkpoint forever, so leave some clearance margin.
-    if (state.groundClearance >= 120 && state.orbit?.kind === 'elliptic' && state.orbit.periapsis > 535 && state.orbit.apoapsis < 40000) { safe = true; break; }
-    if (!pulsed) await page.waitForTimeout(50);
-  }
-  await page.keyboard.up('Space');
-  expect(safe, JSON.stringify(await debug(page))).toBe(true);
+      return { safe, state };
+    } finally { for (const code of [...held]) key(code, false); }
+  });
+  expect(result.safe, JSON.stringify(result.state)).toBe(true);
   await expect(page.locator('.academy-hud')).toContainText('Lesson complete', { timeout: 8000 });
   expect((await debug(page)).engine).toBe(false);
 });

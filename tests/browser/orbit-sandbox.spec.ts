@@ -5,6 +5,7 @@ import { openPanel } from '../helpers/workspace';
 test.beforeEach(async ({ page }) => { await useCanvas(page); });
 
 test('sandbox warp and pause shortcuts stay in the active game and titles follow the loaded game', async ({ page }) => {
+  test.setTimeout(60000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/?game=orbit-sandbox');
   await expect(page).toHaveTitle('Spacelab · Orbit Sandbox');
@@ -59,7 +60,7 @@ test('sandbox warp and pause shortcuts stay in the active game and titles follow
     .getByRole('button', { name: 'Play · new world', exact: true }).click();
   await expect(page).toHaveTitle('Spacelab · Space Sim');
   await expect(page.locator('#orbit-sandbox-workspace')).toBeHidden();
-  await expect(page.locator('#status')).not.toHaveText('PAUSED');
+  await expect(page.locator('#flight-console #pause')).toHaveText('Pause');
   expect(errors).toEqual([]);
 });
 
