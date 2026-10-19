@@ -209,6 +209,9 @@ test('survey zoom buttons and shortcuts affect only the selected view without ad
   await page.keyboard.press('Minus'); await expect.poll(scales).toEqual(initial);
   await page.keyboard.press('Equal'); await expect.poll(async () => (await scales())[1]).toBeGreaterThan(initial[1]!);
   await page.keyboard.press('KeyR'); await expect.poll(scales).toEqual(initial);
+  for (let index = 0; index < 3; index++) await page.locator('#survey-zoom').click();
+  await page.locator('#survey-fit').click(); await expect.poll(scales).toEqual(initial);
+  expect((await scales())[0]).toBe(initial[0]);
   expect((await debug(page)).state).toEqual(state);
 });
 

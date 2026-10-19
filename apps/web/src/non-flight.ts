@@ -197,8 +197,15 @@ export function startNonFlight(game: GamePackage): Disposable {
         for (let index = 0; index < 2; index++) world.transfer(targets[index]!, players[index]!);
         rebuild();
       });
-      button('Zoom in this view', 'survey-zoom', () => { zooms[pilot] = zooms[pilot]! * 1.5; views!.camera(`map-${pilot + 20}`).changeZoom(1.5); update(); });
-      const zoomView = (factor: number) => { zooms[pilot] = zooms[pilot]! * factor; views!.camera(`map-${pilot + 20}`).changeZoom(factor); update(); };
+      const zoomInput = { width: 1, height: 1, elapsed: 0, transform: world.transform };
+      const zoomView = (factor: number) => {
+        const camera = views!.camera(`map-${pilot + 20}`), before = camera.frame(zoomInput).scale;
+        camera.changeZoom(factor);
+        // Retain the achieved zoom when a provider clamps it, without copying
+        // provider limits into the game. A fixed viewport makes the ratio stable.
+        zooms[pilot] = zooms[pilot]! * camera.frame(zoomInput).scale / before; update();
+      };
+      button('Zoom in this view', 'survey-zoom', () => zoomView(1.5));
       button('Zoom out this view', 'survey-zoom-out', () => zoomView(1 / 1.5));
       const fitView = () => zoomView(32 / zooms[pilot]!);
       button('Reset this view', 'survey-fit', fitView);
