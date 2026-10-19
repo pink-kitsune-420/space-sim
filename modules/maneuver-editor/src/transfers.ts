@@ -10,9 +10,10 @@ export class TransferControls {
  private readonly cancelButton:HTMLButtonElement;private readonly find:HTMLButtonElement;private readonly context:HTMLOutputElement;
  private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement}[]=[];
  private readonly status:HTMLOutputElement;private readonly choices:HTMLDivElement;
+ private shownOptions?:readonly TransferOption[];
  constructor(private readonly root:HTMLElement,private readonly prefix:string,private readonly service:TransferPlanner,
   private readonly options:ManeuverPlannerOptions,private readonly install:(plan:FlightPlan)=>void,private readonly signal:AbortSignal){
-  root.innerHTML=`<p class="maneuver-help">Find a departure window and arrival burn. Choose the destination and the orbit you want there.</p>
+  root.innerHTML=`<p class="maneuver-help">Find a departure window and arrival burn. Choose the destination and the orbit you want there. Pause flight to keep departure windows available while searching.</p>
    <output id="${prefix}-context" class="maneuver-help"></output>
    <label>Destination<select id="${prefix}-destination"></select></label>
    <label>Target low altitude (m)<input id="${prefix}-low" type="number" step="any" value="512"></label>
@@ -75,7 +76,7 @@ export class TransferControls {
   this.cancelButton.hidden=false;this.status.textContent='Searching bounded transfer options…';
  }
  cancel(message?:string):void {
-  try{this.job?.return({options:[],reason:'cancelled'});}finally{this.job=undefined;this.cancelButton.hidden=true;this.anchor=undefined;this.choices.replaceChildren();this.cards.length=0;if(message)this.status.textContent=message;}
+  try{this.job?.return({options:[],reason:'cancelled'});}finally{this.job=undefined;this.cancelButton.hidden=true;this.anchor=undefined;this.shownOptions=undefined;this.choices.replaceChildren();this.cards.length=0;if(message)this.status.textContent=message;}
  }
  update():void {
   if(this.disposed)return;const flight=this.options.flight();
@@ -87,7 +88,7 @@ export class TransferControls {
   if(this.anchor&&!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
   if(this.cards.length) {
    this.refreshCards();
-   if(this.cards.every(card=>card.button.disabled)){this.cancel('The departure preparation windows passed. Find new options.');return;}
+   if(!this.job&&this.cards.every(card=>card.button.disabled)){this.cancel('The departure preparation windows passed. Find new options.');return;}
   }
   if(!this.job)return;
   const start=performance.now();let latest:TransferProgress|undefined;
@@ -96,11 +97,13 @@ export class TransferControls {
     const result=this.job.next();
     if(result.done){this.job=undefined;this.cancelButton.hidden=true;this.show(result.value);return;}
     latest=result.value;
+    if(latest.options&&latest.options!==this.shownOptions){this.shownOptions=latest.options;this.show({options:latest.options,reason:''});}
    }
-   if(latest)this.status.textContent=`Searching · ${latest.tested}/${latest.total} samples · ${latest.accepted} validated`;
+   if(latest)this.status.textContent=`Searching · ${latest.tested}/${latest.total} samples · ${latest.accepted} validated${this.cards.length?' · Best so far; search continues':''}`;
   }catch(error){this.cancel(error instanceof Error?error.message:'Transfer search failed.');}
  }
  private show(result:TransferResult):void {
+  this.choices.replaceChildren();this.cards.length=0;
   this.status.textContent=result.options.length?`Compare sampled options. ${result.reason}`:result.reason;
   for(const option of result.options) {
    const document=this.root.ownerDocument,card=document.createElement('article'),text=document.createElement('p'),button=document.createElement('button'),header=document.createElement('header'),title=document.createElement('strong'),metrics=document.createElement('output'),details=document.createElement('details'),summary=document.createElement('summary'),warning=document.createElement('p');
@@ -113,7 +116,7 @@ export class TransferControls {
     if(this.disposed)return;
     if(!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
     if(option.plan.nodes[0]!.time-option.departureBurnSeconds/2<=this.options.flight().world.time+1){this.cancel('The departure preparation window passed. Find new options.');return;}
-    this.install(option.plan);this.options.notify('Departure and arrival nodes created. Review the impulsive plan; execute each burn separately or fly manually.');
+    this.cancel();this.install(option.plan);this.options.notify('Departure and arrival nodes created. Review the impulsive plan; execute each burn separately or fly manually.');
    },{signal:this.signal});this.choices.append(card);this.cards.push({option,text,metrics,button});
   }
   this.refreshCards();

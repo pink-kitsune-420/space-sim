@@ -13,7 +13,12 @@ export interface TransferOption {
  readonly departureBurnSeconds: number; readonly arrivalBurnSeconds: number;
  readonly warning: string;
 }
-export interface TransferProgress { readonly tested: number; readonly total: number; readonly accepted: number }
+export interface TransferProgress {
+ readonly tested: number; readonly total: number; readonly accepted: number;
+ /** Fully validated best options so far; optional for existing providers.
+  * A new array signals changed results. Search may continue after publication. */
+ readonly options?: readonly TransferOption[];
+}
 export interface TransferResult { readonly options: readonly TransferOption[]; readonly reason: string }
 /** Inert bounded search; each next() performs one bounded candidate operation or shared
  * forecast yield. return() cancels owned forecasts/contexts. No controls or live stepping. */
