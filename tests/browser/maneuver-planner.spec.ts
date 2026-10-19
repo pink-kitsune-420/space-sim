@@ -326,10 +326,13 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
 });
 
 test('moon transfers show both burn indicators, editable arrival and current-throttle duration in the production app',async({page},info)=>{
+ // Search deliberately spends at most a soft 1 ms per animation frame. Software
+ // renderers sharing a runner can need many wall-clock seconds for the same work.
+ test.setTimeout(180000);
  await setup(page);await place(page);const before=await debug(page);
  await page.locator('#maneuver-transfers-tab').click();await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('100');
  await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();await page.locator('#maneuver-transfer-find').click();
- await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible({timeout:60000});await expect(page.locator('#maneuver-transfer-choices')).toContainText('At 50% throttle');
+ await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible({timeout:120000});await expect(page.locator('#maneuver-transfer-choices')).toContainText('At 50% throttle');
  await page.locator('#maneuver-transfer-use-efficient').click();await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
  await page.locator('#flight-view').evaluate(el=>{for(let i=0;i<4;i++)el.dispatchEvent(new WheelEvent('wheel',{deltaY:500,bubbles:true,cancelable:true}));});
  await page.screenshot({path:info.outputPath('moon-transfer-burns-canvas.png')});
