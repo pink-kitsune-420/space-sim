@@ -30,7 +30,7 @@ export const PRESET_TEMPLATES: readonly PlanetPresetTemplate[] = [
     mu: 204800, // Moon Parvus scale
     color: '#8f8d89',
     accentColor: '#c0bdb6',
-    atmosphereColor: '#8f8d8915',
+    atmosphereColor: '#00000000',
     surfaceFeatures: 'craters',
     appearance: {
       style: 'rocky',

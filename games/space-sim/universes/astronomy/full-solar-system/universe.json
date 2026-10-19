@@ -413,6 +413,7 @@
      "mu": 4902800000000.0,
      "color": "#8f8d89",
      "accentColor": "#9aa0a6",
+     "atmosphereColor": "#00000000",
      "surfaceFeatures": "craters",
      "ephemeris": {
       "kind": "circular-kepler",

@@ -155,6 +155,7 @@
           "mu": 204800,
           "color": "#8c8984",
           "accentColor": "#c4c0b8",
+          "atmosphereColor": "#00000000",
           "surfaceFeatures": "craters",
           "soi": {
             "radius": 2910,
