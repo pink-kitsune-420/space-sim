@@ -1,12 +1,14 @@
 import { createProjector, hermiteControls, maneuverDelta, deterministicMath as dm,
- type FlightPlan, type FlightPlanArchive, type FlightPlanNode, type FlightPlanService, type WorldRead, type Camera, type Controls, type GhostSample, type ManeuverPreview, type SimulationContext, type State, type Vec,
+ type FlightPlan, type FlightPlanArchive, type FlightPlanNode, type FlightPlanService, type TransferPlanner, type WorldRead, type Camera, type Controls, type GhostSample, type ManeuverPreview, type SimulationContext, type State, type Vec,
  type ClockService, type CoreMotion, type FlightPrediction, type ManeuverBurnControl, type ManeuverBurnFactory,
  type PredictionFactory, type WindowChrome, type WindowSystem, type Disposable,
  type ManeuverFlight as Flight, type ManeuverPlannerOptions, type ManeuverPlannerControl } from '@space-sim/game-api';
 import { ManeuverMap } from './map';
+import { TransferControls } from './transfers';
 export interface ManeuverEditorServices {
  readonly windows: Pick<WindowSystem, 'create'>; readonly predictions: PredictionFactory; readonly burns: ManeuverBurnFactory;
  readonly plans?: FlightPlanService;
+ readonly transfers?: TransferPlanner;
  readonly clock: Pick<ClockService, 'stepSeconds' | 'idle'>; readonly motion: Pick<CoreMotion, 'clampWarpFactor'>;
 }
 function flightMotion(flight: Flight): SimulationContext {
@@ -76,6 +78,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private readonly id: string;
   private dock?: Disposable;
   private map?: ManeuverMap;
+  private transferControls?: TransferControls;
   private readonly window!: WindowChrome;
   private readonly preview: FlightPrediction;
   private readonly nodes = new Map<string, Node>();
@@ -106,7 +109,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   get executing(): boolean { return !!this.execution; }
 
   /** Release controls while the current session still owns the execution's ship. */
-  cancel(): void { if (this.disposed) return; this.abortExecution(); this.stopWarp(); }
+  cancel(): void { if (this.disposed) return; this.abortExecution(); this.stopWarp(); this.transferControls?.cancel(); }
 
   constructor(private readonly services: ManeuverEditorServices, private readonly options: ManeuverPlannerOptions, private readonly tuning: ManeuverEditorTuning = {}) {
     this.id = options.id ?? 'maneuver';
@@ -129,6 +132,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         <div class="maneuver-adjust"><button id="${this.id}-add" type="button">Add node</button><button id="${this.id}-review" type="button">Review remaining</button><button id="${this.id}-flown" type="button">Mark flown</button></div>
         <div class="maneuver-adjust"><button id="${this.id}-export" type="button">Export plan</button><button id="${this.id}-import" type="button">Load plan</button><input id="${this.id}-file" type="file" accept=".json,application/json" hidden></div>
       </div>
+      <details id="${this.id}-transfers" ${services.transfers ? '' : 'hidden'}></details>
       <p class="maneuver-help">Click the coast line to place a node. Drag its ◇ along the coast to move it; drag P± and R± handles to shape the burn. Hold Shift for finer adjustments.</p>
       <output class="maneuver-status" id="${this.id}-status" aria-live="polite">No node. Choose a point on your coast trajectory.</output>
       <div class="maneuver-fields">
@@ -145,6 +149,10 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       <div class="maneuver-adjust"><button id="${this.id}-clear" type="button">Clear Δv</button><button id="${this.id}-delete" type="button">Delete node</button></div>
       <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; every automatic burn needs its own Execute action.</p></details>`;
     const get = <T extends HTMLElement>(id: string): T => this.window.body.querySelector<T>(`#${this.id}-${id}`)!;
+    if (services.transfers) this.transferControls = new TransferControls(get('transfers'), `${this.id}-transfer`, services.transfers, options, plan => {
+      this.abortExecution(); this.stopWarp(); this.insertPlan(plan, this.options.flight());
+      this.current = this.nodes.get(plan.shipId); this.rebuildPlan(true); this.refreshInputs();
+    }, this.lifetime.signal);
     this.prograde = get('prograde'); this.radial = get('radial'); this.timing = get('time');
     this.increment = get('increment');
     this.status = get('status'); this.summary = get('summary'); this.result = get('result');
@@ -237,7 +245,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.dock = options.shell?.addInstrument(this.window, 'Maneuver', 'Plan a burn by clicking the coast trajectory');
     } catch (error) {
       const errors: unknown[] = [error];
-      for (const close of [() => this.lifetime.abort(), () => this.map?.dispose(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window?.dispose()]) { try { close(); } catch (cleanup) { errors.push(cleanup); } }
+      for (const close of [() => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.map?.dispose(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window?.dispose()]) { try { close(); } catch (cleanup) { errors.push(cleanup); } }
       if (errors.length > 1) throw new AggregateError(errors, 'Maneuver editor creation failed');
       throw error;
     }
@@ -245,7 +253,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private event(kind: string, detail: Record<string, unknown>): void { this.options.event?.(kind, detail); }
   dispose(): void {
     if (this.disposed) return; this.disposed = true; const errors: unknown[] = [];
-    for (const close of [() => this.lifetime.abort(), () => this.map?.dispose(), () => this.abortExecution(), () => this.stopWarp(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window.dispose()]) { try { close(); } catch (error) { errors.push(error); } }
+    for (const close of [() => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.map?.dispose(), () => this.abortExecution(), () => this.stopWarp(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window.dispose()]) { try { close(); } catch (error) { errors.push(error); } }
     this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.world = undefined; this.prediction = undefined; this.dock = undefined;
     if (errors.length) throw new AggregateError(errors, 'Maneuver editor cleanup failed');
   }
@@ -400,16 +408,17 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (raw !== undefined && !service) throw new Error('Shared flight plans are unavailable in this game.');
     this.abortExecution(); this.stopWarp(); this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate();
     const flight = this.options.flight(); this.world = flight.world;
-    for (const plan of archive?.plans ?? []) {
-      const ship = flight.world.ship(plan.shipId); if (!ship) continue;
+    for (const plan of archive?.plans ?? []) this.insertPlan(plan, flight);
+    this.current = flight.ship ? this.nodes.get(flight.ship.id) : undefined; this.refreshInputs(); this.lastUi = -Infinity;
+  }
+  private insertPlan(plan: FlightPlan, flight: Flight): void {
+      const ship = flight.world.ship(plan.shipId); if (!ship) return;
       this.anchors.set(ship.id, plan); this.needsReview.add(ship.id);
       const seed: State = { ...plan.epoch, throttle: 0, status: 'flying', revision: 0 };
       const nodes: Node[] = plan.nodes.map(intent => ({ ...intent, shipId: ship.id, context: flight.world.contextFor(ship), seed,
         sample: seed, valid: false, reason: intent.completed ? 'Marked flown.' : 'Loaded plan. Review remaining nodes against actual flight.' }));
       for (const node of nodes) { const match = /^node-(\d+)$/.exec(node.id); if (match) this.nextNode = Math.max(this.nextNode, Number(match[1]) + 1); }
       this.plans.set(ship.id, nodes); if (nodes[0]) this.nodes.set(ship.id, nodes[0]);
-    }
-    this.current = flight.ship ? this.nodes.get(flight.ship.id) : undefined; this.refreshInputs(); this.lastUi = -Infinity;
   }
   private evaluate(seed: State, flight: Flight, time: number): GhostSample | undefined {
     const context = flightMotion(flight), surface = flight.world.surface(flight.body.id);
@@ -524,6 +533,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       }
     }
     if (!flight.enabled) { this.abortExecution(); this.stopWarp(); this.preview.invalidate(); this.window.close(); }
+    this.transferControls?.update();
     this.map?.update();
     if (performance.now() - this.lastUi > (this.tuning.uiRefreshMs ?? 100)) { this.lastUi = performance.now(); this.updateUi(flight); }
   }

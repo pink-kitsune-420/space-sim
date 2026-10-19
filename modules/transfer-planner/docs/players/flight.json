@@ -1,0 +1,20 @@
+{
+  "id": "flight",
+  "audience": "players",
+  "title": "Transfer window planning",
+  "summary": "Compare and review circular or elliptical orbit changes.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "While coasting in a bound orbit, open Maneuver from Instruments and expand Transfer window. Choose the current body and enter a target altitude in metres above its reference radius. Turn off Circular target to enter separate low/high altitudes. Starting and target orbits may be elliptical; both must clear the highest terrain. This increment handles orbit raising/lowering. Moon and planet transfers remain in development and explain that limit when selected."
+    },
+    {
+      "type": "paragraph",
+      "text": "Find options compares Efficient (lowest impulse cost among the sampled opportunities) and Faster (earlier arrival when available). Compare current wait, travel time, total delta-v and each burn duration. The search is bounded; these labels do not promise a global optimum. Changes to thrust, orbit, destination or altitude discard old results."
+    },
+    {
+      "type": "paragraph",
+      "text": "Use an option to create editable Departure and Arrival nodes. Generation never arms thrust. Select a node to edit it; Execute burn is a separate choice for each node, or fly manually. The dashed preview assumes instantaneous impulses. Long burns can change arrival substantially. After a finite or manually flown departure, mark manual nodes flown if needed and Review remaining against actual flight before attempting arrival. Export plan stores inert intent; Save universe includes it. Loaded plans always need review."
+    }
+  ]
+}

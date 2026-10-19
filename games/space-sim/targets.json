@@ -85,6 +85,10 @@
           {
             "id": "spacelab.flight-plans",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.transfer-planner",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -107,7 +111,8 @@
           "ui.view-hud": "spacelab.view-hud",
           "hud.throttle": "spacelab.throttle-hud",
           "ui.player-view": "spacelab.player-view",
-          "flight.plans": "spacelab.flight-plans"
+          "flight.plans": "spacelab.flight-plans",
+          "flight.transfers": "spacelab.transfer-planner"
         },
         "capabilities": {},
         "settings": {}
@@ -214,6 +219,10 @@
           {
             "id": "spacelab.flight-plans",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.transfer-planner",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -236,7 +245,8 @@
           "ui.view-hud": "spacelab.view-hud",
           "hud.throttle": "spacelab.throttle-hud",
           "ui.player-view": "spacelab.player-view",
-          "flight.plans": "spacelab.flight-plans"
+          "flight.plans": "spacelab.flight-plans",
+          "flight.transfers": "spacelab.transfer-planner"
         },
         "capabilities": {},
         "settings": {}

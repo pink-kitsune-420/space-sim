@@ -8,7 +8,7 @@ let directory:string,hostSource:string;
 let bundles:{manifest:unknown;source:string;assets:[string,string][]}[];
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'portable-maneuver-editor-'));bundles=[];
- for(const name of ['ui-windows','flight-prediction','flight-plans','maneuver-burn','maneuver-display','maneuver-editor']){
+ for(const name of ['ui-windows','flight-prediction','flight-plans','transfer-planner','maneuver-burn','maneuver-display','maneuver-editor']){
   const source=join(directory,name);await cp(resolve('modules',name),source,{recursive:true});const built=await buildPortableModule(join(source,'module.json'),join(directory,`${name}.spacemod`),{typecheck:false,shippedBuild:true});
   bundles.push({manifest:built.descriptor.manifest,source:built.codeV2!.source,assets:[...built.descriptor.assets.map(asset=>asset.path),...built.descriptor.guides].map(path=>[path,new TextDecoder().decode(built.files.get(path)!)])});
  }
@@ -16,7 +16,7 @@ test.beforeAll(async()=>{
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
-async function setup(page:Page,noEngine=false,sharedPlans=false){
+async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false){
  await page.goto('about:blank');await page.setContent('<main style="position:relative;width:800px;height:600px"></main>');await page.addScriptTag({content:hostSource});
  await page.evaluate(({bundles,noEngine})=>{
   const api=(window as any).ManeuverHost,registry=new api.ModuleRegistryV2(api.engineModuleServices());
@@ -29,7 +29,7 @@ async function setup(page:Page,noEngine=false,sharedPlans=false){
   if(prediction.pathEnd!=='closed')throw new Error('Fixture needs complete prediction');
   const origin=world.system.getBodyPosition(body.id,world.time),camera={center:origin,rotation:0,scale:.3},sample=prediction.path[Math.floor(prediction.path.length/3)],pointer=api.createProjector(camera,800,600)({x:origin.x+sample.position.x,y:origin.y+sample.position.y});
   (window as any).fixture={api,registry,candidate,factory,prediction,world,current,body,origin,camera,pointer,profile,root:document.querySelector('main')};
- },{bundles:bundles.filter(bundle=>sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans'),noEngine});
+ },{bundles:bundles.filter(bundle=>(sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans')&&(transfers||(bundle.manifest as any).id!=='spacelab.transfer-planner')),noEngine});
 }
 
 test('coasting to a zero-delta node needs no engine and issues only warp commands',async({page})=>{
@@ -127,4 +127,22 @@ test('a missed first burn invalidates later nodes and marking it flown still req
   planner.dispose();f.candidate.dispose();world.dispose();return{missed,laterInvalid,stillInvalid,reviewed,commands};
  });
  expect(result).toEqual({missed:true,laterInvalid:true,stillInvalid:true,reviewed:true,commands:[]});
+});
+
+test('using a generated transfer preserves another ship’s plan and disposed search buttons cannot install anything',async({page})=>{
+ await setup(page,false,true,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,body,root}=f,first=f.current(),other=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),commands:string[]=[];let selected=first.id;
+  const planner=factory.create({container:root,id:'fleet-transfer',flight:()=>({world,ship:world.ship(selected),body,enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const delta=document.getElementById('fleet-transfer-prograde') as HTMLInputElement;delta.value='10';delta.dispatchEvent(new Event('input'));
+  const before=JSON.stringify(planner.savePlans().plans.find((p:any)=>p.shipId===first.id));
+  selected=other.id;planner.update(.1,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  (document.getElementById('fleet-transfer-transfer-find') as HTMLButtonElement).click();
+  for(let i=0;i<500&&!document.getElementById('fleet-transfer-transfer-use-efficient');i++)planner.update(.1,prediction,false);
+  const use=document.getElementById('fleet-transfer-transfer-use-efficient') as HTMLButtonElement;if(!use)throw Error('No validated transfer');use.click();planner.update(.1,prediction,false);
+  const saved=planner.savePlans(),preserved=JSON.stringify(saved.plans.find((p:any)=>p.shipId===first.id))===before,count=saved.plans.length,nodes=saved.plans.find((p:any)=>p.shipId===other.id)?.nodes.length;
+  planner.dispose();use.click();const stalePlans=planner.savePlans().plans.length;f.candidate.dispose();world.dispose();return{preserved,count,nodes,stalePlans,commands};
+ });
+ expect(result).toEqual({preserved:true,count:2,nodes:2,stalePlans:0,commands:[]});
 });

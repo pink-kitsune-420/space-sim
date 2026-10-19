@@ -1,4 +1,4 @@
-import { FLIGHT_PLANS } from '../../../packages/game-api/src/index';
+import { TRANSFERS, FLIGHT_PLANS } from '../../../packages/game-api/src/index';
 import { rememberWorldArtwork, worldArtwork } from './world-presentation';
 import { createJoinPacks } from '../../../modules/session-join/src/index';
 import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
@@ -304,7 +304,8 @@ const maneuver = new ManeuverPlanner(workspace, {
     if (session === local && local.world.record(shipId)?.ownerId === local.playerId) local.host.setControls(local.playerId, shipId, IDLE);
   },
   setWarp, notify, event: (kind, detail) => profiler.event(kind, detail),
-}, hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined);
+}, { plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
+  transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined });
 function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };
   lastHud = -Infinity;

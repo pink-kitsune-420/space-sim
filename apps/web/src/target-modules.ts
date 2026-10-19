@@ -80,8 +80,14 @@ import flightPlansInitialize from '../../../modules/flight-plans/src/index';
 import { manifest as flightPlansManifest, compatibility as flightPlansCompatibility } from '../../../modules/flight-plans/module.json';
 import flightPlansGuide from '../../../modules/flight-plans/docs/creators/usage.json';
 
+import transfersInitialize from '../../../modules/transfer-planner/src/index';
+import { manifest as transfersManifest, compatibility as transfersCompatibility } from '../../../modules/transfer-planner/module.json';
+import transfersGuide from '../../../modules/transfer-planner/docs/creators/usage.json';
+import transfersFlightGuide from '../../../modules/transfer-planner/docs/players/flight.json';
+
 /** Inert registrations. Only the exact references selected by a target initialize. */
 export const browserTargetModules = Object.freeze([
+  bundledRegistration({ manifest: transfersManifest, compatibility: transfersCompatibility }, transfersInitialize, { 'docs/creators/usage.json': transfersGuide, 'docs/players/flight.json': transfersFlightGuide }),
   bundledRegistration({ manifest: flightPlansManifest, compatibility: flightPlansCompatibility }, flightPlansInitialize, { 'docs/creators/usage.json': flightPlansGuide }),
   bundledRegistration({ manifest: playerViewManifest, compatibility: playerViewCompatibility }, playerViewInitialize, { 'docs/creators/usage.json': playerViewGuide }),
   bundledRegistration({ manifest: throttleManifest, compatibility: throttleCompatibility }, throttleInitialize, { 'docs/creators/usage.json': throttleGuide }),

@@ -271,3 +271,22 @@ test('shared plans export inert nodes and survive portable universe saves with r
   await page.locator('#world-file').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(old)) });
   await expect.poll(async () => (await debug(page)).maneuver).toBeNull();
 });
+
+test('transfer window compares efficient/faster options, creates editable nodes and explains the remaining interbody scope',async({page},info)=>{
+ await setup(page);await place(page);const before=await debug(page);
+ await page.locator('#maneuver-transfers > summary').click();
+ await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
+ await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();await expect(page.locator('#maneuver-transfer-use-faster')).toBeVisible();
+ await expect(page.locator('#maneuver-transfer-choices')).toContainText(/wait.*travel.*Δv/);
+ const calculated=await debug(page);expect(calculated.tick).toBe(before.tick);expect(calculated.velocity).toEqual(before.velocity);expect(calculated.maneuver.execution).toBeNull();
+ await page.locator('#maneuver-transfer-use-efficient').click();
+ await expect.poll(async()=>(await debug(page)).maneuver?.nodes).toBe(2);await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
+ expect((await debug(page)).maneuver.execution).toBeNull();await expect(page.locator('#maneuver-prograde')).toBeEnabled();
+ await page.screenshot({path:info.outputPath('transfer-window.png')});
+ await page.locator('#maneuver-transfers > summary').click();
+ await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
+ await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
+ await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-find').click();
+ await expect(page.locator('#maneuver-transfer-status')).toContainText('Moon and planet transfers are not yet implemented');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
+ expect((await debug(page)).position).toEqual(before.position);
+});
