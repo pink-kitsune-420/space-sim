@@ -23,10 +23,11 @@ export function drawManeuver(view: PresentationView): OverlayPrimitive[] {
       { kind: 'line', space: 'world', color, width: 2, points: [
         { x: tip.x - (dx + dy) * head, y: tip.y - (dy - dx) * head }, tip,
         { x: tip.x - (dx - dy) * head, y: tip.y - (dy + dx) * head }] });
-    // Subdivide the same timed Hermite curves used by the coast renderer. Bounded to 160 dashes.
+    // Select at most 160 original intervals. Joining decimated endpoints can span
+    // entire revolutions and invent loops through the body on long-wait plans.
     const path = plan.path, stride = Math.max(1, Math.ceil((path.length - 1) / 160));
     for (let i = 1; i < path.length; i += stride) {
-      const a = path[i - 1]!, b = path[Math.min(path.length - 1, i + stride - 1)]!, dt = b.time - a.time;
+      const a = path[i - 1]!, b = path[i]!, dt = b.time - a.time;
       const point = (t: number): Vec => {
         if (b.linear) return world({ x: a.position.x + (b.position.x - a.position.x) * t, y: a.position.y + (b.position.y - a.position.y) * t });
         const t2 = t * t, t3 = t2 * t;

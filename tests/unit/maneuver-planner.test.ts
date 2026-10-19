@@ -136,6 +136,22 @@ describe('maneuver planning', () => {
   });
 });
 
+it('keeps long-wait circular preview dashes on the orbit instead of inventing multi-revolution Hermite loops',()=>{
+ const radius=552,mu=13107200,speed=Math.sqrt(mu/radius),period=2*Math.PI*radius/speed;
+ const path:GhostSample[]=Array.from({length:16384},(_,i)=>{
+  const angle=i*2*Math.PI/80;
+  return {time:i*period/80,position:{x:radius*Math.cos(angle),y:radius*Math.sin(angle)},velocity:{x:-speed*Math.sin(angle),y:speed*Math.cos(angle)}};
+ });
+ const output=drawManeuver({...view,maneuver:{time:7761.1,position:path[0]!.position,deltaVelocity:{x:128,y:220},burnSeconds:2,valid:true,path}});
+ const dashes=output.filter(p=>p.kind==='line'&&p.color==='#f7c775bb');
+ expect(dashes.length).toBeGreaterThan(100);expect(dashes.length).toBeLessThanOrEqual(160);
+ for(const dash of dashes)if(dash.kind==='line')for(const point of dash.points){
+  expect(Math.hypot(point.x,point.y)).toBeGreaterThan(radius-.01);
+  expect(Math.hypot(point.x,point.y)).toBeLessThan(radius+.01);
+ }
+ expect(()=>validateOverlay(output)).not.toThrow();
+});
+
 it('draws distinct transfer burn vectors, throttle duration, zero-thrust status and delivered impulse progress within the overlay budget',()=>{
  const plan={time:5,position:a.position,deltaVelocity:{x:3,y:4},burnSeconds:.5,throttle:.25,throttleBurnSeconds:2,remainingDeltaV:2.5,valid:true,path:[a,b],
   nodes:[{id:'d',label:'Departure',time:5,position:a.position,selected:true,valid:true,deltaVelocity:{x:3,y:4},throttleBurnSeconds:2},

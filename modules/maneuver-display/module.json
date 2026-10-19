@@ -31,7 +31,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "2f7164eb8a461eff4cea35d901eacf10546e2c95edb7b56ef0394ac2a12b9899"
+    "inputsDigest": "67b77e819395928be025eb46336b3c90992c8148fe653d9aa2373b19ab283079"
   },
   "compatibility": {
     "deterministic": true,
@@ -81,7 +81,7 @@
     },
     {
       "path": "game-api/flight-input.ts",
-      "sha256": "00e21e35cad32ba7d0337bc44f55cd10b8dd3dcd8751701c92cc63a7a7dd02f2",
+      "sha256": "f0f34c9f245a7ad8a2acabeda94561e926e90ab8ad2407db8d88d5b5208de13b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -129,7 +129,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "3684fd947496705f255f3b2efa6226f4ac7925b15a84b2e77224df5dc500b04d",
+      "sha256": "56d56be3e96e5364fb1a184b2e2687b1b49f5d343b20e8c8e31e940e2dcedc01",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -375,7 +375,7 @@
     },
     {
       "path": "src/overlay.ts",
-      "sha256": "d498f10d909e605a79d457b4191316daaad9f9f41b49faab63f8e1383a0a0ebd",
+      "sha256": "a2fad67dca77e34e86465585a214c3f5f2249d024acbfdd901460bde41c72adc",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver vector contribution and original legacy presentation adapter. Licensed under MIT.\n"
     }
