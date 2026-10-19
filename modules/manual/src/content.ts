@@ -359,13 +359,14 @@ an inaccurate burn or optimise the arrival. A stale, missed or unsupported node 
 <p>Select an owned ship in Fleet, prepare its nodes, then optionally check <b>Automatically execute this ship’s plan</b>.
 This is off by default and applies only to that ship. It can continue while you select another ship.
 After each burn it cuts the engine and reviews the remaining intent against actual flight. Review validates intent;
-it does not correct a missed encounter or optimise a new capture burn.</p>
+it does not create an extra maneuver to correct a missed encounter.</p>
 <p>By default, background ships <b>follow the current clock</b>. They request 1× only when alignment and thrust need it.
 Optionally check <b>Auto-warp between burns</b> to coast at the fastest permitted warp, slowing for every running ship’s next burn, alignment, and normal world safety limits.
 The Maneuver editor module’s <b>Automatic alignment warp (×)</b> setting controls rotation speed during automatic approaches: 1 uses real time; 2–4 run the same rotation physics faster. The default is 4. Engine burns always run at 1×. Follow-clock plans never increase the clock rate.
 After the final burn, flight continues at 1× and automatic clock control ends. Manual warp keys and buttons take priority; they cancel conflicting automation. While hosting multiplayer, approve or decline the request in the host prompt. Approval for an approach permits its needed slowdown; auto-warp approval covers the remaining prepared burns of that armed run.
 Approval itself does not change the clock. A pending or refused request cannot change warp. Direct Execute and Continue are the host’s explicit commands.
 Remote pilots can prepare plans and fly manually; automatic control requires the authoritative host seat.</p>
+<p>For an arrival at another planet or moon, <b>Continue to next burn</b> or <b>Coast to arrival and execute</b> checks the actual unpowered encounter and coasts through the SOI handoffs. At the destination it reviews the stored target orbit, updates a feasible capture’s timing and burn, and checks the finite burn and a full orbit before execution. It stops if no encounter is predicted or an extra correction maneuver is needed. Older plans without an arrival orbit need review; manually editing an arrival burn removes its automatic target. Finite burns can still shift the final apsides slightly.</p>
 <p>Pause, hidden input, manual takeover, a missed window or changed trajectory stops an active burn and requires review.
 Resetting or repositioning a ship clears its old plan. Resetting the world clears every plan.
 Turning off the checkbox or choosing <b>Abort burn</b> releases that ship’s automatic control.</p>

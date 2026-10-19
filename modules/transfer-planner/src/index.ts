@@ -62,7 +62,8 @@ export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
     const targetVelocity={x:-solved.state.position.y/r2*direction*arrivalSpeed,y:solved.state.position.x/r2*direction*arrivalSpeed};
     const arrivalComponents=deltaComponents(solved.state.position,solved.state.velocity,{x:targetVelocity.x-solved.state.velocity.x,y:targetVelocity.y-solved.state.velocity.y});if(!arrivalComponents)continue;
     const intents:FlightPlanNode[]=[{id:'departure',label:'Departure',bodyId:body.id,time:departure,...departureComponents},
-     {id:'arrival',label:direct?'Arrival · orbit review':'Arrival',bodyId:body.id,time:departure+travel,...arrivalComponents}];
+     {id:'arrival',label:direct?'Arrival · orbit review':'Arrival',bodyId:body.id,time:departure+travel,...arrivalComponents,
+       targetOrbit:{periapsisAltitude:request.periapsisAltitude,apoapsisAltitude:request.apoapsisAltitude}}];
     const plan=plans.capture(world,ship,intents),evaluated=plans.evaluate(plan,world);
     if(evaluated.some(node=>!node.valid)){lastReason=evaluated.find(node=>!node.valid)?.reason??lastReason;continue;}
     const arrival=evaluated[1]!.after!,final=orbits.elements(arrival,body.mu);

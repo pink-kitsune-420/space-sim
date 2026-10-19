@@ -41,6 +41,18 @@ it('rejects malformed archives, unsupported future/body conditions, and keeps un
  const invalid=service.evaluate({...plan,nodes:[{...nodes[0]!,prograde:-100},nodes[1]!] },world);
  expect(invalid[1]!.valid).toBe(false);world.dispose();
 });
+it('round-trips bounded inert arrival goals and rejects malformed targets without accepting arming fields',()=>{
+ const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),service=createFlightPlans(),goal={periapsisAltitude:100,apoapsisAltitude:500},plan=service.capture(world,ship,[{...nodes[0]!,targetOrbit:goal}]);
+ try{
+  const read=(target:unknown)=>service.read({format:'space-sim-flight-plans/1',plans:[{...plan,nodes:[{...plan.nodes[0],targetOrbit:target,armed:true}]}]});
+  expect(read({...goal,engine:true,execute:true}).plans[0]!.nodes[0]!.targetOrbit).toEqual(goal);
+  expect(JSON.stringify(read({...goal,engine:true,execute:true}))).not.toMatch(/armed|engine|execute/);
+  for(const target of [{periapsisAltitude:-1,apoapsisAltitude:100},{periapsisAltitude:100,apoapsisAltitude:50},{periapsisAltitude:100,apoapsisAltitude:Infinity}])expect(()=>read(target)).toThrow('Flight plan:');
+  const saved=saveWorld(world,{flightPlans:{format:'space-sim-flight-plans/1',plans:[plan]}});
+  expect(service.read(inspectSaveFiles(createSaveFiles(saved)).flightPlans).plans[0]!.nodes[0]!.targetOrbit).toEqual(goal);
+ }finally{world.dispose();}
+});
+
 it('stores optional inert intent with existing world formats and accepts older worlds with no planning metadata',()=>{
  const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),service=createFlightPlans(),archive={format:'space-sim-flight-plans/1' as const,plans:[service.capture(world,ship,nodes)]};
  const saved=saveWorld(world,{flightPlans:archive});expect(saved.flightPlans).toEqual(archive);expect(saved.flightPlans).not.toBe(archive);

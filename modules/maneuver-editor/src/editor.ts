@@ -75,6 +75,7 @@ interface Node {
   radial: number;
   valid: boolean;
   reason: string;
+  targetOrbit?:FlightPlanNode['targetOrbit'];
 }
 /** Local plans and opt-in host burn execution through normal session controls.
  * Preview contexts and node state stay outside world saves and fingerprints. */
@@ -165,6 +166,12 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         this.completeCoastNodes(shipId,options.flight().world.time);
         this.invalidateLater(node);this.selectNextNode(shipId);this.preview.invalidate();this.lastUi=-Infinity;
       },
+      retargeted:(shipId,intent)=>{
+        const node=this.plans.get(shipId)?.find(value=>value.id===intent.id);if(!node)throw Error('The arrival node was removed.');
+        node.time=intent.time;node.prograde=intent.prograde;node.radial=intent.radial;node.targetOrbit=intent.targetOrbit;node.alarm=intent.alarm;
+        node.valid=false;node.reason='Arrival updated for the actual encounter. Validating the new capture…';
+        this.invalidateLater(node);this.preview.invalidate();this.alarmControls?.touch(node);this.refreshInputs();this.lastUi=-Infinity;
+      },
     },services.motion.clampWarpFactor,tuning.alignmentWarp??4);
     try {
     this.window = services.windows.create({ id: this.id, title: 'Maneuver', icon: 'trajectory', pinned: true,
@@ -254,6 +261,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     on(get('continue'), 'click', () => {
       const flight=options.flight(),ship=flight.ship,nodes=ship&&this.plans.get(ship.id),next=nodes?.find(node=>!node.completed);
       if(!ship||!next||this.execution||!flight.canWarp)return;
+      if(this.canFollowArrival(flight,next)){this.current=next;this.nodes.set(ship.id,next);this.followArrival(next);return;}
       this.fleet?.stop(ship.id);this.current=next;this.nodes.set(ship.id,next);this.continueShip=ship.id;
       this.rebuildPlan(true);this.refreshInputs();
     });
@@ -378,6 +386,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   }
   private execute(): void {
     const node = this.current;
+    if(node&&this.followArrival(node))return;
     let flight = this.options.flight(), plan = this.snapshot();
     if (!node || !this.canExecute(flight, node, plan)) return;
     this.fleet?.stop(node.shipId);
@@ -397,10 +406,29 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.event('maneuver-execute', { ship: node.shipId, time: node.time });
   }
   private canExecute(flight: Flight, node: Node | undefined, plan: ManeuverPreview | undefined): boolean {
+    if(node&&this.canFollowArrival(flight,node))return true;
     if (this.disposed || !node?.valid || this.waiting(node) || !plan || !flight.canWarp || (flight.paused && !this.options.setPaused) || flight.inputBlocked || !flight.enabled || this.execution
       || this.options.fleet&&!this.options.fleet.owns(node.shipId) || flight.ship?.id !== node.shipId || flight.ship.bodyId !== node.bodyId || flight.ship.state.status !== 'flying' || !(plan.burnSeconds > 0)
       || flight.ship.fault || node.context !== flightMotion(flight) || flight.world !== this.world
       || node.time - plan.burnSeconds / 2 - flight.world.time < this.alignmentSeconds(flight, plan.deltaVelocity) + .2) return false;
+    return true;
+  }
+  private canFollowArrival(flight:Flight,node:Node):boolean {
+    const ship=flight.ship;
+    return !this.disposed&&!!this.fleet&&!this.execution&&!this.waiting(node)&&!node.completed&&!!ship&&ship.id===node.shipId
+      &&(ship.bodyId!==node.bodyId||!!node.targetOrbit&&node.time<=ship.state.time)&&flight.world.hasBody(node.bodyId)&&ship.state.status==='flying'&&!ship.fault
+      &&flight.enabled&&flight.canWarp&&(!flight.paused||!!this.options.setPaused)&&!flight.inputBlocked
+      &&!!this.options.fleet?.owns(node.shipId)&&flight.world===this.world;
+  }
+  private followArrival(node:Node):boolean {
+    const flight=this.options.flight();if(!this.canFollowArrival(flight,node))return false;
+    if(flight.paused){
+      try{this.options.setPaused!(false);}catch(error){this.options.notify(error instanceof Error?error.message:'Could not resume flight.');return true;}
+      const resumed=this.options.flight();
+      if(resumed.paused||resumed.world!==flight.world||!this.canFollowArrival(resumed,node))return true;
+    }
+    this.cancelPlanEvaluation();this.fleet!.stop(node.shipId);this.continueShip=undefined;
+    this.current=node;this.nodes.set(node.shipId,node);this.fleet!.arm(node.shipId,true,true);this.lastUi=-Infinity;
     return true;
   }
   /** Called by LocalSession before each 10 ms step, after beforeAdvance checked pilot
@@ -451,7 +479,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     }
   }
   private intent(node: Node): FlightPlanNode {
-    return { id: node.id, label: node.label, bodyId: node.bodyId, time: node.time, prograde: node.prograde, radial: node.radial, ...(node.completed ? { completed: true } : {}), ...(node.alarm ? { alarm:node.alarm } : {}) };
+    return { id: node.id, label: node.label, bodyId: node.bodyId, time: node.time, prograde: node.prograde, radial: node.radial, ...(node.completed ? { completed: true } : {}), ...(node.alarm ? { alarm:node.alarm } : {}),...(node.targetOrbit?{targetOrbit:node.targetOrbit}:{}) };
   }
   private waiting(node: Node): boolean {
     return (this.plans.get(node.shipId) ?? []).some(value => value !== node && !value.completed && value.time < node.time);
@@ -547,7 +575,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (nodes.length >= 16) { this.options.notify('A plan supports at most 16 nodes.'); return; }
     const last = nodes.at(-1)!;
     const node: Node = { ...last, id: `node-${this.nextNode++}`, label: `Maneuver ${nodes.length + 1}`,
-      time: Math.max(flight.world.time + 20, last.time + 20), prograde: 0, radial: 0, completed: false, alarm:undefined, valid: true, reason: '' };
+      time: Math.max(flight.world.time + 20, last.time + 20), prograde: 0, radial: 0, completed: false, alarm:undefined,targetOrbit:undefined, valid: true, reason: '' };
     nodes.push(node); this.plans.set(ship.id, nodes); this.nodes.set(ship.id, node); this.current = node;
     this.rebuildPlan(); this.refreshInputs();
   }
@@ -664,13 +692,13 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (!node || this.fleet?.has(node.shipId) || (!node.valid && !this.services.plans) || node.completed || !this.prograde.validity.valid || !this.radial.validity.valid) return;
     const prograde = axis==='radial'?node.prograde:this.prograde.valueAsNumber, radial = axis==='prograde'?node.radial:this.radial.valueAsNumber;
     if (!Number.isFinite(prograde) || !Number.isFinite(radial)) return;
-    this.continueShip=undefined;this.abortExecution(); this.stopWarp(); node.prograde = prograde; node.radial = radial; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.lastUi = -Infinity;
+    this.continueShip=undefined;this.abortExecution(); this.stopWarp();node.targetOrbit=undefined; node.prograde = prograde; node.radial = radial; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.lastUi = -Infinity;
   }
   private moveTime(time: number): boolean {
     const node = this.current, flight = this.options.flight();
     if (!node || this.fleet?.has(node.shipId) || (!node.valid && !this.services.plans) || node.completed || this.execution || !Number.isFinite(time) || (!this.services.plans && !this.inPrediction(time, flight))) return false;
     const sample = this.evaluate(node.seed, flight, time, flight.world.body(node.bodyId)); if (!sample && !this.services.plans) return false;
-    this.stopWarp(); node.time = time; if(sample)node.sample = sample; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity;
+    this.stopWarp();node.targetOrbit=undefined; node.time = time; if(sample)node.sample = sample; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity;
     return true;
   }
   private refreshInputs(): void {
@@ -830,7 +858,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     const node = this.current, armed=!!node&&!!this.fleet?.has(node.shipId), locked=!!this.execution||armed, plan = this.snapshot(), dv = plan ? Math.hypot(plan.deltaVelocity.x, plan.deltaVelocity.y) : 0;
     const write = (element: HTMLElement, value: string): void => { if (element.textContent !== value) element.textContent = value; };
     const pending=node&&(this.plans.get(node.shipId)??[]).find(value=>!value.completed);
-    write(this.status, node?.completed ? pending ? `${node.label} complete. ${pending.label} still pending. ${armed?'Automatic plan will review it.':'Continue to next burn to review and execute it.'}` : 'Plan complete. Engine off; flight continues at 1×.' : node ? node.valid ? `${this.waiting(node)?'Earlier burn pending · preview only · ':''}T${node.time >= flight.world.time ? '−' : '+'}${Math.abs(node.time - flight.world.time).toFixed(1)} s · ${this.execution ? this.warping ? `auto warp · ${flight.warp}×${flight.warpReason?' · '+flight.warpReason:''}` : `${this.execution.burn.phase} · ${this.execution.burn.remaining.toFixed(2)} m/s remaining` : this.warping ? 'coasting to node' : dv > 0 ? 'manual burn' : 'coast node'}` : node.reason
+    write(this.status, armed?this.fleet!.status(node!.shipId):node?.completed ? pending ? `${node.label} complete. ${pending.label} still pending. ${armed?'Automatic plan will review it.':'Continue to next burn to review and execute it.'}` : 'Plan complete. Engine off; flight continues at 1×.' : node ? node.valid ? `${this.waiting(node)?'Earlier burn pending · preview only · ':''}T${node.time >= flight.world.time ? '−' : '+'}${Math.abs(node.time - flight.world.time).toFixed(1)} s · ${this.execution ? this.warping ? `auto warp · ${flight.warp}×${flight.warpReason?' · '+flight.warpReason:''}` : `${this.execution.burn.phase} · ${this.execution.burn.remaining.toFixed(2)} m/s remaining` : this.warping ? 'coasting to node' : dv > 0 ? 'manual burn' : 'coast node'}` : node.reason
       : 'No node. Choose a point on your coast trajectory.');
     this.refreshPlanList();
     this.alarmControls?.updateUi(node,locked);
@@ -847,6 +875,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (this.document.activeElement !== this.timing) this.timing.value = node ? Math.max(0, node.time-flight.world.time).toFixed(1) : '';
     for (const input of [this.prograde, this.radial, this.timing]) input.disabled = !node || (!node.valid && !this.services.plans) || !!node.completed || locked;
     this.executeButton.disabled = armed || !this.canExecute(flight, node, plan);
+    this.executeButton.textContent=node&&node.bodyId!==flight.body.id?'Coast to arrival and execute':'Execute burn';
     this.executeButton.title = !flight.canWarp ? 'Autonomous execution is available on the host' : `${flight.paused?'Resume, warp':'Warp'}, align, burn and cut off automatically; needs time to align before burn start`;
     this.abortButton.hidden = !locked;
     this.window.body.querySelector<HTMLElement>(`#${this.id}-live-controls`)!.hidden=!locked&&!this.warping;

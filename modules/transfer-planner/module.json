@@ -39,7 +39,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "ee3bc77786dc0b7b49a868454ad2b51a6f17a24c8a4a04dd2f12e72999b8cb57"
+    "inputsDigest": "4e5db421dab055218c0c07abd7f6ce5bbd83f4d83a7dfd86e88ed8ab3ee485d5"
   },
   "compatibility": {
     "deterministic": true,
@@ -96,7 +96,7 @@
     },
     {
       "path": "game-api/flight-plans.ts",
-      "sha256": "fde0d99a5182b14f83e6b225a9ba7e7feae6e49a1fa678fa291e1243ede18837",
+      "sha256": "6f4020362826a3715aada773d8c615b1bec956608c2dfbe1d62fa38065070d05",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -378,13 +378,13 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "44b7ac18f66ffd8a284c07b875d9722967b7cb3f8bb535a083dd10821c104f31",
+      "sha256": "fc93024df5838c1bf641dd8cb2d673b64100bc74b1e8a34f4229ecad3014c5f3",
       "license": "MIT",
       "attribution": "Space Sim first-party bounded orbital transfer planning over public selected motion and flight-plan contracts. Licensed under MIT.\n"
     },
     {
       "path": "src/interbody.ts",
-      "sha256": "c895a6460d25b8325ecb1fab9c6060aea80d79752e39d33b552b6038209a3673",
+      "sha256": "a0c14f23af5b39cfb68e35cb5c9c78556a24a5be15cc7d3394f0d91ace4d60c9",
       "license": "MIT",
       "attribution": "Space Sim first-party bounded orbital transfer planning over public selected motion and flight-plan contracts. Licensed under MIT.\n"
     },

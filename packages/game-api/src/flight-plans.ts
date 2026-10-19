@@ -9,6 +9,9 @@ export interface FlightPlanNode {
  readonly time: number; readonly prograde: number; readonly radial: number;
  readonly completed?: boolean;
  readonly alarm?: import('./alarms').NodeAlarmSettings;
+ /** Optional arrival goal, in SI metres above the destination's reference radius.
+  * Intent only: never grants permission to coast, change a node, or ignite. */
+ readonly targetOrbit?: { readonly periapsisAltitude:number; readonly apoapsisAltitude:number };
 }
 export interface FlightPlan {
  readonly shipId: string; readonly universeId: string; readonly systemId: string;

@@ -16,6 +16,11 @@ function readAlarm(raw:unknown): import('@space-sim/game-api').NodeAlarmSettings
  if(lead<0||typeof a.enabled!=='boolean'||typeof a.pause!=='boolean'||(a.notified!==undefined&&typeof a.notified!=='boolean'))fail('invalid node alarm preferences');
  return {enabled:a.enabled as boolean,leadSeconds:lead,pause:a.pause as boolean,...(a.notified===true?{notified:true}:{})};
 }
+function readTarget(raw:unknown):NonNullable<FlightPlanNode['targetOrbit']> {
+ const value=record(raw),low=number(value.periapsisAltitude,'target periapsis'),high=number(value.apoapsisAltitude,'target apoapsis');
+ if(low<0||high<low)fail('invalid target orbit');
+ return {periapsisAltitude:low,apoapsisAltitude:high};
+}
 function readPlan(raw: unknown): FlightPlan {
  const p=record(raw), e=record(p.epoch), time=number(e.time,'epoch time',1e12);
  if (!Array.isArray(p.nodes) || p.nodes.length > MAX_PLAN_NODES) fail(`at most ${MAX_PLAN_NODES} nodes are supported`);
@@ -25,7 +30,7 @@ function readPlan(raw: unknown): FlightPlan {
   if(ids.has(id))fail('duplicate node id'); ids.add(id);
   if((at < time && n.completed!==true) || at > time + MAX_PLAN_SECONDS || at <= previous)fail('nodes need increasing times within one year of their epoch'); previous=at;
   nodes.push({id,label:text(n.label,'node label',80),bodyId:text(n.bodyId,'body id'),time:at,
-   prograde:number(n.prograde,'prograde delta-v',1e6),radial:number(n.radial,'radial delta-v',1e6),...(n.completed===true?{completed:true}:{}),...(n.alarm!==undefined?{alarm:readAlarm(n.alarm)}:{})});
+   prograde:number(n.prograde,'prograde delta-v',1e6),radial:number(n.radial,'radial delta-v',1e6),...(n.completed===true?{completed:true}:{}),...(n.alarm!==undefined?{alarm:readAlarm(n.alarm)}:{}),...(n.targetOrbit!==undefined?{targetOrbit:readTarget(n.targetOrbit)}:{})});
  }
  return {shipId:text(p.shipId,'ship id'),universeId:text(p.universeId,'universe id'),systemId:text(p.systemId,'system id'),
   fingerprint:text(p.fingerprint,'physics fingerprint',1024),motionIdentity:text(p.motionIdentity,'motion identity',16384),bodyId:text(p.bodyId,'body id'),

@@ -31,6 +31,10 @@
     {
       "type": "paragraph",
       "text": "alignmentWarp (integer 1\u20134, default 4) allows explicitly authorized Execute/Continue and auto-warp plans to align at up to 4x, using the existing 10 ms attitude steps. Session adapters must call the normal before-step hooks during physical warp, before every tick; high analytic warp does not run these hooks. Preparation margins bound every running ship; thrust and final cutoff run at 1x. 1 retains real-time alignment. Follow-clock plans never raise warp, manual controls cancel automation, and host consent still gates automatic clock changes."
+    },
+    {
+      "type": "paragraph",
+      "text": "Future-body Continue/Execute uses detached bounded encounter forecasts instead of requiring the destination at the old impulse time. Explicitly authorized runs coast through SOI events, then re-review at actual entry. Optional FlightPlanNode.targetOrbit records periapsisAltitude/apoapsisAltitude above the destination reference radius. A feasible single-burn repair preserves that conic proposal; actual finite thrust/contact/SOI checks and a full captured revolution must pass before arming. Missing goals, unreachable target radii, insufficient preparation, changed flight or failed validation stop rather than reuse stale delta-v. Manual component/time edits clear the stored goal. Detached tasks have no clock/engine authority, saved plans remain inert, and manual/host permissions retain priority."
     }
   ]
 }

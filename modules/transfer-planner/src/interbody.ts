@@ -129,7 +129,8 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
     arrivalComponents=deltaComponents(local.position,local.velocity,subtract(desired,local.velocity));
    if(!departureComponents||!arrivalComponents)continue;
    const plan=plans.capture(world,ship,[{id:'departure',label:`Departure · ${origin.name}`,bodyId:origin.id,time:departure,...departureComponents},
-    {id:'arrival',label:`Arrival · ${destination.name}`,bodyId:destination.id,time:arrival,...arrivalComponents}]);
+    {id:'arrival',label:`Arrival · ${destination.name}`,bodyId:destination.id,time:arrival,...arrivalComponents,
+      targetOrbit:{periapsisAltitude:request.periapsisAltitude,apoapsisAltitude:request.apoapsisAltitude}}]);
    const evaluation=plans.evaluateAsync!(plan,world);let evaluated:readonly import('@space-sim/game-api').EvaluatedFlightNode[]=[];
    try{for(let count=0;count<65536;count++){const step=evaluation.next();if(step.done){evaluated=step.value;break;}yield progress();}}finally{evaluation.return([]);}
    if(evaluated.length!==2||evaluated.some(n=>!n.valid)){lastReason=evaluated.find(n=>!n.valid)?.reason??'Plan evaluation exceeded its budget.';continue;}

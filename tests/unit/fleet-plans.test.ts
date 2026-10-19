@@ -20,7 +20,8 @@ function fixture(plans=createFlightPlans(),alignmentWarp=4) {
  const options:ManeuverPlannerOptions={container:null!,flight:()=>({world,ship:world.ship(ships[2]!),body:world.body('planet'),enabled:true,canWarp:true,paused,inputBlocked:false,warp:session.warp,requestedWarp:session.requestedWarp}),
   setWarp:factor=>session.setWarp(factor),setThrottle:(id,value)=>session.setThrottle(id,value),releaseControls:id=>session.host.setControls(session.playerId,id,IDLE),notify,
   fleet:{owns:id=>world.record(id)?.ownerId===session.playerId,setControls:(id,controls)=>session.host.setControls(session.playerId,id,controls),requestSlowWarp:request}};
- const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed},clampWarpFactor,alignmentWarp);
+ const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed,
+  retargeted:(id,node)=>intents.set(id,intents.get(id)!.map(value=>value.id===node.id?node:value))},clampWarpFactor,alignmentWarp);
  const tick=()=>{runner.beforeAdvance(IDLE);session.update(.01,ships[2],IDLE,undefined,()=>runner.step());};
  return {world,session,ships,intents,completed,runner,tick,options,notify,request,pause:()=>{paused=true;}};
 }
@@ -92,18 +93,59 @@ it.each([{autoWarp:false,retrograde:false},{autoWarp:true,retrograde:false},{aut
   f.options.fleet!.setControls=(ship,controls)=>{if(ship===id&&controls.engine&&f.completed.mock.calls.length===0)headings.push(f.world.ship(id)!.state.heading);send(ship,controls);};
   if(autoWarp)f.options.fleet!.authorizeWarp=()=>true;
   f.runner.arm(id,false,autoWarp);
-  const until=f.intents.get(id)!.at(-1)!.time+1;
+  const until=f.intents.get(id)!.at(-1)!.time+60;
   for(let i=0;i<300000&&f.world.time<until&&f.runner.active;i++)f.tick();
   expect(f.completed.mock.calls,JSON.stringify({nodes:f.intents.get(id),time:f.world.time,body:f.world.ship(id)!.bodyId,notices:f.notify.mock.calls})).toHaveLength(2);
   const ship=f.world.ship(id)!,body=f.world.body('moon'),orbit=f.world.contextFor(ship).services.orbits.elements(ship.state,body.mu);
   expect(ship.bodyId).toBe('moon');expect(ship.controls.engine).toBe(false);expect(orbit.kind).toBe('elliptic');
   expect(headings.length).toBeGreaterThan(0);for(const heading of headings)expect(Math.abs(Math.atan2(Math.sin(heading-expectedHeading),Math.cos(heading-expectedHeading)))).toBeLessThan(1e-7);
-  // This runner executes the prepared impulse intent; it does not retarget an
-  // arrival after finite-burn deviations. Qualify a safe capture, not exact apses.
+  // Arrival is reviewed at the actual encounter. Finite thrust can still shift
+  // the apsides slightly; compare actual flight with the selected capture goal.
   expect(orbit.periapsis).toBeGreaterThan(f.world.surface(body.id)?.bounds.maxRadius??body.radius);
   expect(orbit.apoapsis).toBeLessThan(body.soi.exitMetres);
+  expect(Math.abs(orbit.periapsis-body.radius-altitude)).toBeLessThan(20);
+  expect(Math.abs(orbit.apoapsis!-body.radius-altitude)).toBeLessThan(20);
  }finally{f.runner.dispose();f.session.dispose();}
 },60000);
+it.each([1/60,.2,2])('continues an overdue interplanetary arrival through its SOI and executes only the repaired capture with %s-second frames',frameSeconds=>{
+ const f=fixture(),id=f.ships[0]!,s=f.world.system,at=s.getBodyPosition('ignis',0),base=s.getBodyPosition('star',0),v=s.getBodyVelocity('ignis',0),bv=s.getBodyVelocity('star',0);
+ try{
+  f.session.teleport(id,'star',{x:at.x-base.x-3000,y:at.y-base.y+400},{x:v.x-bv.x+80,y:v.y-bv.y});
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+   {id:'arrival',label:'Arrival · Ignis',bodyId:'ignis',time:.1,prograde:-60,radial:6,targetOrbit:{periapsisAltitude:512,apoapsisAltitude:512}}]);
+  f.options.fleet!.authorizeWarp=()=>true;
+  const firing:{time:number;body:string}[]=[],send=f.options.fleet!.setControls;let transitions=0;
+  f.options.fleet!.setControls=(ship,controls)=>{if(ship===id&&controls.engine)firing.push({time:f.world.time,body:f.world.ship(id)!.bodyId});send(ship,controls);};
+  f.runner.arm(id,true,true);
+  for(let i=0;i<200000&&f.runner.active;i++){
+   f.runner.beforeAdvance(IDLE);transitions+=f.session.update(frameSeconds,f.ships[2],IDLE,undefined,()=>f.runner.step()).filter(event=>event.type==='soi').length;
+  }
+  expect(f.completed.mock.calls,JSON.stringify({status:f.runner.status(id),time:f.world.time,body:f.world.ship(id)!.bodyId,nodes:f.intents.get(id),notices:f.notify.mock.calls})).toHaveLength(1);
+  expect(transitions).toBeGreaterThan(0);expect(firing.length).toBeGreaterThan(0);expect(firing.every(event=>event.body==='ignis')).toBe(true);
+  const arrival=f.intents.get(id)![1]!;expect(arrival.time).toBeGreaterThan(.1);expect(arrival.completed).toBe(true);
+  expect(Math.abs((firing[0]!.time+firing.at(-1)!.time+STEP)/2-arrival.time)).toBeLessThanOrEqual(STEP);
+  const captured=f.world.context.services.orbits.elements(f.world.ship(id)!.state,f.world.body('ignis').mu);
+  expect(captured.kind).toBe('elliptic');expect(captured.periapsis).toBeGreaterThan(f.world.body('ignis').radius);
+  expect(captured.apoapsis).toBeLessThan(f.world.body('ignis').soi.exitMetres);expect(f.session.requestedWarp).toBe(1);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it('stops an absent encounter without thrust and gives manual warp priority during an accepted encounter coast',()=>{
+ for(const encounters of [false,true]){
+  const f=fixture(),id=f.ships[0]!;
+  try{
+   if(encounters){const s=f.world.system,m=s.getBodyPosition('moon',0),p=s.getBodyPosition('planet',0),mv=s.getBodyVelocity('moon',0),pv=s.getBodyVelocity('planet',0);
+    f.session.teleport(id,'planet',{x:m.x-p.x-3000,y:m.y-p.y+600},{x:mv.x-pv.x+80,y:mv.y-pv.y});}
+   f.intents.set(id,[{id:'arrival',label:'Arrival',bodyId:encounters?'moon':'ignis',time:.1,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:700,apoapsisAltitude:700}}]);
+   f.options.fleet!.authorizeWarp=()=>true;f.runner.arm(id,true,true);
+   for(let i=0;i<10000&&f.runner.active&&!f.runner.status(id).startsWith('Coasting to');i++)f.runner.beforeAdvance(IDLE);
+   if(encounters){expect(f.runner.status(id)).toContain('Coasting to Parvus');f.runner.manualWarp();f.session.setWarp(2);for(let i=0;i<5;i++)f.tick();expect(f.session.requestedWarp).toBe(2);}
+   else {expect(f.runner.active).toBe(false);expect(f.notify.mock.calls.flat().join(' ')).toContain('No Ignis encounter');}
+   expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.completed).not.toHaveBeenCalled();
+  }finally{f.runner.dispose();f.session.dispose();}
+ }
+});
+
 it.each([false,true].flatMap(autoWarp=>[1/60,.2,2].map(frameSeconds=>({autoWarp,frameSeconds}))))('keeps low-orbit generated burns accurate with $frameSeconds-second frames and auto-warp $autoWarp',({frameSeconds,autoWarp})=>{
  const f=fixture(),id=f.ships[0]!,body=f.world.body('planet'),r=body.radius+58.5;
  try {

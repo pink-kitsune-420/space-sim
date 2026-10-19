@@ -38,7 +38,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "1c3abc6a0bbe7e3d9a861055c41b410fe8e62e0b590d243e00e72cf060db16ba"
+    "inputsDigest": "e56e2b7d76bbd119066512d8fb9a63154cd25cd8f4e127987e0b66755734d1dc"
   },
   "compatibility": {
     "deterministic": true,
@@ -105,7 +105,7 @@
     },
     {
       "path": "game-api/flight-plans.ts",
-      "sha256": "fde0d99a5182b14f83e6b225a9ba7e7feae6e49a1fa678fa291e1243ede18837",
+      "sha256": "6f4020362826a3715aada773d8c615b1bec956608c2dfbe1d62fa38065070d05",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },

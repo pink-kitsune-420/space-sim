@@ -564,6 +564,32 @@ test('filters excessive shortcuts for a tiny orbit change and cancels background
  expect((await debug(page)).tick).toBe(before.tick);expect((await debug(page)).engine).toBe(false);
 });
 
+for(const action of ['Continue','Execute'] as const)test(`${action} coasts to a future planet SOI, retimes an overdue arrival and completes only its validated capture`,async({page})=>{
+ await setup(page);const before=await debug(page);await openPanel(page,'fleet');
+ const downloading=page.waitForEvent('download');await page.locator('#save-world').click();
+ const kit=await packageContracts(),saved=await kit.decodeUniverseSave(new Uint8Array(await readFile(await(await downloading).path()))) as any;
+ const system=saved.universe.systems.find((s:any)=>s.id===saved.systemId),destination=system.bodies.find((b:any)=>b.id==='ignis'),star=system.bodies.find((b:any)=>b.id==='star'),
+  radius=destination.ephemeris.radius,phase=destination.ephemeris.phaseRadiansAtEpoch,omega=(destination.ephemeris.direction??1)*Math.sqrt(star.mu/(radius*radius*radius)),
+  position=[radius*Math.cos(phase)-3000,radius*Math.sin(phase)+400],velocity=[-Math.sin(phase)*omega*radius+80,Math.cos(phase)*omega*radius];
+ saved.tick=0;saved.time=0;saved.paused=true;
+ const ship=saved.ships[0];Object.assign(ship,{bodyId:'star',position,velocity,heading:0,throttle:0,status:'flying',revision:0});delete ship.coast;
+ saved.flightPlans={format:'space-sim-flight-plans/1',plans:[{shipId:ship.id,universeId:saved.universe.id,systemId:saved.systemId,fingerprint:before.fingerprint,motionIdentity:before.modelIdentity,bodyId:'star',epoch:{time:0,position:{x:position[0],y:position[1]},velocity:{x:velocity[0],y:velocity[1]},heading:0},nodes:[
+  {id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+  {id:'arrival',label:'Arrival · Ignis',bodyId:'ignis',time:.1,prograde:-60,radial:6,targetOrbit:{periapsisAltitude:512,apoapsisAltitude:512}}]}]};
+ await page.locator('#world-file').setInputFiles({name:'arrival-follow.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
+ await expect(page.locator('#flight-message')).toContainText('Universe loaded');await closePanel(page);
+ await expect.poll(async()=>(await debug(page)).body).toBe('star');
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-node-tab').click();
+ if(action==='Execute')await page.locator('#maneuver-nodes').selectOption('arrival');
+ const control=page.locator(action==='Continue'?'#maneuver-continue':'#maneuver-execute');
+ await expect(control).toBeEnabled();if(action==='Execute')await expect(control).toHaveText('Coast to arrival and execute');await control.click();
+ await expect.poll(async()=>(await debug(page)).body,{timeout:20000}).toBe('ignis');
+ await expect(page.locator('#maneuver-status')).toContainText('Plan complete',{timeout:30000});
+ await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,automatic:d.maneuver?.automatic,completed:d.maneuver?.completed};}).toEqual({body:'ignis',engine:false,automatic:false,completed:true});
+ const done=await debug(page);expect(done.maneuver.time).toBeGreaterThan(.1);expect(done.orbit.kind).toBe('elliptic');
+ await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#throttle-value')).toHaveText('0%');
+});
+
 test('a reverse-direction Moon transfer raises the orbit instead of wasting delta-v on a reversal',async({page})=>{
  await setup(page);await openPanel(page,'fleet');
  const downloading=page.waitForEvent('download');await page.locator('#save-world').click();
