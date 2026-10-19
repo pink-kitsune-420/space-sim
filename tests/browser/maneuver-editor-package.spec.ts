@@ -329,3 +329,24 @@ test('arrival waits for actual-flight review after departure and a moving SOI ha
  });
  expect(result).toEqual({afterBurnNeedsReview:true,beforeHandoffValid:true,blocked:true,afterHandoffNeedsReview:true,reviewed:true,body:'moon',engine:false,executing:false,commands:[]});
 });
+
+test('the compact tabs open transfers without a node and preserve full precision behind rounded fields',async({page})=>{
+ await setup(page,false,true,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:string[]=[];
+  const planner=factory.create({container:root,id:'compact-tool',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  planner.update(0,prediction,false);planner.openTransfers();const empty=planner.savePlans().plans.length===0,transfers=!document.getElementById('compact-tool-transfers')!.hidden;
+  document.getElementById('compact-tool-transfers-tab')!.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));
+  const keyboard=document.getElementById('compact-tool-node-tab')!.getAttribute('aria-selected')==='true';
+  const service=f.candidate.providedService(f.api.FLIGHT_PLANS),plan=service.capture(world,current(),[{id:'precise',label:'Precise',bodyId:body.id,time:20,prograde:1.234567890123,radial:1e-12}]);
+  planner.loadPlans({format:'space-sim-flight-plans/1',plans:[plan]});document.getElementById('compact-tool-review')!.click();planner.update(.1,prediction,false);
+  // Refresh the selected input strings from exact intent, just as selecting a node does.
+  const select=document.getElementById('compact-tool-nodes') as HTMLSelectElement;select.dispatchEvent(new Event('change'));
+  const prograde=document.getElementById('compact-tool-prograde') as HTMLInputElement,radial=document.getElementById('compact-tool-radial') as HTMLInputElement;
+  const display=[prograde.value,radial.value],untouched=planner.savePlans().plans[0].nodes[0];
+  prograde.value='2.5';prograde.dispatchEvent(new Event('input'));const edited=planner.savePlans().plans[0].nodes[0],advanced=(document.getElementById('compact-tool-plan-actions') as HTMLDetailsElement).open;
+  planner.dispose();f.candidate.dispose();world.dispose();return{empty,transfers,keyboard,display,untouched,edited,advanced,commands};
+ });
+ expect(result).toMatchObject({empty:true,transfers:true,keyboard:true,display:['1.2345679','0'],advanced:false,commands:[]});
+ expect(result.untouched.prograde).toBe(1.234567890123);expect(result.untouched.radial).toBe(1e-12);expect(result.edited.prograde).toBe(2.5);expect(result.edited.radial).toBe(1e-12);
+});

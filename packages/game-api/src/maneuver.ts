@@ -1,3 +1,4 @@
+import { hypot } from './math';
 import type { Disposable } from './modules';
 import type { ServiceKey } from './modules-v2';
 import type { Controls, State, Vec, GhostSample } from './state';
@@ -15,7 +16,7 @@ export const MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory> = Object.freeze({ s
 
 /** Velocity-relative prograde plus body-relative radial intent, in metres/second. */
 export function maneuverDelta(sample: GhostSample, prograde: number, radial: number): Vec {
- const v = Math.hypot(sample.velocity.x, sample.velocity.y), r = Math.hypot(sample.position.x, sample.position.y);
+ const v = hypot(sample.velocity.x, sample.velocity.y), r = hypot(sample.position.x, sample.position.y);
  return { x: (v > 0 ? sample.velocity.x / v * prograde : 0) + (r > 0 ? sample.position.x / r * radial : 0),
   y: (v > 0 ? sample.velocity.y / v * prograde : 0) + (r > 0 ? sample.position.y / r * radial : 0) };
 }
@@ -42,6 +43,8 @@ export interface ManeuverPlannerOptions {
 }
 export interface ManeuverPlannerControl extends Disposable {
  readonly executing: boolean;
+ /** Open the transfer search directly without placing or arming a burn. */
+ openTransfers?(): void;
  savePlans(): import('./flight-plans').FlightPlanArchive;
  loadPlans(raw: unknown): void;
  cancel(): void;

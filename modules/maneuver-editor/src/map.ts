@@ -117,5 +117,5 @@ export class ManeuverMap {
       button.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     }
   }
-  dispose(): void { this.drag = undefined; this.root.remove(); }
+  dispose(): void { this.actions.finish?.(); this.drag = undefined; this.root.remove(); }
 }

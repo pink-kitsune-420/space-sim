@@ -31,7 +31,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "d68105e87764426ebcfdd80962ca0e8077094a308a417e8e9d314bd8db1b7084"
+    "inputsDigest": "72a37a0fd45a8056891466d7fbd63b9f4c030af47076ba4415e5776e074a3980"
   },
   "compatibility": {
     "deterministic": true,
@@ -129,7 +129,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "a14c42aaa050f2becb5010516f034703ec3ebdba3796d7600b129a814a1462ab",
+      "sha256": "5539b0e4f3b78a66b4adfb47c3a34ddab6ff405e8a12520fda10bcb5fb466f69",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
