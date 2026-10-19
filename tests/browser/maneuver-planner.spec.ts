@@ -626,12 +626,12 @@ for(const destinationId of ['moon','velum'] as const)test(`${destinationId} arri
  await expect(page.locator('#flight-message')).toContainText('Universe loaded');await closePanel(page);
  await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-node-tab').click();await page.locator('#maneuver-continue').click();
  await expect(page.locator('#maneuver-nodes option:checked')).toContainText(`Correction · ${destination.name}`,{timeout:20000});
- const offered=await debug(page);expect(offered.body).toBe(destinationId);expect(offered.engine).toBe(false);expect(offered.maneuver.automatic).toBe(false);expect(offered.maneuver.nodes).toBe(3);
+ await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,automatic:d.maneuver?.automatic,nodes:d.maneuver?.nodes};}).toEqual({body:destinationId,engine:false,automatic:false,nodes:3});
  await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
  await expect(page.locator('#maneuver-execute')).toBeEnabled();await page.locator('#maneuver-execute').click();
  await expect.poll(async()=>{const d=await debug(page);return d.maneuver?.selected==='arrival'&&!d.engine&&!d.maneuver.execution;},{timeout:20000}).toBe(true);
  expect((await debug(page)).maneuver.completed).toBe(false);await page.locator('#maneuver-continue').click();
  await expect(page.locator('#maneuver-status')).toContainText('Plan complete',{timeout:30000});
- const done=await debug(page);expect(done.body).toBe(destinationId);expect(done.engine).toBe(false);expect(done.orbit.kind).toBe('elliptic');expect(done.maneuver.nodes).toBe(3);
+ await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,orbit:d.orbit?.kind,nodes:d.maneuver?.nodes,completed:d.maneuver?.completed};}).toEqual({body:destinationId,engine:false,orbit:'elliptic',nodes:3,completed:true});
  await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#throttle-value')).toHaveText('0%');
 });
