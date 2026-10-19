@@ -1,7 +1,7 @@
 import {flightSampleInFrame,maneuverDelta,deterministicMath as dm,
  type FlightPlanService,type GhostEnd,type GhostSample,type State,type TransferOption,type TransferProgress,type TransferRequest,type TransferResult,type Vec,type WorldRead} from '@space-sim/game-api';
 import {lambert,ejection} from './lambert';
-import {deltaComponents,radius,tolerance} from './math';
+import {deltaComponents,radius,tolerance,transferOptions} from './math';
 const YEAR=365.25*86400;
 const add=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y});
 const subtract=(a:Vec,b:Vec):Vec=>({x:a.x-b.x,y:a.y-b.y});
@@ -19,7 +19,8 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
  const common=relationship==='child'?origin:relationship==='parent'?destination:world.body(origin.parentId!);
  const context=world.contextFor(ship).cloneForPrediction(),orbits=context.services.orbits;
  let tested=0,accepted=0,total=0,lastReason='No sampled transfer converged safely. Try a different parking orbit or target altitude.';
- const progress=():TransferProgress=>({tested,total,accepted});
+ let options:readonly TransferOption[]=[];
+ const progress=():TransferProgress=>({tested,total,accepted,options:options.length?options:undefined});
  try {
   if(ship.controls.engine)return none('Stop thrust before searching for a transfer.');
   if(!context.capabilities.analyticCoast||!context.capabilities.rails||world.requiresWorldPrediction||!world.predictionFeatures?.futureSeeds||!world.predictionFeatures.endTime||!plans.evaluateAsync)
@@ -140,11 +141,11 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
     dynamical=Math.min(travel,Math.sqrt(rp*rp*rp/destination.mu),Math.sqrt(radius(at.state.position)**3/origin.mu));
    candidates.push({plan,waitSeconds:departure-start.time,travelSeconds:travel,deltaV:departureDeltaV+arrivalDeltaV,departureDeltaV,arrivalDeltaV,departureBurnSeconds,arrivalBurnSeconds,
     warning:`${Math.max(departureBurnSeconds,arrivalBurnSeconds)>.1*dynamical?'Long finite burn: material arrival uncertainty. ':''}Impulsive patched-conic estimate. Review actual flight after departure and SOI changes; execute each burn separately.`});accepted++;
+   options=transferOptions(candidates,world.time);yield progress();
   }
   if(!candidates.length)return none(lastReason);
-  candidates.sort((a,b)=>a.deltaV-b.deltaV||a.waitSeconds+a.travelSeconds-b.waitSeconds-b.travelSeconds);
-  const efficient=candidates[0]!,faster=candidates.filter(c=>c.waitSeconds+c.travelSeconds<(efficient.waitSeconds+efficient.travelSeconds)*.98).sort((a,b)=>a.waitSeconds+a.travelSeconds-b.waitSeconds-b.travelSeconds||a.deltaV-b.deltaV)[0];
-  return{options:[{...efficient,kind:'efficient'},...(faster?[{...faster,kind:'faster' as const}]:[])],reason:faster?'':'No meaningfully faster validated option in this bounded search.'};
+  options=transferOptions(candidates,world.time);
+  return{options,reason:!options.length?'The validated departure windows passed while searching. Pause flight and search again.':options.length>1?'':'No meaningfully faster validated option in this bounded search.'};
  }catch(error){return none(error instanceof Error?error.message:'Interbody search failed.');}
  finally{context.dispose();}
 }

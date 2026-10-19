@@ -325,6 +325,19 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
  await expect.poll(async()=>(await debug(page)).maneuver.time).toBeCloseTo(saved,6);
 });
 
+test('offers a validated moon plan while the remaining search is still running',async({page})=>{
+ await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('512');
+ const before=await debug(page);await page.locator('#maneuver-transfer-find').click();
+ const use=page.locator('#maneuver-transfer-use-efficient');await expect(use).toBeEnabled({timeout:60000});
+ await expect(page.locator('#maneuver-transfer-cancel')).toBeVisible();
+ await expect(page.locator('#maneuver-transfer-status')).toContainText('Best so far');
+ await use.click();await expect(page.locator('#maneuver-transfer-cancel')).toBeHidden();
+ await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
+ expect((await debug(page)).tick).toBe(before.tick);
+ await expect(page.locator('#maneuver-nodes option')).toHaveCount(2);
+});
+
 test('moon transfers show both burn indicators, editable arrival and current-throttle duration in the production app',async({page},info)=>{
  // Search deliberately spends at most a soft 1 ms per animation frame. Software
  // renderers sharing a runner can need many wall-clock seconds for the same work.

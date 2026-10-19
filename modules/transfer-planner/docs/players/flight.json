@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Find transfer windows compares Efficient (lowest impulse cost among the sampled opportunities) and Faster (earlier arrival when available). Compare current wait, travel time, total delta-v and each burn duration. The search is bounded; these labels do not promise a global optimum. Changes to thrust, orbit, destination or altitude discard old results."
+      "text": "Find transfer windows compares Efficient (lowest impulse cost among the sampled opportunities) and Faster (earlier arrival when available). Compare current wait, travel time, total delta-v and each burn duration. The search is bounded; these labels do not promise a global optimum. Changes to thrust, orbit, destination or altitude discard old results. Interbody searches show fully validated best-so-far plans as soon as they are available, while other samples continue. You can use a displayed plan immediately or cancel the search. Pause flight before searching to keep departure windows from passing during the search."
     },
     {
       "type": "paragraph",

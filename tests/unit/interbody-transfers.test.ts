@@ -2,12 +2,33 @@ import {expect,it} from 'vitest';
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {createFlightPlans} from '../../modules/flight-plans/src/index';
 import {createTransferPlanner} from '../../modules/transfer-planner/src/index';
+import {transferOptions} from '../../modules/transfer-planner/src/math';
 import {World} from '../../packages/sim-core/src/world';
 import {DEFAULT_UNIVERSE} from '../../packages/sim-core/src/universe';
 import solarSystem from '../../games/space-sim/universes/astronomy/solar-system/universe.json';
 import {saveWorld,loadWorld} from '../../packages/sim-core/src/save';
 import type {FlightPlan,TransferRequest,TransferProgress,UniverseDefinition} from '../../packages/game-api/src/index';
 const plans=createFlightPlans(),solver=createTransferPlanner(plans),measurements:unknown[]=[];
+it('publishes a fully validated moon plan before the remaining search completes and cancels cleanly',()=>{
+ const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),body=world.body(ship.bodyId),r=body.radius+102;
+ world.teleport(ship.id,body.id,{x:0,y:r},{x:Math.sqrt(body.mu/r),y:0});
+ const before=JSON.stringify(saveWorld(world)),job=solver.search(world,{shipId:ship.id,destinationId:'moon',periapsisAltitude:512,apoapsisAltitude:512});
+ try {
+  let progress:TransferProgress|undefined;
+  for(let count=0;count<100000;count++){
+   const step=job.next();expect(step.done).toBe(false);
+   if(!step.done&&step.value.options?.length){progress=step.value;break;}
+  }
+  expect(progress).toBeDefined();expect(progress!.accepted).toBe(1);expect(progress!.tested).toBeLessThan(progress!.total);
+  const option=progress!.options![0]!,nodes=evaluate(option.plan,world);
+  expect(transferOptions(progress!.options!,option.plan.nodes[0]!.time+1)).toEqual([]);
+  expect(nodes.map(n=>n.valid)).toEqual([true,true]);
+  const final=world.context.services.orbits.elements(nodes[1]!.after!,world.body('moon').mu);
+  expect(final.periapsis).toBeCloseTo(world.body('moon').radius+512,2);
+  expect(final.apoapsis).toBeCloseTo(world.body('moon').radius+512,2);
+ } finally {job.return({options:[],reason:'cancelled'});}
+ expect(JSON.stringify(saveWorld(world))).toBe(before);world.dispose();
+},30000);
 function evaluate(plan:FlightPlan,world:World){const job=plans.evaluateAsync!(plan,world);for(let i=0;i<100000;i++){const step=job.next();if(step.done)return step.value;}throw Error('Evaluation budget');}
 function search(world:World,request:TransferRequest){
  const job=solver.search(world,request);let count=0,last:TransferProgress|undefined,maxNext=0;const start=performance.now();

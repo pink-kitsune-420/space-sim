@@ -20,6 +20,27 @@ function installed(slot: string, provider: unknown): { code: RegisteredModule[];
 const orbit = (extra: Partial<OrbitalProvider> = {}): OrbitalProvider => ({ ...BUILTIN_SERVICES.orbits, ...identity('test.orbits'), ...extra });
 
 describe('selected motion services', () => {
+  it('avoids orbital solves inside the terrain envelope while retaining analytic coasts above it', () => {
+    const world = new World(TERRAIN_UNIVERSE), ship = world.spawn({ ownerId: 'pilot', presetId: 'pad' });
+    const body = world.body(ship.bodyId), surface = world.surface(body.id)!;
+    let calls = 0;
+    const context = createSimulationContext({}, { services: { orbits: orbit({
+      elements(...args) { calls++; return BUILTIN_SERVICES.orbits.elements(...args); },
+    }) } });
+    try {
+      const state: State = { ...initialState('planet-orbit'),
+        position: { x: 0, y: surface.bounds.maxRadius }, velocity: { x: 20, y: -1 } };
+      expect(context.keplerCoast(state, body, surface)).toBeUndefined();
+      const next = context.advance(state, IDLE, STEP, body, surface);
+      expect(next.dynamics).toBe('numerical');
+      expect(calls).toBe(0);
+      const radius = surface.bounds.maxRadius + 100;
+      expect(context.keplerCoast({ ...state, position: { x: 0, y: radius },
+        velocity: { x: Math.sqrt(body.mu / radius), y: 0 } }, body, surface)).toBeDefined();
+      expect(calls).toBe(1);
+    } finally { context.dispose(); world.dispose(); }
+  });
+
   it('registers the built-in service bundle and keeps its optimized legacy identity', () => {
     const prepared = prepareGame({ environment: 'node' });
     for (const slot of ['orbits', 'bodies', 'surfaces', 'rails']) expect(prepared.candidate.lock.providers[slot]).toBe('builtin.motion');
