@@ -25,15 +25,18 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await expect(manual).toBeVisible();
   await expect(manual.locator('#manual-build-version')).toContainText(`Spacelab ${version}`);
   await expect(manual.locator('#manual-tab-players')).toHaveAttribute('aria-selected', 'true');
+  await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(0);
 
   // The controls page is generated from the current keybindings.
   await manual.locator('.manual-topic[data-page="controls"]').click();
   await expect(manual.locator('#manual-page h2')).toHaveText('Controls');
+  await expect(manual.locator('#manual-page').getByRole('button', { name: 'Configure controls…' })).toHaveCount(1);
   await expect(manual.locator('.manual-controls caption')).toHaveText(['Flight', 'Time warp', 'Camera & view', 'System']);
   await expect(manual.locator('.manual-controls tr', { hasText: 'Fire Main Engine' }).locator('.manual-keyboard kbd')).toHaveText(['Space']);
 
   // In-page links and search.
   await manual.locator('#manual-tab-creators').click();
+  await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(0);
   await manual.locator('#manual-page a[data-page="shaders"]').click();
   await expect(manual.locator('#manual-page h2')).toHaveText('Shader packs');
   await manual.locator('#manual-search').fill('determin');
@@ -43,6 +46,7 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await manual.locator('#manual-search').fill('');
   await manual.locator('#manual-tab-players').click();
   await manual.locator('.manual-topic[data-page="multiplayer"]').click();
+  await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(0);
   await expect(manual.locator('#manual-page')).toContainText('npm run host');
   await expect(manual.locator('#manual-page')).toContainText('GAME_ADDRESS');
   await manual.locator('#manual-tab-creators').click();
@@ -54,6 +58,37 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await openPanel(page, 'manual');
   await expect(manual.locator('#manual-tab-creators')).toHaveAttribute('aria-selected', 'true');
   await expect(manual.locator('#manual-page h2')).toHaveText('Shader packs');
+});
+
+test('topics and article scroll independently while search stays visible', async ({ page }, info) => {
+  await page.goto('/'); await openPanel(page, 'manual');
+  const manual = page.locator('#manual-window'), topics = manual.locator('.manual-topics');
+  const article = manual.locator('#manual-page'), search = manual.locator('#manual-search');
+  const searchY = (await search.boundingBox())!.y;
+  expect(await topics.evaluate(node => node.scrollHeight - node.clientHeight)).toBeGreaterThan(100);
+  const nav = (await topics.boundingBox())!;
+  await page.mouse.move(nav.x + nav.width / 2, nav.y + nav.height / 2);
+  await page.mouse.wheel(0, 2000);
+  await expect.poll(() => topics.evaluate(node => node.scrollTop)).toBeGreaterThan(100);
+  await manual.locator('.manual-topic[data-page="commands"]').click();
+  await expect(article.locator('h2')).toHaveText('Chat commands and sandbox tools');
+  expect((await search.boundingBox())!.y).toBeCloseTo(searchY, 0);
+  await search.fill('Controls');
+  await manual.locator('.manual-topic[data-page="controls"]').click();
+  await search.fill('');
+  const navScroll = await topics.evaluate(node => node.scrollTop);
+  const reading = (await article.boundingBox())!;
+  await page.mouse.move(reading.x + reading.width / 2, reading.y + reading.height / 2);
+  await page.mouse.wheel(0, 500);
+  await expect.poll(() => article.evaluate(node => node.scrollTop)).toBeGreaterThan(100);
+  expect(await topics.evaluate(node => node.scrollTop)).toBeCloseTo(navScroll, 0);
+  expect((await search.boundingBox())!.y).toBeCloseTo(searchY, 0);
+  expect(await manual.locator('#manual-window-body').evaluate(node => node.scrollHeight - node.clientHeight)).toBeLessThanOrEqual(1);
+  await search.fill('Your first orbit');
+  await manual.locator('.manual-topic[data-page="first-orbit"]').click();
+  expect(await article.evaluate(node => node.scrollTop)).toBe(0);
+  await search.fill('');
+  await page.screenshot({ path: info.outputPath('manual-scroll-panes.png') });
 });
 
 test('Code modules uses compact expandable sections while all details remain searchable', async ({ page }) => {
@@ -203,10 +238,14 @@ test('manual uses player 1 keyboard and controller mappings and refreshes after 
   await manual.locator('[data-page="welcome"]').first().click();
   const engineHint = manual.locator('#manual-page > ol > li').filter({ hasText: /^Look over/ });
   await expect(engineHint).toContainText('K / L or L2 Trigger');
+  await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(0);
+  await manual.locator('.manual-topic[data-page="controls"]').click();
+  await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(1);
   await manual.getByRole('button', { name: 'Configure controls…' }).click();
   await page.locator('#tab-gamepad-btn').click();
   await page.locator('#gamepad-enabled').uncheck();
   await page.locator('#controls-close').click();
+  await manual.locator('.manual-topic[data-page="welcome"]').click();
   await expect(engineHint).not.toContainText('L2 Trigger');
   expect(errors).toEqual([]);
 });

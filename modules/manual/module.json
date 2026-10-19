@@ -38,7 +38,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "569ee2e90c2a727bc2d30864b0f9ac753356bb4fb3b8edf8cb01e5dd2f1ddf03"
+    "inputsDigest": "00e72d575a7afab232e1da020ed0fd02b4fefb7739099c145d478b11b7a6aa88"
   },
   "compatibility": {
     "deterministic": true,
@@ -57,7 +57,7 @@
   "inputs": [
     {
       "path": "assets/manual.css",
-      "sha256": "b0d2b0663168404fe8c10d6c67adb12ee28ce93f7bd320d71764eaba0dd82c4b",
+      "sha256": "b2fe6ca3960072bd7411f3f0e031e5844c7d916170839c01f64109c2600aa808",
       "license": "MIT",
       "attribution": "Space Sim first-party Manual reader, guide catalog and Players/Creators book. Licensed under MIT.\n"
     },
@@ -381,7 +381,7 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "a72112d7a0fec2e7e2533e4f4cf6ca6203a90a7e402c547b053fd070a98db8b2",
+      "sha256": "9d68a6b41eabf44d72f327fe9971acaf354feb535e260951e2bd1892a89cb359",
       "license": "MIT",
       "attribution": "Space Sim first-party Manual reader, guide catalog and Players/Creators book. Licensed under MIT.\n"
     }
