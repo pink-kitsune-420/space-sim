@@ -9,6 +9,7 @@ export default defineConfig({
   base: './',
   resolve: {
     alias: {
+      '@space-sim/game-api': resolve(rootDir, '../../packages/game-api/src/index.ts'),
       '@spacelab/sim-core': resolve(rootDir, '../../packages/sim-core/src/index.ts'),
       '@spacelab/game-api': resolve(rootDir, '../../packages/game-api/src/index.ts'),
       '@spacelab/render-2d': resolve(rootDir, '../../packages/render-2d/src/index.ts'),

@@ -1,3 +1,7 @@
+import { createWindows } from '../../../modules/ui-windows/src/index';
+import type { WindowSystem } from './spacelab/game-api';
+import { advanceSandboxFrame, sustainableWarp, SANDBOX_MAX_WARP } from './simulation-clock';
+import { nextWarpFactor } from './spacelab/sim-core';
 import { decodeUniverse } from './spacelab/game-library';
 import type { Vec } from './spacelab/sim-core';
 import { createDefaultSolarSystem, instantiateBody, PRESET_TEMPLATES, createRingBelt } from './presets';
@@ -10,6 +14,8 @@ import { validateUniverse, type UniverseDefinition } from './spacelab/sim-core';
 import { getActiveTheme, saveThemeSettings, THEME_PRESETS, onThemeChange, applyHudThemeToDom, loadThemeSettings } from './spacelab/render-2d';
 
 export interface OrbitSandboxOptions {
+  windows?: WindowSystem;
+  inputEnabled?: () => boolean;
   onOpenMenu?: () => void;
   onLaunchInSpaceSim?: (universe: UniverseDefinition) => void;
 }
@@ -78,6 +84,15 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   const btnFocusBody = document.getElementById('btn-focus-body') as HTMLButtonElement;
   const btnDeleteBody = document.getElementById('btn-delete-body') as HTMLButtonElement;
   const btnCloseInspector = document.getElementById('btn-close-inspector') as HTMLButtonElement;
+  const sandboxRoot = canvas.parentElement!;
+  const inspectorWindow = (options?.windows ?? createWindows()).create({
+    id: 'sandbox-inspector', title: 'Planet inspector', icon: 'tools', container: sandboxRoot,
+    className: 'sandbox-inspector-window',
+    place: (container, panel) => ({ x: container.clientWidth - panel.offsetWidth - 16, y: (document.querySelector('.sandbox-header')?.clientHeight ?? 56) + 12 }),
+    decorate: panel => applyHudThemeToDom(getActiveTheme(), panel),
+    onCloseButton: () => closeInspector(),
+  });
+  inspectorWindow.body.append(inspectorPanel);
   const inspectorPreviewDot = document.getElementById('inspector-preview-dot') as HTMLElement;
   const btnToggleOrbits = document.getElementById('btn-toggle-orbits') as HTMLButtonElement;
   const btnSandboxMenu = document.getElementById('btn-sandbox-menu') as HTMLButtonElement | null;
@@ -137,7 +152,9 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     if (!paletteContainer) return;
     paletteContainer.innerHTML = '';
     for (const template of PRESET_TEMPLATES) {
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.setAttribute('aria-pressed', String(template.id === activeCandidatePresetId));
       card.className = `palette-card ${template.id === activeCandidatePresetId ? 'active' : ''}`;
       card.dataset.id = template.id;
 
@@ -154,7 +171,8 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
       card.appendChild(name);
 
       card.addEventListener('click', () => {
-        document.querySelectorAll('.palette-card').forEach(c => c.classList.remove('active'));
+        paletteContainer.querySelectorAll('.palette-card').forEach(c => { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
+        card.setAttribute('aria-pressed', 'true');
         card.classList.add('active');
         activeCandidatePresetId = template.id;
       });
@@ -172,6 +190,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   function openInspector(body: CelestialBody): void {
     renderer.selectedBodyId = body.id;
     inspectorPanel.classList.remove('hidden');
+    inspectorWindow.open();
 
     inpBodyName.value = body.name;
     selPreset.value = body.appearance.style === 'banded' ? 'gas-giant' : body.appearance.style;
@@ -217,6 +236,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   function closeInspector(): void {
     renderer.selectedBodyId = null;
     inspectorPanel.classList.add('hidden');
+    inspectorWindow.close();
   }
 
   // Inspector Event Listeners
@@ -527,10 +547,11 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
 
   // --- Keyboard Shortcuts ---
   window.addEventListener('keydown', (e: KeyboardEvent) => {
-    if (!isStarted || document.getElementById('orbit-sandbox-workspace')?.hidden) return;
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+    if (!isStarted || document.getElementById('orbit-sandbox-workspace')?.hidden || options?.inputEnabled?.() === false) return;
+    if ((e.target as HTMLElement)?.closest('input, select, textarea, button, summary, a, [contenteditable]') || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
 
     if (e.key === 'Escape') {
+      e.stopPropagation();
       if (!modalFullBody.classList.contains('hidden')) {
         modalFullBody.classList.add('hidden');
         e.preventDefault();
@@ -557,9 +578,15 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
       return;
     }
 
-    if (e.code === 'Space') {
+    if (e.code === 'Space' || e.code === 'KeyP') {
       e.preventDefault();
       togglePlayPause();
+    } else if (e.code === 'BracketRight' || e.code === 'Period') {
+      e.preventDefault(); changeWarp(1);
+    } else if (e.code === 'BracketLeft' || e.code === 'Comma') {
+      e.preventDefault(); changeWarp(-1);
+    } else if (e.code === 'Slash') {
+      e.preventDefault(); setWarp(1);
     } else if (e.code === 'KeyC') {
       toggleCircularize();
     } else if (e.code === 'KeyO') {
@@ -583,7 +610,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
         activeCandidate.isSnappingCircular = true;
       }
     }
-  });
+  }, { capture: true });
 
   window.addEventListener('keyup', (e: KeyboardEvent) => {
     if (!isStarted || document.getElementById('orbit-sandbox-workspace')?.hidden) return;
@@ -599,19 +626,57 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   const playIcon = document.getElementById('play-icon') as HTMLElement;
   function togglePlayPause(): void {
     isPaused = !isPaused;
-    if (playIcon) playIcon.textContent = isPaused ? '▶' : '⏸';
+    if (playIcon) playIcon.textContent = isPaused ? 'Resume' : 'Pause';
+    btnPlayPause?.setAttribute('aria-pressed', String(isPaused));
     showToast(isPaused ? 'Simulation Paused' : 'Simulation Running');
   }
   btnPlayPause?.addEventListener('click', togglePlayPause);
 
-  // Warp buttons
-  document.querySelectorAll('.warp-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.warp-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      warpMultiplier = Number((btn as HTMLElement).dataset.warp);
-    });
+  // Flight warp controls; the clock adds bounded numerical steps as warp increases.
+  const warpDisplay = document.getElementById('sandbox-warp-factor') as HTMLOutputElement;
+  const warpDown = document.getElementById('sandbox-warp-down') as HTMLButtonElement;
+  const warpUp = document.getElementById('sandbox-warp-up') as HTMLButtonElement;
+  const warpStatus = document.getElementById('sandbox-warp-status')!;
+  const disableLimiter = document.getElementById('sandbox-disable-limiter') as HTMLInputElement;
+  // Firefox may restore form values on reload; the debug bypass is never a saved preference.
+  disableLimiter.checked = false;
+  let overloadSeconds = 0, integratedSeconds = 0, sampledWallSeconds = 0;
+  let warningUntil = 0;
+  function setWarp(value: number): void {
+    overloadSeconds = integratedSeconds = sampledWallSeconds = 0;
+    warningUntil = 0;
+    warpStatus.hidden = !disableLimiter.checked;
+    warpStatus.textContent = disableLimiter.checked ? 'CPU limiter off (debug)' : '';
+    warpMultiplier = Math.max(.2, Math.min(SANDBOX_MAX_WARP, value));
+    warpDisplay.value = `${warpMultiplier}×`;
+    warpDown.disabled = warpMultiplier <= .2;
+    warpUp.disabled = warpMultiplier >= SANDBOX_MAX_WARP;
+    document.getElementById('sandbox-warp-slow')?.setAttribute('aria-pressed', String(warpMultiplier === .2));
+  }
+  function changeWarp(direction: -1 | 1): void {
+    setWarp(direction < 0 && warpMultiplier <= 1 ? .2 : nextWarpFactor(warpMultiplier, direction, SANDBOX_MAX_WARP));
+  }
+  warpDown?.addEventListener('click', () => changeWarp(-1));
+  warpUp?.addEventListener('click', () => changeWarp(1));
+  document.getElementById('sandbox-warp-reset')?.addEventListener('click', () => setWarp(1));
+  document.getElementById('sandbox-warp-slow')?.addEventListener('click', () => setWarp(.2));
+  setWarp(1);
+  disableLimiter.addEventListener('change', () => {
+    overloadSeconds = integratedSeconds = sampledWallSeconds = 0;
+    warpStatus.hidden = !disableLimiter.checked;
+    warpStatus.textContent = disableLimiter.checked ? 'CPU limiter off (debug)' : '';
   });
+  const labelsButton = document.getElementById('sandbox-labels');
+  try { renderer.showBodyLabels = localStorage.getItem('spacelab:sandbox-labels') !== 'false'; } catch { /* Optional viewer preference. */ }
+  const updateLabels = () => {
+    labelsButton?.setAttribute('aria-pressed', String(renderer.showBodyLabels));
+    labelsButton?.classList.toggle('active', renderer.showBodyLabels);
+  };
+  labelsButton?.addEventListener('click', () => {
+    renderer.showBodyLabels = !renderer.showBodyLabels; updateLabels();
+    try { localStorage.setItem('spacelab:sandbox-labels', String(renderer.showBodyLabels)); } catch { /* Optional viewer preference. */ }
+  });
+  updateLabels();
 
   // Physics Mode Switchers
   const btnKepler = document.getElementById('mode-kepler') as HTMLButtonElement;
@@ -1021,13 +1086,29 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     if (!isStarted) return;
     animFrameId = requestAnimationFrame(animationLoop);
 
-    const deltaMs = Math.min(100, timestamp - lastFrameTime);
+    const deltaMs = Math.max(0, Math.min(100, timestamp - lastFrameTime));
     lastFrameTime = timestamp;
 
     if (!isPaused) {
-      const dt = (deltaMs / 1000) * warpMultiplier;
-      simulationTimeSec += dt;
-      stepSimulation(bodies, simulationMode, dt, 4, fullBodyOptions);
+      const wallSeconds = deltaMs / 1000;
+      const advanced = advanceSandboxFrame(bodies, simulationMode, wallSeconds, warpMultiplier, fullBodyOptions, disableLimiter.checked);
+      simulationTimeSec += advanced.simulatedSeconds;
+      if (!disableLimiter.checked && !document.hidden) {
+        sampledWallSeconds += wallSeconds; integratedSeconds += advanced.simulatedSeconds;
+        overloadSeconds = advanced.limited ? overloadSeconds + wallSeconds : Math.max(0, overloadSeconds - wallSeconds);
+        if (advanced.limited && timestamp >= warningUntil) {
+          warpStatus.hidden = false; warpStatus.textContent = 'CPU cannot keep up · reducing warp';
+        }
+        if (sampledWallSeconds >= .5) {
+          if (overloadSeconds >= .15) {
+            const previous = warpMultiplier;
+            setWarp(sustainableWarp(previous, integratedSeconds, sampledWallSeconds));
+            warpStatus.textContent = `CPU limited · warp reduced to ${warpMultiplier}×`;
+            warpStatus.hidden = false; warningUntil = timestamp + 5000;
+          } else if (timestamp >= warningUntil) warpStatus.hidden = true;
+          overloadSeconds = integratedSeconds = sampledWallSeconds = 0;
+        }
+      }
     }
 
     renderScene(renderer, bodies, activeCandidate, simulationTimeSec);
@@ -1043,6 +1124,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     },
     stop() {
       isStarted = false;
+      closeInspector();
       if (animFrameId) {
         cancelAnimationFrame(animFrameId);
         animFrameId = null;

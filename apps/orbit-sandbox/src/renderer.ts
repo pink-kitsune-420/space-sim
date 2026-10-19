@@ -20,6 +20,10 @@ export interface RendererState {
   isEditingRings: boolean;
   showOrbitLines: boolean;
   showOrbitApsides: boolean;
+  showBodyLabels: boolean;
+  /** Reused screen rectangles keep overlapping names from shimmering over each other. */
+  labelRects?: Float64Array;
+  labelCount?: number;
 }
 
 export function createRenderer(canvas: HTMLCanvasElement): RendererState {
@@ -62,6 +66,7 @@ export function createRenderer(canvas: HTMLCanvasElement): RendererState {
     isEditingRings: false,
     showOrbitLines: true,
     showOrbitApsides: true,
+    showBodyLabels: true,
   };
 }
 
@@ -84,6 +89,7 @@ export function renderScene(
   const width = canvas.clientWidth || (canvas.width / dpr);
   const height = canvas.clientHeight || (canvas.height / dpr);
   const theme = getActiveTheme();
+  const project = createProjector(camera, width, height);
 
   // 1. Unified 3D WebGL Shader Pass (Procedural Skybox, Stars, Nebulae, Galaxies & 3D Planets)
   if (glRenderer) {
@@ -136,10 +142,13 @@ export function renderScene(
       path: [],
       pathClosed: false,
       engine: false,
-      theme: {
-        ...theme,
-        highQuality: true,
-      },
+      // Sandbox owns its labels; the shared renderer only draws the scene.
+      showBodyLabels: false,
+      showShipLabels: false,
+      showShip: false,
+      showPad: false,
+      showScale: false,
+      theme,
     });
 
     // Clear 2D overlay canvas so WebGL shaders show through
@@ -154,10 +163,10 @@ export function renderScene(
   for (const body of bodies) {
     if (body.trail.length > 1) {
       ctx.beginPath();
-      const first = worldToScreen(body.trail[0]!, camera, width, height);
+      const first = project(body.trail[0]!);
       ctx.moveTo(first.x, first.y);
       for (let i = 1; i < body.trail.length; i++) {
-        const pt = worldToScreen(body.trail[i]!, camera, width, height);
+        const pt = project(body.trail[i]!);
         ctx.lineTo(pt.x, pt.y);
       }
       ctx.strokeStyle = `${body.color}40`;
@@ -168,27 +177,35 @@ export function renderScene(
   ctx.restore();
 
   // 3. Planetary Orbit Lines (Keplerian / Cached relative ellipses)
-  renderOrbitLines(ctx, camera, width, height, bodies, state, timeSec);
+  renderOrbitLines(ctx, camera, bodies, state, timeSec, project);
 
   // 4. Celestial Bodies Overlay (Selection rings, vector arrows, labels)
   for (const body of bodies) {
-    renderCelestialBody(ctx, camera, width, height, body, state, timeSec, Boolean(glRenderer));
+    renderCelestialBody(ctx, camera, width, height, body, state, timeSec, Boolean(glRenderer), project);
   }
+
+  // Selected and hovered names take priority when projected labels overlap.
+  if (!state.labelRects || state.labelRects.length < bodies.length * 4) state.labelRects = new Float64Array(bodies.length * 4);
+  state.labelCount = 0;
+  const selected = bodies.find(body => body.id === state.selectedBodyId);
+  const hovered = bodies.find(body => body.id === state.hoveredBodyId);
+  if (selected) renderBodyLabel(ctx, camera, width, height, selected, state, project);
+  if (hovered && hovered !== selected) renderBodyLabel(ctx, camera, width, height, hovered, state, project);
+  for (const body of bodies) if (body !== selected && body !== hovered) renderBodyLabel(ctx, camera, width, height, body, state, project);
 
   // 5. Slingshot Drag Vector & Ghost Trajectory
   if (candidate) {
-    renderSlingshotDrag(ctx, camera, width, height, candidate);
+    renderSlingshotDrag(ctx, candidate, project);
   }
 }
 
 function renderOrbitLines(
   ctx: CanvasRenderingContext2D,
   camera: Camera,
-  width: number,
-  height: number,
   bodies: readonly CelestialBody[],
   state: RendererState,
   timeSec: number,
+  project: (point: Vec) => Vec,
 ): void {
   if (!state.showOrbitLines) return;
 
@@ -211,12 +228,12 @@ function renderOrbitLines(
     // Draw the orbit line path
     ctx.beginPath();
     const firstWorld = { x: parent.position.x + points[0]!.x, y: parent.position.y + points[0]!.y };
-    const firstScreen = worldToScreen(firstWorld, camera, width, height);
+    const firstScreen = project(firstWorld);
     ctx.moveTo(firstScreen.x, firstScreen.y);
 
     for (let i = 1; i < points.length; i++) {
       const pWorld = { x: parent.position.x + points[i]!.x, y: parent.position.y + points[i]!.y };
-      const ptScreen = worldToScreen(pWorld, camera, width, height);
+      const ptScreen = project(pWorld);
       ctx.lineTo(ptScreen.x, ptScreen.y);
     }
 
@@ -240,8 +257,8 @@ function renderOrbitLines(
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Draw Periapsis / Apoapsis markers if apsides enabled or body is selected/hovered
-    if (state.showOrbitApsides || isSelected || isHovered) {
+    // Only the selected orbit owns apsis labels. Hover still highlights its path.
+    if (state.showOrbitApsides && isSelected) {
       // 1. Eccentricity suppression: circular orbits (e < 0.025) have degenerate apsides that jump around
       const minEccentricity = isSelected ? 0.015 : 0.025;
       if (cache.eccentricity < minEccentricity) {
@@ -258,9 +275,9 @@ function renderOrbitLines(
         continue;
       }
 
-      const parentScr = worldToScreen(parent.position, camera, width, height);
+      const parentScr = project(parent.position);
       const parentScrR = Math.max(6, parent.radius * camera.scale);
-      const bodyScr = worldToScreen(body.position, camera, width, height);
+      const bodyScr = project(body.position);
       const bodyScrR = Math.max(6, body.radius * camera.scale);
 
       // Periapsis marker
@@ -268,7 +285,7 @@ function renderOrbitLines(
         x: parent.position.x + cache.periapsisOffset.x,
         y: parent.position.y + cache.periapsisOffset.y,
       };
-      const peScr = worldToScreen(peWorld, camera, width, height);
+      const peScr = project(peWorld);
 
       // Check collision with parent or body discs
       const peDistParent = Math.hypot(peScr.x - parentScr.x, peScr.y - parentScr.y);
@@ -294,7 +311,7 @@ function renderOrbitLines(
           x: parent.position.x + cache.apoapsisOffset.x,
           y: parent.position.y + cache.apoapsisOffset.y,
         };
-        const apScr = worldToScreen(apWorld, camera, width, height);
+        const apScr = project(apWorld);
 
         const apDistParent = Math.hypot(apScr.x - parentScr.x, apScr.y - parentScr.y);
         const apDistBody = Math.hypot(apScr.x - bodyScr.x, apScr.y - bodyScr.y);
@@ -328,8 +345,9 @@ function renderCelestialBody(
   state: RendererState,
   timeSec: number,
   isWebGLActive = false,
+  project = createProjector(camera, width, height),
 ): void {
-  const scr = worldToScreen(body.position, camera, width, height);
+  const scr = project(body.position);
   const scrR = Math.max(2, body.radius * camera.scale);
 
   // Cull if completely off screen
@@ -424,19 +442,37 @@ function renderCelestialBody(
     }
   }
 
-  // 5. Name & Info Tag
-  ctx.fillStyle = isSelected ? '#38bdf8' : '#94a3b8';
-  ctx.font = '11px sans-serif';
-  ctx.textAlign = 'center';
-  const tagY = scr.y + scrR + 14;
-  ctx.fillText(body.name, scr.x, tagY);
-  if (isSelected) {
-    const v = Math.hypot(body.velocity.x, body.velocity.y);
-    ctx.fillStyle = '#64748b';
-    ctx.font = '10px monospace';
-    ctx.fillText(`${v.toFixed(1)} m/s · r: ${Math.round(body.radius)}m`, scr.x, tagY + 12);
-  }
+  ctx.restore();
+}
 
+function renderBodyLabel(
+  ctx: CanvasRenderingContext2D, camera: Camera, width: number, height: number,
+  body: CelestialBody, state: RendererState, project: (point: Vec) => Vec,
+): void {
+  const selected = state.selectedBodyId === body.id;
+  if (!state.showBodyLabels && !selected) return;
+  const scr = project(body.position), radius = Math.max(2, body.radius * camera.scale);
+  if (scr.x < -radius || scr.x > width + radius || scr.y < -radius || scr.y > height + radius) return;
+  ctx.save(); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+  const labelWidth = Math.min(width - 8, ctx.measureText(body.name).width);
+  const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
+  const x = Math.round(Math.max(labelWidth / 2 + 4, Math.min(width - labelWidth / 2 - 4, scr.x)) * dpr) / dpr;
+  const y = Math.round((scr.y + radius + 14) * dpr) / dpr;
+  const left = x - labelWidth / 2 - 4, right = x + labelWidth / 2 + 4;
+  const top = y - 11, bottom = y + (selected ? 14 : 3);
+  const rects = state.labelRects!;
+  for (let i = 0; i < state.labelCount!; i++) {
+    const at = i * 4;
+    if (left < rects[at + 2]! && right > rects[at]! && top < rects[at + 3]! && bottom > rects[at + 1]!) { ctx.restore(); return; }
+  }
+  const at = state.labelCount!++ * 4;
+  rects[at] = left; rects[at + 1] = top; rects[at + 2] = right; rects[at + 3] = bottom;
+  ctx.fillStyle = selected ? '#38bdf8' : '#94a3b8';
+  if (state.showBodyLabels) ctx.fillText(body.name, x, y, width - 8);
+  if (selected) {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px monospace';
+    ctx.fillText(`${Math.hypot(body.velocity.x, body.velocity.y).toFixed(1)} m/s · r: ${Math.round(body.radius)}m`, x, y + 12, width - 8);
+  }
   ctx.restore();
 }
 
@@ -556,23 +592,21 @@ function renderRings(
 
 function renderSlingshotDrag(
   ctx: CanvasRenderingContext2D,
-  camera: Camera,
-  width: number,
-  height: number,
   candidate: SlingshotCandidate,
+  project: (point: Vec) => Vec,
 ): void {
-  const scrOrigin = worldToScreen(candidate.origin, camera, width, height);
+  const scrOrigin = project(candidate.origin);
 
   ctx.save();
 
   // 1. Ghost Trajectory Path
   if (candidate.ghostPath.length > 1) {
     ctx.beginPath();
-    const first = worldToScreen(candidate.ghostPath[0]!.position, camera, width, height);
+    const first = project(candidate.ghostPath[0]!.position);
     ctx.moveTo(first.x, first.y);
 
     for (let i = 1; i < candidate.ghostPath.length; i++) {
-      const pt = worldToScreen(candidate.ghostPath[i]!.position, camera, width, height);
+      const pt = project(candidate.ghostPath[i]!.position);
       ctx.lineTo(pt.x, pt.y);
     }
 
@@ -585,16 +619,19 @@ function renderSlingshotDrag(
     ctx.setLineDash([]);
 
     // Periapsis and Apoapsis indicators
-    const centerScr = candidate.parentBody ? worldToScreen(candidate.parentBody.position, camera, width, height) : scrOrigin;
+    const centerScr = candidate.parentBody ? project(candidate.parentBody.position) : scrOrigin;
+    let shownPe = false, shownAp = false;
     for (const sample of candidate.ghostPath) {
-      if (sample.isPeriapsis && candidate.periapsisRadius !== null) {
-        const pt = worldToScreen(sample.position, camera, width, height);
+      if (sample.isPeriapsis && !shownPe && candidate.periapsisRadius !== null) {
+        shownPe = true;
+        const pt = project(sample.position);
         drawApsisBadge(ctx, pt.x, pt.y, 'Pe', candidate.periapsisRadius, '#38bdf8', centerScr, true);
-      } else if (sample.isApoapsis && candidate.apoapsisRadius !== null) {
-        const pt = worldToScreen(sample.position, camera, width, height);
+      } else if (sample.isApoapsis && !shownAp && candidate.apoapsisRadius !== null) {
+        shownAp = true;
+        const pt = project(sample.position);
         drawApsisBadge(ctx, pt.x, pt.y, 'Ap', candidate.apoapsisRadius, '#f43f5e', centerScr, true);
       } else if (sample.collided) {
-        const pt = worldToScreen(sample.position, camera, width, height);
+        const pt = project(sample.position);
         drawCollisionMarker(ctx, pt.x, pt.y);
       }
     }

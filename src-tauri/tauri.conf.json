@@ -11,6 +11,7 @@
   "app": {
     "windows": [
       {
+        "create": false,
         "title": "Spacelab · Space Sim",
         "width": 1280,
         "height": 800,

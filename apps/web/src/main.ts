@@ -3879,7 +3879,7 @@ window.addEventListener('pagehide', event => {
 });
 
 function executeAction(action: ActionId): void {
-  if (controlsDialog.open || hudLayout.editing) return;
+  if (orbitSandboxInstance?.isOpen() || controlsDialog.open || hudLayout.editing) return;
   if (isSlotThrowing(0)) {
     const cameraAlteringActions = new Set<ActionId>([
       'camera', 'orientation', 'cycleShip', 'cycleShipPrev', 'cyclePlanet', 'cyclePlanetPrev', 'zoomIn', 'zoomOut',
@@ -3964,7 +3964,7 @@ throwCheatToggle?.addEventListener('change', () => {
 });
 
 window.addEventListener('keydown', event => {
-  if (controlsDialog.open || hudLayout.editing) return;
+  if (orbitSandboxInstance?.isOpen() || controlsDialog.open || hudLayout.editing) return;
   if (event.target && (event.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return;
   const actions = keyLookup.get(event.code);
   if (actions?.includes('throwShip')) {
@@ -4012,6 +4012,7 @@ bindFlightInput({
     return actions ? actions.some(a => !isFlightAction(a)) : false;
   },
   command(code) {
+    if (orbitSandboxInstance?.isOpen()) return false;
     const command = commandBar.byKey(code);
     if (command) issueCommand(command);
     return !!command;
@@ -4922,6 +4923,7 @@ function switchToOrbitSandbox(): void {
 
   if (!orbitSandboxInstance) {
     orbitSandboxInstance = initOrbitSandbox({
+      inputEnabled: () => !workspace.isOpen,
       onOpenMenu: () => {
         workspace.open('library');
       },

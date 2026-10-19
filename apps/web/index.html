@@ -192,16 +192,15 @@
 
             <!-- Time & Simulation Controls -->
             <div class="control-group time-controls">
-              <button id="btn-play-pause" class="btn btn-icon" title="Play / Pause [Space]">
-                <span id="play-icon">⏸</span>
-              </button>
-              <div class="warp-selector">
-                <button class="warp-btn" data-warp="0.2">0.2×</button>
-                <button class="warp-btn active" data-warp="1">1×</button>
-                <button class="warp-btn" data-warp="5">5×</button>
-                <button class="warp-btn" data-warp="15">15×</button>
-                <button class="warp-btn" data-warp="50">50×</button>
-              </div>
+              <button id="btn-play-pause" class="btn" title="Pause / resume [P or Space]" aria-pressed="false"><span id="play-icon">Pause</span></button>
+        <div class="sandbox-warp-controls" role="group" aria-label="Time warp">
+          <button id="sandbox-warp-down" class="btn" title="Decrease time warp [ or ," aria-label="Decrease time warp">−</button>
+          <output id="sandbox-warp-factor" aria-label="Time warp factor">1×</output>
+          <span id="sandbox-warp-status" class="sandbox-warp-status" role="status" hidden></span>
+          <button id="sandbox-warp-up" class="btn" title="Increase time warp ] or ." aria-label="Increase time warp">+</button>
+          <button id="sandbox-warp-reset" class="btn" title="Real time [/]">1×</button>
+          <button id="sandbox-warp-slow" class="btn" title="Slow motion">0.2×</button>
+        </div>
             </div>
 
             <!-- Physics Mode Switcher -->
@@ -223,6 +222,7 @@
               <button id="btn-toggle-orbits" class="btn btn-pill active" title="Toggle Planet Orbit Lines [O]">
                 <span class="icon">⬭</span> Orbit Lines <span class="hotkey">O</span>
               </button>
+        <button id="sandbox-labels" class="btn btn-pill active" aria-pressed="true" title="Show or hide planet names">Labels</button>
               <button id="btn-sandbox-grid" class="btn btn-pill active" title="Toggle Navigation Grid [G]">
                 <span class="icon">⊞</span> Grid <span class="hotkey">G</span>
               </button>
@@ -467,7 +467,9 @@
                   (chaotic three-body choreographies, J2 apsidal precession, tidal synchronization, and elastic bounce).
                 </p>
 
-                <div class="testing-grid">
+                <label class="checkbox-label sandbox-debug-limiter"><input id="sandbox-disable-limiter" type="checkbox" autocomplete="off" /> Disable CPU limiter (debug)</label>
+          <p class="subtext">Keeps the requested warp even when physics cannot keep up. Very high warp can stall the interface. Numerical step sizes remain bounded. Resets when you reload.</p>
+          <div class="testing-grid">
                   <div class="testing-section">
                     <h3>Interactive Benchmark Scenarios</h3>
                     <p class="subtext">Load verified orbital setups directly into the physics engine:</p>

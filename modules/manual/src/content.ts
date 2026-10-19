@@ -345,6 +345,17 @@ and you can try a manoeuvre, see the result and try again quickly. The physics i
 Only the scale changes.</p>`)}`,
   },
   {
+    id: 'orbit-sandbox',
+    title: 'Orbit Sandbox',
+    summary: 'Sling planets, edit worlds and control simulation time',
+    html: `
+<p>Choose <b>Orbit Sandbox</b> in the ModMenu to create planetary systems. Select a planet type in the bottom palette, then drag empty space to launch it. Hold Shift for a circular-orbit preview.</p>
+<p>Click a body to edit it in the <b>Planet inspector</b>. Its window can be moved, resized, pinned, minimized or maximized. Right-drag or middle-drag the map to pan; scroll to zoom.</p>
+<p><b>Pause</b> or P / Space stops the simulation. Use the − / + warp buttons, [ / ] or , / . to change speed; / or <b>1×</b> returns to real time. <b>0.2×</b> gives slow motion. Warp is selectable up to 100,000×. Faster warp adds numerical steps rather than enlarging them. If the CPU cannot sustain it, a warning appears and warp automatically drops to a sustainable factor. Your computer and the bodies' close encounters determine the available speed.</p>
+<p>In <b>Testing Lab</b>, <b>Disable CPU limiter (debug)</b> keeps your requested speed and removes that work budget. Very high warp can stall the interface; this option resets on reload. Numerical step sizes remain bounded.</p>
+<p><b>Labels</b> hides planet names. Orbit lines remain available for all bodies; apoapsis and periapsis markers belong to the selected orbit and active launch preview. Nearly circular orbits have no useful distinct apsides. Use <b>Export Universe</b> to share the system or launch it in Space Sim.</p>`,
+  },
+  {
     id: 'fleet',
     title: 'Fleets and saving',
     summary: 'Several ships in one world',

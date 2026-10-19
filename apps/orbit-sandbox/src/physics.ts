@@ -392,6 +392,7 @@ export function stepSimulation(
   dt: number,
   substeps = 4,
   fullBodyOpts: FullBodyOptions = DEFAULT_FULL_BODY_OPTIONS,
+  recordTrail = true,
 ): { mergedEvents: { survivor: CelestialBody; absorbed: CelestialBody }[] } {
   const mergedEvents: { survivor: CelestialBody; absorbed: CelestialBody }[] = [];
   const subDt = dt / substeps;
@@ -543,13 +544,16 @@ export function stepSimulation(
     }
   }
 
-  // Update position history trails (max 60 points)
+  if (recordTrail) recordTrails(bodies);
+  return { mergedEvents };
+}
+
+/** One visible trail sample per rendered frame, independent of physics work. */
+export function recordTrails(bodies: readonly CelestialBody[]): void {
   for (const b of bodies) {
     b.trail.push({ x: b.position.x, y: b.position.y });
     if (b.trail.length > 70) {
       b.trail.shift();
     }
   }
-
-  return { mergedEvents };
 }

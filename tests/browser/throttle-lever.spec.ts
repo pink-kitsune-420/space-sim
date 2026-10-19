@@ -145,6 +145,31 @@ test('holds ramp continuously, opposing keys cancel, and remember saves active p
   await page.keyboard.press('KeyZ'); await power(page, 0);
 });
 
+test('Shift plus a held throttle key accelerates through keyboard repeats and keeps its value on release', async ({ page }) => {
+  await page.clock.install({ time: 0 });
+  await page.reload(); await openPanel(page, 'setup');
+  await page.locator('#preset').selectOption('planet-orbit');
+  await closePanel(page); await page.locator('#flight-view').focus();
+  await page.clock.pauseAt(10_000);
+  await page.keyboard.down('Shift'); await page.keyboard.down('ArrowUp');
+  await page.clock.runFor(500);
+  const first = Number(await track(page).getAttribute('aria-valuenow'));
+  // Repeated keydown events must not turn an uninterrupted hold into fresh taps.
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.down('ArrowUp'); await page.clock.runFor(250);
+  }
+  await page.keyboard.up('ArrowUp'); await page.keyboard.up('Shift');
+  const held = Number(await track(page).getAttribute('aria-valuenow'));
+  expect(first).toBeGreaterThan(11); expect(first).toBeLessThan(14);
+  expect(held).toBeGreaterThan(54); expect(held).toBeLessThan(58);
+  await page.clock.runFor(250); await power(page, held);
+  await page.keyboard.down('Shift'); await page.keyboard.down('ArrowDown');
+  await page.clock.runFor(1000);
+  await page.keyboard.up('ArrowDown'); await page.keyboard.up('Shift');
+  const reduced = Number(await track(page).getAttribute('aria-valuenow'));
+  expect(held - reduced).toBeGreaterThan(24); expect(held - reduced).toBeLessThan(28);
+});
+
 test('remember shortcut can be remapped as a chord and survives reload', async ({ page }) => {
   await openPanel(page, 'settings'); await page.locator('#controls-toggle').click();
   const row = page.locator('.key-action-row').filter({ hasText: 'Remember Current Throttle' });
