@@ -1,0 +1,69 @@
+{
+  "format": "spacelab-runtime-selection/2",
+  "plans": {
+    "browser": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.planet-viewer-browser-services",
+        "modules": [
+          {
+            "id": "spacelab.render-canvas",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.camera-follow",
+            "version": "0.3.0"
+          }
+        ],
+        "providers": {
+          "render.canvas": "spacelab.render-canvas",
+          "view.camera": "spacelab.camera-follow"
+        },
+        "capabilities": {},
+        "settings": {
+          "spacelab.camera-follow": {
+            "initialZoom": 1,
+            "referenceMetres": 2000
+          }
+        }
+      },
+      "packages": [],
+      "requiredSlots": [
+        "render.canvas",
+        "view.camera"
+      ]
+    },
+    "offline": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.planet-viewer-browser-services",
+        "modules": [
+          {
+            "id": "spacelab.render-canvas",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.camera-follow",
+            "version": "0.3.0"
+          }
+        ],
+        "providers": {
+          "render.canvas": "spacelab.render-canvas",
+          "view.camera": "spacelab.camera-follow"
+        },
+        "capabilities": {},
+        "settings": {
+          "spacelab.camera-follow": {
+            "initialZoom": 1,
+            "referenceMetres": 2000
+          }
+        }
+      },
+      "packages": [],
+      "requiredSlots": [
+        "render.canvas",
+        "view.camera"
+      ]
+    }
+  }
+}

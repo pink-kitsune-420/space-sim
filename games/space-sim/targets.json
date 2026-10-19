@@ -1,0 +1,250 @@
+{
+  "format": "spacelab-runtime-selection/2",
+  "plans": {
+    "browser": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.space-sim-browser-services",
+        "modules": [
+          {
+            "id": "spacelab.camera-follow",
+            "version": "0.3.0"
+          },
+          {
+            "id": "spacelab.camera-smart",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.input-profiles",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.flight-prediction",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.fleet-view",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.local-views",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.local-pilots",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.flight-split",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.universe-saves",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.universe-files",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.universe-save-controls",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.audio-controls",
+            "version": "0.1.0"
+          },
+          {
+            "id": "builtin.audio",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.render-canvas",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.render-webgl",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.trainer-appearance",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.view-hud",
+            "version": "0.1.0"
+          }
+        ],
+        "providers": {
+          "view.camera": "spacelab.camera-follow",
+          "view.flight-camera": "spacelab.camera-follow",
+          "view.smart-camera": "spacelab.camera-smart",
+          "input.flight-profiles": "spacelab.input-profiles",
+          "view.prediction": "spacelab.flight-prediction",
+          "view.fleet": "spacelab.fleet-view",
+          "view.local": "spacelab.local-views",
+          "input.local-pilots": "spacelab.local-pilots",
+          "view.flight-split": "spacelab.flight-split",
+          "universe.saves": "spacelab.universe-saves",
+          "universe.files": "spacelab.universe-files",
+          "ui.universe-saves": "spacelab.universe-save-controls",
+          "audio.flight-controls": "spacelab.audio-controls",
+          "audio.procedural": "builtin.audio",
+          "render.canvas": "spacelab.render-canvas",
+          "render.webgl": "spacelab.render-webgl",
+          "ui.view-hud": "spacelab.view-hud"
+        },
+        "capabilities": {},
+        "settings": {}
+      },
+      "packages": [],
+      "requiredSlots": [
+        "view.flight-camera",
+        "view.flight-split",
+        "view.prediction",
+        "view.fleet",
+        "input.local-pilots",
+        "universe.saves",
+        "universe.files",
+        "ui.universe-saves",
+        "render.canvas",
+        "render.webgl",
+        "ui.view-hud",
+        "input.flight-profiles"
+      ]
+    },
+    "offline": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.space-sim-browser-services",
+        "modules": [
+          {
+            "id": "spacelab.camera-follow",
+            "version": "0.3.0"
+          },
+          {
+            "id": "spacelab.camera-smart",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.input-profiles",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.flight-prediction",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.fleet-view",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.local-views",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.local-pilots",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.flight-split",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.universe-saves",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.universe-files",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.universe-save-controls",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.audio-controls",
+            "version": "0.1.0"
+          },
+          {
+            "id": "builtin.audio",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.render-canvas",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.render-webgl",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.trainer-appearance",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.view-hud",
+            "version": "0.1.0"
+          }
+        ],
+        "providers": {
+          "view.camera": "spacelab.camera-follow",
+          "view.flight-camera": "spacelab.camera-follow",
+          "view.smart-camera": "spacelab.camera-smart",
+          "input.flight-profiles": "spacelab.input-profiles",
+          "view.prediction": "spacelab.flight-prediction",
+          "view.fleet": "spacelab.fleet-view",
+          "view.local": "spacelab.local-views",
+          "input.local-pilots": "spacelab.local-pilots",
+          "view.flight-split": "spacelab.flight-split",
+          "universe.saves": "spacelab.universe-saves",
+          "universe.files": "spacelab.universe-files",
+          "ui.universe-saves": "spacelab.universe-save-controls",
+          "audio.flight-controls": "spacelab.audio-controls",
+          "audio.procedural": "builtin.audio",
+          "render.canvas": "spacelab.render-canvas",
+          "render.webgl": "spacelab.render-webgl",
+          "ui.view-hud": "spacelab.view-hud"
+        },
+        "capabilities": {},
+        "settings": {}
+      },
+      "packages": [],
+      "requiredSlots": [
+        "view.flight-camera",
+        "view.flight-split",
+        "view.prediction",
+        "view.fleet",
+        "input.local-pilots",
+        "universe.saves",
+        "universe.files",
+        "ui.universe-saves",
+        "render.canvas",
+        "render.webgl",
+        "ui.view-hud",
+        "input.flight-profiles"
+      ]
+    },
+    "node": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.space-sim-node-services",
+        "modules": [
+          {
+            "id": "spacelab.universe-server-storage",
+            "version": "0.1.0"
+          }
+        ],
+        "providers": {
+          "universe.server-storage": "spacelab.universe-server-storage"
+        },
+        "capabilities": {},
+        "settings": {}
+      },
+      "packages": [],
+      "requiredSlots": [
+        "universe.server-storage"
+      ]
+    }
+  }
+}

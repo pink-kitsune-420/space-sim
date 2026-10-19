@@ -7,6 +7,12 @@ import {GameLibrary,type LibraryGame} from './game-library';
 import {downloadBytes,element,show} from './ui';
 import {createModMenu,mountBundledCatalogue} from '../../../modules/mod-menu/src/index';
 import bundledModules from 'virtual:spacelab-bundled-modules';
+import {bundledGameDefinition,bundledGameAdapters} from './bundled-games';
+
+function exportUnavailable(game:GamePackage):string|undefined {
+ const bundled=bundledGameDefinition(game),adapter=bundled&&bundledGameAdapters.get(bundled.info.id);
+ return adapter==='static-viewer'||adapter==='bounded-survey'?'Play this bundled starter here. Portable export needs a compatible non-flight game adapter.':undefined;
+}
 
 /** Host adapter: codecs, existing storage and world publication stay outside the reusable view. */
 export class LabManager implements Disposable {
@@ -31,10 +37,11 @@ export class LabManager implements Disposable {
   const browse=element('browse-bundled-modules');browse.textContent=`Browse bundled packages · ${bundledModules.length}`;
   browse.addEventListener('click',()=>{const catalogue=element('bundled-module-catalogue');catalogue.closest('details')!.open=true;catalogue.scrollIntoView({block:'start'});catalogue.querySelector('input')!.focus({preventScroll:true});},{signal:this.controller.signal});
   this.view=this.modMenu.library({importButton:element<HTMLButtonElement>('lab-import'),importFile:element<HTMLInputElement>('lab-file'),save:element<HTMLButtonElement>('lab-save'),export:element<HTMLButtonElement>('lab-export'),name:element<HTMLInputElement>('game-name'),folder:element<HTMLInputElement>('game-folder'),search:element<HTMLInputElement>('game-search'),sort:element<HTMLSelectElement>('game-sort'),favorites:element<HTMLInputElement>('game-favorites'),list:element('game-list'),empty:element('game-empty'),status:element('lab-status')},{
-   entries:()=>this.entries().map(entry=>({id:entry.id,name:entry.game.info.name,description:entry.game.info.description,folder:entry.folder,favorite:entry.favorite,builtin:this.isBuiltin(entry.id),pinned:entry.id==='builtin',dataModules:entry.game.bundle.modules.length,codeModules:entry.game.plugins.length} satisfies ModMenuGame)),editable:options.editable,
+   entries:()=>this.entries().map(entry=>({id:entry.id,name:entry.game.info.name,description:entry.game.info.description,folder:entry.folder,favorite:entry.favorite,builtin:this.isBuiltin(entry.id),pinned:entry.id==='builtin',dataModules:entry.game.bundle.modules.length,codeModules:entry.game.plugins.length,exportUnavailable:exportUnavailable(entry.game)} satisfies ModMenuGame)),editable:options.editable,
    importFile:async(file,signal)=>{await this.ready;signal.throwIfAborted();return this.importFile(file,signal);},
    save:async(name,folder,signal)=>{await this.ready;const game=await this.capture(name,signal);await this.library.put(game,{folder});signal.throwIfAborted();return `Saved ${game.info.name} to the library. This game starts a fresh world; use Save universe for flight progress.`;},
    export:async(id,name,signal)=>{await this.ready;const entry=id===undefined?undefined:this.entry(id),game=entry?.game??await this.capture(name,signal);signal.throwIfAborted();
+    const unavailable=exportUnavailable(game);if(unavailable)throw new Error(unavailable);
     // Reinspect cached bytes before returning them; the view never receives the archive.
     const bytes=entry?.archive;if(bytes)await decodePackage(bytes);const encoded=bytes??await encodePackage(game);signal.throwIfAborted();downloadBytes(`${game.info.name.replace(/[^a-z0-9-]+/gi,'-').toLowerCase()}.spacegame`,encoded);
     if(id===undefined)return `Exported ${game.info.name} with its selected plugins, data and settings.`;

@@ -3,16 +3,18 @@ import { VehicleConfigurationError } from '../../../packages/game-api/src/index'
 import type { SimulationContextFactory, WorldSave } from '../../../packages/game-api/src/index';
 import { builtinContextFactory } from '../../../packages/modules/src/index';
 import { loadWorld, type LoadedWorld } from '../../../packages/sim-core/src/save';
-import { createServerUniverseStorage } from '../../../modules/universe-server-storage/src/index';
+import { SERVER_UNIVERSE_STORAGE } from '../../../packages/game-api/src/index';
+import { prepareServerTarget } from './target-modules';
 import { universeDisk } from './universe-disk';
 /** Compatibility composition; filesystem policy is owned by the editable storage module. */
 export class WorldStore {
-  private readonly provider=createServerUniverseStorage(universeDisk);
+  private readonly target=prepareServerTarget(universeDisk);
+  private readonly provider=this.target.providedService(SERVER_UNIVERSE_STORAGE);
   private readonly store;
   readonly file:string;readonly backups:string;
   constructor(readonly dir:string,keepBackups:number,log:(message:string)=>void=()=>{},createContext:SimulationContextFactory=builtinContextFactory('node'),restore?:(raw:unknown)=>LoadedWorld|Promise<LoadedWorld>){
-    this.store=this.provider.create({directory:dir,keepBackups,log,restore:restore??(raw=>loadWorld(raw,{createContext})),configurationError:error=>error instanceof GameConfigurationError || error instanceof VehicleConfigurationError});
-    this.file=this.store.file;this.backups=this.store.backups;
+    try { this.store=this.provider.create({directory:dir,keepBackups,log,restore:restore??(raw=>loadWorld(raw,{createContext})),configurationError:error=>error instanceof GameConfigurationError || error instanceof VehicleConfigurationError});
+    this.file=this.store.file;this.backups=this.store.backups; } catch (error) { this.target.dispose(); throw error; }
   }
   load(){return this.store.load();}
   save(save:WorldSave){return this.store.save(save);}
@@ -20,5 +22,5 @@ export class WorldStore {
   idle(){return this.store.idle();}
   backup(){return this.store.backup();}
   backupFiles(){return this.store.backupFiles();}
-  dispose(){this.provider.dispose();}
+  dispose(){this.target.dispose();}
 }

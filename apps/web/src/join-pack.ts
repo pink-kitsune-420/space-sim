@@ -1,3 +1,5 @@
+import { moduleVehicleArtwork } from './world-presentation';
+import type { VehicleArtwork } from '../../../packages/game-api/src/index';
 /** Browser adapters for portable prejoin wire policy: inert inspection, isolated candidates,
  * transactional local storage and optional required-client windows. */
 import type { JoinClientPort, JoinOffer, JoinStage, PilotRegistry } from '../../../packages/game-api/src/index';
@@ -20,6 +22,8 @@ import {moduleLogs} from './module-logging';
 
 const store = new BrowserPackageStore(), review = createJoinReview();
 let activeHost: BrowserModuleHost | undefined;
+let activeArtwork: VehicleArtwork | undefined;
+export const joinVehicleArtwork = () => activeArtwork;
 export function sampleJoinModules(elapsed: number, flight: boolean, shortcuts: boolean): void { activeHost?.sample(elapsed, flight, shortcuts); }
 export function releaseJoinModules(pilot?: number): void { activeHost?.release(pilot); }
 export function joinSource(address: string): string {
@@ -45,7 +49,7 @@ export function joinClientPort(options: { readonly address: string; readonly roo
       signal.throwIfAborted();
       const plan = inspected.game.runtime ? await installRuntimeSelection(inspected.game.runtime, staging, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE }, address) : undefined;
       const host = new BrowserModuleHost(options.status, options.pilots);
-      let stage: JoinStage | undefined;
+      let stage: JoinStage | undefined, artwork: VehicleArtwork | undefined;
       try {
         stage = await preparePeerWorld(plan, staging, { environment: environment(), allowRuntimeCode: ALLOW_RUNTIME_CODE,
           approvedDigests: new Set(plan?.packages.map(reference => reference.digest) ?? []) }, {
@@ -53,7 +57,7 @@ export function joinClientPort(options: { readonly address: string; readonly roo
           code: artifactModules(inspected.game.plugins, environment()), universe: inspected.universe, systemId: inspected.systemId,
           hostServices: [...engineModuleServices(), ...host.hostServices(), { key: CORE_SESSION, service: browserSessionFactory,
             tiers: ['platform', 'network'], environments: ['browser', 'offline'] }], inspect: inspectRuntimePackage,
-          configure: modules => host.configure(modules), dispose: () => host.dispose(),
+          configure: modules => { host.configure(modules); artwork = moduleVehicleArtwork(modules); }, dispose: () => host.dispose(),
         }, offer, signal);
         signal.throwIfAborted();
         entries = [];
@@ -64,9 +68,9 @@ export function joinClientPort(options: { readonly address: string; readonly roo
       return { options: prepared.options,
         activate() {
           if (disposed) throw new Error('Server candidate is disposed');
-          prepared.activate?.(); host.activate(options.root); host.commit(); activeHost = host;
+          prepared.activate?.(); host.activate(options.root); host.commit(); activeHost = host; activeArtwork = artwork;
         },
-        dispose() { if (disposed) return; disposed = true; if (activeHost === host) activeHost = undefined; prepared.dispose(); host.dispose(); },
+        dispose() { if (disposed) return; disposed = true; if (activeHost === host) { activeHost = undefined; activeArtwork = undefined; } prepared.dispose(); host.dispose(); },
       };
     },
     async remember(offer, bytes, signal) {

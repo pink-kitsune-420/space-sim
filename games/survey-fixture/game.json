@@ -1,0 +1,44 @@
+{
+  "format": "space-lab-game/1",
+  "info": {
+    "id": "builtin.survey-fixture",
+    "name": "Survey fixture",
+    "description": "Bounded non-flight actions and saved state with shared controls and independent local views."
+  },
+  "bundle": {
+    "format": "space-sim-module-profile/1",
+    "profile": {
+      "format": "space-sim-profile/1",
+      "id": "builtin.survey-fixture-content",
+      "modules": [
+        {
+          "id": "builtin.content",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "content": "builtin.content"
+      },
+      "settings": {}
+    },
+    "modules": [],
+    "presentation": {
+      "format": "space-sim-profile/1",
+      "id": "builtin.survey-fixture-presentation",
+      "modules": [
+        {
+          "id": "builtin.canvas",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "renderer": "builtin.canvas"
+      },
+      "settings": {}
+    },
+    "selection": {
+      "universe": "builtin.content/default-universe"
+    }
+  },
+  "plugins": []
+}

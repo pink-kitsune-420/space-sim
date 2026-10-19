@@ -1,0 +1,44 @@
+{
+  "format": "space-lab-game/1",
+  "info": {
+    "id": "builtin.planet-viewer",
+    "name": "Planet viewer",
+    "description": "A static body viewer with no ship, flight controls, session, audio or editor."
+  },
+  "bundle": {
+    "format": "space-sim-module-profile/1",
+    "profile": {
+      "format": "space-sim-profile/1",
+      "id": "builtin.planet-viewer-content",
+      "modules": [
+        {
+          "id": "builtin.content",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "content": "builtin.content"
+      },
+      "settings": {}
+    },
+    "modules": [],
+    "presentation": {
+      "format": "space-sim-profile/1",
+      "id": "builtin.planet-viewer-presentation",
+      "modules": [
+        {
+          "id": "builtin.canvas",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "renderer": "builtin.canvas"
+      },
+      "settings": {}
+    },
+    "selection": {
+      "universe": "builtin.content/default-universe"
+    }
+  },
+  "plugins": []
+}

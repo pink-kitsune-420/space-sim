@@ -11,6 +11,7 @@ import { Rendering } from './rendering';
 import { environment } from './startup';
 import { element, message, show } from './ui';
 import { mountFlightAudio } from './audio';
+import type { FlightAudioFactory, FlightAudioControl } from '../../../packages/game-api/src/index';
 import { presentationPreferenceKey, presentationRoots, selectPresentationProfile } from './presentation-profile';
 
 type EventSink = (kind: string, detail: Record<string, unknown>) => void;
@@ -36,9 +37,10 @@ export function presentationSnapshot(raw: PresentationSnapshot): PresentationSna
  * profile never touches the world, its fingerprint or saves; the renderer is rebuilt only
  * when its provider changes. */
 export class Presentation {
-  readonly audio = mountFlightAudio(element('sound-settings'));
-  readonly registry = createPresentationRegistry(PRESENTATION_EXAMPLES);
-  readonly runtime = new ModuleRuntime(this.registry, environment());
+  readonly audio: FlightAudioControl;
+  readonly registry: ReturnType<typeof createPresentationRegistry>;
+  readonly runtime: ModuleRuntime;
+  private readonly renderers: readonly RendererProvider[];
   readonly rendering: Rendering;
   hooks = new PresentationHooks([], [], []);
   profile: ModuleProfile | undefined;
@@ -53,21 +55,28 @@ export class Presentation {
   private readonly panels = new Map<string, { readonly card: HTMLElement; readonly rows: HTMLElement }>();
 
   constructor(canvas: HTMLCanvasElement, private readonly options: {
-    readonly gameId: string; readonly profile: ModuleProfile;
+    readonly gameId: string; readonly profile: ModuleProfile; readonly audio?: FlightAudioFactory; readonly providers: import('../../../packages/modules/src/browser').PresentationProviders;
     readonly perViewInstruments?: readonly string[];
     readonly onCanvas: (canvas: HTMLCanvasElement) => void; readonly release: () => void; readonly event: EventSink;
   }) {
-    this.defaults = options.profile;
+    this.registry = createPresentationRegistry(PRESENTATION_EXAMPLES, options.providers);
+    this.runtime = new ModuleRuntime(this.registry, environment());
+    this.renderers = options.providers.renderers ?? BUILTIN_RENDERERS;
+    this.audio = mountFlightAudio(element('sound-settings'), options.audio);
+    this.defaults = options.providers.audio === false ? { ...options.profile,
+      modules: options.profile.modules.filter(ref => ref.id !== 'builtin.audio'),
+      providers: Object.fromEntries(Object.entries(options.profile.providers).filter(([, id]) => id !== 'builtin.audio')) } : options.profile;
+    if (options.providers.audio === false) element('sound-settings').hidden = true;
     this.preferenceKey = presentationPreferenceKey(options.gameId);
     const name = (provider: RendererProvider): string => this.registry.getManifest(provider.id)?.name ?? provider.label;
     this.rendering = new Rendering(canvas, name, () => {
-      const shaders = BUILTIN_RENDERERS.find(p => p.capabilities.shaders);
+      const shaders = this.renderers.find(p => p.capabilities.shaders);
       return shaders && name(shaders);
     });
     this.rendering.bindControls({
       toggle: () => this.toggleRenderer(),
       useShaderRenderer: () => {
-        const provider = BUILTIN_RENDERERS.find(p => p.capabilities.shaders);
+        const provider = this.renderers.find(p => p.capabilities.shaders);
         if (!provider) throw new Error('No installed renderer accepts shader packs.');
         this.useRenderer(provider);
       },
@@ -201,8 +210,8 @@ export class Presentation {
     this.apply(selectPresentationProfile(this.profile!, this.registry, this.enabled, provider.id));
   }
   toggleRenderer(): void {
-    const index = BUILTIN_RENDERERS.indexOf(this.provider);
-    this.useRenderer(BUILTIN_RENDERERS[(index + 1) % BUILTIN_RENDERERS.length]!);
+    const index = this.renderers.indexOf(this.provider);
+    this.useRenderer(this.renderers[(index + 1) % this.renderers.length]!);
   }
 
   /** Switch one optional module without touching the renderer or the world. Enabling also

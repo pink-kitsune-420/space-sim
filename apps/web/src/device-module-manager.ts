@@ -1,3 +1,4 @@
+import { moduleVehicleArtwork, rememberWorldArtwork } from './world-presentation';
 import { universeSaveFormatService } from '../../../packages/game-library/src/universe-save-services';
 import { progressConfiguration } from '../../../packages/game-library/src/progress-configuration';
 import { DEFAULT_PROFILE } from '../../../packages/modules/src/index';
@@ -188,6 +189,7 @@ export class DeviceModuleManager {
         },
         dispose: () => host.dispose(),
       }, signal);
+      rememberWorldArtwork(prepared.loaded.world, moduleVehicleArtwork(prepared.candidate.modules));
       return prepared.candidate;
       }, () => {
       if (!prepared) throw new Error('Game candidate was not prepared');

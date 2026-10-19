@@ -6,6 +6,8 @@ export interface ModMenuGame {
  readonly dataModules:number;readonly codeModules:number;
  /** Host-selected entries sort first, while still respecting search and favorites filters. */
  readonly pinned?:boolean;
+ /** Host explains when a runnable source fixture has no portable game adapter yet. */
+ readonly exportUnavailable?:string;
 }
 /** Host owns verification, persistence, trust, exact selection and atomic game replacement.
  * Commands must honor cancellation before publishing; importing installs inert content only. */

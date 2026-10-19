@@ -1,0 +1,105 @@
+{
+  "format": "spacelab-runtime-selection/2",
+  "plans": {
+    "browser": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.survey-fixture-browser-services",
+        "modules": [
+          {
+            "id": "spacelab.render-canvas",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.camera-follow",
+            "version": "0.3.0"
+          },
+          {
+            "id": "spacelab.local-views",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-controller",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.input-keyboard",
+            "version": "0.1.0"
+          }
+        ],
+        "providers": {
+          "render.canvas": "spacelab.render-canvas",
+          "view.camera": "spacelab.camera-follow",
+          "view.local": "spacelab.local-views",
+          "input.controller": "spacelab.player-controller",
+          "input.keyboard": "spacelab.input-keyboard"
+        },
+        "capabilities": {},
+        "settings": {
+          "spacelab.camera-follow": {
+            "initialZoom": 1,
+            "referenceMetres": 32
+          }
+        }
+      },
+      "packages": [],
+      "requiredSlots": [
+        "render.canvas",
+        "view.camera",
+        "view.local",
+        "input.controller",
+        "input.keyboard"
+      ]
+    },
+    "offline": {
+      "profile": {
+        "format": "space-sim-profile/2",
+        "id": "builtin.survey-fixture-browser-services",
+        "modules": [
+          {
+            "id": "spacelab.render-canvas",
+            "version": "0.2.0"
+          },
+          {
+            "id": "spacelab.camera-follow",
+            "version": "0.3.0"
+          },
+          {
+            "id": "spacelab.local-views",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-controller",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.input-keyboard",
+            "version": "0.1.0"
+          }
+        ],
+        "providers": {
+          "render.canvas": "spacelab.render-canvas",
+          "view.camera": "spacelab.camera-follow",
+          "view.local": "spacelab.local-views",
+          "input.controller": "spacelab.player-controller",
+          "input.keyboard": "spacelab.input-keyboard"
+        },
+        "capabilities": {},
+        "settings": {
+          "spacelab.camera-follow": {
+            "initialZoom": 1,
+            "referenceMetres": 32
+          }
+        }
+      },
+      "packages": [],
+      "requiredSlots": [
+        "render.canvas",
+        "view.camera",
+        "view.local",
+        "input.controller",
+        "input.keyboard"
+      ]
+    }
+  }
+}

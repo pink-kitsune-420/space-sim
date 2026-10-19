@@ -4,7 +4,7 @@ import { createPresentationRegistry, DEFAULT_PRESENTATION_PROFILE } from '../../
 import { createBuiltinRegistry, prepareGame } from '../../packages/modules/src/index';
 import { validatePackage, type GamePackage } from '../../packages/game-library/src/archive';
 import { presentationPreferenceKey, presentationRoots, selectPresentationProfile } from '../../apps/web/src/presentation-profile';
-import { bundledGames, defaultGame, requestedBuiltinGame } from '../../apps/web/src/bundled-games';
+import { bundledGames, bundledGameDefinition, bundledGameAdapters, defaultGame, requestedBuiltinGame } from '../../apps/web/src/bundled-games';
 import flightStarter from '../../games/flight-starter/game.json' with { type: 'json' };
 import spaceSim from '../../games/space-sim/game.json' with { type: 'json' };
 
@@ -19,6 +19,14 @@ describe('manifest presentation composition', () => {
     expect(requestedBuiltinGame('')).toBe(defaultGame);
     expect(requestedBuiltinGame('?game=https://example.com/game.json')).toBe(defaultGame);
     expect(new Set(bundledGames.map(game => game.info.id)).size).toBe(bundledGames.length);
+  });
+  it('pins non-flight host adapters to exact bundled definitions across archive-shaped round trips', () => {
+    for (const id of ['planet-viewer', 'survey-fixture']) {
+      const game = requestedBuiltinGame(`?game=${id}`);
+      expect(bundledGameAdapters.get(game.info.id)).toMatch(/static-viewer|bounded-survey/);
+      expect(bundledGameDefinition(JSON.parse(JSON.stringify(game)))).toBe(game);
+      expect(bundledGameDefinition({ ...game, info: { ...game.info, description: 'Edited host claim' } })).toBeUndefined();
+    }
   });
   it('boots the flight starter with no sound or other instruments and the same flight identity', () => {
     const profile = starter.bundle.presentation!, registry = createPresentationRegistry();

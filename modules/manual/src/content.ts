@@ -572,12 +572,25 @@ matches what ships land on. Packs are GLSL text and can't run JavaScript.</p>`)}
     summary: '.spacegame files: a whole setup in one file',
     html: `
 <p>A <b>game</b> is a saved setup: which modules, content and settings to use, and where to start.
-Space Sim, Orbit Sandbox and Flight starter are games. <b>Flight starter</b> uses the same rails flight
+Space Sim, Orbit Sandbox, Flight starter, Planet viewer and Survey fixture are bundled games. <b>Flight starter</b> uses the same rails flight
 physics as Space Sim with just the 2D renderer and navball selected for presentation. Choose it in
 ModMenu to start a smaller display setup, then add instruments or sound.</p>
 <p>In a hosted or offline browser build, <code>?game=flight-starter</code> starts that bundled composition
 directly. Its presentation profile selects the renderer, instruments and their settings. Viewer switches
 keep the active modules' settings; reloading this startup URL restores that game's display choices.</p>
+<p><code>?game=planet-viewer</code> opens a static body viewer without creating a ship, flight session,
+audio or editor. <code>?game=survey-fixture</code> opens the bounded non-flight example: explicit
+shared ticks, observations, one to four independent views and validated saved state. Click a view
+before keyboard input. Survey state has its own versioned codec; it is not a flight universe save.</p>
+<p>In source builds, <code>games/&lt;game&gt;/targets.json</code> uses the existing runtime-selection
+format for exact per-target module references and provider choices. The host registers shipped
+initializers and native adapters; listing a package in the catalogue does not enable it. Browser/offline
+host services and Node storage policy are selected independently. Orbit Sandbox retains its explicit
+legacy model adapter and does not claim flight-session compatibility. These host target plans are
+source configuration; the current game exporter still writes its established game/runtime package
+selection, rather than embedding arbitrary host adapters. Planet viewer and Survey fixture run from
+the bundled source plans; their portable export is unavailable until a compatible non-flight game
+adapter is defined. Flight games retain their existing export/import route.</p>
 <ol>
   <li>Choose simulation plugins in <b>ModMenu → Plugins · simulation, data &amp; settings</b> and display modules in <b>Instruments &amp; display</b>.</li>
   <li>Under <b>Make a game from this world’s setup</b>, give it a name.</li>
@@ -589,7 +602,8 @@ ${deeper('games, saves and code', `
 a save made with a custom game, start that game first, then load the save.</p>
 <p>Importing a game never runs its code. Code runs only when you choose to play it, and a failed start leaves
 your current world running. Exported <code>.spacegame</code> files are compressed and include the exact code,
-data and settings, so the game plays the same on any computer.</p>`)}`,
+data and settings so compatible targets can reproduce its setup. Check the game's supported targets
+and required providers before sharing it.</p>`)}`,
   },
   {
     id: 'modules',

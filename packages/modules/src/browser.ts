@@ -1,4 +1,4 @@
-import type { ModuleProfile, ModuleReference, RegisteredModule } from '../../game-api/src/index';
+import type { AudioProvider, ModuleProfile, ModuleReference, RegisteredModule } from '../../game-api/src/index';
 import { ModuleRegistry } from '../../game-runtime/src/index';
 import { freezeJson } from '../../game-runtime/src/validation';
 import { createRendererModules } from './base/renderers';
@@ -27,9 +27,12 @@ export const DEFAULT_PRESENTATION_PROFILE: ModuleProfile = freezeJson({ format: 
 
 /** Base renderers and toolset plus any other statically linked presentation modules.
  * Installing one has no effect until a presentation profile enables it. */
-export function createPresentationRegistry(code: readonly RegisteredModule[] = []): ModuleRegistry {
+export interface PresentationProviders { readonly renderers?: readonly RendererProvider[]; readonly audio?: AudioProvider | false }
+export function createPresentationRegistry(code: readonly RegisteredModule[] = [], providers: PresentationProviders = {}): ModuleRegistry {
   const registry = new ModuleRegistry();
-  for (const module of [...rendererModules, ...TOOLSET_MODULES, audioModule, ...code]) {
+  const renderers = providers.renderers ? createRendererModules(providers.renderers) : rendererModules;
+  const audio = providers.audio === false ? [] : [providers.audio ? createAudioModule(providers.audio) : audioModule];
+  for (const module of [...renderers, ...TOOLSET_MODULES, ...audio, ...code]) {
     if (module.manifest.authority !== 'presentation') throw new Error(`Module ${module.manifest.id}: presentation profiles accept presentation modules only`);
     registry.register(module);
   }
