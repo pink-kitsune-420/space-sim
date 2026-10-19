@@ -4,6 +4,7 @@ export function readWorld(world: WorldControl): WorldRead {
   const data = Object.freeze({ get schemas() { return world.data.schemas; }, get revision() { return world.data.revision; },
     get: world.data.get.bind(world.data), snapshot: world.data.snapshot.bind(world.data), delta: world.data.delta.bind(world.data) });
   const read: WorldRead = Object.freeze({
+    get predictionFeatures() { return world.predictionFeatures; },
     get vehicles() { return world.vehicles; }, contextFor: world.contextFor.bind(world),
     get configuration() { return world.configuration; },
     get id() { return world.id; }, get tick() { return world.tick; }, get time() { return world.time; },

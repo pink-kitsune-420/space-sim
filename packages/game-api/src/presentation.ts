@@ -255,6 +255,7 @@ export interface PresentationSnapshot {
   readonly moduleState: Readonly<Record<string, WorldRuleState>>;
 }
 export interface ManeuverPreview {
+  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly valid: boolean }[];
   readonly time: number;
   readonly position: Vec;
   readonly deltaVelocity: Vec;

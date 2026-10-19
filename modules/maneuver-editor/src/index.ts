@@ -1,4 +1,4 @@
-import { CORE_CLOCK, CORE_MOTION, MANEUVER_BURNS, MANEUVER_PLANNERS, PREDICTIONS, WINDOWS,
+import { FLIGHT_PLANS, CORE_CLOCK, CORE_MOTION, MANEUVER_BURNS, MANEUVER_PLANNERS, PREDICTIONS, WINDOWS,
  type ManeuverPlannerControl, type ManeuverPlannerFactory, type ModuleInitializationV2 } from '@space-sim/game-api';
 import { ManeuverPlanner, type ManeuverEditorServices, type ManeuverEditorTuning } from './editor';
 export { ManeuverPlanner, pickManeuverTime, maneuverWarpFactor } from './editor';
@@ -20,6 +20,6 @@ export function createManeuverPlanners(services: ManeuverEditorServices, css = '
 }
 export default function initialize(context: ModuleInitializationV2): void {
  context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Independent maneuver editors', summary: 'Read-only candidate previews and validated host commands over shared floating windows.', asset: 'docs/creators/usage.json' });
- const services = { windows: context.use(WINDOWS), predictions: context.use(PREDICTIONS), burns: context.use(MANEUVER_BURNS), clock: context.use(CORE_CLOCK), motion: context.use(CORE_MOTION) };
+ const services = { plans: context.tryUse(FLIGHT_PLANS), windows: context.use(WINDOWS), predictions: context.use(PREDICTIONS), burns: context.use(MANEUVER_BURNS), clock: context.use(CORE_CLOCK), motion: context.use(CORE_MOTION) };
  context.provide(MANEUVER_PLANNERS, context.own(createManeuverPlanners(services, context.assets.text('assets/editor.css'), context.settings)));
 }

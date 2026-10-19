@@ -33,6 +33,14 @@ export function drawManeuver(view: PresentationView): OverlayPrimitive[] {
       out.push({ kind: 'line', space: 'world', color: '#f7c775bb', width: 1.5, points: [point(0), point(.25), point(.5), point(.7)] });
     }
   }
+  for (const node of plan.nodes ?? []) {
+    if (node.selected) continue;
+    const at = world(node.position), marker = 5 / view.camera.scale, tint = node.valid ? MANEUVER_COLOR : '#c68484';
+    out.push({ kind: 'line', space: 'world', color: tint, width: 1, closed: true,
+      points: [{x:at.x,y:at.y+marker},{x:at.x+marker,y:at.y},{x:at.x,y:at.y-marker},{x:at.x-marker,y:at.y}] },
+      { kind: 'text', space: 'world', color: tint, at: {x:at.x,y:at.y+14/view.camera.scale}, align: 'center',
+        text: `${node.label} · T${node.time>=view.time?'−':'+'}${Math.abs(node.time-view.time).toFixed(1)} s` });
+  }
   out.push({ kind: 'text', space: 'world', color, at: { x: center.x, y: center.y + 17 / view.camera.scale }, align: 'center',
     text: plan.valid ? `NODE · ${dv.toFixed(1)} m/s · T${plan.time >= view.time ? '−' : '+'}${Math.abs(plan.time - view.time).toFixed(1)} s` : 'NODE · replan' });
   return out;

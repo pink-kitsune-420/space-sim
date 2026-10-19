@@ -1,3 +1,4 @@
+import { FLIGHT_PLANS } from '../../../packages/game-api/src/index';
 import { rememberWorldArtwork, worldArtwork } from './world-presentation';
 import { createJoinPacks } from '../../../modules/session-join/src/index';
 import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
@@ -303,7 +304,7 @@ const maneuver = new ManeuverPlanner(workspace, {
     if (session === local && local.world.record(shipId)?.ownerId === local.playerId) local.host.setControls(local.playerId, shipId, IDLE);
   },
   setWarp, notify, event: (kind, detail) => profiler.event(kind, detail),
-});
+}, hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined);
 function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };
   lastHud = -Infinity;
@@ -3812,9 +3813,14 @@ const universeSaveUi = hostFeatures.providedService(UNIVERSE_SAVE_CONTROLS);
 const universeSaveCommands = universeSaveProvider.create({
   current: () => ({ identity: session, world: session.world,
     canSave: session === local && !local.world.soloPreview, canLoad: session === local && !local.hosting,
-    options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused } }),
+    options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused, flightPlans: maneuver.savePlans() } }),
   async restore(saved, signal, guard) {
     guard();
+    const savedPlans = (saved as { flightPlans?: unknown }).flightPlans;
+    if (savedPlans !== undefined) {
+      if (!hostFeatures.lock.providers[FLIGHT_PLANS.slot]) throw new Error('This save needs the optional shared flight-plan module.');
+      hostFeatures.providedService(FLIGHT_PLANS).read(savedPlans);
+    }
     let installedProfile = worldModules(local.world);
     const configuration = savedProgressConfiguration(saved);
     let restoredArtifacts: readonly import('../../../packages/game-runtime/src/artifact').CodeArtifact[] | undefined;
@@ -3846,6 +3852,7 @@ const universeSaveCommands = universeSaveProvider.create({
         moduleManager!.resetData(installedProfile!.data);
         local.dispose(); local = next; useSession(local, true); setPaused(true, 'Universe loaded');
       }, signal);
+      maneuver.loadPlans(savedPlans);
       notify('Universe loaded.');
       return;
     }
@@ -3859,6 +3866,7 @@ const universeSaveCommands = universeSaveProvider.create({
     if (!universes.has(loaded.world.universe.id)) universes.set(loaded.world.universe.id, loaded.world.universe);
     replaceLocalWorld(loaded.world, { players: loaded.players, ...(loaded.hostId ? { hostId: loaded.hostId } : {}) });
     setPaused(true, 'Universe loaded');
+    maneuver.loadPlans(savedPlans);
     notify('Universe loaded.');
     profiler.event('world-load', { world: loaded.world.id, ships: loaded.world.size });
   },

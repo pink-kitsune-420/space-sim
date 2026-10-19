@@ -76,8 +76,13 @@ import playerViewInitialize from '../../../modules/player-view/src/index';
 import { manifest as playerViewManifest, compatibility as playerViewCompatibility } from '../../../modules/player-view/module.json';
 import playerViewGuide from '../../../modules/player-view/docs/creators/usage.json';
 
+import flightPlansInitialize from '../../../modules/flight-plans/src/index';
+import { manifest as flightPlansManifest, compatibility as flightPlansCompatibility } from '../../../modules/flight-plans/module.json';
+import flightPlansGuide from '../../../modules/flight-plans/docs/creators/usage.json';
+
 /** Inert registrations. Only the exact references selected by a target initialize. */
 export const browserTargetModules = Object.freeze([
+  bundledRegistration({ manifest: flightPlansManifest, compatibility: flightPlansCompatibility }, flightPlansInitialize, { 'docs/creators/usage.json': flightPlansGuide }),
   bundledRegistration({ manifest: playerViewManifest, compatibility: playerViewCompatibility }, playerViewInitialize, { 'docs/creators/usage.json': playerViewGuide }),
   bundledRegistration({ manifest: throttleManifest, compatibility: throttleCompatibility }, throttleInitialize, { 'docs/creators/usage.json': throttleGuide }),
   bundledRegistration({ manifest: viewHudManifest, compatibility: viewHudCompatibility }, viewHudInitialize, { 'docs/creators/usage.json': viewHudGuide }),

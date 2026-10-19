@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Shared flight-plan intent",
+  "summary": "Bounded portable plans with explicit per-node review.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "flight.plans@1.0.0 captures and validates inert SI plan archives for up to 64 ships and 16 nodes per ship. Every node identifies its body and time. No thrust, warp, arming or execution state is stored. Evaluate through the selected public motion/orbit/surface/rails contracts; the initial evaluator supports safe same-body chains and reports possible SOI crossings explicitly. Headless use needs no UI, camera, prediction, audio or split-screen module."
+    }
+  ]
+}

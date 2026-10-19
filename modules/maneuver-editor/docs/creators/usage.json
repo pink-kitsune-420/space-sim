@@ -19,6 +19,10 @@
     {
       "type": "paragraph",
       "text": "Each editor owns its window, dock lease, listeners, preview jobs and unfinished burn policy. Dispose cancels pending actions, releases host controls, aborts listeners and closes resources even after child failures. Provider removal closes every editor and its injected styles. previewMaxMs and uiRefreshMs preserve default 1 ms/100 ms viewer budgets. The default app adapter retains legacy control IDs and layout preferences until actual manifest startup in Phase 4."
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional flight.plans@1.0.0 adds shared inert intent, up to 16 ordered nodes, provider-validated same-body chains, portable JSON export/import and optional universe-save metadata. Chained previews reuse WorldRead.predictShip with detached future seeds; they never step live authority. Earlier edits recompute later states. Selection, imports and review do not arm. Later execution is blocked while prior burns remain pending; a completed or interrupted finite burn, manual trajectory change or missed event requires explicit review against actual flight. Loaded plans always require review. Without this optional service the single-node editor remains usable. Cross-body chain solving remains a later increment."
     }
   ]
 }

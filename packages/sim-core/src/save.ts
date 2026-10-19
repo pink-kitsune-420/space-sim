@@ -159,6 +159,7 @@ export function playerFromSaved(raw: unknown, context = 'Player'): SavedPlayer {
 }
 
 export function saveWorld(world: WorldRead, extra: {
+  readonly flightPlans?: import('../../game-api/src/index').FlightPlanArchive;
   readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;
   readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
@@ -172,6 +173,7 @@ export function saveWorld(world: WorldRead, extra: {
   if (hasData && version < 3) throw new Error('Module-data adapters require save version 3');
   if (version === 1) {
     return {
+      ...(extra.flightPlans?.plans.length ? { flightPlans: structuredClone(extra.flightPlans) } : {}),
       format: SAVE_FORMAT, version: 1, model: MODEL, units: SAVE_UNITS, worldId: world.id,
       ...(extra.savedAt ? { savedAt: extra.savedAt } : {}),
       universe: world.universe, systemId: world.systemId, tick: world.tick, time: world.time,
@@ -190,6 +192,7 @@ export function saveWorld(world: WorldRead, extra: {
   const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
   return {
     ...(world.configuration ? { configuration: world.configuration } : {}),
+    ...(extra.flightPlans?.plans.length ? { flightPlans: structuredClone(extra.flightPlans) } : {}),
     format: SAVE_FORMAT, version, model: MODEL, units: SAVE_UNITS, worldId: world.id,
     ...(extra.savedAt ? { savedAt: extra.savedAt } : {}),
     universe: world.universe, systemId: world.systemId, tick: world.tick, time: world.time,

@@ -64,6 +64,8 @@ export interface WorldSave {
   readonly vehicles?: VehicleCatalog;
   readonly data?: ModuleDataSnapshot;
   readonly format: 'space-sim-world';
+  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */
+  readonly flightPlans?: import('./flight-plans').FlightPlanArchive;
   readonly configuration?: SavedGameConfiguration;
   readonly version: number;
   readonly model: string;
@@ -93,6 +95,8 @@ export interface WorldRead {
   readonly data: ModuleDataRead;
   readonly dataAdapters: readonly ModuleDataExtension[];
   readonly configuration?: SavedGameConfiguration;
+  /** Absent on older hosts; planners must not assume optional seed arguments are understood. */
+  readonly predictionFeatures?: { readonly futureSeeds: boolean };
   readonly id: string; readonly tick: number; readonly time: number;
   readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;
   readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;
@@ -111,7 +115,9 @@ export interface WorldRead {
   stateAt(id: string, time: number): State | undefined;
   hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;
   presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };
-  predictShip(id: string, coarse?: boolean): Generator<GhostSample, GhostEnd>;
+  /** Optional inert future seed is supported by independent analytic flight only;
+   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. */
+  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string }): Generator<GhostSample, GhostEnd>;
   cloneForPrediction(): WorldControl;
 }
 export interface WorldChanges extends Disposable {
@@ -144,6 +150,7 @@ export interface WorldCreationOptions {
 }
 export interface WorldFactory { create(universe: UniverseDefinition, options?: WorldCreationOptions): WorldControl }
 export interface SavedWorldOptions {
+  readonly flightPlans?: import('./flight-plans').FlightPlanArchive;
   readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;
   readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;

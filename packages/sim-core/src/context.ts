@@ -80,7 +80,7 @@ function gravity(p: Vec, body: Body): Vec {
 }
 
 /** First intersection of the drift chord with the surface, including an interior fly-through. */
-function contactFraction(p: Vec, end: Vec, radius: number): number | undefined {
+export function contactFraction(p: Vec, end: Vec, radius: number): number | undefined {
   const dx = end.x - p.x, dy = end.y - p.y;
   const a = dx * dx + dy * dy;
   const b = 2 * (p.x * dx + p.y * dy);

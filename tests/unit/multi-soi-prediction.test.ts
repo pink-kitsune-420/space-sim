@@ -109,3 +109,12 @@ it('invalidates a paused same-epoch state replacement instead of retaining the p
  expect(prediction.passCount).toBe(before+1);expect(prediction.path[0]!.velocity).toEqual(changed.velocity);
  prediction.dispose();world.dispose();
 });
+
+it('retains a circular-body impact endpoint, incoming velocity and fractional contact time through the world predictor',()=>{
+ const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'});
+ const state={...ship.state,velocity:{x:50,y:0}};world.put({...ship,state});const result=trace(world.predictShip(ship.id)),hit=result.samples.at(-1)!;
+ expect(result.end).toBe('impact');expect(Math.hypot(hit.position.x,hit.position.y)).toBeCloseTo(world.body(ship.bodyId).radius,7);
+ expect(Math.hypot(hit.velocity.x,hit.velocity.y)).toBeGreaterThan(50);expect(hit.linear).toBe(true);
+ while(world.time<hit.time+.005)world.step();expect(world.ship(ship.id)!.state.status).not.toBe('flying');
+ world.dispose();
+});

@@ -1,6 +1,7 @@
 import type { GhostEnd, GhostSample, LoadedSystem, ResolvedBody, SimulationContext, State, SurfaceProfile } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
-import { ghostSample } from './context';
+import * as dm from './dmath';
+import { contactFraction, ghostSample } from './context';
 
 /** Display work bounds, independent of live physics. Numerical contact retains STEP. */
 export const TRAJECTORY_MAX_SAMPLES = 16384;
@@ -52,7 +53,7 @@ export function* predictTrajectory(context: SimulationContext, initial: State, i
     }
     let dt = STEP;
     if (coast && horizon > STEP * 2) {
-      const r = Math.hypot(state.position.x, state.position.y), speed = Math.hypot(state.velocity.x, state.velocity.y);
+      const r = dm.hypot(state.position.x, state.position.y), speed = dm.hypot(state.velocity.x, state.velocity.y);
       const fall = body.mu / (2 * r * r), reach = r * (coarse ? .25 : .125);
       // Stay at least a tick short of the conservative event bound. Check that tick
       // normally, including moving moons. No root-finding on unchecked chords.
@@ -62,7 +63,24 @@ export function* predictTrajectory(context: SimulationContext, initial: State, i
       if (!result.ok) return 'failed';
       state = { ...state, ...result.state, time: state.time + dt, coast, dynamics: 'kepler' };
     } else {
+      const previous = state;
       state = context.advance(state, IDLE, STEP, body, surface);
+      if (!surface && state.status !== 'flying') {
+        // Legacy circle motion stores resting velocity, without a terrain contact
+        // record. Reconstruct its VERIFIED KDK drift event for display only.
+        const p = previous.position, v = previous.velocity, r = dm.hypot(p.x, p.y), g = -body.mu / (r*r*r);
+        const drift = { x: p.x + (v.x + p.x*g*STEP/2)*STEP, y: p.y + (v.y + p.y*g*STEP/2)*STEP };
+        const fraction = contactFraction(p, drift, body.radius);
+        if (fraction !== undefined) {
+          const x = p.x + (drift.x-p.x)*fraction, y = p.y + (drift.y-p.y)*fraction, length = dm.hypot(x,y);
+          const position = { x: x*body.radius/length, y: y*body.radius/length }, half = STEP*fraction/2;
+          const at = -body.mu/(body.radius*body.radius*body.radius);
+          yield frameSample({time:previous.time+STEP*fraction,position,
+            velocity:{x:v.x+(p.x*g+position.x*at)*half,y:v.y+(p.y*g+position.y*at)*half},linear:true},body.id,frameId,system);
+          return 'impact';
+        }
+        yield frameSample(ghostSample(state,body),body.id,frameId,system);return 'impact';
+      }
       if (++numericalSteps >= 8192) {
         yield frameSample(ghostSample(state, body), body.id, frameId, system);
         return state.contact ? 'impact' : 'open';

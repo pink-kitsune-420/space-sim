@@ -40,6 +40,8 @@ export interface ManeuverPlannerOptions {
 }
 export interface ManeuverPlannerControl extends Disposable {
  readonly executing: boolean;
+ savePlans(): import('./flight-plans').FlightPlanArchive;
+ loadPlans(raw: unknown): void;
  cancel(): void;
  step(manual: Controls): Controls;
  beforeAdvance(controls: Controls): void;

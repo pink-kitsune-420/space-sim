@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import { packageContracts } from '../../packages/module-tools/package.mjs';
 import { useLowGraphics } from '../helpers/canvas';
 import { test, expect, type Page } from '@playwright/test';
 import { closePanel, openPanel } from '../helpers/workspace';
@@ -239,4 +241,33 @@ test.describe('touch planning', () => {
     await canvas.dispatchEvent('pointercancel', { pointerId: 43, pointerType: 'touch', isPrimary: true, button: 0, clientX: point.x, clientY: point.y });
     expect((await debug(page)).maneuver).toBeNull();
   });
+});
+
+test('shared plans export inert nodes and survive portable universe saves with review required', async ({ page }, info) => {
+  await setup(page); await place(page);
+  await expect(page.locator('#maneuver-plan-controls')).toBeVisible();
+  await page.locator('#maneuver-time').fill('20'); await page.locator('#maneuver-time').press('Tab');
+  await page.locator('#maneuver-prograde').fill('10'); await page.locator('#maneuver-add').click();
+  await page.locator('#maneuver-prograde').fill('2');
+  await expect.poll(async () => (await debug(page)).maneuver?.nodes).toBe(2);
+  await expect(page.locator('#maneuver-summary')).toContainText('Earlier node pending');
+  await expect(page.locator('#maneuver-execute')).toBeDisabled();
+  const exported = page.waitForEvent('download'); await page.locator('#maneuver-export').click();
+  const plan = JSON.parse(await readFile(await (await exported).path(), 'utf8'));
+  expect(plan.plans[0].nodes).toHaveLength(2); expect(JSON.stringify(plan)).not.toMatch(/armed|engine|execution/);
+  await page.screenshot({ path: info.outputPath('shared-plan.png') });
+  await openPanel(page, 'fleet'); const pending = page.waitForEvent('download'); await page.locator('#save-world').click();
+  const bytes = await readFile(await (await pending).path()), kit = await packageContracts();
+  const saved = await kit.decodeUniverseSave(new Uint8Array(bytes)) as any;
+  expect(saved.flightPlans.plans[0].nodes).toHaveLength(2);
+  await page.locator('#world-file').setInputFiles({ name: 'plan.spaceuniverse', mimeType: 'application/zip', buffer: bytes });
+  await expect(page.locator('#flight-message')).toContainText('Universe loaded');
+  await expect.poll(async () => (await debug(page)).maneuver?.valid).toBe(false);
+  expect((await debug(page)).maneuver.nodes).toBe(2); expect((await debug(page)).maneuver.execution).toBeNull();
+  await closePanel(page);
+  await page.locator('#maneuver-review').click();
+  await expect.poll(async () => (await debug(page)).maneuver?.valid).toBe(true);
+  const old = { ...saved }; delete old.flightPlans;
+  await page.locator('#world-file').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(old)) });
+  await expect.poll(async () => (await debug(page)).maneuver).toBeNull();
 });

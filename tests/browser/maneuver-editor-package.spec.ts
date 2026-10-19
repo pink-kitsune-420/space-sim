@@ -8,7 +8,7 @@ let directory:string,hostSource:string;
 let bundles:{manifest:unknown;source:string;assets:[string,string][]}[];
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'portable-maneuver-editor-'));bundles=[];
- for(const name of ['ui-windows','flight-prediction','maneuver-burn','maneuver-display','maneuver-editor']){
+ for(const name of ['ui-windows','flight-prediction','flight-plans','maneuver-burn','maneuver-display','maneuver-editor']){
   const source=join(directory,name);await cp(resolve('modules',name),source,{recursive:true});const built=await buildPortableModule(join(source,'module.json'),join(directory,`${name}.spacemod`),{typecheck:false,shippedBuild:true});
   bundles.push({manifest:built.descriptor.manifest,source:built.codeV2!.source,assets:[...built.descriptor.assets.map(asset=>asset.path),...built.descriptor.guides].map(path=>[path,new TextDecoder().decode(built.files.get(path)!)])});
  }
@@ -16,7 +16,7 @@ test.beforeAll(async()=>{
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
-async function setup(page:Page,noEngine=false){
+async function setup(page:Page,noEngine=false,sharedPlans=false){
  await page.goto('about:blank');await page.setContent('<main style="position:relative;width:800px;height:600px"></main>');await page.addScriptTag({content:hostSource});
  await page.evaluate(({bundles,noEngine})=>{
   const api=(window as any).ManeuverHost,registry=new api.ModuleRegistryV2(api.engineModuleServices());
@@ -29,7 +29,7 @@ async function setup(page:Page,noEngine=false){
   if(prediction.pathEnd!=='closed')throw new Error('Fixture needs complete prediction');
   const origin=world.system.getBodyPosition(body.id,world.time),camera={center:origin,rotation:0,scale:.3},sample=prediction.path[Math.floor(prediction.path.length/3)],pointer=api.createProjector(camera,800,600)({x:origin.x+sample.position.x,y:origin.y+sample.position.y});
   (window as any).fixture={api,registry,candidate,factory,prediction,world,current,body,origin,camera,pointer,profile,root:document.querySelector('main')};
- },{bundles,noEngine});
+ },{bundles:bundles.filter(bundle=>sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans'),noEngine});
 }
 
 test('coasting to a zero-delta node needs no engine and issues only warp commands',async({page})=>{
@@ -82,4 +82,49 @@ test('a failing warp cancellation still releases host controls, preview resource
   return{armed,calls,closed,errors,after,windows:root.querySelectorAll('.maneuver-window').length,styles:document.head.querySelectorAll('style').length};
  });
  expect(result).toMatchObject({armed:true,calls:['warp','warp','release'],closed:['armed-one-window','armed-two-window'],errors:['warp port failure','warp port failure'],after:{turn:0,throttle:0,engine:false},windows:0,styles:0});
+});
+
+test('shared departure/arrival plans chain previews, require review after load and never arm by selection or editing',async({page})=>{
+ await setup(page,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:string[]=[],notices:string[]=[];
+  const before=JSON.stringify(f.api.saveWorld(world)),planner=factory.create({container:root,id:'chain',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(text:string){notices.push(text);}});
+  const update=()=>{for(let i=0;i<20;i++)planner.update(.1,prediction,false);};
+  const input=(id:string,value:string,type='input')=>{const el=document.getElementById(`chain-${id}`) as HTMLInputElement;el.value=value;el.dispatchEvent(new Event(type));};
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  input('time','12','change');input('prograde','10');update();
+  (document.getElementById('chain-add') as HTMLButtonElement).click();input('prograde','2');update();
+  const saved=planner.savePlans(),selected=planner.diagnostics(),chain=planner.snapshot(),count=saved.plans[0]?.nodes.length,pathSamples=chain?.path.length??0,markers=chain?.nodes?.length;
+  const waiting=(document.getElementById('chain-execute') as HTMLButtonElement).disabled;
+  const originalPosition=chain?.position;
+  const select=document.getElementById('chain-nodes') as HTMLSelectElement;select.value=saved.plans[0].nodes[0].id;select.dispatchEvent(new Event('change'));
+  input('prograde','20');update();select.value=saved.plans[0].nodes[1].id;select.dispatchEvent(new Event('change'));update();
+  const moved=JSON.stringify(planner.snapshot()?.position)!==JSON.stringify(originalPosition);
+  const archive=JSON.parse(JSON.stringify(planner.savePlans()));archive.armed=true;
+  planner.loadPlans(archive);update();const loadedInvalid=planner.diagnostics()?.valid===false,loadedDisabled=(document.getElementById('chain-execute') as HTMLButtonElement).disabled;
+  (document.getElementById('chain-review') as HTMLButtonElement).click();update();const reviewed=planner.diagnostics()?.valid===true;
+  const inert=JSON.stringify(f.api.saveWorld(world))===before;
+  planner.loadPlans(undefined);update();const cleared=planner.diagnostics()===null;
+  planner.dispose();f.candidate.dispose();world.dispose();
+  return{count,pathSamples,markers,waiting,moved,loadedInvalid,loadedDisabled,reviewed,inert,cleared,commands,selected};
+ });
+ expect(result).toMatchObject({count:2,markers:2,waiting:true,moved:true,loadedInvalid:true,loadedDisabled:true,reviewed:true,inert:true,cleared:true,commands:[]});expect(result.pathSamples).toBeGreaterThan(20);
+});
+
+test('a missed first burn invalidates later nodes and marking it flown still requires actual-flight review',async({page})=>{
+ await setup(page,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:string[]=[];
+  const planner=factory.create({container:root,id:'missed',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);(document.getElementById('missed-add') as HTMLButtonElement).click();
+  const archive=planner.savePlans(),select=document.getElementById('missed-nodes') as HTMLSelectElement;select.value=archive.plans[0].nodes[0].id;select.dispatchEvent(new Event('change'));
+  while(world.time<archive.plans[0].nodes[0].time+2)world.step();planner.update(.1,prediction,false);
+  const missed=planner.diagnostics()?.valid===false;
+  select.value=archive.plans[0].nodes[1].id;select.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);const laterInvalid=planner.diagnostics()?.valid===false;
+  select.value=archive.plans[0].nodes[0].id;select.dispatchEvent(new Event('change'));(document.getElementById('missed-flown') as HTMLButtonElement).click();
+  select.value=archive.plans[0].nodes[1].id;select.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);const stillInvalid=planner.diagnostics()?.valid===false;
+  (document.getElementById('missed-review') as HTMLButtonElement).click();planner.update(.1,prediction,false);const reviewed=planner.diagnostics()?.valid===true;
+  planner.dispose();f.candidate.dispose();world.dispose();return{missed,laterInvalid,stillInvalid,reviewed,commands};
+ });
+ expect(result).toEqual({missed:true,laterInvalid:true,stillInvalid:true,reviewed:true,commands:[]});
 });

@@ -81,6 +81,10 @@
           {
             "id": "spacelab.player-view",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.flight-plans",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -102,7 +106,8 @@
           "render.webgl": "spacelab.render-webgl",
           "ui.view-hud": "spacelab.view-hud",
           "hud.throttle": "spacelab.throttle-hud",
-          "ui.player-view": "spacelab.player-view"
+          "ui.player-view": "spacelab.player-view",
+          "flight.plans": "spacelab.flight-plans"
         },
         "capabilities": {},
         "settings": {}
@@ -205,6 +210,10 @@
           {
             "id": "spacelab.player-view",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.flight-plans",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -226,7 +235,8 @@
           "render.webgl": "spacelab.render-webgl",
           "ui.view-hud": "spacelab.view-hud",
           "hud.throttle": "spacelab.throttle-hud",
-          "ui.player-view": "spacelab.player-view"
+          "ui.player-view": "spacelab.player-view",
+          "flight.plans": "spacelab.flight-plans"
         },
         "capabilities": {},
         "settings": {}
