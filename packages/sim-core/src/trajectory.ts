@@ -71,7 +71,20 @@ export function* predictTrajectory(context: SimulationContext, initial: State, i
       if (endTime !== undefined && until - state.time < STEP * 2 && horizon >= until - state.time) dt = until - state.time;
       const result = context.coastAt(coast, state.time + dt, body, surface, { cache: false });
       if (!result.ok) return 'failed';
-      state = { ...state, ...result.state, time: state.time + dt, coast, dynamics: 'kepler' };
+      // Keep the hot sample record's shape stable. Repeated spreads of evolving
+      // numerical/coast states make every following orbital read polymorphic.
+      const next: { -readonly [K in keyof State]: State[K] } = {
+        time: state.time + dt, position: result.state.position, velocity: result.state.velocity,
+        heading: state.heading, throttle: state.throttle, status: state.status,
+        revision: state.revision, coast, dynamics: 'kepler',
+      };
+      if (state.godMode !== undefined) next.godMode = state.godMode;
+      if (state.solver !== undefined) next.solver = state.solver;
+      if (state.moduleState !== undefined) next.moduleState = state.moduleState;
+      if (state.contact !== undefined) next.contact = state.contact;
+      if (state.water !== undefined) next.water = state.water;
+      if (state.waterEntry !== undefined) next.waterEntry = state.waterEntry;
+      state = next;
     } else {
       const previous = state;
       state = context.advance(state, IDLE, dt, body, surface);

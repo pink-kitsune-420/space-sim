@@ -39,6 +39,7 @@ export class FleetPlansRunner {
  autoWarp(shipId:string):boolean {return this.runs.get(shipId)?.autoWarp??false;}
  setAutoWarp(shipId:string,enabled:boolean):void {const run=this.runs.get(shipId);if(run&&!run.burn)run.autoWarp=enabled;}
  status(shipId: string): string { return this.runs.get(shipId)?.status ?? ''; }
+ get reviewing():boolean {for(const run of this.runs.values())if(run.job)return true;return false;}
  get active(): boolean { return this.runs.size > 0; }
  get burning(): boolean { for (const run of this.runs.values()) if (run.burn) return true; return false; }
  ownsNode(shipId: string, nodeId: string): boolean { return this.runs.has(shipId) && this.store.nodes(shipId).find(node=>!node.completed)?.id===nodeId; }
@@ -89,6 +90,24 @@ export class FleetPlansRunner {
   if (!next.valid || !next.before || !next.seed) { this.fail(run, next.reason || 'No valid next burn.'); return; }
   run.node = next; run.status = 'Following the clock · next burn prepared';
  }
+ /** Advance detached validation only. Browser hosts may call between frames;
+  * clock decisions and ignition remain exclusively in beforeAdvance/step. */
+ advanceReviews():void {
+  if(this.disposed)return;
+  const flight=this.options.flight(),start=performance.now();
+  for(const run of this.runs.values()){
+   if(!run.job)continue;
+   if(flight.world!==run.world||!flight.enabled||!flight.canWarp||!this.options.fleet?.owns(run.shipId))continue;
+   try{this.advanceReview(run,start);}catch(error){this.fail(run,error instanceof Error?error.message:'Plan evaluation failed.');}
+  }
+ }
+ private advanceReview(run:Run,start:number):void {
+  // One shared millisecond across ships; the yield guard is a backstop rather
+  // than a limit that stretches cheap forecast samples across many frames.
+  for(let count=0;run.job&&count<4096&&performance.now()-start<1;count++){
+   const result=run.job.next();if(result.done){this.reviewed(run,result.value);break;}
+  }
+ }
  /** Called once per display frame, before normal/warped simulation advancement. */
  beforeAdvance(manual: Controls): void {
   const flight = this.options.flight(), budgetStart = performance.now();
@@ -108,12 +127,7 @@ export class FleetPlansRunner {
      continue;
     }
     if (!run.plan || ship.bodyId !== run.bodyId) this.review(run);
-    if (run.job) {
-     // One shared frame budget across all ships, rather than one millisecond each.
-     for (let count = 0; count < 128 && performance.now() - budgetStart < 1; count++) {
-      const step = run.job.next(); if (step.done) { this.reviewed(run, step.value); break; }
-     }
-    }
+    if (run.job) this.advanceReview(run,budgetStart);
     if (!this.runs.has(run.shipId) || !run.node) continue;
     const { intent, before } = run.node;
     if (Math.hypot(intent.prograde,intent.radial)>1e-8&&ship.state.time > intent.time + this.clock.stepSeconds) { this.fail(run, 'Burn window passed.'); continue; }
@@ -179,7 +193,7 @@ export class FleetPlansRunner {
   const remaining=deadline-flight.world.time;
   const factor=hold||!Number.isFinite(remaining)||remaining<=.25?1:this.clampWarp(remaining/.2);
   if(factor!==this.options.flight().requestedWarp)this.options.setWarp(factor);
-  if(factor>1)owner.status=`Auto-warp · ${this.options.flight().warp}×`;
+  if(factor>1){const actual=this.options.flight();owner.status=`Auto-warp · ${actual.warp}×${actual.warpReason?' · '+actual.warpReason:''}`;}
  }
  private complete(run: Run): void {
   const node = run.node!;

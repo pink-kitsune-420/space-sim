@@ -10,7 +10,7 @@ import { DEFAULT_UNIVERSE, IDLE, STEP } from '../../packages/sim-core/src/index'
 import { World } from '../../packages/sim-core/src/world';
 import type { FlightPlanNode, ManeuverPlannerOptions } from '../../packages/game-api/src/index';
 
-function fixture() {
+function fixture(plans=createFlightPlans()) {
  const world=new World(DEFAULT_UNIVERSE),session=new LocalSession(flightSessionServices(),world,{name:'Pilot'});
  const ships=[session.spawn('planet-orbit',false)!,session.spawn('planet-orbit',false)!,session.spawn('planet-orbit',false)!];
  const intents=new Map<string,FlightPlanNode[]>(ships.slice(0,2).map(id=>[id,[{id:'departure',label:'Departure',bodyId:'planet',time:8,prograde:4,radial:0},{id:'arrival',label:'Arrival',bodyId:'planet',time:20,prograde:2,radial:0}]]));
@@ -20,7 +20,7 @@ function fixture() {
  const options:ManeuverPlannerOptions={container:null!,flight:()=>({world,ship:world.ship(ships[2]!),body:world.body('planet'),enabled:true,canWarp:true,paused,inputBlocked:false,warp:session.warp,requestedWarp:session.requestedWarp}),
   setWarp:factor=>session.setWarp(factor),setThrottle:(id,value)=>session.setThrottle(id,value),releaseControls:id=>session.host.setControls(session.playerId,id,IDLE),notify,
   fleet:{owns:id=>world.record(id)?.ownerId===session.playerId,setControls:(id,controls)=>session.host.setControls(session.playerId,id,controls),requestSlowWarp:request}};
- const runner=new FleetPlansRunner(options,createFlightPlans(),{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed},clampWarpFactor);
+ const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed},clampWarpFactor);
  const tick=()=>{runner.beforeAdvance(IDLE);session.update(.01,ships[2],IDLE,undefined,()=>runner.step());};
  return {world,session,ships,intents,completed,runner,tick,options,notify,request,pause:()=>{paused=true;}};
 }
@@ -173,5 +173,16 @@ it('passes a future zero-impulse checkpoint on the pilot clock without taking wa
   f.intents.set(id,[{id:'review',label:'Orbit review',bodyId:'planet',time:8,prograde:0,radial:0}]);f.runner.arm(id);f.session.setWarp(4);
   for(let i=0;i<300&&f.runner.active;i++)f.tick();
   expect(f.completed).toHaveBeenCalledTimes(1);expect(f.runner.active).toBe(false);expect(f.session.requestedWarp).toBe(4);expect(f.world.ship(id)!.controls.engine).toBe(false);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it('finishes detached review between frames without commanding the clock or igniting a ship',()=>{
+ const actual=createFlightPlans(),f=fixture({...actual,*evaluateAsync(...args:Parameters<NonNullable<typeof actual.evaluateAsync>>){for(let i=0;i<10000;i++)yield{node:0};return yield* actual.evaluateAsync!(...args);}}),id=f.ships[0]!,writes=vi.fn((factor:number)=>f.session.setWarp(factor));
+ try {
+  f.options.fleet!.authorizeWarp=()=>true;f.options.setWarp=writes;f.runner.arm(id,false,true);f.runner.beforeAdvance(IDLE);expect(f.runner.reviewing).toBe(true);
+  for(let i=0;i<100&&f.runner.reviewing;i++)f.runner.advanceReviews();
+  expect(f.runner.reviewing).toBe(false);expect(writes).not.toHaveBeenCalled();expect(f.world.tick).toBe(0);expect(f.world.ship(id)!.controls.engine).toBe(false);
+  f.runner.beforeAdvance(IDLE);expect(f.session.requestedWarp).toBeGreaterThan(1);
+  f.runner.stop(id);const count=writes.mock.calls.length;f.runner.advanceReviews();expect(writes.mock.calls.length).toBe(count);expect(f.runner.active).toBe(false);
  }finally{f.runner.dispose();f.session.dispose();}
 });

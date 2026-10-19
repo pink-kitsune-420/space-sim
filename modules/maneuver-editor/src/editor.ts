@@ -117,6 +117,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private readonly fleet?: FleetPlansRunner;
   private continueShip?: string;
   private reviewAfterBurn?: string;
+  private fleetReviewTimer?:number;
   private execution?: { node: Node; burn: ManeuverBurnControl; initialThrottle: number; expected?: State };
   private warping = false;
   private lastRequest = 1;
@@ -125,7 +126,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   get executing(): boolean { return !!this.execution; }
 
   /** Release controls while the current session still owns the execution's ship. */
-  cancel(): void { if (this.disposed) return; this.continueShip=undefined; this.fleet?.clear(); this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.transferControls?.cancel(); }
+  cancel(): void { if (this.disposed) return; this.continueShip=undefined; this.cancelFleetReview(); this.fleet?.clear(); this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.transferControls?.cancel(); }
 
   constructor(private readonly services: ManeuverEditorServices, private readonly options: ManeuverPlannerOptions, private readonly tuning: ManeuverEditorTuning = {}) {
     this.id = options.id ?? 'maneuver';
@@ -332,7 +333,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   }
   private event(kind: string, detail: Record<string, unknown>): void { this.options.event?.(kind, detail); }
   dispose(): void {
-    if (this.disposed) return; this.disposed = true; const errors: unknown[] = [];
+    if (this.disposed) return; this.disposed = true; this.cancelFleetReview(); const errors: unknown[] = [];
     for (const close of [() => this.fleet?.dispose(), () => this.cancelPlanEvaluation(), () => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.alarmControls?.dispose(), () => this.map?.dispose(), () => this.abortExecution(), () => this.stopWarp(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window.dispose()]) { try { close(); } catch (error) { errors.push(error); } }
     this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.world = undefined; this.prediction = undefined; this.dock = undefined;
     if (errors.length) throw new AggregateError(errors, 'Maneuver editor cleanup failed');
@@ -707,9 +708,22 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   beforeAdvance(controls: Controls): void {
     if(this.disposed)return;
     this.beforeManeuverAdvance(controls);
-    this.fleet?.beforeAdvance(controls);
+    this.fleet?.beforeAdvance(controls);this.scheduleFleetReview();
     // A manual ignition on this frame changes the root even before physics runs.
     this.alarmManualEngine=controls.engine;this.alarmControls?.beforeAdvance(node=>this.execution?.node===node||!!this.fleet?.ownsNode(node.shipId,node.id));
+  }
+  private cancelFleetReview():void {
+    if(this.fleetReviewTimer!==undefined)this.document.defaultView?.clearTimeout(this.fleetReviewTimer);
+    this.fleetReviewTimer=undefined;
+  }
+  private scheduleFleetReview():void {
+    const view=this.document.defaultView;
+    if(!view||this.disposed||this.document.hidden||this.fleetReviewTimer!==undefined||!this.fleet?.reviewing)return;
+    this.fleetReviewTimer=view.setTimeout(()=>{
+      this.fleetReviewTimer=undefined;
+      if(this.disposed||this.document.hidden)return;
+      this.fleet?.advanceReviews();this.scheduleFleetReview();
+    },8);
   }
   isAutomatic(shipId:string):boolean { return this.fleet?.has(shipId)??false; }
   stepFleet():void { this.fleet?.step(); }
