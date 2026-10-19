@@ -215,14 +215,18 @@ test('scale, ship and planet label switches remove actual Canvas annotations and
   });
   await expect.poll(annotations).toEqual({ ship: true, scale: true, planet: true });
   await openPanel(page, 'settings');
+  await page.locator('#hud-visible-orbits').uncheck();
+  await expect(page.locator('#hud-visible-planets')).toBeChecked();
   await page.locator('#hud-visible-planets').uncheck();
   await expect.poll(annotations).toEqual({ ship: true, scale: true, planet: false });
   await page.locator('#hud-visible-labels').uncheck(); await page.locator('#hud-visible-scale').uncheck();
   await expect.poll(annotations).toEqual({ ship: false, scale: false, planet: false });
   await page.reload(); await openPanel(page, 'settings');
   await expect(page.locator('#hud-visible-planets')).not.toBeChecked();
+  await expect(page.locator('#hud-visible-orbits')).not.toBeChecked();
   await page.getByRole('button', { name: 'Restore HUD visibility', exact: true }).click();
   await expect(page.locator('#hud-visible-planets')).toBeChecked();
+  await expect(page.locator('#hud-visible-orbits')).toBeChecked();
 });
 
 test('camera rotation buttons turn the view without turning the ship, and reset to north up', async ({ page }) => {

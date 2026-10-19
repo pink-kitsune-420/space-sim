@@ -467,7 +467,7 @@ export class WebGLRenderer implements Renderer {
     this.effects.drawMaterials(bodyList, camera, width, height, realTimeSec, this.ports.geometry);
 
     this.beginVectorPass(width, height);
-    this.drawOrbitRings(bodyList, toScreen, camera.scale, width, height);
+    if (frame.showBodyOrbits !== false) this.drawOrbitRings(bodyList, toScreen, camera.scale, width, height);
 
     // Body labels in priority order (stars, then by size); crowded ones are left out.
     const bodyLabels: PendingBodyLabel[] = [];

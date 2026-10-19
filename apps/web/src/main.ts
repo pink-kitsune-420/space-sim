@@ -4690,6 +4690,7 @@ function frame(now: number): void {
     showScale: hudVisibility.visible('scale'),
     showShipLabels: hudVisibility.visible('labels'),
     showBodyLabels: hudVisibility.visible('planets'),
+    showBodyOrbits: hudVisibility.visible('orbits'),
     theme: {
       ...themeCustomizer.getSettings(),
       highQuality: graphicsQuality === 'high',
@@ -4805,6 +4806,7 @@ function frame(now: number): void {
         showScale: hudVisibility.visible('scale'),
         showShipLabels: hudVisibility.visible('labels'),
         showBodyLabels: hudVisibility.visible('planets'),
+        showBodyOrbits: hudVisibility.visible('orbits'),
         theme: {
           ...themeCustomizer.getSettings(),
           highQuality: graphicsQuality === 'high',

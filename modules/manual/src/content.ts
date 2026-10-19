@@ -56,7 +56,7 @@ the previous size and position. Focus a resize grip and use the arrow keys for s
 Drag a small grip, or focus it and use the arrow keys. Navballs can be dragged directly while editing, even when pinned. Hold Shift for larger steps. Choose <b>Done</b> when finished.
 Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
 Windows and chat move by their title bars. Outside the editor, unlock a navball with its pin button before dragging it. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
-<p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, ship labels, planet labels and the scale bar. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
+<p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, ship labels, planet labels, planet orbit lines and the scale bar. Planet orbits can be hidden independently of ship trajectories. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
 <h3>Where to start</h3>
 <ol>
   <li>Look over <a data-page="controls">Controls</a>, or hold {{key:engine}} to fire the engine and steer with {{key:turnLeft}} {{key:turnRight}}.</li>
@@ -354,7 +354,7 @@ Only the scale changes.</p>`)}`,
 <p>Click a body to edit it in the <b>Planet inspector</b>. Its window can be moved, resized, pinned, minimized or maximized. Right-drag or middle-drag the map to pan; scroll to zoom.</p>
 <p><b>Pause</b> or P / Space stops the simulation. Choose a speed in the Warp selector, or use − / +, [ / ] or , / . to step through speeds. Use / or <b>1×</b> to return to real time. Choose <b>0.2×</b> in the selector for slow motion. <b>Reset</b> or R starts a fresh default system; <b>Play · new world</b> does the same. Warp is selectable up to 100,000×. Faster warp adds numerical steps rather than enlarging them. If the CPU cannot sustain it, a warning appears and warp automatically drops to a sustainable factor. Your computer and the bodies' close encounters determine the available speed.</p>
 <p>In <b>Testing Lab</b>, <b>Disable CPU limiter (debug)</b> keeps your requested speed and removes that work budget. Very high warp can stall the interface; this option resets on reload. Numerical step sizes remain bounded.</p>
-<p><b>Labels</b> hides planet names. Orbit lines remain available for all bodies; apoapsis and periapsis markers belong to the selected orbit and active launch preview. Nearly circular orbits have no useful distinct apsides. Use <b>Export Universe</b> to share the system or launch it in Space Sim.</p>`,
+<p><b>Labels</b> hides planet names. <b>Orbit Lines</b> (O) shows or hides planet orbit guides; both choices are saved on this device. Apoapsis and periapsis markers belong to the selected orbit and active launch preview. Nearly circular orbits have no useful distinct apsides. Use <b>Export Universe</b> to share the system or launch it in Space Sim.</p>`,
   },
   {
     id: 'fleet',

@@ -374,49 +374,51 @@ export class CanvasRenderer implements Renderer {
     this.drawBackground(width, height, camera, frame.theme, realTimeSec);
     timer?.lap('background');
 
-    // 1. Draw orbit rings for moons around their parent bodies, all in one dashed path
     const maxViewportDim = Math.max(width, height);
     const maxCorner = Math.hypot(width / 2, height / 2);
-    ctx.beginPath();
-    let rings = 0;
-    for (const b of bodyList) {
-      if (b.parentPosition && b.orbitRadius) {
-        const parentScreen = toScreen(b.parentPosition);
-        const orbitScreenRadius = b.orbitRadius * camera.scale;
-        if (orbitScreenRadius > 1) {
-          const dx = parentScreen.x - width / 2;
-          const dy = parentScreen.y - height / 2;
-          const distToCenter = Math.hypot(dx, dy);
+    if (frame.showBodyOrbits !== false) {
+      // 1. Draw orbit rings for moons around their parent bodies, all in one dashed path
+      ctx.beginPath();
+      let rings = 0;
+      for (const b of bodyList) {
+        if (b.parentPosition && b.orbitRadius) {
+          const parentScreen = toScreen(b.parentPosition);
+          const orbitScreenRadius = b.orbitRadius * camera.scale;
+          if (orbitScreenRadius > 1) {
+            const dx = parentScreen.x - width / 2;
+            const dy = parentScreen.y - height / 2;
+            const distToCenter = Math.hypot(dx, dy);
 
-          // Cull if orbit ring does not intersect the viewport at all
-          if (Math.abs(distToCenter - orbitScreenRadius) > maxCorner + 10) {
-            continue;
-          }
-          rings++;
-          // When orbit radius is larger than twice the viewport, clipping to a tangent segment
-          // avoids generating millions of dashes across a multi-million-pixel circle
-          if (orbitScreenRadius > maxViewportDim * 2) {
-            const theta0 = Math.atan2(height / 2 - parentScreen.y, width / 2 - parentScreen.x);
-            const cos0 = Math.cos(theta0), sin0 = Math.sin(theta0);
-            const p0x = parentScreen.x + cos0 * orbitScreenRadius;
-            const p0y = parentScreen.y + sin0 * orbitScreenRadius;
-            const vx = -sin0, vy = cos0;
-            const span = maxCorner + 30;
-            ctx.moveTo(p0x - vx * span, p0y - vy * span);
-            ctx.lineTo(p0x + vx * span, p0y + vy * span);
-          } else {
-            ctx.moveTo(parentScreen.x + orbitScreenRadius, parentScreen.y);
-            ctx.arc(parentScreen.x, parentScreen.y, orbitScreenRadius, 0, 2 * Math.PI);
+            // Cull if orbit ring does not intersect the viewport at all
+            if (Math.abs(distToCenter - orbitScreenRadius) > maxCorner + 10) {
+              continue;
+            }
+            rings++;
+            // When orbit radius is larger than twice the viewport, clipping to a tangent segment
+            // avoids generating millions of dashes across a multi-million-pixel circle
+            if (orbitScreenRadius > maxViewportDim * 2) {
+              const theta0 = Math.atan2(height / 2 - parentScreen.y, width / 2 - parentScreen.x);
+              const cos0 = Math.cos(theta0), sin0 = Math.sin(theta0);
+              const p0x = parentScreen.x + cos0 * orbitScreenRadius;
+              const p0y = parentScreen.y + sin0 * orbitScreenRadius;
+              const vx = -sin0, vy = cos0;
+              const span = maxCorner + 30;
+              ctx.moveTo(p0x - vx * span, p0y - vy * span);
+              ctx.lineTo(p0x + vx * span, p0y + vy * span);
+            } else {
+              ctx.moveTo(parentScreen.x + orbitScreenRadius, parentScreen.y);
+              ctx.arc(parentScreen.x, parentScreen.y, orbitScreenRadius, 0, 2 * Math.PI);
+            }
           }
         }
       }
-    }
-    if (rings) {
-      ctx.strokeStyle = '#23374580';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 4]);
-      ctx.stroke();
-      ctx.setLineDash([]);
+      if (rings) {
+        ctx.strokeStyle = '#23374580';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
     }
     const labels = new LabelPlacer();
     const shipPos = frame.shipWorldPosition ?? state.position;

@@ -78,6 +78,8 @@ export interface RenderFrame {
   readonly showShipLabels?: boolean;
   /** Celestial body names; defaults to visible. Independent of ship labels. */
   readonly showBodyLabels?: boolean;
+  /** Planet/moon orbit guides; defaults to visible. Does not hide ship trajectories or affect motion. */
+  readonly showBodyOrbits?: boolean;
   /** Other vessels, drawn beneath the piloted ship. */
   readonly ships?: readonly RenderShip[];
   /** Validated presentation layers above the scene, in the overlay section: shapes in order,

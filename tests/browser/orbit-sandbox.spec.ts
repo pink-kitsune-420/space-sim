@@ -41,10 +41,18 @@ test('sandbox warp and pause shortcuts stay in the active game and titles follow
   await page.locator('#sandbox-disable-limiter').check();
   await expect(page.locator('#sandbox-warp-status')).toHaveText('CPU limiter off (debug)');
   await page.locator('#btn-close-testing').click();
+  await expect(page.locator('#btn-toggle-orbits')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#btn-toggle-orbits').click();
+  await expect(page.locator('#btn-toggle-orbits')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#sandbox-labels').click();
   await expect(page.locator('#sandbox-labels')).toHaveAttribute('aria-pressed', 'false');
   await page.reload();
   await expect(page.locator('#sandbox-disable-limiter')).not.toBeChecked();
+  await expect(page.locator('#btn-toggle-orbits')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#btn-reset').click();
+  await expect(page.locator('#btn-toggle-orbits')).toHaveAttribute('aria-pressed', 'false');
+  await page.keyboard.press('KeyO');
+  await expect(page.locator('#btn-toggle-orbits')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#sandbox-labels')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#btn-sandbox-menu').click();
   await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim', exact: true }) })

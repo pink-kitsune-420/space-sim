@@ -48,7 +48,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "ef957d1dbda1a105419290a8f87200f5cf95a27dc6f7077f54d2d0ef86d3d522"
+    "inputsDigest": "d9fc0896a57b226a24aecb59c5532a3f840df8144dd08193a5f2d4288d948461"
   },
   "compatibility": {
     "deterministic": true,
@@ -152,7 +152,7 @@
     },
     {
       "path": "game-api/mod-menu.ts",
-      "sha256": "2302c62006aa037258b3af0f7945ae63e70368c005fcdaa045bd54b827794328",
+      "sha256": "fe65181295bd280dd6b857cfb4eb7350645e3098e0810ecd1de78a3e9712db64",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -206,7 +206,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "b86fbe26396f75f69c73db349c394bca440643f95750b2fe3d3bd729c4c77818",
+      "sha256": "94be153dda5b733c95eb56d995e858c95b11151ae675f961d039c3ab4acd4494",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -224,7 +224,7 @@
     },
     {
       "path": "game-api/rendering.ts",
-      "sha256": "33a09451236f840a33e86906b52324160b4339524898b7fbddcc47f55ded4835",
+      "sha256": "2331b92b29c24b2cdc53b321a4705e3d7aaf2691b1c5e8c989b71fd111c50827",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -440,7 +440,7 @@
     },
     {
       "path": "src/webgl.ts",
-      "sha256": "59ccffced3db6bd229135c1bcedc41e512f7ffa29d4c333babe783aea42213e3",
+      "sha256": "454f008b09071b49fa8abb8a33fcd2ea40a2539a695c59bad5072c33d2e59fe7",
       "license": "MIT",
       "attribution": "Space Sim first-party webgl 2 implementation, MIT licensed.\nShared local drawing helpers preserve the original first-party renderer algorithms.\n"
     }

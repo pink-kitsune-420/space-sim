@@ -48,7 +48,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "cdc5b72fb2ed40c717d7eb5066ab7df00c605221c0453afe4f136f93cd5894dc"
+    "inputsDigest": "f6bcd5c27716be9d2b536b6a304cefb3315212e5a187a928225799b78acd6bb0"
   },
   "compatibility": {
     "deterministic": true,
@@ -152,7 +152,7 @@
     },
     {
       "path": "game-api/mod-menu.ts",
-      "sha256": "2302c62006aa037258b3af0f7945ae63e70368c005fcdaa045bd54b827794328",
+      "sha256": "fe65181295bd280dd6b857cfb4eb7350645e3098e0810ecd1de78a3e9712db64",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -206,7 +206,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "b86fbe26396f75f69c73db349c394bca440643f95750b2fe3d3bd729c4c77818",
+      "sha256": "94be153dda5b733c95eb56d995e858c95b11151ae675f961d039c3ab4acd4494",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -224,7 +224,7 @@
     },
     {
       "path": "game-api/rendering.ts",
-      "sha256": "33a09451236f840a33e86906b52324160b4339524898b7fbddcc47f55ded4835",
+      "sha256": "2331b92b29c24b2cdc53b321a4705e3d7aaf2691b1c5e8c989b71fd111c50827",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -350,7 +350,7 @@
     },
     {
       "path": "src/canvas.ts",
-      "sha256": "3d7c3a4a0865188a6f7acdc7aa4f78bc04e4ee3f9d9a23fc412f9b425411a8e6",
+      "sha256": "5e0ffd06a3451c87075037f838b664abd044c65a09213a29937450acc931fb30",
       "license": "MIT",
       "attribution": "Space Sim first-party canvas 2d implementation, MIT licensed.\nShared local drawing helpers preserve the original first-party renderer algorithms.\n"
     },

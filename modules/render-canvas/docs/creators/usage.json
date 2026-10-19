@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Draws flight frames or body-only scenes with read-only public geometry. Supply an independent camera and optional theme artwork. No default planet, trainer, HUD or world scheduler is loaded. Geometry queries use the selected surface provider; draw quality never changes collision. The caller owns the borrowed canvas; the provider releases created renderers on disposal."
+      "text": "Draws flight frames or body-only scenes with read-only public geometry. Supply an independent camera and optional theme artwork. No default planet, trainer, HUD or world scheduler is loaded. Geometry queries use the selected surface provider; draw quality never changes collision. The caller owns the borrowed canvas; the provider releases created renderers on disposal. Frame options showBodyOrbits and showBodyLabels independently hide celestial orbit guides and names; omitted options preserve visible defaults. Viewer flags never change motion or ship trajectories."
     }
   ]
 }

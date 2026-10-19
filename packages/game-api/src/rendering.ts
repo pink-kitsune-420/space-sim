@@ -15,7 +15,7 @@ export interface ThemeArtwork {
     settings: Readonly<RenderThemeOptions>, time: number): void;
 }
 /** A body/annotation viewer has no controlled vehicle, flight HUD or world scheduler. */
-export interface SceneFrame extends Pick<RenderFrame, 'camera' | 'bodies' | 'overlays' | 'theme' | 'showScale' | 'ships' | 'showShipLabels'> { readonly time: number }
+export interface SceneFrame extends Pick<RenderFrame, 'camera' | 'bodies' | 'overlays' | 'theme' | 'showScale' | 'ships' | 'showShipLabels' | 'showBodyLabels' | 'showBodyOrbits'> { readonly time: number }
 export interface SceneRenderer extends Renderer { dispose(): void; drawScene(frame: SceneFrame, timer?: RenderTimer): void }
 export interface BodyPreview extends Disposable { readonly ready: boolean; readonly error?: string; draw(body: RenderBody, fill?: number): void }
 export interface Render2DOptions {

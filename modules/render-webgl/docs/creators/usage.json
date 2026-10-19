@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Draws flight/body scenes and body previews. Supply the selected shader pack, public surface-query port and optional theme artwork. Owns contexts, programs, buffers, textures and optional effect targets. Creation and shader/effect replacement fail atomically; removing the provider releases its instances. Canvas remains a separate shader-free replacement. Shader u_time follows real presentation seconds, even while physics is paused; presentationTime explicitly controls body-only viewer animation."
+      "text": "Draws flight/body scenes and body previews. Supply the selected shader pack, public surface-query port and optional theme artwork. Owns contexts, programs, buffers, textures and optional effect targets. Creation and shader/effect replacement fail atomically; removing the provider releases its instances. Canvas remains a separate shader-free replacement. Shader u_time follows real presentation seconds, even while physics is paused; presentationTime explicitly controls body-only viewer animation. Frame options showBodyOrbits and showBodyLabels independently hide celestial orbit guides and names; omitted options preserve visible defaults. Viewer flags never change motion or ship trajectories."
     },
     {
       "type": "paragraph",

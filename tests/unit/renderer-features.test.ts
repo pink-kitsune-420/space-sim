@@ -68,6 +68,27 @@ describe('renderer features', () => {
       expect(webgl.stats.draws.length).toBeGreaterThan(0); webglRenderer.dispose();
     }
   });
+  it('hides planet orbit guides independently of bodies, names and module overlays in flight and body-only scenes', () => {
+    for (const visible of [undefined, true, false]) {
+      const scene: RenderFrame = { ...frame(OVERLAYS), bodies: [{ id: 'moon', name: 'Moon', position: {x:100,y:0}, radius: 10,
+        parentPosition: {x:0,y:0}, orbitRadius: 100 }], showBodyOrbits: visible };
+      for (const bodyOnly of [false, true]) {
+        const canvas = fake2d(), canvasRenderer = new CanvasRenderer(canvas.canvas);
+        if (bodyOnly) canvasRenderer.drawScene({ ...scene, time: 0 }); else canvasRenderer.draw(scene);
+        expect(canvas.calls.includes('strokeStyle=#23374580')).toBe(visible !== false);
+        expect(canvas.calls.some(call => call.startsWith('fillText(MOON,'))).toBe(true);
+        expect(canvas.calls.some(call => call.startsWith('arc(600,300,20,'))).toBe(true);
+        expect(canvas.calls.includes('fillText(MODULE,480,520)')).toBe(true);
+        canvasRenderer.dispose();
+        const webgl = fakeGl(), webglRenderer = new WebGLRenderer(webgl.canvas);
+        if (bodyOnly) webglRenderer.drawScene({ ...scene, time: 0 }); else webglRenderer.draw(scene);
+        expect(webgl.stats.draws.some(draw => draw.split(':')[1] === String('LINES'.length) && Number(draw.split(':')[2]) > 2)).toBe(visible !== false);
+        expect(webgl.stats.texts).toContain('MOON');
+        expect(webgl.stats.texts).toContain('MODULE');
+        webglRenderer.dispose();
+      }
+    }
+  });
   it('declare optional features instead of being identified by class', () => {
     const canvas = new CanvasRenderer(fake2d().canvas);
     expect(canvas.features.shaders).toBeUndefined();

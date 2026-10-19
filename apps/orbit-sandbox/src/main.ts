@@ -713,10 +713,17 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
   }
   btnCircularizeToggle?.addEventListener('click', toggleCircularize);
 
-  // Orbit Lines Toggle Button
+  // Orbit guides are a local display preference, independent of the simulation.
+  try { renderer.showOrbitLines = localStorage.getItem('spacelab:sandbox-orbits') !== 'false'; } catch { /* Optional viewer preference. */ }
+  function updateOrbitLines(): void {
+    btnToggleOrbits?.classList.toggle('active', renderer.showOrbitLines);
+    btnToggleOrbits?.setAttribute('aria-pressed', String(renderer.showOrbitLines));
+  }
+  updateOrbitLines();
   function toggleOrbitLines(): void {
     renderer.showOrbitLines = !renderer.showOrbitLines;
-    btnToggleOrbits?.classList.toggle('active', renderer.showOrbitLines);
+    updateOrbitLines();
+    try { localStorage.setItem('spacelab:sandbox-orbits', String(renderer.showOrbitLines)); } catch { /* Optional viewer preference. */ }
     showToast(renderer.showOrbitLines ? 'Planet Orbit Lines: ON' : 'Planet Orbit Lines: OFF');
   }
   btnToggleOrbits?.addEventListener('click', toggleOrbitLines);
