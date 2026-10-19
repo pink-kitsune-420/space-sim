@@ -3,7 +3,7 @@
   "info": {
     "id": "builtin.planet-viewer",
     "name": "Planet viewer",
-    "description": "A static body viewer with no ship, flight controls, session, audio or editor."
+    "description": "A still view of planets and moons. Choose a body, zoom in to inspect it, or fit the whole body on screen. Time and orbits stay paused in this example."
   },
   "bundle": {
     "format": "space-sim-module-profile/1",

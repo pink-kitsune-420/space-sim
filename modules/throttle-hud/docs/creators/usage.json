@@ -7,6 +7,14 @@
     {
       "type": "paragraph",
       "text": "Use this optional instrument definition through ui.view-hud@1.0.0 with view.flight-hud-state@1.0.0. Every seat follows the same create/rebind/resize/update/dispose path. The read-only flight adapter supplies detached quantities, cached geometry and local preferences. Commands recheck current target ownership and suppression through the adapter. Removing the definition releases gestures, controls and subscriptions; physics, vehicles, split screen and cameras remain independent."
+    },
+    {
+      "type": "paragraph",
+      "text": "In Space Sim and Flight starter, Instruments \u2192 Throttle switches the lever independently of Navball for every active local view. Settings \u2192 HUD visibility offers the same switch. The choice is stored with the current game\u2019s presentation preferences and travels with exported game presentation selections. The source module provides hud.throttle@1.0.0; the legacy presentation selector is builtin.throttle. Other per-player instruments should use the same owned HUD lifecycle rather than attaching controls to the navball."
+    },
+    {
+      "type": "paragraph",
+      "text": "Settings \u2192 Edit HUD layout gives each local throttle its own grip. Its normalized position is saved within the current view canvas, independently of navball placement. Moving the navball does not move the lever. Reset HUD layout clears both placements. Removing the instrument releases its gestures and HUD grip; enabling it restores the saved position."
     }
   ]
 }

@@ -28,11 +28,11 @@ describe('manifest presentation composition', () => {
       expect(bundledGameDefinition({ ...game, info: { ...game.info, description: 'Edited host claim' } })).toBeUndefined();
     }
   });
-  it('boots the flight starter with no sound or other instruments and the same flight identity', () => {
+  it('boots the flight starter with navball and throttle, no sound and the same flight identity', () => {
     const profile = starter.bundle.presentation!, registry = createPresentationRegistry();
     const selection = selectPresentationProfile(profile, registry, presentationRoots(profile, registry));
     expect(selection).toEqual(profile);
-    expect(registry.resolve(selection, 'offline', ['renderer']).order).toEqual(['builtin.canvas', 'builtin.navball']);
+    expect(registry.resolve(selection, 'offline', ['renderer']).order).toEqual(['builtin.canvas', 'builtin.navball', 'builtin.throttle']);
     createBuiltinRegistry().resolve(starter.bundle.profile, 'node', ['motion', 'content']);
     const world = prepareGame({ environment: 'node', profile: starter.bundle.profile, universeKey: starter.bundle.selection.universe });
     const original = prepareGame({ environment: 'node', profile: originalGame.bundle.profile, universeKey: originalGame.bundle.selection.universe });
@@ -54,7 +54,7 @@ describe('manifest presentation composition', () => {
     const registry = createPresentationRegistry(), profile = starter.bundle.presentation!;
     const explicit = [...presentationRoots(profile, registry), { id: 'builtin.telemetry', version: '0.1.0' }];
     const next = selectPresentationProfile(profile, registry, explicit);
-    expect(next.modules.map(ref => ref.id)).toEqual(['builtin.canvas', 'builtin.flight-data', 'builtin.navball', 'builtin.telemetry']);
+    expect(next.modules.map(ref => ref.id)).toEqual(['builtin.canvas', 'builtin.flight-data', 'builtin.navball', 'builtin.telemetry', 'builtin.throttle']);
     expect(next.providers).toEqual({ renderer: 'builtin.canvas' });
     expect(next.settings).toEqual(profile.settings);
     registry.resolve(next, 'browser', ['renderer']);
@@ -90,7 +90,7 @@ describe('manifest presentation composition', () => {
     expect(() => selectPresentationProfile(profile, registry, [{ id: 'builtin.navball', version: '9.0.0' }])).toThrow('exact version');
     const next = selectPresentationProfile(profile, registry, presentationRoots(profile, registry), 'builtin.webgl');
     expect(next.providers.renderer).toBe('builtin.webgl');
-    expect(next.modules.map(ref => ref.id)).toEqual(['builtin.canvas', 'builtin.navball', 'builtin.webgl']);
+    expect(next.modules.map(ref => ref.id)).toEqual(['builtin.canvas', 'builtin.navball', 'builtin.throttle', 'builtin.webgl']);
     expect(() => selectPresentationProfile(profile, registry, [], 'builtin.navball')).toThrow('no installed renderer');
   });
 

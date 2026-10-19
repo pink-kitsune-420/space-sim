@@ -46,7 +46,7 @@ describe('presentation profiles', () => {
   it('ship the flight toolset in the default profile, resolved for browsers only', () => {
     const registry = createPresentationRegistry(PRESENTATION_EXAMPLES);
     expect(DEFAULT_PRESENTATION_PROFILE.modules.map(m => m.id)).toEqual(['builtin.webgl', 'builtin.canvas',
-      'builtin.flight-data', 'builtin.flight-vectors', 'builtin.orbit-markers', 'builtin.telemetry', 'builtin.navball', 'builtin.maneuver-planner', 'builtin.audio']);
+      'builtin.flight-data', 'builtin.flight-vectors', 'builtin.orbit-markers', 'builtin.telemetry', 'builtin.navball', 'builtin.throttle', 'builtin.maneuver-planner', 'builtin.audio']);
     // Flight instrument switches account for the toolset; sound is separately controlled.
     expect(registry.closure(INSTRUMENTS.map(i => ({ id: i.id, version: '0.1.0' })))).toEqual(
       [...DEFAULT_PRESENTATION_MODULES].filter(m => m.id !== 'builtin.audio').sort((a, b) => a.id.localeCompare(b.id)));

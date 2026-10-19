@@ -1,4 +1,9 @@
 .game-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr)); gap:14px; list-style:none; padding:0 }
+.game-category { grid-column:1/-1; min-width:0 }
+.game-category > h3 { margin:0; font-size:16px; font-weight:500 }
+.game-examples { border-top:1px solid var(--ui-win-border); padding-top:16px }
+.game-examples > summary { cursor:pointer; font-size:16px }
+.game-examples > p { margin:12px 0 }
 .game-card { padding:20px; border:1px solid var(--ui-win-border); background:var(--ui-win-card-bg); border-radius:7px; min-width:0; overflow-wrap:anywhere }
 .game-card h3 { font-size:18px; font-weight:500; margin:0 0 10px }
 .game-card .module-note { margin:8px 0 16px }

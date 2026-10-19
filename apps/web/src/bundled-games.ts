@@ -13,6 +13,11 @@ export const bundledGames: readonly GamePackage[] = Object.freeze([
   validatePackage(planetViewer) as GamePackage, validatePackage(surveyFixture) as GamePackage,
 ]);
 
+/** Library organization only; independent of runtime adapters and archive formats. */
+export function bundledGameCategory(id: string): 'game' | 'example' {
+  return id === 'builtin.flight-starter' || id === 'builtin.planet-viewer' || id === 'builtin.survey-fixture' ? 'example' : 'game';
+}
+
 /** Bundled descriptors are inert. A URL selects one composition, never code or a remote file. */
 export function requestedBuiltinGame(search: string): GamePackage {
   const id = new URLSearchParams(search).get('game');

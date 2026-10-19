@@ -6,6 +6,8 @@ export interface ModMenuGame {
  readonly dataModules:number;readonly codeModules:number;
  /** Host-selected entries sort first, while still respecting search and favorites filters. */
  readonly pinned?:boolean;
+ /** Optional display grouping; omitted entries belong to Games. This does not affect game compatibility. */
+ readonly category?:'game'|'example';
  /** Host explains when a runnable source fixture has no portable game adapter yet. */
  readonly exportUnavailable?:string;
 }

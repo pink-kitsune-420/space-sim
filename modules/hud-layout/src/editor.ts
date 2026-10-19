@@ -7,9 +7,9 @@ interface Position { x: number; y: number }
 export function createHudEditor(options:HudEditorOptions,icon:(name:WindowIcon)=>string):HudEditor {
   const {viewport,changed}=options,document=viewport.ownerDocument;
   if([options.moveStepPx??8,options.fastMoveStepPx??32].some(value=>!Number.isFinite(value)||value<1||value>128))throw new Error('HUD movement step must be in [1,128] CSS pixels');
-  const controller=new (document.defaultView?.AbortController??AbortController)(),resources:Disposable[]=[];let disposed=false;
+  const controller=new (document.defaultView?.AbortController??AbortController)(),resources=new Map<HTMLElement,Disposable>();let disposed=false;
   const signal=controller.signal;
-  const ITEMS=options.items.map(item=>[item.id,item.selector,item.label] as const);
+  const ITEMS=options.items.map(item=>[item.id,item.selector,item.label,item.bounds] as const);
   let positions: Record<string, Position> = Object.create(null);
   try {
     const saved = JSON.parse(options.storage?.getItem(options.storageKey??KEY) ?? '{}');
@@ -54,14 +54,20 @@ export function createHudEditor(options:HudEditorOptions,icon:(name:WindowIcon)=
     viewport.dispatchEvent(new Event('hud-layout-reset', { bubbles: true }));
     changed();
   },{signal});
-  function remember(id: string, element: HTMLElement, left: number, top: number): void {
+  function bounds(element: HTMLElement, selector?: string): DOMRect {
+    const rect = selector ? element.parentElement?.querySelector<HTMLElement>(selector)?.getBoundingClientRect() : undefined;
+    return rect?.width && rect.height ? rect : viewport.getBoundingClientRect();
+  }
+  function remember(id: string, element: HTMLElement, left: number, top: number, selector?: string): void {
+    const frame = bounds(element, selector), parent = viewport.getBoundingClientRect();
     positions[id] = {
-      x: Math.max(0, Math.min(1, (left - 8) / Math.max(1, viewport.clientWidth - element.offsetWidth - 16))),
-      y: Math.max(0, Math.min(1, (top - 8) / Math.max(1, viewport.clientHeight - element.offsetHeight - 16))),
+      x: Math.max(0, Math.min(1, (left - (frame.left - parent.left) - 8) / Math.max(1, frame.width - element.offsetWidth - 16))),
+      y: Math.max(0, Math.min(1, (top - (frame.top - parent.top) - 8) / Math.max(1, frame.height - element.offsetHeight - 16))),
     };
     changed();
   }
-  function attach(id: string, element: HTMLElement, label: string): void {
+  function attach(id: string, element: HTMLElement, label: string, selector?: string): void {
+    const lifetime = new (document.defaultView?.AbortController??AbortController)(), signal = lifetime.signal;
     const previous={translate:element.style.translate,movable:element.classList.contains('hud-movable'),moving:element.classList.contains('hud-moving')};
     element.classList.add('hud-movable');
     const handle = document.createElement('button');
@@ -82,10 +88,10 @@ export function createHudEditor(options:HudEditorOptions,icon:(name:WindowIcon)=
     handle.addEventListener('pointermove', event => {
       if (!drag || drag.pointer !== event.pointerId) return;
       event.stopPropagation();
-      remember(id, element, drag.left + event.clientX - drag.x, drag.top + event.clientY - drag.y);
+      remember(id, element, drag.left + event.clientX - drag.x, drag.top + event.clientY - drag.y, selector);
     },{signal});
     const end = (): void => { if (drag) { const pointer=drag.pointer;drag = undefined;if(handle.hasPointerCapture(pointer))handle.releasePointerCapture(pointer);element.classList.remove('hud-moving'); if(!disposed)save(); } };
-    resources.push({dispose(){end();handle.remove();element.style.translate=previous.translate;element.classList.toggle('hud-movable',previous.movable);element.classList.toggle('hud-moving',previous.moving);}});
+    resources.set(element,{dispose(){lifetime.abort();end();handle.remove();element.style.translate=previous.translate;element.classList.toggle('hud-movable',previous.movable);element.classList.toggle('hud-moving',previous.moving);}});
     for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) handle.addEventListener(name, end,{signal});
     handle.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); },{signal});
     handle.addEventListener('keydown', event => {
@@ -95,7 +101,7 @@ export function createHudEditor(options:HudEditorOptions,icon:(name:WindowIcon)=
       event.preventDefault();
       const rect = element.getBoundingClientRect(), parent = viewport.getBoundingClientRect(), step = event.shiftKey ? (options.fastMoveStepPx??32) : (options.moveStepPx??8);
       remember(id, element, rect.left - parent.left + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0),
-        rect.top - parent.top + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0));
+        rect.top - parent.top + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0), selector);
       save();
     },{signal});
     handle.addEventListener('keyup', event => event.stopPropagation(),{signal});
@@ -103,20 +109,21 @@ export function createHudEditor(options:HudEditorOptions,icon:(name:WindowIcon)=
   return {
     get editing() { return editing; },
     /** Restore preferences without rewriting their responsive anchors when the viewport shrinks. */
-    dispose(){if(disposed)return;disposed=true;editing=false;controller.abort();for(const resource of resources)resource.dispose();resources.length=0;toolbar.remove();viewport.classList.toggle('hud-editing',wasEditing);if(pressed===null)toggle.removeAttribute('aria-pressed');else toggle.setAttribute('aria-pressed',pressed);},
+    dispose(){if(disposed)return;disposed=true;editing=false;controller.abort();for(const resource of resources.values())resource.dispose();resources.clear();toolbar.remove();viewport.classList.toggle('hud-editing',wasEditing);if(pressed===null)toggle.removeAttribute('aria-pressed');else toggle.setAttribute('aria-pressed',pressed);},
     refresh(): HTMLElement[] {
       if(disposed)return [];
+      for(const [element,resource] of resources) if(!viewport.contains(element)){resource.dispose();resources.delete(element);}
       const parent = viewport.getBoundingClientRect(), elements: HTMLElement[] = [];
-      for (const [id, selector, label] of ITEMS) {
+      for (const [id, selector, label, boundary] of ITEMS) {
         const element = viewport.querySelector<HTMLElement>(selector);
         if (!element) continue;
-        if (!element.querySelector(':scope > .hud-move-handle')) attach(id, element, label);
+        if (!element.querySelector(':scope > .hud-move-handle')) attach(id, element, label, boundary);
         elements.push(element);
         const previous = shifts.get(element) ?? { x: 0, y: 0 };
-        const rect = element.getBoundingClientRect(), preferred = positions[id];
+        const rect = element.getBoundingClientRect(), preferred = positions[id], frame = bounds(element, boundary);
         const shift = preferred && rect.width && rect.height ? {
-          x: 8 + preferred.x * Math.max(0, parent.width - rect.width - 16) - (rect.left - parent.left - previous.x),
-          y: 8 + preferred.y * Math.max(0, parent.height - rect.height - 16) - (rect.top - parent.top - previous.y),
+          x: frame.left - parent.left + 8 + preferred.x * Math.max(0, frame.width - rect.width - 16) - (rect.left - parent.left - previous.x),
+          y: frame.top - parent.top + 8 + preferred.y * Math.max(0, frame.height - rect.height - 16) - (rect.top - parent.top - previous.y),
         } : { x: 0, y: 0 };
         element.style.translate = `${shift.x}px ${shift.y}px`;
         shifts.set(element, shift);

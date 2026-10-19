@@ -7,7 +7,8 @@ import { SurveySessionHost, restoreSurvey, surveySnapshot } from '../../../examp
 import { SURVEY_ACTIONS } from '../../../examples/bounded-survey/world';
 import { prepareBrowserTarget } from './target-modules';
 import { environment } from './startup';
-import { bundledGames } from './bundled-games';
+import { bundledGames, bundledGameCategory } from './bundled-games';
+import './non-flight.css';
 
 const COLORS = ['#59e0b2', '#66b9ff', '#ffce73', '#ed91d6'];
 /** Explicit adapters for the approved non-flight proofs. No flight world, pilot,
@@ -17,35 +18,57 @@ export function startNonFlight(game: GamePackage): Disposable {
   let closed = false, frameId = 0;
   const owned: Disposable[] = [];
   const root = document.querySelector('main')!;
-  root.replaceChildren(); root.style.cssText = 'height:100vh;display:flex;flex-direction:column;padding:1rem;gap:.75rem;overflow:auto';
+  root.replaceChildren(); root.className = 'starter-page'; root.removeAttribute('style');
   const heading = document.createElement('h1'); heading.textContent = game.info.name;
   const description = document.createElement('p'); description.textContent = game.info.description ?? '';
   const navigation = document.createElement('nav'), selection = document.createElement('select');
+  const headingArea = document.createElement('div'), sidebar = document.createElement('aside');
+  headingArea.className = 'starter-heading'; navigation.className = 'starter-navigation'; sidebar.className = 'starter-tools';
   selection.id = 'starter-game'; selection.setAttribute('aria-label', 'Game');
-  for (const entry of bundledGames) { const option = new Option(entry.info.name, entry.info.id); selection.add(option); }
+  for (const [category, label] of [['game', 'Games'], ['example', 'Examples & tests']] as const) {
+    const group = document.createElement('optgroup'); group.label = label;
+    for (const entry of bundledGames) if (bundledGameCategory(entry.info.id) === category) group.append(new Option(entry.info.name, entry.info.id));
+    selection.append(group);
+  }
   selection.value = game.info.id;
   const play = document.createElement('button'); play.textContent = 'Play selected game';
   play.addEventListener('click', () => { const url = new URL(location.href); url.search = ''; url.searchParams.set('game', selection.value); location.assign(url.href); }, { signal: lifetime.signal });
   navigation.append(selection, play);
   const controls = document.createElement('div'); controls.className = 'fixture-controls';
-  controls.style.cssText = 'display:flex;flex-wrap:wrap;gap:.5rem;align-items:center';
   const status = document.createElement('p'); status.id = 'fixture-status'; status.setAttribute('role', 'status');
   const stage = document.createElement('section'); stage.id = 'starter-views'; stage.tabIndex = 0; stage.setAttribute('aria-label', 'Independent views');
-  stage.style.cssText = 'position:relative;width:100%;height:65vh;min-height:250px;flex:1;background:#050b12';
   stage.addEventListener('pointerdown', () => stage.focus(), { signal: lifetime.signal });
   const debug = document.createElement('pre'); debug.id = 'fixture-debug'; debug.hidden = true;
-  root.append(heading, description, navigation, controls, status, stage, debug);
+  const help = document.createElement('details'), helpTitle = document.createElement('summary'), steps = document.createElement('ol');
+  help.id = 'starter-help'; help.open = true; helpTitle.textContent = 'What to try';
+  const suggestions = game.info.id === 'builtin.planet-viewer' ? [
+    'Choose a planet or moon with Body, then use Zoom in to inspect it.',
+    'Use Fit body to see the whole body again. This is a still view: time and orbits do not advance.',
+  ] : [
+    'Set Seats to 4 to compare four views of the same markers. Choose Keyboard seat to select the view you control.',
+    'Click Move right or Move left. Each camera follows its marker, so watch the other markers shift and the position numbers change. Movement stops at the small test area’s edges.',
+    'Click Record observation to add one to the selected marker’s counter. It is a test counter, not a scanning mission.',
+    'Try Zoom this view or Swap first two targets. Save survey state, move a marker, then Load survey state to restore it.',
+  ];
+  for (const text of suggestions) { const item = document.createElement('li'); item.textContent = text; steps.append(item); }
+  help.append(helpTitle, steps); headingArea.append(heading, description, navigation); sidebar.append(help, controls);
+  root.append(headingArea, sidebar, status, stage, debug);
   document.title = `Spacelab · ${game.info.name}`;
   const drawing = target.providedService(CANVAS_DRAWING);
+  let controlTarget: HTMLElement = controls;
+  const group = (title: string) => {
+    const fieldset = document.createElement('fieldset'), legend = document.createElement('legend'); legend.textContent = title;
+    fieldset.append(legend); controls.append(fieldset); controlTarget = fieldset;
+  };
   const button = (label: string, id: string, run: () => void) => {
     const element = document.createElement('button'); element.textContent = label; element.id = id;
     element.addEventListener('click', () => { try { run(); } catch (error) { status.textContent = String(error instanceof Error ? error.message : error); } }, { signal: lifetime.signal });
-    controls.append(element); return element;
+    controlTarget.append(element); return element;
   };
   const choose = (label: string, id: string, values: readonly [string, string][], change: (value: string) => void) => {
     const wrapper = document.createElement('label'), element = document.createElement('select'); wrapper.textContent = `${label} `; element.id = id;
     for (const [value, text] of values) element.add(new Option(text, value));
-    element.addEventListener('change', () => change(element.value), { signal: lifetime.signal }); wrapper.append(element); controls.append(wrapper); return element;
+    element.addEventListener('change', () => change(element.value), { signal: lifetime.signal }); wrapper.append(element); controlTarget.append(wrapper); return element;
   };
   const diagnostics = (state: Record<string, unknown>) => {
     debug.textContent = JSON.stringify({ game: game.info.id, modules: target.lock.modules, providers: target.lock.providers, ...state });
@@ -67,6 +90,7 @@ export function startNonFlight(game: GamePackage): Disposable {
       const canvas = document.createElement('canvas'); canvas.id = 'planet-view'; canvas.setAttribute('aria-label', 'Static celestial body view');
       canvas.style.cssText = 'width:100%;height:100%;display:block'; stage.append(canvas);
       const renderer = drawing.create(canvas), camera = target.providedService(VIEW_CAMERAS).create('planet-view'); owned.push(renderer, camera);
+      group('Body and zoom');
       const focus = choose('Body', 'viewer-body', bodies.map(body => [body.id, body.name]), value => { camera.focus(value); fit(); });
       focus.value = bodies.some(body => body.id === 'planet') ? 'planet' : bodies[0]!.id; camera.focus(focus.value);
       const transform = (id: string) => { const body = bodies.find(body => body.id === id); return body ? { position: body.position, orientation: 0 } : undefined; };
@@ -116,13 +140,16 @@ export function startNonFlight(game: GamePackage): Disposable {
         reflow(); update();
       };
       const step = () => { host.step(); update(); };
+      group('Views and controls');
       choose('Seats', 'survey-seats', [1, 2, 3, 4].map(number => [String(number), String(number)]), value => { count = Number(value); pilot = Math.min(pilot, count - 1); pilotChoice.value = String(pilot); rebuild(); });
       const pilotChoice = choose('Keyboard seat', 'survey-pilot', [0, 1, 2, 3].map(number => [String(number), String(number + 1)]), value => { if (Number(value) >= count) { pilotChoice.value = String(pilot); return; } for (const controller of controllers) controller.release(); pilot = Number(value); update(); });
       choose('Views', 'survey-mode', [['split', 'Split'], ['dynamic', 'Shared']], value => { mode = value as 'split' | 'dynamic'; rebuild(); });
-      const instructions = document.createElement('p'); instructions.textContent = 'Click a view, hold Right/D to move or press Space to record, then advance one shared tick. Positions and observations are bounded fixture state.'; controls.append(instructions);
+      group('Move and record');
+      const instructions = document.createElement('p'); instructions.className = 'fixture-keyboard'; instructions.textContent = 'The buttons act immediately. For keyboard input, click a view, hold Right/D or Space, then click Advance one tick. Nothing advances automatically.'; controlTarget.append(instructions);
       button('Advance one tick', 'survey-step', () => { for (const controller of controllers) controller.sample({ elapsed: .01, flightAllowed: false, shortcutsAllowed: true }); step(); });
       for (const [label, value] of [['Move left', -1], ['Move right', 1]] as const) button(label, `survey-${value < 0 ? 'left' : 'right'}`, () => { const controller = controllers[pilot]!; controller.set('fixture.survey/move', value); step(); controller.release(); });
       button('Record observation', 'survey-record', () => { const controller = controllers[pilot]!; controller.set('fixture.survey/record', 1); step(); controller.release(); });
+      group('Cameras');
       button('Swap first two targets', 'survey-rebind', () => {
         if (count < 2) { status.textContent = 'Choose at least two seats to rebind targets.'; return; }
         for (const controller of controllers) controller.release();
@@ -131,6 +158,7 @@ export function startNonFlight(game: GamePackage): Disposable {
         rebuild();
       });
       button('Zoom this view', 'survey-zoom', () => { zooms[pilot] = zooms[pilot]! * 1.5; views!.camera(`map-${pilot + 20}`).changeZoom(1.5); update(); });
+      group('Saved state');
       button('Save survey state', 'survey-save', () => { localStorage.setItem(snapshotKey, JSON.stringify(surveySnapshot(world))); status.textContent = 'Survey state saved on this device.'; });
       button('Load survey state', 'survey-load', () => { const raw = localStorage.getItem(snapshotKey); if (!raw) throw new Error('No saved survey state');
         // Decode/validate before releasing controls or publishing the candidate state.

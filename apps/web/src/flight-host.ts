@@ -45,9 +45,8 @@ import { PLAYER_COLORS, setPlayerCount, setSlotNavball, defaultNavballPlacement 
 import { TRACK as NAVBALL_TRACK, GLYPH as NAVBALL_GLYPH } from '../../../modules/navball/src/drawing';
 import { PilotThrottle } from './throttle-control';
 import type { ThrottleLeverState } from './throttle-lever';
-import { VIEW_HUD, FLIGHT_HUD_STATE, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
+import { VIEW_HUD, FLIGHT_HUD_STATE, THROTTLE_HUD, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
 import { navballInstrument } from '../../../modules/navball/src/index';
-import { throttleInstrument } from '../../../modules/throttle-hud/src/index';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
 import type { SmartCandidate } from './camera';
@@ -1573,7 +1572,7 @@ function withThrottleLever(slot: number, command: Controls, elapsed: number, pre
 }
 
 function throttleLeverState(slot: number): ThrottleLeverState | undefined {
-  if (slot >= splitScreen.active || !presentation.isEnabled('builtin.navball')) return undefined;
+  if (slot >= splitScreen.active || !presentation.isEnabled('builtin.throttle')) return undefined;
   const guest = slot > 0 ? splitScreen.guests.get(slot) : undefined;
   const ship = slot === 0 ? selectedShip() : guest?.ship(session);
   const owner = slot === 0 ? session.playerId : guest?.playerId;
@@ -1585,7 +1584,10 @@ function throttleLeverState(slot: number): ThrottleLeverState | undefined {
     firing };
 }
 
+const throttleInstrument = hostFeatures.providedService(THROTTLE_HUD);
 const HUD_INSTRUMENTS = Object.freeze([navballInstrument, throttleInstrument]);
+const NAVBALL_INSTRUMENTS = Object.freeze([navballInstrument]);
+const THROTTLE_INSTRUMENTS = Object.freeze([throttleInstrument]);
 const NO_HUD_INSTRUMENTS = Object.freeze([]);
 type MutableHudReadout = { -readonly [K in keyof FlightHudReadout]: FlightHudReadout[K] };
 interface SeatHud { readonly hud: ViewHud; readonly readout: MutableHudReadout; readonly surface: { -readonly [K in keyof HudSurface]: HudSurface[K] }; present: boolean }
@@ -1593,6 +1595,9 @@ const seatHuds = new Map<number,SeatHud>();
 
 /** Every local seat, including Player 1, uses the same selected instrument lifecycle. */
 function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined, camera: Camera): void {
+  const instruments = presentation.isEnabled('builtin.navball')
+    ? presentation.isEnabled('builtin.throttle') ? HUD_INSTRUMENTS : NAVBALL_INSTRUMENTS
+    : presentation.isEnabled('builtin.throttle') ? THROTTLE_INSTRUMENTS : NO_HUD_INSTRUMENTS;
   for (const [slot,entry] of seatHuds) if(slot >= splitScreen.active) {entry.hud.dispose();seatHuds.delete(slot);}
   for (let slot=0;slot<splitScreen.active;slot++) {
     const guest=slot>0?splitScreen.guests.get(slot):undefined;
@@ -1602,6 +1607,10 @@ function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined
     if(!entry) {
       const readout:MutableHudReadout={state,radius:1,spin:0,clearance:null,center:{x:0,y:0},scale:1,cameraRotation:0,frameSetting:0,orientation:'horizon',pinned:true,dragging:false,editing:false};
       const adapter={pilot:slot,navball:()=>entry!.present?readout:undefined,throttle:()=>throttleLeverState(slot),
+        placeThrottle(preferred:Vec,surface:HudSurface){
+          const pane=slot>0&&splitScreen.isSeparated(slot)?splitScreen.guests.get(slot)?.canvas??canvas:canvas;
+          return hudLayout.throttlePosition(slot,preferred,surface.width,surface.height,pane);
+        },
         setThrottle(value:number){
           if(!Number.isFinite(value)||value<0||value>1)return;
           const current=throttleLeverState(slot);if(!current||current.locked)return;
@@ -1633,7 +1642,8 @@ function syncViewHuds(elapsed: number, primary: PresentationSnapshot | undefined
     readout.accentColor=PLAYER_COLORS[slot];readout.playerLabel=slot>0?`P${slot+1}`:splitScreen.split?'P1':undefined;
     readout.pinned=placement.pinned;readout.dragging=activeNavballDrag?.slot===slot;readout.editing=hudLayout.editing;
     const surface=entry.surface;surface.root=pane.parentElement!;surface.width=width;surface.height=height;surface.x=pane.offsetLeft;surface.y=pane.offsetTop;
-    entry.hud.select(presentation.isEnabled('builtin.navball')?HUD_INSTRUMENTS:NO_HUD_INSTRUMENTS);entry.hud.resize(surface);entry.hud.update(elapsed);
+    entry.hud.select(instruments);
+    entry.hud.resize(surface);entry.hud.update(elapsed);
   }
 }
 
@@ -2684,6 +2694,8 @@ const requested = requestedModules();
 presentation.start(requested.presentation);
 hudVisibility.bind('navball', 'Navballs', () => presentation.isEnabled('builtin.navball'),
   value => presentation.setEnabled('builtin.navball', value), () => presentation.setEnabled('builtin.navball', true));
+hudVisibility.bind('throttle', 'Throttle levers', () => presentation.isEnabled('builtin.throttle'),
+  value => presentation.setEnabled('builtin.throttle', value), () => presentation.setEnabled('builtin.throttle', true));
 hudVisibility.bind('profiler', 'Profiler', () => !profilerPanel.hidden,
   value => { if (value !== !profilerPanel.hidden) toggleProfiler(); }, () => { if (!profilerPanel.hidden) toggleProfiler(); });
 
@@ -4638,7 +4650,7 @@ function frame(now: number): void {
 
   if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
   updateControllerCursors(elapsed);
-  syncViewHuds(elapsed,presentation.isEnabled('builtin.navball')?base():undefined,camera);
+  syncViewHuds(elapsed,presentation.isEnabled('builtin.navball')||presentation.isEnabled('builtin.throttle')?base():undefined,camera);
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];

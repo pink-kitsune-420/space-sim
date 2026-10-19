@@ -60,6 +60,10 @@
           "version": "0.1.0"
         },
         {
+          "id": "builtin.throttle",
+          "version": "0.1.0"
+        },
+        {
           "id": "builtin.maneuver-planner",
           "version": "0.1.0"
         },

@@ -3,7 +3,7 @@
   "info": {
     "id": "builtin.flight-starter",
     "name": "Flight starter",
-    "description": "A small rails flight composition with the 2D renderer and navball. Add instruments and sound from ModMenu, then save your own game."
+    "description": "A minimal flight demo with a simple 2D view and navball. Hold Space to lift off, release it to coast, and use Left/Right to turn. A starting point for creating your own flight game."
   },
   "bundle": {
     "format": "space-sim-module-profile/1",
@@ -23,7 +23,8 @@
       "id": "builtin.flight-starter-presentation",
       "modules": [
         { "id": "builtin.canvas", "version": "0.1.0" },
-        { "id": "builtin.navball", "version": "0.1.0" }
+        { "id": "builtin.navball", "version": "0.1.0" },
+        { "id": "builtin.throttle", "version": "0.1.0" }
       ],
       "providers": { "renderer": "builtin.canvas" },
       "settings": { "builtin.navball": { "frame": 1, "orientation": 1 } }

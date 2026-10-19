@@ -103,10 +103,16 @@ test('unavailable viewer renderer leaves explicit startup recovery without creat
 
 for (const name of ['Planet viewer', 'Survey fixture']) test(`${name} explains unavailable portable export and starts its supported source adapter`, async ({ page }) => {
   await useCanvas(page); await page.goto('/'); await openPanel(page, 'library');
+  await expect(page.locator('.game-examples')).not.toHaveAttribute('open');
+  await expect(page.locator('.game-examples .game-card')).toHaveCount(3);
+  await page.locator('#game-search').fill(name);
+  await expect(page.locator('.game-examples')).toHaveAttribute('open', '');
   const builtin = page.locator('.game-card').filter({ has: page.getByRole('heading', { name, exact: true }) });
   await expect(builtin.getByRole('button', { name: 'Export game', exact: true })).toBeDisabled();
   await expect(builtin).toContainText('Portable export needs a compatible non-flight game adapter.');
   await builtin.getByRole('button', { name: 'Play · new world', exact: true }).click();
   await expect(page.locator('h1')).toHaveText(name);
+  await expect(page.locator('#starter-help')).toHaveAttribute('open', '');
+  await expect(page.locator('#starter-help li')).toHaveCount(name === 'Planet viewer' ? 2 : 4);
   await expect(page.locator('#flight-view')).toHaveCount(0);
 });

@@ -152,6 +152,29 @@ test('edit mode moves the default pinned navball directly and preserves its pin 
   await expect(page.locator('#status')).toHaveText('LANDED');
 });
 
+test('throttle and navball move independently, retain positions on reload and reset through the HUD tool', async ({ page }) => {
+  await page.goto('/'); await openPanel(page, 'settings');
+  await page.getByRole('button', { name: 'Edit HUD layout', exact: true }).click();
+  const lever = page.locator('.throttle-lever[data-slot="0"]');
+  const before = (await lever.boundingBox())!;
+  const navball = await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0]);
+  const grip = page.getByRole('button', { name: 'Move Player 1 throttle', exact: true });
+  await grip.focus(); await page.keyboard.press('Shift+ArrowLeft');
+  await expect.poll(async () => (await lever.boundingBox())!.x).toBeCloseTo(before.x - 32, 0);
+  await expect.poll(() => page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0].x)).toBeCloseTo(navball.x, 0);
+  const moved = (await lever.boundingBox())!;
+  await page.mouse.move(navball.x, navball.y); await page.mouse.down();
+  await page.mouse.move(navball.x - 100, navball.y - 60, { steps: 6 }); await page.mouse.up();
+  await expect.poll(() => page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).hud.navballs[0].x)).toBeCloseTo(navball.x - 100, 0);
+  await expect.poll(async () => (await lever.boundingBox())!.x).toBeCloseTo(moved.x, 0);
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.reload(); await closePanel(page);
+  await expect.poll(async () => (await lever.boundingBox())!.x).toBeCloseTo(moved.x, 0);
+  await expect(page.locator('#status')).toHaveText('LANDED');
+  await openPanel(page, 'settings'); await page.getByRole('button', { name: 'Reset HUD layout', exact: true }).click(); await closePanel(page);
+  await expect.poll(async () => (await lever.boundingBox())!.x).toBeCloseTo(before.x, 0);
+});
+
 test('HUD switches persist, leave the dock reachable, and restore existing instrument controls', async ({ page }, info) => {
   await page.goto('/');
   const fingerprint = await page.locator('#debug').evaluate(el => JSON.parse(el.textContent!).fingerprint);

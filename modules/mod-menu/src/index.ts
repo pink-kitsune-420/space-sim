@@ -6,7 +6,7 @@ export {mountBundledCatalogue,type BundledModuleEntry} from './catalogue';
 function createLibrary(e:ModMenuLibraryElements,port:ModMenuLibraryPort):ModMenuLibraryView {
  const document=e.list.ownerDocument,Controller=document.defaultView?.AbortController??AbortController,controller=new Controller(),signal=controller.signal;
  const previous={children:[...e.list.childNodes],empty:e.empty.hidden,status:e.status.textContent,save:e.save.disabled,export:e.export.disabled};
- let disposed=false,busy=false,pending:AbortController|undefined,rows=new Controller();
+ let disposed=false,busy=false,examplesOpen=false,pending:AbortController|undefined,rows=new Controller();
  const status=(message:string)=>{if(!disposed)e.status.textContent=message;};
  async function run(action:(signal:AbortSignal)=>Promise<void>):Promise<void> {
   if(disposed||busy)return;busy=true;const task=pending=new AbortController();
@@ -18,7 +18,7 @@ function createLibrary(e:ModMenuLibraryElements,port:ModMenuLibraryPort):ModMenu
  }
  function card(entry:ModMenuGame):HTMLElement {
   const card=document.createElement('li');card.className='game-card';card.dataset.game=entry.id;
-  const title=document.createElement('h3'),description=document.createElement('p'),meta=document.createElement('p'),actions=document.createElement('div');title.textContent=entry.name;description.textContent=entry.description;meta.className='module-note';meta.textContent=entry.builtin?'Built-in game':`${entry.folder||'Unfiled'} · Saved game`;actions.className='lab-actions';
+  const title=document.createElement('h3'),description=document.createElement('p'),meta=document.createElement('p'),actions=document.createElement('div');title.textContent=entry.name;description.textContent=entry.description;meta.className='module-note';meta.textContent=entry.builtin?(entry.category==='example'?'Built-in example':'Built-in game'):`${entry.folder||'Unfiled'} · Saved game`;actions.className='lab-actions';
   const exportButton=button('Export game',async signal=>{const message=await port.export(entry.id,e.name.value,signal);if(message)status(message);},!!entry.exportUnavailable);
   if(entry.exportUnavailable){const reason=document.createElement('p');reason.className='module-note';reason.textContent=entry.exportUnavailable;exportButton.title=entry.exportUnavailable;card.append(reason);}
   actions.append(button('Play · new world',async signal=>{status(await port.play(entry.id,signal));},!port.editable()),exportButton);card.prepend(title,description,meta,actions);
@@ -34,7 +34,14 @@ function createLibrary(e:ModMenuLibraryElements,port:ModMenuLibraryPort):ModMenu
   const search=e.search.value.trim().toLowerCase(),folder=e.sort.value==='folder';
   const entries=port.entries().filter(entry=>(!e.favorites.checked||entry.favorite)&&`${entry.name} ${entry.description} ${entry.folder}`.toLowerCase().includes(search));
   entries.sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||Number(b.favorite)-Number(a.favorite)||(folder?a.folder.localeCompare(b.folder):0)||a.name.localeCompare(b.name));
-  e.list.replaceChildren(...entries.map(card));e.empty.hidden=entries.length>0;e.save.disabled=e.export.disabled=!port.editable()||busy;
+  const games=entries.filter(entry=>entry.category!=='example'),examples=entries.filter(entry=>entry.category==='example'),groups:HTMLElement[]=[];
+  if(games.length){
+   const group=document.createElement('li'),heading=document.createElement('h3'),list=document.createElement('ul');group.className='game-category';heading.textContent='Games';list.className='game-list';list.append(...games.map(card));group.append(heading,list);groups.push(group);
+  }
+  if(examples.length){
+   const group=document.createElement('li'),details=document.createElement('details'),summary=document.createElement('summary'),intro=document.createElement('p'),list=document.createElement('ul');group.className='game-category';details.className='game-examples';summary.textContent=`Examples & tests (${examples.length})`;intro.textContent='Small demonstrations for learning and testing. Each example explains what to try; these have limited gameplay.';list.className='game-list';list.append(...examples.map(card));details.open=examplesOpen||!!search;details.addEventListener('toggle',()=>{if(!search)examplesOpen=details.open;},{signal:rows.signal});details.append(summary,intro,list);group.append(details);groups.push(group);
+  }
+  e.list.replaceChildren(...groups);e.empty.hidden=entries.length>0;e.save.disabled=e.export.disabled=!port.editable()||busy;
  }
  const view:ModMenuLibraryView={refresh,status,dispose(){if(disposed)return;disposed=true;pending?.abort(new Error('ModMenu removed'));controller.abort();rows.abort();e.list.replaceChildren(...previous.children);e.empty.hidden=previous.empty;e.status.textContent=previous.status;e.save.disabled=previous.save;e.export.disabled=previous.export;}};
  try{

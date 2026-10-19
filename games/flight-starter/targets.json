@@ -69,6 +69,10 @@
           {
             "id": "spacelab.view-hud",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.throttle-hud",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -87,7 +91,8 @@
           "audio.procedural": "builtin.audio",
           "render.canvas": "spacelab.render-canvas",
           "render.webgl": "spacelab.render-webgl",
-          "ui.view-hud": "spacelab.view-hud"
+          "ui.view-hud": "spacelab.view-hud",
+          "hud.throttle": "spacelab.throttle-hud"
         },
         "capabilities": {},
         "settings": {}
@@ -105,7 +110,8 @@
         "render.canvas",
         "render.webgl",
         "ui.view-hud",
-        "input.flight-profiles"
+        "input.flight-profiles",
+        "hud.throttle"
       ]
     },
     "offline": {
@@ -176,6 +182,10 @@
           {
             "id": "spacelab.view-hud",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.throttle-hud",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -194,7 +204,8 @@
           "audio.procedural": "builtin.audio",
           "render.canvas": "spacelab.render-canvas",
           "render.webgl": "spacelab.render-webgl",
-          "ui.view-hud": "spacelab.view-hud"
+          "ui.view-hud": "spacelab.view-hud",
+          "hud.throttle": "spacelab.throttle-hud"
         },
         "capabilities": {},
         "settings": {}
@@ -212,7 +223,8 @@
         "render.canvas",
         "render.webgl",
         "ui.view-hud",
-        "input.flight-profiles"
+        "input.flight-profiles",
+        "hud.throttle"
       ]
     },
     "node": {

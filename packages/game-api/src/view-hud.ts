@@ -58,6 +58,9 @@ export interface FlightHudAdapter {
   readonly pilot: number;
   navball(): FlightHudReadout | undefined;
   throttle(): ThrottleLeverState | undefined;
+  /** Fit the independent lever's preferred pane-local position around host HUD obstacles.
+   * Both input and result are CSS pixels; callers must not retain the scratch input. */
+  placeThrottle?(preferred: Vec, surface: HudSurface): Vec;
   /** The adapter rechecks session ownership, target and input suppression at command time. */
   setThrottle(value: number): void;
   cancelGestures?(): void;

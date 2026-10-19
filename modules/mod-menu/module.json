@@ -33,7 +33,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "7f87cdb12211be427332f5918af9905f10de9ce83bbea7c3102b21a991ea9ef0"
+    "inputsDigest": "fe1ca14b4b2c1342cc90909352c1595630070912b7a02bb3a12005514044daf9"
   },
   "compatibility": {
     "deterministic": true,
@@ -52,7 +52,7 @@
   "inputs": [
     {
       "path": "assets/mod-menu.css",
-      "sha256": "e8e86425b532608f1fbf4141bcf80b21ac91c0621a5f1d005a47254df1813e3d",
+      "sha256": "741b76d933ad7ec9897efca19d38535607638277bef063107fe540565e9bb904",
       "license": "MIT",
       "attribution": "Space Sim first-party metadata-only modMenu library view and cancellable host command routing. Licensed under MIT.\n"
     },
@@ -106,7 +106,7 @@
     },
     {
       "path": "game-api/hud-layout.ts",
-      "sha256": "cc16268bf8fa16708b402c09d8031afa45a23339729f9eeb915c0686a5571d9f",
+      "sha256": "676f7556c5385ecc83920bb842ea8eb48cd5ca3caa090a694d3f5c4bb80c9450",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -148,7 +148,7 @@
     },
     {
       "path": "game-api/mod-menu.ts",
-      "sha256": "e4c168eedc9f42d53f7707b324fd7b81dbd9d5e8b13688b06f9bef847f1734df",
+      "sha256": "0c4bf825bdd584f9a86aa8aac8acd48e8216f9a1b03bbf78baa98317e60042e2",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -316,7 +316,7 @@
     },
     {
       "path": "game-api/view-hud.ts",
-      "sha256": "5060ce50f82e2b65ad8aa14465609c9a4a3cc50b65a8e3718d025202bdf41670",
+      "sha256": "6e80b51470084b2c7b46129d015dbb2afe27f13d863f296ce98ca59e4ddfef1d",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -358,7 +358,7 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "504bc1d4d6891baac466d573b4a5d5e6667e6464ba9c3a146435edc1cbea4283",
+      "sha256": "204c87fb0fcea6c81a18c749b1ee33f08a18267bac9cc8c54f09dc335c1fc082",
       "license": "MIT",
       "attribution": "Space Sim first-party metadata-only modMenu library view and cancellable host command routing. Licensed under MIT.\n"
     },

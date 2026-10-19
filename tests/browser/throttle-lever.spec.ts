@@ -50,8 +50,21 @@ test('every active view owns one HUD lifecycle and removal releases guest instru
     expect(await page.evaluate(()=>(window as any).primaryLever===document.querySelector('.throttle-lever[data-slot="0"]'))).toBe(true);
   }
   await openPanel(page,'settings');await page.locator('#hud-visible-navball').uncheck();
+  await expect(page.locator('.throttle-lever')).toHaveCount(1);
+  await expect.poll(async()=>(await debug(page)).hud.views[0].instruments).toBe(1);
+  await page.locator('#hud-visible-throttle').uncheck();
   await expect(page.locator('.throttle-lever')).toHaveCount(0);
   await expect.poll(async()=>(await debug(page)).hud.views[0].instruments).toBe(0);
+  await page.locator('#hud-visible-navball').check();
+  await expect.poll(async()=>(await debug(page)).hud.views[0].instruments).toBe(1);
+  await expect(page.locator('.throttle-lever')).toHaveCount(0);
+  await closePanel(page); await openPanel(page,'data');
+  await page.getByRole('button',{name:'Throttle',exact:true}).click();
+  await expect(lever(page)).toBeVisible();
+  await page.getByRole('button',{name:'Throttle',exact:true}).click();
+  await expect(lever(page)).toHaveCount(0);
+  await page.reload(); await closePanel(page);
+  await expect(lever(page)).toHaveCount(0);
 });
 
 test('keyboard ramp persists, fine taps and cut synchronize with the unchanged lever', async ({ page }) => {
@@ -211,7 +224,7 @@ test('the offline file preserves lever thrust and keyboard takeover', async ({ p
   await expect.poll(async () => (await debug(page)).engine).toBe(false);
 });
 
-test('lever fits beside the navball on desktop and phone and hides with it', async ({ page }, info) => {
+test('lever fits on desktop and phone and hides independently of the navball', async ({ page }, info) => {
   for (const size of [{ width: 1366, height: 622 }, { width: 375, height: 812 }]) {
     await page.setViewportSize(size);
     await expect.poll(async () => {
@@ -223,8 +236,10 @@ test('lever fits beside the navball on desktop and phone and hides with it', asy
   }
   await openPanel(page, 'settings');
   await page.locator('#hud-visible-navball').uncheck();
+  await expect(lever(page)).toBeVisible();
+  await page.locator('#hud-visible-throttle').uncheck();
   await expect(lever(page)).toBeHidden();
-  await page.locator('#hud-visible-navball').check(); await closePanel(page);
+  await page.locator('#hud-visible-throttle').check(); await closePanel(page);
   await expect(lever(page)).toBeVisible();
 });
 

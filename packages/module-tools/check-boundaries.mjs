@@ -24,7 +24,7 @@ const bridges = {
     'packages/game-runtime/src/index', 'packages/game-runtime/src/validation', 'packages/sim-core/src/universe',
   ],
   'packages/modules/src/profile.ts': ['packages/game-runtime/src/index', 'packages/game-runtime/src/validation'],
-  'packages/modules/src/browser.ts': ['packages/game-runtime/src/index', 'packages/game-runtime/src/validation', 'packages/render-2d/src/index', 'modules/audio-procedural/src/synth', 'modules/navball/src/drawing'],
+  'packages/modules/src/browser.ts': ['packages/game-runtime/src/index', 'packages/game-runtime/src/validation', 'packages/render-2d/src/index', 'modules/audio-procedural/src/synth', 'modules/navball/src/drawing', 'modules/throttle-hud/src/selection'],
   'packages/modules/src/base/toolset/index.ts': ['modules/maneuver-display/src/overlay'],
   'packages/modules/src/base/content.ts': ['packages/scenarios/builtin'],
 };

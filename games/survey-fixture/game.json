@@ -3,7 +3,7 @@
   "info": {
     "id": "builtin.survey-fixture",
     "name": "Survey fixture",
-    "description": "Bounded non-flight actions and saved state with shared controls and independent local views."
+    "description": "A split-screen controls test with colored markers. Try up to four camera views, switch which marker you control, and save or restore their positions. Each camera follows its marker."
   },
   "bundle": {
     "format": "space-sim-module-profile/1",

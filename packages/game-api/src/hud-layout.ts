@@ -2,7 +2,14 @@ import type {Disposable} from './modules';
 import type {ServiceKey} from './modules-v2';
 import type {ThemePreferences} from './theme';
 export interface HudRect {readonly x:number;readonly y:number;readonly width:number;readonly height:number}
-export interface HudEditorItem {readonly id:string;readonly selector:string;readonly label:string}
+export interface HudEditorItem {
+ readonly id:string;readonly selector:string;readonly label:string;
+ /** Optional selector under the item's parent defining its placement bounds, e.g. its view canvas.
+  * Saved normalized coordinates then follow that view as split-screen panes resize. */
+ readonly bounds?:string;
+ /** False for independently placed controls that should not push automatically fitted instruments. */
+ readonly obstacle?:boolean;
+}
 export interface HudEditorOptions {
  readonly viewport:HTMLElement;readonly toggle:HTMLElement;readonly reset:HTMLElement;readonly items:readonly HudEditorItem[];
  readonly storage?:ThemePreferences;readonly storageKey?:string;changed():void;

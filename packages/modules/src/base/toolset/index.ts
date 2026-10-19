@@ -17,4 +17,5 @@ export const INSTRUMENTS: readonly { readonly id: string; readonly label: string
   { id: 'builtin.orbit-markers', label: 'Orbit markers', title: 'Periapsis and apoapsis on the orbit, with altitude and time to go' },
   { id: 'builtin.telemetry', label: 'Telemetry', title: 'Speed components, gravity, energy and orbit timing' },
   { id: 'builtin.navball', label: 'Navball', title: 'Attitude against the local horizon, with prograde, radial markers and pitch' },
+  { id: 'builtin.throttle', label: 'Throttle', title: 'An independent thrust lever for each local player; works with or without the navball' },
 ]);

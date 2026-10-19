@@ -43,6 +43,7 @@ const card = (page: Page, name: string) => page.locator('.game-card').filter({ h
 async function play(page: Page, name: string) {
   const before = (await debug(page)).world;
   await openPanel(page, 'library');
+  if (name === 'Flight starter' && !await page.locator('.game-examples').evaluate(element => (element as HTMLDetailsElement).open)) await page.locator('.game-examples > summary').click();
   await card(page, name).getByRole('button', { name: 'Play · new world', exact: true }).click();
   await expect(page.locator('#lab-status')).toContainText(`Playing ${name}`);
   await expect.poll(async () => (await debug(page)).world).not.toBe(before);
@@ -58,13 +59,13 @@ for (const target of ['hosted', 'offline'] as const) {
     await page.goto(url);
     await expect(page).toHaveTitle('Spacelab · Flight starter');
     await expect(page.locator('#active-game')).toHaveText('Flight starter');
-    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.navball']);
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.navball', 'builtin.throttle']);
     expect((await debug(page)).renderer).toBe('builtin.canvas');
     await openPanel(page, 'data');
     await page.locator('#instruments').getByRole('button', { name: 'Navball', exact: true }).click();
-    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.throttle']);
     await page.reload();
-    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual([]);
+    await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.throttle']);
     expect((await debug(page)).renderer).toBe('builtin.canvas');
     expect(errors).toEqual([]);
   });
@@ -75,11 +76,11 @@ test('the flight starter composes optional displays, preserves settings, and kee
   await page.goto('/');
   const original = await debug(page);
   await play(page, 'Flight starter');
-  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.navball']);
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.navball', 'builtin.throttle']);
   expect((await debug(page)).fingerprint).toBe(original.fingerprint);
   await openPanel(page, 'data');
   await page.locator('#instruments').getByRole('button', { name: 'Telemetry', exact: true }).click();
-  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry']);
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry', 'builtin.throttle']);
   await openPanel(page, 'library');
   await page.locator('#game-name').fill('Starter with telemetry');
   await page.locator('#lab-save').click();
@@ -94,7 +95,7 @@ test('the flight starter composes optional displays, preserves settings, and kee
   await play(page, 'Space Sim');
   await expect.poll(async () => (await debug(page)).presentation.modules.includes('builtin.audio')).toBe(true);
   await play(page, 'Starter with telemetry');
-  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry']);
+  await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry', 'builtin.throttle']);
   await openPanel(page, 'data');
   await page.locator('#instruments').getByRole('button', { name: 'Navball', exact: true }).click();
   expect(await page.evaluate(() => localStorage.getItem('space-sim.presentation/1'))).toBeNull();
@@ -112,7 +113,7 @@ test('an unavailable renderer without a declared fallback keeps the active game 
   await card(page, 'WebGL only').getByRole('button', { name: 'Play · new world', exact: true }).click();
   await expect(page.locator('#lab-status')).toContainText('WebGL');
   expect((await debug(page)).world).toBe(before.world);
-  expect((await debug(page)).presentation.modules).toEqual(['builtin.navball']);
+  expect((await debug(page)).presentation.modules).toEqual(['builtin.navball', 'builtin.throttle']);
   await expect(page.locator('#active-game')).toHaveText('Flight starter');
 });
 

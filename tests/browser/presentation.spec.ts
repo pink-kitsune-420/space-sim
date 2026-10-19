@@ -42,13 +42,13 @@ test('the flight instruments are part of the default game and each switches off 
   await page.goto('/');
   await orbit(page);
   await openPanel(page, 'data');
-  for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball', 'Maneuver planner']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'true');
+  for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball', 'Throttle', 'Maneuver planner']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'true');
   const panel = page.locator('.module-panel', { has: page.getByRole('heading', { name: 'Telemetry' }) });
   await expect(panel).toContainText('Speed');
   await expect(panel).toContainText(/Period\s*28\.1 s/);
   await expect.poll(async () => (await debug(page)).presentation.overlayPrimitives).toBeGreaterThan(0);
   const before = await debug(page);
-  expect(before.presentation.modules).toEqual(['builtin.audio', 'builtin.flight-data', 'builtin.flight-vectors', 'builtin.maneuver-planner', 'builtin.navball', 'builtin.orbit-markers', 'builtin.telemetry']);
+  expect(before.presentation.modules).toEqual(['builtin.audio', 'builtin.flight-data', 'builtin.flight-vectors', 'builtin.maneuver-planner', 'builtin.navball', 'builtin.orbit-markers', 'builtin.telemetry', 'builtin.throttle']);
   await openPanel(page, 'data');
   await instrument(page, 'Telemetry').click();
   await expect(instrument(page, 'Telemetry')).toHaveAttribute('aria-pressed', 'false');
@@ -56,6 +56,7 @@ test('the flight instruments are part of the default game and each switches off 
   await instrument(page, 'Velocity').click();
   await instrument(page, 'Orbit markers').click();
   await instrument(page, 'Navball').click();
+  await instrument(page, 'Throttle').click();
   await instrument(page, 'Maneuver planner').click();
   // Flight data stays only while something needs it.
   await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.audio']);
@@ -68,7 +69,7 @@ test('the flight instruments are part of the default game and each switches off 
   // A viewer's choices are remembered in this browser, relative to the defaults.
   await page.reload();
   await openPanel(page, 'data');
-  for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball', 'Maneuver planner']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
+  for (const name of ['Velocity', 'Orbit markers', 'Telemetry', 'Navball', 'Throttle', 'Maneuver planner']) await expect(instrument(page, name)).toHaveAttribute('aria-pressed', 'false');
   await instrument(page, 'Telemetry').click();
   await expect(page.locator('#presentation-status')).toContainText('Telemetry enabled with Flight data, which it needs');
   await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.audio', 'builtin.flight-data', 'builtin.telemetry']);

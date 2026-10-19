@@ -34,6 +34,7 @@ export function createHudLayout(options:HudLayoutOptions,icon:(name:WindowIcon)=
   const stacked=viewport.classList.contains('hud-top-stacked'),overlap=viewport.classList.contains('chat-overlaps-telemetry');
   let pending = false, revision = 0;
   let obstacles: HudRect[] = [];
+  const nonBlocking = options.editor?.items.filter(item=>item.obstacle===false).map(item=>item.selector)??[];
   const panes = new Map<HTMLCanvasElement, HudRect>(), observed = new Set<HTMLElement>();
   
   const schedule = (): void => { if (!disposed && !pending) { pending = true; frame=window.requestAnimationFrame(update); } };
@@ -78,7 +79,7 @@ export function createHudLayout(options:HudLayoutOptions,icon:(name:WindowIcon)=
       const r = element.getBoundingClientRect();
       return { x: r.left - bounds.left, y: r.top - bounds.top, width: r.width, height: r.height };
     };
-    obstacles = [...elements, ...(roles?[roles.chat]:[])].filter(e => e.getClientRects().length > 0).map(rect);
+    obstacles = [...elements, ...(roles?[roles.chat]:[])].filter(e => e.getClientRects().length > 0 && !nonBlocking.some(selector=>e.matches(selector))).map(rect);
     panes.clear();
     const canvases = [...viewport.querySelectorAll<HTMLCanvasElement>('canvas')];
     for (const canvas of canvases) panes.set(canvas, rect(canvas));
@@ -95,7 +96,7 @@ export function createHudLayout(options:HudLayoutOptions,icon:(name:WindowIcon)=
   const mutation=new window.MutationObserver(records => {
     if (records.some(r => [...r.addedNodes].some(n => n instanceof HTMLElement
       && (n.matches(options.discoverSelector??'canvas') || n.querySelector(options.discoverSelector??'canvas')))
-      || [...r.removedNodes].some(n => n instanceof HTMLElement && n.matches('.hud-move-handle')))) schedule();
+      || [...r.removedNodes].some(n => n instanceof HTMLElement && (n.matches('.hud-move-handle') || n.matches(options.discoverSelector??'canvas'))))) schedule();
   });mutation.observe(viewport, {childList:true,subtree:true});
   schedule();
   return {

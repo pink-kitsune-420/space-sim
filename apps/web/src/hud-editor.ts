@@ -7,5 +7,6 @@ const ITEMS = [
   ['terrain', '#terrain-notice', 'terrain notice'], ['profiler', '#profiler', 'profiler'],
   ['stick', '.touch-stick-zone', 'touch joystick'], ['burn', '.touch-actions-zone', 'touch actions'],
 ] as const;
-export const HUD_EDITOR_ITEMS=ITEMS.map(([id,selector,label])=>({id,selector,label}));
+export const HUD_EDITOR_ITEMS=[...ITEMS.map(([id,selector,label])=>({id,selector,label})),
+ ...Array.from({length:4},(_,slot)=>({id:`throttle-${slot}`,selector:`.throttle-lever[data-slot="${slot}"]`,label:`Player ${slot+1} throttle`,bounds:':scope > canvas',obstacle:false}))];
 export function initHudEditor(viewport:HTMLElement,changed:()=>void){return createHudEditor({viewport,changed,items:HUD_EDITOR_ITEMS,toggle:document.getElementById('hud-layout-toggle')!,reset:document.getElementById('hud-layout-reset')!,storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)},hint:'Drag grips or navballs to move.'},icon);}

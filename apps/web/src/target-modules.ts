@@ -69,9 +69,13 @@ import universeSaveControlsGuide from '../../../modules/universe-save-controls/d
 import audioControlsInitialize from '../../../modules/audio-controls/src/index';
 import { manifest as audioControlsManifest, compatibility as audioControlsCompatibility } from '../../../modules/audio-controls/module.json';
 import audioControlsGuide from '../../../modules/audio-controls/docs/creators/usage.json';
+import throttleInitialize from '../../../modules/throttle-hud/src/index';
+import { manifest as throttleManifest, compatibility as throttleCompatibility } from '../../../modules/throttle-hud/module.json';
+import throttleGuide from '../../../modules/throttle-hud/docs/creators/usage.json';
 
 /** Inert registrations. Only the exact references selected by a target initialize. */
 export const browserTargetModules = Object.freeze([
+  bundledRegistration({ manifest: throttleManifest, compatibility: throttleCompatibility }, throttleInitialize, { 'docs/creators/usage.json': throttleGuide }),
   bundledRegistration({ manifest: viewHudManifest, compatibility: viewHudCompatibility }, viewHudInitialize, { 'docs/creators/usage.json': viewHudGuide }),
   bundledRegistration({ manifest: appearanceTrainerManifest, compatibility: appearanceTrainerCompatibility }, appearanceTrainerInitialize, { 'docs/creators/usage.json': appearanceTrainerGuide_0, 'docs/players/flight.json': appearanceTrainerGuide_1 }),
   bundledRegistration({ manifest: renderWebglManifest, compatibility: renderWebglCompatibility }, renderWebglInitialize, { 'docs/creators/usage.json': renderWebglGuide_0 }),
