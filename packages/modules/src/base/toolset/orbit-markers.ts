@@ -28,6 +28,10 @@ export const orbitMarkers: RegisteredModule = {
           if (!point || radius === null || radius <= view.body.radius) return;
           // Suppress past / unreachable apsides: on hyperbolic trajectories or when time is negative
           if (time !== null && time < 0) return;
+          // Osculating apsides can lie on a later orbit that the ship never reaches.
+          // The traced path includes the exact contact time, also for other-body impacts.
+          if (view.prediction.status === 'impact' && view.prediction.last
+            && (time === null || view.time + time >= view.prediction.last.time)) return;
           if (orbit.kind === 'hyperbolic' && (time === null || time < 0)) return;
           out.push({ kind: 'circle', space: 'world', center: point, radius: 4 / scale, color, width: 2 });
           const timing = time === null ? '' : ` · ${flight.format.duration(time)}`;

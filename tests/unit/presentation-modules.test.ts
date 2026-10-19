@@ -14,7 +14,7 @@ import { prepareGame } from '../../packages/modules/src/index';
 import { format, readFlightData } from '../../packages/modules/src/base/toolset/flight-data';
 import { PRESENTATION_EXAMPLES } from '../../examples/modules/index';
 import { elements, propagate, timeToApsis } from '../../packages/sim-core/src/orbit';
-import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/index';
+import { ghost, DEFAULT_UNIVERSE } from '../../packages/sim-core/src/index';
 import { project, screenOverlays } from '../../packages/render-2d/src/index';
 
 const BODY = { id: 'planet', name: 'Primus', radius: 512, mu: 13_107_200, position: { x: 1000, y: -2000 } };
@@ -253,6 +253,32 @@ describe('flight data toolset', () => {
     expect(runner.overlays(viewOf(snapshot(flying({ x: 0, y: 512 }, { x: 0, y: 0 }, { status: 'landed' }))))).toEqual([]);
     const custom = runner.panelRows(viewOf(snapshot(state, { orbit: null, analyticOrbits: false })))[0]!.rows;
     expect(custom.find(r => r.label === 'Orbit')!.value).toBe('Unavailable · custom motion');
+    expect(runner.faults).toEqual([]);
+    candidate.dispose();
+  });
+  it('omits future apsides beyond a predicted impact and restores them after the path clears', () => {
+    const { candidate, hooks: runner } = hooks(createPresentationRegistry(), ['builtin.orbit-markers']);
+    // Reported descending trajectory: 501 m clearance, 59 m/s, -26.6 m/s radial.
+    const state = flying({ x: BODY.radius + 501, y: 0 }, { x: -26.6, y: Math.sqrt(59 ** 2 - 26.6 ** 2) });
+    const job = ghost(state), samples = [];
+    let result = job.next();
+    for (; !result.done; result = job.next()) samples.push(result.value);
+    expect(result.value).toBe('impact');
+    const last = samples.at(-1)!;
+    const data = readFlightData(snapshot(state))!.orbit!;
+    expect(data.timeToApoapsis).toBeGreaterThan(last.time - state.time);
+    const labels = (prediction: PresentationSnapshot['prediction']) => runner.overlays(viewOf(snapshot(state, { prediction })))
+      .filter(p => p.kind === 'text');
+    expect(labels({ status: 'closed', samples: 90 })).toHaveLength(1);
+    expect(labels({ status: 'impact', samples: samples.length, last })).toEqual([]);
+    // A contact with another body before a valid above-surface apsis also truncates it.
+    const clear = flying({ x: 0, y: 700 }, { x: 160, y: 20 });
+    const orbit = readFlightData(snapshot(clear))!.orbit!;
+    const cutoff = clear.time + orbit.timeToApoapsis! / 2;
+    const clipped = runner.overlays(viewOf(snapshot(clear, { prediction: { status: 'impact', samples: 10,
+      last: { time: cutoff, position: clear.position, velocity: clear.velocity } } })));
+    expect(clipped.filter(p => p.kind === 'text' && p.text.startsWith('Ap '))).toEqual([]);
+    expect(labels({ status: 'closed', samples: 90 })).toHaveLength(1);
     expect(runner.faults).toEqual([]);
     candidate.dispose();
   });
