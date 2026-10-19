@@ -145,9 +145,13 @@ test('restores progress without its game, requires consent, and preserves the ac
     };
     page.on('dialog', listener);
     try {
-      await page.locator('#world-file').setInputFiles({ name: 'progress.spaceuniverse', mimeType: 'application/zip', buffer: bytes });
+      const input = page.locator('#world-file');
+      await expect(input).toHaveValue('');
+      await input.setInputFiles({ name: 'progress.spaceuniverse', mimeType: 'application/zip', buffer: bytes });
       if (error) await expect.poll(() => dialogs.join('\n')).toMatch(error);
       else await expect(page.locator('#flight-message')).toContainText('Universe loaded');
+      // A notification can precede completion of the command and its file cleanup.
+      await expect(input).toHaveValue('');
       return dialogs;
     } finally { page.off('dialog', listener); }
   };
@@ -155,6 +159,7 @@ test('restores progress without its game, requires consent, and preserves the ac
   const dialogs = await load(savedBytes, true); expect(dialogs.join('\n')).toContain('full access');
   await expect(page.locator('.module-windows')).toHaveCount(1);
   await expect.poll(() => page.evaluate(() => (globalThis as any).phase2Live)).toBe(1);
+  await expect.poll(currentWorld).toBe(saved.worldId);
   const active = await currentWorld();
   for (const invalid of [{ ...saved, simulationFingerprint: '0'.repeat(64) }, { ...saved, lock: { ...saved.lock, profileId: 'test.incorrect-lock' } }]) {
     await load(Buffer.from(await kit.encodeUniverseSave(invalid)), true, /differ/);

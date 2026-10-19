@@ -73,7 +73,7 @@ test('declining preserves the local game; accepted data installs once and reconn
     await expect(page.locator('#mp-status')).toContainText('cancelled'); await expect.poll(() => localIdentity(page)).toEqual(original);
     await connect(page, host.url); await expect(dialog).toBeVisible(); await dialog.getByRole('button', { name: 'Install and join', exact: true }).click();
     await expect(page.locator('.connection')).toContainText('ONLINE');
-    expect((await localIdentity(page)).fingerprint).not.toBe(original.fingerprint);
+    await expect.poll(async () => (await localIdentity(page)).fingerprint).not.toBe(original.fingerprint);
     await page.locator('#leave-game').click(); await expect(page.locator('.connection')).toContainText('LOCAL FLIGHT');
     await expect.poll(() => localIdentity(page)).toEqual(original);
     await connect(page, host.url); await expect(page.locator('.connection')).toContainText('ONLINE'); await expect(dialog).toHaveCount(0);
@@ -111,10 +111,15 @@ test('code runs only after exact approval, optional host windows stay optional, 
     await page.locator('#leave-game').click(); await expect(page.locator('.connection')).toContainText('LOCAL FLIGHT');
     expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBe(0); await expect.poll(() => localIdentity(page)).toEqual(original);
     await page.reload(); expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBeUndefined();
+    // Reload starts a new solo world; the next disconnect must restore that instance.
+    const reloadedLocal = await localIdentity(page);
     await connect(page, host.url); await expect(page.locator('.connection')).toContainText('ONLINE'); await expect(dialog).toHaveCount(0);
     expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBe(1);
     await expect.poll(() => page.evaluate(() => (globalThis as any).__joinData)).toBe(1);
-    await page.locator('#leave-game').click(); expect(await page.evaluate(() => (globalThis as any).__joinLive)).toBe(0); expect(errors).toEqual([]);
+    await page.locator('#leave-game').click();
+    await expect(page.locator('.connection')).toContainText('LOCAL FLIGHT');
+    await expect.poll(() => page.evaluate(() => (globalThis as any).__joinLive)).toBe(0);
+    await expect.poll(() => localIdentity(page)).toEqual(reloadedLocal); expect(errors).toEqual([]);
   } finally { await host.stop(); }
 });
 
@@ -126,6 +131,7 @@ test('a browser tab host offers the same reviewed data pack and stopping hosting
     await openPanel(host, 'library'); await host.locator('#lab-file').setInputFiles({ name: 'data.spacegame', mimeType: 'application/zip', buffer: dataGame });
     const card = host.locator('.game-card').filter({ has: host.getByRole('heading', { name: 'Data host', exact: true }) });
     await card.getByRole('button', { name: 'Play · new world' }).click(); await expect(host.locator('#lab-status')).toContainText('Playing Data host');
+    await expect.poll(async () => (await localIdentity(host)).fingerprint).not.toBe(original.fingerprint);
     await openPanel(host, 'multiplayer'); await host.locator('#player-name').fill('Module host'); await host.locator('#player-name').dispatchEvent('change');
     for (const page of [host, guest]) {
       await openPanel(page, 'tools');
@@ -137,7 +143,7 @@ test('a browser tab host offers the same reviewed data pack and stopping hosting
     const dialog = guest.getByRole('dialog', { name: 'Join Data host' }); await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Install and join', exact: true }).click();
     await expect(guest.locator('.connection')).toContainText('ONLINE');
-    expect((await localIdentity(guest)).fingerprint).toBe((await localIdentity(host)).fingerprint);
+    await expect.poll(async () => (await localIdentity(guest)).fingerprint).toBe((await localIdentity(host)).fingerprint);
     await host.locator('#debug-stop-hosting').click(); await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
     await expect.poll(() => localIdentity(guest)).toEqual(original); expect(errors).toEqual([]);
   } finally { await context.close(); }
