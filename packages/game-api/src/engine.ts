@@ -111,7 +111,7 @@ export interface WorldRead {
   stateAt(id: string, time: number): State | undefined;
   hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;
   presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };
-  predictShip(id: string): Generator<GhostSample, GhostEnd>;
+  predictShip(id: string, coarse?: boolean): Generator<GhostSample, GhostEnd>;
   cloneForPrediction(): WorldControl;
 }
 export interface WorldChanges extends Disposable {

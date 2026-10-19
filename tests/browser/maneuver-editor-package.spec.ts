@@ -60,10 +60,11 @@ test('independent read-only planner instances edit isolated candidate paths and 
   for(let frame=0;frame<100&&(first.snapshot()?.path.length??0)<20;frame++)first.update(.1,prediction,false);
   const planned=first.snapshot(),isolated=second.snapshot()===undefined,disabled=(document.getElementById('map-one-execute') as HTMLButtonElement).disabled&&(document.getElementById('map-one-warp') as HTMLButtonElement).disabled;
   const unique=new Set([...root.querySelectorAll('[id]')].map((node:any)=>node.id)).size===root.querySelectorAll('[id]').length;
+  const plannedSamples=planned?.path.length??0;
   factory.dispose();const count=events.length;input.value='20';input.dispatchEvent(new Event('input'));document.dispatchEvent(new Event('visibilitychange'));const stale=first.place(f.pointer,f.camera,f.origin,800,600,prediction);
   let rejected=false;try{factory.create({...options,id:'late'});}catch{rejected=true;}
   f.candidate.dispose();const preserved=JSON.stringify(f.api.saveWorld(world))===before;world.dispose();
-  return{placed,samples:planned?.path.length??0,isolated,disabled,unique,commands,docks,stale,rejected,eventsUnchanged:events.length===count,preserved,windows:root.querySelectorAll('.maneuver-window').length,styles:document.head.querySelectorAll('style').length};
+  return{placed,samples:plannedSamples,isolated,disabled,unique,commands,docks,stale,rejected,eventsUnchanged:events.length===count,preserved,windows:root.querySelectorAll('.maneuver-window').length,styles:document.head.querySelectorAll('style').length};
  });
  expect(result).toMatchObject({placed:true,isolated:true,disabled:true,unique:true,commands:[],docks:['open:map-one-window','open:map-two-window','close:map-one-window','close:map-two-window'],stale:false,rejected:true,eventsUnchanged:true,preserved:true,windows:0,styles:0});expect(result.samples).toBeGreaterThan(20);
 });

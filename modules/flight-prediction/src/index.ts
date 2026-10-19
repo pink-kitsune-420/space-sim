@@ -7,8 +7,9 @@ import type { Controls, GhostEnd, GhostSample, ResolvedBody, SimulationContext, 
 export interface PredictionTuning { readonly maxMs?: number; readonly traceSamplesPerSecond?: number; readonly numericalSamplesPerSecond?: number }
 
 // Ghost prediction lifecycle
-const TRACE_SAMPLES_PER_SECOND = 120;
+const TRACE_SAMPLES_PER_SECOND = 1000;
 const MIN_PREFIX = 4;
+export const PREDICTION_MAX_SAMPLES = 32768;
 interface Pass { readonly job: Generator<GhostSample, GhostEnd>; readonly samples: GhostSample[];
   readonly context: { dispose(): void }; readonly coarse: boolean; budget: number; workMs: number }
 /** Progressive preview owns its job and isolated motion context, including cancellation. */
@@ -25,6 +26,11 @@ export class Prediction {
 
   private owner?: SimulationContext;
   private disposed = false;
+  private world?: WorldRead;
+  private lastTime = -Infinity;
+  private lastState?: State;
+  private readonly buffers: [GhostSample[], GhostSample[]] = [[], []];
+  private nextBuffer = 0;
   private readonly tuning: Required<PredictionTuning>;
   constructor(private readonly onComplete: (pass: { end: GhostEnd; samples: number; workMs: number; coarse: boolean }) => void, options: PredictionTuning = {}) {
     this.tuning = { maxMs: options.maxMs ?? 3, traceSamplesPerSecond: options.traceSamplesPerSecond ?? TRACE_SAMPLES_PER_SECOND, numericalSamplesPerSecond: options.numericalSamplesPerSecond ?? 12000 };
@@ -41,7 +47,8 @@ export class Prediction {
   }
   invalidate(): void {
     try { this.cancel(); } finally {
-      this.owner = undefined; this.passKey = ''; this.pathKey = ''; this.path = []; this.pathEnd = 'grounded';
+      this.buffers[0].length = 0; this.buffers[1].length = 0;
+      this.owner = undefined; this.world = undefined; this.lastTime = -Infinity; this.lastState = undefined; this.passKey = ''; this.pathKey = ''; this.path = []; this.pathEnd = 'grounded';
     }
   }
   update(context: SimulationContext, state: State, activeBody: ResolvedBody, surface: SurfaceProfile | undefined,
@@ -54,25 +61,30 @@ export class Prediction {
     // revision, or held controls, invalidate a numerical preview; passive motion can
     // finish a budgeted job instead of restarting it on every rendered frame.
     const epoch = world?.requiresWorldPrediction ? world.version - world.tick : numerical ? changing ? state.revision : state.revision - Math.round(state.time / context.stepSeconds)
-      : engine ? 'burn' : (state.coast?.revision ?? 'coast');
+      : engine ? state.revision : (state.coast?.revision ?? state.revision - Math.round(state.time / context.stepSeconds));
     const key = `${context.modelIdentity}/${selectedShipId}/${state.status}/${engine}/${activeBody.id}/${activeBody.surfaceIdentity}/${surface?.identity ?? 'circle'}/${epoch}`;
-    const expired = !this.pass && this.pathEnd === 'open' && (this.path.at(-1)?.time ?? Infinity) <= state.time;
-    if (context !== this.owner || key !== this.passKey || (engine && !this.pass) || expired) {
+    const previous = this.lastState;
+    const replaced = previous && previous.time === state.time && (previous.position.x !== state.position.x
+      || previous.position.y !== state.position.y || previous.velocity.x !== state.velocity.x || previous.velocity.y !== state.velocity.y);
+    const expired = !this.pass && (this.pathEnd === 'open' || this.pathEnd === 'horizon' || this.pathEnd === 'escape') && (this.path.at(-1)?.time ?? Infinity) <= state.time;
+    if (context !== this.owner || world !== this.world || replaced || state.time < this.lastTime || key !== this.passKey || (engine && !this.pass) || expired) {
       this.cancel();
-      this.owner = context;
+      this.owner = context; this.world = world;
       // Never draw an old burn/body/status trajectory while tracing a replacement.
       this.path = []; this.pathKey = ''; this.pathEnd = 'grounded';
       this.passKey = key; this.passCount++;
-      const clone = world?.requiresWorldPrediction ? { dispose() {} } : context.cloneForPrediction();
+      const clone = world ? { dispose() {} } : context.cloneForPrediction();
       let job: Generator<GhostSample, GhostEnd>;
-      try { job = world?.requiresWorldPrediction ? world.predictShip(selectedShipId)
+      try { job = world ? world.predictShip(selectedShipId, engine)
         : (clone as SimulationContext).predict(structuredClone(state), engine, activeBody, surface); }
       catch (error) { this.invalidate(); try { clone.dispose(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Prediction creation failed'); } throw error; }
-      this.pass = { context: clone, job, samples: [], coarse: engine,
-        budget: surface || numerical ? 64 : MIN_PREFIX, workMs: 0 };
+      const samples = this.buffers[this.nextBuffer]!; this.nextBuffer ^= 1; samples.length = 0;
+      this.pass = { context: clone, job, samples, coarse: engine,
+        budget: 128, workMs: 0 };
     }
+    this.lastTime = state.time; this.lastState = state;
     if (!this.pass) return;
-    this.pass.budget = Math.min(256, this.pass.budget + (surface || numerical ? this.tuning.numericalSamplesPerSecond : this.tuning.traceSamplesPerSecond) * seconds);
+    this.pass.budget = Math.min(256, Math.max(128, this.pass.budget) + (surface || numerical ? this.tuning.numericalSamplesPerSecond : this.tuning.traceSamplesPerSecond) * seconds);
     const begin = performance.now();
     let end: GhostEnd | undefined;
     while (this.pass.budget >= 1 && performance.now() - begin < this.maxMs) {
@@ -81,6 +93,7 @@ export class Prediction {
       catch (error) { try { this.invalidate(); } catch (cleanup) { throw new AggregateError([error, cleanup], 'Prediction failed'); } throw error; }
       if (result.done) { end = result.value; break; }
       this.pass.samples.push(result.value); this.pass.budget--;
+      if (this.pass.samples.length >= PREDICTION_MAX_SAMPLES) { end = 'open'; break; }
     }
     this.pass.workMs += performance.now() - begin;
     if (end !== undefined) {
@@ -98,7 +111,7 @@ export class Prediction {
     if (this.pathEnd === 'closed' && first && last) return `Full orbit · period ${(last.time - first.time).toFixed(1)} s`;
     if (this.pathEnd === 'impact' && last) return `${last.contactMaterial === 'water' ? 'Heavy water impact' : 'Surface contact'} in ${Math.max(0, last.time - state.time).toFixed(1)} s`;
     if (this.pathEnd === 'floating' && last) return `Float in ${Math.max(0, last.time - state.time).toFixed(1)} s`;
-    return { escape: 'Escape trajectory', open: 'Partial path', failed: 'Unavailable', closed: '—', impact: '—', grounded: '—', floating: '—' }[this.pathEnd];
+    return { escape: 'Escape · preview distance horizon', horizon: 'Preview time horizon reached', open: 'Partial path · work limit reached', failed: 'Unavailable', closed: '—', impact: '—', grounded: '—', floating: '—' }[this.pathEnd];
   }
 
   dispose(): void { if (this.disposed) return; try { this.invalidate(); } finally { this.disposed = true; } }

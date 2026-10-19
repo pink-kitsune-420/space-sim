@@ -52,3 +52,12 @@ it('releases a clone after prediction iteration fails and allows a new candidate
   for(let attempt=1;attempt<=2;attempt++){expect(()=>preview.update(context,state,world.body(ship.bodyId),undefined,ship.id,0,false)).toThrow(failure);expect(disposed).toBe(attempt);expect(preview.pass).toBeUndefined();expect(preview.path).toEqual([]);}
  }finally{preview.dispose();world.dispose();}
 });
+
+it('bounds sample retention and closes even an endlessly yielding optional motion provider',()=>{
+ const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'});let closed=0,disposed=0;
+ const context:SimulationContext={...world.context,cloneForPrediction(){return{...world.context,predict:function*():Generator<GhostSample,GhostEnd>{try{let n=0;while(true)yield{time:n++,position:{x:0,y:640},velocity:{x:1,y:0}};}finally{closed++;}},dispose(){disposed++;}};}};
+ const preview=new Prediction(()=>{}, {maxMs:16});
+ for(let frame=0;frame<300;frame++){preview.update(context,ship.state,world.body(ship.bodyId),undefined,ship.id,.1,false);if(!preview.pass)break;}
+ expect(preview.pass).toBeUndefined();expect(preview.pathEnd).toBe('open');expect(preview.path.length).toBe(32768);expect(closed).toBe(1);expect(disposed).toBe(1);
+ preview.dispose();world.dispose();
+});

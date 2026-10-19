@@ -1,4 +1,4 @@
-import { VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
+import { trajectoryMarkers, VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
 import { Effects } from './effects';
 import type { State, Vec, SceneFrame, RenderMaterial, RenderPostEffect } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
@@ -550,6 +550,8 @@ export class WebGLRenderer implements Renderer {
     }
     if (frame.showScale === false) this.beginTextPass(width, height);
     if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
+    const encounters = trajectoryMarkers(frame);
+    if (encounters.length) this.drawOverlays(screenOverlays(encounters, camera, width, height), width, height, dpr);
     timer?.lap('overlay');
     this.effects.finish(realTimeSec);
 
@@ -1054,6 +1056,19 @@ export class WebGLRenderer implements Renderer {
     verts[idx++] = halfW + (lastLx * c - lastLy * s) * scale;
     verts[idx++] = halfH - (lastLx * s + lastLy * c) * scale;
 
-    this.uploadAndDraw(totalVertices, this.gl.LINE_STRIP, ShaderStyle.path);
+    const gl = this.gl;
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts, 0, idx);
+    let offset = 0, rangeStart = 0, leg = points[1]!.bodyId;
+    for (let i = 1; i < points.length; i++) {
+      const nextLeg = points[i]!.bodyId;
+      if (nextLeg !== leg) {
+        gl.uniform1i(this.vecStyleLoc, leg && leg !== path[0]?.frameId ? ShaderStyle.pad : ShaderStyle.path);
+        gl.drawArrays(gl.LINE_STRIP, rangeStart, offset - rangeStart + 1);
+        rangeStart = offset; leg = nextLeg;
+      }
+      offset += points[i]!.linear ? 1 : SAMPLES_PER_SEGMENT;
+    }
+    gl.uniform1i(this.vecStyleLoc, leg && leg !== path[0]?.frameId ? ShaderStyle.pad : ShaderStyle.path);
+    gl.drawArrays(gl.LINE_STRIP, rangeStart, totalVertices - rangeStart);
   }
 }

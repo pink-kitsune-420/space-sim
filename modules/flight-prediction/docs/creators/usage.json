@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "view.prediction@1.0.0 creates one progressive flight preview per consumer. Pass a compatible public SimulationContext, detached ship state, active body/surface and selected ship identity; world-aware rule previews additionally receive WorldRead. The owner supplies SI body-relative state and elapsed wall seconds. Prediction clones own their caches/state; the live world is never advanced by the view."
+      "text": "view.prediction@1.0.0 creates an independent cancellable preview per view. Pass WorldRead for SOI-aware flight; omit it for a body-only preview from a detached seed. Selected public motion, rails, surfaces and moving-body frames determine the forecast. Live authority is never advanced. No camera, split-screen, planner, audio or theme module is required."
     },
     {
       "type": "paragraph",
@@ -14,7 +14,11 @@
     },
     {
       "type": "paragraph",
-      "text": "maxMs, traceSamplesPerSecond and numericalSamplesPerSecond change viewer work scheduling, preserving original default budgets and numerical results. Explicit guest maxMs takes precedence. A generic non-flight game need not select this flight-specific service. A game requiring prediction declares view.prediction as required; optional omission removes the preview instead of inventing a provider. Manifest selection replaces compatibility app construction in Phase 4."
+      "text": "Each update earns an immediate bounded prefix (128 samples), with at most 256 yields and maxMs wall milliseconds; sample-rate settings add work credit. Compatible analytic intervals leap between adaptive timed states; numerical terrain/contact and shared-world rules retain 10-ms steps. Ordinary flight does not restart passive jobs; changed burns invalidate before drawing. Two bounded sample buffers are reused. Normal unimpeded bound paths close a complete revolution, at any size. Multi-body paths cover two initial orbital periods (minimum one hour, maximum a Julian year), up to 16 SOI transitions, 16,384 main samples and 8,192 contact/event approach steps. horizon identifies the configured time bound; open means a work limit, never a physical endpoint. Escape in body-only mode is a distance horizon. A generic game may omit prediction entirely."
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional GhostSample bodyId/encounter metadata identifies the active conic. Positions and velocities remain in frameId (the starting body), translated at each sample time; transform both vectors through the selected ephemerides. Canvas/WebGL mark SOI handoffs with a restrained amber leg and ETA. Consumers that only support the initial conic must reject node placement after its first encounter."
     }
   ]
 }

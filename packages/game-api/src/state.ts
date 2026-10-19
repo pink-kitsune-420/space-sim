@@ -72,6 +72,12 @@ export interface GhostSample extends Sample {
   /** Segment ending here is a verified numerical drift, not a conic/Hermite arc. */
   readonly linear?: boolean;
   readonly contactMaterial?: 'water';
+  /** Active gravitational body. Multi-body forecasts express position/velocity in
+   * frameId's translating, nonrotating frame at this sample's time. */
+  readonly bodyId?: string;
+  readonly frameId?: string;
+  /** First sample in a new SOI; continuous position, velocity and time. */
+  readonly encounter?: { readonly from: string; readonly to: string };
 }
 /** Why an orbital ghost projection pass ended. */
-export type GhostEnd = 'closed' | 'impact' | 'escape' | 'open' | 'grounded' | 'floating' | 'failed';
+export type GhostEnd = 'closed' | 'impact' | 'escape' | 'open' | 'grounded' | 'floating' | 'failed' | 'horizon';

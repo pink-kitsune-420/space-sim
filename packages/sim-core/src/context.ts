@@ -19,8 +19,8 @@ export const COAST_CACHE_BUDGET = 32_768;
 export const GHOST_MAX_SAMPLES = 256;
 /** Near terrain, at most 81.92 s of shared 10-ms motion per pass. */
 export const GHOST_TERRAIN_MAX_STEPS = 8192;
-/** Longest ghost step is STEP * 2^15 (about 5.5 minutes), PREDICT_K_MAX. */
-export const GHOST_MAX_K = 15;
+/** Quantized steps span astronomical orbits; geometric error, not a fixed dt, limits sampling. */
+export const GHOST_MAX_K = 50;
 /** A pass beyond this many surface radii is reported as escaping the planet. */
 export const GHOST_ESCAPE_RADII = 32;
 
@@ -578,7 +578,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
    * Display-only: the live flight never reads these samples. */
   function* ghost(start: State, coarse = false, body = planet, surface?: SurfaceProfile): Generator<GhostSample, GhostEnd> {
     // A shared rule needs the whole fleet and its RNG, supplied by World.predictShip.
-    if (options.worldRules || services.bodies !== BUILTIN_SERVICES.bodies) return 'failed';
+    if (options.worldRules) return 'failed';
     if (start.status !== 'flying') return 'grounded';
     if (!capabilities.analyticCoast) return yield* numericalGhost(start, body, surface);
     if (surface) {
@@ -602,7 +602,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       // Already at the surface and descending: contact is now, not one revolution later.
       if (!surface && descending && magnitude(epoch.position) <= body.radius) impact = 0;
       else if (!surface && orbit.periapsis < body.radius) impact = timeToRadius(epoch, body.mu, body.radius, 'inbound');
-      if (impact === null && orbit.apoapsis !== null && orbit.apoapsis < escape) period = orbit.period;
+      if (impact === null && orbit.apoapsis !== null) period = orbit.period;
     } catch { return 'failed'; }
     const end = impact ?? period ?? Infinity;
     yield { time: start.time, position: epoch.position, velocity: epoch.velocity };
@@ -625,7 +625,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       ({ position, velocity } = result.state);
       yield { time: start.time + elapsed, position, velocity };
       if (last) return impact !== null ? 'impact' : 'closed';
-      if (magnitude(position) > escape) return 'escape';
+      if (period === null && magnitude(position) > escape) return 'escape';
     }
     return 'open';
   }

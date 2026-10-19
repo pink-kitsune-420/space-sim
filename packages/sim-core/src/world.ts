@@ -13,6 +13,7 @@ import * as dm from './dmath';
 import { BUILTIN_SERVICES } from './services';
 import { surfaceIdentity, type SurfaceProfile } from './surface';
 import { WakeQueue } from './rails';
+import { frameSample, predictTrajectory } from './trajectory';
 import { groundPreset } from './spin';
 import { type LoadedSystem, type ResolvedBody, type UniverseDefinition } from './universe';
 
@@ -671,26 +672,41 @@ export class World implements WorldControl {
   }
 
   /** Shared-world forecasts step an isolated fleet, preserving rule/command order.
-   * Stop at a frame transition because GhostSample coordinates belong to one body. */
-  *predictShip(id: string): Generator<GhostSample, GhostEnd> {
+   * Normal flight uses verified analytic intervals; rule/custom-frame fleets keep
+   * their shared fixed-step order. All legs use the initial body frame. */
+  *predictShip(id: string, coarse = false): Generator<GhostSample, GhostEnd> {
+    const initial = this.ship(id);
+    if (!initial || initial.state.status !== 'flying') return 'grounded';
+    if (!this.requiresWorldPrediction && this.contextFor(initial).capabilities.analyticCoast) {
+      const context = this.contextFor(initial).cloneForPrediction();
+      const state = structuredClone(initial.state), system = this.system, surfaces = this.surfaces, body = this.body(initial.bodyId);
+      try { return yield* predictTrajectory(context, state, body, system, surfaces, coarse); }
+      catch { return 'failed'; }
+      finally { context.dispose(); }
+    }
     const clone = this.cloneForPrediction();
-    try { return yield* clone.predictionSteps(id); }
+    try { return yield* clone.predictionSteps(id, coarse); }
     finally { clone.dispose(); }
   }
 
-  private *predictionSteps(id: string): Generator<GhostSample, GhostEnd> {
+  private *predictionSteps(id: string, coarse: boolean): Generator<GhostSample, GhostEnd> {
     const initial = this.ship(id);
     if (!initial || initial.state.status !== 'flying') return 'grounded';
+    if (!this.requiresWorldPrediction && this.contextFor(initial).capabilities.analyticCoast) {
+      return yield* predictTrajectory(this.contextFor(initial), initial.state, this.body(initial.bodyId), this.system, this.surfaces, coarse);
+    }
     this.setControls(id, IDLE);
-    yield { time: initial.state.time, position: initial.state.position, velocity: initial.state.velocity, linear: true };
+    const frameId = initial.bodyId;
+    yield frameSample(ghostSample(initial.state, this.body(frameId)), frameId, frameId, this.system);
     for (let n = 0; n < 8192; n++) {
       const events = this.step();
       const ship = this.ship(id)!;
       if (this.paused || ship.fault) return 'failed';
-      if (events.some(e => e.type === 'soi' && e.shipId === id)) return 'open';
+      const encounter = events.find(e => e.type === 'soi' && e.shipId === id);
       const s = ship.state;
-      if (s.waterEntry) yield s.waterEntry;
-      yield ghostSample(s, this.body(ship.bodyId));
+      if (s.waterEntry) yield frameSample(s.waterEntry, ship.bodyId, frameId, this.system);
+      yield frameSample(ghostSample(s, this.body(ship.bodyId)), ship.bodyId, frameId, this.system,
+        encounter?.type === 'soi' ? { from: encounter.from, to: encounter.to } : undefined);
       if (s.contact) return 'impact';
       if (s.status !== 'flying') return s.water === 'floating' ? 'floating' : 'grounded';
     }

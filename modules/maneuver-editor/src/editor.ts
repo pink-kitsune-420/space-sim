@@ -275,6 +275,8 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private inPrediction(time: number, flight: Flight): boolean {
     const path = this.prediction?.path, last = path?.at(-1);
     if (!path?.length || !last) return false;
+    const encounter = path.find(p => p.encounter);
+    if (encounter && time >= encounter.time) return false;
     const span = last.time - path[0]!.time;
     return time > flight.world.time && time <= (this.prediction?.pathEnd === 'closed' ? flight.world.time + span : last.time);
   }
@@ -286,6 +288,9 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (time === undefined) return false;
     if (!flightMotion(flight).capabilities.analyticCoast || flight.world.requiresWorldPrediction) {
       this.options.notify('Maneuver planning needs an unpowered Kepler coast in this world.'); return true;
+    }
+    if (prediction.path.some(p => p.encounter && p.time <= time)) {
+      this.options.notify('Place this node before the first SOI encounter. Later-body nodes need a chained flight plan.'); return true;
     }
     const sample = this.evaluate(ship.state, flight, time);
     if (!sample) { this.options.notify('This point is beyond the safe analytic coast. Choose a point farther from the surface.'); return true; }

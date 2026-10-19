@@ -199,7 +199,11 @@ describe('independent simulation contexts', () => {
       cloneForPrediction() {
         const clone = context.cloneForPrediction(), dispose = vi.fn(() => clone.dispose());
         disposed.push(dispose);
-        return { ...clone, dispose };
+        // Force genuinely expensive work; a simple orbit now finishes in one update.
+        return { ...clone, dispose, predict: function* (...args) {
+          for (let repeat = 0; repeat < 4; repeat++) yield* clone.predict(...args);
+          return 'closed' as const;
+        } };
       },
     });
     const preview = new Prediction(() => {});

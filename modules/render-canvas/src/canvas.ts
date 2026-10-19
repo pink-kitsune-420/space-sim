@@ -1,4 +1,4 @@
-import { VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
+import { trajectoryMarkers, VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -571,6 +571,8 @@ export class CanvasRenderer implements Renderer {
       ctx.fillText(`${metres} m`, width - 24, height - 36);
     }
     if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
+    const encounters = trajectoryMarkers(frame);
+    if (encounters.length) this.drawOverlays(screenOverlays(encounters, camera, width, height));
     timer?.lap('overlay');
   }
 
@@ -717,9 +719,14 @@ export class CanvasRenderer implements Renderer {
     }
 
     ctx.strokeStyle = '#8ddbc1'; ctx.lineWidth = 1.3; ctx.setLineDash([4, 5]);
-    let running = false;
+    let running = false, leg = path[firstIdx - 1]?.bodyId;
     for (let i = firstIdx; i < path.length; i++) {
       const [c1, c2] = (i === firstIdx && firstSegControls) ? firstSegControls : geom.controls[i - 1]!;
+      const nextLeg = path[i]!.bodyId;
+      if (nextLeg !== leg) {
+        if (running) { ctx.stroke(); running = false; }
+        leg = nextLeg; ctx.strokeStyle = leg && leg !== path[0]?.frameId ? '#dba76a' : '#8ddbc1';
+      }
       const endPos = path[i]!.position;
       const p1x = projectLocalX(c1.x, c1.y), p1y = projectLocalY(c1.x, c1.y);
       const p2x = projectLocalX(c2.x, c2.y), p2y = projectLocalY(c2.x, c2.y);

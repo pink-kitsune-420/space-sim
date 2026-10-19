@@ -1,4 +1,4 @@
-import type { Camera } from './presentation';
+import type { Camera, OverlayPrimitive, RenderFrame } from './presentation';
 import type { GhostSample, State, Vec } from './state';
 import { normalizeAngle } from './math';
 
@@ -71,6 +71,7 @@ export function hermiteControls(a: GhostSample, b: GhostSample): readonly [Vec, 
 }
 
 interface PathGeometry {
+  first?: GhostSample;
   readonly cumulativeChords: number[];
   readonly controls: Array<readonly [Vec, Vec]>;
 }
@@ -78,9 +79,10 @@ const PATH_GEOMETRY = new WeakMap<readonly GhostSample[], PathGeometry>();
 export function getPathGeometry(path: readonly GhostSample[]): PathGeometry {
   let geom = PATH_GEOMETRY.get(path);
   if (!geom) {
-    geom = { cumulativeChords: [0], controls: [] };
+    geom = { first: path[0], cumulativeChords: [0], controls: [] };
     PATH_GEOMETRY.set(path, geom);
-  } else if (geom.cumulativeChords.length > path.length) {
+  } else if (geom.first !== path[0] || geom.cumulativeChords.length > path.length) {
+    geom.first = path[0];
     geom.cumulativeChords.length = 1;
     geom.controls.length = 0;
   }
@@ -107,3 +109,19 @@ export function pathFromShip(path: readonly GhostSample[], closed: boolean,
 
 const distance = (a: Vec, b: Vec): number => Math.hypot(b.x - a.x, b.y - a.y);
 
+
+/** Restrained timed SOI markers, shared by compatible vector renderers. Coordinates
+ * already belong to the path's initial translating body frame. No physics queries. */
+export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[] {
+  const out: OverlayPrimitive[] = [], origin = frame.pathOrigin ?? { x: 0, y: 0 };
+  for (const point of frame.path) {
+    if (!point.encounter || point.time < frame.state.time) continue;
+    const center = { x: point.position.x + origin.x, y: point.position.y + origin.y };
+    const to = frame.bodies?.find(body => body.id === point.encounter!.to)?.name ?? point.encounter.to;
+    out.push({ kind: 'circle', space: 'world', center, radius: 4 / frame.camera.scale, color: '#dba76a', width: 1.5 },
+      { kind: 'text', space: 'world', at: { x: center.x, y: center.y + 13 / frame.camera.scale },
+        color: '#dba76a', align: 'center', text: `${to} · T−${(point.time - frame.state.time).toFixed(1)} s` });
+    if (out.length >= 32) break;
+  }
+  return out;
+}
