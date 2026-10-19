@@ -71,10 +71,12 @@ it('passes a zero-impulse review checkpoint crossed during a finite departure wi
  }finally{f.runner.dispose();f.session.dispose();}
 });
 
-it.each([false,true])('flies a generated moon departure and capture with actual SOI reviews and auto-warp %s',autoWarp=>{
+it.each([{autoWarp:false,retrograde:false},{autoWarp:true,retrograde:false},{autoWarp:true,retrograde:true}])('flies a generated moon departure and capture with actual SOI reviews, auto-warp $autoWarp and retrograde $retrograde',({autoWarp,retrograde})=>{
  const f=fixture(),id=f.ships[0]!;
  try {
-  const job=createTransferPlanner(createFlightPlans()).search(f.world,{shipId:id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
+  if(retrograde){const body=f.world.body('planet'),r=1024;f.session.teleport(id,body.id,{x:0,y:r},{x:-Math.sqrt(body.mu/r),y:0});}
+  const altitude=retrograde?512:100;
+  const job=createTransferPlanner(createFlightPlans()).search(f.world,{shipId:id,destinationId:'moon',periapsisAltitude:altitude,apoapsisAltitude:altitude});
   let adopted=false;
   for(let i=0;i<1000000;i++){
    const step=job.next();

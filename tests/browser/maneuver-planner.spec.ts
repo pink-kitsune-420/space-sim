@@ -341,7 +341,11 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
  const moved=(await node.boundingBox())!;expect(Math.hypot(moved.x+moved.width/2-target.x,moved.y+moved.height/2-target.y)).toBeGreaterThan(60);
  expect(Math.abs(Math.hypot(moved.x+moved.width/2-cx,moved.y+moved.height/2-cy)-r)).toBeLessThan(3);await page.mouse.up();
  const after=await debug(page);expect(after.camera).toEqual(before.camera);expect(after.position).toEqual(before.position);expect(after.maneuver.execution).toBeNull();
- const saved=after.maneuver.time,current=(await node.boundingBox())!;
+ // Read the exact final intent, rather than the diagnostics panel's 4 Hz
+ // snapshot, which may still describe a point partway through the first drag.
+ const exported=page.waitForEvent('download');await page.locator('#maneuver-export').evaluate(el=>(el as HTMLButtonElement).click());
+ const archive=JSON.parse(await readFile(await (await exported).path(),'utf8'));
+ const saved=archive.plans[0].nodes[0].time,current=(await node.boundingBox())!;
   await page.mouse.move(current.x+current.width/2,current.y+current.height/2);await page.mouse.down();await page.mouse.move(cx+(r+100)*Math.cos(.3),cy-(r+100)*Math.sin(.3),{steps:10});
   await node.evaluate(el=>(el as HTMLButtonElement).blur()); // capture still owns the gesture after focus loss
   await page.keyboard.press('Escape');await page.mouse.up();
@@ -444,6 +448,7 @@ test('an explicitly enabled ship follows the clock and completes its prepared tw
  await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
  await expect(page.locator('#maneuver-nodes option').last()).toContainText('flown',{timeout:90000});
  await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+ await expect.poll(async()=>(await debug(page)).engine).toBe(false);
  const done=await debug(page);expect(done.engine).toBe(false);expect(Math.abs(done.orbit.periapsis-2048)).toBeLessThan(20);expect(Math.abs(done.orbit.apoapsis-2048)).toBeLessThan(20);
 });
 
@@ -532,4 +537,23 @@ test('filters excessive shortcuts for a tiny orbit change and cancels background
  await page.locator('#maneuver-transfer-destination').selectOption('planet');await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
  await expect(page.locator('#maneuver-transfer-use-efficient')).toBeEnabled();await expect(page.locator('#maneuver-transfer-use-faster')).toBeEnabled();
  expect((await debug(page)).tick).toBe(before.tick);expect((await debug(page)).engine).toBe(false);
+});
+
+test('a reverse-direction Moon transfer raises the orbit instead of wasting delta-v on a reversal',async({page})=>{
+ await setup(page);await openPanel(page,'fleet');
+ const downloading=page.waitForEvent('download');await page.locator('#save-world').click();
+ const kit=await packageContracts(),saved=await kit.decodeUniverseSave(new Uint8Array(await readFile(await (await downloading).path()))) as any;
+ saved.tick=7100;saved.time=71;
+ for(const ship of saved.ships){ship.bodyId='planet';ship.position=[0,1024];ship.velocity=[-Math.sqrt(13107200/1024),0];ship.heading=Math.PI;ship.throttle=0;ship.status='flying';ship.revision=0;}
+ delete saved.flightPlans;
+ await page.locator('#world-file').setInputFiles({name:'reverse-orbit.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
+ await expect(page.locator('#flight-message')).toContainText('Universe loaded');await closePanel(page);
+ await expect.poll(async()=>{const d=await debug(page);return {tick:d.tick,alt:d.groundClearance,reverse:d.velocity.x<0};}).toEqual({tick:7100,alt:512,reverse:true});
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('512');
+ await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeEnabled({timeout:60000});
+ await expect(page.locator('#maneuver-transfer-cancel')).toBeHidden({timeout:60000});
+ const metrics=await page.locator('.transfer-option .transfer-metrics').first().textContent();expect(Number(/Δv ([\d.]+)/.exec(metrics!)![1])).toBeLessThan(100);
+ await page.locator('#maneuver-transfer-use-efficient').click();await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
+ expect(Number(await page.locator('#maneuver-prograde').inputValue())).toBeGreaterThan(0);
+ expect((await debug(page)).tick).toBe(7100);expect((await debug(page)).engine).toBe(false);
 });

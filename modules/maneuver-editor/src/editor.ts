@@ -723,7 +723,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       this.fleetReviewTimer=undefined;
       if(this.disposed||this.document.hidden)return;
       this.fleet?.advanceReviews();this.scheduleFleetReview();
-    },8);
+    },0);
   }
   isAutomatic(shipId:string):boolean { return this.fleet?.has(shipId)??false; }
   stepFleet():void { this.fleet?.step(); }

@@ -39,7 +39,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "1d66f035a0617c1774f2bb33a1ceb614f94bbfd88f7d1256771fab41264ffd24"
+    "inputsDigest": "ee3bc77786dc0b7b49a868454ad2b51a6f17a24c8a4a04dd2f12e72999b8cb57"
   },
   "compatibility": {
     "deterministic": true,
@@ -384,7 +384,7 @@
     },
     {
       "path": "src/interbody.ts",
-      "sha256": "3cfac990d499d40b8130005c17e9bd70cb1014b55a4c148f1233274320d73302",
+      "sha256": "c895a6460d25b8325ecb1fab9c6060aea80d79752e39d33b552b6038209a3673",
       "license": "MIT",
       "attribution": "Space Sim first-party bounded orbital transfer planning over public selected motion and flight-plan contracts. Licensed under MIT.\n"
     },

@@ -49,7 +49,10 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
   if(prepared.ok)for(const apsis of [orbit.periapsis,orbit.apoapsis]){
    const dt=orbits.timeToRadius(prepared.state,origin.mu,apsis,'outbound',orbit);if(dt!==null&&dt>=0)departures.push(start.time+30+dt);
   }
-  const factors=[.6,.85,1,1.25];total=departures.length*factors.length;
+  // A child body's direction is not the parking orbit's direction. Searching
+  // only that sign can force an expensive reversal instead of raising apoapsis.
+  const directions=origin.id===common.id?[localDirection,-localDirection]:[commonDirection,-commonDirection];
+  const factors=[.6,.85,1,1.25];total=departures.length*factors.length*directions.length;
   const candidates:Omit<TransferOption,'kind'>[]=[];
   const trials:{before:State;endpoint:Vec;velocity:Vec;departure:number;travel:number;arrival:number;score:number}[]=[];
   function* probe(seed:State,until:number):Generator<TransferProgress,Probe|undefined> {
@@ -66,21 +69,21 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
     if(solved.ok)return{sample:flightSampleInFrame({time:until,...solved.state,bodyId:id,frameId:id},common.id,world.system),safe:false,end};
    }
   }
-  for(const departure of departures)for(const factor of factors){
+  for(const departure of departures)for(const factor of factors)for(const transferDirection of directions){
    tested++;yield progress();
    const travel=baseTravel*factor,arrival=departure+travel;if(arrival>start.time+YEAR)continue;
    const at=context.coastAt(coast,departure,origin,world.surface(origin.id),{cache:false});if(!at.ok)continue;
    const before:State={...start,...at.state,time:departure,coast:undefined},r1=add(at.state.position,relative(origin.id,departure)),centre=relative(destination.id,arrival);
    let endpoint:Vec,seedVelocity:Vec;
    if(destination.id!==common.id){
-    const initial=lambert(r1,centre,travel,common.mu,commonDirection);if(!initial)continue;
+    const initial=lambert(r1,centre,travel,common.mu,transferDirection);if(!initial)continue;
     const incoming=subtract(initial.arrival,relative(destination.id,arrival,true)),v=radius(incoming);if(!(v>0))continue;
     endpoint=add(centre,{x:rp*(-incoming.x*.6-incoming.y*.8)/v,y:rp*(-incoming.y*.6+incoming.x*.8)/v});
    }else{
-    const angle=dm.atan2(r1.y,r1.x)+commonDirection*(Math.PI-.15);
+    const angle=dm.atan2(r1.y,r1.x)+transferDirection*(Math.PI-.15);
     endpoint={x:rp*dm.cos(angle),y:rp*dm.sin(angle)};
    }
-   const initial=lambert(r1,endpoint,travel,common.mu,commonDirection);if(!initial)continue;
+   const initial=lambert(r1,endpoint,travel,common.mu,transferDirection);if(!initial)continue;
    const relativeVelocity=subtract(initial.departure,relative(origin.id,departure,true));
    if(origin.id===common.id)seedVelocity=relativeVelocity;
    else{const escape=ejection(at.state.position,relativeVelocity,origin.mu,localDirection);if(!escape)continue;seedVelocity=escape;}

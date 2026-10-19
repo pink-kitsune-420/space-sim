@@ -95,3 +95,14 @@ it('supports astronomy-scale Earth-to-Mars plans with selected ephemerides and a
  }
  world.dispose();
 },120000);
+
+it('raises a reverse-direction parking orbit toward the Moon without forcing an expensive reversal',()=>{
+ const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),body=world.body('planet'),r=1024;
+ try {
+  world.restoreClock(7100,71);world.teleport(ship.id,body.id,{x:0,y:r},{x:-Math.sqrt(body.mu/r),y:0});
+  const result=search(world,{shipId:ship.id,destinationId:'moon',periapsisAltitude:512,apoapsisAltitude:512});
+  const efficient=result.options[0]!;expect(efficient,result.reason).toBeDefined();expect(efficient.deltaV).toBeLessThan(100);expect(efficient.departureDeltaV).toBeLessThan(60);expect(efficient.plan.nodes[0]!.prograde).toBeGreaterThan(0);
+  const nodes=evaluate(efficient.plan,world),transfer=world.context.services.orbits.elements(nodes[0]!.after!,body.mu);
+  expect(nodes.every(node=>node.valid)).toBe(true);expect(transfer.angularMomentum).toBeGreaterThan(0);expect(transfer.apoapsis).toBeGreaterThan(12000);
+ }finally{world.dispose();}
+},30000);

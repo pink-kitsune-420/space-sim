@@ -99,8 +99,8 @@ export class TransferControls {
   this.scheduled=undefined;
  }
  /** Separate 1 ms tasks use spare time between rendered frames without starving
-  * input or rendering. An 8 ms delay bounds task frequency across browser hosts;
-  * idle callbacks can defer this work for many frames during continuous flight. */
+  * input or rendering. Yield through browser timers after each slice; idle
+  * callbacks can defer this work for many frames during continuous flight. */
  private schedule():void {
   const view=this.root.ownerDocument.defaultView,job=this.job;
   if(!job||!view||this.root.ownerDocument.hidden||this.scheduled!==undefined||this.disposed||this.signal.aborted)return;
@@ -108,7 +108,7 @@ export class TransferControls {
    this.scheduled=undefined;
    if(this.job!==job||this.disposed||this.signal.aborted||this.root.ownerDocument.hidden)return;
    this.advance(1);this.schedule();
-  },8);
+  },0);
  }
  private advance(budget:number):void {
   if(!this.job)return;
