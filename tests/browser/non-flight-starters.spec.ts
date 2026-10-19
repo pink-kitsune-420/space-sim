@@ -197,6 +197,9 @@ test('survey zoom buttons and shortcuts affect only the selected view without ad
   await page.goto('/?game=survey-fixture'); await page.locator('#survey-seats').selectOption('2');
   await page.locator('#survey-pilot').selectOption({ value: '1' });
   const canvases = page.locator('#starter-views canvas'), scales = () => canvases.evaluateAll(items => items.map(item => Number((item as HTMLElement).dataset.scale)));
+  await expect.poll(async () => {
+    const values = await scales(); return values.length === 2 && values.every(Number.isFinite);
+  }).toBe(true);
   const initial = await scales(), state = (await debug(page)).state;
   await page.locator('#survey-zoom-out').click(); await expect.poll(async () => (await scales())[1]).toBeLessThan(initial[1]!);
   expect((await scales())[0]).toBe(initial[0]);
