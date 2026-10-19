@@ -135,3 +135,15 @@ describe('maneuver planning', () => {
     expect(drawManeuver(view)).toEqual([]);
   });
 });
+
+it('draws distinct transfer burn vectors, throttle duration, zero-thrust status and delivered impulse progress within the overlay budget',()=>{
+ const plan={time:5,position:a.position,deltaVelocity:{x:3,y:4},burnSeconds:.5,throttle:.25,throttleBurnSeconds:2,remainingDeltaV:2.5,valid:true,path:[a,b],
+  nodes:[{id:'d',label:'Departure',time:5,position:a.position,selected:true,valid:true,deltaVelocity:{x:3,y:4},throttleBurnSeconds:2},
+   {id:'a',label:'Arrival',time:10,position:b.position,selected:false,valid:true,deltaVelocity:{x:-3,y:4},throttleBurnSeconds:3}]};
+ const primitives=drawManeuver({...view,maneuver:plan});expect(()=>validateOverlay(primitives)).not.toThrow();
+ const labels=primitives.filter(p=>p.kind==='text').map(p=>p.text).join(' ');
+ expect(labels).toContain('Arrival');expect(labels).toContain('5.0 m/s');expect(labels).toContain('2.0 s burn at 25% throttle');expect(labels).toContain('BURN · 2.5 m/s left');
+ expect(drawManeuver({...view,maneuver:{...plan,throttle:0,throttleBurnSeconds:null}}).some(p=>p.kind==='text'&&p.text.includes('no thrust at 0%'))).toBe(true);
+ const dense={...plan,path:Array.from({length:2000},(_,i)=>({...a,time:i})),nodes:Array.from({length:16},(_,i)=>({...plan.nodes[1]!,id:String(i)}))};
+ expect(()=>validateOverlay(drawManeuver({...view,maneuver:dense}))).not.toThrow();
+});

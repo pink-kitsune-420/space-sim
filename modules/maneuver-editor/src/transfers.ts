@@ -30,7 +30,7 @@ export class TransferControls {
  private destinationStatus():boolean {
   const kind=this.relations.get(this.destination.value),unsupported=kind&&this.service.relationships&&!this.service.relationships.includes(kind);
   this.find.disabled=!kind||!!unsupported;
-  if(unsupported)this.status.textContent='Moon and planet transfers are not yet implemented by this transfer provider. Choose the current body to change its orbit.';
+  if(unsupported)this.status.textContent='This destination relationship is not supported by the selected provider. Use direct parent/child or sibling legs.';
   return !!kind&&!unsupported;
  }
  private populateDestinations(world:WorldRead):void {
@@ -119,8 +119,10 @@ export class TransferControls {
   for(const {option,text,button} of this.cards) {
    const wait=option.plan.nodes[0]!.time-now;
    button.disabled=wait-option.departureBurnSeconds/2<=1;
+   const flight=this.options.flight(),throttle=flight.ship?.state.throttle??0,acceleration=flight.ship?flight.world.contextFor(flight.ship).vehicle.acceleration:0;
+   const duration=(dv:number)=>dv===0?'0.0 s':acceleration*throttle>0?`${(dv/(acceleration*throttle)).toFixed(1)} s`:'no thrust';
    const description=`${option.kind==='efficient'?'Efficient':'Faster'} · wait ${Math.max(0,wait).toFixed(1)} s · travel ${option.travelSeconds.toFixed(1)} s · Δv ${option.deltaV.toFixed(1)} m/s
-Departure ${option.departureDeltaV.toFixed(1)} m/s (${option.departureBurnSeconds.toFixed(1)} s burn) · arrival ${option.arrivalDeltaV.toFixed(1)} m/s (${option.arrivalBurnSeconds.toFixed(1)} s burn). ${option.warning}`;
+Departure ${option.departureDeltaV.toFixed(1)} m/s (${option.departureBurnSeconds.toFixed(1)} s at full throttle) · arrival ${option.arrivalDeltaV.toFixed(1)} m/s (${option.arrivalBurnSeconds.toFixed(1)} s at full throttle). At ${(throttle*100).toFixed(0)}% throttle: departure ${duration(option.departureDeltaV)}, arrival ${duration(option.arrivalDeltaV)}. ${option.warning}`;
    if(text.textContent!==description)text.textContent=description;
   }
  }

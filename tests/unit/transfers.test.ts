@@ -45,8 +45,8 @@ it('solves the existing nonorthogonal radial/prograde basis without losing arriv
 });
 it('explains unsuitable or unsupported conditions and distinguishes weak-engine impulse estimates',()=>{
  const {world,ship,body}=setup(),request={shipId:ship.id,destinationId:body.id,periapsisAltitude:768,apoapsisAltitude:768};
- for(const changed of [{...request,destinationId:'moon'},{...request,periapsisAltitude:-1},{...request,apoapsisAltitude:Infinity}])expect(search(world,changed).result.options).toEqual([]);
- expect(search(world,{...request,destinationId:'moon'}).result.reason).toContain('Moon and planet');
+ for(const changed of [{...request,destinationId:'nix'},{...request,periapsisAltitude:-1},{...request,apoapsisAltitude:Infinity}])expect(search(world,changed).result.options).toEqual([]);
+ expect(search(world,{...request,destinationId:'nix'}).result.reason).toContain('direct parent/child');
  const weak=setup(640,1,1),result=search(weak.world,{...request,shipId:weak.ship.id}).result;expect(result.options[0]!.warning).toContain('Long finite burn');weak.world.dispose();
  const noEngine=setup(640,1,0);expect(search(noEngine.world,request).result.reason).toContain('no engine');noEngine.world.dispose();
  world.setControls(ship.id,{turn:0,throttle:0,engine:true});expect(search(world,request).result.reason).toContain('Stop thrust');world.dispose();
@@ -71,7 +71,10 @@ it('handles actual packaged services without UI or view-prediction modules and e
    expect(()=>registry.prepare({...profile,modules:profile.modules.slice(1),providers:{'flight.transfers':checked[1]!.id}},environment)).toThrow('flight.plans');
    const candidate=registry.prepare(profile,environment),{world,ship,body}=setup(),job=candidate.providedService(TRANSFERS).search(world,{shipId:ship.id,destinationId:body.id,periapsisAltitude:768,apoapsisAltitude:768});
    let result:TransferResult|undefined;for(let i=0;i<20000;i++){const r=job.next();if(r.done){result=r.value;break;}}
-   expect(result?.options).toHaveLength(2);candidate.dispose();world.dispose();
+   expect(result?.options).toHaveLength(2);
+   const moon=candidate.providedService(TRANSFERS).search(world,{shipId:ship.id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});let interbody:TransferResult|undefined;
+   for(let i=0;i<100000;i++){const step=moon.next();if(step.done){interbody=step.value;break;}}
+   expect(interbody?.options.length,interbody?.reason).toBeGreaterThan(0);candidate.dispose();world.dispose();
   }
  }finally{await rm(dir,{recursive:true,force:true});}
 },60000);

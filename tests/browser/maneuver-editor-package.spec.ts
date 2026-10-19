@@ -4,7 +4,7 @@ import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {rolldown} from 'rolldown';
 import {buildPortableModule} from '../../packages/module-tools/package.mjs';
-let directory:string,hostSource:string;
+let directory:string,hostSource:string,nodeReference:string;
 let bundles:{manifest:unknown;source:string;assets:[string,string][]}[];
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'portable-maneuver-editor-'));bundles=[];
@@ -14,6 +14,13 @@ test.beforeAll(async()=>{
  }
  const host=await rolldown({input:resolve('tests/fixtures/maneuver-host.ts'),plugins:[{name:'public-api',resolveId(raw){if(raw==='@space-sim/game-api')return resolve('packages/game-api/src/index.ts');}}]});
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
+ const api=new Function(`${hostSource};return ManeuverHost;`)(),registry=new api.ModuleRegistryV2(api.engineModuleServices()),selected=bundles.filter(bundle=>['spacelab.flight-plans','spacelab.transfer-planner'].includes((bundle.manifest as any).id));
+ for(const bundle of selected){const initialize=new Function(`"use strict";${bundle.source};return SpaceSimModule.default;`)();registry.register({manifest:bundle.manifest,initialize},api.moduleAssets(new Map(bundle.assets.map(([path,text])=>[path,new TextEncoder().encode(text)]))));}
+ const manifests=selected.map(bundle=>bundle.manifest as any),candidate=registry.prepare({format:'space-sim-profile/2',id:'fixture.node-reference',modules:manifests.map(m=>({id:m.id,version:m.version})),providers:Object.fromEntries(manifests.flatMap(m=>m.slots.map((slot:string)=>[slot,m.id]))),capabilities:{},settings:{}},'node');
+ const world=new api.World(api.DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'});world.step();
+ const search=candidate.providedService(api.TRANSFERS).search(world,{shipId:ship.id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
+ for(let i=0;i<100000;i++){const step=search.next();if(step.done){if(!step.value.options[0])throw Error('Node reference needs a validated moon transfer');nodeReference=JSON.stringify(step.value.options[0].plan.nodes);break;}}
+ candidate.dispose();world.dispose();
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
 async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false,alarms=false,alarmPanel=false){
@@ -256,5 +263,69 @@ test('transfer destinations distinguish current orbit, local moons, parent exits
  });
  expect(result.planetGroups).toEqual(expect.arrayContaining([{label:'Moons of Primus',ids:['moon']},{label:'Interplanetary destinations',ids:['ignis','velum','magnus']}]));
  expect(result.moonGroups).toEqual(expect.arrayContaining([{label:'Parent body · leave the current SOI',ids:['planet']},{label:'Interplanetary destinations',ids:['ignis','velum','magnus']}]));
- expect(result).toMatchObject({current:'moon',unsupported:true,unique:true,count:8,clear:true,tick:1});expect(result.context).toContain('Parvus');expect(result.reason).toContain('not yet implemented');
+ expect(result).toMatchObject({current:'moon',unsupported:false,unique:true,count:8,clear:true,tick:1});expect(result.context).toContain('Parvus');expect(result.reason).toContain('Inputs changed');
+});
+
+test('cross-body transfer plans remain editable, frame-correct, inert and reviewable through save/load',async({page})=>{
+ await setup(page,false,true,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,root}=f,commands:string[]=[];
+  const planner=factory.create({container:root,id:'interbody',flight:()=>({world,ship:current(),body:world.body(current().bodyId),enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  planner.update(0,prediction,false);const before=JSON.stringify(f.api.saveWorld(world));
+  const destination=document.getElementById('interbody-transfer-destination') as HTMLSelectElement;destination.value='moon';destination.dispatchEvent(new Event('input'));
+  const low=document.getElementById('interbody-transfer-low') as HTMLInputElement;low.value='100';low.dispatchEvent(new Event('input'));
+  document.getElementById('interbody-transfer-find')!.click();let frames=0;const started=performance.now();
+  while(!document.getElementById('interbody-transfer-use-efficient')&&performance.now()-started<25000){planner.update(.1,prediction,false);frames++;}
+  if(!document.getElementById('interbody-transfer-use-efficient'))throw Error(document.getElementById('interbody-transfer-status')?.textContent??'No option');
+  const comparison=document.getElementById('interbody-transfer-choices')?.textContent;
+  document.getElementById('interbody-transfer-use-efficient')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
+  const saved=planner.savePlans(),select=document.getElementById('interbody-nodes') as HTMLSelectElement;
+  select.value='arrival';select.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);
+  const snapshot=planner.snapshot(),arrival=saved.plans[0].nodes[1],moon=world.system.getBodyPosition('moon',arrival.time),planet=world.system.getBodyPosition('planet',arrival.time),localRadius=Math.hypot(snapshot.position.x-moon.x+planet.x,snapshot.position.y-moon.y+planet.y);
+  const input=document.getElementById('interbody-radial') as HTMLInputElement;input.value=String(Number(input.value)+1);input.dispatchEvent(new Event('input'));
+  for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
+  const edited=planner.savePlans(),valid=planner.snapshot()?.valid,blocked=(document.getElementById('interbody-execute') as HTMLButtonElement).disabled;
+  planner.loadPlans(saved);const needsReview=!planner.snapshot()?.valid;document.getElementById('interbody-review')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
+  const reviewed=planner.snapshot()?.valid,preserved=JSON.stringify(f.api.saveWorld(world))===before,executing=planner.executing;
+  planner.dispose();f.candidate.dispose();world.dispose();return{nodes:JSON.stringify(saved.plans[0].nodes),frames,comparison,bodies:saved.plans[0].nodes.map((n:any)=>n.bodyId),localRadius,valid,blocked,needsReview,reviewed,preserved,executing,commands,changed:edited.plans[0].nodes[1].radial!==saved.plans[0].nodes[1].radial};
+ });
+ expect(result).toMatchObject({bodies:['planet','moon'],valid:true,blocked:true,needsReview:true,reviewed:true,preserved:true,executing:false,commands:[],changed:true});
+ expect(result.nodes).toBe(nodeReference);expect(result.localRadius).toBeCloseTo(228,2);expect(result.frames).toBeGreaterThan(1);expect(result.comparison).toContain('At 50% throttle');
+});
+
+test('burn duration responds to current throttle without ignition or changing the full-throttle executor estimate',async({page})=>{
+ await setup(page);
+ const result=await page.evaluate(async()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:string[]=[];
+  const planner=factory.create({container:root,id:'thrust-estimate',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const input=document.getElementById('thrust-estimate-prograde') as HTMLInputElement;input.value='20';input.dispatchEvent(new Event('input'));world.setThrottle(current().id,.25);planner.update(.1,prediction,false);
+  const partial=planner.snapshot(),summary=document.getElementById('thrust-estimate-summary')?.textContent;
+  world.setThrottle(current().id,0);await new Promise(r=>setTimeout(r,110));planner.update(.1,prediction,false);const zero=planner.snapshot(),zeroSummary=document.getElementById('thrust-estimate-summary')?.textContent;
+  const engine=current().controls.engine,executing=planner.executing;planner.dispose();f.candidate.dispose();world.dispose();return{partial,zero,summary,zeroSummary,commands,engine,executing};
+ });
+ expect(result.partial.throttleBurnSeconds).toBeCloseTo(result.partial.burnSeconds*4,10);expect(result.zero.throttleBurnSeconds).toBeNull();expect(result.zero.burnSeconds).toBe(result.partial.burnSeconds);
+ expect(result.summary).toContain('25% throttle');expect(result.zeroSummary).toContain('No thrust');expect(result).toMatchObject({commands:[],engine:false,executing:false});
+});
+
+test('arrival waits for actual-flight review after departure and a moving SOI handoff',async({page})=>{
+ await setup(page,false,true,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,root}=f,commands:string[]=[];
+  const service=f.candidate.providedService(f.api.FLIGHT_PLANS),solver=f.candidate.providedService(f.api.TRANSFERS),search=solver.search(world,{shipId:current().id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
+  let plan:any;for(let i=0;i<100000;i++){const step=search.next();if(step.done){plan=step.value.options[0]?.plan;break;}}if(!plan)throw Error('Fixture needs a validated moon plan');
+  let evaluated:any;const job=service.evaluateAsync(plan,world);for(let i=0;i<100000;i++){const step=job.next();if(step.done){evaluated=step.value;break;}}
+  const planner=factory.create({container:root,id:'arrival-review',flight:()=>({world,ship:current(),body:world.body(current().bodyId),enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  planner.update(0,prediction,false);planner.loadPlans({format:'space-sim-flight-plans/1',plans:[plan]});
+  document.getElementById('arrival-review-review')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
+  const departure=evaluated[0].after;world.restoreClock(Math.round(departure.time/.01),departure.time);world.put({...current(),state:departure});
+  document.getElementById('arrival-review-flown')!.click();const select=document.getElementById('arrival-review-nodes') as HTMLSelectElement;select.value='arrival';select.dispatchEvent(new Event('change'));
+  const afterBurnNeedsReview=!planner.snapshot()?.valid;document.getElementById('arrival-review-review')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
+  const beforeHandoffValid=planner.snapshot()?.valid,blocked=(document.getElementById('arrival-review-execute') as HTMLButtonElement).disabled;
+  for(let i=0;i<100000&&current().bodyId==='planet';i++)world.step();planner.update(.1,prediction,false);
+  const afterHandoffNeedsReview=!planner.snapshot()?.valid;document.getElementById('arrival-review-review')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
+  const reviewed=planner.snapshot()?.valid,body=current().bodyId,engine=current().controls.engine,executing=planner.executing;
+  planner.dispose();f.candidate.dispose();world.dispose();return{afterBurnNeedsReview,beforeHandoffValid,blocked,afterHandoffNeedsReview,reviewed,body,engine,executing,commands};
+ });
+ expect(result).toEqual({afterBurnNeedsReview:true,beforeHandoffValid:true,blocked:true,afterHandoffNeedsReview:true,reviewed:true,body:'moon',engine:false,executing:false,commands:[]});
 });

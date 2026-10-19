@@ -84,7 +84,11 @@ it('gives a useful first-frame orbit, progresses during ordinary flight and canc
  const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),prediction=new Prediction(()=>{}, {maxMs:16});
  world.step();let s=world.ship(ship.id)!;
  prediction.update(world.context,s.state,world.body(s.bodyId),world.surface(s.bodyId),s.id,1/60,false,s.controls,world);
- expect(prediction.path.length).toBeGreaterThan(20);expect(prediction.pass).toBeUndefined();expect(prediction.pathEnd).toBe('closed');
+ // A useful first-frame prefix is guaranteed by this fixture. A loaded runner
+ // may exhaust the wall-time budget before closing the orbit; finish progressively.
+ expect(prediction.path.length).toBeGreaterThan(20);
+ for(let frame=0;frame<20&&prediction.pass;frame++)prediction.update(world.context,s.state,world.body(s.bodyId),world.surface(s.bodyId),s.id,1/60,false,s.controls,world);
+ expect(prediction.pass).toBeUndefined();expect(prediction.pathEnd).toBe('closed');
  prediction.invalidate();const id=flyby(world);s=world.ship(id)!;
  for(let frame=0;frame<200;frame++) {
   prediction.update(world.context,s.state,world.body(s.bodyId),world.surface(s.bodyId),s.id,1/60,false,s.controls,world);

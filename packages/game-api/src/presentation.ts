@@ -255,11 +255,15 @@ export interface PresentationSnapshot {
   readonly moduleState: Readonly<Record<string, WorldRuleState>>;
 }
 export interface ManeuverPreview {
-  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly valid: boolean }[];
+  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly valid: boolean; readonly deltaVelocity?: Vec; readonly throttleBurnSeconds?: number | null }[];
   readonly time: number;
   readonly position: Vec;
   readonly deltaVelocity: Vec;
   readonly burnSeconds: number;
+  /** Estimate at the current throttle setting, even with engines off. Null means no thrust. */
+  readonly throttleBurnSeconds?: number | null;
+  readonly throttle?: number;
+  readonly remainingDeltaV?: number;
   readonly valid: boolean;
   readonly path: readonly GhostSample[];
 }

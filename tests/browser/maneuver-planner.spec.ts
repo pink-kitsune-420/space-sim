@@ -272,7 +272,7 @@ test('shared plans export inert nodes and survive portable universe saves with r
   await expect.poll(async () => (await debug(page)).maneuver).toBeNull();
 });
 
-test('transfer window compares efficient/faster options, creates editable nodes and explains the remaining interbody scope',async({page},info)=>{
+test('transfer window compares efficient/faster options, creates editable nodes and explains unsupported deeper relationships',async({page},info)=>{
  await setup(page);await place(page);const before=await debug(page);
  await page.locator('#maneuver-transfers > summary').click();
  await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
@@ -286,8 +286,8 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await page.locator('#maneuver-transfers > summary').click();
  await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
  await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
- await page.locator('#maneuver-transfer-destination').selectOption('moon');await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
- await expect(page.locator('#maneuver-transfer-status')).toContainText('Moon and planet transfers are not yet implemented');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
+ await page.locator('#maneuver-transfer-destination').selectOption('nix');await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
+ await expect(page.locator('#maneuver-transfer-status')).toContainText('not supported');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
 
@@ -323,4 +323,28 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
  const saved=after.maneuver.time,current=(await node.boundingBox())!;
  await page.mouse.move(current.x+current.width/2,current.y+current.height/2);await page.mouse.down();await page.mouse.move(cx+(r+100)*Math.cos(.3),cy-(r+100)*Math.sin(.3),{steps:10});await page.keyboard.press('Escape');await page.mouse.up();
  await expect.poll(async()=>(await debug(page)).maneuver.time).toBeCloseTo(saved,6);
+});
+
+test('moon transfers show both burn indicators, editable arrival and current-throttle duration in the production app',async({page},info)=>{
+ await setup(page);await place(page);const before=await debug(page);
+ await page.locator('#maneuver-transfers > summary').click();await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('100');
+ await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();await page.locator('#maneuver-transfer-find').click();
+ await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible({timeout:60000});await expect(page.locator('#maneuver-transfer-choices')).toContainText('At 50% throttle');
+ await page.locator('#maneuver-transfer-use-efficient').click();await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
+ await page.locator('#flight-view').evaluate(el=>{for(let i=0;i<4;i++)el.dispatchEvent(new WheelEvent('wheel',{deltaY:500,bubbles:true,cancelable:true}));});
+ await page.screenshot({path:info.outputPath('moon-transfer-burns-canvas.png')});
+ await page.locator('#maneuver-nodes').selectOption('arrival');await expect(page.locator('#maneuver-summary')).toContainText('Parvus');await expect(page.locator('#maneuver-summary')).toContainText('50% throttle');
+ await expect(page.locator('#maneuver-execute')).toBeDisabled();
+ await expect.poll(async()=>(await debug(page)).maneuver?.end,{timeout:15000}).toMatch(/horizon|impact|closed|escape/);
+ const originalTime=(await debug(page)).maneuver.time,diamond=page.locator('.maneuver-map [data-map-control="node"]'),box=(await diamond.boundingBox())!;
+ await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+100,box.y-100,{steps:4});
+ await expect.poll(async()=>(await debug(page)).maneuver.time).not.toBe(originalTime);
+ await page.keyboard.press('Escape');await page.mouse.up();await expect.poll(async()=>(await debug(page)).maneuver.time).toBe(originalTime);
+ await expect.poll(async()=>(await debug(page)).maneuver.valid).toBe(true);
+ await page.locator('#maneuver-radial').fill('1');await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
+ await page.locator('#throttle').evaluate(el=>{(el as HTMLInputElement).value='25';el.dispatchEvent(new Event('input',{bubbles:true}));});await expect(page.locator('#maneuver-summary')).toContainText('25% throttle');
+ await page.screenshot({path:info.outputPath('moon-transfer-arrival-canvas.png')});
+ await page.locator('#renderer-toggle').evaluate(el=>(el as HTMLButtonElement).click());await expect.poll(async()=>(await debug(page)).renderer).toBe('builtin.webgl');
+ await page.screenshot({path:info.outputPath('moon-transfer-burns-webgl.png')});
+ const after=await debug(page);expect(after.tick).toBe(before.tick);expect(after.velocity).toEqual(before.velocity);expect(after.maneuver.execution).toBeNull();
 });
