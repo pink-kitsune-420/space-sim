@@ -1,0 +1,16 @@
+{
+  "id": "lessons",
+  "audience": "creators",
+  "title": "Editing the orbital course",
+  "summary": "Editing the orbital course",
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Editing the orbital course"
+    },
+    {
+      "type": "paragraph",
+      "text": "Edit src/index.ts, rebuild orbital-lessons and run npm run academy:build to embed it in the game. Content is independent from the reusable runner and UI. Increment a lesson version when its completion criteria change, or the course version when progress must be separate. Practice uses compatible Primus/Parvus bodies and selected analytic flight. Unsupported custom worlds get diagnostics. Future automatic interplanetary transfers, 3D inclination, N-body/Lagrange dynamics and aerodynamic reentry are outside this course\u2019s current simulated exercises."
+    }
+  ]
+}

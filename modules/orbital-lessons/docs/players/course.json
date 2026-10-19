@@ -1,0 +1,16 @@
+{
+  "id": "academy",
+  "audience": "players",
+  "title": "Orbital Academy",
+  "summary": "Orbital Academy",
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Orbital Academy"
+    },
+    {
+      "type": "paragraph",
+      "text": "Load Orbital Academy from a .spacegame in Library, then choose Play \u00b7 new world. The Academy dock button reopens the course. All 24 lessons are available: start with launch or choose an advanced experiment. Load practice setup and Restart practice explicitly reposition your selected ship, cut thrust and pause. Resume using your current pause binding. Guide my current flight starts without repositioning. A dashed cyan suggested orbit is a geometric teaching guide, not a prediction or an executable plan. Hints and Go deeper are optional. Completion requires the actual observed objectives and knowledge checks; progress is local to this device and primary seat. Close the window to fly, or Stop guidance to remove its target guide."
+    }
+  ]
+}

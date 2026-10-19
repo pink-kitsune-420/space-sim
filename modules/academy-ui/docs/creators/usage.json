@@ -1,0 +1,16 @@
+{
+  "id": "academy-ui",
+  "audience": "creators",
+  "title": "Academy adapter",
+  "summary": "Academy adapter",
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Academy adapter"
+    },
+    {
+      "type": "paragraph",
+      "text": "The optional learning.academy factory needs explicit windows/shell/read/practice/bindings adapters from a compatible Spacelab flight host. read returns detached committed state and an opaque continuity identity. practice is called only from an explicit button; the host validates local ownership, disables armed maneuvers, cuts thrust and pauses. UI removal disposes its dock entry, panel and runner. The interface has no private app imports, timers, thrust control or simulation stepping. Progress is local by course/version and learner key. Archives require the Spacelab host version containing this adapter."
+    }
+  ]
+}

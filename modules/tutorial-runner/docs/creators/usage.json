@@ -1,0 +1,16 @@
+{
+  "id": "runner",
+  "audience": "creators",
+  "title": "Reusable tutorial runner",
+  "summary": "Reusable tutorial runner",
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "Reusable tutorial runner"
+    },
+    {
+      "type": "paragraph",
+      "text": "The runner consumes scalar observations and never writes a world. Each step has either checked conditions or a knowledge question. Holds use consecutive simulation time, invalid flight identity or rewinds interrupt attempts, and progress keys include lesson versions. Provide a game/course/version/learner-specific storage key; storage failure falls back to memory."
+    }
+  ]
+}

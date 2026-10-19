@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "dev:sandbox": "vite apps/orbit-sandbox --port 5174",
-    "build": "node scripts/sync_versions.mjs --check && tsc --noEmit && vite build && node scripts/build_offline.mjs && vite build --config vite.server.config.ts && vite build --config vite.desktop.config.ts",
+    "build": "node scripts/sync_versions.mjs --check && tsc --noEmit && vite build && node scripts/build_offline.mjs && vite build --config vite.server.config.ts && vite build --config vite.desktop.config.ts && npm run academy:build",
     "version": "node scripts/sync_versions.mjs",
     "build:server-exe": "node scripts/build_server_exe.mjs",
     "build:game-exe": "node scripts/build_game_exe.mjs",
@@ -42,7 +42,8 @@
     "game:validate": "node packages/module-tools/package.mjs game-validate",
     "file:pack": "node packages/module-tools/package.mjs pack",
     "file:unpack": "node packages/module-tools/package.mjs unpack",
-    "file:validate": "node packages/module-tools/package.mjs validate"
+    "file:validate": "node packages/module-tools/package.mjs validate",
+    "academy:build": "node scripts/build_orbital_academy.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

@@ -1705,7 +1705,8 @@ kbd,.chat-msg kbd,.key-chip { background:var(--ui-win-card-bg); border-color:var
 
 
 /* In-game Manual: Players / Creators tabs, searchable topics and a reading pane. */
-.panel-window.panel-manual { width:min(760px,calc(100% - 16px)); container-type:inline-size }
+.panel-window.panel-manual { width:min(760px,calc(100% - 16px)); height:min(720px,calc(100% - 16px)); container-type:inline-size }
+.panel-window.panel-manual .flight-window-body { flex:1; overflow:hidden }
 
 /* Responsive defaults and optional, saved HUD positions. Translation preserves each default anchor. */
 #flight-console .hud-quickbar, #flight-console .view-time { position:relative; inset:auto }

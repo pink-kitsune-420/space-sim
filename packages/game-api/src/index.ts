@@ -57,3 +57,4 @@ export * from './flight-plans';
 export * from './transfers';
 
 export * from './alarms';
+export * from './tutorials';

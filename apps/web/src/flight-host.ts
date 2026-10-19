@@ -1,4 +1,6 @@
 import { FloatingWindow } from './floating-window';
+import { academyFlightReader, academyPracticeState } from './academy-flight';
+import { ACADEMY_PANELS, ALARM_CATALOGUE, type AcademyPanel, type AcademyPanelFactory } from '../../../packages/game-api/src/index';
 import { ALARM_PANELS, ORBITAL_ALARMS, TRANSFERS, FLIGHT_PLANS } from '../../../packages/game-api/src/index';
 import { rememberWorldArtwork, worldArtwork } from './world-presentation';
 import { createJoinPacks } from '../../../modules/session-join/src/index';
@@ -311,6 +313,49 @@ const alarmPanel = hostFeatures.lock.providers[ALARM_PANELS.slot] ? hostFeatures
   container: document.querySelector<HTMLElement>('#flight-console .viewport')!, shell: workspace, session: () => session.world,
   windows: { create: options => new FloatingWindow(options) },
 }) : undefined;
+let academy: AcademyPanel | undefined, academyProvider: AcademyPanelFactory | undefined, academyEpoch = 0;
+const readAcademyFlight = academyFlightReader({ session: () => session, selected: () => selectedShipId, epoch: () => academyEpoch,
+  plan: () => maneuver.snapshot(), prediction: () => prediction.pathEnd,
+  alarms: () => hostFeatures.lock.providers[ALARM_CATALOGUE.slot] ? hostFeatures.providedService(ALARM_CATALOGUE).read(session.world).filter(alarm => !alarm.handled).length : 0 });
+function releaseAcademy(): void {
+  const previous = academy; academy = undefined;
+  try { previous?.dispose(); } catch (error) { notify(`Academy cleanup: ${message(error)}`); }
+}
+function updateAcademy(seconds: number): void {
+  const provider = moduleManager?.devices.service(ACADEMY_PANELS);
+  if (provider !== academyProvider) {
+    releaseAcademy(); academyProvider = provider;
+    if (provider) {
+      try {
+        academy = provider.create({ container: document.querySelector<HTMLElement>('#flight-console .viewport')!,
+          windows: { create: options => new FloatingWindow(options) }, shell: workspace,
+          storage: { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
+          learnerKey: 'local-seat-0', read: readAcademyFlight,
+          bindings: () => `Controls · ${['engine', 'turnLeft', 'turnRight', 'throttleUp', 'throttleDown', 'throttleRecall', 'throttleCut', 'pause'].map(id => {
+            const action = ACTION_DEFINITIONS.find(action => action.id === id); return action ? `${action.name}: ${(keybindings[action.id] ?? []).map(formatKeyCode).join(' / ') || 'Unbound'}` : '';
+          }).filter(Boolean).join(' · ')}`,
+          practice: setup => {
+            const ship = selectedShip();
+            if (session !== local || local.hosting || !ship || ship.ownerId !== session.playerId) throw Error('Practice setups require your owned ship in a local, unhosted flight.');
+            const placement = setup.kind === 'pad' ? undefined : academyPracticeState(session.world, setup);
+            if (setup.kind === 'pad' && (setup.bodyId !== 'planet' || !session.world.system.presets.some(preset => preset.id === 'pad' && preset.bodyId === 'planet'))) throw Error('This launch practice requires the Primus pad.');
+            maneuver.cancel();
+            if (hostFeatures.lock.providers[FLIGHT_PLANS.slot]) {
+              const saved = maneuver.savePlans(); maneuver.loadPlans({ ...saved, plans: saved.plans.filter(plan => plan.shipId !== ship.id) });
+            }
+            pilotThrottles[0]?.release();
+            setWarp(1); setPaused(true, 'Academy practice');
+            local.host.setControls(local.playerId, ship.id, IDLE);
+            if (placement) session.teleport(ship.id, placement.bodyId, placement.position, placement.velocity, placement.heading);
+            else session.respawn(ship.id, 'pad');
+            session.setThrottle(ship.id, .5); academyEpoch++; syncSelected(); focusOnShipForNewWorld(); prediction.invalidate();
+          },
+        });
+      } catch (error) { notify(`Academy unavailable: ${message(error)}`); }
+    }
+  }
+  try { academy?.update(seconds); } catch (error) { releaseAcademy(); notify(`Academy stopped: ${message(error)}`); }
+}
 function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };
   lastHud = -Infinity;
@@ -410,6 +455,7 @@ function placeShip(ship: Ship, bodyId: string, position: Vec, velocity: Vec, hea
     notify(message(error));
     return false;
   }
+  if (ship.id === selectedShipId) academyEpoch++;
   logChatMessage('success', session.kind === 'client' ? `${done} (sent to the host)` : done);
   return true;
 }
@@ -722,6 +768,7 @@ function syncLocks(): void {
 /** Switch which world the console shows and flies. Joining or leaving a game also
  * returns the camera to the piloted ship. */
 function useSession(next: GameSession, recenter = true): void {
+  academyEpoch++;
   presentationProviders.setVehicleArtwork(worldArtwork(next.world));
   maneuver.cancel();
   release();
@@ -1068,6 +1115,7 @@ function fitZoom(start: State, presetId = preset.value): void {
 }
 /** Quick reset: restarts the piloted vessel at the scenario start without wiping the world or other ships. */
 function reset(): void {
+  academyEpoch++;
   release();
   const presetId = session.world.presetId(preset.value);
   const ship = selectedShip();
@@ -3889,7 +3937,7 @@ const universeSaveControl = universeSaveUi.mount({
 });
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
-  universeSaveControl.dispose(); hostFeatures.dispose();
+  releaseAcademy(); universeSaveControl.dispose(); hostFeatures.dispose();
 });
 
 function executeAction(action: ActionId): void {
@@ -4535,6 +4583,7 @@ function frame(now: number): void {
   const engine = (session === local ? !!ship?.controls.engine : command.engine && !!ship) && !session.paused;
   presentation.audio.flight(state, engine && !!ship, !!ship?.fault, session.warp, session.paused, !orbitSandboxInstance?.isOpen());
   updatePrediction(elapsed, engine);
+  updateAcademy(elapsed);
   profiler.lap('prediction');
   const before = selectedShipId ? session.previous(selectedShipId) : undefined;
   spinView.update(session.world.system.getAllBodies(), state.time, elapsed, reducedMotion.matches);
@@ -4672,6 +4721,10 @@ function frame(now: number): void {
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
+  if (academy) {
+    try { overlays.push(...academy.draw({ ...base(), camera })); }
+    catch (error) { releaseAcademy(); notify(`Academy preview stopped: ${message(error)}`); }
+  }
 
   if (activeFlightSlingshot && (!activeFlightSlingshot.slot || activeFlightSlingshot.slot === 0 || !splitScreen.isSeparated(activeFlightSlingshot.slot))) {
     refreshFlightSlingshot(activeFlightSlingshot, camera, view.time, canvas);
@@ -4977,6 +5030,7 @@ function switchToSpaceSim(info = defaultGame.info): void {
   activeGameInfo = { ...info };
   show('active-game', info.name);
   document.title = `Spacelab · ${info.name}`;
+  workspace.close(false, false);
 }
 
 labManager = new LabManager({

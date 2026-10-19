@@ -45,7 +45,7 @@ function createReader(options:ManualReaderOptions,content:WindowContentService,g
  const previous=[...root.childNodes],hadClass=root.classList.contains('manual'),controller=new (document.defaultView?.AbortController??AbortController)(),signal=controller.signal;
  let disposed=false,reading:Disposable|undefined,rendered:ManualTopic|undefined,revision:string|undefined;
  let subscription:Disposable|undefined;
- const reader:ManualReader={refresh(){if(!disposed)render();},show(pageId){if(disposed||!pages(state.audience).some(page=>page.id===pageId))return;state.page[state.audience]=pageId;save();renderTopics();renderPage();options.scrollContainer?.scrollTo({top:0});article.focus({preventScroll:true});},
+ const reader:ManualReader={refresh(){if(!disposed)render();},show(pageId){if(disposed||!pages(state.audience).some(page=>page.id===pageId))return;state.page[state.audience]=pageId;save();renderTopics();renderPage();options.scrollContainer?.scrollTo({top:0});article.scrollTo({top:0});article.focus({preventScroll:true});},
   dispose(){if(disposed)return;disposed=true;controller.abort();subscription?.dispose();try{reading?.dispose();}finally{reading=undefined;root.replaceChildren(...previous);root.classList.toggle('manual',hadClass);}}
  };
  const current=()=>{const available=pages(state.audience);return available.find(page=>page.id===state.page[state.audience])??available[0];};
@@ -56,13 +56,14 @@ function createReader(options:ManualReaderOptions,content:WindowContentService,g
   const available=pages(state.audience).filter(page=>{let indexed=searchText.get(page);if(indexed===undefined){indexed=`${page.title} ${page.summary} ${page.searchText??''} ${page.document?documentText(page.document):''}`.toLowerCase();searchText.set(page,indexed);}return !query||indexed.includes(query);});
   topics.replaceChildren(...available.map(page=>{const item=document.createElement('li'),button=document.createElement('button'),title=document.createElement('b'),summary=document.createElement('span');button.type='button';button.dataset.page=page.id;button.className='manual-topic';title.textContent=page.title;summary.textContent=page.summary;button.append(title,summary);if(page===active)button.setAttribute('aria-current','page');item.append(button);return item;}));
   if(!available.length){const empty=document.createElement('li');empty.className='manual-empty';empty.textContent='No pages match.';topics.append(empty);}
+  topics.querySelector('[aria-current="page"]')?.scrollIntoView({block:'nearest',inline:'nearest'});
  }
  function renderPage():void {
   const page=current(),stamp=options.revision?.()??'';if(page===rendered&&stamp===revision)return;
   const staged=document.createElement('div'),title=document.createElement('h2');title.textContent=page?.title??'No pages available';staged.append(title);
   const next=page?.document?content.document(staged,page.document):page?.mount?.(staged);
   try{reading?.dispose();}catch(error){next?.dispose();throw error;}
-  article.replaceChildren(...staged.childNodes);reading=next??undefined;rendered=page;revision=stamp;
+  article.replaceChildren(...staged.childNodes);article.scrollTop=0;reading=next??undefined;rendered=page;revision=stamp;
  }
  function render():void {
   for(const tab of root.querySelectorAll<HTMLButtonElement>('[data-audience]'))tab.setAttribute('aria-selected',String(tab.dataset.audience===state.audience));

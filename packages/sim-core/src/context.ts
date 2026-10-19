@@ -459,8 +459,12 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
    * ground (its final approach). */
   function keplerCoast(state: State, body: Body, surface?: SurfaceProfile, dt = STEP): Coast | undefined {
     if (!capabilities.analyticCoast) return undefined;
-    const identity = surfaceIdentity(body);
     const top = surface?.bounds.maxRadius ?? body.radius;
+    // At/below the highest terrain, periapsis cannot clear that envelope and
+    // clearOfGround is always false. Reject before allocating a frozen epoch
+    // and solving elements on every numerical terrain tick (live and preview).
+    if (surface && magnitude(state.position) <= top) return undefined;
+    const identity = surfaceIdentity(body);
     const own = state.coast;
     if (own?.bodyId === body.id && own.mu === body.mu && own.surfaceRadius === body.radius
       && own.modelIdentity === (customServices ? modelIdentity : undefined)

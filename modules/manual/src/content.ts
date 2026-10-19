@@ -33,221 +33,412 @@ const PLAYERS: readonly ManualPage[] = [
   {
     id: 'welcome',
     title: 'Welcome to Space Sim',
-    summary: 'What the game is and where everything lives',
+    summary: 'Start here: learn to fly, then explore the tools',
     html: `
-<p>Space Sim is a 2D spaceflight game with real orbital physics. Gravity pulls your ship toward planets, and your
-engine changes its speed and direction. With enough sideways speed, your ship keeps falling around a planet
-without ever reaching the ground. That path is called an <b>orbit</b>.</p>
-<h3>The dock</h3>
-<p>The column of buttons at the edge of the screen opens windows:</p>
-<ul>
-  <li><b>Setup</b>: pick the universe, the star system and where your ship starts. <b>Reset flight</b> is here too.</li>
-  <li><b>Fleet</b>: your ships, plus <b>Save universe</b> and <b>Load universe…</b>.</li>
-  <li><b>Online</b>: host friends or join a server.</li>
-  <li><b>Instruments</b>, <b>Trajectory</b> and <b>Telemetry</b>: choose what the flight view shows.</li>
-  <li><b>Settings</b>, <b>Tools</b>, <b>Manual</b> and <b>ModMenu</b>: display options, creator tools, this manual, and other games and plugins.</li>
-</ul>
-<p>Click a dock button again or press <kbd>Esc</kbd> to close its window. The <b>pin</b> button keeps a window open
-while you fly. Press {{key:pause}} to pause.</p>
-<p>Drag a window's edge or corner to resize it. The <b>□</b> button maximizes it; press it again to restore
-the previous size and position. Focus a resize grip and use the arrow keys for small adjustments.</p>
-<p>Open <b>Settings → Edit HUD layout</b> to move the dock, flight controls, clock, status, readings and hints.
-Drag a small grip, or focus it and use the arrow keys. Navballs can be dragged directly while editing, even when pinned. Hold Shift for larger steps. Choose <b>Done</b> when finished.
-Your positions stay saved on this device and fit back inside the screen when it resizes. Touch joystick and action controls have move handles too.
-Windows and chat move by their title bars. Outside the editor, unlock a navball with its pin button before dragging it. <b>Reset HUD layout</b> restores their default positions and window sizes.</p>
-<p>Fly with the interactive navball and throttle lever. The dock has no separate Ship controls window. Activation throttle and fallback flight controls are in <b>Settings</b>; plugin command buttons are in <b>Instruments</b>. <b>Shift+← / Shift+→</b> rotate the camera by 15° without steering; <b>R</b> resets flight. Shift-click the rotation buttons for 1° steps. Follow, recenter, camera mode changes and new focus targets restore the mode’s normal orientation; manual rotation does not replace your chosen horizon setting.</p>
-<p><b>Settings → HUD visibility</b> lets you hide status, flight controls, clock, readings, hints, notices, chat, navballs, touch controls, ship labels, planet labels, planet orbit lines and the scale bar. Planet orbits can be hidden independently of ship trajectories. The dock stays visible so you can reopen Settings. Choices are saved on this device. <b>Restore HUD visibility</b> brings the defaults back. You can also reopen hidden chat from its dock button or with Enter.</p>
-<h3>Where to start</h3>
+<p>Fly a ship in a 2D planetary system. Your engine pushes in the direction of the ship’s nose.
+Gravity bends your path. Build enough sideways speed and you keep falling around the planet: an <b>orbit</b>.</p>
+<h3>Your first few flights</h3>
 <ol>
-  <li>Look over <a data-page="controls">Controls</a>, or hold {{key:engine}} to fire the engine and steer with {{key:turnLeft}} {{key:turnRight}}.</li>
-  <li>Follow <a data-page="first-orbit">Your first orbit</a>.</li>
-  <li>Read <a data-page="orbits">How orbits work</a>. The rest of the game is easier once you know the three rules there.</li>
+  <li>Look over <a data-page="controls">Controls</a>. Hold {{key:engine}} for a short burn and steer with {{key:turnLeft}} / {{key:turnRight}}.</li>
+  <li>Follow <a data-page="first-orbit">Your first orbit</a> from the default Primus launch pad.</li>
+  <li>Try <a data-page="change-orbit">Changing your orbit</a> to see what a short burn does.</li>
+  <li>Use <a data-page="maneuvers">Planning a maneuver</a>, then try a generated <a data-page="transfers">transfer plan</a>.</li>
 </ol>
-<p class="manual-note">Space Sim is free, works offline, and needs no account.</p>`,
-  },
-  {
+<p>These lessons use the default universe and Orbit trainer. Custom games can change the ship, physics and available tools.
+Open <b>Go deeper</b> sections for explanations and maths; you can fly the lessons without them.</p>
+<h3>Find what you need</h3>
+<ul>
+  <li><b>Setup</b>: choose a world and starting point, or reset a flight.</li>
+  <li><b>Instruments</b>, <b>Trajectory</b> and <b>Telemetry</b>: turn on flight aids and read your path. Start with <a data-page="flight-view">Reading the flight view</a>.</li>
+  <li><b>Fleet</b>: switch ships and <a data-page="fleet">save your progress</a>. <b>Online</b>: <a data-page="multiplayer">fly with friends</a>.</li>
+  <li><b>Settings</b>: controls, sound and display. <b>Tools</b>: planet and shader editors. <b>ModMenu</b>: games and plugins.</li>
+</ul>
+<p>Press {{key:pause}} to pause. Pin this window to keep a lesson open while flying.
+Search finds text inside collapsed sections too.</p>
+${deeper('arranging windows and the HUD', `
+<p>Click a dock button again or press <kbd>Esc</kbd> to close its window. The pin keeps it open while you fly.
+Drag a title bar to move a window, or an edge or corner to resize it. The <b>□</b> button maximizes and restores it.
+Focus a resize grip and use arrow keys for small adjustments; hold Shift for larger steps.</p>
+<p>Open <b>Settings → Edit HUD layout</b> to move the dock, flight controls, clock, status, readings and hints.
+Drag their grips, or focus a grip and use arrow keys. Navballs can be dragged directly while editing, even when pinned.
+Each local player has a separate throttle lever position. Choose <b>Done</b> when finished.
+Outside the editor, unpin a navball before moving it.</p>
+<p><b>Settings → HUD visibility</b> controls individual HUD elements, including navballs, touch controls, labels,
+planet orbit lines and chat. Planet orbits and ship trajectories have separate switches. The dock stays available.
+Reopen hidden chat from the dock or with Enter. <b>Restore HUD visibility</b> restores visibility defaults;
+<b>Reset HUD layout</b> restores positions and window sizes. These preferences stay on this device.</p>`)}
+<p class="manual-note">Space Sim works offline and needs no account. The Creators tab explains how to make worlds, shaders and modules.</p>`,
+  },  {
     id: 'controls',
     title: 'Controls',
-    summary: 'Keyboard, touch and gamepad',
+    summary: 'Steer, burn, coast and find your live mappings',
     html: `
-<p>The table shows player 1's current keyboard and controller mappings. Lesson hints use these mappings too.
-Choose <b>Configure controls…</b> above to change them. This opens the same dialog as
-<b>Settings → Controls &amp; keybindings…</b>. Controller axes show their configured index and direction;
-button names match the connected controller, with Xbox names used when it is disconnected.
-A dash means the action has no binding for that input or the device is disabled or assigned elsewhere.</p>
-<div data-manual-controls></div>
-<h3>Touch and mouse</h3>
+<div data-manual-configure></div>
+<h3>The controls you need first</h3>
 <ul>
-  <li>Drag the lever beside your navball to set persistent thrust; release to keep burning, or drag to 0% to coast. The lever shows active power. Each local pilot has their own lever; its mechanical track and grip work with mouse and touch.</li>
-  <li>{{key:throttleUp}} / {{key:throttleDown}} adjust active thrust: tap for 1%, or hold to ramp smoothly, starting at 20 percentage points per second and gently increasing to 30 over one second. Hold {{key:throttleFine}} for a slower ramp (4 to 6 percentage points per second) and 0.2% taps. Releasing, reversing direction or changing fine mode resets the ramp speed. Starting from idle ramps up from 0%, and releasing keeps the burn. {{key:throttleRemember}} remembers the current active thrust for your assigned player without changing the burn. {{key:throttleCut}} cuts to 0%; {{key:throttleRecall}} starts a persistent burn at your remembered activation level. In <b>Settings</b>, moving the throttle slider also remembers that level; choose a player and edit <b>Activation throttle (%)</b> directly or choose <b>Reset activation level</b> to restore the world's default (normally 50%). The lever and ramp can still reach 100%. Switch the lever independently with <b>Instruments → Throttle</b>. Use <b>Settings → Edit HUD layout</b> and its grip to move it without moving the navball; each local player has a separate lever position.</li>
-  <li>Hold <b>BURN</b> or {{key:engine}} for a temporary burn; releasing stops it. This overrides a persistent burn. Held engine/throttle controls lock and cancel dragging (LOCK). Cut overrides held controls until you release them. Pausing, losing focus or opening a window clears persistent thrust. Hold the turn buttons to rotate.</li>
-  <li>Drag the view to move the camera. Pinch or use the mouse wheel to zoom. Flick the view to send the camera gliding.</li>
+  <li><b>Steer:</b> {{key:turnLeft}} / {{key:turnRight}} turn the nose. The engine pushes along the nose; turning alone leaves your orbit unchanged.</li>
+  <li><b>Short burn:</b> hold {{key:engine}} or the on-screen burn button. Release to stop.</li>
+  <li><b>Continuous thrust:</b> drag the throttle lever beside the navball, or use {{key:throttleUp}} / {{key:throttleDown}}.
+    Releasing keeps this burn running. Press {{key:throttleCut}} or move the lever to 0% to coast.</li>
+  <li><b>Pause / retry:</b> {{key:pause}} pauses; {{key:reset}} resets your selected ship to the chosen starting scenario.</li>
+  <li><b>Look around:</b> drag to pan, wheel or pinch to zoom. Camera movement does not steer the ship.</li>
 </ul>
-<h3>Gamepad</h3>
-<p>Plug in a controller and press any button. Steam Deck, Xbox, PlayStation and most joysticks work. By default, left stick vertical or D-pad up/down ramps thrust; LT/L2 gives fine adjustment, R3 cuts, and A/Cross recalls the activation level. RT/R2 remains a held burn. Throw has no default controller button; bind it in Controllers if wanted. Saved default layouts migrate to free D-pad up for throttle.</p>
-${deeper('tuning a controller', `
-<p>Open <b>Settings → Controls &amp; keybindings… → Controllers</b>. Choose the player to configure, then change their stick axes, inversion, dead zone or button bindings. The <b>dead zone</b> is how far a stick must move before the game reacts; raise it if the ship drifts while you aren't touching the stick. Select <b>+</b> beside an action and press a controller button to bind it. Gameplay input is held while this dialog is open.</p>`)}`,
-  },
-  {
-    id: 'local-players',
-    title: 'Playing on one screen',
-    summary: 'Up to four pilots, controllers and dynamic split screen',
-    html: `
-<p>Open <b>Settings → Split screen…</b> and choose one to four players. Local pilots work in your solo world or a world you host. Joining someone else's world uses the primary pilot.</p>
-<ol>
-  <li>On the <b>Players</b> tab, give each pilot a name and an input device. Use the keyboard for one player and controllers for the others. <b>Press to assign</b> lets a controller claim a seat.</li>
-  <li>Choose <b>Dynamic</b> screen mode to share a view while the ships are close together. Moving apart, changing reference body or opening a map splits the views. <b>Forced split screen</b> always gives each pilot a separate pane.</li>
-  <li>Each pilot has a matching colour and navball. Pick its corner on the Players tab, or unpin and drag the dial. Disabling <b>Instruments → Navball</b> hides the dials and their interaction targets.</li>
-  <li>The primary pilot's quick reset returns only that ship to the chosen scenario. Other pilots can use their assigned reset button. <b>Setup → Reset world</b> is for the host and restarts every ship and the clock.</li>
-</ol>
-<p>In a game already configured for several players, an unclaimed controller can join by pressing Start. Controller settings are separate for each player; time warp and pause affect everyone.</p>
-<p>With the throw cheat enabled in Settings, hold the controller's configured throw button and pull with a stick, then release to launch. Disabled controllers and disabled cheats cannot throw a vessel. The right stick moves a virtual cursor for the pilot's viewport.</p>`,
-  },
-  {
+<p>A held burn temporarily overrides persistent thrust; releasing it stops the burn.
+Pausing, losing focus or opening a window clears persistent thrust. Check the lever before resuming.</p>
+<h3>Your current mappings</h3>
+<p>This table and the lesson hints use player 1’s current bindings. Choose <b>Configure controls…</b> at the top of this page,
+or <b>Settings → Controls &amp; keybindings…</b>, to change them. A dash means unbound, disabled or assigned elsewhere.
+Controller buttons use the connected controller’s names; disconnected controllers use Xbox labels.
+For several pilots, see <a data-page="local-players">Playing on one screen</a>.</p>
+<div data-manual-controls></div>
+${deeper('fine thrust and remembered power', `
+<p>Tap {{key:throttleUp}} / {{key:throttleDown}} for 1% adjustments, or hold to ramp active thrust.
+Hold {{key:throttleFine}} for 0.2% taps and a slower ramp. Normal ramp speed rises from 20 to 30 percentage points per second over one second;
+fine mode rises from 4 to 6. Releasing, reversing direction or changing fine mode restarts that ramp.</p>
+<p>{{key:throttleRemember}} remembers the current active power without changing the burn.
+{{key:throttleRecall}} starts a persistent burn at that activation level; {{key:throttleCut}} cuts power.
+In Settings, the throttle slider also remembers its level. Choose a player to edit <b>Activation throttle (%)</b>,
+or choose <b>Reset activation level</b> for the world’s default, normally 50%.</p>
+<p>The lever shows active thrust and can reach 100%. Held engine or throttle inputs lock the lever and cancel a drag (<b>LOCK</b>).
+Cut overrides held controls until you release them. Enable the lever with <b>Instruments → Throttle</b>;
+move its separate grip in <b>Settings → Edit HUD layout</b>.</p>`)}
+${deeper('connecting and tuning a controller', `
+<p>Connect a controller and press a button so the browser can detect it. Common Xbox, PlayStation, Steam Deck and joystick layouts are supported.
+With default bindings, left-stick vertical or D-pad up/down ramps thrust, LT/L2 gives fine adjustment,
+R3 cuts, A/Cross recalls power, and RT/R2 is a held burn. Your live table above is authoritative after remapping.</p>
+<p>Open <b>Settings → Controls &amp; keybindings… → Controllers</b>, choose the player, and set axes,
+inversion, dead zone and buttons. The <b>dead zone</b> ignores small stick movement; increase it if steering drifts at rest.
+Choose <b>+</b> beside an action and press a button to bind it. Throw has no default controller button.
+Flight input is blocked while configuring controls.</p>`)}
+`,
+  },  {
     id: 'first-orbit',
     title: 'Your first orbit',
-    summary: 'From the launch pad to a stable orbit around Primus',
+    summary: 'Launch from Primus and coast with the engine off',
     html: `
-<p>In <b>Setup</b>, choose the <b>Primus System</b> and <b>North pad · ready to launch</b>. Primus is a small,
-heavy practice planet. Orbits there are a few hundred metres up and one lap takes about half a minute.</p>
+<p><b>Goal:</b> fly one lap with the engine off and the whole orbit above the ground.</p>
+<p>In <b>Setup</b>, select <b>Primus System</b> in the default universe, then <b>North pad · ready to launch</b>.
+Open <b>Instruments</b> and enable <b>Orbit markers</b>, <b>Velocity</b> and <b>Navball</b>.
+Pin the <b>Trajectory</b> window so you can read the path while flying. Keep time at 1×.</p>
 <ol>
-  <li><b>Climb.</b> Hold {{key:throttleUp}} until the throttle is full; thrust starts immediately and continues when released. Go straight up for a moment.</li>
-  <li><b>Tip over slowly.</b> Turn toward the horizon a little at a time with {{key:turnLeft}} or {{key:turnRight}}.
-    Sideways speed is what keeps you up, so you want more of it as you climb.</li>
-  <li><b>Watch the line.</b> The trajectory line shows where you will go if you stop the engine. If it hits the
-    ground, keep burning sideways.</li>
-  <li><b>Stop at the right height.</b> The <b>Ap</b> marker is the highest point of your path. When it is well
-    above the ground, press {{key:throttleCut}} to coast.</li>
-  <li><b>Finish at the top.</b> Coast up to Ap. Point the ship the way you are moving (along the velocity arrow)
-    and press {{key:throttleRecall}} to burn again. The low side of the path lifts. Cut with {{key:throttleCut}} when the <b>Pe</b> marker, the lowest point, is safely
-    above the ground.</li>
+  <li><b>Lift off.</b> Drag the throttle lever to 100%, or hold {{key:throttleUp}} until it reaches full power.
+    This starts a persistent burn: releasing the control keeps the engine running. Begin pointing straight up.</li>
+  <li><b>Build sideways speed.</b> Once clear of the pad, turn gradually toward either horizon with
+    {{key:turnLeft}} / {{key:turnRight}}. Keep some upward thrust while you gain speed. Watch the navball pitch fall from +90° toward 0°.</li>
+  <li><b>Choose a high point.</b> The <b>Ap</b> marker (apoapsis) is the highest point of your current coast path.
+    When it is a few hundred metres up and you are still climbing, press {{key:throttleCut}} to coast.
+    The path now shows where you will go without more thrust.</li>
+  <li><b>Approach Ap.</b> Watch the time to Ap in Telemetry or the orbit marker. Turn toward the prograde marker,
+    the direction of your motion. For this orbital burn, check that the navball reads <b>ORB</b>.</li>
+  <li><b>Raise the low point.</b> Near Ap, make short prograde burns by holding {{key:engine}} and releasing to stop.
+    Watch <b>Pe</b> (periapsis), the lowest point, rise above the surface. Stop before Ap grows far beyond the orbit you want.</li>
 </ol>
-<p>You are now in orbit. Press {{key:warpUp}} to speed up time and watch the ship circle the planet with the engine off.</p>
-<p class="manual-note">To try again, press {{key:reset}}. To start in orbit instead, pick <b>Circular orbit · 128 m altitude</b> in Setup.</p>
-${deeper('the numbers behind this launch', `
-<p>Primus has a radius of 512 m and a gravitational parameter μ of 13,107,200 m³/s². Surface gravity is
-μ/R² = <b>50 m/s²</b>, about five times Earth's. Your engine gives up to 125 m/s², so at full throttle the
-<b>thrust-to-weight ratio</b> is 2.5. At the default half throttle it is 1.25, barely enough to lift off.</p>
-<p>A circular orbit 128 m up (r = 640 m from the centre) needs a speed of √(μ/r) ≈ <b>143 m/s</b> and takes
-2πr/v ≈ <b>28 s</b> per lap when moving along the local horizon. A slower sideways speed lowers the opposite side
-of the orbit; check whether Pe clears the terrain to know if you will hit the ground. The two-body escape speed
-there is √(2μ/r) ≈ <b>202 m/s</b>.</p>
-<p>A <b>gravity turn</b> is the steady tilt in step 2. Climbing straight up the whole way wastes fuel because
-the engine spends all its effort holding you up against gravity. Tilting early puts that effort into
-sideways speed, which you need for orbit anyway.</p>`)}`,
+<p><b>Check:</b> the engine is off, the coast path closes around Primus, and Pe clears the ground.
+You can now increase time with {{key:warpUp}} and watch a lap. Use {{key:warpReset}} to return to 1×.</p>
+<h3>If the launch goes wrong</h3>
+<ul>
+  <li><b>The line still hits Primus:</b> you need more sideways speed. A high Ap alone does not make an orbit.</li>
+  <li><b>You fall while turning:</b> keep the nose higher for longer, or use more throttle. Turn more gradually next time.</li>
+  <li><b>You fly far away:</b> cut thrust sooner. Primus is small and its orbits change quickly.</li>
+</ul>
+<p class="manual-note">Press {{key:reset}} to retry. To practise orbital burns first, choose
+<b>Circular orbit · 128 m altitude</b> in Setup and continue with <a data-page="change-orbit">Changing your orbit</a>.</p>
+${deeper('the launch numbers and gravity turn', `
+<p>Default Primus has radius R = 512 m and gravitational parameter μ = 13,107,200 m³/s².
+Surface gravity is μ/R² = <b>50 m/s²</b>. The default trainer’s maximum engine acceleration is <b>125 m/s²</b>.
+Its full-power thrust-to-weight ratio is 2.5; at the default 50% activation level it is 1.25.</p>
+<p>At 128 m altitude, r = R + altitude = 640 m. A circular orbit needs √(μ/r) ≈ <b>143 m/s</b>
+of sideways speed and takes 2π√(r³/μ) ≈ <b>28 s</b>. The local two-body escape speed is about <b>202 m/s</b>.
+These are ORB speeds relative to Primus’s centre, not SRF speeds over its rotating ground.</p>
+<p>A gravity turn uses gravity to bend an initially upward flight toward the horizon. The lesson uses a
+manually steered approximation. Turning the nose alone does not change your velocity: thrust must act over time.
+Climbing vertically for too long spends thrust opposing gravity instead of building sideways speed.
+The default trainer has no propellant budget; short, well-timed burns still make its path easier to control.</p>`)}`,
+  },  {
+    id: 'change-orbit',
+    title: 'Changing your orbit',
+    summary: 'Tutorial: raise one side, then make the orbit round',
+    html: `
+<p><b>Goal:</b> understand why raising an orbit usually takes two burns.</p>
+<p>Choose <b>Circular orbit · 128 m altitude</b> around Primus in Setup. Keep time at 1× and thrust off.
+Enable the velocity arrow and orbit markers. This exercise uses small burns so you can see the change.</p>
+<ol>
+  <li><b>Face your motion.</b> Align the nose with orbital prograde. Check the navball reads <b>ORB</b>.</li>
+  <li><b>Burn briefly.</b> Hold {{key:engine}} for a short pulse, then release. Repeat if needed.
+    The coast path becomes an ellipse: its far side rises, while the burn point becomes Pe.</li>
+  <li><b>Coast to Ap.</b> Wait until the ship approaches the new highest point. Keep time slow near it.</li>
+  <li><b>Burn prograde there.</b> Short pulses raise Pe toward Ap. Stop when the two heights are close.
+    Continue burning and you can pass circular speed, making this point the new Pe instead.</li>
+</ol>
+<p><b>Check:</b> the new orbit is nearly round, higher than the starting orbit, and stays clear with thrust off.
+Its circular speed is lower and its lap takes longer, even though you used two prograde burns to get there.</p>
+<p>To lower an orbit, reverse the lesson: a short retrograde burn lowers the opposite side.
+Coast down to the new Pe, then burn retrograde to lower Ap. Stop before the path intersects the surface.</p>
+<p class="manual-note">Want a preview and precise Δv instead of hand-timed pulses? Follow <a data-page="maneuvers">Planning a maneuver</a>.</p>
+${deeper('a two-burn example', `
+<p>For circular orbits around Primus at r₁ = 640 m and r₂ = 1,280 m from the centre
+(128 m and 768 m altitude), a tangential <b>Hohmann transfer</b> uses an ellipse with a = 960 m.</p>
+<ul>
+  <li>Departure: <code>√[μ(2/r₁ − 1/a)] − √(μ/r₁)</code> ≈ <b>22.1 m/s prograde</b>.</li>
+  <li>Coast: <code>π√(a³/μ)</code> ≈ <b>25.8 s</b> to the far apsis.</li>
+  <li>Arrival: <code>√(μ/r₂) − √[μ(2/r₂ − 1/a)]</code> ≈ <b>18.6 m/s prograde</b>.</li>
+</ul>
+<p>These are instantaneous-impulse estimates for circular orbits moving in the same direction around one body.
+The first burn reaches the destination height; the second matches circular velocity there. A finite burn will differ slightly.</p>
+<p>See NASA’s <a href="https://science.nasa.gov/learn/basics-of-space-flight/chapter4-1/" target="_blank" rel="noopener noreferrer">Trajectories</a> for transfer background.</p>`)}`,
   },
   {
     id: 'orbits',
     title: 'How orbits work',
-    summary: 'Orbital mechanics for beginners, with optional maths',
+    summary: 'Motion, gravity and the effect of a burn',
     html: `
 <h3>Falling around a planet</h3>
-<p>Throw a ball and it curves down to the ground. Throw it faster and it lands farther away. Throw it fast
-enough and the ground curves away beneath it as fast as it falls. The ball keeps falling and never lands.
-That is an orbit.</p>
+<p>A thrown ball falls back to the ground. Give it enough sideways speed and the ground curves away beneath it
+as it falls. Gravity still acts in orbit; you can turn the engine off because gravity bends your motion around the body.</p>
 <h3>Words you will see</h3>
 <dl>
-  <dt>Prograde and retrograde</dt><dd>Prograde is the direction you are moving. Retrograde is the opposite.
-    Burning prograde speeds you up. Burning retrograde slows you down.</dd>
-  <dt>Apoapsis (Ap) and periapsis (Pe)</dt><dd>The highest and lowest points of your orbit.</dd>
-  <dt>Radial out and radial in</dt><dd>Straight away from the planet, and straight toward it.</dd>
-  <dt>Eccentricity (e)</dt><dd>How stretched the orbit is. 0 is a circle. Values near 1 are long, thin ovals.
-    At 1 or above, the ship escapes and never comes back.</dd>
-  <dt>Sphere of influence (SOI)</dt><dd>The region where one body's gravity is the one that counts. When you
-    cross into a moon's SOI, your path is drawn around the moon instead.</dd>
+  <dt>Reference body</dt><dd>The planet, moon or star used for your current position and orbital velocity.</dd>
+  <dt>Prograde / retrograde</dt><dd>Along your velocity / opposite your velocity in the chosen frame.
+    An orbital prograde burn adds speed; a short retrograde burn removes speed.</dd>
+  <dt>Apoapsis (Ap) / periapsis (Pe)</dt><dd>The farthest / nearest point from the reference body’s centre.
+    Displayed heights subtract its reference radius. Terrain can stand above that reference surface.</dd>
+  <dt>Radial out / radial in</dt><dd>Directly away from / toward the body’s centre. These are directions, not a promise that your whole flight goes straight up or down.</dd>
+  <dt>Δv (delta-v)</dt><dd>A change in velocity, measured in m/s. A longer burn or more thrust delivers more Δv.</dd>
+  <dt>Eccentricity (e)</dt><dd>Orbit shape: 0 is circular, between 0 and 1 is elliptical, 1 is parabolic and above 1 is hyperbolic for a nonradial two-body path.
+    An open path has no Ap. It can still hit the body before escaping.</dd>
+  <dt>Sphere of influence (SOI)</dt><dd>A boundary where Space Sim switches which body supplies gravity.
+    Entering a moon’s SOI is an encounter; staying in orbit there usually needs another burn.</dd>
 </dl>
-<h3>Three rules</h3>
+<h3>Three useful rules</h3>
 <ol>
-  <li><b>A burn moves the opposite side of the orbit.</b> Burning prograde at Pe raises Ap. Burning prograde at
-    Ap raises Pe. This is why you finish a launch at the highest point.</li>
-  <li><b>Lower orbits are faster.</b> A lower orbit takes less time per lap. To catch a ship ahead of you,
-    drop to a lower orbit and let it carry you forward.</li>
-  <li><b>Sideways speed keeps you up.</b> Climbing straight up costs fuel and gets you nowhere. Turn early and
-    build sideways speed.</li>
+  <li><b>Burn at one end to change the other.</b> A short prograde burn at Pe raises Ap. At Ap it raises Pe toward your current height.
+    Short retrograde burns do the reverse. After passing circular speed, the high and low labels can swap.</li>
+  <li><b>Lower circular orbits have shorter periods.</b> A ship in a lower orbit gains angular position faster.
+    To catch another ship, change the timing of your orbit, then match its position <i>and</i> velocity. Pointing at it and accelerating is rarely enough.</li>
+  <li><b>Check the whole path.</b> Height alone cannot keep you up. A safe orbit needs enough sideways motion and clearance all the way around.</li>
 </ol>
-<h3>Travelling to a moon</h3>
-<p>To reach Parvus, the moon of Primus, burn prograde until your Ap reaches Parvus's orbit. Time the burn so
-Parvus arrives at that point when you do. When your path enters Parvus's sphere of influence, you have arrived.</p>
-${deeper('the equations', `
-<p>These hold for every body in the game. μ is the body's gravitational parameter (G × mass), r is your
-distance from its centre, and a is the <b>semi-major axis</b>, half the longest width of the orbit.</p>
+<p>Try the rules in <a data-page="change-orbit">Changing your orbit</a>. For another body, read
+<a data-page="moon-flight">Reaching Parvus</a>.</p>
+${deeper('two-body equations and their limits', `
+<p>These describe an unpowered path under one body’s gravity. Use metres, seconds and velocity relative to that body.
+μ = G × mass is its gravitational parameter; r is distance from the centre, <b>not altitude</b>.
+For an ellipse, a is its semi-major axis: (Pe radius + Ap radius)/2.</p>
 <ul>
-  <li><b>Circular speed</b>: <code>v = √(μ / r)</code></li>
-  <li><b>Escape speed</b>: <code>v = √(2μ / r)</code>, about 1.41 times circular speed.</li>
-  <li><b>Vis-viva</b> gives your speed anywhere on any orbit: <code>v² = μ (2/r − 1/a)</code></li>
-  <li><b>Period</b> (time per lap): <code>T = 2π √(a³ / μ)</code>. Double the size of an orbit and a lap takes 2.8 times as long.</li>
-  <li><b>Specific orbital energy</b>: <code>ε = v²/2 − μ/r</code>. Negative means bound, zero or positive means
-    escape. Telemetry shows it as <i>Orbital energy</i>, and it stays constant while you coast.</li>
+  <li><b>Circular speed:</b> <code>v = √(μ/r)</code>.</li>
+  <li><b>Escape speed:</b> <code>v = √(2μ/r)</code>. This is a local two-body energy threshold, not a guarantee of avoiding impact or leaving the whole system.</li>
+  <li><b>Vis-viva:</b> <code>v² = μ(2/r − 1/a)</code>. Hyperbolic a is negative; for a parabola, 1/a is zero.</li>
+  <li><b>Elliptic period:</b> <code>T = 2π√(a³/μ)</code>. Doubling a multiplies the period by about 2.83.</li>
+  <li><b>Specific orbital energy:</b> <code>ε = v²/2 − μ/r</code>, in J/kg. Negative is bound; zero or positive is unbound in the isolated two-body model.</li>
 </ul>
-<p><b>Why a burn moves the other side.</b> Your orbit's energy depends only on a. A prograde burn adds energy,
-so a grows. You are still at the same point when the burn ends, so that point stays put and the far side
-moves out.</p>
-<p><b>Burn where you are fastest.</b> The same Δv (change in velocity) adds more energy when you are already
-moving fast, because energy grows with v². That is the <b>Oberth effect</b>, and it is why big burns go at periapsis.</p>`)}
-${deeper('a worked transfer to Parvus', `
-<p>The cheapest path between two circular orbits is a <b>Hohmann transfer</b>: half an ellipse that touches the
-low orbit at its Pe and the high orbit at its Ap.</p>
-<ul>
-  <li>Start: circular orbit 128 m up (r₁ = 640 m), speed 143 m/s.</li>
-  <li>Parvus orbits Primus at r₂ = 15,360 m. The transfer ellipse has a = (r₁ + r₂)/2 = 8,000 m.</li>
-  <li>Speed needed at Pe of the transfer, from vis-viva: √(μ(2/640 − 1/8000)) ≈ 198 m/s. The burn is about <b>55 m/s prograde</b>.</li>
-  <li>The coast to Ap is half a transfer period: π √(a³/μ) ≈ <b>620 s</b>, about 10 minutes of game time.</li>
-  <li>Parvus takes 3,298 s per lap, so it moves about 68° during your coast. Burn when Parvus is about
-    <b>112° ahead</b> of you, and you meet it.</li>
-</ul>
-<p>Spheres of influence are worked out with <code>r_SOI ≈ a (m / M)^(2/5)</code>. Space Sim uses
-<b>patched conics</b>: inside each SOI, only that body's gravity acts, and your path is an exact ellipse or
-hyperbola. When you cross a boundary, the game switches the path to the new body.</p>`)}`,
-  },
-  {
+<p>For a very short tangential burn at an apsis, position hardly changes, and the burn changes the opposite apsis.
+Away from an apsis, or during a long burn, both apsides and the ellipse’s direction can change.</p>
+<p>The energy change for an instantaneous velocity change is
+<code>Δε = v · Δv + |Δv|²/2</code>. A prograde impulse adds more energy at higher speed: the <b>Oberth effect</b>.
+Burn placement still depends on the orbit and destination you want.</p>
+<p>Energy stays constant during an undisturbed coast about the same body. Thrust, contact, custom forces and SOI frame changes can change the displayed value.</p>`)}
+${deeper('what Space Sim simulates', `
+<p>Default flight uses <b>patched conics</b>: one reference body supplies gravity at a time.
+The game solves clear, unpowered arcs with Kepler’s equation to numerical precision, and uses fixed 0.01 s steps for thrust and contact.
+SOI crossings change the reference frame while preserving the ship’s system position and velocity.</p>
+<p>Real gravity has no sharp SOI boundary: other bodies keep pulling. Here planets and moons follow their configured paths;
+this is a simplified Newtonian flight model. The default trainer has constant engine acceleration, no fuel depletion and no atmospheric drag.
+An atmosphere’s visible glow does not imply aerodynamic braking. Custom games can select different physics.</p>
+<p>A common SOI estimate is <code>r_SOI ≈ a(m/M)^(2/5)</code>, with child mass m and parent mass M.
+A universe may set its own entry and exit radii; the defaults do. Slightly different entry and exit boundaries prevent rapid switching.</p>
+<p>For real-flight background, see NASA’s <a href="https://science.nasa.gov/learn/basics-of-space-flight/chapter3-4/" target="_blank" rel="noopener noreferrer">Gravity &amp; Mechanics</a>.
+The lessons here describe the game’s simplified model.</p>`)}`,
+  },  {
     id: 'flight-view',
     title: 'Reading the flight view',
-    summary: 'Trajectory, markers, velocity arrow, telemetry',
+    summary: 'Read your coast path, heights, speeds and encounters',
     html: `
-<ul>
-  <li><b>Trajectory line</b>: where you will coast if you stop the engine now. A closed loop means you are in
-    orbit. A line that ends at the ground means you will hit it.</li>
-  <li><b>Ap and Pe markers</b>: the high and low points, with their height and time to reach them.
-    Switch them on in <b>Instruments → Orbit markers</b>.</li>
-  <li><b>Velocity arrow</b>: the direction you are moving, with your speed (<b>Instruments → Velocity</b>).</li>
-  <li><b>Navball</b>: your ship's tilt against the horizon. See <a data-page="navball">Navball</a>.</li>
-  <li><b>Trajectory window</b>: Pe, Ap and impact numbers.</li>
-  <li><b>Maneuver planner</b>: click or tap the coast line to place a planned burn. See <a data-page="maneuvers">Planning a maneuver</a>.</li>
-  <li><b>Telemetry window</b>: your speed split into up-down and sideways parts, local gravity, and orbit timing.</li>
-  <li><b>Camera</b>: {{key:camera}} switches between following the ship, a view of the planet, and free movement.
-    {{key:orientation}} switches between north-up and horizon-up. The camera's ↶ / ↷ buttons rotate the view by 15° (Shift: 1°); <b>N↑</b> resets to north up. This changes the view, leaving ship attitude alone. Zoom with {{key:zoomIn}} {{key:zoomOut}}.</li>
-</ul>
-<p>You can switch off any instrument in <b>ModMenu → Instruments &amp; display</b>.</p>
-${deeper('what the telemetry numbers mean', `
+<p><b>Start with three aids:</b> enable <b>Orbit markers</b>, <b>Velocity</b> and <b>Navball</b> in <b>Instruments</b>.
+Open <b>Trajectory</b> for a compact orbit readout, and <b>Telemetry</b> for more numbers.</p>
 <dl>
-  <dt>Radial speed</dt><dd>How fast you are climbing (+) or falling (−).</dd>
-  <dt>Horizontal speed</dt><dd>Your speed along the horizon. Compare it with circular speed, √(μ/r), to see how close you are to orbit.</dd>
-  <dt>Flight path angle</dt><dd>The angle between your motion and the horizon. 0° at Ap and Pe, positive while climbing.</dd>
-  <dt>Local gravity</dt><dd>μ/r² at your current height. It weakens with the square of distance.</dd>
-  <dt>Thrust / weight</dt><dd>Engine acceleration divided by local gravity. Above 1 you can hover or climb straight up.</dd>
-  <dt>Orbital energy</dt><dd>v²/2 − μ/r. It only changes when you burn.</dd>
-  <dt>Period, time to Pe and time to Ap</dt><dd>Exact values from your current orbit, recalculated every frame.</dd>
+  <dt>Coast trajectory</dt><dd>Your predicted path if you apply no more thrust. A closed, clear loop is an orbit;
+    a surface endpoint means contact is predicted. It does not tell you that the contact will be a safe landing.</dd>
+  <dt>Ap / Pe</dt><dd>Your current two-body high and low points. Positive Pe height alone does not guarantee terrain clearance.
+    A circle has no distinct high point; an escape path has no Ap.</dd>
+  <dt>Velocity arrow</dt><dd>Motion relative to the reference body’s centre. Your nose can point somewhere else.
+    Turning without thrust changes attitude, not the coast path.</dd>
+  <dt>Navball</dt><dd>Ship attitude, motion markers and the active ORB or SRF velocity frame. See <a data-page="navball">Navball</a>.</dd>
+  <dt>Amber dashed path</dt><dd>The result of planned instantaneous burns. A plan does not apply thrust.
+    See <a data-page="maneuvers">Planning a maneuver</a>.</dd>
+</dl>
+<h3>Encounters and incomplete paths</h3>
+<p>The default predictor can follow a coast through moving SOIs, such as a Parvus encounter and a return to Primus.
+An SOI crossing changes the reference body, so the local orbit and velocity numbers change too.
+Amber encounter markers show the destination body and time remaining. A thin outline labelled <b>at SOI</b> shows
+where that body will be at the encounter time, which can differ from its current position.</p>
+<p><b>Tracing</b> means the preview is still being calculated. <b>Preview time horizon reached</b> means its time window ended;
+<b>Partial path · work limit reached</b> means its work budget ended. <b>Escape · preview distance horizon</b>
+marks an open path traced to its distance limit. <b>Unavailable</b> means no valid prediction was produced.
+An unfinished line alone is not proof of escape. Predictions assume no future pilot burn and have finite limits.</p>
+<h3>Move the view</h3>
+<p>{{key:camera}} cycles camera modes; {{key:orientation}} changes north-up / horizon-up.
+Drag to pan and use the wheel, pinch or {{key:zoomIn}} / {{key:zoomOut}} to zoom.
+The ↶ / ↷ camera buttons rotate the view by 15° (Shift-click: 1°); <b>N↑</b> restores north-up.
+Camera rotation leaves the ship’s attitude and orbit unchanged.</p>
+${deeper('understanding telemetry', `
+<p>These default flight readings use the body-centred orbital frame, even when the navball uses SRF.</p>
+<dl>
+  <dt>Radial speed</dt><dd>Outward velocity is positive; inward is negative.</dd>
+  <dt>Horizontal speed</dt><dd>Magnitude of tangential velocity along the local horizon, in m/s.
+    Compare it with √(μ/r); circular flight also needs radial speed near zero.</dd>
+  <dt>Flight path angle</dt><dd>Angle of velocity above the local horizon. Positive while climbing, negative while descending;
+    zero at an ordinary Ap or Pe. This is motion, not nose pitch.</dd>
+  <dt>Local gravity</dt><dd>μ/r² in m/s², using centre distance r.</dd>
+  <dt>Thrust / weight</dt><dd>Engine acceleration at the selected throttle divided by local gravity.
+    It describes available thrust at that setting, even when the engine is off. Above 1 permits vertical acceleration if you point outward and fire.</dd>
+  <dt>Orbital energy</dt><dd>Specific two-body energy in J/kg. Conserved during an undisturbed coast in the same frame.</dd>
+  <dt>Orbit timing</dt><dd>Period and next apsis times from the current two-body orbit, not a prediction of future engine commands.
+    Missing values can be appropriate for circles, radial motion or open paths.</dd>
 </dl>`)}`,
-  },
-  {
+  },  {
     id: 'maneuvers',
     title: 'Planning a maneuver',
-    summary: 'Click a trajectory, plan a burn, preview the orbit',
+    summary: 'Preview a burn, then choose how to fly it',
     html: `
-<p>A maneuver node marks a future point where you intend to change your velocity. Planning a burn leaves your ship coasting.</p>
+<p><b>Goal:</b> predict an orbit change before firing the engine. A <b>maneuver node</b> stores a future time and Δv (change in velocity).
+Creating or editing one leaves your ship coasting.</p>
+<h3>Try a small burn</h3>
 <ol>
-  <li>Enter an unpowered orbit. Zoom out until you can see the coast line, then click or tap it. An amber diamond marks the node and the <b>Maneuver</b> window opens.</li>
-  <li>Set <b>Prograde Δv</b> to add speed along your motion; a negative value is retrograde and slows you down. Set <b>Radial Δv</b> to push away from the body; a negative value pushes inward. Δv means a change in velocity, measured in metres per second.</li>
-  <li>The dashed amber line previews the coast after that burn. Drag the node's ◇ along the coast, click another point on the original line, or edit <b>Node in (s)</b> to move it. Drag <b>P±</b> handles for prograde/retrograde and <b>R±</b> for radial out/in. Choose an <b>Adjustment</b> size for buttons and handles; Shift makes it ten times finer. Map drags apply that step per 4 pixels. Escape cancels a drag; <b>Clear Δv</b> keeps the node and removes its burn.</li>
-  <li><b>Warp to node</b> coasts without firing the engine, including with zero Δv or no engine. It returns to normal speed 10 seconds plus half the estimated burn duration beforehand, when thrust is available. Only the host controls warp. Steering, thrust, pausing, hiding the tab or <b>Stop warp</b> cancels the approach.</li>
-  <li>Turn toward the amber diamond on the navball and fire the engine yourself. Centre the estimated burn on the node time. The amber arrow at the node also shows the intended burn direction.</li>
+  <li>Choose <b>Circular orbit · 128 m altitude</b> in Setup. Cut thrust with {{key:throttleCut}}, pause with {{key:pause}}, and zoom out to see the coast line.</li>
+  <li>Click or tap a point ahead on that line. An amber diamond appears and the <b>Maneuver</b> window opens.
+    Set <b>Node in (s)</b> to about 20 seconds for this practice orbit.</li>
+  <li>Enter <b>10</b> for <b>Prograde Δv</b> and <b>0</b> for <b>Radial Δv</b>.
+    The dashed amber path should rise on the far side of Primus. Negative prograde means retrograde; negative radial means inward.</li>
+  <li>Check the predicted path and full-throttle burn duration. At this scale the burn is very short;
+    use <b>Execute burn</b> for the first timing exercise, or choose the manual method below.</li>
+  <li>Resume, then choose <b>Execute burn</b> while there is time to prepare. It warps, aligns the ship,
+    burns around the node time and cuts thrust. Watch the actual coast path afterward.</li>
 </ol>
-<p>For a fully autonomous maneuver, choose <b>Execute burn</b>. It warps toward the selected node, returns to normal speed, turns toward the burn direction, fires the engine around the node time, and cuts off after delivering the planned Δv. It adjusts the final tick's throttle for small burns and leaves throttle at zero when complete. Allow enough time before the node for alignment and half the burn duration. Autonomous execution is available in solo play and for the host's selected ship; remote pilots can still plan and fly manually.</p>
-<p><b>Abort burn</b> immediately releases engine and steering control. Manual steering, engine or throttle input, changing warp, pausing, opening Controls, hiding the tab, switching ships, disabling the instrument or a changed trajectory also aborts. A partly executed burn needs a new plan. Execution stays at normal speed after cutoff.</p>
-<p>Use <b>Delete node</b> to remove the plan. Close the editor and reopen it from the <b>Maneuver</b> dock button. Disable the tool in <b>Instruments → Maneuver planner</b>.</p>
-<p>Each piloted ship has one local plan for this flight session. Plans are not included in universe saves or sent to other players. Manual thrust, resets and changes of reference body mark an old plan for replanning.</p>
-${deeper('precision and limits', `<p>The preview applies the entire Δv instantly at the node, then uses the same isolated trajectory predictor as the coast line. Real engine burns take time, so long burns differ from the preview. Prograde follows velocity and radial follows position; those directions are not perpendicular on an eccentric orbit. Burn duration uses the magnitude of their combined vector and the engine's maximum acceleration.</p>
-<p>The preview uses the current body's gravity and stops at contact or its prediction limit. It does not forecast subsequent sphere-of-influence encounters. Custom worlds requiring numerical or whole-world prediction cannot use this analytic planner.</p>`)}`,
+<p><b>Check:</b> the ship is coasting again, and the far side of its orbit is higher.
+Automatic execution affects only the selected node. Each later node needs its own explicit execution choice.</p>
+<h3>Fly a node manually</h3>
+<p><b>Warp to node</b> only coasts. It returns to 1× about 10 seconds plus half the estimated full-throttle burn duration before the node.
+Point toward the amber diamond on the navball. For a short burn, aim to put half its duration before the node time and half after.
+The estimate assumes 100% thrust; using less power takes longer. Cut thrust yourself and inspect the result.</p>
+<p><b>Abort burn</b> releases automatic steering and engine control. Manual flight input also takes over.
+Pausing, changing warp, switching ships, hiding the tab or changing the flight can cancel the approach or burn.
+A partially flown burn needs replanning. Solo players and the host can use warp and automatic execution;
+remote pilots can plan and fly manually.</p>
+<p>Close and reopen the editor with the <b>Maneuver</b> dock button. See <a data-page="flight-plans">Multi-node plans and saves</a>,
+<a data-page="transfers">Transfer plans</a> and <a data-page="burn-alarms">Burn reminders</a> for the next steps.</p>
+${deeper('map handles and precision', `
+<p>Drag the node’s <b>◇</b> along the original coast line to change its time.
+Drag <b>P±</b> for prograde/retrograde or <b>R±</b> for radial out/in. <b>Adjustment (m/s)</b> sets the step;
+Shift makes it ten times finer. Handles apply the step per 4 pixels. Escape cancels a drag.
+<b>Clear Δv</b> keeps the node time; <b>Delete node</b> removes that node.</p>
+<p>Prograde follows the predicted velocity <i>at the node</i>; radial follows position there.
+These directions are not perpendicular when the ship is climbing or descending. The combined vector’s length,
+not the sum of the two fields, determines Δv and estimated burn duration.</p>
+<p>The preview applies Δv instantaneously. Actual burns take time and automatic execution delivers a fixed inertial
+impulse vector while gravity continues acting. Long burns can differ substantially from the dashed path.
+Automatic cutoff accounts for delivered engine impulse and can reduce the last tick’s throttle; it does not guarantee the planned arrival orbit.</p>
+<p>The coast preview can cross SOIs, but the current node editor and chained plan evaluator require safe legs around the same body.
+Place a node before an encounter, then plan again after changing reference body. Custom numerical or whole-world motion can disable analytic planning.</p>`)}`,
+  },  {
+    id: 'flight-plans',
+    title: 'Multi-node plans and saves',
+    summary: 'Chain burns, review actual flight and keep a plan',
+    html: `
+<p>A flight plan can hold several future burns for a ship. The dashed preview assumes each earlier burn happens exactly as planned.
+Start with <a data-page="maneuvers">one maneuver</a>, then build a sequence.</p>
+<ol>
+  <li>Use <b>Add node</b> in Maneuver to append a burn. Choose which node to edit with <b>Plan node</b>.</li>
+  <li>Set its time, prograde and radial Δv. Check the preview and each node’s status.
+    Later nodes depend on earlier ones and cannot execute while an earlier node is pending.</li>
+  <li>Fly the first burn manually or choose <b>Execute burn</b> for that node.</li>
+  <li>For a manual burn, use <b>Mark flown</b> on the node you flew. Automatic completion marks its own node flown.</li>
+  <li>Choose <b>Review remaining</b> to recalculate the remaining plan from the actual ship state.
+    Inspect the result, adjust it if needed, then choose how to fly the next burn.</li>
+</ol>
+<p><b>Review remaining</b> validates the edited intent against your current flight; it does not automatically correct
+an inaccurate burn or optimise the arrival. A stale, missed or unsupported node needs editing, marking flown or deleting.</p>
+<h3>Save and resume</h3>
+<p><b>Export plan</b> downloads a plan JSON file. <b>Load plan</b> imports it.
+<b>Fleet → Save universe</b> also includes plans; load that universe to restore flight progress.
+Loaded plans need review before use. A plan file alone does not move your ship onto its original orbit.</p>
+<p>Plans store intent and reminder preferences. Loading, reviewing or generating a plan never arms a burn.
+The current editor saves its plans locally or with your universe file; it does not broadcast them to other pilots.</p>
+${deeper('compatibility and limits', `
+<p>The shared plan service supports up to 16 time-ordered nodes per ship, within one year of the plan epoch.
+It checks the ship, universe, system, physics identity, motion model and safe coast intervals.
+Current chains require the same reference body; possible SOI or surface events can invalidate a leg.</p>
+<p>The default game supplies the optional shared plan service. If a custom game omits it, the editor can retain
+its single-node planning mode, without the multi-node save controls. Loaded plans remain inert and require review.</p>`)}`,
+  },
+  {
+    id: 'transfers',
+    title: 'Transfer plans',
+    summary: 'Tutorial: compare generated departure and arrival burns',
+    html: `
+<p><b>Goal:</b> generate a two-burn orbit change and understand the choices before flying it.</p>
+<p>Start in <b>Circular orbit · 128 m altitude</b> around Primus. Cut thrust and pause while comparing plans.</p>
+<ol>
+  <li>Open <b>Maneuver</b> from Instruments and expand <b>Transfer window</b>.</li>
+  <li>Keep <b>Destination</b> set to <b>Primus</b>. Leave <b>Circular target</b> checked and enter
+    <b>768</b> for <b>Target low altitude (m)</b>.</li>
+  <li>Choose <b>Find options</b>. Compare the wait before departure, travel time, total Δv and both burn durations.</li>
+  <li>Choose <b>Use efficient plan</b>, or <b>Use faster plan</b> when offered.
+    This installs editable <b>Departure</b> and <b>Arrival</b> nodes; it replaces the ship’s current plan and leaves the engine off.</li>
+  <li>Inspect Departure. Resume, then execute it explicitly or fly it manually. Afterward,
+    mark a manually flown node with <b>Mark flown</b> and choose <b>Review remaining</b>.
+    Inspect Arrival against the actual path before choosing its burn.</li>
+</ol>
+<p><b>Check:</b> adopting a plan creates two nodes without starting thrust.
+After both burns, compare actual Pe and Ap with the 768 m target; adjust any remaining error with a new maneuver.</p>
+<h3>Other orbit shapes</h3>
+<p>Starting orbits can be circular or elliptical. Uncheck <b>Circular target</b> to give the target separate low and high altitudes.
+Both must clear the highest terrain; low must not exceed high. Heights are measured above the body’s reference radius.</p>
+<p class="manual-note">This increment generates orbit changes around the <b>current body</b>.
+Automatic transfers to moons or planets remain in development. A destination appearing in the list does not mean a solver is available;
+unavailable choices are marked <b>not available yet</b> and explain the limit when selected.
+The list groups the current body, nearby moons, the parent body and farther destinations, and updates when your reference body changes.
+Try <a data-page="moon-flight">Reaching Parvus</a> for a manual transfer.</p>
+${deeper('what efficient and faster mean', `
+<p><b>Efficient</b> has the smallest total impulse cost among the validated sampled opportunities.
+<b>Faster</b>, when available, arrives earlier after including both wait and travel time.
+Neither label promises a global optimum. There may be no meaningfully faster validated result.</p>
+<p>The search is bounded and uses the selected motion and prediction services to reject unsafe or unsupported candidates.
+The result is still an <b>impulsive estimate</b>. Long finite burns can materially change the arrival;
+review after departure and read any warning beside the option.</p>
+<p>Thrust or changed flight conditions invalidate search results. Changing the destination or target heights requires a new search.
+An expired preparation window also needs a new search. Use <b>Cancel search</b> to stop a search.</p>`)}`,
+  },
+  {
+    id: 'burn-alarms',
+    title: 'Burn reminders',
+    summary: 'Leave warp in time to prepare; optionally pause',
+    html: `
+<p>A burn reminder helps you prepare for a node while using ordinary time warp.
+It <b>exits warp and notifies you</b>; it never turns the ship or fires the engine.</p>
+<ol>
+  <li>Select a valid node in Maneuver and expand <b>Burn alarm</b>.</li>
+  <li>Keep <b>Remind me before this burn</b> checked. Set <b>Preparation lead (s)</b> to the time you want before preparing the burn.</li>
+  <li>Optionally check <b>Pause at reminder</b>. The default is 10 seconds of preparation, with no pause.</li>
+  <li>Resume and increase time warp. You can close the Maneuver window. As the reminder approaches, warp slows;
+    at the reminder it returns to 1×, notifies you, and pauses if selected.</li>
+</ol>
+<h3>See all active reminders</h3>
+<p>Open <b>Alarms</b> from the dock, or its entry under Instruments, to see pending reminders, countdowns and delivered notices for this session.
+Configure each reminder in <b>Maneuver → Burn alarm</b>. Closing Alarms does not disable reminders.
+This window shows reviewed next burns; later nodes appear after earlier burns are resolved and reviewed.
+An empty list can mean there is no eligible reviewed node, or its reminder is off.</p>
+<p><b>Check:</b> a reminder appears and the engine remains under your control.
+Choose <b>Execute burn</b> separately if you want automatic execution, or fly the burn manually.</p>
+<p>Only the next unflown, reviewed node of a ship is eligible. After a burn, review later nodes before expecting their reminders.
+Missed or stale plans need attention. The host controls reminders that change the shared warp or pause;
+remote pilots cannot independently stop the host’s clock.</p>
+${deeper('when the reminder happens', `
+<p>Reminders use <b>simulation time</b>, not wall-clock time. Pausing stops the countdown.
+The deadline is the node time minus half the estimated full-throttle burn duration,
+minus the larger of your preparation lead or estimated alignment time plus one second.</p>
+<p>This allows more preparation when the nose points far from the planned direction. It is a preparation estimate, not automatic ignition.
+Saved plans retain reminder settings and delivered state, so reloading does not repeatedly deliver the same old reminder.
+Changing a future reminder can make it eligible again. Without the optional alarm provider, these controls are unavailable. The Alarms window is a separate optional module;
+reminders can work without it. It reads the same clock catalogue and does not schedule another copy of a reminder.</p>`)}`,
   },
   {
     id: 'navball',
@@ -259,8 +450,8 @@ ship points compared with the ground below you.</p>
 <ul>
   <li><b>Blue half</b>: the sky, away from the planet. <b>Brown half</b>: the ground. The line between them is your local horizon.</li>
   <li><b>White chevron</b> in the middle: your ship's nose.</li>
-  <li><b>Yellow-green circle with a dot</b>: prograde, the way you are moving. The same circle with an <b>X</b> is retrograde.</li>
-  <li><b>Blue circles</b> at the top and bottom: radial out (straight up) and radial in (straight down).</li>
+  <li><b>Yellow-green circle with a dot</b>: prograde, the way you are moving. The same circle with an <b>X</b> is retrograde. Both use the frame shown on the dial and disappear near zero speed.</li>
+  <li><b>Blue circles</b> on the marker ring: radial out (straight up) and radial in (straight down).</li>
   <li><b>Orange arc</b>: the shortest turn from your nose to prograde.</li>
   <li><b>Amber diamond</b>: the direction of a planned maneuver burn. See <a data-page="maneuvers">Planning a maneuver</a>.</li>
 </ul>
@@ -272,56 +463,114 @@ degrees you need to turn to face prograde), and your speed.</p>
   <li><b>Raising your orbit:</b> turn until the orange arc disappears, so your nose sits on prograde, then burn.</li>
   <li><b>Landing:</b> point at retrograde to slow down, then keep the nose near +90° for the final drop.</li>
 </ul>
-<p>Switch it off in <b>Instruments → Navball</b>.</p>
+<p>For orbital burns, use <b>ORB</b> velocity relative to the body’s centre. For landing, use <b>SRF</b> velocity relative to the rotating ground. Switching frames changes the motion markers, not your actual flight.</p>
+<p>Switch the dial off in <b>Instruments → Navball</b>. Unpin it to move it; the throttle lever has its own position.</p>
 ${deeper('frames, pitch and settings', `
 <p><b>ORB and SRF.</b> The readout shows which velocity the dial uses. <b>ORB</b> (orbit) is your speed around
 the planet's centre. <b>SRF</b> (surface) is your speed over the ground, which turns with the planet. Primus spins
 once every 600 s, so its equator moves about 5.4 m/s. A ship resting on the pad has 0 m/s SRF but 5.4 m/s ORB.
-In auto mode, the dial uses SRF on the ground and below about 12% of the planet's radius, and switches to ORB
-above about 18%. The gap between the two stops it from flickering back and forth.</p>
+In auto mode, the dial uses SRF on the ground, enters SRF below a ground clearance of about 12% of the planet's radius, and returns to ORB above about 18%. The gap between the two stops it from flickering back and forth.</p>
 <p><b>HRZ and CAM.</b> In <b>HRZ</b> (horizon) mode, the sky always stays at the top of the dial, so you have a steady
 reference during a gravity turn. In <b>CAM</b> (camera) mode, the dial turns with your camera, so directions on
 the dial match directions on screen.</p>
 <p><b>Pitch</b> is measured from the horizon ahead of you (the direction you are travelling around the planet):
 +90° is straight up, 0° is level going forward, −90° is straight down, and ±180° is level going backward.</p>
-<p>Frame (auto, ORB or SRF) and orientation (HRZ or CAM) are settings of the <code>builtin.navball</code> module. Auto and HRZ are the defaults.</p>`)}`,
+<p>Auto frame and HRZ orientation are the defaults. Custom game profiles can configure the navball’s frame and orientation.</p>`)}`,
   },
   {
     id: 'warp',
     title: 'Time warp',
-    summary: 'Speed up time while you coast',
+    summary: 'Coast faster, understand limits and return to 1×',
     html: `
-<p>{{key:warpUp}} speeds up time and {{key:warpDown}} slows it down. {{key:warpReset}} returns to normal speed.
-Time can run up to 100,000 times faster.</p>
+<p>{{key:warpUp}} increases time warp; {{key:warpDown}} reduces it. {{key:warpReset}} returns to 1×.
+The maximum selectable rate is 100,000×, but the game limits the rate to suit the current world.</p>
 <ul>
-  <li>Fast warp only works while every ship is coasting: engines off, no steering, nothing touching the ground or water.</li>
-  <li>While an engine fires, time runs at normal speed. Close to the ground, while steering, or while floating, warp stops at 4×.</li>
-  <li>If warp won't go higher, a message says why, for example "Low altitude" or "Engine thrust active".</li>
+  <li><b>Engine firing:</b> 1×. Cut persistent thrust as well as releasing held engine controls.</li>
+  <li><b>Steering, numerical flight or very low altitude:</b> usually at most 4×. Active contact or water entry can restrict it to 1×.</li>
+  <li><b>Low or short-period orbits:</b> capped so you can still follow the flight. Primus’s 28-second practice orbit cannot reach 100,000×.</li>
+  <li><b>Other ships matter:</b> warp is shared. A ship in the fleet can restrict it even when you are flying another one.
+    A settled landed or crashed ship can sleep and does not by itself block fast warp.</li>
 </ul>
-${deeper('why warp is limited', `
-<p>A coasting ship follows an exact ellipse or hyperbola. The game can jump straight to any future time with
-Kepler's equation, so 100,000× costs no more than 1×. This is called being <b>on rails</b>.</p>
-<p>Thrust, terrain, water and steering can't be solved that way. For those the game steps the physics forward in
-small fixed steps (100 per second). Warping a stepped ship would take thousands of steps per frame, so warp is
-capped until the ship is coasting again.</p>`)}`,
-  },
-  {
+<p>If warp stops increasing, read its explanation. The host controls the shared clock in multiplayer.
+Use <a data-page="maneuvers">Warp to node</a> for a planned approach, or a <a data-page="burn-alarms">burn reminder</a>
+while using ordinary warp. A reminder does not fire the engine.</p>
+${deeper('on-rails coast and fixed steps', `
+<p>For a clear two-body coast, the game evaluates a Kepler orbit directly at a later time. This is <b>on rails</b>.
+It avoids stepping through every intervening 0.01 s of an uneventful coast. SOI and surface checks still bound safe jumps.</p>
+<p>Thrust, near-surface interactions and custom per-step rules need numerical work.
+Default flight uses 100 fixed physics steps per simulated second in those intervals.
+Fast warp is limited to keep that work bounded and preserve contact accuracy.</p>
+<p>Orbit Sandbox is a separate simulation with its own numerical warp and CPU limits;
+see <a data-page="orbit-sandbox">Orbit Sandbox</a>.</p>`)}`,
+  },  {
     id: 'landing',
     title: 'Landing, terrain and oceans',
-    summary: 'Touch down at 5 m/s or less',
+    summary: 'Reduce surface speed and touch down upright',
     html: `
+<p><b>Goal:</b> touch solid ground upright at less than 5 m/s relative to the rotating surface.
+Total speed matters, including sideways motion.</p>
+<h3>Practise before returning from orbit</h3>
+<p>Use the default <b>North pad · ready to launch</b>. At 1×, make a short vertical hop, then cut thrust.
+Keep the nose outward and use short burns to slow the descent. Aim well below the 5 m/s limit.
+Press {{key:reset}} to retry.</p>
+<h3>Return from orbit</h3>
+<ol>
+  <li>Burn orbital retrograde until the coast path intersects the surface. Start with the smooth practice planet.</li>
+  <li>Watch the predicted contact point and your remaining height. Reduce speed early; the default game has no atmospheric braking.</li>
+  <li>Near the ground, check the navball’s <b>SRF</b> frame. Burn opposite surface-relative motion to remove sideways drift.</li>
+  <li>As surface speed approaches zero, point the nose outward for a gentle final descent. Prograde and retrograde markers disappear when there is almost no motion.</li>
+</ol>
+<p><b>Check:</b> the status reads <b>LANDED</b>. A safe landing needs low speed, a suitable attitude and a gentle enough slope.
+On terrain, aim the nose along the local ground normal (perpendicular to the slope), rather than assuming radial up always matches it.</p>
+<p>Try <b>Dry terrain flights</b> for mountains and craters. In <b>Ocean flights</b>, water provides buoyancy;
+fast entry can crash the ship, and it can float or dive. These are simplified surface and water models.</p>
+${deeper('landing limits and stopping distance', `
+<p>Default solid-ground limits are total surface-relative impact speed ≤ <b>5 m/s</b>, nose within <b>20°</b>
+of the supporting surface normal, and slope ≤ <b>30°</b>. A rotating planet’s ground velocity must be subtracted from orbital velocity.
+The limits apply with ordinary crash rules; cheats and custom physics can change the outcome.</p>
+<p>For a nearly vertical descent, constant engine acceleration A, approximately constant local gravity g,
+and full outward thrust, net braking acceleration is A − g. If A &gt; g,
+<code>d ≈ v²/[2(A − g)]</code>. This ignores turning time, sideways motion, changing gravity and terrain;
+use it as a rough estimate, not a guaranteed ignition height.</p>
+<p>Near Primus’s surface at full power, A − g ≈ 125 − 50 = 75 m/s².
+At 50 m/s downward speed the estimate is about <b>17 m</b>; at 100 m/s it is about <b>67 m</b>.
+Start higher to allow for alignment and corrections. At half throttle the available braking is much smaller.</p>`)}`,
+  },  {
+    id: 'moon-flight',
+    title: 'Reaching Parvus',
+    summary: 'Plan a moon encounter, then brake for capture',
+    html: `
+<p><b>Goal:</b> distinguish reaching a moon’s orbit, encountering the moon and staying there.</p>
+<p>Practise <a data-page="maneuvers">maneuver planning</a> and <a data-page="change-orbit">orbit changes</a> first.
+Begin in Primus’s <b>Circular orbit · 128 m altitude</b>, moving in the same direction as Parvus.</p>
+<ol>
+  <li><b>Raise the far side.</b> Plan a prograde departure until Ap reaches roughly Parvus’s orbital distance.
+    Merely crossing that distance does not guarantee a meeting.</li>
+  <li><b>Time the departure.</b> Parvus must be near the far end when you arrive, rather than where it was when you left.
+    Change the departure time and inspect the coast forecast for an SOI encounter.</li>
+  <li><b>Inspect the approach.</b> The multi-body coast preview can show the encounter and later path.
+    Avoid a surface impact. Use low warp near the moon so you can react.</li>
+  <li><b>Capture.</b> Once inside Parvus’s SOI, plan using the new moon-centred orbit.
+    A retrograde burn near a safe Pe can remove enough energy to leave a bound orbit around the moon.</li>
+</ol>
+<p><b>Check:</b> entering the SOI is an encounter. Capture means you now have a bound, terrain-clearing moon orbit
+that stays within its SOI; otherwise you may fly past and return to Primus.</p>
+<p class="manual-note">Automatic moon and planet transfer generation is still in development.
+The current editor places nodes before the first encounter. Plan the arrival burn again in the moon’s frame after entering its SOI.</p>
+${deeper('a first estimate for the departure window', `
+<p>Ignore the moon’s gravity until the encounter and use a half-ellipse from r₁ = 640 m to
+r₂ = 15,360 m from Primus’s centre. Its semi-major axis is a = 8,000 m.</p>
 <ul>
-  <li>Land <b>upright</b> at <b>5 m/s or less</b> on fairly flat ground. Any faster and the ship breaks.</li>
-  <li>To come down from orbit, burn retrograde until the Pe marker sits below the ground. Near the surface,
-    point the engine against your motion and burn to slow down.</li>
-  <li>Some worlds have mountains and craters, and the trajectory line follows them. Practise in <b>Setup → Dry terrain flights</b>.</li>
-  <li>Water holds your ship up. Hitting it faster than 5 m/s is a crash. You can also dive and come back up. Practise in <b>Setup → Ocean flights</b>.</li>
+  <li>Initial circular speed: about <b>143 m/s</b>.</li>
+  <li>Transfer departure speed: <code>√[μ(2/r₁ − 1/a)]</code> ≈ <b>198 m/s</b>, a prograde impulse of about <b>55 m/s</b>.</li>
+  <li>Coast to the far end: <code>π√(a³/μ)</code> ≈ <b>621 s</b>, about 10 minutes of game time.</li>
+  <li>Parvus’s period is about 3,298 s. It moves roughly 68° during the coast;
+    for the same orbital direction, begin with Parvus about <b>112° ahead</b> along the orbit.</li>
 </ul>
-${deeper('timing the landing burn', `
-<p>With engine acceleration A and local gravity g, your ship can slow down at A − g while pointing straight up.
-Falling at speed v, you need a distance of about <code>d = v² / (2(A − g))</code> to stop.</p>
-<p>On Primus at full throttle, A − g = 125 − 50 = 75 m/s². Falling at 50 m/s, you need about 17 m. At 100 m/s,
-you need about 67 m. Start the burn a little higher than that and ease off near the ground.</p>`)}`,
+<p>This Hohmann-style estimate targets the moon’s orbital distance, not a safe moon-centred periapsis.
+Its finite SOI, an earlier encounter, a finite departure burn and the capture maneuver all change the actual flight.
+Use the preview and make corrections. A Hohmann transfer is a useful two-impulse construction;
+it is not the globally cheapest route between every pair of circular orbits.</p>`)}`,
   },
   {
     id: 'worlds',
@@ -336,13 +585,37 @@ you need about 67 m. Start the burn a little higher than that and ease off near 
   <li><b>Dry terrain flights</b> and <b>Ocean flights</b>: practice for landings.</li>
   <li><b>Solar System (1/10 scale)</b> and <b>Full Solar System (1:1, every known moon)</b>: the real planets.</li>
 </ul>
-<p>You can make your own planets with <b>Tools → Planet designer</b>, or in the <b>Orbit Sandbox</b> game in the
-ModMenu. To load a universe someone sent you, use <b>Setup → Import…</b>.</p>
+<p>Use <a data-page="planet-designer">Tools → Planet designer</a> to change a body’s appearance on this device.
+Build physical planetary systems in <a data-page="orbit-sandbox">Orbit Sandbox</a>, available in the ModMenu. To load a universe someone sent you, use <b>Setup → Import…</b>.</p>
 ${deeper('why the Primus System is so small', `
-<p>Real planets are huge, so a real orbit takes 90 minutes and a trip to the Moon takes days. The Primus planets
+<p>Real planets are huge, so a low Earth orbit takes roughly 90 minutes and a typical trip to the Moon takes days. The Primus planets
 are a few hundred metres across but very dense, so gravity at the surface is still strong. Orbits take seconds,
 and you can try a manoeuvre, see the result and try again quickly. The physics is the same as at full size.
-Only the scale changes.</p>`)}`,
+The same two-body equations apply. These compact fictional worlds are not models of realistic planet interiors or atmospheres.</p>`)}`,
+  },
+  {
+    id: 'planet-designer',
+    title: 'Planet designer',
+    summary: 'Change a look, save a design and share its appearance',
+    html: `
+<p><b>Goal:</b> give an existing planet a new look without changing its gravity, terrain or orbit.</p>
+<ol>
+  <li>Open <b>Tools → Planet designer</b> and choose a <b>Body</b>.</li>
+  <li>Choose a preset, then adjust style, colours and other appearance controls. These edits change the draft preview.</li>
+  <li>Choose <b>Apply to</b> the selected body to see the draft in flight. <b>Restore original</b> removes that override.</li>
+  <li>Name the design and choose <b>Save design</b> to keep it in <b>My planets</b>. Saving a design and applying it are separate actions.</li>
+</ol>
+<p><b>Check:</b> the selected body looks different, while its coast paths and landing surface behave as before.
+The preview’s Sun, Lit and Spin controls help inspect the artwork; they do not change the physical world.</p>
+<h3>Keep or share a design</h3>
+<p><b>Export My planets</b> downloads your design library; <b>Import…</b> adds designs from a file.
+<b>Copy JSON</b> copies an appearance block for a universe definition. <b>Download PNG</b> saves a preview image when available.</p>
+<p>Applied looks and My planets are stored in this browser. They are not included in universe progress saves or sent to other pilots.
+To build planets with new masses, radii or orbits, use <a data-page="orbit-sandbox">Orbit Sandbox</a> or edit a universe definition in the Creators workflow.</p>
+${deeper('appearance and physical terrain', `
+<p>Procedural surface colours, patterns and atmospheric glow are presentation. Changing them does not regenerate collision terrain or add atmospheric forces.
+The optional WebGL preview may be unavailable on some devices; appearance editing and JSON/library exports still work without it.</p>`)}
+`,
   },
   {
     id: 'orbit-sandbox',
@@ -365,10 +638,26 @@ Only the scale changes.</p>`)}`,
   <li><b>Fleet → Launch another</b> adds a ship at the chosen starting point. Ships you aren't flying keep orbiting and falling on their own.</li>
   <li>{{key:cycleShip}} and {{key:cycleShipPrev}} switch between ships, or click one in the Fleet list.
     <b>Remove ship</b> deletes the ship you are flying.</li>
-  <li><b>Save universe</b> downloads progress as a <code>.spaceuniverse</code> file, with the clock, ships and pilots. <b>Load universe…</b> picks up where you left off.</li>
+  <li><b>Save universe</b> downloads a <code>.spaceuniverse</code> with the clock, ships, pilots and available saved flight plans. <b>Load universe…</b> restores progress. Review loaded plans before use; a save never arms automatic burns.</li>
   <li>{{key:reset}} (<b>Reset flight</b>) returns only the ship you are flying to the chosen scenario, preserving the world clock and the other ships. <b>Setup → Reset world</b> restarts the whole world and rewinds the clock; only the host can do this.</li>
 </ul>`,
   },
+  {
+    id: 'local-players',
+    title: 'Playing on one screen',
+    summary: 'Up to four pilots, controllers and dynamic split screen',
+    html: `
+<p>Open <b>Settings → Split screen…</b> and choose one to four players. Local pilots work in your solo world or a world you host. Joining someone else's world uses the primary pilot.</p>
+<ol>
+  <li>On the <b>Players</b> tab, give each pilot a name and an input device. Use the keyboard for one player and controllers for the others. <b>Press to assign</b> lets a controller claim a seat.</li>
+  <li>Choose <b>Dynamic</b> screen mode to share a view while the ships are close together. Moving apart, changing reference body or opening a map splits the views. <b>Forced split screen</b> always gives each pilot a separate pane.</li>
+  <li>Each pilot has a matching colour and navball. Pick its corner on the Players tab, or unpin and drag the dial. Disabling <b>Instruments → Navball</b> hides the dials and their interaction targets.</li>
+  <li>The primary pilot's quick reset returns only that ship to the chosen scenario. Other pilots can use their assigned reset button. <b>Setup → Reset world</b> is for the host and restarts every ship and the clock.</li>
+</ol>
+<p>In a game already configured for several players, an unclaimed controller can join by pressing Start. Controller settings are separate for each player; time warp and pause affect everyone.</p>
+<p>With the throw cheat enabled in Settings, hold the controller's configured throw button and pull with a stick, then release to launch. Disabled controllers and disabled cheats cannot throw a vessel. The right stick moves a virtual cursor for the pilot's viewport.</p>`,
+  },
+
   {
     id: 'multiplayer',
     title: 'Flying together',
@@ -478,10 +767,10 @@ A home router behind carrier NAT may not accept incoming connections; use a reac
   <li><code>/orbit Parvus 0.3</code> puts you in a circular orbit 0.3 km above Parvus.</li>
   <li><code>/circ</code> makes your current orbit circular.</li>
   <li><code>/tp Magnus</code>, <code>/warp 1000</code>, <code>/spawn</code>, <code>/god</code> and <code>/clear</code>.</li>
-  <li><b>Throw</b> ({{key:throwShip}}, then drag): drag out a velocity for your ship and let go.</li>
+  <li><b>Throw</b> ({{key:throwShip}}, then drag): pull back to aim a launch and release. This changes the ship’s state directly; it is a sandbox shortcut.</li>
 </ul>
-<p>Commands that move your ship count as cheats. Turn them on with <code>/throw on</code> or in
-<b>Settings → Gameplay</b>. Servers can turn them off.</p>`,
+<p>Commands that reposition a ship or change its orbit are sandbox cheats; the server can restrict them.
+Enable the throw tool with <code>/throw on</code> or in <b>Settings → Gameplay</b>. Use normal engine controls to practise orbital burns.</p>`,
   },
 ];
 
@@ -514,14 +803,42 @@ instruments use this: the velocity arrow, orbit markers and telemetry panel all 
 <code>builtin.flight-data</code> module.</p>`)}`,
   },
   {
+    id: 'flight-services',
+    title: 'Flight planning services',
+    summary: 'Reusable previews, plans, transfers and alarms in 0.6.4dev',
+    html: `
+<p>Flight tools are separate reusable services. A game can include the reader, editor or reminder logic without making them part of its physics.</p>
+<ul>
+  <li><b>Flight prediction</b> traces a coast in an isolated context, including supported SOI crossings. It does not advance the live world.</li>
+  <li><b>Flight plans</b> store inert burn intent. The current evaluator supports safe same-body chains.</li>
+  <li><b>Transfer planning</b> generates candidate departure and arrival nodes around the current body, using the selected motion and prediction services.</li>
+  <li><b>Orbital alarms</b> provide simulation-time clocks. The host decides how to notify, exit warp or pause.</li>
+</ul>
+<p>For the player workflow, open the Players tab and read Planning a maneuver, Multi-node plans and saves, Transfer plans and Burn reminders.
+Module-contributed creator guides in this topic list describe each service’s current contract.</p>
+${deeper('compose through the public API', `
+<p>The API v2 service tokens are <code>PREDICTIONS</code>, <code>FLIGHT_PLANS</code>, <code>TRANSFERS</code> and <code>ORBITAL_ALARMS</code>.
+Their contracts live in <code>packages/game-api/src/flight-view.ts</code>, <code>flight-plans.ts</code>, <code>transfers.ts</code> and <code>alarms.ts</code>.
+Use declared capabilities and provider selection; the editor’s optional connections preserve simpler compositions when providers are absent.</p>
+<p><code>flight.plans@1</code> stores SI values, body identifiers and compatibility identities, without execution state.
+<code>flight.transfers@1</code> requires the plan service and compatible analytic motion, rails horizons and future prediction seeds.
+<code>flight.alarms@1</code> is a pure clock service without engine or UI dependencies.
+<code>flight.alarm-catalogue@1</code> exposes read-only session entries; the optional <code>modules/alarm-panel/</code> window consumes that catalogue.
+Transfer providers can declare relationship coverage so destination lists explain unsupported choices before a search.</p>
+<p>Headless examples are the editable packages in <code>modules/flight-plans/</code>, <code>modules/transfer-planner/</code>
+and <code>modules/orbital-alarms/</code>. The existing <code>modules/maneuver-editor/</code> composes them.
+Keep preview jobs cancellable, dispose owned clocks/contexts, and leave execution to an explicit player choice.</p>`)}
+`,
+  },
+  {
     id: 'universes',
     title: 'Universes and planets',
     summary: 'Star systems as JSON: bodies, orbits, starting points',
     html: `
 <p>A <b>universe</b> holds one or more star systems. The game runs one system at a time.</p>
 <ul>
-  <li><b>Easiest:</b> use <b>Tools → Planet designer</b>, or open the <b>Orbit Sandbox</b> game from the ModMenu,
-    fling planets into orbit, then choose <b>Export to Space Sim</b>.</li>
+  <li><b>Build a system:</b> open <b>Orbit Sandbox</b> from the ModMenu, create bodies, then use its Export controls to make a universe definition.</li>
+  <li><b>Change the artwork:</b> <b>Tools → Planet designer</b> edits appearance only. Use <b>Copy JSON</b> to obtain an appearance block for a universe file. Applying a design in the editor does not change the universe’s physics or saved definition.</li>
   <li><b>Full control:</b> <b>Setup → Export</b> saves the current universe as a file. Edit it, then load it with
     <b>Setup → Import…</b>. Definitions export as <code>.spacedata</code>. Legacy <code>.spaceuniverse</code> definitions, JSON and gzip still import.</li>
 </ul>
@@ -875,8 +1192,8 @@ prediction and camera. If a hook throws an error, only that contribution is swit
     summary: 'Determinism: keep worlds identical on every computer',
     html: `
 <p>Determinism means that the same starting state and inputs produce exactly the same result.
-In multiplayer, every computer runs the same simulation and must get exactly the same result. Simulation
-modules have to follow a few rules for that to work:</p>
+The host or server advances the authoritative multiplayer world; clients receive snapshots. Replays, prediction and compatible hosts still need reproducible results. Simulation
+modules have to follow a few rules:</p>
 <ul>
   <li>Use the maths functions from the API (<code>sin</code>, <code>cos</code>, <code>atan2</code>, <code>exp</code> and so on) instead of <code>Math.sin</code> and friends.</li>
   <li>Use the seeded random number generator from the context. Never use <code>Math.random()</code>.</li>

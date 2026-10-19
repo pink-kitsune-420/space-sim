@@ -25,6 +25,12 @@ import type {ModMenuModuleView} from '../../../packages/game-api/src/index';
 /** App adapter around the shared v2 loader. Shipped v1 systems remain enabled as before;
  * imported device modules are scoped to this game and applied only at an explicit restart. */
 export class DeviceModuleManager {
+  /** Borrow an explicitly selected optional platform/presentation service. Its
+   * candidate owns its lifetime; hosts must release instances when it changes. */
+  service<T>(key: import('../../../packages/game-api/src/index').ServiceKey<T>): T | undefined {
+    const candidate = this.mixed;
+    return candidate?.available && candidate.modules.lock.providers[key.slot] ? candidate.modules.providedService(key) : undefined;
+  }
   readonly root = document.createElement('details');
   private readonly modMenu=createModMenu();
   private readonly editor:ModMenuModuleView;
