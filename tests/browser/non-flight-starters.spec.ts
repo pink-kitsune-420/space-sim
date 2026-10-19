@@ -209,18 +209,19 @@ test('survey zoom buttons and shortcuts affect only the selected view without ad
   expect((await debug(page)).state).toEqual(state);
 });
 
-for (const game of ['planet-viewer', 'survey-fixture']) test(`${game} phone layout keeps the view, status and controls apart`, async ({ page }) => {
-  await useCanvas(page); await page.setViewportSize({ width: 390, height: 844 });
+for (const game of ['planet-viewer', 'survey-fixture']) for (const width of [390, 600]) test(`${game} phone layout at ${width}px keeps the view, status and controls apart`, async ({ page }) => {
+  await useCanvas(page); await page.setViewportSize({ width, height: 844 });
   await page.goto(`/?game=${game}`);
   if (game === 'survey-fixture') await page.locator('#survey-seats').selectOption('4');
   const rectangles = await page.evaluate(() => {
     const box = (selector: string) => { const rect = document.querySelector(selector)!.getBoundingClientRect(); return { top: rect.top, bottom: rect.bottom }; };
-    return { heading: box('.starter-heading'), stage: box('#starter-views'), status: box('#fixture-status'), tools: box('.starter-tools'),
+    return { heading: box('.starter-heading'), stage: box('#starter-views'), status: box('#fixture-status'), tools: box('.starter-tools'), help: box('#starter-help'), controls: box('.fixture-controls'),
       overflow: document.querySelector('main')!.scrollWidth > document.querySelector('main')!.clientWidth };
   });
   expect(rectangles.heading.bottom).toBeLessThanOrEqual(rectangles.stage.top);
   expect(rectangles.stage.bottom).toBeLessThanOrEqual(rectangles.status.top);
   expect(rectangles.status.bottom).toBeLessThanOrEqual(rectangles.tools.top);
+  expect(rectangles.help.bottom).toBeLessThanOrEqual(rectangles.controls.top);
   expect(rectangles.overflow).toBe(false);
 });
 

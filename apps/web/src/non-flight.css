@@ -11,7 +11,7 @@
 .starter-heading p { max-width:90ch; margin:0 0 14px; line-height:1.5 }
 .starter-navigation { display:flex; flex-wrap:wrap; align-items:center; gap:10px }
 .starter-navigation select { width:auto; max-width:100%; margin:0 }
-.starter-tools { grid-column:2; grid-row:2/4; min-height:0; overflow:auto; padding:0 8px 8px 0 }
+.starter-tools { display:block; grid-column:2; grid-row:2/4; min-height:0; overflow:auto; padding:0 8px 8px 0 }
 #starter-help { margin:0 0 20px }
 #starter-help summary { cursor:pointer; font-size:15px; font-weight:500 }
 #starter-help ol { padding:0 0 0 24px; margin:12px 0; font-size:13px; line-height:1.5 }
