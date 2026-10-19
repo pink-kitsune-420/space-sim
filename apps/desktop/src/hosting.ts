@@ -84,7 +84,7 @@ export function desktopHosting(server: Server, serveGame: Serve): { readonly tok
       listener = lan;
       lan.on('clientError', (_error, client) => client.destroy());
       lan.on('upgrade', (incoming, client, first) => {
-        if (owner !== control || new URL(incoming.url ?? '/', 'http://localhost').pathname !== '/ws' || peers.size >= 64) { reject(client, '503 Service Unavailable'); return; }
+        if (owner !== control || incoming.url?.split('?', 1)[0] !== '/ws' || peers.size >= 64) { reject(client, '503 Service Unavailable'); return; }
         const remote = acceptWebSocket(incoming, client, first, {
           maxMessageBytes: MAX_CLIENT_MESSAGE, pingIntervalMs: 15000, label: incoming.socket.remoteAddress ?? 'LAN pilot',
         });
