@@ -31,7 +31,7 @@ function createLibrary(e:ModMenuLibraryElements,port:ModMenuLibraryPort):ModMenu
   if(disposed)return;rows.abort();rows=new Controller();
   const search=e.search.value.trim().toLowerCase(),folder=e.sort.value==='folder';
   const entries=port.entries().filter(entry=>(!e.favorites.checked||entry.favorite)&&`${entry.name} ${entry.description} ${entry.folder}`.toLowerCase().includes(search));
-  entries.sort((a,b)=>Number(b.favorite)-Number(a.favorite)||(folder?a.folder.localeCompare(b.folder):0)||a.name.localeCompare(b.name));
+  entries.sort((a,b)=>Number(!!b.pinned)-Number(!!a.pinned)||Number(b.favorite)-Number(a.favorite)||(folder?a.folder.localeCompare(b.folder):0)||a.name.localeCompare(b.name));
   e.list.replaceChildren(...entries.map(card));e.empty.hidden=entries.length>0;e.save.disabled=e.export.disabled=!port.editable()||busy;
  }
  const view:ModMenuLibraryView={refresh,status,dispose(){if(disposed)return;disposed=true;pending?.abort(new Error('ModMenu removed'));controller.abort();rows.abort();e.list.replaceChildren(...previous.children);e.empty.hidden=previous.empty;e.status.textContent=previous.status;e.save.disabled=previous.save;e.export.disabled=previous.export;}};

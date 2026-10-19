@@ -4,6 +4,8 @@ import type {CapabilityNeed,ManifestV2,ServiceKey} from './modules-v2';
 export interface ModMenuGame {
  readonly id:string;readonly name:string;readonly description:string;readonly folder:string;readonly favorite:boolean;readonly builtin:boolean;
  readonly dataModules:number;readonly codeModules:number;
+ /** Host-selected entries sort first, while still respecting search and favorites filters. */
+ readonly pinned?:boolean;
 }
 /** Host owns verification, persistence, trust, exact selection and atomic game replacement.
  * Commands must honor cancellation before publishing; importing installs inert content only. */

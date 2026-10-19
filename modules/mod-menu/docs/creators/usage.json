@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "entries() returns display metadata only: opaque item ID, purpose, collection/favorite, explicit built-in status and code/data counts. Search, sorting and card rendering never receive archive blobs or live worlds. The current app adapter still opens/decodes its existing store; indexed metadata/lazy inspection optimization remains separate measured work."
+      "text": "entries() returns display metadata only: opaque item ID, purpose, collection/favorite, explicit built-in status and code/data counts. Search, sorting and card rendering never receive archive blobs or live worlds. The current app adapter still opens/decodes its existing store; indexed metadata/lazy inspection optimization remains separate measured work. Hosts may mark an entry pinned to sort it before favorites and the selected name/collection order. Search and favorites filters still apply; the default app pins Space Sim."
     },
     {
       "type": "paragraph",
