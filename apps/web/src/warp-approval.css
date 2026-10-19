@@ -1,0 +1,4 @@
+.warp-approval { position: absolute; top: 100px; right: 72px; z-index: 30; max-width: 320px; padding: 12px; border: 1px solid #b08a49; border-radius: 8px; background: #101b25; color: #f7c775; font-size: 12px; }
+.warp-approval[hidden] { display: none; }
+.warp-approval p { margin: 0 0 8px; }
+.warp-approval div { display: flex; gap: 8px; }

@@ -77,7 +77,7 @@ test('clicking, editing, moving and removing a node previews a burn without chan
   expect(errors).toEqual([]);
 });
 
-test('warp stops before the burn and a reset marks the old plan stale', async ({ page }) => {
+test('manual warp stops before the burn and a reset clears the old plan and markers', async ({ page }) => {
   await setup(page); await place(page);
   await page.locator('#maneuver-prograde').fill('10');
   await page.locator('#maneuver-time').fill('25'); await page.locator('#maneuver-time').press('Tab');
@@ -94,8 +94,9 @@ test('warp stops before the burn and a reset marks the old plan stale', async ({
   await page.locator('#pause').click();
   await openPanel(page, 'setup');
   await page.locator('#reset').click();
-  await expect.poll(async () => (await debug(page)).maneuver?.valid).toBe(false);
-  await expect(page.locator('#maneuver-status')).toContainText('replan');
+  await expect.poll(async () => (await debug(page)).maneuver).toBeNull();
+  await expect(page.locator('.maneuver-map')).toBeHidden();
+  await expect(page.locator('#maneuver-nodes option')).toHaveCount(0);
 });
 
 test('an empty node can warp without arming a burn or changing throttle', async ({ page }) => {
@@ -166,7 +167,7 @@ test('Execute burn warps, aligns, fires and cuts off autonomously', async ({ pag
   await page.locator('#maneuver-execute').click();
   await expect(page.locator('#maneuver-abort')).toBeVisible();
   await expect.poll(async () => (await debug(page)).maneuver?.execution).not.toBeNull();
-  await expect(page.locator('#maneuver-status')).toContainText('Burn complete', { timeout: 25000 });
+  await expect(page.locator('#maneuver-status')).toContainText(/complete|Plan complete/, { timeout: 25000 });
   // The editor status refreshes independently of the 4-Hz diagnostic snapshot.
   await expect.poll(async () => { const done = await debug(page); return { execution: done.maneuver?.execution, engine: done.engine, valid: done.maneuver?.valid }; }).toEqual({ execution: null, engine: false, valid: false });
   const done = await debug(page);
@@ -178,6 +179,25 @@ test('Execute burn warps, aligns, fires and cuts off autonomously', async ({ pag
     workP95Ms: done.workP95Ms, simulationP95Ms: done.simulationP95Ms,
     predictionP95Ms: done.predictionP95Ms, renderP95Ms: done.renderP95Ms,
   }) });
+});
+
+test('Execute burn resumes paused flight and completes a transfer-sized departure from zero throttle', async ({ page }) => {
+  await setup(page); await place(page);
+  await page.locator('#maneuver-prograde').fill('55.69075');
+  await page.locator('#maneuver-radial').fill('0');
+  await page.locator('#maneuver-time').fill('30'); await page.locator('#maneuver-time').press('Tab');
+  await page.locator('#throttle').evaluate(el => {
+    (el as HTMLInputElement).value='0';el.dispatchEvent(new Event('input',{bubbles:true}));
+  });
+  await expect(page.locator('#throttle-value')).toHaveText('0%');
+  await expect(page.locator('#pause')).toHaveText('Resume');
+  await expect(page.locator('#maneuver-execute')).toBeEnabled();
+  await page.locator('#maneuver-execute').click();
+  await expect(page.locator('#pause')).toHaveText('Pause');
+  await expect(page.locator('#maneuver-status')).toContainText(/complete|Plan complete/,{timeout:30000});
+  const done=await debug(page);
+  expect(done.engine).toBe(false);expect(done.maneuver.execution).toBeNull();
+  expect(done.time).toBeGreaterThanOrEqual(done.maneuver.time);
 });
 
 test('Abort burn releases thrust during a finite burn and requires replanning', async ({ page }) => {
@@ -354,6 +374,7 @@ test('moon transfers show both burn indicators, editable arrival and current-thr
  await page.locator('#maneuver-nodes').selectOption('arrival');await expect(page.locator('#maneuver-summary')).toContainText('Parvus');await expect(page.locator('#maneuver-summary')).toContainText('50% throttle');
  await expect(page.locator('#maneuver-execute')).toBeDisabled();
  await expect.poll(async()=>(await debug(page)).maneuver?.end,{timeout:15000}).toMatch(/horizon|impact|closed|escape/);
+ await expect.poll(async()=>(await debug(page)).maneuver?.selected).toBe('arrival');
  const originalTime=(await debug(page)).maneuver.time,diamond=page.locator('.maneuver-map [data-map-control="node"]'),box=(await diamond.boundingBox())!;
  await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+100,box.y-100,{steps:4});
  await expect.poll(async()=>(await debug(page)).maneuver.time).not.toBe(originalTime);
@@ -362,9 +383,27 @@ test('moon transfers show both burn indicators, editable arrival and current-thr
  await page.locator('#maneuver-radial').fill('1');await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
  await page.locator('#throttle').evaluate(el=>{(el as HTMLInputElement).value='25';el.dispatchEvent(new Event('input',{bubbles:true}));});await expect(page.locator('#maneuver-summary')).toContainText('25% throttle');
  await page.screenshot({path:info.outputPath('moon-transfer-arrival-canvas.png')});
- await page.locator('#renderer-toggle').evaluate(el=>(el as HTMLButtonElement).click());await expect.poll(async()=>(await debug(page)).renderer).toBe('builtin.webgl');
+ await page.locator('#renderer-toggle').evaluate(el=>(el as HTMLButtonElement).click());await expect.poll(async()=>(await debug(page)).renderer,{timeout:15000}).toBe('builtin.webgl');
  await page.screenshot({path:info.outputPath('moon-transfer-burns-webgl.png')});
  const after=await debug(page);expect(after.tick).toBe(before.tick);expect(after.velocity).toEqual(before.velocity);expect(after.maneuver.execution).toBeNull();
+});
+
+test('raises a small orbit into a larger circle by flying both generated finite burns',async({page},info)=>{
+ test.setTimeout(90000);
+ await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ await page.locator('#maneuver-transfer-low').fill('1536');await page.locator('#maneuver-transfer-find').click();
+ await page.locator('#maneuver-transfer-use-efficient').click();
+ await expect(page.locator('#maneuver-execute')).toBeEnabled();await page.locator('#maneuver-execute').click();
+ await expect(page.locator('#maneuver-nodes option').first()).toContainText('flown',{timeout:30000});
+ await expect(page.locator('#maneuver-nodes')).toHaveValue('arrival');
+ await expect(page.locator('#pause')).toHaveText('Pause');await expect(page.locator('#warp-factor')).toHaveText('1×');
+ await expect(page.locator('#maneuver-continue')).toBeEnabled();await page.locator('#maneuver-continue').click();
+ await expect(page.locator('#maneuver-nodes')).toHaveValue('arrival');
+ await expect(page.locator('#maneuver-status')).toContainText(/complete|Plan complete/,{timeout:30000});
+ await expect.poll(async()=>{const d=await debug(page);return {engine:d.engine,execution:d.maneuver.execution};}).toEqual({engine:false,execution:null});
+ const done=await debug(page);expect(done.engine).toBe(false);expect(done.orbit.kind).toBe('elliptic');
+ expect(Math.abs(done.orbit.periapsis-2048)).toBeLessThan(20);expect(Math.abs(done.orbit.apoapsis-2048)).toBeLessThan(20);
+ await page.screenshot({path:info.outputPath('two-burn-raised-circle.png')});
 });
 
 test('Transfers is discoverable without a node and the compact burn editor keeps core controls visible',async({page},info)=>{
@@ -384,4 +423,66 @@ test('Transfers is discoverable without a node and the compact burn editor keeps
  const small=await page.locator('#maneuver-window').evaluate(window=>({width:window.getBoundingClientRect().width,overflow:window.scrollWidth-window.clientWidth}));expect(small.width).toBeLessThanOrEqual(390);expect(small.overflow).toBeLessThanOrEqual(1);
  await page.screenshot({path:info.outputPath('burn-editor-small.png')});
  const after=await debug(page);expect(after.tick).toBe(before.tick);expect(after.velocity).toEqual(before.velocity);expect(after.maneuver.execution).toBeNull();
+});
+
+
+test('an explicitly enabled ship follows the clock and completes its prepared two-burn plan',async({page})=>{
+ test.setTimeout(180000);
+ await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ await page.locator('#maneuver-transfer-low').fill('1536');await page.locator('#maneuver-transfer-find').click();
+ await page.locator('#maneuver-transfer-use-efficient').click();
+ await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+ await page.locator('#maneuver-automatic').check();await expect.poll(async()=>(await debug(page)).maneuver?.automatic).toBe(true);
+ await expect(page.locator('#pause')).toHaveText('Resume');
+ await page.locator('#pause').click();
+ // Enabling a background plan never fast-forwards the game by itself.
+ await page.waitForTimeout(300);await expect(page.locator('#warp-factor')).toHaveText('1×');
+ await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ await expect(page.locator('#maneuver-nodes option').first()).toContainText('flown',{timeout:60000});
+ await expect(page.locator('#pause')).toHaveText('Pause');await expect(page.locator('#warp-factor')).toHaveText('1×');
+ await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ await expect(page.locator('#maneuver-nodes option').last()).toContainText('flown',{timeout:90000});
+ await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+ const done=await debug(page);expect(done.engine).toBe(false);expect(Math.abs(done.orbit.periapsis-2048)).toBeLessThan(20);expect(Math.abs(done.orbit.apoapsis-2048)).toBeLessThan(20);
+});
+
+test('host approval gates automatic fleet warp changes and declining leaves the shared clock alone',async({page})=>{
+ await setup(page);await place(page);await page.locator('#maneuver-prograde').fill('4');
+ await page.locator('#maneuver-time').fill('60');await page.locator('#maneuver-time').press('Tab');
+ await openPanel(page,'tools');await page.locator('#local-multiplayer summary').click();await page.locator('#debug-host-game').click();
+ await expect(page.locator('.connection')).toContainText('HOSTING');await closePanel(page);
+ await page.locator('#maneuver-automatic').check();if(await page.locator('#pause').textContent()==='Resume')await page.locator('#pause').click();
+ await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ await expect(page.locator('#warp-approval')).toBeVisible({timeout:20000});
+ const pending=await debug(page);expect(pending.engine).toBe(false);await expect(page.locator('#warp-factor')).not.toHaveText('1×');
+ await page.locator('#warp-approval [data-warp-deny]').click();
+ await expect(page.locator('#maneuver-automatic')).not.toBeChecked();await expect(page.locator('#warp-approval')).toBeHidden();
+ await expect(page.locator('#warp-factor')).not.toHaveText('1×');expect((await debug(page)).engine).toBe(false);
+});
+
+test('the host can approve a fleet request for real time without granting automatic fast-forward',async({page})=>{
+ await setup(page);await place(page);await page.locator('#maneuver-prograde').fill('4');
+ await page.locator('#maneuver-time').fill('60');await page.locator('#maneuver-time').press('Tab');
+ await openPanel(page,'tools');await page.locator('#local-multiplayer summary').click();await page.locator('#debug-host-game').click();await closePanel(page);
+ await page.locator('#maneuver-automatic').check();if(await page.locator('#pause').textContent()==='Resume')await page.locator('#pause').click();
+ await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ await expect(page.locator('#warp-approval')).toBeVisible({timeout:20000});await page.locator('#warp-approval [data-warp-approve]').click();
+ await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#maneuver-automatic')).toBeChecked();
+ await page.locator('#maneuver-abort').click();await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+ expect((await debug(page)).engine).toBe(false);await expect(page.locator('#pause')).toHaveText('Pause');
+});
+
+
+test('pilot warp keys cancel an automatic approach and its reminder without fighting the requested factor',async({page})=>{
+ await setup(page);await place(page);await page.locator('#maneuver-prograde').fill('10');
+ await page.locator('#maneuver-time').fill('60');await page.locator('#maneuver-time').press('Tab');
+ await page.locator('#maneuver-execute').click();
+ await expect.poll(async()=>(await debug(page)).maneuver?.execution).not.toBeNull();
+ await page.keyboard.press('Comma');
+ await expect.poll(async()=>(await debug(page)).maneuver?.execution).toBeNull();
+ const chosen=await page.locator('#warp-factor').textContent();await page.waitForTimeout(500);await expect(page.locator('#warp-factor')).toHaveText(chosen!);
+ await page.locator('#maneuver-alarms summary').click();await expect(page.locator('#maneuver-alarms [data-alarm="status"]')).toContainText('suspended by manual warp');
+ const before=await debug(page);expect(before.engine).toBe(false);expect(before.maneuver.warping).toBe(false);
+ await page.keyboard.press('Period');await expect(page.locator('#warp-factor')).not.toHaveText(chosen!);
+ await page.waitForTimeout(300);expect((await debug(page)).maneuver.execution).toBeNull();expect((await debug(page)).engine).toBe(false);
 });

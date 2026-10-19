@@ -35,8 +35,10 @@ export interface SessionRead {
   previous(shipId: string): Ship | undefined;
   /** Fading body-relative display correction; zero for local worlds. */
   displayOffset(shipId: string): Vec;
-  /** Advance by wall-clock seconds. Held controls apply to `shipId` only. */
-  update(seconds: number, shipId: string | undefined, controls: Controls, beforeStep?: () => Controls): WorldEvent[];
+  /** Advance by wall-clock seconds. Held controls apply to `shipId` only.
+   * On a local normal-speed tick, beforeTick runs first (owned fleet commands),
+   * then beforeStep may replace the selected ship controls. Neither runs on rails. */
+  update(seconds: number, shipId: string | undefined, controls: Controls, beforeStep?: () => Controls, beforeTick?: () => void): WorldEvent[];
   /** Returns the new ship's id when it exists immediately (local worlds). */
   spawn(presetId: string, godMode: boolean, vehicleId?: string): string | undefined;
   respawn(shipId: string, presetId: string): void;

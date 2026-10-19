@@ -301,6 +301,21 @@ describe('gamepad manager', () => {
 });
 
 describe('bindFlightInput lifecycle events', () => {
+  it('allows an opted-in warp shortcut from buttons and summaries while preserving text editing and other UI keys',()=>{
+    const handlers: Record<string, ((event: KeyboardEvent) => void)[]> = {};
+    const target={addEventListener(type:string,fn:(event:KeyboardEvent)=>void){(handlers[type]??=[]).push(fn);},removeEventListener(){}};
+    vi.stubGlobal('window',target);vi.stubGlobal('document',{...target,querySelectorAll:()=>[]});
+    const shortcut=vi.fn(),binding=bindFlightInput({keys:new Set(),pointers:new Map(),paused:()=>false,shortcut,command:()=>false,autoPause(){},visibility(){},controlShortcut:code=>code==='Period'});
+    const down=(code:string,tag:string)=>{
+      const event={code,repeat:false,target:{closest:(selector:string)=>selector.split(',').map(value=>value.trim()).includes(tag)?{}:null},preventDefault(){}} as unknown as KeyboardEvent;
+      for(const fn of handlers.keydown??[])fn(event);
+    };
+    for(const tag of ['button','summary','a'])down('Period',tag);
+    expect(shortcut).toHaveBeenCalledTimes(3);
+    for(const tag of ['input','select','textarea','[contenteditable]'])down('Period',tag);
+    down('KeyR','button');expect(shortcut).toHaveBeenCalledTimes(3);binding.dispose();
+  });
+
   it('releases held steering when a modifier selects a camera shortcut, without restoring stale intent', () => {
     const handlers: Record<string, ((event: KeyboardEvent) => void)[]> = {};
     const target = { addEventListener(type: string, fn: (event: KeyboardEvent) => void) { (handlers[type] ??= []).push(fn); }, removeEventListener() {} };

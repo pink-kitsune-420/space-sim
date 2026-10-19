@@ -1,3 +1,5 @@
+import './warp-approval.css';
+import { WarpApproval } from './warp-approval';
 import { FloatingWindow } from './floating-window';
 import { academyFlightReader, academyPracticeState } from './academy-flight';
 import { ACADEMY_PANELS, ALARM_CATALOGUE, type AcademyPanel, type AcademyPanelFactory } from '../../../packages/game-api/src/index';
@@ -295,13 +297,31 @@ const isSolo = (): boolean => session === local && !local.hosting;
 /** Records only: a pilot's list never needs to evaluate sleeping ships. */
 const ownShips = (): Ship[] => [...session.world.records()].filter(s => s.ownerId === session.playerId);
 const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship(selectedShipId) : undefined;
+const warpApproval = new WarpApproval(element('flight-console'));
+let warpApprovalWorld: object | undefined;
 const maneuver = new ManeuverPlanner(workspace, {
   map: () => isSlotThrowing(0) || hudLayout.editing ? undefined : { element: canvas, camera: cameraControl.last,
     origin: session.world.system.getBodyPosition(activeBody.id, view?.time ?? session.world.time) },
   flight: () => ({ world: session.world, ship: selectedShip(), body: activeBody,
     enabled: presentation.isEnabled('builtin.maneuver-planner'), canWarp: session.canWarp,
     paused: session.paused, inputBlocked: controlsDialog.open || hudLayout.editing || document.hidden,
-    warp: session.warp, requestedWarp: session.requestedWarp }),
+    warp: session.warp, requestedWarp: session.requestedWarp, warpReason:session.warpReason }),
+  fleet: {
+    owns: shipId => session===local && local.world.record(shipId)?.ownerId===local.playerId,
+    setControls: (shipId,controls) => {
+      if(session!==local||local.world.record(shipId)?.ownerId!==local.playerId)throw new Error('This ship is not under your authority.');
+      local.host.setControls(local.playerId,shipId,controls);
+    },
+    requestSlowWarp: shipId => {
+      if(session!==local||!session.canWarp)throw new Error('Only the host may approve warp changes.');
+      if(session.requestedWarp===1)return true;
+      const world=session.world;
+      if(local.hosting)return warpApproval.request(shipId,world.ship(shipId)?.name??'Ship',()=>{
+        if(session===local&&session.world===world&&session.canWarp&&maneuver.isAutomatic(shipId))setWarp(1);
+      });
+      setWarp(1);return session.requestedWarp===1;
+    },
+  },
   setThrottle: (shipId, throttle) => session.setThrottle(shipId, throttle),
   releaseControls: shipId => {
     if (session === local && local.world.record(shipId)?.ownerId === local.playerId) local.host.setControls(local.playerId, shipId, IDLE);
@@ -330,6 +350,7 @@ function updateAcademy(seconds: number): void {
     releaseAcademy(); academyProvider = provider;
     if (provider) {
       try {
+        workspace.close(false, false);
         academy = provider.create({ container: document.querySelector<HTMLElement>('#flight-console .viewport')!,
           windows: { create: options => new FloatingWindow(options) }, shell: workspace,
           storage: { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) },
@@ -458,6 +479,7 @@ function placeShip(ship: Ship, bodyId: string, position: Vec, velocity: Vec, hea
     notify(message(error));
     return false;
   }
+  maneuver.clearPlan(ship.id);
   if (ship.id === selectedShipId) academyEpoch++;
   logChatMessage('success', session.kind === 'client' ? `${done} (sent to the host)` : done);
   return true;
@@ -640,7 +662,7 @@ function executeChatCommand(cmdStr: string): void {
       const factor = parseInt(args[0] ?? '1', 10);
       if (Number.isFinite(factor) && factor >= 1 && factor <= 10000) {
         if (!session.canWarp) { logChatMessage('error', 'Only the host can activate time warp.'); return; }
-        setWarp(factor);
+        maneuver.manualWarp();setWarp(factor);
         if (session.warp === factor) logChatMessage('success', `Time warp set to ${factor}×.`);
         else logChatMessage('system', `Time warp ${session.warp}×${session.warpReason ? `: ${session.warpReason}` : ''}.`);
       } else {
@@ -1049,6 +1071,7 @@ function setWarp(factor: number): void {
 
 function warpUp(): void {
   if (!session.canWarp) { notify('Only the host can activate time warp.'); return; }
+  maneuver.manualWarp();
   const maxAllowed = session.paused ? 1 : checkWarpSafety(session.world).maxGranted;
   const next = nextWarpFactor(session.warp, 1, maxAllowed);
   setWarp(next);
@@ -1056,12 +1079,14 @@ function warpUp(): void {
 
 function warpDown(): void {
   if (!session.canWarp) { notify('Only the host can activate time warp.'); return; }
+  maneuver.manualWarp();
   const prev = nextWarpFactor(session.warp, -1);
   setWarp(prev);
 }
 
 function resetWarp(): void {
   if (!session.canWarp) { notify('Only the host can activate time warp.'); return; }
+  maneuver.manualWarp();
   setWarp(1);
 }
 
@@ -1126,6 +1151,7 @@ function reset(): void {
   try {
     if (ship && session.world.record(ship.id)) {
       session.respawn(ship.id, presetId);
+      maneuver.clearPlan(ship.id);
       if (session === local) {
         local.settle();
         if (isGod) local.world.setGodMode(ship.id, true);
@@ -1162,10 +1188,12 @@ function resetWorld(): void {
   }
   release();
   splitScreen.resetGuests();
+  maneuver.cancel();
   const presetId = session.world.presetId(preset.value);
   const isGod = godModeToggle.checked;
   try {
     local.world.reset();
+    maneuver.loadPlans(undefined);
     local.settle();
     selectedShipId = undefined;
     selectShip(local.spawn(presetId, isGod));
@@ -4079,6 +4107,7 @@ bindFlightInput({
     const actions = keyLookup.get(code);
     return actions ? actions.some(isFlightAction) : false;
   },
+  controlShortcut: code => keyLookup.get(code)?.some(action=>action==='warpUp'||action==='warpDown'||action==='warpReset')??false,
   isShortcutKey(code) {
     const actions = keyLookup.get(code);
     return actions ? actions.some(a => !isFlightAction(a)) : false;
@@ -4572,8 +4601,10 @@ function frame(now: number): void {
   if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) pilotThrottles.forEach(control => control.release());
   splitScreen.applyInput(elapsed);
   const command = session.paused ? IDLE : controls(elapsed);
+  if(session.world!==warpApprovalWorld||session!==local||!local.hosting){warpApproval.clear();warpApprovalWorld=session.world;}
   maneuver.beforeAdvance(command);
-  handleEvents(session === local ? local.update(elapsed, selectedShipId, command, maneuver.executing ? () => maneuver.step(command) : undefined)
+  warpApproval.retain(shipId=>maneuver.isAutomatic(shipId));
+  handleEvents(session === local ? local.update(elapsed, selectedShipId, command, maneuver.executing ? () => maneuver.step(command) : undefined, () => maneuver.stepFleet())
     : session.update(elapsed, selectedShipId, command));
   syncSelected();
   if (state.status !== lastStatus) {
@@ -5034,7 +5065,6 @@ function switchToSpaceSim(info = defaultGame.info): void {
   activeGameInfo = { ...info };
   show('active-game', info.name);
   document.title = `Spacelab · ${info.name}`;
-  workspace.close(false, false);
 }
 
 labManager = new LabManager({

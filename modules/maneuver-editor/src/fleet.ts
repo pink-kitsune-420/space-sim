@@ -1,0 +1,173 @@
+import { deterministicMath as dm, maneuverDelta, type Controls, type EvaluatedFlightNode, type FlightPlan, type FlightPlanNode, type FlightPlanProgress, type FlightPlanService, type ManeuverBurnControl, type ManeuverBurnFactory, type ManeuverPlannerOptions, type State, type WorldRead, type ClockService } from '@space-sim/game-api';
+
+interface Run {
+ readonly shipId: string;
+ readonly world: WorldRead;
+ readonly once: boolean;
+ bodyId?: string;
+ root?: State;
+ plan?: FlightPlan;
+ job?: Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>;
+ node?: EvaluatedFlightNode;
+ burn?: ManeuverBurnControl;
+ expected?: State;
+ status: string;
+}
+export interface FleetPlans {
+ nodes(shipId: string): readonly FlightPlanNode[];
+ reviewed(shipId: string, plan: FlightPlan, nodes: readonly EvaluatedFlightNode[]): void;
+ completed(shipId: string, nodeId: string): void;
+ invalidated?(shipId: string, reason: string): void;
+}
+/** Per-ship, explicitly armed, session-local execution. The host alone supplies owned
+ * ship controls. Forecasts are disposable; only the session advances the real clock.
+ * Background plans can request slower time and never increase the shared warp. */
+export class FleetPlansRunner {
+ private readonly runs = new Map<string, Run>();
+ private disposed = false;
+ constructor(private readonly options: ManeuverPlannerOptions, private readonly plans: FlightPlanService,
+  private readonly burns: ManeuverBurnFactory, private readonly clock: Pick<ClockService, 'stepSeconds' | 'idle'>,
+  private readonly store: FleetPlans) {}
+ has(shipId: string): boolean { return this.runs.has(shipId); }
+ status(shipId: string): string { return this.runs.get(shipId)?.status ?? ''; }
+ get active(): boolean { return this.runs.size > 0; }
+ get burning(): boolean { for (const run of this.runs.values()) if (run.burn) return true; return false; }
+ ownsNode(shipId: string, nodeId: string): boolean { return this.runs.has(shipId) && this.store.nodes(shipId).find(node=>!node.completed)?.id===nodeId; }
+ arm(shipId: string, once = false): void {
+  const flight = this.options.flight(), port = this.options.fleet;
+  if (this.disposed || !port?.owns(shipId) || !flight.canWarp || !flight.enabled) return;
+  this.stop(shipId);
+  if (this.runs.size >= 64 || !this.store.nodes(shipId).some(node => !node.completed)) return;
+  this.runs.set(shipId, { shipId, world: flight.world, once, status: 'Reviewing actual flight…' });
+ }
+ stop(shipId: string, reason?: string): void {
+  const run = this.runs.get(shipId); if (!run) return;
+  this.runs.delete(shipId); run.job?.return([]); run.burn?.dispose();
+  // The owner cuts thrust even if pause or another window interrupted execution.
+  if(this.options.flight().world===run.world){
+   this.options.releaseControls(shipId);
+   if (run.burn) this.options.setThrottle(shipId, 0);
+  }
+  if (reason) this.options.notify(`${run.world.ship(shipId)?.name ?? 'Ship'}: ${reason}`);
+ }
+ manualWarp(): void {
+  for(const run of this.runs.values())if(run.burn||run.status==='Waiting for host warp approval'||run.status==='Approaching burn at real time')this.fail(run,'Manual warp took over.');
+ }
+ clear(): void { for (const id of this.runs.keys()) this.stop(id); }
+ dispose(): void { if (this.disposed) return; this.clear(); this.disposed = true; }
+ private fail(run: Run, reason: string): void { this.store.invalidated?.(run.shipId,reason); this.stop(run.shipId, `${reason} Automatic plan stopped; review before rearming.`); }
+ private review(run: Run): void {
+  const ship = run.world.ship(run.shipId)!;
+  run.job?.return([]); run.node = undefined; run.expected = undefined;
+  for(const node of this.store.nodes(ship.id)){
+   if(node.completed)continue;
+   if(node.time>ship.state.time+1e-7||Math.hypot(node.prograde,node.radial)>1e-8)break;
+   this.store.completed(ship.id,node.id);
+  }
+  const candidate = this.plans.capture(run.world, ship, this.store.nodes(ship.id));
+  run.plan = this.plans.read({ format: 'space-sim-flight-plans/1', plans: [candidate] }).plans[0]!;
+  run.root = { ...ship.state }; run.bodyId = ship.bodyId;
+  run.status = 'Reviewing actual flight…';
+  if (this.plans.evaluateAsync) run.job = this.plans.evaluateAsync(run.plan, run.world);
+  else this.reviewed(run, this.plans.evaluate(run.plan, run.world));
+ }
+ private reviewed(run: Run, results: readonly EvaluatedFlightNode[]): void {
+  run.job = undefined;
+  this.store.reviewed(run.shipId, run.plan!, results);
+  const next = results.find(node => !node.intent.completed);
+  if (!next) { this.stop(run.shipId); return; }
+  if (!next.valid || !next.before || !next.seed) { this.fail(run, next.reason || 'No valid next burn.'); return; }
+  run.node = next; run.status = 'Following the clock · next burn prepared';
+ }
+ /** Called once per display frame, before normal/warped simulation advancement. */
+ beforeAdvance(manual: Controls): void {
+  const flight = this.options.flight(), budgetStart = performance.now();
+  for (const run of this.runs.values()) {
+   const ship = flight.world.ship(run.shipId);
+   if (flight.world !== run.world || !flight.enabled || !flight.canWarp || !this.options.fleet?.owns(run.shipId)
+    || !ship || ship.fault || ship.state.status !== 'flying') { this.fail(run, 'Flight authority or conditions changed.'); continue; }
+   if (flight.ship?.id === run.shipId && (manual.engine || manual.turn || manual.throttle)) { this.fail(run, 'Manual flight took over.'); continue; }
+   if (flight.paused || flight.inputBlocked) {
+    if (run.burn) this.fail(run, 'Burn interrupted.');
+    continue;
+   }
+   try {
+    if (run.burn) {
+     if (ship.bodyId !== run.bodyId) { this.fail(run, 'Body changed during a finite burn.'); continue; }
+     if (flight.requestedWarp !== 1) this.options.fleet.requestSlowWarp(run.shipId);
+     continue;
+    }
+    if (!run.plan || ship.bodyId !== run.bodyId) this.review(run);
+    if (run.job) {
+     // One shared frame budget across all ships, rather than one millisecond each.
+     for (let count = 0; count < 128 && performance.now() - budgetStart < 1; count++) {
+      const step = run.job.next(); if (step.done) { this.reviewed(run, step.value); break; }
+     }
+    }
+    if (!this.runs.has(run.shipId) || !run.node) continue;
+    const { intent, before } = run.node;
+    if (ship.state.time > intent.time + this.clock.stepSeconds) { this.fail(run, 'Burn window passed.'); continue; }
+    const context = flight.world.contextFor(ship), root = run.root!, body = flight.world.body(ship.bodyId), surface = flight.world.surface(body.id);
+    const coast = root.coast ?? context.keplerCoast(root, body, surface);
+    const actual = coast && context.coastAt(coast, ship.state.time, body, surface, { cache: false });
+    if (!actual?.ok || Math.hypot(actual.state.position.x - ship.state.position.x, actual.state.position.y - ship.state.position.y) > Math.max(.05, Math.hypot(ship.state.position.x, ship.state.position.y) * 1e-8)
+     || Math.hypot(actual.state.velocity.x - ship.state.velocity.x, actual.state.velocity.y - ship.state.velocity.y) > .05 || ship.controls.engine) {
+     this.fail(run, 'Trajectory changed.'); continue;
+    }
+    // Future-body nodes remain inert until their actual SOI handoff is reviewed.
+    if (ship.bodyId !== intent.bodyId) continue;
+    const delta = maneuverDelta(before!, intent.prograde, intent.radial), magnitude = Math.hypot(delta.x, delta.y);
+    if (magnitude <= 1e-8) {
+     if (ship.state.time >= intent.time) this.complete(run);
+     continue;
+    }
+    const angle = Math.abs(dm.normalizeAngle(dm.atan2(delta.y, delta.x) - ship.state.heading));
+    const alignment = angle < 1e-7 ? 0 : context.vehicle.turnRate > 0 ? angle / context.vehicle.turnRate : Infinity;
+    const start = intent.time - magnitude / context.vehicle.acceleration / 2;
+    if (!Number.isFinite(alignment) || !(context.vehicle.acceleration > 0)) { this.fail(run, 'No steering or thrust available.'); continue; }
+    // Ask early enough for a host to approve. Until granted, no clock or thrust writes.
+    const remaining = start - alignment - 1 - ship.state.time;
+    if (flight.requestedWarp > 1 && remaining <= Math.max(15, flight.requestedWarp * .2)) {
+     run.status = this.options.fleet.requestSlowWarp(run.shipId) ? 'Approaching burn at real time' : 'Waiting for host warp approval';
+     continue;
+    }
+    if (remaining > .01) continue;
+    if (start - ship.state.time < alignment - this.clock.stepSeconds) { this.fail(run, 'Insufficient alignment time.'); continue; }
+    run.burn = this.burns.create(intent.time, delta, context.vehicle); run.status = 'Aligning and executing burn';
+   } catch (error) { this.fail(run, error instanceof Error ? error.message : 'Plan evaluation failed.'); }
+  }
+ }
+ private complete(run: Run): void {
+  const node = run.node!;
+  run.burn?.dispose(); run.burn = undefined; run.expected = undefined;
+  this.options.releaseControls(run.shipId); this.options.setThrottle(run.shipId, 0);
+  this.store.completed(run.shipId, node.intent.id);
+  this.options.notify(`${run.world.ship(run.shipId)?.name ?? 'Ship'}: ${node.intent.label} complete. Engine off.`);
+  run.plan = undefined; run.node = undefined;
+  if (run.once || !this.store.nodes(run.shipId).some(value => !value.completed)) this.stop(run.shipId);
+ }
+ /** Called before every compatible fixed tick, including for unselected ships. */
+ step(): void {
+  const flight = this.options.flight();
+  for (const run of this.runs.values()) {
+   const burn = run.burn; if (!burn) continue;
+   const ship = flight.world.ship(run.shipId), expected = run.expected;
+   if (flight.world !== run.world || flight.paused || flight.inputBlocked || !flight.enabled || !flight.canWarp
+    || flight.requestedWarp !== 1 || !this.options.fleet?.owns(run.shipId) || !ship || ship.bodyId !== run.bodyId || ship.state.status !== 'flying' || ship.fault) {
+    this.fail(run, 'Burn conditions changed.'); continue;
+   }
+   if (expected && (Math.abs(ship.state.time - expected.time) > 1e-7 || Math.hypot(ship.state.position.x - expected.position.x, ship.state.position.y - expected.position.y) > .001
+    || Math.hypot(ship.state.velocity.x - expected.velocity.x, ship.state.velocity.y - expected.velocity.y) > 1e-5 || ship.state.heading !== expected.heading || ship.state.throttle !== expected.throttle)) {
+    this.fail(run, 'Trajectory or throttle changed during burn.'); continue;
+   }
+   try {
+    const command = burn.next(ship.state);
+    if (command.throttle !== undefined && command.throttle !== ship.state.throttle) this.options.setThrottle(ship.id, command.throttle);
+    if (burn.phase === 'complete') { this.complete(run); continue; }
+    const current = flight.world.ship(ship.id)!, context = flight.world.contextFor(current);
+    run.expected = context.advance(current.state, command.controls, this.clock.stepSeconds, flight.world.body(ship.bodyId), flight.world.surface(ship.bodyId));
+    this.options.fleet.setControls(ship.id, command.controls);
+   } catch (error) { this.fail(run, error instanceof Error ? error.message : 'Burn failed.'); }
+  }
+ }
+}

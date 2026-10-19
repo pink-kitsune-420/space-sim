@@ -255,7 +255,9 @@ export interface PresentationSnapshot {
   readonly moduleState: Readonly<Record<string, WorldRuleState>>;
 }
 export interface ManeuverPreview {
-  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly valid: boolean; readonly deltaVelocity?: Vec; readonly throttleBurnSeconds?: number | null }[];
+  /** Completed nodes remain in the editor journal but no longer draw burn targets. */
+  readonly completed?: boolean;
+  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly completed?: boolean; readonly valid: boolean; readonly deltaVelocity?: Vec; readonly throttleBurnSeconds?: number | null }[];
   readonly time: number;
   readonly position: Vec;
   readonly deltaVelocity: Vec;

@@ -12,7 +12,7 @@ export function drawManeuver(view: PresentationView): OverlayPrimitive[] {
   const project=createProjector(view.camera,view.viewport.width,view.viewport.height),c=dm.cos(view.camera.rotation),s=dm.sin(view.camera.rotation);
   const offset=(at:Vec,dx:number,dy:number):Vec=>({x:at.x+(dx*c-dy*s)/view.camera.scale,y:at.y+(-dx*s-dy*c)/view.camera.scale});
   const labelSide=project(center).y>view.viewport.height-140?-1:1;
-  const out: OverlayPrimitive[] = [{ kind: 'line', space: 'world', color, width: 2, closed: true,
+  const out: OverlayPrimitive[] = plan.completed ? [] : [{ kind: 'line', space: 'world', color, width: 2, closed: true,
     points: [{ x: center.x, y: center.y + size }, { x: center.x + size, y: center.y },
       { x: center.x, y: center.y - size }, { x: center.x - size, y: center.y }] }];
   const dv = Math.hypot(plan.deltaVelocity.x, plan.deltaVelocity.y);
@@ -45,7 +45,7 @@ export function drawManeuver(view: PresentationView): OverlayPrimitive[] {
       {kind:'line',space:'world',color:tint,width:1.5,points:[{x:tip.x-(dx+dy)*head,y:tip.y-(dy-dx)*head},tip,{x:tip.x-(dx-dy)*head,y:tip.y-(dy+dx)*head}]});
   };
   for (const node of plan.nodes ?? []) {
-    if (node.selected) continue;
+    if (node.selected || node.completed) continue;
     const at = world(node.position), marker = 5 / view.camera.scale, tint = node.valid ? MANEUVER_COLOR : '#c68484';
     out.push({ kind: 'line', space: 'world', color: tint, width: 1, closed: true,
       points: [{x:at.x,y:at.y+marker},{x:at.x+marker,y:at.y},{x:at.x,y:at.y-marker},{x:at.x-marker,y:at.y}] },
@@ -55,7 +55,7 @@ export function drawManeuver(view: PresentationView): OverlayPrimitive[] {
       text:`${dm.hypot(node.deltaVelocity.x,node.deltaVelocity.y).toFixed(1)} m/s${node.throttleBurnSeconds!==undefined?` · ${duration(node.throttleBurnSeconds)}`:''}`});
     if(node.valid&&node.deltaVelocity)arrow(at,node.deltaVelocity,tint);
   }
-  out.push({ kind: 'text', space: 'world', color, at: offset(center,0,76*labelSide), align: 'center',
+  if(!plan.completed)out.push({ kind: 'text', space: 'world', color, at: offset(center,0,76*labelSide), align: 'center',
     text: plan.valid ? `${plan.nodes?.find(node=>node.selected)?.label??'NODE'} · ${dv.toFixed(1)} m/s · T${plan.time >= view.time ? '−' : '+'}${Math.abs(plan.time - view.time).toFixed(1)} s` : 'NODE · replan' });
   if(plan.valid&&plan.throttleBurnSeconds!==undefined){
     const label=`${duration(plan.throttleBurnSeconds)} at ${((plan.throttle??0)*100).toFixed(0)}% throttle`;

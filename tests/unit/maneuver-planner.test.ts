@@ -147,3 +147,12 @@ it('draws distinct transfer burn vectors, throttle duration, zero-thrust status 
  const dense={...plan,path:Array.from({length:2000},(_,i)=>({...a,time:i})),nodes:Array.from({length:16},(_,i)=>({...plan.nodes[1]!,id:String(i)}))};
  expect(()=>validateOverlay(drawManeuver({...view,maneuver:dense}))).not.toThrow();
 });
+
+it('keeps completed burns in the journal without drawing completed targets as failed replans',()=>{
+ const plan={time:5,position:a.position,deltaVelocity:{x:3,y:4},burnSeconds:.5,valid:false,completed:true,path:[],
+  nodes:[{id:'d',label:'Departure',time:5,position:a.position,selected:true,completed:true,valid:false},
+   {id:'a',label:'Arrival',time:10,position:b.position,selected:false,valid:false}]};
+ const output=drawManeuver({...view,maneuver:plan}),labels=output.filter(p=>p.kind==='text').map(p=>p.text).join(' ');
+ expect(labels).toContain('Arrival');expect(labels).not.toContain('NODE');expect(labels).not.toContain('Departure');
+ expect(drawManeuver({...view,maneuver:{...plan,nodes:plan.nodes.map(node=>({...node,completed:true}))}})).toEqual([]);
+});

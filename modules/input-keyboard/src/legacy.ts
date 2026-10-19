@@ -26,7 +26,9 @@ export function bindFlightInput(options: FlightKeyboardOptions): Disposable {
   const isShortcut = (code: string) => options.isShortcutKey ? options.isShortcutKey(code) : defaultShortcuts.has(code);
 
   listen(window, 'keydown', event => {
-    if ((event.target as HTMLElement).closest('input, select, button, summary, a, textarea')) return;
+    const target=event.target as HTMLElement;
+    if(target.closest('input, select, textarea, [contenteditable]'))return;
+    if(target.closest('button, summary, a')&&!options.controlShortcut?.(options.binding?.(event)??event.code))return;
     // A modifier can turn an already-held flight key into a shortcut. Release the
     // old intent immediately; only a new bare-key press may restore it.
     if (options.binding && /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(event.code)) {

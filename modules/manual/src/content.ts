@@ -310,16 +310,16 @@ Creating or editing one leaves your ship coasting.</p>
     The dashed amber path should rise on the far side of Primus. Negative prograde means retrograde; negative radial means inward.</li>
   <li>Check the predicted path, delta-v and burn duration at your current throttle setting. At this scale the burn is very short;
     use <b>Execute burn</b> for the first timing exercise, or choose the manual method below.</li>
-  <li>Resume, then choose <b>Execute burn</b> while there is time to prepare. It warps, aligns the ship,
+  <li>Choose <b>Execute burn</b> while there is time to prepare; it resumes paused flight. It warps, aligns the ship,
     burns around the node time and cuts thrust. Watch the actual coast path afterward.</li>
 </ol>
 <p><b>Check:</b> the ship is coasting again, and the far side of its orbit is higher.
-Automatic execution affects only the selected node. Each later node needs its own explicit execution choice.</p>
+Execute burn affects only the selected node. Afterward, flight stays running at 1× and the editor selects and reviews the next pending node without arming it. Choose <b>Continue to next burn</b> to review actual flight and execute just the next node, or enable this ship’s automatic plan.</p>
 <h3>Fly a node manually</h3>
 <p><b>Warp to node</b> only coasts. It returns to 1× about 10 seconds plus half the estimated full-throttle burn duration before the node.
 Point toward the amber diamond on the navball. For a short burn, aim to put half its duration before the node time and half after.
 Use the displayed duration at your current throttle setting for manual flight; the full-throttle duration describes automatic execution. Burn arrows show direction at departure and arrival. Cut thrust yourself and inspect the result.</p>
-<p><b>Abort burn</b> releases automatic steering and engine control. Manual flight input also takes over.
+<p><b>Abort burn</b> releases automatic steering and engine control. Manual flight input also takes over. Your warp keys and buttons cancel a conflicting automatic approach before applying your requested rate; its reminder stays suspended until you review or edit it.
 Pausing, changing warp, switching ships, hiding the tab or changing the flight can cancel the approach or burn.
 A partially flown burn needs replanning. Solo players and the host can use warp and automatic execution;
 remote pilots can plan and fly manually.</p>
@@ -350,16 +350,28 @@ Start with <a data-page="maneuvers">one maneuver</a>, then build a sequence.</p>
     Later nodes depend on earlier ones and cannot execute while an earlier node is pending.</li>
   <li>Fly the first burn manually or choose <b>Execute burn</b> for that node.</li>
   <li>For a manual burn, use <b>Plan actions → Mark flown</b> on the node you flew. Automatic completion marks its own node flown.</li>
-  <li>Choose <b>Review remaining nodes</b> to recalculate the remaining plan from the actual ship state.
+  <li>Choose <b>Continue to next burn</b> to review and execute the next node, or <b>Review remaining nodes</b> to recalculate the remaining plan from the actual ship state.
     Inspect the result, adjust it if needed, then choose how to fly the next burn.</li>
 </ol>
 <p><b>Review remaining nodes</b> validates the edited intent against your current flight; it does not automatically correct
 an inaccurate burn or optimise the arrival. A stale, missed or unsupported node needs editing, marking flown or deleting.</p>
+<h3>Prepared plans for your fleet</h3>
+<p>Select an owned ship in Fleet, prepare its nodes, then optionally check <b>Automatically execute this ship’s plan</b>.
+This is off by default and applies only to that ship. It can continue while you select another ship.
+After each burn it cuts the engine and reviews the remaining intent against actual flight. Review validates intent;
+it does not correct a missed encounter or optimise a new capture burn.</p>
+<p>Background ships follow the current game clock. They never fast-forward the whole simulation.
+They may request 1× for alignment and thrust. While hosting multiplayer, approve or decline that request in the host prompt;
+a pending or refused request cannot change warp. Direct Execute and Continue are the host’s explicit commands.
+Remote pilots can prepare plans and fly manually; automatic control requires the authoritative host seat.</p>
+<p>Pause, hidden input, manual takeover, a missed window or changed trajectory stops an active burn and requires review.
+Resetting or repositioning a ship clears its old plan. Resetting the world clears every plan.
+Turning off the checkbox or choosing <b>Abort burn</b> releases that ship’s automatic control.</p>
 <h3>Save and resume</h3>
 <p>Under <b>Burn editor → Plan actions</b>, <b>Export plan</b> downloads a plan JSON file and <b>Load plan</b> imports it.
 <b>Fleet → Save universe</b> also includes plans; load that universe to restore flight progress.
 Loaded plans need review before use. A plan file alone does not move your ship onto its original orbit.</p>
-<p>Plans store intent and reminder preferences. Loading, reviewing or generating a plan never arms a burn.
+<p>Plans store intent and reminder preferences. Loading, reviewing or generating a plan never arms a burn. Automatic execution permission is never saved or imported.
 The current editor saves its plans locally or with your universe file; it does not broadcast them to other pilots.</p>
 ${deeper('compatibility and limits', `
 <p>The shared plan service supports up to 16 time-ordered nodes per ship, within one year of the plan epoch.
@@ -388,6 +400,10 @@ its single-node planning mode, without the multi-node save controls. Loaded plan
 </ol>
 <p><b>Check:</b> adopting a plan creates two nodes without starting thrust.
 After both burns, compare actual Pe and Ap with the 768 m target; adjust any remaining error with a new maneuver.</p>
+<h3>Prepare a later opportunity</h3>
+<p>Adopt a validated window for the selected ship, then set its <b>Burn alarm</b> preparation lead.
+Keep automatic execution off for a reminder only, or explicitly enable this ship’s automatic plan to fly its prepared nodes.
+Repeat for another owned fleet ship. Each ship retains its own plan when selection changes.</p>
 <h3>Other orbit shapes</h3>
 <p>Starting orbits can be circular or elliptical. Uncheck <b>Circular target</b> to give the target separate low and high altitudes.
 Both must clear the highest terrain; low must not exceed high. Heights are measured above the body’s reference radius.</p>
@@ -430,7 +446,7 @@ Configure each reminder in <b>Maneuver → Burn alarm</b>. Closing Alarms does n
 This window shows reviewed next burns; later nodes appear after earlier burns are resolved and reviewed.
 An empty list can mean there is no eligible reviewed node, or its reminder is off.</p>
 <p><b>Check:</b> a reminder appears and the engine remains under your control.
-Choose <b>Execute burn</b> separately if you want automatic execution, or fly the burn manually.</p>
+Choose <b>Execute burn</b> separately if you want to execute just this burn, or enable this ship’s automatic plan. A non-pausing reminder does not interrupt an already armed automatic approach.</p>
 <p>Only the next unflown, reviewed node of a ship is eligible. After a burn, review later nodes before expecting their reminders.
 Missed or stale plans need attention. The host controls reminders that change the shared warp or pause;
 remote pilots cannot independently stop the host’s clock.</p>

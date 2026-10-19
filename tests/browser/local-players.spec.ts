@@ -272,6 +272,6 @@ test('HUD edit mode moves only the selected guest navball in shared and split vi
   await openPanel(page, 'settings'); await page.locator('#hud-visible-players').uncheck(); await closePanel(page);
   for (const tag of await page.locator('.split-tag').all()) await expect(tag).toBeHidden();
   await page.reload();
-  await expect.poll(async () => (await debug(page)).localPlayers.count).toBe(2);
+  await expect.poll(async () => (await debug(page)).localPlayers?.count).toBe(2);
   for (const tag of await page.locator('.split-tag').all()) await expect(tag).toBeHidden();
 });

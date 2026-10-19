@@ -24,7 +24,7 @@ export interface ManeuverFlight {
  readonly world: import('./engine').WorldRead; readonly ship?: import('./world').Ship;
  readonly body: import('./universe').ResolvedBody;
  readonly enabled: boolean; readonly canWarp: boolean; readonly paused: boolean; readonly inputBlocked: boolean;
- readonly warp: number; readonly requestedWarp: number;
+ readonly warp: number; readonly requestedWarp: number; readonly warpReason?: string;
 }
 export interface ManeuverPlannerOptions {
  readonly container: HTMLElement; readonly id?: string;
@@ -33,8 +33,16 @@ export interface ManeuverPlannerOptions {
   * origin is the active body's world position. Omit to use the window editor alone. */
  map?(): { readonly element: HTMLElement; readonly camera: import('./presentation').Camera; readonly origin: Vec } | undefined;
  flight(): ManeuverFlight;
+ /** Optional authoritative fleet port. Saved plans never carry execution permission. */
+ readonly fleet?: {
+  owns(shipId: string): boolean;
+  setControls(shipId: string, controls: Controls): void;
+  /** Request 1×; false means pending/refused. Multiplayer requires host approval. */
+  requestSlowWarp(shipId: string): boolean;
+ };
  setWarp(factor: number): void;
- /** Optional host pause command; alarms never use engine/execution commands. */
+ /** Optional host pause command; explicitly executing a burn may resume flight.
+  * Alarms never use engine/execution commands. */
  setPaused?(paused: boolean): void;
  setThrottle(shipId: string, throttle: number): void;
  releaseControls(shipId: string): void;
@@ -47,7 +55,15 @@ export interface ManeuverPlannerControl extends Disposable {
  openTransfers?(): void;
  savePlans(): import('./flight-plans').FlightPlanArchive;
  loadPlans(raw: unknown): void;
+ /** Optional targeted cleanup when a ship is reset or explicitly repositioned. */
+ clearPlan?(shipId: string): void;
+ /** Session-local arming state, never restored from a plan archive. */
+ isAutomatic?(shipId: string): boolean;
+ /** Give explicit pilot warp input priority, without writing a new warp factor. */
+ manualWarp?(): void;
  cancel(): void;
+ /** Optional fixed-tick hook for independently armed owned ships. */
+ stepFleet?(): void;
  step(manual: Controls): Controls;
  beforeAdvance(controls: Controls): void;
  place(pointer: Vec, camera: import('./presentation').Camera, origin: Vec, width: number, height: number, prediction: import('./flight-view').FlightPrediction): boolean;

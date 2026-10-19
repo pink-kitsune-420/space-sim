@@ -200,7 +200,7 @@ test('burn alarms pause optionally and ignore changed flight or unresolved later
  expect(result).toMatchObject({pauseWorked:true,one:1,settings:{enabled:true,leadSeconds:5,pause:true,notified:true},staleSuppressed:true,invalid:true,laterSuppressed:true});
 });
 
-test('a default alarm during explicitly armed execution exits warp without silently cancelling that choice',async({page})=>{
+test('a default reminder preserves the faster explicitly armed automatic approach',async({page})=>{
  await setup(page,false,true,false,true);
  const result=await page.evaluate(()=>{
   const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f;let warp=1;const notices:string[]=[];
@@ -211,7 +211,7 @@ test('a default alarm during explicitly armed execution exits warp without silen
   while(world.time<20.02)world.step();planner.beforeAdvance(idle);planner.beforeAdvance(idle);
   const retained=planner.executing,stopped=warp===1,alarm=notices.some(n=>n.startsWith('Burn alarm'));planner.cancel();planner.dispose();f.candidate.dispose();world.dispose();return{armed,retained,stopped,alarm};
  });
- expect(result).toEqual({armed:true,retained:true,stopped:true,alarm:true});
+ expect(result).toEqual({armed:true,retained:true,stopped:false,alarm:true});
 });
 
 test('a longer manual alarm lead ends planner warp without restarting it, even without shared plans or engines',async({page})=>{

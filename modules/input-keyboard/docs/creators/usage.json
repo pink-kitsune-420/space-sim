@@ -27,6 +27,10 @@
     {
       "type": "paragraph",
       "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+    },
+    {
+      "type": "paragraph",
+      "text": "The optional legacy adapter controlShortcut(code) port allows selected resolved shortcuts while a button, summary or link has focus. Text fields, selects and editable content keep suppressing gameplay shortcuts. The flight host uses this for explicit warp commands so pilot time control can cancel a conflicting automatic approach."
     }
   ]
 }

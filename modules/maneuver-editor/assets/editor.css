@@ -54,3 +54,6 @@
 .maneuver-window [data-alarm="enabled"], .maneuver-window [data-alarm="pause"] { width: auto; margin: 0 6px 0 0; }
 .maneuver-window [id$="-alarms"] label { display: block; margin: 8px 0; font-size: 12px; }
 .maneuver-window [data-alarm="lead"] { width: 100px; margin-left: 8px; }
+
+.maneuver-window [id$="-fleet"] label { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+.maneuver-window [id$="-automatic"] { width: auto; margin: 0; }
