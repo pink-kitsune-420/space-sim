@@ -5,7 +5,7 @@
     "apiVersion": "space-sim-game-api/2",
     "id": "spacelab.manual",
     "name": "Manual reader and guides",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "kind": "provider",
     "environments": [
       "browser",
@@ -38,7 +38,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "c91e3cbd430d662fa8eaec11dc07a08ad4b134698591a26f9a31cc2e43fea377"
+    "inputsDigest": "fac9f6afafb6ec55c84c5257efe7e320f5d65daec75c30798c97b94716e2a845"
   },
   "compatibility": {
     "deterministic": true,

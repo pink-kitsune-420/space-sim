@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { openPanel } from '../helpers/workspace';
+import { version } from '../../package.json';
 
 test.describe.configure({ timeout: 90000 });
 
@@ -21,6 +22,7 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await openPanel(page, 'manual');
   const manual = page.locator('#manual-window');
   await expect(manual).toBeVisible();
+  await expect(manual.locator('#manual-build-version')).toContainText(`Spacelab ${version}`);
   await expect(manual.locator('#manual-tab-players')).toHaveAttribute('aria-selected', 'true');
 
   // The controls page is generated from the current keybindings.

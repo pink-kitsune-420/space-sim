@@ -82,7 +82,7 @@ test('dependencies: an add-on enables what it needs, and removing a library remo
   await page.goto('/?presentation=none');
   await expect.poll(async () => (await debug(page)).presentation?.modules).toEqual([]);
   await openPanel(page, 'library');
-  await page.locator('.presentation-settings summary').click();
+  if (!await page.locator('.presentation-settings').evaluate(el => (el as HTMLDetailsElement).open)) await page.locator('.presentation-settings > summary').click();
   const list = page.locator('#presentation-list');
   await expect(list.locator('li', { hasText: 'Lead camera (example)' })).toContainText('Needs Flight data');
   await list.locator('input[data-module="example.lead-camera"]').check();

@@ -22,6 +22,10 @@
     },
     {
       "type": "paragraph",
+      "text": "The release menu separates built-in controls, installed packages and bundled source packages. mountBundledCatalogue(root, entries) is an inert searchable source inventory: it never installs packages, changes a profile or proves runtime portability. The build generates its compact metadata from owned module descriptors and guide summaries. Legacy profile drafts survive unrelated menu refreshes and reset when the applied profile changes. Hosts create a fresh profile view when switching worlds or games, so unapplied edits do not leak between selections with identical profiles."
+    },
+    {
+      "type": "paragraph",
       "text": "Import, save, export, play, organize and remove are explicit async host commands with an AbortSignal. Import must verify/install inert bytes and never implicitly activate code. Play must validate and stage a compatible candidate before publication. The host must check cancellation before changing the active world; committed inert storage writes need not be rolled back by view disposal. Organizing metadata must not silently change exact enabled package pins."
     },
     {

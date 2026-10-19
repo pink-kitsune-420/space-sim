@@ -63,9 +63,9 @@ export class ModuleLibrary {
       for (const entry of await this.store.list()) if (entry.id === id) await this.store.remove(entry.digest);
     }).catch(() => { this.storageStatus = 'Stored module could not be removed; it remains installed and disabled.'; });
   }
-  /** A played game owns its complete code selection, so versions cannot leak between games. */
+  /** Pin a played game's exact versions while retaining other inert device installations.
+   * Enabled selection belongs to the game's profile, not this installation cache. */
   replace(artifacts: readonly CodeArtifact[]): void {
-    this.installed.clear();
     for (const artifact of artifacts) { this.installed.set(artifact.manifest.id, artifact); this.persist(artifact); }
   }
   modules(environment: ModuleEnvironment): RegisteredModule[] {

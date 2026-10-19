@@ -497,8 +497,8 @@
           <div id="toast-container" class="toast-container"></div>
         </div>
         <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
-          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / MODMENU</p><h2 id="lab-title">Games & plugins</h2></div><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
-          <p id="lab-status" role="status">Space Sim is ready to fly. Import a game, or build a remix with plugins.</p>
+          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / MODMENU</p><h2 id="lab-title">Games & plugins</h2></div><button id="browse-bundled-modules" type="button">Browse bundled packages</button><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
+          <p id="lab-status" role="status">Choose a game, customize its plugins, or import something new.</p>
           <details class="library-settings" open><summary>Game library (Load game)</summary>
             <p id="library-storage" class="control-note">Opening your local library…</p>
             <p class="control-note">Play enables a game’s plugins. Only play code plugins you trust; they run with this page’s privileges.</p>
@@ -508,10 +508,18 @@
             <p class="control-note">Explore a built-in world</p><div class="surface-worlds" aria-label="Explore planet surfaces"><button id="try-terrain" type="button">Terrain worlds</button><button id="try-ocean" type="button">Ocean world</button></div>
           </details>
           <section id="plugin-manager" aria-label="Plugin configuration">
+          <h3 class="plugin-heading">Plugin controls</h3>
+          <p id="plugin-overview" class="module-note" role="status">Opening plugin controls…</p>
+        <details class="presentation-settings" open><summary>Instruments & display</summary><p class="manager-current">Enabled: <output id="presentation-name">Built-in</output></p>
+          <ul id="presentation-list" class="presentation-list" aria-label="Installed presentation modules"></ul>
+          <p>Toggle instruments, sound and camera options for your view. These choices are remembered on this device and included when you export a game.</p>
+          <p id="presentation-status" role="status">Using the built-in presentation.</p>
+        </details>
         <details class="code-module-settings"><summary>Plugins · simulation, data & settings</summary>
-          <p>Only import code from sources you trust. Do not import untrustworthy code: code modules run with this page’s privileges and can access its data or make network requests. Installation does not enable code. Authoritative changes start a new world.</p>
+          <p>Do not import untrustworthy code: plugins can access this page’s saved data, input and network. Importing leaves code disabled. Applying simulation changes starts a new world.</p>
           <button id="install-code-module" type="button" hidden>Install code artifact…</button><input id="code-module-file" type="file" accept=".spacemod,.json,application/json" hidden />
           <ul id="installed-code-modules" class="module-list"></ul>
+          <p id="installed-code-empty" class="module-note">No imported plugins yet. The built-in simulation options are available below.</p>
           <details><summary>Simulation setup & exposed settings</summary>
             <div class="library-tools"><label>Starting universe<select id="plugin-universe"></select></label><label>Starting system<select id="plugin-system"></select></label></div>
             <p>Choosing an added universe also enables its content plugin when you apply.</p>
@@ -519,21 +527,20 @@
             <div id="authoritative-providers"></div>
             <button id="apply-code-modules" type="button">Apply plugins · new world</button>
           </details>
-          <p>Enable display plugins below. Save or export a game to bundle your active plugins and settings into one file.</p>
+          <p>Save or export a game to keep your active plugins and settings together.</p>
           <p id="code-module-status" role="status">No imported code installed.</p>
         </details>
-        <details class="presentation-settings"><summary>Instruments & display</summary><p class="manager-current">Enabled: <output id="presentation-name">Built-in</output></p>
-          <ul id="presentation-list" class="presentation-list" aria-label="Installed presentation modules"></ul>
-          <p>Optional overlays, panels and camera modes change only what you see. The world, its saves and multiplayer are unaffected, and each one can be switched off at any time. Display choices are remembered in this browser; exported games include the full selection.</p>
-          <p id="presentation-status" role="status">Using the built-in presentation.</p>
-        </details>
-        <details class="module-settings"><summary>Data & legacy profiles</summary><p class="manager-current">Current: <output id="module-name">Built-in default</output></p>
+        <details class="module-settings"><summary>Advanced · data & profiles</summary><p class="manager-current">Current: <output id="module-name">Built-in default</output></p>
           <div class="shader-actions"><button id="load-module" type="button">Load module/profile…</button><input id="module-file" type="file" accept=".spacedata,.json,application/json" hidden /><button id="export-module" type="button" disabled>Export module</button><button id="export-profile" type="button">Export profile</button><button id="reset-modules" type="button">Use built-in default</button></div>
           <p>Loading a data module starts a new world. Edit vehicle settings, universes, presets or body colors in JSON. Compatible profiles support universe saves and multiplayer. Profiles may enable installed code; only enable code from sources you trust.</p>
           <button id="enable-imported-profile" type="button" hidden>Enable imported trusted code profile · new world</button>
           <p id="module-status" role="status">Using the built-in default profile.</p>
         </details>
           </section>
+          <details class="bundled-module-settings"><summary id="bundled-module-summary">Bundled source packages</summary>
+            <p>Explore the editable packages included in Spacelab. Use Plugin controls above to customize your current game. Some bundled systems are configured by the game and do not have individual switches in this alpha.</p>
+            <div id="bundled-module-catalogue"></div>
+          </details>
         </section>
         <div class="utility-grid" aria-label="Additional tools">
         <details id="local-multiplayer" class="multiplayer-debug"><summary>Multiplayer debugging</summary>

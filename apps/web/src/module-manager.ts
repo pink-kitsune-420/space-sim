@@ -21,22 +21,18 @@ import {createModMenu} from '../../../modules/mod-menu/src/index';
 export class ModuleManager {
   readonly devices: DeviceModuleManager;
   private readonly modMenu=createModMenu();
-  private readonly profileEditor:ModMenuProfileView;
+  private profileEditor:ModMenuProfileView;
+  private editWorld:object;
   private data = new Map<string, DataModule>();
   private universes = new Map<string, UniverseDefinition>();
-  resetData(data: readonly DataModule[]): void { this.data = new Map(data.map(m => [m.manifest.id, m])); }
+  resetData(data: readonly DataModule[]): void { this.data = new Map([...this.data,...moduleLibrary.data,...data.map(m => [m.manifest.id,m] as const)]); }
   constructor(private readonly presentation: Presentation, private readonly options: {
     readonly current: () => { readonly profile: ModuleProfile; readonly data: readonly DataModule[]; readonly editable: boolean;
       readonly universe: UniverseDefinition; readonly resolvedUniverse: UniverseDefinition; readonly universeKey: string; readonly systemId: string };
     readonly apply: (profile: ModuleProfile, data: readonly DataModule[], selection: { universe: string; system: string }, runtime?: RuntimeSelection,signal?:AbortSignal) => Promise<void>;
     readonly pilots: import('../../../packages/game-api/src/index').PilotRegistry; readonly world: () => object;
   }) {
-    this.profileEditor=this.modMenu.profile({list:element('authoritative-module-list'),providers:element('authoritative-providers'),installed:element('installed-code-modules'),apply:element<HTMLButtonElement>('apply-code-modules')},{
-      changed:()=>{this.syncUniverses(element<HTMLSelectElement>('plugin-universe').value,element<HTMLSelectElement>('plugin-system').value);this.preview();},error:text=>show('code-module-status',text),
-      exportModule:async(id,signal)=>{signal.throwIfAborted();const artifact=this.installedArtifact(id),manifest=artifact.manifest;const files=packageFiles(artifact)??(artifact.format==='space-sim-data-module/1'?wrapLegacyData(artifact,`Legacy data; declared license: ${manifest.license}`):wrapLegacyCode(artifact));const bytes=await encodeModuleFiles(files);signal.throwIfAborted();downloadBytes(`${manifest.id}.${manifest.kind==='data'?'spacedata':'spacemod'}`,bytes);},
-      removeModule:async(id,signal)=>{signal.throwIfAborted();const artifact=this.installedArtifact(id),manifest=artifact.manifest;if(this.isActive(artifact))throw new Error('Disable the module before removing it');if(artifact.format==='space-sim-data-module/1')this.data.delete(id);else if(manifest.authority==='presentation')this.presentation.remove(id);moduleLibrary.remove(id);this.refresh();},
-      presentationSettings:async(id,values,signal)=>{signal.throwIfAborted();this.presentation.setSettings(id,values);}
-    },options.current().profile);
+    this.editWorld=options.world();this.profileEditor=this.createProfileEditor(options.current().profile);
     this.devices = new DeviceModuleManager(moduleLibrary.store, { pilots: options.pilots, editable: () => this.options.current().editable, world: options.world,
       base: () => this.base(), editBase: profile => {
         this.profileEditor.select(profile.modules);
@@ -44,7 +40,7 @@ export class ModuleManager {
     element('plugin-manager').append(this.devices.root);
     element('plugin-universe').addEventListener('change', () => this.syncSystems());
     const preview = document.createElement('p'); preview.id = 'module-change-preview'; preview.setAttribute('role', 'status');
-    element('code-module-status').after(preview);
+    const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Dependency details';details.append(summary,preview);element('apply-code-modules').after(details);
     void moduleLibrary.open().then(() => {
       for (const data of moduleLibrary.data.values()) if (!this.data.has(data.manifest.id)) this.data.set(data.manifest.id, data);
       for (const artifact of moduleLibrary.artifacts) if (artifact.manifest.authority === 'presentation' && !this.presentation.registry.getManifest(artifact.manifest.id))
@@ -73,6 +69,14 @@ export class ModuleManager {
       finally { input.value = ''; }
     });
     element('apply-code-modules').addEventListener('click', () => { void this.applyProfile().catch(error => show('code-module-status', `Profile was not enabled: ${message(error)}`)); });
+  }
+  private createProfileEditor(profile:ModuleProfile):ModMenuProfileView {
+    return this.modMenu.profile({list:element('authoritative-module-list'),providers:element('authoritative-providers'),installed:element('installed-code-modules'),apply:element<HTMLButtonElement>('apply-code-modules')},{
+      changed:()=>{this.syncUniverses(element<HTMLSelectElement>('plugin-universe').value,element<HTMLSelectElement>('plugin-system').value);this.preview();},error:text=>show('code-module-status',text),
+      exportModule:async(id,signal)=>{signal.throwIfAborted();const artifact=this.installedArtifact(id),manifest=artifact.manifest;const files=packageFiles(artifact)??(artifact.format==='space-sim-data-module/1'?wrapLegacyData(artifact,`Legacy data; declared license: ${manifest.license}`):wrapLegacyCode(artifact));const bytes=await encodeModuleFiles(files);signal.throwIfAborted();downloadBytes(`${manifest.id}.${manifest.kind==='data'?'spacedata':'spacemod'}`,bytes);},
+      removeModule:async(id,signal)=>{signal.throwIfAborted();const artifact=this.installedArtifact(id),manifest=artifact.manifest;if(this.isActive(artifact))throw new Error('Disable the module before removing it');if(artifact.format==='space-sim-data-module/1')this.data.delete(id);else if(manifest.authority==='presentation')this.presentation.remove(id);moduleLibrary.remove(id);this.refresh();},
+      presentationSettings:async(id,values,signal)=>{signal.throwIfAborted();this.presentation.setSettings(id,values);}
+    },profile);
   }
   private async applyProfile(runtime?: RuntimeSelection,signal?:AbortSignal): Promise<void> {
     signal?.throwIfAborted();
@@ -153,11 +157,15 @@ export class ModuleManager {
   refresh(): void {
     this.refreshData();
     const current = this.options.current(), registry = this.registry();
+    const world=this.options.world();if(world!==this.editWorld){this.profileEditor.dispose();this.editWorld=world;this.profileEditor=this.createProfileEditor(current.profile);}
     const manifests = [...registry.manifests.values()].filter(m => m.authority === 'authoritative' || m.kind === 'data');
     this.profileEditor.refresh({applied:current.profile,available:manifests,editable:current.editable,installed:[...this.data.values(),...moduleLibrary.artifacts].map(artifact=>{
       const manifest=artifact.manifest,active=this.isActive(artifact);
       return {manifest,active,...('digest' in artifact?{digest:artifact.digest}:{}),...('inputs' in artifact?{inputs:artifact.inputs}:{}),...(manifest.authority==='presentation'&&active&&this.presentation.profile?{values:this.presentation.profile.settings[manifest.id]??{}}:{})};
     })});
+    const imported=this.data.size+moduleLibrary.artifacts.length;
+    element('installed-code-empty').hidden=imported>0;
+    show('plugin-overview',`${manifests.length} simulation options · ${this.presentation.installed.length} display options · ${imported} imported plugins`);
     this.syncUniverses(current.universeKey,current.systemId);
     this.preview(false);
   }
@@ -178,7 +186,8 @@ export class ModuleManager {
     if (!this.universes.has(current.universeKey)) this.universes.set(current.universeKey, current.resolvedUniverse);
     const select = element<HTMLSelectElement>('plugin-universe');
     select.replaceChildren(...[...this.universes].map(([key, universe]) => {
-      const option = document.createElement('option'); option.value = key; option.textContent = `${universe.name} · ${key}`; return option;
+      const owner=key.split('/')[0]!,source=owner==='builtin.content'?'Built-in':this.data.get(owner)?.manifest.name??owner;
+      const option = document.createElement('option'); option.value = key; option.textContent = `${universe.name} · ${source}`; option.title=key; return option;
     }));
     select.value = this.universes.has(preferred) ? preferred : select.options[0]?.value ?? '';
     select.disabled = !current.editable;

@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { parseArgs } from 'node:util';
-import { version } from '../../../package.json';
+import { VERSION as version } from '../../../packages/game-runtime/src/build-info';
 import { desktopHosting } from './hosting';
 
 interface DesktopArgs {

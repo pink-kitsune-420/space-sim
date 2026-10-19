@@ -6,6 +6,18 @@ import {buildPortableModule} from '../../packages/module-tools/package.mjs';
 let folder:string,bundle:{source:string;css:string};
 test.beforeAll(async()=>{folder=await mkdtemp(join(tmpdir(),'portable-mod-menu-'));await cp('modules/mod-menu',join(folder,'source'),{recursive:true});const built=await buildPortableModule(join(folder,'source/module.json'),join(folder,'mod-menu.spacemod'),{typecheck:false});bundle={source:built.codeV2!.source,css:new TextDecoder().decode(built.files.get('assets/mod-menu.css')!)};});
 test.afterAll(async()=>{await rm(folder,{recursive:true,force:true});});
+test('bundled source catalogue is inert, filters metadata and restores borrowed content on disposal',async({page})=>{
+ await page.goto('about:blank');await page.setContent('<main><p>Borrowed content</p></main>');
+ const result=await page.evaluate(bundle=>{
+  const exports=new Function(`"use strict";${bundle.source};return SpaceSimModule;`)(),root=document.querySelector('main')!,borrowed=root.firstChild;
+  const entries=[{id:'test.flight',name:'Flight <img>',version:'1.0.0',tier:'authoritative',environments:['browser'],description:'A flight package',folder:'flight'},{id:'test.sound',name:'Sound',version:'1.0.0',tier:'presentation',environments:['offline'],description:'An audio package',folder:'sound'}];
+  const view=exports.mountBundledCatalogue(root,entries),search=root.querySelector('input')!,count=root.querySelector('[role="status"]')!,list=root.querySelector('ul')!;
+  search.value='sound';search.dispatchEvent(new Event('input'));const shown=[...list.children].filter(node=>!(node as HTMLElement).hidden).map(node=>(node as HTMLElement).dataset.bundledModule),text=count.textContent,images=root.querySelectorAll('img').length;
+  const link=root.querySelector('a')!,href=link.href;view.dispose();view.dispose();search.value='absent';search.dispatchEvent(new Event('input'));
+  return {shown,text,images,href,inert:root.querySelectorAll('input[type="checkbox"],button').length===0,restored:root.childNodes.length===1&&root.firstChild===borrowed,stale:count.textContent};
+ },bundle);
+ expect(result).toMatchObject({shown:['test.sound'],text:'1 of 2 bundled packages',images:0,href:'https://github.com/pink-kitsune-420/space-sim',inert:true,restored:true,stale:'1 of 2 bundled packages'});
+});
 test('portable module editor keeps exact releases, numeric help, provider choices and cancellation behind its host port',async({page})=>{
  await page.goto('about:blank');await page.setContent('<details open><p>Borrowed</p></details>');
  const result=await page.evaluate(async bundle=>{
@@ -36,12 +48,16 @@ test('legacy profile drafts and installed-artifact commands remain separate from
   let changed=0,exports=0,removed=0,display:any;const view=modMenu.profile(elements,{changed(){changed++;},error(message:string){throw new Error(message);},async exportModule(){exports++;},async removeModule(){removed++;},async presentationSettings(id:string,values:any){display={id,values};}},initial);
   view.refresh({applied:initial,available:[manifest],editable:true,installed:[{manifest,active:false},{manifest:panel,active:true,values:{gain:1}}]});
   const checkbox=elements.list.querySelector<HTMLInputElement>('input[type=checkbox]')!;checkbox.click();const input=elements.list.querySelector<HTMLInputElement>('input[type=number]')!;input.value='2.5';input.dispatchEvent(new Event('change'));const select=elements.providers.querySelector('select')!;select.value=manifest.id;select.dispatchEvent(new Event('change'));const draft=view.draft();
+  const refreshState={applied:initial,available:[manifest],editable:true,installed:[{manifest,active:false},{manifest:panel,active:true,values:{gain:1}}]};view.refresh({...refreshState,applied:{...initial}});const refreshedDraft=view.draft();
+  view.refresh({...refreshState,applied:{...initial,id:'test.second-game'}});const resetDraft=view.draft();
   const exportButton=elements.installed.querySelector<HTMLButtonElement>('button')!;exportButton.click();await Promise.resolve();view.select([]);exportButton.click();
   const panelRow=elements.installed.children[1]!,number=panelRow.querySelector<HTMLInputElement>('input[type=number]')!;number.value='5';[...panelRow.querySelectorAll('button')].find(button=>button.textContent==='Apply presentation settings')!.click();await Promise.resolve();
   const protectedActive=[...panelRow.querySelectorAll('button')].find(button=>button.textContent==='Remove')!.disabled,empty=view.draft();view.dispose();modMenu.dispose();checkbox.click();exportButton.click();
-  return {draft,empty,changed,exports,removed,display,protectedActive,restored:elements.list.firstChild===borrowed&&elements.list.childNodes.length===1,providers:elements.providers.childNodes.length,installed:elements.installed.childNodes.length,disabled:elements.apply.disabled,styles:document.head.querySelectorAll('style').length};
+  return {draft,refreshedDraft,resetDraft,empty,changed,exports,removed,display,protectedActive,restored:elements.list.firstChild===borrowed&&elements.list.childNodes.length===1,providers:elements.providers.childNodes.length,installed:elements.installed.childNodes.length,disabled:elements.apply.disabled,styles:document.head.querySelectorAll('style').length};
  },bundle);
  expect(result).toMatchObject({draft:{format:'space-sim-profile/1',modules:[{id:'test.profile',version:'1.0.0'}],providers:{content:'test.profile'},settings:{'test.profile':{gain:2.5}}},empty:{modules:[],settings:{}},changed:3,exports:1,removed:0,display:{id:'test.panel',values:{gain:5}},protectedActive:true,restored:true,providers:0,installed:0,disabled:true,styles:0});
+ expect(result.refreshedDraft).toEqual(result.draft);
+ expect(result.resetDraft).toMatchObject({modules:[],providers:{},settings:{}});
 });
 test('portable ModMenu uses metadata and explicit commands, isolates failed play and cancels removal without stale UI',async({page})=>{
  await page.goto('about:blank');await page.setContent('<main></main>');

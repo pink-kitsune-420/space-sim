@@ -47,6 +47,11 @@ test('installed legacy modules survive reload without becoming enabled', async (
   await expect(page.locator('#installed-code-modules')).toContainText(force.manifest.id);
   await expect(page.locator(`#authoritative-module-list input[data-enable="${force.manifest.id}"]`)).not.toBeChecked();
   expect((await debug(page)).fingerprint).toBe(fingerprint);
+  await page.locator('.game-card').filter({has:page.getByRole('heading',{name:'Space Sim',exact:true})}).getByRole('button',{name:'Play · new world',exact:true}).click();
+  await expect(page.locator('#lab-status')).toContainText('Playing Space Sim');
+  await expect(page.locator('#installed-code-modules')).toContainText(force.manifest.id);
+  await expect(page.locator(`#authoritative-module-list input[data-enable="${force.manifest.id}"]`)).not.toBeChecked();
+  expect((await debug(page)).fingerprint).toBe(fingerprint);
 });
 
 test('installed code stays inactive until enabled; settings, fork/export, dependency errors and removal preserve the right world', async ({ page }) => {

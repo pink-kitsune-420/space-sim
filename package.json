@@ -1,6 +1,6 @@
 {
   "name": "space-lab",
-  "version": "0.6.0-alpha",
+  "version": "0.6.1-alpha",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -10,7 +10,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "dev:sandbox": "vite apps/orbit-sandbox --port 5174",
-    "build": "tsc --noEmit && vite build && node scripts/build_offline.mjs && vite build --config vite.server.config.ts && vite build --config vite.desktop.config.ts",
+    "build": "node scripts/sync_versions.mjs --check && tsc --noEmit && vite build && node scripts/build_offline.mjs && vite build --config vite.server.config.ts && vite build --config vite.desktop.config.ts",
+    "version": "node scripts/sync_versions.mjs",
     "build:server-exe": "node scripts/build_server_exe.mjs",
     "build:game-exe": "node scripts/build_game_exe.mjs",
     "package": "node scripts/package.mjs",

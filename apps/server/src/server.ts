@@ -28,7 +28,7 @@ import { MAX_CLIENT_MESSAGE, PROTOCOL } from '../../../packages/net/src/protocol
 import { SOCKET_PATH } from '../../../packages/net/src/websocket';
 import { newWorldId } from '../../../packages/net/src/sha256';
 import { BUILTIN_UNIVERSES } from '../../../packages/scenarios/builtin';
-import { version } from '../../../package.json';
+import { VERSION as version } from '../../../packages/game-runtime/src/build-info';
 import { USAGE, loadConfig, parseCommandLine, type ServerConfig } from './config';
 import { serverModules } from './modules';
 import { WorldStore } from './store';

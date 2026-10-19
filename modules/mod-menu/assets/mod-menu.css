@@ -5,3 +5,28 @@
 .lab-actions button,.game-card button { font-size:11px }
 .game-card details { margin-top:16px }
 .game-card details label { margin-top:14px }
+.plugin-heading { font-size:16px; font-weight:500; margin:0 }
+#plugin-overview { margin:0 0 4px }
+.module-badge { display:inline-block; color:var(--ui-win-accent); border:1px solid var(--ui-win-border); border-radius:4px; padding:3px 7px; font-size:10px }
+.bundled-module-settings { grid-column:1/-1; min-width:0; border-top:1px solid var(--ui-win-border); padding-top:16px }
+.bundled-module-settings > summary { cursor:pointer; font-size:14px }
+.bundled-module-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:12px; padding:0; margin:12px 0; list-style:none; max-height:480px; overflow:auto; scrollbar-gutter:stable }
+.bundled-module-list > li { min-width:0; padding:16px; border:1px solid var(--ui-win-border); border-radius:6px; background:var(--ui-win-card-bg); overflow-wrap:anywhere }
+.bundled-module-list > li[hidden] { display:none }
+.bundled-module-list h4 { font-size:14px; font-weight:500; margin:10px 0 6px }
+.bundled-module-list p { margin:6px 0 10px }
+.bundled-module-list summary,.bundled-module-list a { font-size:11px; color:var(--ui-win-accent); cursor:pointer }
+.device-module-settings ul { list-style:none; padding:0 }
+.device-module-settings li { display:grid; gap:10px; border-top:1px solid var(--ui-win-border); padding:14px 0; overflow-wrap:anywhere }
+.device-module-settings select { min-width:0; max-width:100% }
+.device-module-settings .lab-actions { margin-top:12px }
+.module-list > li > small { display:block; overflow-wrap:anywhere }
+.panel-window section.lab-manager { grid-template-columns:minmax(0,1fr) }
+.panel-window #plugin-manager { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start }
+.panel-window .plugin-heading,.panel-window #plugin-overview { grid-column:1/-1 }
+.panel-window .presentation-settings { grid-column:1; grid-row:3 / span 3 }
+.panel-window .code-module-settings,.panel-window .module-settings,.panel-window .device-module-settings { grid-column:2 }
+@media(max-width:700px) {
+  .panel-window #plugin-manager { grid-template-columns:minmax(0,1fr) }
+  .panel-window .presentation-settings,.panel-window .code-module-settings,.panel-window .module-settings,.panel-window .device-module-settings { grid-column:1; grid-row:auto }
+}

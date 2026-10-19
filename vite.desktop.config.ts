@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative, sep } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { buildDefines } from './scripts/build_info.mjs';
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -44,7 +45,7 @@ function clientAssets(): Plugin {
 }
 
 export default defineConfig({
-  define: { __SPACE_SIM_ALLOW_RUNTIME_CODE__: JSON.stringify(process.env.SPACE_SIM_ALLOW_RUNTIME_CODE !== 'false') },
+  define: buildDefines(),
   publicDir: false,
   plugins: [clientAssets()],
   build: {

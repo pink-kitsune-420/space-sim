@@ -6,6 +6,7 @@ import { captureDocument, type Disposable, type ManualGuide, type ManualSection 
 import { createWindowContent } from '../../../modules/ui-windows/src/content';
 import {createManuals} from '../../../modules/manual/src/index';
 import type { ModuleCandidateV2 } from '../../../packages/game-runtime/src/modules-v2';
+import { BUILD_INFO, VERSION } from '../../../packages/game-runtime/src/build-info';
 
 // Compatibility composition until Phase 4 selects the Manual and document services by manifest.
 const content=createWindowContent(),manuals=createManuals(content);
@@ -31,6 +32,7 @@ export function initManual(options:{readControls:()=>ManualControls;openControls
  const book={players:section('players'),creators:section('creators')};
  const reader=manuals.create({root,book,configure:{label:'Configure controls…',open:options.openControls},scrollContainer:root.closest<HTMLElement>('.flight-window-body')??undefined,
   storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)},revision:()=>{const b=options.readControls();return JSON.stringify([b.keys,b.players,b.controllerEnabled,b.pads.map(pad=>[pad.index,pad.family])]);}});
+ const version=document.createElement('p');version.id='manual-build-version';version.className='module-note';version.textContent=`Spacelab ${VERSION}${BUILD_INFO.development?' · dev build':''}`;version.title=BUILD_INFO.revision?`Source revision ${BUILD_INFO.revision}`:'Source revision unavailable';root.prepend(version);
  const controller=new AbortController(),signal=controller.signal,refresh=()=>reader.refresh();
  document.getElementById('controls-dialog')?.addEventListener('close',refresh,{signal});
  window.addEventListener('gamepadconnected',refresh,{signal});window.addEventListener('gamepaddisconnected',refresh,{signal});

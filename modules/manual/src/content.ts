@@ -479,9 +479,8 @@ const CREATORS: readonly ManualPage[] = [
     title: 'Making things with Spacelab',
     summary: 'What you can build, and where to start',
     html: `
-<p>Spacelab is the engine, and <b>Space Sim</b> is the game that comes with it. Almost every part, from the
-instruments and cameras to the renderers, the physics model and the planets, is a <b>module</b>. You can remove
-a module, replace it with your own, or mix modules into a new game. All games share the same 2D orbital physics.</p>
+<p>Spacelab is the engine, and <b>Space Sim</b> is the game that comes with it. Use data files and code modules
+to customize worlds, flight rules, instruments and sound. Available controls and compatible modules depend on the game.</p>
 <p>From easiest to most involved, you can make:</p>
 <ol>
   <li><a data-page="universes">Universes and planets</a>: data files, no code.</li>
@@ -489,7 +488,9 @@ a module, replace it with your own, or mix modules into a new game. All games sh
   <li><a data-page="games">Games and remixes</a>: a chosen set of modules, content and settings in one file.</li>
   <li><a data-page="modules">Code modules</a>: TypeScript that adds forces, rules, commands, instruments or cameras.</li>
 </ol>
-<p>The <b>ModMenu</b> window manages all of these. Nothing leaves your computer unless you share the file.</p>
+<p>The <b>ModMenu</b> window manages games and plugins. Its <b>Plugin controls</b> show simulation options and
+instruments you can change now. Choose <b>Browse bundled packages</b> to search the included source packages by name
+or category. These are source references: some bundled systems do not have individual switches in this alpha.</p>
 ${deeper('how the pieces fit', `
 <p>A <b>game</b> lists two profiles. The <b>simulation profile</b> picks the modules that decide what happens,
 such as the motion model and content. Those are part of every save and every multiplayer session. The
@@ -581,7 +582,7 @@ data and settings, so the game plays the same on any computer.</p>`)}`,
 <p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. There are three kinds:</p>
 <dl>
   <dt>Data</dt><dd>Only JSON, for example vehicle settings. Try <code>examples/modules/gentle-flight.json</code> with
-    <b>ModMenu → Data &amp; legacy profiles → Load module/profile…</b>.</dd>
+    <b>ModMenu → Advanced · data &amp; profiles → Load module/profile…</b>.</dd>
   <dt>Simulation</dt><dd>Changes what happens: extra forces, a different physics integrator, world rules, or new
     pilot commands. These run on the host or server and are part of saves and multiplayer.</dd>
   <dt>Presentation</dt><dd>Changes what you see or hear: overlays, panels, camera modes and sound. You can switch these on

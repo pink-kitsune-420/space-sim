@@ -18,7 +18,8 @@ describe('persistent inert module library', () => {
     library.install(first); await library.flush(); expect(await store.list()).toHaveLength(1);
     library.replace([second]); expect(library.artifacts[0]!.digest).toBe(second.digest);
     const reopened = new ModuleLibrary(store); await reopened.open(); expect(reopened.artifacts[0]!.digest).toBe(first.digest);
-    reopened.replace([]); reopened.install(second); await reopened.flush(); expect(await store.list()).toHaveLength(2);
+    reopened.replace([]); expect(reopened.artifacts[0]!.digest).toBe(first.digest);
+    reopened.replace([second]); await reopened.flush(); expect(await store.list()).toHaveLength(2);
     reopened.remove(second.manifest.id); await reopened.flush(); expect(await store.list()).toEqual([]);
   });
   it('reports quota failures as session-only while retaining the inert local artifact', async () => {

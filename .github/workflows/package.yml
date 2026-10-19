@@ -68,6 +68,7 @@ jobs:
           name: space-sim-offline-html
           path: |
             dist/space-lab-offline.html
+            dist/space-lab-browser.zip
             dist/space-sim.spacegame
             dist/space-sim.spaceuniverse
             dist/universes/
@@ -171,6 +172,8 @@ jobs:
           if [ -f all-artifacts/space-sim-offline-html/space-lab-offline.html ]; then
             cp all-artifacts/space-sim-offline-html/space-lab-offline.html "release-files/space-lab-${TAG}-offline.html"
           fi
+          cp all-artifacts/space-sim-offline-html/space-lab-browser.zip "release-files/spacelab-${TAG}-itch.zip"
+          cp LICENSE CREDITS.md release-files/
           find all-artifacts/space-sim-offline-html -maxdepth 1 -name "*.spacegame" -exec cp {} release-files/ \;
           find all-artifacts/space-sim-offline-html -maxdepth 1 -name "*.spaceuniverse" -exec cp {} release-files/ \;
 
@@ -183,7 +186,18 @@ jobs:
             cp all-artifacts/space-sim-android-apk/app-debug.apk "release-files/space-sim-${TAG}-android.apk"
           fi
 
-          # Generate Checksums
+          # One download for all available platforms, followed by hashes for every asset.
+          python3 - "$TAG" <<'PY'
+          import sys
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          root = Path('release-files')
+          bundle = root / f'spacelab-{sys.argv[1]}-all-platforms.zip'
+          with ZipFile(bundle, 'w', compression=ZIP_DEFLATED, compresslevel=9) as archive:
+              for path in sorted(root.iterdir()):
+                  if path.is_file() and path != bundle:
+                      archive.write(path, path.name)
+          PY
           cd release-files
           sha256sum * > SHA256SUMS.txt
           ls -lh

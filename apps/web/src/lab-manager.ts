@@ -5,13 +5,16 @@ import {parseCodeArtifact} from '../../../packages/game-runtime/src/artifact';
 import {parseModuleImport} from './modules';
 import {GameLibrary,type LibraryGame} from './game-library';
 import {downloadBytes,element,show} from './ui';
-import {createModMenu} from '../../../modules/mod-menu/src/index';
+import {createModMenu,mountBundledCatalogue} from '../../../modules/mod-menu/src/index';
+import bundledModules from 'virtual:spacelab-bundled-modules';
 
 /** Host adapter: codecs, existing storage and world publication stay outside the reusable view. */
 export class LabManager implements Disposable {
  readonly library=new GameLibrary();
  private readonly modMenu=createModMenu();
  private readonly view:ModMenuLibraryView;
+ private readonly catalogue:Disposable;
+ private readonly controller=new AbortController();
  private ready:Promise<void>|undefined;
  private disposed=false;
  constructor(private readonly options:{
@@ -23,6 +26,10 @@ export class LabManager implements Disposable {
   readonly play:(game:GamePackage,signal:AbortSignal)=>void|Promise<void>;
   readonly editable:()=>boolean;readonly world:()=>object;
  }){
+  this.catalogue=mountBundledCatalogue(element('bundled-module-catalogue'),bundledModules);
+  element('bundled-module-summary').textContent=`Bundled source packages · ${bundledModules.length}`;
+  const browse=element('browse-bundled-modules');browse.textContent=`Browse bundled packages · ${bundledModules.length}`;
+  browse.addEventListener('click',()=>{const catalogue=element('bundled-module-catalogue');catalogue.closest('details')!.open=true;catalogue.scrollIntoView({block:'start'});catalogue.querySelector('input')!.focus({preventScroll:true});},{signal:this.controller.signal});
   this.view=this.modMenu.library({importButton:element<HTMLButtonElement>('lab-import'),importFile:element<HTMLInputElement>('lab-file'),save:element<HTMLButtonElement>('lab-save'),export:element<HTMLButtonElement>('lab-export'),name:element<HTMLInputElement>('game-name'),folder:element<HTMLInputElement>('game-folder'),search:element<HTMLInputElement>('game-search'),sort:element<HTMLSelectElement>('game-sort'),favorites:element<HTMLInputElement>('game-favorites'),list:element('game-list'),empty:element('game-empty'),status:element('lab-status')},{
    entries:()=>this.entries().map(entry=>({id:entry.id,name:entry.game.info.name,description:entry.game.info.description,folder:entry.folder,favorite:entry.favorite,builtin:this.isBuiltin(entry.id),dataModules:entry.game.bundle.modules.length,codeModules:entry.game.plugins.length} satisfies ModMenuGame)),editable:options.editable,
    importFile:async(file,signal)=>{await this.ready;signal.throwIfAborted();return this.importFile(file,signal);},
@@ -59,5 +66,5 @@ export class LabManager implements Disposable {
   if(imported.format==='space-lab-game/1'){await this.library.put(imported);signal.throwIfAborted();return `Added ${imported.info.name} to your library. Choose Play to enable its plugins and start a new world.`;}
   options.install(imported);element('plugin-manager').hidden=false;document.querySelector<HTMLDetailsElement>('.code-module-settings')!.open=true;return `Installed ${imported.info.name}. Select it in Plugins and apply to enable it. Code has not run.`;
  }
- dispose():void{if(this.disposed)return;this.disposed=true;this.modMenu.dispose();this.library.dispose();}
+ dispose():void{if(this.disposed)return;this.disposed=true;this.controller.abort();this.catalogue.dispose();this.modMenu.dispose();this.library.dispose();}
 }

@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile } from 'node:fs/promises';
 import ocean from '../../games/space-sim/universes/sandbox/ocean/universe.json' with { type: 'json' };
-import { openPanel } from '../helpers/workspace';
+import { openPanel, closePanel } from '../helpers/workspace';
 
 let script: string;
 test.beforeAll(async () => {
@@ -136,12 +136,16 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   await openPanel(page, 'settings');
   await expect(page.locator('#renderer-toggle')).toHaveText('Renderer: 2D');
   // Turn inward and burn from rest to demonstrate powered sinking.
+  await closePanel(page);
   await page.locator('#flight-view').focus();
   await page.keyboard.down('ArrowRight');
-  await expect.poll(async () => {
-    const d = await debug(page); return Math.cos(d.heading ?? 0);
-  }).toBeLessThan(-.8);
-  await page.keyboard.up('ArrowRight');
+  try {
+    // Sample each browser frame: coarse Node polling can miss the inward arc.
+    await page.waitForFunction(() => {
+      const d = JSON.parse(document.getElementById('debug')!.textContent || '{}');
+      return Math.cos(d.heading ?? 0) < -.8;
+    }, undefined, { timeout: 5000, polling: 'raf' });
+  } finally { await page.keyboard.up('ArrowRight'); }
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('SUBMERGED');
   await page.keyboard.up('Space');

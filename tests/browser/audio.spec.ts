@@ -114,7 +114,7 @@ test('sound removal closes its context and leaves the world and renderer intact'
   await page.locator('#renderer-toggle').click();
   expect(await contexts(page)).toBe(1);
   await openPanel(page, 'library');
-  await page.locator('.presentation-settings summary').click();
+  if (!await page.locator('.presentation-settings').evaluate(el => (el as HTMLDetailsElement).open)) await page.locator('.presentation-settings > summary').click();
   const sound = page.locator('input[data-module="builtin.audio"]');
   await sound.uncheck();
   await expect.poll(() => page.evaluate(() => window.audioProbe.contexts[0]?.state)).toBe('closed');

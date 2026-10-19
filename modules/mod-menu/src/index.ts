@@ -1,6 +1,7 @@
 import {MOD_MENU,type Disposable,type ModuleInitializationV2,type ModMenuGame,type ModMenuLibraryElements,type ModMenuLibraryPort,type ModMenuLibraryView,type ModMenuService} from '@space-sim/game-api';
 import {createModuleEditor} from './modules';
 import {createProfileEditor} from './profile';
+export {mountBundledCatalogue,type BundledModuleEntry} from './catalogue';
 /** Metadata-only UI. Opaque item IDs route explicit commands back to the authoritative host. */
 function createLibrary(e:ModMenuLibraryElements,port:ModMenuLibraryPort):ModMenuLibraryView {
  const document=e.list.ownerDocument,Controller=document.defaultView?.AbortController??AbortController,controller=new Controller(),signal=controller.signal;
@@ -17,7 +18,7 @@ function createLibrary(e:ModMenuLibraryElements,port:ModMenuLibraryPort):ModMenu
  }
  function card(entry:ModMenuGame):HTMLElement {
   const card=document.createElement('li');card.className='game-card';card.dataset.game=entry.id;
-  const title=document.createElement('h3'),description=document.createElement('p'),meta=document.createElement('p'),actions=document.createElement('div');title.textContent=entry.name;description.textContent=entry.description;meta.className='module-note';meta.textContent=`${entry.folder||'Unfiled'} · ${entry.dataModules} data · ${entry.codeModules} code plugins`;actions.className='lab-actions';
+  const title=document.createElement('h3'),description=document.createElement('p'),meta=document.createElement('p'),actions=document.createElement('div');title.textContent=entry.name;description.textContent=entry.description;meta.className='module-note';meta.textContent=entry.builtin?'Built-in game':`${entry.folder||'Unfiled'} · Saved game`;actions.className='lab-actions';
   actions.append(button('Play · new world',async signal=>{status(await port.play(entry.id,signal));},!port.editable()),button('Export game',async signal=>{const message=await port.export(entry.id,e.name.value,signal);if(message)status(message);}));card.append(title,description,meta,actions);
   if(!entry.builtin){
    const star=button(entry.favorite?'★ Favorite':'☆ Favorite',async signal=>{await port.organize(entry.id,{favorite:!entry.favorite},signal);});star.setAttribute('aria-pressed',String(entry.favorite));actions.append(star);
