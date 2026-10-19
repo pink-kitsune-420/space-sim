@@ -1,7 +1,7 @@
 """Check final download completeness, archives and hashes before publication.
 
 Usage: python3 scripts/verify_release_distribution.py release-files v0.6.2a
-Android remains optional, matching the release workflow's sideload-build policy.
+Use --require-android for a complete release; legacy download sets may omit it.
 """
 from pathlib import Path
 import hashlib
@@ -11,7 +11,7 @@ import tarfile
 import zipfile
 
 
-def verify(root, tag):
+def verify(root, tag, require_android=False):
     native = {
         f'space-sim{server}-{tag}-{platform}.{extension}'
         for server in ['', '-server']
@@ -19,6 +19,8 @@ def verify(root, tag):
     }
     required = native | {'SHA256SUMS.txt', 'LICENSE', 'CREDITS.md', f'space-lab-{tag}-offline.html',
         f'space-sim-universes-{tag}.tar.gz', 'space-sim.spacegame', 'space-sim.spaceuniverse'}
+    if require_android:
+        required.add(f'space-sim-{tag}-android.apk')
     present = {p.name for p in root.iterdir() if p.is_file()}
     redundant = present & {f'spacelab-{tag}-all-platforms.zip', f'spacelab-{tag}-itch.zip'}
     if redundant:
@@ -69,4 +71,4 @@ def verify(root, tag):
 
 
 if __name__ == '__main__':
-    verify(Path(sys.argv[1]), sys.argv[2])
+    verify(Path(sys.argv[1]), sys.argv[2], '--require-android' in sys.argv[3:])

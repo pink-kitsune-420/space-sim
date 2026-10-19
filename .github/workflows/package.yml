@@ -78,7 +78,6 @@ jobs:
   package-android:
     needs: verify
     runs-on: ubuntu-24.04
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -117,9 +116,9 @@ jobs:
           if-no-files-found: error
 
   distribution:
-    # Waits for the APK too, but still publishes the desktop builds if Android fails.
+    # Publish only a complete desktop/server/Android distribution.
     needs: [verify, package-desktop, package-android]
-    if: ${{ !cancelled() && needs.verify.result == 'success' && needs.package-desktop.result == 'success' }}
+    if: ${{ !cancelled() && needs.verify.result == 'success' && needs.package-desktop.result == 'success' && needs.package-android.result == 'success' }}
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.distribution.outputs.version }}
@@ -219,7 +218,7 @@ jobs:
       - name: Verify prepared downloads
         env:
           BUILD_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('snapshot-{0}', github.sha) }}
-        run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG"
+        run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG" --require-android
       - uses: actions/upload-artifact@v4
         with:
           name: release-files
@@ -242,7 +241,7 @@ jobs:
       - name: Verify downloads after artifact transfer
         env:
           BUILD_TAG: ${{ github.ref_name }}
-        run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG"
+        run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG" --require-android
       - name: Publish verified downloads
         uses: softprops/action-gh-release@v2
         with:
