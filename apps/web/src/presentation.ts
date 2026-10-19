@@ -85,6 +85,14 @@ export class Presentation {
     element('presentation-list').addEventListener('change', event => {
       const input = event.target as HTMLInputElement;
       if (input.dataset.module) this.setEnabled(input.dataset.module, input.checked);
+      else if(input.dataset.owner&&input.dataset.setting){
+        if(!input.validity.valid){show('presentation-status','Choose a value within the module’s allowed range and increment.');return;}
+        try{
+          const id=input.dataset.owner;
+          this.setSettings(id,{...this.profile?.settings[id],[input.dataset.setting]:input.valueAsNumber});
+          show('presentation-status',`${this.names([id])} settings applied.`);
+        }catch(error){show('presentation-status',`Settings were not applied: ${message(error)}`);}
+      }
     });
     element('instruments').addEventListener('click', event => {
       const id = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-instrument]')?.dataset.instrument;
@@ -358,6 +366,14 @@ export class Presentation {
         note.className = 'module-note';
         note.textContent = notes.join(' · ');
         item.append(note);
+      }
+      for(const [key,schema] of Object.entries(m.settings)){
+        const setting=document.createElement('label'),input=document.createElement('input');
+        input.type='number';input.min=String(schema.minimum);input.max=String(schema.maximum);input.step=String(schema.step??'any');
+        input.value=String(this.profile?.settings[m.id]?.[key]??schema.default);
+        input.dataset.owner=m.id;input.dataset.setting=key;input.disabled=!enabled.has(m.id);
+        setting.append(`${schema.label??key} `,input);item.append(setting);
+        if(schema.description){const help=document.createElement('small');help.className='module-note';help.textContent=schema.description;item.append(help);}
       }
       return item;
     }));

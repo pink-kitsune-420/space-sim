@@ -65,7 +65,7 @@ import { loadGraphicsQuality, saveGraphicsQuality } from './graphics';
 import { PlanetDesigner } from './planet-designer';
 import './style.css';
 import {
-  DEFAULT_UNIVERSE, IDLE, MODEL, STEP,
+  DEFAULT_UNIVERSE, IDLE, MODEL, STEP, MAX_WARP,
   magnitude, querySurface, checkWarpSafety, nextWarpFactor, rotate, spinAngle, spinRate,
   findDominantBodyForWorldPos,
   type Controls, type ResolvedBody, type State,
@@ -329,7 +329,9 @@ const maneuver = new ManeuverPlanner(workspace, {
   },
   setWarp, setPaused: value => setPaused(value, 'Burn alarm'), notify, event: (kind, detail) => profiler.event(kind, detail),
 }, { alarms: hostFeatures.lock.providers[ORBITAL_ALARMS.slot] ? hostFeatures.providedService(ORBITAL_ALARMS) : undefined, plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
-  transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined });
+  transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined },{
+    get alignmentWarp(){return presentation.profile?.settings['builtin.maneuver-planner']?.alignmentWarp??4;}
+  });
 const transferShortcut=element<HTMLButtonElement>('plan-transfer');
 transferShortcut.hidden=!hostFeatures.lock.providers[TRANSFERS.slot];
 transferShortcut.addEventListener('click',()=>maneuver.openTransfers());
@@ -502,7 +504,7 @@ function executeChatCommand(cmdStr: string): void {
       logChatMessage('system', '/circ — Circularize current orbit around dominant body');
       logChatMessage('system', '/tp [body] — Teleport ship to celestial body orbit');
       logChatMessage('system', '/god — Toggle god mode (invulnerable)');
-      logChatMessage('system', '/warp [factor] — Set time warp rate (1-10000)');
+      logChatMessage('system', `/warp [factor] — Set time warp rate (1-${MAX_WARP})`);
       logChatMessage('system', '/spawn [preset] — Spawn a new vessel');
       logChatMessage('system', '/split [force|dynamic|1-4] — Toggle or configure split screen mode');
       logChatMessage('system', '/clear — Clear chat messages');
@@ -661,13 +663,13 @@ function executeChatCommand(cmdStr: string): void {
     }
     case 'warp': {
       const factor = parseInt(args[0] ?? '1', 10);
-      if (Number.isFinite(factor) && factor >= 1 && factor <= 10000) {
+      if (Number.isFinite(factor) && factor >= 1 && factor <= MAX_WARP) {
         if (!session.canWarp) { logChatMessage('error', 'Only the host can activate time warp.'); return; }
         maneuver.manualWarp();setWarp(factor);
         if (session.warp === factor) logChatMessage('success', `Time warp set to ${factor}×.`);
         else logChatMessage('system', `Time warp ${session.warp}×${session.warpReason ? `: ${session.warpReason}` : ''}.`);
       } else {
-        logChatMessage('error', 'Usage: /warp [1-10000]');
+        logChatMessage('error', `Usage: /warp [1-${MAX_WARP}]`);
       }
       break;
     }
@@ -4605,7 +4607,7 @@ function frame(now: number): void {
   if(session.world!==warpApprovalWorld||session!==local||!local.hosting){warpApproval.clear();warpApprovalWorld=session.world;}
   maneuver.beforeAdvance(command);
   warpApproval.retain(shipId=>maneuver.isAutomatic(shipId));
-  handleEvents(session === local ? local.update(elapsed, selectedShipId, command, maneuver.executing ? () => maneuver.step(command) : undefined, () => maneuver.stepFleet())
+  handleEvents(session === local ? local.update(elapsed, selectedShipId, command, maneuver.executing&&maneuver.needsFixedTicks ? () => maneuver.step(command) : undefined, maneuver.needsFixedTicks?() => maneuver.stepFleet():undefined)
     : session.update(elapsed, selectedShipId, command));
   syncSelected();
   if (state.status !== lastStatus) {

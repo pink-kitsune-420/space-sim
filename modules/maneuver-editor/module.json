@@ -83,6 +83,15 @@
         "step": 1,
         "label": "Maneuver text refresh (ms)",
         "description": "Minimum wall time between editor status/summary refreshes. Commands and trajectory validity still run at their existing boundaries."
+      },
+      "alignmentWarp": {
+        "type": "number",
+        "default": 4,
+        "minimum": 1,
+        "maximum": 4,
+        "step": 1,
+        "label": "Automatic alignment warp (×)",
+        "description": "Ship rotation speed during explicitly authorized automatic approaches. Choose 1 for real time, or 2–4 to align faster using the same accurate rotation physics. Engine burns run at 1×. Follow-clock plans never increase warp."
       }
     },
     "license": "MIT",
@@ -92,7 +101,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "7d5ec46591a1e0fe1d27255847471967c13c7080e3d36364d2a932806533d9a7"
+    "inputsDigest": "49377cab33a25a15d08a7d933bfdd4ae4eae5274e4d11f875353e51756702851"
   },
   "compatibility": {
     "deterministic": true,
@@ -447,13 +456,13 @@
     },
     {
       "path": "src/editor.ts",
-      "sha256": "94521e7d3a125749220435a669d8b24def149c75f3c7ee5b7a5be5f15dcceb81",
+      "sha256": "f03f3f9b7bd7c6ed30323b11f468ace86658eee78c2db80099b2c062c8045650",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },
     {
       "path": "src/fleet.ts",
-      "sha256": "0ee24f333c576c3c5a579c49789cf6489bbd7240a3f24d33becd9e1547b39b1f",
+      "sha256": "9cf088ca3cbc104d750d95dd0e60e4482212da72229487b0bac833c12a5f9cb0",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },

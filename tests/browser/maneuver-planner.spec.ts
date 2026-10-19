@@ -201,6 +201,31 @@ test('Execute burn resumes paused flight and completes a transfer-sized departur
   expect(done.time).toBeGreaterThanOrEqual(done.maneuver.time);
 });
 
+test('automatic alignment speed is a validated module setting and changing it leaves the paused flight intact',async({page})=>{
+ await setup(page);const before=await debug(page);await openPanel(page,'library');
+ if(!await page.locator('.presentation-settings').evaluate(el=>(el as HTMLDetailsElement).open))await page.locator('.presentation-settings > summary').click();
+ const setting=page.getByLabel('Automatic alignment warp (×)',{exact:true});
+ await expect(setting).toHaveValue('4');await expect(setting).toHaveAttribute('min','1');await expect(setting).toHaveAttribute('max','4');
+ await setting.fill('1');await setting.press('Tab');await expect(page.locator('#presentation-status')).toContainText('settings applied');
+ await expect(setting).toHaveValue('1');
+ await setting.fill('3.5');await setting.press('Tab');await expect(page.locator('#presentation-status')).toContainText('allowed range and increment');
+ await setting.fill('4');await setting.press('Tab');await expect(page.locator('#presentation-status')).toContainText('settings applied');
+ const after=await debug(page);expect(after.world).toBe(before.world);expect(after.tick).toBe(before.tick);expect(after.position).toEqual(before.position);
+});
+
+test('Execute burn crosses a two-hour parking-orbit wait promptly and returns the clock after cutoff',async({page})=>{
+ await setup(page);await place(page);
+ await page.locator('#maneuver-prograde').fill('4');await page.locator('#maneuver-radial').fill('2');
+ await page.locator('#maneuver-time').fill('7761.1');await page.locator('#maneuver-time').press('Tab');
+ await expect(page.locator('#maneuver-execute')).toBeEnabled();
+ const before=await debug(page);await expect(page.locator('#pause')).toHaveText('Resume');
+ await page.locator('#maneuver-execute').click();
+ await expect(page.locator('#maneuver-status')).toContainText(/complete|Plan complete/,{timeout:20000});
+ await expect.poll(async()=>{const d=await debug(page);return {engine:d.engine,execution:d.maneuver?.execution};}).toEqual({engine:false,execution:null});
+ const done=await debug(page);expect(done.time-before.time).toBeGreaterThanOrEqual(7761);
+ await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#throttle-value')).toHaveText('0%');
+});
+
 test('Abort burn releases thrust during a finite burn and requires replanning', async ({ page }) => {
   await setup(page); await place(page);
   await page.locator('#maneuver-prograde').fill('400');

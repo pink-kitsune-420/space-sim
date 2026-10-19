@@ -74,7 +74,10 @@ export function drawManeuver(view: PresentationView): OverlayPrimitive[] {
 const manifest: ModuleManifest = {
   format: 'space-sim-module/1', apiVersion: 'space-sim-game-api/1', id: 'builtin.maneuver-planner', name: 'Maneuver planner',
   version: '0.1.0', kind: 'provider', authority: 'presentation', environments: ['browser', 'offline'],
-  dependencies: [], provides: [], requires: [], slots: [], before: [], after: [], settings: {}, license: 'LicenseRef-Project',
+  dependencies: [], provides: [], requires: [], slots: [], before: [], after: [], settings: {
+    alignmentWarp:{type:'number',default:4,minimum:1,maximum:4,step:1,label:'Automatic alignment warp (×)',
+      description:'Use 1 for real-time automatic rotation, or 2–4 for faster alignment. Engine burns run at 1×; follow-clock plans never raise warp.'},
+  }, license: 'LicenseRef-Project',
 };
 export const maneuverPlanner: RegisteredModule = { manifest, initialize(context) {
   context.contributeLayer({ name: 'maneuver', label: 'Planned burn and trajectory', draw: drawManeuver });

@@ -450,8 +450,11 @@ export class HostSession<W extends WorldControl = WorldControl> {
    * If warp is 1, steps normally.
    * If warp > 1, applies safety checks, drops warp if active thrust or collision proximity
    * is detected, fast-forwards on rails up to the target tick or next event/input, and
-   * automatically drops back to 1x when an encounter (such as SOI entry/exit) is reached. */
-  advance(seconds: number): WorldEvent[] {
+   * automatically drops back to 1x when an encounter (such as SOI entry/exit) is reached.
+   * beforeTick supplies local assistant controls at normal/physical warp (up to 4x),
+   * never across an analytic jump. A rate change still executes that commanded tick,
+   * then discards the rest of the interval computed at the old rate. */
+  advance(seconds: number, beforeTick?: () => void): WorldEvent[] {
     this.assertActive();
     if (this.paused) return [];
     if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Invalid elapsed time');
@@ -464,6 +467,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
       this.warpAccumulator += accepted;
       let steps = 0;
       while (this.warpAccumulator + 1e-12 >= this.services.clock.stepSeconds && steps < 20) {
+        beforeTick?.();
         events.push(...this.step());
         this.warpAccumulator -= this.services.clock.stepSeconds;
         steps++;
@@ -506,7 +510,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
 
       if (nextBound > this.world.tick) {
         const preSafety = this.services.motion.checkWarpSafety(this.world);
-        if (preSafety.railsEligible && this.world.rails) {
+        if (preSafety.railsEligible && this.world.rails && !(beforeTick && warp <= 4)) {
           const stepEvents = this.world.advanceTo(nextBound);
           events.push(...stepEvents);
           this.handleFaults(stepEvents);
@@ -519,7 +523,9 @@ export class HostSession<W extends WorldControl = WorldControl> {
         } else {
           const maxSteps = 40;
           let steps = 0;
-          while (this.world.tick < nextBound && steps < maxSteps && !this.paused) {
+          while (this.world.tick < nextBound && steps < maxSteps && !this.paused && this.warp === warp) {
+            beforeTick?.();
+            if (this.paused) break;
             events.push(...this.step());
             steps++;
           }

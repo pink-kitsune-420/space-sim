@@ -116,7 +116,7 @@ describe('maneuver planning', () => {
   it('leaves at least half the approach window unused even after a long frame stall', () => {
     for (const seconds of [.01, .25, .3, 1, 2, 30, 100, 1000, 1e6]) {
       const warp = maneuverWarpFactor(seconds);
-      expect(warp).toBeLessThanOrEqual(10_000);
+      expect(warp).toBeLessThanOrEqual(100_000);
       if (warp > 1) expect(.1 * warp).toBeLessThanOrEqual(seconds / 2);
     }
     expect(maneuverWarpFactor(0)).toBe(1);

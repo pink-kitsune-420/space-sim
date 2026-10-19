@@ -362,6 +362,7 @@ After each burn it cuts the engine and reviews the remaining intent against actu
 it does not correct a missed encounter or optimise a new capture burn.</p>
 <p>By default, background ships <b>follow the current clock</b>. They request 1× only when alignment and thrust need it.
 Optionally check <b>Auto-warp between burns</b> to coast at the fastest permitted warp, slowing for every running ship’s next burn, alignment, and normal world safety limits.
+The Maneuver editor module’s <b>Automatic alignment warp (×)</b> setting controls rotation speed during automatic approaches: 1 uses real time; 2–4 run the same rotation physics faster. The default is 4. Engine burns always run at 1×. Follow-clock plans never increase the clock rate.
 After the final burn, flight continues at 1× and automatic clock control ends. Manual warp keys and buttons take priority; they cancel conflicting automation. While hosting multiplayer, approve or decline the request in the host prompt. Approval for an approach permits its needed slowdown; auto-warp approval covers the remaining prepared burns of that armed run.
 Approval itself does not change the clock. A pending or refused request cannot change warp. Direct Execute and Continue are the host’s explicit commands.
 Remote pilots can prepare plans and fly manually; automatic control requires the authoritative host seat.</p>
@@ -507,8 +508,8 @@ the dial match directions on screen.</p>
 The maximum selectable rate is 100,000×, but the game limits the rate to suit the current world.</p>
 <ul>
   <li><b>Engine firing:</b> 1×. Cut persistent thrust as well as releasing held engine controls.</li>
-  <li><b>Steering, numerical flight or very low altitude:</b> usually at most 4×. Active contact or water entry can restrict it to 1×.</li>
-  <li><b>Low or short-period orbits:</b> capped so you can still follow the flight. Primus’s 28-second practice orbit cannot reach 100,000×.</li>
+  <li><b>Steering, numerical flight or custom world rules:</b> at most 4×. Active contact or water entry can restrict it to 1×.</li>
+  <li><b>Clear Kepler coasts:</b> up to 100,000×, including low and short-period orbits. Verified surface and sphere-of-influence events stop fast warp when preparation or ordinary physics is needed.</li>
   <li><b>Other ships matter:</b> warp is shared. A ship in the fleet can restrict it even when you are flying another one.
     A settled landed or crashed ship can sleep and does not by itself block fast warp.</li>
 </ul>

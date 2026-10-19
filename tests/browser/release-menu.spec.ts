@@ -18,7 +18,7 @@ test('clean menu exposes real controls and the full searchable bundled-source ca
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/'); await openPanel(page, 'library');
   await expect(page.locator('#plugin-overview')).toHaveText('6 simulation options · 9 display options · 0 imported plugins');
-  await expect(page.locator('#presentation-list input')).toHaveCount(9);
+  await expect(page.locator('#presentation-list input[type="checkbox"]')).toHaveCount(9);
   await expect(page.locator('#presentation-list input[data-module="builtin.throttle"]')).toBeChecked();
   await expect(page.locator('#presentation-list input[data-module="builtin.navball"]')).toBeChecked();
   await expect(page.locator('#presentation-list')).toBeVisible();

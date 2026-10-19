@@ -66,8 +66,13 @@ test('warp buttons follow changing safety ceilings and decrease from the effecti
   await orbit(page);
   for (let i = 0; i < 7; i++) await page.locator('#warp-up').click();
   await expect(page.locator('#warp-factor')).toHaveText('50×');
+  await expect(page.locator('#warp-up')).toBeEnabled();
+  for (const factor of [100,200,500,1000,2000,5000,10000,20000,50000,100000]) {
+    await page.locator('#warp-up').click();
+    await expect(page.locator('#warp-factor')).toHaveText(`${factor}×`);
+  }
+  await expect(page.locator('#warp-factor')).toHaveText('100000×');
   await expect(page.locator('#warp-up')).toBeDisabled();
-  await expect(page.locator('#warp-up')).toHaveAttribute('title', /Orbit period/);
 
   await page.locator('#flight-view').click({ position: { x: 20, y: 120 } });
   await page.keyboard.down('ArrowRight');

@@ -33,7 +33,8 @@ export class FleetPlansRunner {
  private nextPermission=1;
  constructor(private readonly options: ManeuverPlannerOptions, private readonly plans: FlightPlanService,
   private readonly burns: ManeuverBurnFactory, private readonly clock: Pick<ClockService, 'stepSeconds' | 'idle'>,
-  private readonly store: FleetPlans, private readonly clampWarp: CoreMotion['clampWarpFactor']) {}
+  private readonly store: FleetPlans, private readonly clampWarp: CoreMotion['clampWarpFactor'],private alignmentWarp=4) {}
+ setAlignmentWarp(factor:number):void {this.alignmentWarp=factor;}
  has(shipId: string): boolean { return this.runs.has(shipId); }
  isBurning(shipId:string):boolean {return !!this.runs.get(shipId)?.burn;}
  autoWarp(shipId:string):boolean {return this.runs.get(shipId)?.autoWarp??false;}
@@ -123,7 +124,7 @@ export class FleetPlansRunner {
    try {
     if (run.burn) {
      if (ship.bodyId !== run.bodyId) { this.fail(run, 'Body changed during a finite burn.'); continue; }
-     if (flight.requestedWarp !== 1) this.options.fleet.requestSlowWarp(run.shipId);
+     if (flight.requestedWarp !== 1 && !(run.autoWarp&&this.alignmentWarp>1&&run.burn.phase==='aligning'&&run.burn.start-ship.state.time>.45)) this.options.fleet.requestSlowWarp(run.shipId);
      continue;
     }
     if (!run.plan || ship.bodyId !== run.bodyId) this.review(run);
@@ -178,11 +179,16 @@ export class FleetPlansRunner {
  private coordinateWarp():void {
   const flight=this.options.flight(),port=this.options.fleet;
   if(this.disposed||flight.paused||flight.inputBlocked||!flight.enabled||!flight.canWarp||!port?.authorizeWarp)return;
-  let owner:Run|undefined,deadline=Infinity,hold=false;
+  let owner:Run|undefined,deadline=Infinity,hold=false,alignment=false,canAlign=this.alignmentWarp>1;
   for(const run of this.runs.values()){
    if(run.world!==flight.world)continue;
    hold||=!!run.burn||!!run.job||!run.node||!!run.preparing;
-   if(run.prepareAt!==undefined)deadline=Math.min(deadline,run.prepareAt);
+   if(run.burn){
+    alignment=true;canAlign&&=run.burn.phase==='aligning'&&run.burn.start-flight.world.time>.45;
+   }else{
+    canAlign&&=!run.job&&!!run.node&&!run.preparing;
+    if(run.prepareAt!==undefined)deadline=Math.min(deadline,run.prepareAt);
+   }
    if(!run.autoWarp)continue;
    try {
     if(port.authorizeWarp(run.shipId,{id:run.permissionId,mode:'auto-warp'}))owner??=run;
@@ -191,7 +197,7 @@ export class FleetPlansRunner {
   }
   if(!owner||!this.runs.has(owner.shipId))return;
   const remaining=deadline-flight.world.time;
-  const factor=hold||!Number.isFinite(remaining)||remaining<=.25?1:this.clampWarp(remaining/.2);
+  const factor=hold?(alignment&&canAlign&&remaining>.45?this.alignmentWarp:1):!Number.isFinite(remaining)||remaining<=.25?1:this.clampWarp(remaining/.2);
   if(factor!==this.options.flight().requestedWarp)this.options.setWarp(factor);
   if(factor>1){const actual=this.options.flight();owner.status=`Auto-warp · ${actual.warp}×${actual.warpReason?' · '+actual.warpReason:''}`;}
  }
@@ -207,11 +213,16 @@ export class FleetPlansRunner {
  /** Called before every compatible fixed tick, including for unselected ships. */
  step(): void {
   const flight = this.options.flight();
+  // The host accepts at most .1 wall seconds at up to 4x: leave .45 simulation
+  // seconds before ignition so every ship returns to normal fixed ticks in time.
+  if(flight.requestedWarp>1)for(const run of this.runs.values())if(run.burn&&(this.alignmentWarp<=1||run.burn.phase!=='aligning'||run.burn.start-flight.world.time<=.45)){
+   this.options.setWarp(1);break;
+  }
   for (const run of this.runs.values()) {
    const burn = run.burn; if (!burn) continue;
    const ship = flight.world.ship(run.shipId), expected = run.expected;
    if (flight.world !== run.world || flight.paused || flight.inputBlocked || !flight.enabled || !flight.canWarp
-    || flight.requestedWarp !== 1 || !this.options.fleet?.owns(run.shipId) || !ship || ship.bodyId !== run.bodyId || ship.state.status !== 'flying' || ship.fault) {
+    || this.options.flight().requestedWarp !== 1 && !(this.alignmentWarp>1&&flight.requestedWarp===this.alignmentWarp&&burn.phase==='aligning') || !this.options.fleet?.owns(run.shipId) || !ship || ship.bodyId !== run.bodyId || ship.state.status !== 'flying' || ship.fault) {
     this.fail(run, 'Burn conditions changed.'); continue;
    }
    if (expected && (Math.abs(ship.state.time - expected.time) > 1e-7 || Math.hypot(ship.state.position.x - expected.position.x, ship.state.position.y - expected.position.y) > .001

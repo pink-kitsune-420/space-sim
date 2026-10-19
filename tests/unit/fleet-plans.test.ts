@@ -10,7 +10,7 @@ import { DEFAULT_UNIVERSE, IDLE, STEP } from '../../packages/sim-core/src/index'
 import { World } from '../../packages/sim-core/src/world';
 import type { FlightPlanNode, ManeuverPlannerOptions } from '../../packages/game-api/src/index';
 
-function fixture(plans=createFlightPlans()) {
+function fixture(plans=createFlightPlans(),alignmentWarp=4) {
  const world=new World(DEFAULT_UNIVERSE),session=new LocalSession(flightSessionServices(),world,{name:'Pilot'});
  const ships=[session.spawn('planet-orbit',false)!,session.spawn('planet-orbit',false)!,session.spawn('planet-orbit',false)!];
  const intents=new Map<string,FlightPlanNode[]>(ships.slice(0,2).map(id=>[id,[{id:'departure',label:'Departure',bodyId:'planet',time:8,prograde:4,radial:0},{id:'arrival',label:'Arrival',bodyId:'planet',time:20,prograde:2,radial:0}]]));
@@ -20,7 +20,7 @@ function fixture(plans=createFlightPlans()) {
  const options:ManeuverPlannerOptions={container:null!,flight:()=>({world,ship:world.ship(ships[2]!),body:world.body('planet'),enabled:true,canWarp:true,paused,inputBlocked:false,warp:session.warp,requestedWarp:session.requestedWarp}),
   setWarp:factor=>session.setWarp(factor),setThrottle:(id,value)=>session.setThrottle(id,value),releaseControls:id=>session.host.setControls(session.playerId,id,IDLE),notify,
   fleet:{owns:id=>world.record(id)?.ownerId===session.playerId,setControls:(id,controls)=>session.host.setControls(session.playerId,id,controls),requestSlowWarp:request}};
- const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed},clampWarpFactor);
+ const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed},clampWarpFactor,alignmentWarp);
  const tick=()=>{runner.beforeAdvance(IDLE);session.update(.01,ships[2],IDLE,undefined,()=>runner.step());};
  return {world,session,ships,intents,completed,runner,tick,options,notify,request,pause:()=>{paused=true;}};
 }
@@ -125,6 +125,48 @@ it.each([false,true].flatMap(autoWarp=>[1/60,.2,2].map(frameSeconds=>({autoWarp,
   for(let index=0;index<2;index++)expect(Math.abs((firing[index]![0]!+firing[index]!.at(-1)!+STEP)/2-times[index]!)).toBeLessThanOrEqual(STEP);
   const ship=f.world.ship(id)!,orbit=f.world.contextFor(ship).services.orbits.elements(ship.state,body.mu);
   expect(Math.abs(orbit.periapsis-2048)).toBeLessThan(20);expect(Math.abs(orbit.apoapsis!-2048)).toBeLessThan(20);expect(ship.controls.engine).toBe(false);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it.each([1/60,.2,2])('auto-warps a two-hour low-orbit wait and centers the burn accurately with %s-second frames',frameSeconds=>{
+ const f=fixture(),id=f.ships[0]!,firing:number[]=[];
+ try {
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:7761.1,prograde:4,radial:2}]);
+  f.options.fleet!.authorizeWarp=()=>true;
+  const send=f.options.fleet!.setControls;
+  f.options.fleet!.setControls=(ship,controls)=>{if(ship===id&&controls.engine)firing.push(f.world.time);send(ship,controls);};
+  f.runner.arm(id,false,true);let frames=0,peakWarp=1;
+  for(;frames<2000&&f.runner.active;frames++){
+   f.runner.beforeAdvance(IDLE);peakWarp=Math.max(peakWarp,f.session.warp);
+   f.session.update(frameSeconds,f.ships[2],IDLE,undefined,()=>f.runner.step());
+  }
+  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(1);
+  expect(peakWarp).toBeGreaterThanOrEqual(20000);expect(frames*Math.min(frameSeconds,.2)).toBeLessThan(10);
+  expect(Math.abs((firing[0]!+firing.at(-1)!+STEP)/2-7761.1)).toBeLessThanOrEqual(STEP);
+  expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.world.ship(id)!.state.throttle).toBe(0);
+  expect(f.session.warp).toBe(1);expect(f.session.requestedWarp).toBe(1);
+  const writes=vi.spyOn(f.options,'setWarp');f.runner.beforeAdvance(IDLE);expect(writes).not.toHaveBeenCalled();
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it.each([1,2,3,4])('uses configured alignment warp %sx while retaining real-time finite thrust and cutoff',alignmentWarp=>{
+ const f=fixture(createFlightPlans(),alignmentWarp),id=f.ships[0]!,turns:number[]=[],firing:{time:number;warp:number}[]=[];
+ try {
+  const ship=f.world.ship(id)!;f.session.teleport(id,ship.bodyId,ship.state.position,ship.state.velocity,Math.PI);
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:120,prograde:10,radial:0}]);
+  f.options.fleet!.authorizeWarp=()=>true;
+  const send=f.options.fleet!.setControls;
+  f.options.fleet!.setControls=(ship,controls)=>{
+   if(ship===id){if(controls.turn)turns.push(f.session.warp);if(controls.engine)firing.push({time:f.world.time,warp:f.session.warp});}
+   send(ship,controls);
+  };
+  f.runner.arm(id,false,true);
+  for(let i=0;i<2000&&f.runner.active;i++){f.runner.beforeAdvance(IDLE);f.session.update(.2,f.ships[2],IDLE,undefined,()=>f.runner.step());}
+  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(1);
+  expect(turns).toContain(alignmentWarp);expect(turns.every(value=>value<=alignmentWarp)).toBe(true);
+  expect(firing.length).toBeGreaterThan(0);expect(firing.every(value=>value.warp===1)).toBe(true);
+  expect(Math.abs((firing[0]!.time+firing.at(-1)!.time+STEP)/2-120)).toBeLessThanOrEqual(STEP);
+  expect(f.session.requestedWarp).toBe(1);expect(f.world.ship(id)!.state.throttle).toBe(0);
  }finally{f.runner.dispose();f.session.dispose();}
 });
 

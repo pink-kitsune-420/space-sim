@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DEFAULT_UNIVERSE, STEP, WARP_FACTORS, checkWarpSafety, clampWarpFactor, nextWarpFactor,
+  DEFAULT_UNIVERSE, STEP, MAX_WARP, WARP_FACTORS, checkWarpSafety, clampWarpFactor, nextWarpFactor,
   type Controls,
 } from '../../packages/sim-core/src/index';
 import { World } from '../../packages/sim-core/src/world';
@@ -54,17 +54,20 @@ describe('warp factor math and safety checks', () => {
     expect(safety.reason).toBeUndefined();
   });
 
-  it('restricts warp factor to bound orbital period when ship is in fast circular orbit', () => {
+  it.each([20, 58.5, 128, 521.3])('allows full rails warp in a verified circular orbit %s metres above the body', altitude => {
     const world = new World(DEFAULT_UNIVERSE, { id: 'w-warp-orbit' });
-    world.spawn({ ownerId: 'pilot-1', presetId: 'planet-orbit' });
-    world.step();
-    world.step();
-
-    const safety = checkWarpSafety(world);
-    expect(safety.railsEligible).toBe(true);
-    // In Primus compact orbit (T ~ 28s), warp is safely bounded to 50x
-    expect(safety.maxGranted).toBe(50);
-    expect(safety.reason).toContain('Orbit period 28s around Primus');
+    try {
+      const ship=world.spawn({ownerId:'pilot-1',presetId:'planet-orbit'}),body=world.body(ship.bodyId),r=body.radius+altitude;
+      world.teleport(ship.id,body.id,{x:0,y:r},{x:Math.sqrt(body.mu/r),y:0});world.step();world.step();
+      expect(world.isAsleep(ship.id)).toBe(true);
+      expect(checkWarpSafety(world)).toEqual({maxGranted:MAX_WARP,railsEligible:true});
+      const expected=world.stateAt(ship.id,(world.tick+776110)*STEP)!,host=new HostSession(world);
+      expect(host.setWarp(MAX_WARP).granted).toBe(MAX_WARP);
+      const tick=world.tick;host.advance(7761.1/MAX_WARP);
+      expect(world.tick).toBe(tick+776110);
+      expect(world.ship(ship.id)!.state.position).toEqual(expected.position);
+      expect(world.ship(ship.id)!.state.velocity).toEqual(expected.velocity);
+    } finally { world.dispose(); }
   });
 
   it('restricts warp to 1x when simulation is paused', () => {
@@ -98,9 +101,41 @@ describe('warp factor math and safety checks', () => {
     expect(safety.railsEligible).toBe(false);
     expect(safety.reason).toContain('steering controls held');
   });
+  it.each([false,true])('honors the strictest fleet control limit regardless of ship insertion order ($0)', reverse => {
+    const world=new World(DEFAULT_UNIVERSE);
+    try {
+      const first=world.spawn({ownerId:'pilot-1'}),second=world.spawn({ownerId:'pilot-2'});
+      world.setControls(reverse?second.id:first.id,{turn:1,throttle:0,engine:false});
+      world.setControls(reverse?first.id:second.id,BURN);
+      expect(checkWarpSafety(world)).toMatchObject({maxGranted:1,railsEligible:false,reason:expect.stringContaining('Engine thrust')});
+    }finally{world.dispose();}
+  });
 });
 
 describe('world.advanceTo rails fast-forwarding', () => {
+  it.each(['surface approach','SOI exit'] as const)('stops maximum warp at a verified %s wake without skipping live physics', event => {
+    const worlds=[new World(DEFAULT_UNIVERSE),new World(DEFAULT_UNIVERSE)];
+    const [world,reference]=worlds as [World,World];reference.rails=false;
+    try {
+      for(const current of worlds){
+        const ship=current.spawn({ownerId:'pilot-1',presetId:'planet-orbit'}),body=current.body(event==='SOI exit'?'moon':'planet');
+        const r=event==='SOI exit'?body.soi.exitMetres-100:body.radius+300;
+        current.teleport(ship.id,body.id,{x:0,y:r},event==='SOI exit'?{x:1,y:Math.sqrt(2*body.mu/r)*1.5}:{x:.7*Math.sqrt(body.mu/r),y:0});
+        current.step();current.step();
+      }
+      const ship=world.ships()[0]!,host=new HostSession(world);
+      expect(world.isAsleep(ship.id)).toBe(true);expect(Number.isFinite(world.nextWakeTick)).toBe(true);
+      expect(host.setWarp(MAX_WARP).granted).toBe(MAX_WARP);
+      host.advance(.1);
+      expect(host.warp).toBe(1);expect(world.time).toBeLessThan(10000);
+      expect(host.warpReason).toMatch(/woke|transition|contact/);
+      while(reference.tick<world.tick)reference.step();
+      const actual=world.ship(ship.id)!,expected=reference.ship(ship.id)!;
+      expect(actual.bodyId).toBe(expected.bodyId);expect(actual.state.status).toBe(expected.state.status);
+      expect(Math.hypot(actual.state.position.x-expected.state.position.x,actual.state.position.y-expected.state.position.y)).toBeLessThan(1e-8);
+      expect(Math.hypot(actual.state.velocity.x-expected.state.velocity.x,actual.state.velocity.y-expected.state.velocity.y)).toBeLessThan(1e-8);
+    } finally {for(const current of worlds)current.dispose();}
+  });
   it('advances tick and time in O(1) when ships are asleep on rails', () => {
     const world = new World(DEFAULT_UNIVERSE, { id: 'w-adv-rails' });
     world.spawn({ ownerId: 'pilot-1' });

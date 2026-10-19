@@ -17,7 +17,7 @@ export interface ManeuverEditorServices {
 function flightMotion(flight: Flight): SimulationContext {
   return flight.ship ? flight.world.contextFor(flight.ship) : flight.world.context;
 }
-export interface ManeuverEditorTuning { readonly previewMaxMs?: number; readonly uiRefreshMs?: number }
+export interface ManeuverEditorTuning { readonly previewMaxMs?: number; readonly uiRefreshMs?: number; readonly alignmentWarp?: number }
 
 /** Hit the rendered cubic, rather than sparse sample vertices or their straight chords.
  * Closed previews retain an old epoch; roll a selected phase forward to its next passage.
@@ -57,7 +57,7 @@ export function pickManeuverTime(path: readonly GhostSample[], closed: boolean, 
 /** With at most 0.1 wall seconds accepted by HostSession, leave half the remaining
  * approach time unused on every warped frame, even after a long rendering stall. */
 export function maneuverWarpFactor(remaining: number, clamp: CoreMotion['clampWarpFactor']): number {
-  return remaining <= .25 ? 1 : clamp(Math.min(10_000, remaining / .2));
+  return remaining <= .25 ? 1 : clamp(remaining / .2);
 }
 
 interface Node {
@@ -118,12 +118,14 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private continueShip?: string;
   private reviewAfterBurn?: string;
   private fleetReviewTimer?:number;
-  private execution?: { node: Node; burn: ManeuverBurnControl; initialThrottle: number; expected?: State };
+  private execution?: { node: Node; burn: ManeuverBurnControl; initialThrottle: number; expected?: State; alignmentWarp?: boolean };
   private warping = false;
   private lastRequest = 1;
   private lastUi = -Infinity;
 
   get executing(): boolean { return !!this.execution; }
+  /** Coast-only frames need no assistant callbacks inside the physics loop. */
+  get needsFixedTicks():boolean {return !!this.execution&&!this.warping||!!this.fleet?.burning;}
 
   /** Release controls while the current session still owns the execution's ship. */
   cancel(): void { if (this.disposed) return; this.continueShip=undefined; this.cancelFleetReview(); this.fleet?.clear(); this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.transferControls?.cancel(); }
@@ -133,6 +135,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (!/^[a-z][a-z0-9-]{0,63}$/.test(this.id)) throw new Error('Invalid maneuver window identity');
     const previewMaxMs = tuning.previewMaxMs ?? 1, uiRefreshMs = tuning.uiRefreshMs ?? 100;
     if (!Number.isFinite(previewMaxMs) || previewMaxMs < .1 || previewMaxMs > 8 || !Number.isFinite(uiRefreshMs) || uiRefreshMs < 16 || uiRefreshMs > 1000) throw new Error('Invalid maneuver editor budget');
+    if(tuning.alignmentWarp!==undefined&&(!Number.isInteger(tuning.alignmentWarp)||tuning.alignmentWarp<1||tuning.alignmentWarp>4))throw new Error('Invalid alignment warp setting');
     this.document = options.container.ownerDocument;
     this.lifetime = new (this.document.defaultView?.AbortController ?? AbortController)();
     const document = this.document;
@@ -162,7 +165,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         this.completeCoastNodes(shipId,options.flight().world.time);
         this.invalidateLater(node);this.selectNextNode(shipId);this.preview.invalidate();this.lastUi=-Infinity;
       },
-    },services.motion.clampWarpFactor);
+    },services.motion.clampWarpFactor,tuning.alignmentWarp??4);
     try {
     this.window = services.windows.create({ id: this.id, title: 'Maneuver', icon: 'trajectory', pinned: true,
       container: options.container,
@@ -409,7 +412,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     const flight = this.options.flight(), ship = flight.ship, { node, burn } = execution;
     if (!ship || this.options.fleet&&!this.options.fleet.owns(node.shipId) || ship.id !== node.shipId || ship.bodyId !== node.bodyId || flight.world !== this.world
       || flightMotion(flight) !== node.context || !flight.enabled || flight.paused || flight.inputBlocked
-      || ship.state.status !== 'flying' || ship.fault || flight.requestedWarp !== 1 || !node.valid) {
+      || ship.state.status !== 'flying' || ship.fault || flight.requestedWarp !== (execution.alignmentWarp?(this.tuning.alignmentWarp??4):1) || !node.valid) {
       this.abortExecution('Autonomous burn aborted: flight conditions changed.'); return this.services.clock.idle;
     }
     const expected = execution.expected;
@@ -420,6 +423,9 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       this.abortExecution('Autonomous burn aborted: trajectory or throttle changed.'); return this.services.clock.idle;
     }
     try {
+      if(execution.alignmentWarp&&(burn.phase!=='aligning'||burn.start-ship.state.time<=.45)){
+        this.options.setWarp(1);execution.alignmentWarp=false;
+      }
       const command = burn.next(ship.state);
       if (command.throttle !== undefined && command.throttle !== ship.state.throttle) this.options.setThrottle(ship.id, command.throttle);
       if (burn.phase === 'complete') {
@@ -708,7 +714,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   beforeAdvance(controls: Controls): void {
     if(this.disposed)return;
     this.beforeManeuverAdvance(controls);
-    this.fleet?.beforeAdvance(controls);this.scheduleFleetReview();
+    this.fleet?.setAlignmentWarp(this.tuning.alignmentWarp??4);this.fleet?.beforeAdvance(controls);this.scheduleFleetReview();
     // A manual ignition on this frame changes the root even before physics runs.
     this.alarmManualEngine=controls.engine;this.alarmControls?.beforeAdvance(node=>this.execution?.node===node||!!this.fleet?.ownsNode(node.shipId,node.id));
   }
@@ -733,7 +739,13 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       || !flight.enabled || !flight.canWarp || this.options.fleet&&!this.options.fleet.owns(this.execution.node.shipId) || flight.ship?.id !== this.execution.node.shipId || flight.world !== this.world
       || flight.ship.bodyId !== this.execution.node.bodyId || flight.ship.state.status !== 'flying'
       || flight.ship.state.throttle !== (this.execution.expected?.throttle ?? this.execution.initialThrottle)
-      || flight.requestedWarp !== (this.warping ? this.lastRequest : 1))) this.abortExecution('Autonomous burn aborted.');
+      || flight.requestedWarp !== (this.warping ? this.lastRequest : this.execution.alignmentWarp?(this.tuning.alignmentWarp??4):1))) this.abortExecution('Autonomous burn aborted.');
+    if(this.execution&&!this.warping){
+      const burn=this.execution.burn;
+      const factor=(this.tuning.alignmentWarp??4)>1&&burn.phase==='aligning'&&burn.start-flight.world.time>.45?(this.tuning.alignmentWarp??4):1;
+      this.execution.alignmentWarp=factor>1;
+      if(flight.requestedWarp!==factor)this.options.setWarp(factor);
+    }
     if (!this.warping) return;
     const node = this.current;
     if (!node?.valid || flight.world !== this.world || !flight.enabled || !flight.canWarp || flight.paused || flight.inputBlocked || flight.ship?.id !== node.shipId

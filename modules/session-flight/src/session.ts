@@ -46,7 +46,7 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
   previous(shipId: string): Ship | undefined { return this.settled ? undefined : this.world.previous(shipId); }
   displayOffset(): Vec { return { x: 0, y: 0 }; }
 
-  /** A local flight assistant may supply controls before each normal-speed physics tick.
+  /** A local flight assistant may supply controls before each normal/physical-warp physics tick.
    * It runs inside the clock loop so short burns cannot overrun on slow frames. */
   update(seconds: number, shipId: string | undefined, controls: Controls, beforeStep?: () => Controls, beforeTick?: () => void): WorldEvent[] {
     const events: WorldEvent[] = [];
@@ -58,7 +58,12 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
       if (shipId && this.world.record(shipId)?.ownerId === this.playerId) this.host.setControls(this.playerId, shipId, controls);
       if (this.host.warp > 1) {
         this.settled = false;
-        events.push(...this.host.advance(seconds));
+        events.push(...this.host.advance(seconds, beforeStep || beforeTick ? () => {
+          beforeTick?.();
+          if (beforeStep && shipId && this.world.record(shipId)?.ownerId === this.playerId) {
+            this.host.setControls(this.playerId, shipId, beforeStep());
+          }
+        } : undefined));
       } else {
         this.clock.advance(seconds, () => {
           beforeTick?.();

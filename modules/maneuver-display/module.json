@@ -31,7 +31,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "67b77e819395928be025eb46336b3c90992c8148fe653d9aa2373b19ab283079"
+    "inputsDigest": "51ee915c00e596ae6151e7f70e9dee1618653707825cd850a5cecf2ea90b7dec"
   },
   "compatibility": {
     "deterministic": true,
@@ -375,7 +375,7 @@
     },
     {
       "path": "src/overlay.ts",
-      "sha256": "a2fad67dca77e34e86465585a214c3f5f2249d024acbfdd901460bde41c72adc",
+      "sha256": "279fad95290b53a53663b6440a164e8039ed0970e812aa8661cb77109cadab08",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver vector contribution and original legacy presentation adapter. Licensed under MIT.\n"
     }
