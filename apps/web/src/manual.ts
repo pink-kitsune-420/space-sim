@@ -27,10 +27,14 @@ export function initManual(options:{readControls:()=>ManualControls;openControls
    const bindings=options.readControls(),title=target.ownerDocument.createElement('h2');title.textContent=page.title;
    target.innerHTML=expandKeys(page.html,bindings);target.prepend(title);
    for(const slot of target.querySelectorAll<HTMLElement>('[data-manual-controls]'))slot.replaceWith(controlsTable(bindings));
+   for(const slot of target.querySelectorAll<HTMLElement>('[data-manual-configure]')){
+    const button=target.ownerDocument.createElement('button');button.type='button';button.className='manual-configure';
+    button.textContent='Configure controls…';button.setAttribute('aria-haspopup','dialog');button.addEventListener('click',options.openControls);slot.replaceWith(button);
+   }
    for(const link of target.querySelectorAll<HTMLAnchorElement>('a[data-page]'))link.href=`#manual-${link.dataset.page}`;
   }}))});
  const book={players:section('players'),creators:section('creators')};
- const reader=manuals.create({root,book,configure:{label:'Configure controls…',open:options.openControls},scrollContainer:root.closest<HTMLElement>('.flight-window-body')??undefined,
+ const reader=manuals.create({root,book,scrollContainer:root.closest<HTMLElement>('.flight-window-body')??undefined,
   storage:{getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)},revision:()=>{const b=options.readControls();return JSON.stringify([b.keys,b.players,b.controllerEnabled,b.pads.map(pad=>[pad.index,pad.family])]);}});
  const version=document.createElement('p');version.id='manual-build-version';version.className='module-note';version.textContent=`Spacelab ${VERSION}${BUILD_INFO.development?' · dev build':''}`;version.title=BUILD_INFO.revision?`Source revision ${BUILD_INFO.revision}`:'Source revision unavailable';root.prepend(version);
  const controller=new AbortController(),signal=controller.signal,refresh=()=>reader.refresh();
