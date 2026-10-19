@@ -137,7 +137,7 @@ test('a browser tab host offers the same reviewed data pack and stopping hosting
     const dialog = guest.getByRole('dialog', { name: 'Join Data host' }); await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Install and join', exact: true }).click();
     await expect(guest.locator('.connection')).toContainText('ONLINE');
-    expect((await localIdentity(guest)).fingerprint).toBe((await localIdentity(host)).fingerprint);
+    await expect.poll(async () => (await localIdentity(guest)).fingerprint).toBe((await localIdentity(host)).fingerprint);
     await host.locator('#debug-stop-hosting').click(); await expect(guest.locator('.connection')).toContainText('LOCAL FLIGHT');
     await expect.poll(() => localIdentity(guest)).toEqual(original); expect(errors).toEqual([]);
   } finally { await context.close(); }

@@ -22,11 +22,16 @@ async function orbit(page: Page, touch = false): Promise<void> {
 }
 
 async function padButton(page: Page, index: number): Promise<void> {
-  for (const pressed of [true, false]) await page.evaluate(async ({ index, pressed }) => {
-    window.warpTestPad.buttons[index] = { pressed, touched: pressed, value: pressed ? 1 : 0 };
-    // Let the flight loop observe both edges before the next press.
-    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-  }, { index, pressed });
+  for (const pressed of [true, false]) {
+    const tick = await page.evaluate(({ index, pressed }) => {
+      const tick = JSON.parse(document.getElementById('debug')!.textContent || '{}').tick ?? -1;
+      window.warpTestPad.buttons[index] = { pressed, touched: pressed, value: pressed ? 1 : 0 };
+      return tick as number;
+    }, { index, pressed });
+    // A browser animation callback alone does not acknowledge the game's input
+    // poll. Wait for the flight loop to publish each press and release edge.
+    await expect.poll(async () => JSON.parse(await page.locator('#debug').textContent() || '{}').tick).toBeGreaterThan(tick);
+  }
 }
 
 for (const input of ['keyboard', 'touch', 'controller'] as const) {

@@ -140,7 +140,7 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   await page.keyboard.down('ArrowRight');
   await expect.poll(async () => {
     const d = await debug(page); return Math.cos(d.heading ?? 0);
-  }).toBeLessThan(-.8);
+  }, { intervals: [50] }).toBeLessThan(-.8);
   await page.keyboard.up('ArrowRight');
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('SUBMERGED');
