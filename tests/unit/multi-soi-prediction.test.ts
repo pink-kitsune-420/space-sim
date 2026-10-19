@@ -38,6 +38,35 @@ it('continues through moving moon entry and exit with live fixed-grid frame/velo
  }
  expect(['horizon','impact','open']).toContain(result.end);world.dispose();live.dispose();
 });
+it('captures future encounter bodies in the same moving reference frame as the ship path',()=>{
+ const world=new World(DEFAULT_UNIVERSE),id=flyby(world),result=trace(world.predictShip(id)),point=result.samples.find(p=>p.encounter)!;
+ const body=world.body(point.encounter!.to),at=world.system.getBodyPosition(body.id,point.time),origin=world.system.getBodyPosition(point.frameId!,point.time);
+ expect(point.encounterBody).toEqual({name:body.name,radius:body.radius,position:{x:at.x-origin.x,y:at.y-origin.y}});
+ const now=world.system.getBodyPosition(body.id,0),base=world.system.getBodyPosition(point.frameId!,0);
+ expect(Math.hypot(at.x-origin.x-now.x+base.x,at.y-origin.y-now.y+base.y)).toBeGreaterThan(1);
+ const reverse=frameSample({time:123,position:{x:1,y:2},velocity:{x:3,y:4}},'planet','moon',world.system,{from:'moon',to:'planet'});
+ const planet=world.system.getBodyPosition('planet',123),moon=world.system.getBodyPosition('moon',123);
+ expect(reverse.encounterBody!.position).toEqual({x:planet.x-moon.x,y:planet.y-moon.y});world.dispose();
+});
+it('includes the same timed body snapshots in conservative shared-rule forecasts without mutating authority',()=>{
+ const world=new World(DEFAULT_UNIVERSE,{rules:[{moduleId:'test.noop',version:'0.1.0',hook:{modelIdentity:'noop/v1',seed:7,initialState:{version:1,value:0},evaluate:({state})=>({state})}}]});
+ const id=flyby(world),before=JSON.stringify({ships:world.ships(),state:world.moduleState,time:world.time}),samples=trace(world.predictShip(id)).samples;
+ const entry=samples.find(p=>p.encounter);expect(entry).toBeDefined();const at=world.system.getBodyPosition(entry!.encounter!.to,entry!.time),base=world.system.getBodyPosition(entry!.frameId!,entry!.time);
+ expect(entry!.encounterBody!.position).toEqual({x:at.x-base.x,y:at.y-base.y});expect(JSON.stringify({ships:world.ships(),state:world.moduleState,time:world.time})).toBe(before);world.dispose();
+});
+it('places ghost bodies with one origin translation, camera-upright offsets and bounded legacy-compatible markers',()=>{
+ const sample:GhostSample={time:20,position:{x:100,y:0},velocity:{x:0,y:1},frameId:'planet',bodyId:'moon',encounter:{from:'planet',to:'moon'},encounterBody:{position:{x:400,y:500},name:'Future moon',radius:20}};
+ const state={...initialState('planet-orbit'),time:10},camera={center:{x:0,y:0},scale:2,rotation:Math.PI/2},frame={state,path:[sample],pathClosed:false,engine:false,camera,pathOrigin:{x:1000,y:2000}};
+ const markers=trajectoryMarkers(frame),circle=markers.find(p=>p.kind==='circle'&&p.color==='#dba76a90');
+ expect(circle).toMatchObject({center:{x:1400,y:2500},radius:20});
+ const label=markers.find(p=>p.kind==='text'&&p.text.includes('at SOI'));expect(label).toMatchObject({at:{x:1419,y:2500},text:'Future moon at SOI · T−10.0 s'});
+ const many=Array.from({length:100},(_,i)=>({...sample,time:20+i,encounter:{from:'planet',to:`moon-${i}`}}));
+ const bounded=trajectoryMarkers({...frame,path:many});expect(bounded.filter(p=>p.kind==='text'&&p.text.includes('at SOI'))).toHaveLength(4);expect(bounded.length).toBeLessThanOrEqual(44);
+ const repeated=trajectoryMarkers({...frame,path:[sample,{...sample,time:30}]});expect(repeated.filter(p=>p.kind==='text'&&p.text.includes('at SOI'))).toHaveLength(1);
+ expect(trajectoryMarkers({...frame,path:[{...sample,encounterBody:undefined}]})).toHaveLength(2);
+ expect(trajectoryMarkers({...frame,path:[{...sample,frameId:'moon'}]})).toHaveLength(2);
+ expect(trajectoryMarkers({...frame,state:{...state,time:21}})).toHaveLength(0);
+});
 it('closes huge and eccentric unobstructed single-body orbits accurately, beyond the former radius and dt limits',()=>{
  const context=createSimulationContext(), body={id:'large',radius:512,mu:13107200};
  for(const [radius,speed] of [[1e7,Math.sqrt(body.mu/1e7)],[1000,Math.sqrt(body.mu/1000)*1.4]]) {
@@ -75,7 +104,7 @@ it('bounds unbound previews and labels future SOI encounters with their times',(
  const world=new World(DEFAULT_UNIVERSE),id=flyby(world), result=trace(world.predictShip(id)),ship=world.ship(id)!;
  expect(result.samples.length).toBeLessThanOrEqual(TRAJECTORY_MAX_SAMPLES+2);
  const markers=trajectoryMarkers({state:ship.state,path:result.samples,pathClosed:false,camera:{center:{x:0,y:0},scale:1,rotation:0},engine:false});
- expect(markers.some(m=>m.kind==='text'&&m.text.includes('moon · T−'))).toBe(true);
+ expect(markers.some(m=>m.kind==='text'&&m.text.includes('Parvus · T−'))).toBe(true);
  expect(trajectoryMarkers({state:{...ship.state,time:1e8},path:result.samples,pathClosed:false,camera:{center:{x:0,y:0},scale:1,rotation:0},engine:false})).toEqual([]);
  world.dispose();
 });

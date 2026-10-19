@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "flight.transfers@1.0.0 requires flight.plans@1.0.0. Bounded generator searches same-body apsis opportunities after a 30-second preparation window and validates every accepted candidate through the selected world predictor. Circular and elliptical starts/targets are supported. Efficient minimizes sampled impulse cost; faster minimizes elapsed wait+travel when at least2% earlier. Neither is a global optimum promise. Unsupported moon/planet relationships explain the current increment limit. No UI, camera, audio, split-screen or view-prediction provider is required. Cancelling the generator closes child forecasts and its cloned context."
+      "text": "flight.transfers@1.0.0 requires flight.plans@1.0.0. Bounded generator searches same-body apsis opportunities after a 30-second preparation window and validates every accepted candidate through the selected world predictor. Circular and elliptical starts/targets are supported. Efficient minimizes sampled impulse cost; faster minimizes elapsed wait+travel when at least2% earlier. Neither is a global optimum promise. Unsupported moon/planet relationships explain the current increment limit. The optional relationships metadata declares solver coverage for destination browsing; it is not a feasibility guarantee. Editors group body relationships without guessing that an undeclared provider lacks interbody support. No UI, camera, audio, split-screen or view-prediction provider is required. Cancelling the generator closes child forecasts and its cloned context."
     }
   ]
 }

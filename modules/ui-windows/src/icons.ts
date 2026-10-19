@@ -7,6 +7,7 @@ const PATHS = {
   online: '<circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="m8.2 10.9 7.6-3.8M8.2 13.1l7.6 3.8"/>',
   instruments: '<path d="M4 16a8 8 0 1 1 16 0"/><path d="m12 16 4-5.5"/><path d="M4 20h16"/>',
   trajectory: '<ellipse cx="12" cy="12" rx="9.5" ry="5.5"/><circle cx="12" cy="12" r="1.8"/><circle cx="20.6" cy="9.6" r="1.4" fill="currentColor"/>',
+  alarm: '<circle cx="12" cy="13" r="7.5"/><path d="M12 8v5l3.5 2M4 3 1.5 6M20 3l2.5 3M7 20l-1.5 2M17 20l1.5 2"/>',
   telemetry: '<path d="M3 12h4l2.2-5.5 4.2 11 2.2-5.5H21"/>',
   chat: '<path d="M4 5h16v11H9.5L4 20z"/><path d="M8 9.5h8M8 12.5h5"/>',
   settings: '<path d="M4 7h9M18 7h2M4 17h3M12 17h8"/><circle cx="15.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/>',

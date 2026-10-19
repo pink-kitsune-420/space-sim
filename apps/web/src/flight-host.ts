@@ -1,4 +1,5 @@
-import { ORBITAL_ALARMS, TRANSFERS, FLIGHT_PLANS } from '../../../packages/game-api/src/index';
+import { FloatingWindow } from './floating-window';
+import { ALARM_PANELS, ORBITAL_ALARMS, TRANSFERS, FLIGHT_PLANS } from '../../../packages/game-api/src/index';
 import { rememberWorldArtwork, worldArtwork } from './world-presentation';
 import { createJoinPacks } from '../../../modules/session-join/src/index';
 import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
@@ -306,6 +307,10 @@ const maneuver = new ManeuverPlanner(workspace, {
   setWarp, setPaused: value => setPaused(value, 'Burn alarm'), notify, event: (kind, detail) => profiler.event(kind, detail),
 }, { alarms: hostFeatures.lock.providers[ORBITAL_ALARMS.slot] ? hostFeatures.providedService(ORBITAL_ALARMS) : undefined, plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
   transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined });
+const alarmPanel = hostFeatures.lock.providers[ALARM_PANELS.slot] ? hostFeatures.providedService(ALARM_PANELS).create({
+  container: document.querySelector<HTMLElement>('#flight-console .viewport')!, shell: workspace, session: () => session.world,
+  windows: { create: options => new FloatingWindow(options) },
+}) : undefined;
 function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };
   lastHud = -Infinity;
@@ -4279,6 +4284,7 @@ function updatePrediction(seconds: number, engine: boolean): void {
   prediction.update(activeMotion(), state, activeBody, session.world.surface(activeBody.id),
     selectedShip()?.id, seconds, engine, selectedShip()?.controls, session.world);
   maneuver.update(seconds, prediction, engine);
+  alarmPanel?.update();
   const others = Math.max(0, connectedPilotIds.size - 1);
   const mode = orbitMode.value as OtherOrbitMode;
   otherOrbits.update(session.world, splitScreen.active > 1 ? undefined : session.playerId,

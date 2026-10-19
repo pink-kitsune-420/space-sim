@@ -11,13 +11,20 @@ export const TRAJECTORY_MAX_SECONDS = 365.25 * 86400;
 /** Timed frame conversion shared by analytic and fleet/rule forecasts. */
 export function frameSample(sample: GhostSample, bodyId: string, frameId: string, system: LoadedSystem,
   encounter?: GhostSample['encounter']): GhostSample {
-  if (bodyId === frameId) return { ...sample, bodyId, frameId, ...(encounter ? { encounter } : {}) };
-  const at = system.getBodyPosition(bodyId, sample.time), origin = system.getBodyPosition(frameId, sample.time);
+  if (bodyId === frameId && !encounter) return { ...sample, bodyId, frameId };
+  const origin = system.getBodyPosition(frameId, sample.time);
+  let encounterBody: GhostSample['encounterBody'];
+  if (encounter) {
+    const target = system.getResolvedBody(encounter.to), at = system.getBodyPosition(target.id, sample.time);
+    encounterBody = { position: { x: at.x - origin.x, y: at.y - origin.y }, radius: target.radius, name: target.name };
+  }
+  const metadata = { bodyId, frameId, ...(encounter ? { encounter, encounterBody } : {}) };
+  if (bodyId === frameId) return { ...sample, ...metadata };
+  const at = system.getBodyPosition(bodyId, sample.time);
   const velocity = system.getBodyVelocity(bodyId, sample.time), base = system.getBodyVelocity(frameId, sample.time);
-  return { ...sample, bodyId, frameId,
+  return { ...sample, ...metadata,
     position: { x: sample.position.x + (at.x - origin.x), y: sample.position.y + (at.y - origin.y) },
-    velocity: { x: sample.velocity.x + (velocity.x - base.x), y: sample.velocity.y + (velocity.y - base.y) },
-    ...(encounter ? { encounter } : {}) };
+    velocity: { x: sample.velocity.x + (velocity.x - base.x), y: sample.velocity.y + (velocity.y - base.y) } };
 }
 
 /** Patched conics use the SAME conservative rails horizon and fixed-grid SOI checks as

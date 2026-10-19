@@ -3,4 +3,4 @@ export { engineModuleServices } from '../../packages/sim-core/src/module-service
 export { World } from '../../packages/sim-core/src/world';
 export { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
 export { saveWorld } from '../../packages/sim-core/src/save';
-export { PREDICTIONS, MANEUVER_PLANNERS, createProjector } from '../../packages/game-api/src/index';
+export { ALARM_PANELS, ALARM_CATALOGUE, PREDICTIONS, MANEUVER_PLANNERS, createProjector } from '../../packages/game-api/src/index';

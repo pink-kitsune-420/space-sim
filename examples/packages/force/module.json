@@ -40,7 +40,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/1",
-    "inputsDigest": "ed69bba0f33ddc26c7f367e1868494a3934937fbdff80573ffb5436ad467f5fd"
+    "inputsDigest": "3597a68567412ebcc85675b0bef263bf155ce28923081fe36b5dec8447c1cc16"
   },
   "compatibility": {
     "deterministic": true,
@@ -52,7 +52,7 @@
   "inputs": [
     {
       "path": "game-api/alarms.ts",
-      "sha256": "2023de7f1322fe85208b2701c7e07bfbb1b145da621a7f08d1a030217977eca7",
+      "sha256": "40cbb4fdd243beed1551b3dc6effa57e85ee3f74a1cd0abae9355463ec6b858c",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -226,7 +226,7 @@
     },
     {
       "path": "game-api/render-math.ts",
-      "sha256": "be459ca4b52b8fd832324237c64c95c8a59d912307b0df8614631cc91d42c28b",
+      "sha256": "d69dd5a2187e1d11e0afc26ef7afcd4adb3a46c7648fadcb6714d9137d81a542",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -280,7 +280,7 @@
     },
     {
       "path": "game-api/state.ts",
-      "sha256": "5120d093b785cb44888529edccd5fd846aca342d8bae2ad04651946bd87cf5d5",
+      "sha256": "cfb2f957dae9b7ee5ab67f9084d7576701befb85033d7ba6c7a46be4ac34cc23",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -310,7 +310,7 @@
     },
     {
       "path": "game-api/transfers.ts",
-      "sha256": "b55d71736cf4eaa5614a0d18f305e0f39cbb3f37b199f87e5ff682106f76b76c",
+      "sha256": "c354d80dad93289fd21556ebc2cb5fff813441c1a60af7b8e75bf91f3824f861",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -358,7 +358,7 @@
     },
     {
       "path": "game-api/windows.ts",
-      "sha256": "0f8c5289b752b41e7a9d6943c5d050dc6e5cfc37a41589e3ddce3df865fdf9ed",
+      "sha256": "4cec5574d03d313bb8cc79189dea0f4764ba3be737b4f710b9f7eaa2e5a9472e",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },

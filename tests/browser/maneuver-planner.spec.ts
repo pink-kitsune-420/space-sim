@@ -286,7 +286,7 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await page.locator('#maneuver-transfers > summary').click();
  await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
  await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
- await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-find').click();
+ await page.locator('#maneuver-transfer-destination').selectOption('moon');await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
  await expect(page.locator('#maneuver-transfer-status')).toContainText('Moon and planet transfers are not yet implemented');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
@@ -297,6 +297,7 @@ test('a manual node alarm stops ordinary warp and optionally pauses without armi
  await page.locator('#maneuver-alarms summary').click();
  await page.locator('#maneuver-alarms [data-alarm="lead"]').fill('20');await page.locator('#maneuver-alarms [data-alarm="lead"]').press('Tab');
  await page.locator('#maneuver-alarms [data-alarm="pause"]').check();
+ await page.locator('#alarms-toast').click();await expect(page.locator('#alarms-window')).toBeVisible();await expect(page.locator('#alarms-window output')).toHaveText('1 pending · 0 delivered');await page.locator('#alarms-toast').click();
  const before=await debug(page);await page.locator('#pause').click();
  // Ordinary player warp, without Warp to node or Execute burn.
  await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
@@ -304,5 +305,22 @@ test('a manual node alarm stops ordinary warp and optionally pauses without armi
  await expect(page.locator('#maneuver-alarms [data-alarm="status"]')).toHaveText('Reminder delivered.');
  const after=await debug(page);expect(after.time).toBeGreaterThan(before.time);expect(after.time).toBeLessThan(after.maneuver.time-19);
  expect(after.maneuver.execution).toBeNull();expect(after.engine).toBe(false);expect(after.throttle).toBe(before.throttle);await expect(page.locator('#warp-factor')).toHaveText('1×');
+ await page.locator('#alarms-toast').click();await expect(page.locator('#alarms-window output')).toHaveText('0 pending · 1 delivered');
  await page.screenshot({path:info.outputPath('manual-burn-alarm.png')});
+});
+
+test('dragging the maneuver diamond captures the pointer and projects far-away motion onto the coast',async({page})=>{
+ await setup(page);await place(page);const before=await debug(page),node=page.getByRole('button',{name:'Move maneuver node along the coast; click to open editor',exact:true});
+ const box=(await page.locator('#flight-view').boundingBox())!,n=(await node.boundingBox())!,cx=box.x+box.width/2,cy=box.y+box.height/2,r=Math.hypot(n.x+n.width/2-cx,n.y+n.height/2-cy);
+ await node.evaluate(el=>el.addEventListener('gotpointercapture',event=>{(el as HTMLElement).dataset.captured=String((event as PointerEvent).pointerId);}));
+ const target={x:cx+(r+100)*Math.cos(.8),y:cy-(r+100)*Math.sin(.8)};
+ await page.mouse.move(n.x+n.width/2,n.y+n.height/2);await page.mouse.down();await page.mouse.move(target.x,target.y,{steps:15});
+ await expect.poll(()=>node.evaluate(el=>el.hasPointerCapture(Number((el as HTMLElement).dataset.captured)))).toBe(true);
+ await expect.poll(async()=>(await debug(page)).maneuver.time).not.toBe(before.maneuver.time);
+ const moved=(await node.boundingBox())!;expect(Math.hypot(moved.x+moved.width/2-target.x,moved.y+moved.height/2-target.y)).toBeGreaterThan(60);
+ expect(Math.abs(Math.hypot(moved.x+moved.width/2-cx,moved.y+moved.height/2-cy)-r)).toBeLessThan(3);await page.mouse.up();
+ const after=await debug(page);expect(after.camera).toEqual(before.camera);expect(after.position).toEqual(before.position);expect(after.maneuver.execution).toBeNull();
+ const saved=after.maneuver.time,current=(await node.boundingBox())!;
+ await page.mouse.move(current.x+current.width/2,current.y+current.height/2);await page.mouse.down();await page.mouse.move(cx+(r+100)*Math.cos(.3),cy-(r+100)*Math.sin(.3),{steps:10});await page.keyboard.press('Escape');await page.mouse.up();
+ await expect.poll(async()=>(await debug(page)).maneuver.time).toBeCloseTo(saved,6);
 });

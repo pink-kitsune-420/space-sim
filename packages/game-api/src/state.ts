@@ -78,6 +78,10 @@ export interface GhostSample extends Sample {
   readonly frameId?: string;
   /** First sample in a new SOI; continuous position, velocity and time. */
   readonly encounter?: { readonly from: string; readonly to: string };
+  /** Destination body at this SOI handoff time, in the same translating frame as
+   * position. Optional display snapshot, never current world coordinates. The
+   * reference radius is not a terrain/contact boundary. */
+  readonly encounterBody?: { readonly position: Vec; readonly radius: number; readonly name: string };
 }
 /** Why an orbital ghost projection pass ended. */
 export type GhostEnd = 'closed' | 'impact' | 'escape' | 'open' | 'grounded' | 'floating' | 'failed' | 'horizon';

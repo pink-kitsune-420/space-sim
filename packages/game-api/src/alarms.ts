@@ -22,3 +22,22 @@ export interface OrbitalAlarmClock extends Disposable {
 }
 export interface OrbitalAlarmFactory { create(): OrbitalAlarmClock }
 export const ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory> = Object.freeze({ slot: 'flight.alarms', version: '1.0.0' });
+
+/** Read-only inspection; never an arming, delivery or host-control interface. */
+export interface OrbitalAlarmStatus extends OrbitalAlarmEvent { readonly now: number; readonly handled: boolean }
+export interface OrbitalAlarmCatalogue {
+ /** Detached snapshot of current events for one opaque session identity, max1024.
+  * Clocks own their schedule; removing a clock removes its catalogue entries. */
+ read(session: object): readonly OrbitalAlarmStatus[];
+}
+export const ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue> = Object.freeze({slot:'flight.alarm-catalogue',version:'1.0.0'});
+export interface AlarmPanelOptions {
+ readonly id?: string; readonly container: HTMLElement;
+ /** Optional explicit host chrome; otherwise use the selected ui.windows provider. */
+ readonly windows?: Pick<import('./windows').WindowSystem,'create'>;
+ readonly shell?: Pick<import('./window-shell').WindowShell,'addInstrument'>;
+ session(): object;
+}
+export interface AlarmPanel extends Disposable { update(): void }
+export interface AlarmPanelFactory { create(options: AlarmPanelOptions): AlarmPanel }
+export const ALARM_PANELS: ServiceKey<AlarmPanelFactory> = Object.freeze({slot:'view.alarms',version:'1.0.0'});

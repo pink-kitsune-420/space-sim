@@ -8,7 +8,7 @@ let directory:string,hostSource:string;
 let bundles:{manifest:unknown;source:string;assets:[string,string][]}[];
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'portable-maneuver-editor-'));bundles=[];
- for(const name of ['ui-windows','flight-prediction','flight-plans','orbital-alarms','transfer-planner','maneuver-burn','maneuver-display','maneuver-editor']){
+ for(const name of ['ui-windows','flight-prediction','flight-plans','orbital-alarms','alarm-panel','transfer-planner','maneuver-burn','maneuver-display','maneuver-editor']){
   const source=join(directory,name);await cp(resolve('modules',name),source,{recursive:true});const built=await buildPortableModule(join(source,'module.json'),join(directory,`${name}.spacemod`),{typecheck:false,shippedBuild:true});
   bundles.push({manifest:built.descriptor.manifest,source:built.codeV2!.source,assets:[...built.descriptor.assets.map(asset=>asset.path),...built.descriptor.guides].map(path=>[path,new TextDecoder().decode(built.files.get(path)!)])});
  }
@@ -16,7 +16,7 @@ test.beforeAll(async()=>{
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
-async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false,alarms=false){
+async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false,alarms=false,alarmPanel=false){
  await page.goto('about:blank');await page.setContent('<main style="position:relative;width:800px;height:600px"></main>');await page.addScriptTag({content:hostSource});
  await page.evaluate(({bundles,noEngine})=>{
   const api=(window as any).ManeuverHost,registry=new api.ModuleRegistryV2(api.engineModuleServices());
@@ -29,7 +29,7 @@ async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false,
   if(prediction.pathEnd!=='closed')throw new Error('Fixture needs complete prediction');
   const origin=world.system.getBodyPosition(body.id,world.time),camera={center:origin,rotation:0,scale:.3},sample=prediction.path[Math.floor(prediction.path.length/3)],pointer=api.createProjector(camera,800,600)({x:origin.x+sample.position.x,y:origin.y+sample.position.y});
   (window as any).fixture={api,registry,candidate,factory,prediction,world,current,body,origin,camera,pointer,profile,root:document.querySelector('main')};
- },{bundles:bundles.filter(bundle=>(alarms||(bundle.manifest as any).id!=='spacelab.orbital-alarms')&&(sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans')&&(transfers||(bundle.manifest as any).id!=='spacelab.transfer-planner')),noEngine});
+ },{bundles:bundles.filter(bundle=>(alarmPanel||(bundle.manifest as any).id!=='spacelab.alarm-panel')&&(alarms||(bundle.manifest as any).id!=='spacelab.orbital-alarms')&&(sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans')&&(transfers||(bundle.manifest as any).id!=='spacelab.transfer-planner')),noEngine});
 }
 
 test('coasting to a zero-delta node needs no engine and issues only warp commands',async({page})=>{
@@ -222,4 +222,39 @@ test('a longer manual alarm lead ends planner warp without restarting it, even w
   planner.dispose();f.candidate.dispose();world.dispose();return{started,stopped,noRestart,alarm,noEngine};
  });
  expect(result).toEqual({started:true,stopped:true,noRestart:true,alarm:1,noEngine:true});
+});
+
+test('the Alarms dock panel reads the existing node clock, follows sessions and can be removed without removing alarms',async({page})=>{
+ await setup(page,false,true,false,true,true);
+ const result=await page.evaluate(async()=>{
+  const f=(window as any).fixture,{candidate,factory,prediction,world,current,body,root}=f;let session:object=world,leaseClosed=false;
+  const planner=factory.create({container:root,id:'catalogue-node',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){},setThrottle(){throw Error('No thrust');},releaseControls(){throw Error('No arming');},notify(){}});
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const time=document.getElementById('catalogue-node-time') as HTMLInputElement;time.value='25';time.dispatchEvent(new Event('change'));
+  const idle={turn:0,throttle:0,engine:false};planner.beforeAdvance(idle);
+  const catalogue=candidate.providedService(f.api.ALARM_CATALOGUE),before=catalogue.read(world),dock=document.createElement('button');root.append(dock);
+  const panel=candidate.providedService(f.api.ALARM_PANELS).create({container:root,id:'alarm-dock',session:()=>session,shell:{addInstrument(window:any,label:string){dock.textContent=label;dock.onclick=()=>window.open();return{dispose(){leaseClosed=true;dock.remove();}};}}});
+  dock.click();panel.update();const pending=document.querySelector('#alarm-dock-window output')?.textContent,rows=document.querySelectorAll('#alarm-dock-window [data-alarm-id]').length,icon=document.querySelector('#alarm-dock-window svg')?.innerHTML;
+  while(world.time<15.03)world.step();planner.beforeAdvance(idle);await new Promise(r=>setTimeout(r,210));panel.update();const delivered=document.querySelector('#alarm-dock-window output')?.textContent;
+  session={};await new Promise(r=>setTimeout(r,210));panel.update();const empty=document.querySelector('#alarm-dock-window output')?.textContent;
+  panel.dispose();const clocksRemain=catalogue.read(world).length===1,noWindow=!document.getElementById('alarm-dock-window');planner.dispose();const clocksRemoved=catalogue.read(world).length===0;candidate.dispose();world.dispose();return{pending,rows,icon,delivered,empty,leaseClosed,noWindow,clocksRemain,clocksRemoved,before:before.length};
+ });
+ expect(result).toMatchObject({pending:'1 pending · 0 delivered',rows:1,delivered:'0 pending · 1 delivered',leaseClosed:true,noWindow:true,clocksRemain:true,clocksRemoved:true,before:1});expect(result.empty).toContain('No active reminders');expect(result.icon).toContain('circle');
+});
+
+test('transfer destinations distinguish current orbit, local moons, parent exits and interplanetary bodies without duplicates',async({page})=>{
+ await setup(page,false,true,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,root}=f,first=f.current(),other=world.spawn({ownerId:'pilot',presetId:'moon-orbit'});let selected=first.id;
+  const planner=factory.create({container:root,id:'destinations',flight:()=>{const ship=world.ship(selected);return{world,ship,body:world.body(ship.bodyId),enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1};},setWarp(){throw Error('No warp');},setThrottle(){throw Error('No ignition');},releaseControls(){throw Error('No arming');},notify(){}});
+  const groups=()=>[...root.querySelectorAll('#destinations-transfer-destination optgroup')].map((g:any)=>({label:g.label,ids:[...g.querySelectorAll('option')].map((o:any)=>o.value)}));
+  planner.update(0,prediction,false);const planetGroups=groups(),select=document.getElementById('destinations-transfer-destination') as HTMLSelectElement;
+  const values=[...select.options].map(o=>o.value);select.value='moon';select.dispatchEvent(new Event('input'));
+  const unsupported=(document.getElementById('destinations-transfer-find') as HTMLButtonElement).disabled,reason=document.getElementById('destinations-transfer-status')?.textContent;
+  selected=other.id;planner.update(.1,prediction,false);const moonGroups=groups(),current=select.value,context=document.getElementById('destinations-transfer-context')?.textContent;
+  const clear=!document.getElementById('destinations-transfer-use-efficient'),before=world.tick;planner.dispose();f.candidate.dispose();world.dispose();return{planetGroups,moonGroups,current,context,unsupported,reason,unique:values.length===new Set(values).size,count:values.length,clear,tick:before};
+ });
+ expect(result.planetGroups).toEqual(expect.arrayContaining([{label:'Moons of Primus',ids:['moon']},{label:'Interplanetary destinations',ids:['ignis','velum','magnus']}]));
+ expect(result.moonGroups).toEqual(expect.arrayContaining([{label:'Parent body · leave the current SOI',ids:['planet']},{label:'Interplanetary destinations',ids:['ignis','velum','magnus']}]));
+ expect(result).toMatchObject({current:'moon',unsupported:true,unique:true,count:8,clear:true,tick:1});expect(result.context).toContain('Parvus');expect(result.reason).toContain('not yet implemented');
 });

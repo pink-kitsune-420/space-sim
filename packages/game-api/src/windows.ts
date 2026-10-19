@@ -2,7 +2,7 @@ import type { Disposable } from './modules';
 import type { ServiceKey } from './modules-v2';
 import type { WindowInteractions } from './chat';
 import type { ThemePreferences } from './theme';
-export type WindowIcon = 'grip' | 'setup' | 'ship' | 'fleet' | 'online' | 'instruments' | 'trajectory' | 'telemetry' | 'chat' | 'settings' | 'tools' | 'library' | 'manual' | 'pin';
+export type WindowIcon = 'grip' | 'setup' | 'ship' | 'fleet' | 'online' | 'instruments' | 'trajectory' | 'telemetry' | 'alarm' | 'chat' | 'settings' | 'tools' | 'library' | 'manual' | 'pin';
 export interface WindowChromeOptions {
   readonly id: string; readonly title: string; readonly icon?: WindowIcon;
   readonly container: HTMLElement;

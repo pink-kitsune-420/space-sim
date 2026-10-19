@@ -18,7 +18,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Optional GhostSample bodyId/encounter metadata identifies the active conic. Positions and velocities remain in frameId (the starting body), translated at each sample time; transform both vectors through the selected ephemerides. Canvas/WebGL mark SOI handoffs with a restrained amber leg and ETA. Consumers that only support the initial conic must reject node placement after its first encounter."
+      "text": "Optional GhostSample bodyId/encounter metadata identifies the active conic. Positions and velocities remain in frameId (the starting body), translated at each sample time; transform both vectors through the selected ephemerides. Optional encounterBody captures the destination reference radius, name and centre at the handoff time in the same frame. Canvas/WebGL mark SOI handoffs with a restrained amber leg and ETA, and faint future body outlines; present bodies stay at the current display time. At most four distinct non-anchor body previews and sixteen crossing markers are drawn. Older providers without snapshots retain crossing markers. Consumers that only support the initial conic must reject node placement after its first encounter."
     }
   ]
 }

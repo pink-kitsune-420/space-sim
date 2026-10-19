@@ -88,6 +88,17 @@ describe('maneuver planning', () => {
     expect(time).toBeCloseTo(5, 2);
     expect(pickManeuverTime([a, b], false, 0, { x: 400, y: 300 }, camera, origin, 800, 600)).toBeUndefined();
   });
+  it('projects a captured drag far from the curve and limits it to the initial supported leg',()=>{
+    const pointer={x:400,y:-100};
+    expect(pickManeuverTime([a,b],false,0,pointer,camera,origin,800,600)).toBeUndefined();
+    expect(pickManeuverTime([a,b],false,0,pointer,camera,origin,800,600,Infinity)).toBeCloseTo(5,2);
+    const later={time:20,position:{x:800,y:400},velocity:{x:20,y:0},encounter:{from:'planet',to:'moon'}};
+    const remote={x:1200,y:-100};
+    const unrestricted=pickManeuverTime([a,b,later],false,0,remote,camera,origin,800,600,Infinity)!;
+    const limited=pickManeuverTime([a,b,later],false,0,remote,camera,origin,800,600,Infinity,20)!;
+    expect(unrestricted).toBeGreaterThan(10);expect(limited).toBeLessThanOrEqual(10);
+    expect(pickManeuverTime([a,{...b,linear:true}],false,0,pointer,camera,origin,800,600,Infinity)).toBeUndefined();
+  });
   it('rolls an old closed preview into the next future passage, and never selects past open paths', () => {
     const pointer = { x: 400, y: 200 };
     expect(pickManeuverTime([a, b], true, 32, pointer, camera, origin, 800, 600)).toBeCloseTo(35, 2);

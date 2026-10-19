@@ -19,15 +19,18 @@ function flightMotion(flight: Flight): SimulationContext {
 export interface ManeuverEditorTuning { readonly previewMaxMs?: number; readonly uiRefreshMs?: number }
 
 /** Hit the rendered cubic, rather than sparse sample vertices or their straight chords.
- * Closed previews retain an old epoch; roll a selected phase forward to its next passage. */
+ * Closed previews retain an old epoch; roll a selected phase forward to its next passage.
+ * Captured drags use infinite tolerance to project any pointer position onto the
+ * nearest curve; latestTime bounds that projection to a supported initial leg. */
 export function pickManeuverTime(path: readonly GhostSample[], closed: boolean, now: number, pointer: Vec,
-  camera: Camera, origin: Vec, width: number, height: number, tolerance = 10): number | undefined {
+  camera: Camera, origin: Vec, width: number, height: number, tolerance = 10, latestTime = Infinity): number | undefined {
   const project = createProjector(camera, width, height);
   const at = (p: Vec): Vec => project({ x: origin.x + p.x, y: origin.y + p.y });
   const period = closed && path.length > 1 ? path.at(-1)!.time - path[0]!.time : 0;
   let best = tolerance * tolerance, picked: number | undefined;
   for (let i = 1; i < path.length; i++) {
     const a = path[i - 1]!, b = path[i]!;
+    if(b.time>=latestTime)break;
     // Numerical contact drifts have no analytic state that can seed an impulsive burn.
     if (b.linear || !(b.time > a.time) || (!closed && b.time <= now + .05)) continue;
     const [c1, c2] = hermiteControls(a, b), p0 = at(a.position), p1 = at(c1), p2 = at(c2), p3 = at(b.position);
@@ -140,7 +143,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         <div class="maneuver-adjust"><button id="${this.id}-export" type="button">Export plan</button><button id="${this.id}-import" type="button">Load plan</button><input id="${this.id}-file" type="file" accept=".json,application/json" hidden></div>
       </div>
       <details id="${this.id}-transfers" ${services.transfers ? '' : 'hidden'}></details>
-      <p class="maneuver-help">Click the coast line to place a node. Drag its ◇ along the coast to move it; drag P± and R± handles to shape the burn. Hold Shift for finer adjustments.</p>
+      <p class="maneuver-help">Click the coast line to place a node. Drag its ◇ to move it along the coast (the pointer may move away from the line); drag P± and R± handles to shape the burn. Hold Shift for finer adjustments.</p>
       <output class="maneuver-status" id="${this.id}-status" aria-live="polite">No node. Choose a point on your coast trajectory.</output>
       <div class="maneuver-fields">
         <label>Node in (s)<input id="${this.id}-time" type="number" min="0.1" step="any" inputmode="decimal"></label>
@@ -249,7 +252,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       move: pointer => {
         const surface = options.map?.(), prediction = this.prediction; if (!surface || !prediction) return;
         const time = pickManeuverTime(prediction.path, prediction.pathEnd === 'closed', options.flight().world.time, pointer,
-          surface.camera, surface.origin, surface.element.clientWidth, surface.element.clientHeight, 24);
+          surface.camera, surface.origin, surface.element.clientWidth, surface.element.clientHeight, Infinity, prediction.path.find(point=>point.encounter)?.time);
         if (time !== undefined) this.moveTime(time);
       },
       restore: (time, prograde, radial) => { this.moveTime(time); this.prograde.value = String(prograde); this.radial.value = String(radial); this.edit(); },

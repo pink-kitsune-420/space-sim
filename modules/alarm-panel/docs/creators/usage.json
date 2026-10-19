@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Alarms dock instrument",
+  "summary": "Alarms dock instrument",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "view.alarms@1.0.0 is a separate optional UI module requiring flight.alarm-catalogue@1. It optionally connects ui.windows@1; otherwise the host must supply an explicit WindowSystem-compatible chrome adapter. This preserves existing host stacking during the current platform phase. Hosts supply the current session identity and may supply a shell to register its Alarms dock button. The panel reads the same clocks used by maneuver reminders and never schedules, arms, ignites or changes warp. No planner, predictor, renderer, camera or audio module is required. Removing the panel releases the window and dock lease; pure clocks continue independently."
+    }
+  ]
+}

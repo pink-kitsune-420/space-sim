@@ -10,7 +10,7 @@ export class NodeAlarms {
  private readonly clock:OrbitalAlarmClock;
  private readonly events:OrbitalAlarmEvent[]=[];
  private readonly refs=new Map<string,AlarmTarget>();
- private readonly pool=new WeakMap<AlarmTarget,{id:string;kind:string;label:string;time:number;deadline:number;pause:boolean;handled:boolean}>();
+ private readonly pool=new WeakMap<AlarmTarget,{id:string;kind:string;label:string;name:string;nodeLabel:string;time:number;deadline:number;pause:boolean;handled:boolean}>();
  private readonly enabled:HTMLInputElement;
  private readonly lead:HTMLInputElement;
  private readonly pause:HTMLInputElement;
@@ -46,8 +46,9 @@ export class NodeAlarms {
   const flight=this.options.flight();this.events.length=0;this.refs.clear();
   if(flight.enabled&&flight.canWarp)for(const {node,deadline} of this.candidates()){
    const prefs=node.alarm??DEFAULT_NODE_ALARM;if(!prefs.enabled||!Number.isFinite(deadline))continue;
-   let event=this.pool.get(node);
-   if(!event){event={id:JSON.stringify([node.shipId,node.id]),kind:'maneuver',label:`${node.shipId} · ${node.label}`.slice(0,160),time:node.time,deadline,pause:prefs.pause,handled:!!prefs.notified};this.pool.set(node,event);}
+   const name=flight.world.ship(node.shipId)?.name??'Ship';let event=this.pool.get(node);
+   if(!event){event={id:JSON.stringify([node.shipId,node.id]),kind:'maneuver',label:`${name} · ${node.label}`.slice(0,160),name,nodeLabel:node.label,time:node.time,deadline,pause:prefs.pause,handled:!!prefs.notified};this.pool.set(node,event);}
+   if(event.name!==name||event.nodeLabel!==node.label){event.name=name;event.nodeLabel=node.label;event.label=`${name} · ${node.label}`.slice(0,160);}
    event.time=node.time;event.deadline=deadline;event.pause=prefs.pause;event.handled=!!prefs.notified;this.events.push(event);this.refs.set(event.id,node);
   }
   const notices=this.clock.sync(flight.world,flight.world.time,this.events);

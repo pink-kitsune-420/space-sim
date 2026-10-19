@@ -16,7 +16,7 @@ export function deltaComponents(position:Vec,velocity:Vec,delta:Vec):{prograde:n
 }
 const unsupported=(reason:string):TransferResult=>({options:[],reason});
 export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
- return Object.freeze<TransferPlanner>({*search(world,request){
+ return Object.freeze<TransferPlanner>({relationships:Object.freeze(['same-body'] as const),*search(world,request){
   const ship=world.ship(request.shipId);
   if(!ship||ship.state.status!=='flying')return unsupported('Choose a flying ship in a bound orbit.');
   if(request.destinationId!==ship.bodyId)return unsupported('Moon and planet transfers are not yet implemented in this increment. Choose the current body to raise or lower an orbit.');

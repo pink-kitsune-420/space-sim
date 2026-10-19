@@ -14,6 +14,7 @@ for(const renderer of ['canvas','webgl'] as const)test(`${renderer} displays con
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  const result=await page.evaluate(kind=>(window as any).trajectoryHarness.draw(kind),renderer);
  expect(result.encounters.slice(0,2)).toEqual([{from:'planet',to:'moon'},{from:'moon',to:'planet'}]);
+ expect(result.outlinePixels).toBeGreaterThan(10);expect(result.bodyDisplacement).toBeGreaterThan(1);
  expect(result.amber).toBeGreaterThan(50);expect(result.mint).toBeGreaterThan(50);expect(result.error).toBe(0);expect(result.tick).toBe(0);expect(errors).toEqual([]);
  await page.screenshot({path:info.outputPath(`trajectory-${renderer}.png`)});await info.attach('trajectory-profile',{body:JSON.stringify(result),contentType:'application/json'});
 });

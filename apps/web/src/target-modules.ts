@@ -90,8 +90,14 @@ import { manifest as alarmsManifest, compatibility as alarmsCompatibility } from
 import alarmsGuide from '../../../modules/orbital-alarms/docs/creators/usage.json';
 import alarmsBurnsGuide from '../../../modules/orbital-alarms/docs/players/burns.json';
 
+import alarmPanelInitialize from '../../../modules/alarm-panel/src/index';
+import { manifest as alarmPanelManifest, compatibility as alarmPanelCompatibility } from '../../../modules/alarm-panel/module.json';
+import alarmPanelGuide from '../../../modules/alarm-panel/docs/creators/usage.json';
+import alarmPanelPlayersGuide from '../../../modules/alarm-panel/docs/players/alarms.json';
+
 /** Inert registrations. Only the exact references selected by a target initialize. */
 export const browserTargetModules = Object.freeze([
+  bundledRegistration({ manifest: alarmPanelManifest, compatibility: alarmPanelCompatibility }, alarmPanelInitialize, { 'docs/creators/usage.json': alarmPanelGuide, 'docs/players/alarms.json': alarmPanelPlayersGuide }),
   bundledRegistration({ manifest: alarmsManifest, compatibility: alarmsCompatibility }, alarmsInitialize, { 'docs/creators/usage.json': alarmsGuide, 'docs/players/burns.json': alarmsBurnsGuide }),
   bundledRegistration({ manifest: transfersManifest, compatibility: transfersCompatibility }, transfersInitialize, { 'docs/creators/usage.json': transfersGuide, 'docs/players/flight.json': transfersFlightGuide }),
   bundledRegistration({ manifest: flightPlansManifest, compatibility: flightPlansCompatibility }, flightPlansInitialize, { 'docs/creators/usage.json': flightPlansGuide }),

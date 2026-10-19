@@ -110,18 +110,36 @@ export function pathFromShip(path: readonly GhostSample[], closed: boolean,
 const distance = (a: Vec, b: Vec): number => Math.hypot(b.x - a.x, b.y - a.y);
 
 
-/** Restrained timed SOI markers, shared by compatible vector renderers. Coordinates
- * already belong to the path's initial translating body frame. No physics queries. */
+/** Restrained timed SOI markers and future body outlines. All snapshots are in
+ * the path's translating reference frame, so apply pathOrigin exactly once.
+ * Old providers can omit encounterBody. No renderer-side physics/ephemeris queries. */
 export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[] {
   const out: OverlayPrimitive[] = [], origin = frame.pathOrigin ?? { x: 0, y: 0 };
+  const shown = new Set<string>(), scale = frame.camera.scale;
+  if (!(scale > 0) || !Number.isFinite(scale)) return out;
+  const sin = Math.sin(frame.camera.rotation), cos = Math.cos(frame.camera.rotation);
+  const above = (at: Vec, pixels: number): Vec => ({ x: at.x + sin * pixels / scale, y: at.y + cos * pixels / scale });
+  let count = 0;
   for (const point of frame.path) {
     if (!point.encounter || point.time < frame.state.time) continue;
     const center = { x: point.position.x + origin.x, y: point.position.y + origin.y };
-    const to = frame.bodies?.find(body => body.id === point.encounter!.to)?.name ?? point.encounter.to;
-    out.push({ kind: 'circle', space: 'world', center, radius: 4 / frame.camera.scale, color: '#dba76a', width: 1.5 },
-      { kind: 'text', space: 'world', at: { x: center.x, y: center.y + 13 / frame.camera.scale },
-        color: '#dba76a', align: 'center', text: `${to} · T−${(point.time - frame.state.time).toFixed(1)} s` });
-    if (out.length >= 32) break;
+    const body = point.encounterBody;
+    const to = body?.name ?? frame.bodies?.find(body => body.id === point.encounter!.to)?.name ?? point.encounter.to;
+    const eta = `T−${(point.time - frame.state.time).toFixed(1)} s`;
+    out.push({ kind: 'circle', space: 'world', center, radius: 4 / scale, color: '#dba76a', width: 1.5 },
+      { kind: 'text', space: 'world', at: above(center, 13), color: '#dba76a', align: 'center', text: `${to} · ${eta}` });
+    // The initial body stays at this frame's origin and is already drawn. Show the
+    // nearest future position of up to four other bodies, with no opaque fill.
+    if (body && point.encounter.to !== point.frameId && !shown.has(point.encounter.to) && shown.size < 4
+      && body.radius > 0 && Number.isFinite(body.radius) && Number.isFinite(body.position.x) && Number.isFinite(body.position.y)) {
+      shown.add(point.encounter.to);
+      const at = { x: body.position.x + origin.x, y: body.position.y + origin.y }, radius = Math.max(body.radius, 3 / scale);
+      const dx = center.x - at.x, dy = center.y - at.y, distance = Math.hypot(dx, dy);
+      if (distance > radius) out.push({ kind: 'line', space: 'world', points: [{ x: at.x + dx / distance * radius, y: at.y + dy / distance * radius }, center], color: '#dba76a40', width: 1 });
+      out.push({ kind: 'circle', space: 'world', center: at, radius, color: '#dba76a90', width: 1 },
+        { kind: 'text', space: 'world', at: above(at, Math.min(radius * scale, 24) + 14), color: '#dba76a', align: 'center', text: `${to} at SOI · ${eta}` });
+    }
+    if (++count >= 16) break;
   }
   return out;
 }

@@ -45,8 +45,34 @@ it('runs a real packaged alarm service in browser/offline/node without plans, UI
   const archive=await inspectRuntimePackage(new Uint8Array(await readFile(out)));
   for(const environment of ['browser','offline','node'] as const){
    const registry=new ModuleRegistryV2(),registered=archive.register({environment,allowRuntimeCode:true,approvedDigests:new Set([archive.digest])});registry.register(registered.module,registered.assets);
-   const candidate=registry.prepare({format:'space-sim-profile/2',id:'fixture.alarms',modules:[{id:archive.id,version:archive.version}],providers:{'flight.alarms':archive.id},capabilities:{},settings:{}},environment),clock=candidate.providedService(ORBITAL_ALARMS).create();
+   const candidate=registry.prepare({format:'space-sim-profile/2',id:'fixture.alarms',modules:[{id:archive.id,version:archive.version}],providers:{'flight.alarms':archive.id,'flight.alarm-catalogue':archive.id},capabilities:{},settings:{}},environment),clock=candidate.providedService(ORBITAL_ALARMS).create();
    expect(clock.sync({},99,[event()])).toHaveLength(1);clock.dispose();candidate.dispose();
+  }
+ }finally{await rm(dir,{recursive:true,force:true});}
+},60000);
+
+it('catalogues the same isolated clocks by session, with detached snapshots and disposal cleanup',async()=>{
+ const {createOrbitalAlarms}=await import('../../modules/orbital-alarms/src/index');
+ const alarms=createOrbitalAlarms(),a=alarms.create(),b=alarms.create(),first={},other={};
+ a.sync(first,40,[event()]);b.sync(other,50,[event({label:'Other world'})]);
+ const snapshot=alarms.read(first);expect(snapshot).toMatchObject([{label:'Departure',now:40,handled:false}]);expect(alarms.read(other)).toMatchObject([{label:'Other world',now:50}]);
+ a.sync(first,95,[event()]);expect(alarms.read(first)).toMatchObject([{handled:true,now:95}]);expect(snapshot[0]!.handled).toBe(false);
+ a.clear();expect(alarms.read(first)).toEqual([]);b.dispose();expect(alarms.read(other)).toEqual([]);
+ for(let i=0;i<63;i++)alarms.create();expect(()=>alarms.create()).toThrow('64 independent');alarms.dispose();expect(()=>a.sync(first,0,[])).toThrow('disposed');expect(alarms.read(first)).toEqual([]);
+});
+
+it('packages an independent alarm panel, explains its missing catalogue and supports explicit host chrome with UI provider absent',async()=>{
+ const {cp,mkdtemp,readFile,rm}=await import('node:fs/promises'),{join,resolve}=await import('node:path'),{tmpdir}=await import('node:os');
+ const {buildPortableModule}=await import('../../packages/module-tools/package.mjs'),{inspectRuntimePackage}=await import('../../packages/game-library/src/runtime-package'),{ModuleRegistryV2}=await import('../../packages/game-runtime/src/modules-v2');
+ const {ALARM_PANELS}=await import('../../packages/game-api/src/index'),dir=await mkdtemp(join(tmpdir(),'alarm-panel-archive-'));
+ try{
+  const archives:Awaited<ReturnType<typeof inspectRuntimePackage>>[]=[];
+  for(const name of ['orbital-alarms','alarm-panel']){const source=join(dir,name),out=join(dir,`${name}.spacemod`);await cp(resolve('modules',name),source,{recursive:true});await buildPortableModule(join(source,'module.json'),out,{typecheck:false});archives.push(await inspectRuntimePackage(new Uint8Array(await readFile(out))));}
+  for(const environment of ['browser','offline'] as const){
+   const registry=new ModuleRegistryV2();for(const archive of archives){const r=archive.register({environment,allowRuntimeCode:true,approvedDigests:new Set([archive.digest])});registry.register(r.module,r.assets);}
+   const profile={format:'space-sim-profile/2' as const,id:'fixture.alarm-panel',modules:archives.map(a=>({id:a.id,version:a.version})),providers:{'flight.alarms':archives[0]!.id,'flight.alarm-catalogue':archives[0]!.id,'view.alarms':archives[1]!.id},capabilities:{},settings:{}};
+   expect(()=>registry.prepare({...profile,modules:profile.modules.slice(1),providers:{'view.alarms':archives[1]!.id}},environment)).toThrow('flight.alarm-catalogue');
+   const candidate=registry.prepare(profile,environment);expect(()=>candidate.providedService(ALARM_PANELS).create({container:{} as HTMLElement,session:()=>({})})).toThrow('explicit host window adapter');candidate.dispose();
   }
  }finally{await rm(dir,{recursive:true,force:true});}
 },60000);

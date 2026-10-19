@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "While coasting in a bound orbit, open Maneuver from Instruments and expand Transfer window. Choose the current body and enter a target altitude in metres above its reference radius. Turn off Circular target to enter separate low/high altitudes. Starting and target orbits may be elliptical; both must clear the highest terrain. This increment handles orbit raising/lowering. Moon and planet transfers remain in development and explain that limit when selected."
+      "text": "While coasting in a bound orbit, open Maneuver from Instruments and expand Transfer window. Destinations are grouped by the current body, its moons, the parent SOI, other planets and their moons. Body names identify which orbit they belong to, and unavailable transfer types are marked. Choose the current body and enter a target altitude in metres above its reference radius. Turn off Circular target to enter separate low/high altitudes. Starting and target orbits may be elliptical; both must clear the highest terrain. This increment handles orbit raising/lowering. Moon and planet transfers remain in development and explain that limit immediately when selected; Find options stays disabled for unavailable types."
     },
     {
       "type": "paragraph",
