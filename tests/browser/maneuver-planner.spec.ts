@@ -321,7 +321,9 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
  expect(Math.abs(Math.hypot(moved.x+moved.width/2-cx,moved.y+moved.height/2-cy)-r)).toBeLessThan(3);await page.mouse.up();
  const after=await debug(page);expect(after.camera).toEqual(before.camera);expect(after.position).toEqual(before.position);expect(after.maneuver.execution).toBeNull();
  const saved=after.maneuver.time,current=(await node.boundingBox())!;
- await page.mouse.move(current.x+current.width/2,current.y+current.height/2);await page.mouse.down();await page.mouse.move(cx+(r+100)*Math.cos(.3),cy-(r+100)*Math.sin(.3),{steps:10});await page.keyboard.press('Escape');await page.mouse.up();
+  await page.mouse.move(current.x+current.width/2,current.y+current.height/2);await page.mouse.down();await page.mouse.move(cx+(r+100)*Math.cos(.3),cy-(r+100)*Math.sin(.3),{steps:10});
+  await node.evaluate(el=>(el as HTMLButtonElement).blur()); // capture still owns the gesture after focus loss
+  await page.keyboard.press('Escape');await page.mouse.up();
  await expect.poll(async()=>(await debug(page)).maneuver.time).toBeCloseTo(saved,6);
 });
 

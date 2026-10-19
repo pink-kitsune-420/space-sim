@@ -92,7 +92,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "63f3d4b841da4bd16e97cc7d8bb0a72202543cb18f418d7eb60d292195c1d6ed"
+    "inputsDigest": "01f6ba4574b96bfa1221641cefe0b43ce7210ac834e46c56321199fdaa874c6a"
   },
   "compatibility": {
     "deterministic": true,
@@ -453,7 +453,7 @@
     },
     {
       "path": "src/map.ts",
-      "sha256": "86036b38ff89581376787685a1dc55e49e7e9789493513df4805afa7fc8586b1",
+      "sha256": "17effbfbed4d744aa8a752bc523cefe7bab414a1aa4d9c64768fd5f4e4d89eae",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },
