@@ -45,6 +45,10 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');
   await manual.locator('#manual-search').fill('');
   await manual.locator('#manual-tab-players').click();
+  await manual.locator('.manual-topic[data-page="moon-flight"]').click();
+  await expect(manual.locator('#manual-page')).toContainText('Find transfer windows');
+  await manual.locator('#manual-page a[data-page="transfers"]').last().click();
+  await expect(manual.locator('#manual-page h2')).toHaveText('Transfer plans');
   await manual.locator('.manual-topic[data-page="multiplayer"]').click();
   await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(0);
   await expect(manual.locator('#manual-page')).toContainText('npm run host');

@@ -546,6 +546,11 @@ Start higher to allow for alignment and corrections. At half throttle the availa
 <p><b>Goal:</b> distinguish reaching a moon’s orbit, encountering the moon and staying there.</p>
 <p>Practise <a data-page="maneuvers">maneuver planning</a> and <a data-page="change-orbit">orbit changes</a> first.
 Begin in Primus’s <b>Circular orbit · 128 m altitude</b>, moving in the same direction as Parvus.</p>
+<p>For a generated plan, open <b>Transfers</b> in the flight toolbar, choose <b>Parvus</b>,
+enter a circular target altitude of <b>100 m</b> and choose <b>Find transfer windows</b>.
+Compare wait, travel and Δv, then choose <b>Use plan</b>. Inspect both editable burn nodes
+and their current-throttle duration. Execute each burn separately and review actual flight after departure and SOI changes.</p>
+<p>To explore the encounter manually:</p>
 <ol>
   <li><b>Raise the far side.</b> Plan a prograde departure until Ap reaches roughly Parvus’s orbital distance.
     Merely crossing that distance does not guarantee a meeting.</li>
@@ -558,8 +563,9 @@ Begin in Primus’s <b>Circular orbit · 128 m altitude</b>, moving in the same 
 </ol>
 <p><b>Check:</b> entering the SOI is an encounter. Capture means you now have a bound, terrain-clearing moon orbit
 that stays within its SOI; otherwise you may fly past and return to Primus.</p>
-<p class="manual-note">Automatic moon and planet transfer generation is still in development.
-The current editor places nodes before the first encounter. Plan the arrival burn again in the moon’s frame after entering its SOI.</p>
+<p class="manual-note">Generated windows are bounded impulsive estimates. A finite burn can change the encounter;
+check the forecast and review or adjust the moon-centred arrival node before capture.
+See <a data-page="transfers">Transfer windows</a> for supported destinations and search limits.</p>
 ${deeper('a first estimate for the departure window', `
 <p>Ignore the moon’s gravity until the encounter and use a half-ellipse from r₁ = 640 m to
 r₂ = 15,360 m from Primus’s centre. Its semi-major axis is a = 8,000 m.</p>
