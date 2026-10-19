@@ -3,7 +3,6 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
-import { packageContracts } from '../packages/module-tools/package.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 let html = await readFile(resolve(root, 'index.html'), 'utf8');
@@ -32,13 +31,6 @@ html = html.replace(/<link\b[^>]*\brel="(?:manifest|icon)"[^>]*>\s*/gi, '');
 if (/<(?:script|link)\b[^>]*(?:src|href)="[^#]/i.test(html)) throw new Error('External build asset remains');
 const output = resolve(root, 'space-lab-offline.html');
 await writeFile(output, html);
-// A self-contained index at the archive root is directly uploadable to itch.io.
-const kit = await packageContracts(), browserFiles = new Map([
-  ['index.html', new TextEncoder().encode(html)],
-  ['LICENSE', new Uint8Array(await readFile(new URL('../LICENSE', import.meta.url)))],
-  ['CREDITS.md', new Uint8Array(await readFile(new URL('../CREDITS.md', import.meta.url)))],
-]);
-await writeFile(resolve(root, 'space-lab-browser.zip'), await kit.writeZip(browserFiles, { compression: 'auto' }));
 const game = JSON.parse(await readFile(new URL('../games/space-sim/game.json', import.meta.url), 'utf8'));
 await writeFile(resolve(root, 'space-sim.spacegame'), gzipSync(JSON.stringify(game), { level: 9 }));
 const universe = JSON.parse(await readFile(new URL('../games/space-sim/universes/sandbox/default/universe.json', import.meta.url), 'utf8'));

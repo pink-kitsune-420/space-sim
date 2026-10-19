@@ -195,11 +195,10 @@ jobs:
             tar -czf "release-files/space-sim-server-${TAG}-macos-arm64.tar.gz" -C all-artifacts/space-sim-macos space-sim-server NODE-LICENSE.txt
           fi
 
-          # Offline Web & Bundles
+          # Offline player and editable content
           if [ -f verified-build/dist/space-lab-offline.html ]; then
             cp verified-build/dist/space-lab-offline.html "release-files/space-lab-${TAG}-offline.html"
           fi
-          cp verified-build/dist/space-lab-browser.zip "release-files/spacelab-${TAG}-itch.zip"
           cp LICENSE CREDITS.md release-files/
           find verified-build/dist -maxdepth 1 -name "*.spacegame" -exec cp {} release-files/ \;
           find verified-build/dist -maxdepth 1 -name "*.spaceuniverse" -exec cp {} release-files/ \;
@@ -213,18 +212,7 @@ jobs:
             cp all-artifacts/space-sim-android-apk/app-debug.apk "release-files/space-sim-${TAG}-android.apk"
           fi
 
-          # One download for all available platforms, followed by hashes for every asset.
-          python3 - "$TAG" <<'PY'
-          import sys
-          from pathlib import Path
-          from zipfile import ZipFile, ZIP_DEFLATED
-          root = Path('release-files')
-          bundle = root / f'spacelab-{sys.argv[1]}-all-platforms.zip'
-          with ZipFile(bundle, 'w', compression=ZIP_DEFLATED, compresslevel=9) as archive:
-              for path in sorted(root.iterdir()):
-                  if path.is_file() and path != bundle:
-                      archive.write(path, path.name)
-          PY
+          # Hash the individual platform and content downloads.
           cd release-files
           sha256sum * > SHA256SUMS.txt
           ls -lh

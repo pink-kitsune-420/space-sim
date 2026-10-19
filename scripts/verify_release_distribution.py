@@ -17,11 +17,12 @@ def verify(root, tag):
         for server in ['', '-server']
         for platform, extension in [('linux-x64', 'tar.gz'), ('macos-arm64', 'tar.gz'), ('windows-x64', 'zip')]
     }
-    bundle = f'spacelab-{tag}-all-platforms.zip'
     required = native | {'SHA256SUMS.txt', 'LICENSE', 'CREDITS.md', f'space-lab-{tag}-offline.html',
-        f'spacelab-{tag}-itch.zip', f'space-sim-universes-{tag}.tar.gz', 'space-sim.spacegame',
-        'space-sim.spaceuniverse', bundle}
+        f'space-sim-universes-{tag}.tar.gz', 'space-sim.spacegame', 'space-sim.spaceuniverse'}
     present = {p.name for p in root.iterdir() if p.is_file()}
+    redundant = present & {f'spacelab-{tag}-all-platforms.zip', f'spacelab-{tag}-itch.zip'}
+    if redundant:
+        raise ValueError(f'Redundant archives are not release outputs: {sorted(redundant)}')
     missing = required - present
     if missing:
         raise ValueError(f'Missing release files: {sorted(missing)}')
@@ -58,17 +59,7 @@ def verify(root, tag):
                 license_bytes = archive.extractfile('NODE-LICENSE.txt').read()
         if b'Node.js' not in license_bytes or len(license_bytes) < 10000:
             raise ValueError(f'Missing runtime license: {filename}')
-    with zipfile.ZipFile(root / bundle) as archive:
-        if set(archive.namelist()) != present - {bundle, 'SHA256SUMS.txt'}:
-            raise ValueError('All-platform bundle does not contain the individual downloads')
-        for name in archive.namelist():
-            with archive.open(name) as stream:
-                if hashlib.file_digest(stream, 'sha256').hexdigest() != checks[name]:
-                    raise ValueError(f'Bundle member differs from individual download: {name}')
     html = (root / f'space-lab-{tag}-offline.html').read_bytes()
-    with zipfile.ZipFile(root / f'spacelab-{tag}-itch.zip') as archive:
-        if archive.read('index.html') != html:
-            raise ValueError('Browser ZIP differs from the tested offline player')
     apk = root / f'space-sim-{tag}-android.apk'
     if apk.exists():
         with zipfile.ZipFile(apk) as archive:
