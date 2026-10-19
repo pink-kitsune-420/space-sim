@@ -10,7 +10,7 @@ import type { Workspace } from './workspace';
 export { pickManeuverTime } from '../../../modules/maneuver-editor/src/index';
 export const maneuverWarpFactor = (remaining: number): number => sharedWarpFactor(remaining, clampWarpFactor);
 export class ManeuverPlanner extends SharedPlanner {
- constructor(workspace: Workspace, options: Omit<ManeuverPlannerOptions, 'container' | 'shell' | 'id'>, tools: Pick<ManeuverEditorServices, 'plans' | 'transfers'> = {}) {
+ constructor(workspace: Workspace, options: Omit<ManeuverPlannerOptions, 'container' | 'shell' | 'id'>, tools: Pick<ManeuverEditorServices, 'plans' | 'transfers' | 'alarms'> = {}) {
   super({ ...tools, windows: { create: settings => new FloatingWindow(settings) }, predictions: { create: onComplete => new Prediction(onComplete) },
    burns: { create: (time, delta, vehicle) => new ManeuverBurn(time, delta, vehicle) }, clock: { stepSeconds: STEP, idle: IDLE }, motion: { clampWarpFactor } },
    { ...options, container: document.querySelector<HTMLElement>('#flight-console .viewport')!, shell: workspace });

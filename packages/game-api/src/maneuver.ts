@@ -33,6 +33,8 @@ export interface ManeuverPlannerOptions {
  map?(): { readonly element: HTMLElement; readonly camera: import('./presentation').Camera; readonly origin: Vec } | undefined;
  flight(): ManeuverFlight;
  setWarp(factor: number): void;
+ /** Optional host pause command; alarms never use engine/execution commands. */
+ setPaused?(paused: boolean): void;
  setThrottle(shipId: string, throttle: number): void;
  releaseControls(shipId: string): void;
  notify(text: string): void;

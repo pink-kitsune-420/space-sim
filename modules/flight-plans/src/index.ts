@@ -11,6 +11,11 @@ const number = (raw: unknown, name: string, bound = 1e20): number => typeof raw 
 const text = (raw: unknown, name: string, length = 128): string => typeof raw === 'string' && raw.length > 0 && raw.length <= length && !/[\p{Cc}\p{Cf}]/u.test(raw)
  ? raw : fail(`${name} must be nonempty text (at most ${length} characters)`);
 const vector = (raw: unknown): Vec => { const value = record(raw); return { x: number(value.x, 'x'), y: number(value.y, 'y') }; };
+function readAlarm(raw:unknown): import('@space-sim/game-api').NodeAlarmSettings {
+ const a=record(raw),lead=number(a.leadSeconds,'alarm lead',86400);
+ if(lead<0||typeof a.enabled!=='boolean'||typeof a.pause!=='boolean'||(a.notified!==undefined&&typeof a.notified!=='boolean'))fail('invalid node alarm preferences');
+ return {enabled:a.enabled as boolean,leadSeconds:lead,pause:a.pause as boolean,...(a.notified===true?{notified:true}:{})};
+}
 function readPlan(raw: unknown): FlightPlan {
  const p=record(raw), e=record(p.epoch), time=number(e.time,'epoch time',1e12);
  if (!Array.isArray(p.nodes) || p.nodes.length > MAX_PLAN_NODES) fail(`at most ${MAX_PLAN_NODES} nodes are supported`);
@@ -20,7 +25,7 @@ function readPlan(raw: unknown): FlightPlan {
   if(ids.has(id))fail('duplicate node id'); ids.add(id);
   if((at < time && n.completed!==true) || at > time + MAX_PLAN_SECONDS || at <= previous)fail('nodes need increasing times within one year of their epoch'); previous=at;
   nodes.push({id,label:text(n.label,'node label',80),bodyId:text(n.bodyId,'body id'),time:at,
-   prograde:number(n.prograde,'prograde delta-v',1e6),radial:number(n.radial,'radial delta-v',1e6),...(n.completed===true?{completed:true}:{})});
+   prograde:number(n.prograde,'prograde delta-v',1e6),radial:number(n.radial,'radial delta-v',1e6),...(n.completed===true?{completed:true}:{}),...(n.alarm!==undefined?{alarm:readAlarm(n.alarm)}:{})});
  }
  return {shipId:text(p.shipId,'ship id'),universeId:text(p.universeId,'universe id'),systemId:text(p.systemId,'system id'),
   fingerprint:text(p.fingerprint,'physics fingerprint',1024),motionIdentity:text(p.motionIdentity,'motion identity',16384),bodyId:text(p.bodyId,'body id'),

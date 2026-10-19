@@ -1,14 +1,16 @@
 import { createProjector, hermiteControls, maneuverDelta, deterministicMath as dm,
  type FlightPlan, type FlightPlanArchive, type FlightPlanNode, type FlightPlanService, type TransferPlanner, type WorldRead, type Camera, type Controls, type GhostSample, type ManeuverPreview, type SimulationContext, type State, type Vec,
- type ClockService, type CoreMotion, type FlightPrediction, type ManeuverBurnControl, type ManeuverBurnFactory,
+ type NodeAlarmSettings, type OrbitalAlarmFactory, type ClockService, type CoreMotion, type FlightPrediction, type ManeuverBurnControl, type ManeuverBurnFactory,
  type PredictionFactory, type WindowChrome, type WindowSystem, type Disposable,
  type ManeuverFlight as Flight, type ManeuverPlannerOptions, type ManeuverPlannerControl } from '@space-sim/game-api';
 import { ManeuverMap } from './map';
 import { TransferControls } from './transfers';
+import { NodeAlarms, DEFAULT_NODE_ALARM, type AlarmCandidate } from './alarms';
 export interface ManeuverEditorServices {
  readonly windows: Pick<WindowSystem, 'create'>; readonly predictions: PredictionFactory; readonly burns: ManeuverBurnFactory;
  readonly plans?: FlightPlanService;
  readonly transfers?: TransferPlanner;
+ readonly alarms?: OrbitalAlarmFactory;
  readonly clock: Pick<ClockService, 'stepSeconds' | 'idle'>; readonly motion: Pick<CoreMotion, 'clampWarpFactor'>;
 }
 function flightMotion(flight: Flight): SimulationContext {
@@ -59,6 +61,7 @@ interface Node {
   readonly id: string;
   label: string;
   completed?: boolean;
+  alarm?: NodeAlarmSettings;
   bodyId: string;
   context: SimulationContext;
   seed: State;
@@ -79,6 +82,10 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private dock?: Disposable;
   private map?: ManeuverMap;
   private transferControls?: TransferControls;
+  private alarmControls?: NodeAlarms;
+  private readonly alarmCandidates:AlarmCandidate[]=[];
+  private alarmManualEngine=false;
+  private readonly alarmCandidatePool=new WeakMap<Node,{node:Node;deadline:number}>();
   private readonly window!: WindowChrome;
   private readonly preview: FlightPrediction;
   private readonly nodes = new Map<string, Node>();
@@ -144,6 +151,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         <label>Radial Δv (m/s)<input id="${this.id}-radial" type="number" step="any" min="-1000000" max="1000000" value="0" inputmode="decimal"></label>
         <div class="maneuver-adjust"><button type="button" data-adjust="radial/-1">− In</button><button type="button" data-adjust="radial/1">+ Out</button></div>
       </div>
+      <details id="${this.id}-alarms" ${services.alarms ? '' : 'hidden'}></details>
       <output class="maneuver-summary" id="${this.id}-summary"></output><output id="${this.id}-result"></output>
       <div class="maneuver-adjust"><button id="${this.id}-warp" type="button">Warp to node</button><button id="${this.id}-stop" type="button" hidden>Stop warp</button><button id="${this.id}-execute" type="button">Execute burn</button><button id="${this.id}-abort" type="button" hidden>Abort burn</button></div>
       <div class="maneuver-adjust"><button id="${this.id}-clear" type="button">Clear Δv</button><button id="${this.id}-delete" type="button">Delete node</button></div>
@@ -153,6 +161,10 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       this.abortExecution(); this.stopWarp(); this.insertPlan(plan, this.options.flight());
       this.current = this.nodes.get(plan.shipId); this.rebuildPlan(true); this.refreshInputs();
     }, this.lifetime.signal);
+    if (services.alarms) this.alarmControls = new NodeAlarms(get('alarms'), services.alarms, options,
+      node => this.alarmDeadline(node as Node), () => this.collectAlarms(),
+      () => { if(this.warping){this.lastRequest=this.options.flight().requestedWarp;if(this.lastRequest<=1)this.warping=false;} },
+      () => { this.stopWarp(); if(this.options.flight().requestedWarp!==1)this.options.setWarp(1); }, this.lifetime.signal);
     this.prograde = get('prograde'); this.radial = get('radial'); this.timing = get('time');
     this.increment = get('increment');
     this.status = get('status'); this.summary = get('summary'); this.result = get('result');
@@ -245,7 +257,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.dock = options.shell?.addInstrument(this.window, 'Maneuver', 'Plan a burn by clicking the coast trajectory');
     } catch (error) {
       const errors: unknown[] = [error];
-      for (const close of [() => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.map?.dispose(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window?.dispose()]) { try { close(); } catch (cleanup) { errors.push(cleanup); } }
+      for (const close of [() => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.alarmControls?.dispose(), () => this.map?.dispose(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window?.dispose()]) { try { close(); } catch (cleanup) { errors.push(cleanup); } }
       if (errors.length > 1) throw new AggregateError(errors, 'Maneuver editor creation failed');
       throw error;
     }
@@ -253,7 +265,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private event(kind: string, detail: Record<string, unknown>): void { this.options.event?.(kind, detail); }
   dispose(): void {
     if (this.disposed) return; this.disposed = true; const errors: unknown[] = [];
-    for (const close of [() => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.map?.dispose(), () => this.abortExecution(), () => this.stopWarp(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window.dispose()]) { try { close(); } catch (error) { errors.push(error); } }
+    for (const close of [() => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.alarmControls?.dispose(), () => this.map?.dispose(), () => this.abortExecution(), () => this.stopWarp(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window.dispose()]) { try { close(); } catch (error) { errors.push(error); } }
     this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.world = undefined; this.prediction = undefined; this.dock = undefined;
     if (errors.length) throw new AggregateError(errors, 'Maneuver editor cleanup failed');
   }
@@ -324,7 +336,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     }
   }
   private intent(node: Node): FlightPlanNode {
-    return { id: node.id, label: node.label, bodyId: node.bodyId, time: node.time, prograde: node.prograde, radial: node.radial, ...(node.completed ? { completed: true } : {}) };
+    return { id: node.id, label: node.label, bodyId: node.bodyId, time: node.time, prograde: node.prograde, radial: node.radial, ...(node.completed ? { completed: true } : {}), ...(node.alarm ? { alarm:node.alarm } : {}) };
   }
   private waiting(node: Node): boolean {
     return (this.plans.get(node.shipId) ?? []).some(value => value !== node && !value.completed && value.time < node.time);
@@ -358,6 +370,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         const node = nodes[index]!; node.valid = result.valid && !this.needsReview.has(ship.id);
         node.reason = this.needsReview.has(ship.id) && !node.completed ? 'Review remaining nodes against actual flight.' : result.reason;
         if (result.seed && result.before) { node.seed = result.seed; node.sample = result.before; node.context = flightMotion(flight); }
+        if(review)this.alarmControls?.touch(node);
       }
       if (review) this.options.notify('Plan reviewed against current flight. Execute each node separately or fly it manually.');
     } catch (error) {
@@ -374,7 +387,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (nodes.length >= 16) { this.options.notify('A plan supports at most 16 nodes.'); return; }
     const last = nodes.at(-1)!;
     const node: Node = { ...last, id: `node-${this.nextNode++}`, label: `Maneuver ${nodes.length + 1}`,
-      time: Math.max(flight.world.time + 20, last.time + 20), prograde: 0, radial: 0, completed: false, valid: true, reason: '' };
+      time: Math.max(flight.world.time + 20, last.time + 20), prograde: 0, radial: 0, completed: false, alarm:undefined, valid: true, reason: '' };
     nodes.push(node); this.plans.set(ship.id, nodes); this.nodes.set(ship.id, node); this.current = node;
     this.rebuildPlan(); this.refreshInputs();
   }
@@ -453,12 +466,12 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.prediction = prediction;
     const previous = this.nodes.get(ship.id);
     const node: Node = { id: previous?.id ?? `node-${this.nextNode++}`, label: previous?.label ?? 'Maneuver', shipId: ship.id, bodyId: ship.bodyId, context: flightMotion(flight),
-      seed: structuredClone(ship.state), sample, time, prograde: previous?.prograde ?? 0, radial: previous?.radial ?? 0, valid: true, reason: '' };
+      seed: structuredClone(ship.state), sample, time, prograde: previous?.prograde ?? 0, radial: previous?.radial ?? 0, alarm:previous?.alarm, valid: true, reason: '' };
     this.abortExecution(); this.stopWarp(); this.nodes.set(ship.id, node); this.current = node;
     const existing = this.plans.get(ship.id);
     this.plans.set(ship.id, existing?.length ? existing.map(value => value === previous ? node : value) : [node]);
     if (!previous || !this.waiting(node)) { this.anchors.delete(ship.id); this.needsReview.delete(ship.id); }
-    this.rebuildPlan(); this.preview.invalidate();
+    this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate();
     this.refreshInputs(); this.lastUi = -Infinity; this.window.open();
     this.event('maneuver-node', { time, ship: ship.id });
     return true;
@@ -468,23 +481,56 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (!node || (!node.valid && !this.services.plans) || node.completed || !this.prograde.validity.valid || !this.radial.validity.valid) return;
     const prograde = this.prograde.valueAsNumber, radial = this.radial.valueAsNumber;
     if (!Number.isFinite(prograde) || !Number.isFinite(radial)) return;
-    this.abortExecution(); this.stopWarp(); node.prograde = prograde; node.radial = radial; this.rebuildPlan(); this.preview.invalidate(); this.lastUi = -Infinity;
+    this.abortExecution(); this.stopWarp(); node.prograde = prograde; node.radial = radial; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.lastUi = -Infinity;
   }
   private moveTime(time: number): boolean {
     const node = this.current, flight = this.options.flight();
     if (!node || (!node.valid && !this.services.plans) || node.completed || this.execution || !Number.isFinite(time) || (!this.services.plans && !this.inPrediction(time, flight))) return false;
     const sample = this.evaluate(node.seed, flight, time); if (!sample) return false;
-    this.stopWarp(); node.time = time; node.sample = sample; this.rebuildPlan(); this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity;
+    this.stopWarp(); node.time = time; node.sample = sample; this.rebuildPlan(); this.alarmControls?.touch(node); this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity;
     return true;
   }
   private refreshInputs(): void {
     this.refreshPlanList();
+    this.alarmControls?.updateUi(this.current,!!this.execution);
     this.prograde.value = String(this.current?.prograde ?? 0); this.radial.value = String(this.current?.radial ?? 0);
     this.timing.value = this.current ? Math.max(0, this.current.time - this.options.flight().world.time).toFixed(1) : '';
   }
+  private alarmDeadline(node:Node):number {
+    const flight=this.options.flight(),ship=flight.world.ship(node.shipId);if(!ship)return NaN;
+    const context=flight.world.contextFor(ship),delta=maneuverDelta(node.sample,node.prograde,node.radial);
+    const magnitude=Math.hypot(delta.x,delta.y),half=context.vehicle.acceleration>0?magnitude/context.vehicle.acceleration/2:0;
+    const angle=magnitude>0?Math.abs(dm.normalizeAngle(dm.atan2(delta.y,delta.x)-ship.state.heading)):0;
+    const alignment=context.vehicle.turnRate>0?angle/context.vehicle.turnRate:0;
+    return node.time-half-Math.max((node.alarm??DEFAULT_NODE_ALARM).leadSeconds,alignment+1);
+  }
+  private collectAlarms():readonly AlarmCandidate[] {
+    const flight=this.options.flight(),world=flight.world;this.alarmCandidates.length=0;
+    if(world!==this.world)return this.alarmCandidates;
+    for(const [id,nodes] of this.plans){
+      const root=nodes.find(node=>!node.completed),ship=world.ship(id);
+      if(!root?.valid||this.needsReview.has(id)||!ship||ship.state.status!=='flying'||ship.controls.engine
+        ||(id===flight.ship?.id&&this.alarmManualEngine)||ship.bodyId!==root.bodyId||world.contextFor(ship)!==root.context||ship.state.time<root.seed.time
+        ||this.execution?.node===root&&this.execution.burn.phase==='burning')continue;
+      const body=world.body(root.bodyId),surface=world.surface(body.id),context=root.context;
+      const coast=root.seed.coast??context.keplerCoast(root.seed,body,surface);
+      const solved=coast&&context.coastAt(coast,ship.state.time,body,surface,{cache:false});
+      if(!solved?.ok||Math.hypot(solved.state.position.x-ship.state.position.x,solved.state.position.y-ship.state.position.y)>Math.max(.05,Math.hypot(ship.state.position.x,ship.state.position.y)*1e-8)
+        ||Math.hypot(solved.state.velocity.x-ship.state.velocity.x,solved.state.velocity.y-ship.state.velocity.y)>.05)continue;
+      let candidate=this.alarmCandidatePool.get(root);
+      if(!candidate){candidate={node:root,deadline:0};this.alarmCandidatePool.set(root,candidate);}
+      candidate.deadline=this.alarmDeadline(root);this.alarmCandidates.push(candidate);
+    }
+    return this.alarmCandidates;
+  }
   /** Run before advancing the host so warped frames cannot cross the approach window. */
   beforeAdvance(controls: Controls): void {
-    if (this.disposed) return;
+    if(this.disposed)return;
+    this.beforeManeuverAdvance(controls);
+    // A manual ignition on this frame changes the root even before physics runs.
+    this.alarmManualEngine=controls.engine;this.alarmControls?.beforeAdvance();
+  }
+  private beforeManeuverAdvance(controls: Controls): void {
     const flight = this.options.flight();
     if (this.execution && (controls.engine || controls.turn || controls.throttle || flight.paused || flight.inputBlocked
       || !flight.enabled || !flight.canWarp || flight.ship?.id !== this.execution.node.shipId || flight.world !== this.world
@@ -500,7 +546,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     const lead = this.execution ? Math.max(10, this.alignmentSeconds(flight, dv) + 1) : 10;
     const remaining = node.time - flight.world.time - lead - (Number.isFinite(duration) ? duration / 2 : 0);
     const factor = maneuverWarpFactor(remaining, this.services.motion.clampWarpFactor);
-    if (factor === 1) { this.stopWarp(); if (!this.execution) this.options.notify('Approaching the maneuver node. Warp stopped; engine remains under your control.'); return; }
+    if (factor === 1) { this.stopWarp(); if (!this.execution && (!this.alarmControls || this.current?.alarm?.enabled===false)) this.options.notify('Approaching the maneuver node. Warp stopped; engine remains under your control.'); return; }
     if (factor !== flight.requestedWarp) this.options.setWarp(factor);
     this.lastRequest = this.options.flight().requestedWarp;
     if (this.options.flight().warp === 1) { this.abortExecution('Autonomous burn aborted: warp unavailable.'); this.stopWarp(); }
@@ -560,6 +606,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     write(this.status, node ? node.valid ? `T${node.time >= flight.world.time ? '−' : '+'}${Math.abs(node.time - flight.world.time).toFixed(1)} s · ${this.execution ? this.warping ? 'auto warp' : `${this.execution.burn.phase} · ${this.execution.burn.remaining.toFixed(2)} m/s remaining` : this.warping ? 'coasting to node' : dv > 0 ? 'manual burn' : 'coast node'}` : node.reason
       : 'No node. Choose a point on your coast trajectory.');
     this.refreshPlanList();
+    this.alarmControls?.updateUi(node,!!this.execution);
     write(this.summary, node ? `${this.waiting(node) ? 'Earlier node pending · preview only · ' : ''}Δv ${dv.toFixed(1)} m/s · ${flightMotion(flight).vehicle.acceleration > 0 ? `Full-throttle burn ≈ ${plan?.burnSeconds.toFixed(1) ?? '0'} s` : 'No engine thrust available'}` : '');
     write(this.result, node?.valid && dv > 0 ? `${this.preview.text(node.seed)} · impulsive estimate` : '');
     if (this.document.activeElement !== this.timing) this.timing.value = node ? Math.max(0, node.time-flight.world.time).toFixed(1) : '';

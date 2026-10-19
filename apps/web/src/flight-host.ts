@@ -1,4 +1,4 @@
-import { TRANSFERS, FLIGHT_PLANS } from '../../../packages/game-api/src/index';
+import { ORBITAL_ALARMS, TRANSFERS, FLIGHT_PLANS } from '../../../packages/game-api/src/index';
 import { rememberWorldArtwork, worldArtwork } from './world-presentation';
 import { createJoinPacks } from '../../../modules/session-join/src/index';
 import { encodeJoinPack } from '../../../packages/game-library/src/join-pack';
@@ -303,8 +303,8 @@ const maneuver = new ManeuverPlanner(workspace, {
   releaseControls: shipId => {
     if (session === local && local.world.record(shipId)?.ownerId === local.playerId) local.host.setControls(local.playerId, shipId, IDLE);
   },
-  setWarp, notify, event: (kind, detail) => profiler.event(kind, detail),
-}, { plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
+  setWarp, setPaused: value => setPaused(value, 'Burn alarm'), notify, event: (kind, detail) => profiler.event(kind, detail),
+}, { alarms: hostFeatures.lock.providers[ORBITAL_ALARMS.slot] ? hostFeatures.providedService(ORBITAL_ALARMS) : undefined, plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
   transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined });
 function notify(text: string, seconds = 5): void {
   notice = { text, until: performance.now() + seconds * 1000 };

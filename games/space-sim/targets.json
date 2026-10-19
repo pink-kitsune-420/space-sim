@@ -89,6 +89,10 @@
           {
             "id": "spacelab.transfer-planner",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.orbital-alarms",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -112,7 +116,8 @@
           "hud.throttle": "spacelab.throttle-hud",
           "ui.player-view": "spacelab.player-view",
           "flight.plans": "spacelab.flight-plans",
-          "flight.transfers": "spacelab.transfer-planner"
+          "flight.transfers": "spacelab.transfer-planner",
+          "flight.alarms": "spacelab.orbital-alarms"
         },
         "capabilities": {},
         "settings": {}
@@ -223,6 +228,10 @@
           {
             "id": "spacelab.transfer-planner",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.orbital-alarms",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -246,7 +255,8 @@
           "hud.throttle": "spacelab.throttle-hud",
           "ui.player-view": "spacelab.player-view",
           "flight.plans": "spacelab.flight-plans",
-          "flight.transfers": "spacelab.transfer-planner"
+          "flight.transfers": "spacelab.transfer-planner",
+          "flight.alarms": "spacelab.orbital-alarms"
         },
         "capabilities": {},
         "settings": {}

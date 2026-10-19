@@ -8,6 +8,7 @@ export interface FlightPlanNode {
  readonly id: string; readonly label: string; readonly bodyId: string;
  readonly time: number; readonly prograde: number; readonly radial: number;
  readonly completed?: boolean;
+ readonly alarm?: import('./alarms').NodeAlarmSettings;
 }
 export interface FlightPlan {
  readonly shipId: string; readonly universeId: string; readonly systemId: string;

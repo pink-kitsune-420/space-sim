@@ -18,3 +18,7 @@
 .maneuver-map button[data-map-control="node"]::before { inset: -7px; }
 .maneuver-map button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 .maneuver-map button[data-map-control="node"] { font-size: 24px; width: 30px; height: 30px; }
+
+.maneuver-window [data-alarm="enabled"], .maneuver-window [data-alarm="pause"] { width: auto; margin: 0 6px 0 0; }
+.maneuver-window [id$="-alarms"] label { display: block; margin: 8px 0; font-size: 12px; }
+.maneuver-window [data-alarm="lead"] { width: 100px; margin-left: 8px; }

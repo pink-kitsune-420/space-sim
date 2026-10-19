@@ -1,0 +1,12 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Simulation-time orbital alarms",
+  "summary": "Simulation-time orbital alarms",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "flight.alarms@1.0.0 creates isolated pure clocks without world, UI, engine, audio or execution dependencies. Sync a complete bounded event set against simulation seconds and a stable session object. Due events are delivered once, including high-warp crossings and missed events. Persist handled state with the owning feature. A changed deadline/time/kind defines a new event; deletion removes it, session changes or rewind clear memory. Results use a borrowed buffer valid until the next sync. The host chooses warp/pause/notification policy. Dispose clocks you create."
+    }
+  ]
+}

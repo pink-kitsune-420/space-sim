@@ -1,0 +1,12 @@
+{
+  "id": "burns",
+  "audience": "players",
+  "title": "Burn reminders",
+  "summary": "Burn reminders",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "Open Maneuver, choose a node, then open Burn alarm. Reminders default to enabled with 10 seconds of preparation and no pause. Set the lead time or enable Pause at reminder. The deadline includes half the estimated full-throttle burn and enough time to align. Reminders use simulation time, stop warp and notify; they never ignite or arm engines. They work while flying manually and with the window closed. Review later nodes after each burn. Edited plans with changed flight conditions require review before reminders resume. Saved plans retain settings and already delivered reminders. Automatic execution still needs a separate explicit Execute action for every node."
+    }
+  ]
+}

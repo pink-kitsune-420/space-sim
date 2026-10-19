@@ -53,6 +53,11 @@
         "name": "flight.transfers",
         "version": "^1.0.0",
         "optional": true
+      },
+      {
+        "name": "flight.alarms",
+        "version": "^1.0.0",
+        "optional": true
       }
     ],
     "slots": [
@@ -87,7 +92,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "b10700a7726a2743ec8187c57d7392c79f86054a7bfa1c9b39ed60447c6f4c73"
+    "inputsDigest": "de10b9c71f5dbbc9ce0813288fafd390c716ba912f60cae5bb5799946968d38f"
   },
   "compatibility": {
     "deterministic": true,
@@ -106,9 +111,15 @@
   "inputs": [
     {
       "path": "assets/editor.css",
-      "sha256": "edebeae71a306b0f7e2ea4e479da73b37e2be2b4c537c33bb7f39a8498d29e5c",
+      "sha256": "57b892925b738985f7592df36221bb8d4a42847888b9ee01466038de886dde03",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
+    },
+    {
+      "path": "game-api/alarms.ts",
+      "sha256": "2023de7f1322fe85208b2701c7e07bfbb1b145da621a7f08d1a030217977eca7",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
     },
     {
       "path": "game-api/audio.ts",
@@ -148,7 +159,7 @@
     },
     {
       "path": "game-api/flight-plans.ts",
-      "sha256": "92c467823e5355feb2724ad1db82337b331ec4903d7dafbe4b91818f87ce731b",
+      "sha256": "73ec6cbdc392e0338cdd331bbbd6daccb7a6de95be08df47cf8f821b06cf441b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -172,7 +183,7 @@
     },
     {
       "path": "game-api/index.ts",
-      "sha256": "6db7df87a81ae87737000498b412214c8b06677e32fc259f466a20a5b5d08411",
+      "sha256": "6f559f0da08a3911b5ba040ddaf3c0205c9176de62f3fd5b417fbdc1249a055f",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -190,7 +201,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "f14378b9ed1ed3ce1489af8f3cfefd2e9841d7d984093bbd429259d056a924d0",
+      "sha256": "a14c42aaa050f2becb5010516f034703ec3ebdba3796d7600b129a814a1462ab",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -423,14 +434,20 @@
       "attribution": "Space Sim first-party public API"
     },
     {
+      "path": "src/alarms.ts",
+      "sha256": "c57437e2c7073af1220aac1ec55018ee9de15066b3f2c138773fda609a854cf7",
+      "license": "MIT",
+      "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
+    },
+    {
       "path": "src/editor.ts",
-      "sha256": "8899bf468c499683cc3d590852b9a6b28bb4c3f6766af585826f171411a27f23",
+      "sha256": "0074daf6a7a1a8c670e569fb2e4f93fd1bc1aa5b1f8933e6aeacf1ee2fd26d55",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },
     {
       "path": "src/index.ts",
-      "sha256": "26a96938685c652fa4b8c7e1a7db687b726b3c1fc9c387b8eda232b327ee97b2",
+      "sha256": "0285ad132de79681c9f641f5f207a5a70ef3992ff048a3d171aec82d247e1474",
       "license": "MIT",
       "attribution": "Space Sim first-party maneuver candidate editor, command routing and original window content. Licensed under MIT.\n"
     },

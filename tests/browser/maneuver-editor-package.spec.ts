@@ -8,7 +8,7 @@ let directory:string,hostSource:string;
 let bundles:{manifest:unknown;source:string;assets:[string,string][]}[];
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'portable-maneuver-editor-'));bundles=[];
- for(const name of ['ui-windows','flight-prediction','flight-plans','transfer-planner','maneuver-burn','maneuver-display','maneuver-editor']){
+ for(const name of ['ui-windows','flight-prediction','flight-plans','orbital-alarms','transfer-planner','maneuver-burn','maneuver-display','maneuver-editor']){
   const source=join(directory,name);await cp(resolve('modules',name),source,{recursive:true});const built=await buildPortableModule(join(source,'module.json'),join(directory,`${name}.spacemod`),{typecheck:false,shippedBuild:true});
   bundles.push({manifest:built.descriptor.manifest,source:built.codeV2!.source,assets:[...built.descriptor.assets.map(asset=>asset.path),...built.descriptor.guides].map(path=>[path,new TextDecoder().decode(built.files.get(path)!)])});
  }
@@ -16,7 +16,7 @@ test.beforeAll(async()=>{
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
-async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false){
+async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false,alarms=false){
  await page.goto('about:blank');await page.setContent('<main style="position:relative;width:800px;height:600px"></main>');await page.addScriptTag({content:hostSource});
  await page.evaluate(({bundles,noEngine})=>{
   const api=(window as any).ManeuverHost,registry=new api.ModuleRegistryV2(api.engineModuleServices());
@@ -29,7 +29,7 @@ async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false)
   if(prediction.pathEnd!=='closed')throw new Error('Fixture needs complete prediction');
   const origin=world.system.getBodyPosition(body.id,world.time),camera={center:origin,rotation:0,scale:.3},sample=prediction.path[Math.floor(prediction.path.length/3)],pointer=api.createProjector(camera,800,600)({x:origin.x+sample.position.x,y:origin.y+sample.position.y});
   (window as any).fixture={api,registry,candidate,factory,prediction,world,current,body,origin,camera,pointer,profile,root:document.querySelector('main')};
- },{bundles:bundles.filter(bundle=>(sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans')&&(transfers||(bundle.manifest as any).id!=='spacelab.transfer-planner')),noEngine});
+ },{bundles:bundles.filter(bundle=>(alarms||(bundle.manifest as any).id!=='spacelab.orbital-alarms')&&(sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans')&&(transfers||(bundle.manifest as any).id!=='spacelab.transfer-planner')),noEngine});
 }
 
 test('coasting to a zero-delta node needs no engine and issues only warp commands',async({page})=>{
@@ -145,4 +145,81 @@ test('using a generated transfer preserves another ship’s plan and disposed se
   planner.dispose();use.click();const stalePlans=planner.savePlans().plans.length;f.candidate.dispose();world.dispose();return{preserved,count,nodes,stalePlans,commands};
  });
  expect(result).toEqual({preserved:true,count:2,nodes:2,stalePlans:0,commands:[]});
+});
+
+test('manual burn alarms clamp warp, include finite-burn preparation and notify once with engines untouched',async({page})=>{
+ await setup(page,false,true,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:string[]=[],notices:string[]=[];let warp=10000,paused=false;
+  const planner=factory.create({container:root,id:'manual-alarm',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused,inputBlocked:false,warp,requestedWarp:warp}),setWarp(value:number){warp=value;commands.push('warp');},setPaused(value:boolean){paused=value;commands.push('pause');},setThrottle(){throw Error('Reminder must not touch throttle');},releaseControls(){throw Error('Reminder must not arm');},notify(text:string){notices.push(text);}});
+  const idle={turn:0,throttle:0,engine:false};planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const input=(id:string,value:string,type='input')=>{const el=document.getElementById(`manual-alarm-${id}`) as HTMLInputElement;el.value=value;el.dispatchEvent(new Event(type));};input('time','30','change');input('prograde','250');
+  const centre=planner.savePlans().plans[0].nodes[0].time,half=planner.snapshot().burnSeconds/2;
+  planner.beforeAdvance(idle);const clamped=warp<10000&&warp>1;
+  while(world.time<centre-half-10+.02)world.step();const at=world.time;planner.beforeAdvance(idle);planner.beforeAdvance(idle);
+  const fired=planner.savePlans(),firstNotices=notices.filter(n=>n.startsWith('Burn alarm')).length,noEngine=!current().controls.engine&&!planner.executing,stopped=warp===1;
+  // Loading must retain delivery state and require review without a replay.
+  planner.loadPlans(JSON.parse(JSON.stringify(fired)));planner.beforeAdvance(idle);(document.getElementById('manual-alarm-review') as HTMLButtonElement).click();planner.beforeAdvance(idle);
+  const replay=notices.filter(n=>n.startsWith('Burn alarm')).length!==firstNotices;
+  // A future edit explicitly rearms; enabling pause then deleting removes its event.
+  input('time','30','change');planner.update(.1,prediction,false);
+  const pause=root.querySelector('[data-alarm="pause"]') as HTMLInputElement;pause.checked=true;pause.dispatchEvent(new Event('change'));
+  const rearms=planner.savePlans().plans[0].nodes[0].alarm.notified===false;
+  (document.getElementById('manual-alarm-delete') as HTMLButtonElement).click();warp=10000;planner.beforeAdvance(idle);const deleted=warp===10000;
+  planner.dispose();f.candidate.dispose();world.dispose();return{clamped,stopped,at,centre,half,firstNotices,noEngine,replay,rearms,deleted,paused,commands,settings:fired.plans[0].nodes[0].alarm};
+ });
+ expect(result).toMatchObject({clamped:true,stopped:true,firstNotices:1,noEngine:true,replay:false,rearms:true,deleted:true,paused:false,settings:{enabled:true,leadSeconds:10,pause:false,notified:true}});expect(result.at).toBeLessThan(result.centre-result.half-9.9);expect(result.commands.every(c=>c==='warp')).toBe(true);
+});
+
+test('burn alarms pause optionally and ignore changed flight or unresolved later nodes',async({page})=>{
+ await setup(page,false,true,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,notices:string[]=[];let warp=1000,paused=false;
+  const planner=factory.create({container:root,id:'pause-alarm',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused,inputBlocked:false,warp,requestedWarp:warp}),setWarp(value:number){warp=value;},setPaused(value:boolean){paused=value;},setThrottle(){throw Error('No engine commands');},releaseControls(){throw Error('No engine commands');},notify(text:string){notices.push(text);}});
+  const idle={turn:0,throttle:0,engine:false},input=(id:string,value:string)=>{const el=document.getElementById(`pause-alarm-${id}`) as HTMLInputElement;el.value=value;el.dispatchEvent(new Event('change'));};
+  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);input('time','30');
+  const lead=root.querySelector('[data-alarm="lead"]') as HTMLInputElement;lead.value='5';lead.dispatchEvent(new Event('change'));
+  const pause=root.querySelector('[data-alarm="pause"]') as HTMLInputElement;pause.checked=true;pause.dispatchEvent(new Event('change'));
+  const centre=planner.savePlans().plans[0].nodes[0].time;while(world.time<centre-4.98)world.step();planner.beforeAdvance(idle);
+  const pauseWorked=paused&&warp===1,one=notices.filter(n=>n.startsWith('Burn alarm')).length,settings=planner.savePlans().plans[0].nodes[0].alarm;
+  // Before UI validation, a same-time flight replacement must suppress stale reminders.
+  paused=false;input('time','30');const moved=current();world.put({...moved,state:{...moved.state,velocity:{x:moved.state.velocity.x+1,y:moved.state.velocity.y}}});warp=1000;planner.beforeAdvance(idle);const staleSuppressed=warp===1000;
+  planner.update(.1,prediction,false);const invalid=planner.diagnostics()?.valid===false;
+  (document.getElementById('pause-alarm-review') as HTMLButtonElement).click();(document.getElementById('pause-alarm-add') as HTMLButtonElement).click();planner.update(.1,prediction,false);
+  const archive=planner.savePlans(),second=archive.plans[0].nodes[1];second.alarm={enabled:true,leadSeconds:86400,pause:true};planner.loadPlans(archive);(document.getElementById('pause-alarm-review') as HTMLButtonElement).click();paused=false;warp=1000;planner.beforeAdvance(idle);
+  const laterSuppressed=!paused&&notices.filter(n=>n.startsWith('Burn alarm')).length===one;
+  planner.dispose();f.candidate.dispose();world.dispose();return{pauseWorked,one,settings,staleSuppressed,invalid,laterSuppressed};
+ });
+ expect(result).toMatchObject({pauseWorked:true,one:1,settings:{enabled:true,leadSeconds:5,pause:true,notified:true},staleSuppressed:true,invalid:true,laterSuppressed:true});
+});
+
+test('a default alarm during explicitly armed execution exits warp without silently cancelling that choice',async({page})=>{
+ await setup(page,false,true,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f;let warp=1;const notices:string[]=[];
+  const planner=factory.create({container:root,id:'armed-alarm',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp,requestedWarp:warp}),setWarp(value:number){warp=value;},setThrottle(){},releaseControls(){},notify(text:string){notices.push(text);}});
+  const idle={turn:0,throttle:0,engine:false};planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const time=document.getElementById('armed-alarm-time') as HTMLInputElement;time.value='30';time.dispatchEvent(new Event('change'));const dv=document.getElementById('armed-alarm-prograde') as HTMLInputElement;dv.value='1';dv.dispatchEvent(new Event('input'));planner.update(.1,prediction,false);
+  (document.getElementById('armed-alarm-execute') as HTMLButtonElement).click();const armed=planner.executing;planner.beforeAdvance(idle);
+  while(world.time<20.02)world.step();planner.beforeAdvance(idle);planner.beforeAdvance(idle);
+  const retained=planner.executing,stopped=warp===1,alarm=notices.some(n=>n.startsWith('Burn alarm'));planner.cancel();planner.dispose();f.candidate.dispose();world.dispose();return{armed,retained,stopped,alarm};
+ });
+ expect(result).toEqual({armed:true,retained:true,stopped:true,alarm:true});
+});
+
+test('a longer manual alarm lead ends planner warp without restarting it, even without shared plans or engines',async({page})=>{
+ await setup(page,true,false,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,notices:string[]=[],warps:number[]=[];let warp=1;
+  const planner=factory.create({container:root,id:'early-alarm',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp,requestedWarp:warp}),setWarp(value:number){warp=value;warps.push(value);},setThrottle(){throw Error('No engine commands');},releaseControls(){throw Error('No execution');},notify(text:string){notices.push(text);}});
+  const idle={turn:0,throttle:0,engine:false};planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  const time=document.getElementById('early-alarm-time') as HTMLInputElement;time.value='25';time.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);
+  if(Math.abs(planner.diagnostics().time-world.time-25)>1e-7)throw Error('Fixture node must be within the single-orbit preview');
+  const lead=root.querySelector('[data-alarm="lead"]') as HTMLInputElement;lead.value='20';lead.dispatchEvent(new Event('change'));
+  (document.getElementById('early-alarm-warp') as HTMLButtonElement).click();planner.beforeAdvance(idle);const started=planner.diagnostics().warping;
+  while(world.time<4.8)world.step();planner.beforeAdvance(idle);const stopped=!planner.diagnostics().warping&&warp===1,count=warps.length;planner.beforeAdvance(idle);const noRestart=warps.length===count&&warp===1;
+  while(world.time<5.03)world.step();planner.beforeAdvance(idle);const alarm=notices.filter(n=>n.startsWith('Burn alarm')).length,noEngine=!current().controls.engine&&!planner.executing;
+  planner.dispose();f.candidate.dispose();world.dispose();return{started,stopped,noRestart,alarm,noEngine};
+ });
+ expect(result).toEqual({started:true,stopped:true,noRestart:true,alarm:1,noEngine:true});
 });

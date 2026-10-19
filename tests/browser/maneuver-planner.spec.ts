@@ -290,3 +290,19 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await expect(page.locator('#maneuver-transfer-status')).toContainText('Moon and planet transfers are not yet implemented');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
+
+test('a manual node alarm stops ordinary warp and optionally pauses without arming engines',async({page},info)=>{
+ await setup(page);await place(page);
+ await page.locator('#maneuver-time').fill('30');await page.locator('#maneuver-time').press('Tab');await page.locator('#maneuver-prograde').fill('10');
+ await page.locator('#maneuver-alarms summary').click();
+ await page.locator('#maneuver-alarms [data-alarm="lead"]').fill('20');await page.locator('#maneuver-alarms [data-alarm="lead"]').press('Tab');
+ await page.locator('#maneuver-alarms [data-alarm="pause"]').check();
+ const before=await debug(page);await page.locator('#pause').click();
+ // Ordinary player warp, without Warp to node or Execute burn.
+ await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ await expect(page.locator('#pause')).toHaveText('Resume',{timeout:20000});
+ await expect(page.locator('#maneuver-alarms [data-alarm="status"]')).toHaveText('Reminder delivered.');
+ const after=await debug(page);expect(after.time).toBeGreaterThan(before.time);expect(after.time).toBeLessThan(after.maneuver.time-19);
+ expect(after.maneuver.execution).toBeNull();expect(after.engine).toBe(false);expect(after.throttle).toBe(before.throttle);await expect(page.locator('#warp-factor')).toHaveText('1×');
+ await page.screenshot({path:info.outputPath('manual-burn-alarm.png')});
+});

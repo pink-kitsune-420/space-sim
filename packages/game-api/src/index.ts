@@ -55,3 +55,5 @@ export * from './planet-designer';
 export * from './vehicles';
 export * from './flight-plans';
 export * from './transfers';
+
+export * from './alarms';
