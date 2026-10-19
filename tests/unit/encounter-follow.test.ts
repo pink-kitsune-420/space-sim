@@ -71,11 +71,17 @@ it('retimes and validates a feasible capture at the actual encounter without wri
   expect(Math.abs(captured.periapsis-body.radius-700)).toBeLessThan(20);expect(Math.abs(captured.apoapsis!-body.radius-700)).toBeLessThan(20);
  }finally{world.dispose();}
 });
-it('refuses an unreachable target orbit or missing older arrival goal instead of reusing stale delta-v',()=>{
+it('requires an older arrival goal and proposes an inert correction when a single capture cannot reach it',()=>{
  const world=new World(DEFAULT_UNIVERSE);
  try{
   const id=atEncounter(world),node={id:'arrival',label:'Arrival',bodyId:'moon',time:1,prograde:1,radial:0};
   expect(arrival(world,id,node).reason).toContain('older node');
-  expect(arrival(world,id,{...node,targetOrbit:{periapsisAltitude:1,apoapsisAltitude:1}}).reason).toContain('correction maneuver');
+  const before=JSON.stringify(saveWorld(world)),goal={periapsisAltitude:100,apoapsisAltitude:100},result=arrival(world,id,{...node,targetOrbit:goal});
+  expect(result.reason).toBe('');expect(result.correction?.label).toContain('Correction');expect(result.node?.targetOrbit).toEqual(goal);
+  expect(result.correction!.time).toBeGreaterThan(world.time);expect(result.node!.time).toBeGreaterThan(result.correction!.time);
+  expect(JSON.stringify(saveWorld(world))).toBe(before);
+  // An already outbound miss cannot use this inbound correction proposal.
+  const ship=world.ship(id)!;world.put({...ship,state:{...ship.state,velocity:{x:-ship.state.velocity.x,y:-ship.state.velocity.y},coast:undefined}});
+  const missed=arrival(world,id,{...node,targetOrbit:goal});expect(missed.node).toBeUndefined();expect(missed.reason).toContain('no safe correction');
  }finally{world.dispose();}
 });

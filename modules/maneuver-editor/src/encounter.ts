@@ -25,12 +25,12 @@ export function* findEncounter(world:WorldRead,shipId:string,bodyId:string,plann
  }finally{trace.return('open');}
 }
 
-export interface ArrivalResult {readonly node?:FlightPlanNode;readonly reason:string}
+export interface ArrivalResult {readonly node?:FlightPlanNode;readonly correction?:FlightPlanNode;readonly reason:string}
 /** Rebuild a single capture at a reachable radius of the original target conic.
  * Formulae only propose; shared coast, finite thrust and a full capture revolution
  * must all validate before this detached job returns executable intent. */
-export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory):Generator<void,ArrivalResult>{
- const ship=world.ship(shipId),goal=node.targetOrbit;
+export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory,seed?:State):Generator<void,ArrivalResult>{
+ const actual=world.ship(shipId),ship=actual&&seed?{...actual,state:seed}:actual,goal=node.targetOrbit;
  if(!ship||ship.bodyId!==node.bodyId)return {reason:'Wait for the verified destination encounter before reviewing capture.'};
  if(!goal)return {reason:'Encounter reached. This older node has no target orbit; choose an arrival orbit and replan before burning.'};
  const context=world.contextFor(ship).cloneForPrediction(),body=world.body(ship.bodyId),surface=world.surface(body.id),top=surface?.bounds.maxRadius??body.radius;
@@ -38,8 +38,10 @@ export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNod
   const rp=body.radius+goal.periapsisAltitude,ra=body.radius+goal.apoapsisAltitude;
   if(!(rp>top+.01&&ra>=rp&&(!body.parentId||ra<body.soi.exitMetres)))return {reason:'The target orbit does not clear the terrain and destination SOI.'};
   const incoming=context.services.orbits.elements(ship.state,body.mu),atRadius=Math.max(rp,incoming.periapsis),slack=Math.max(.001,rp*1e-9);
-  if(incoming.radial||atRadius>ra+slack||incoming.apoapsis!==null&&incoming.apoapsis<rp-slack)
+  if(incoming.radial||atRadius>ra+slack||incoming.apoapsis!==null&&incoming.apoapsis<rp-slack){
+   if(!seed&&!incoming.radial&&atRadius>ra+slack)return yield* prepareCorrection(world,shipId,node,burns);
    return {reason:'The actual approach cannot reach the chosen orbit with one arrival burn. A correction maneuver is needed.'};
+  }
   const radius=Math.min(ra,atRadius),coast=context.keplerCoast(ship.state,body,surface);
   if(!coast)return {reason:'The arrival needs ordinary surface or numerical flight. Review before burning.'};
   const semimajor=(rp+ra)/2,h=Math.sqrt(body.mu*2*rp*ra/(rp+ra)),direction=Math.sign(incoming.angularMomentum)||1;
@@ -94,4 +96,61 @@ export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNod
   return {reason:lastReason};
  }catch(error){return {reason:error instanceof Error?error.message:'Arrival review failed.'};}
  finally{context.dispose();}
+}
+
+/** Propose an extra inbound maneuver, never permission to execute it. Lower the
+ * incoming periapsis into the target conic, then qualify the actual finite burn
+ * and the resulting capture through the same detached arrival validator. */
+function* prepareCorrection(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory):Generator<void,ArrivalResult>{
+ const ship=world.ship(shipId)!,body=world.body(ship.bodyId),surface=world.surface(body.id),context=world.contextFor(ship).cloneForPrediction(),
+  top=surface?.bounds.maxRadius??body.radius,rp=body.radius+node.targetOrbit!.periapsisAltitude,
+  reason='The actual approach needs a correction, but no safe correction and capture were found. Replan the arrival.';
+ try{
+  const coast=context.keplerCoast(ship.state,body,surface);if(!coast)return {reason};
+  // Leave full steering time and a short review window before this new burn.
+  if(!(context.vehicle.turnRate>0&&context.vehicle.acceleration>0))return {reason};
+  const incoming=context.services.orbits.elements(ship.state,body.mu),toPeriapsis=context.services.orbits.timeToRadius(ship.state,body.mu,incoming.periapsis,'inbound',incoming),
+   lead=Math.max(Math.PI/context.vehicle.turnRate+5,Math.min(30,(toPeriapsis??0)*.25)),time=ship.state.time+lead,
+   solved=context.coastAt(coast,time,body,surface,{cache:false});
+  if(!solved.ok)return {reason};
+  const p=solved.state.position,v=solved.state.velocity,r=dm.hypot(p.x,p.y),speed=dm.hypot(v.x,v.y),
+   vr=(p.x*v.x+p.y*v.y)/r,vt=(p.x*v.y-p.y*v.x)/r;
+  if(!(vr<0&&r>rp&&speed>0))return {reason};
+  for(const fraction of [.02,.1,.3]){
+   const periapsis=rp-(rp-top)*fraction;
+   // Keep radial velocity; solve vis-viva and h=r*v_t for the new periapsis.
+   const tangent=Math.sign(vt)*Math.sqrt((vr*vr+2*body.mu*(1/periapsis-1/r))/(r*r/(periapsis*periapsis)-1)),
+    change=tangent-vt,delta={x:-p.y/r*change,y:p.x/r*change},magnitude=dm.hypot(delta.x,delta.y),half=magnitude/context.vehicle.acceleration/2,
+    angle=Math.abs(dm.normalizeAngle(dm.atan2(delta.y,delta.x)-ship.state.heading)),
+    turn=angle<1e-7?0:angle/context.vehicle.turnRate,det=(v.x*p.y-v.y*p.x)/(speed*r);
+   if(!(magnitude>1e-8&&Number.isFinite(half)&&lead>turn+half+1&&Math.abs(det)>1e-8))continue;
+   const prograde=(delta.x*p.y/r-delta.y*p.x/r)/det,radial=(v.x/speed*delta.y-v.y/speed*delta.x)/det,
+    ignition=Math.ceil((time-half-.005)/.01-1e-8)*.01;
+   if(!Number.isFinite(prograde+radial)||Math.max(Math.abs(prograde),Math.abs(radial))>1e6)continue;
+   const forecast=world.predictShip(shipId,false,{state:ship.state,bodyId:body.id,until:ignition});
+   let last:GhostSample|undefined,ready=false;
+   try{
+    for(let i=0;i<16384;i++){
+     const step=forecast.next();if(step.done){ready=step.value==='horizon'&&!!last&&Math.abs(last.time-ignition)<1e-7;break;}
+     last=step.value;if(last.bodyId!==body.id)break;yield;
+    }
+   }finally{forecast.return('open');}
+   if(!ready||!last)continue;
+   const local=flightSampleInFrame(last,body.id,world.system);
+   let state:State={...ship.state,time:ignition,position:local.position,velocity:local.velocity,coast:undefined,heading:dm.atan2(delta.y,delta.x)},safe=true,finished=false;
+   const burn=burns.create(time,delta,context.vehicle);
+   try{
+    for(let i=0;i<20000;i++){
+     const command=burn.next(state);if(burn.phase==='complete'){finished=true;break;}
+     if(command.throttle!==undefined)state={...state,throttle:command.throttle};
+     state=context.advance(state,command.controls,.01,body,surface);
+     if(state.status!=='flying'||state.contact||state.water!==undefined||state.waterEntry||world.system.checkSOI(state,body.id,state.time).switched){safe=false;break;}yield;
+    }
+   }finally{burn.dispose();}
+   if(!safe||!finished)continue;
+   const capture=yield* prepareArrival(world,shipId,node,burns,state);
+   if(capture.node)return {...capture,correction:{id:'arrival-correction',label:`Correction · ${body.name}`,bodyId:body.id,time,prograde,radial}};
+  }
+  return {reason};
+ }finally{context.dispose();}
 }

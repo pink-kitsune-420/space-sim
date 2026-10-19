@@ -166,6 +166,16 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         this.completeCoastNodes(shipId,options.flight().world.time);
         this.invalidateLater(node);this.selectNextNode(shipId);this.preview.invalidate();this.lastUi=-Infinity;
       },
+      proposed:(shipId,correction,arrival)=>{
+        const nodes=this.plans.get(shipId),node=nodes?.find(value=>value.id===arrival.id);if(!nodes||!node)throw Error('The arrival node was removed.');
+        Object.assign(node,arrival);
+        let id:string;do{id=`node-${this.nextNode++}`;}while(nodes.some(value=>value.id===id));
+        const proposed:Node={...node,...correction,id,completed:false,alarm:undefined,targetOrbit:undefined,valid:false,reason:'Correction prepared. Review and execute separately.'};
+        nodes.splice(nodes.indexOf(node),0,proposed);this.nodes.set(shipId,proposed);
+        if(this.options.flight().ship?.id===shipId){this.current=proposed;this.rebuildPlan(true);this.refreshInputs();}
+        else this.needsReview.add(shipId);
+        this.preview.invalidate();this.lastUi=-Infinity;
+      },
       retargeted:(shipId,intent)=>{
         const node=this.plans.get(shipId)?.find(value=>value.id===intent.id);if(!node)throw Error('The arrival node was removed.');
         node.time=intent.time;node.prograde=intent.prograde;node.radial=intent.radial;node.targetOrbit=intent.targetOrbit;node.alarm=intent.alarm;
@@ -207,7 +217,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
           <div class="maneuver-adjust"><button id="${this.id}-export" type="button">Export plan</button><button id="${this.id}-import" type="button">Load plan</button><input id="${this.id}-file" type="file" accept=".json,application/json" hidden></div>
         </details>
         <div class="maneuver-adjust maneuver-secondary"><button id="${this.id}-clear" type="button">Clear Δv</button><button id="${this.id}-delete" type="button">Delete node</button></div>
-        <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. Burn arrows show the delta-v direction at departure and arrival. Durations at the current throttle setting assume constant thrust and alignment; automatic execution still uses full throttle with a final-tick cutoff. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; Continue to next burn reviews actual flight and authorizes just the next burn. Automatically execute this ship’s plan opts this ship into the remaining prepared burns. Background plans follow the current clock and never increase warp; multiplayer warp changes require host approval. Imported or saved plans never arm themselves.</p></details>
+        <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. Burn arrows show the delta-v direction at departure and arrival. Durations at the current throttle setting assume constant thrust and alignment; automatic execution still uses full throttle with a final-tick cutoff. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; Continue to next burn reviews actual flight and authorizes just the next burn. If arrival needs an extra correction, a validated correction and updated capture are offered for review at 1×; execute the correction separately, then Continue to next burn. Automatically execute this ship’s plan opts this ship into the remaining prepared burns. Background plans follow the current clock and never increase warp; multiplayer warp changes require host approval. Imported or saved plans never arm themselves.</p></details>
       </section>`;
     const get = <T extends HTMLElement>(id: string): T => this.window.body.querySelector<T>(`#${this.id}-${id}`)!;
     if (services.transfers) this.transferControls = new TransferControls(get('transfers'), `${this.id}-transfer`, services.transfers, options, plan => {
@@ -416,7 +426,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private canFollowArrival(flight:Flight,node:Node):boolean {
     const ship=flight.ship;
     return !this.disposed&&!!this.fleet&&!this.execution&&!this.waiting(node)&&!node.completed&&!!ship&&ship.id===node.shipId
-      &&(ship.bodyId!==node.bodyId||!!node.targetOrbit&&node.time<=ship.state.time)&&flight.world.hasBody(node.bodyId)&&ship.state.status==='flying'&&!ship.fault
+      &&(ship.bodyId!==node.bodyId||!!node.targetOrbit&&(node.time<=ship.state.time||(this.plans.get(ship.id)??[]).some(value=>value.completed&&value.bodyId!==node.bodyId)))&&flight.world.hasBody(node.bodyId)&&ship.state.status==='flying'&&!ship.fault
       &&flight.enabled&&flight.canWarp&&(!flight.paused||!!this.options.setPaused)&&!flight.inputBlocked
       &&!!this.options.fleet?.owns(node.shipId)&&flight.world===this.world;
   }

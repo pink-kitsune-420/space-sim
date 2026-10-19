@@ -608,3 +608,30 @@ test('a reverse-direction Moon transfer raises the orbit instead of wasting delt
  expect(Number(await page.locator('#maneuver-prograde').inputValue())).toBeGreaterThan(0);
  expect((await debug(page)).tick).toBe(7100);expect((await debug(page)).engine).toBe(false);
 });
+
+for(const destinationId of ['moon','velum'] as const)test(`${destinationId} arrival offers a correction at SOI entry and captures only after explicit execution`,async({page})=>{
+ await setup(page);const before=await debug(page);await openPanel(page,'fleet');
+ const downloading=page.waitForEvent('download');await page.locator('#save-world').click();
+ const kit=await packageContracts(),saved=await kit.decodeUniverseSave(new Uint8Array(await readFile(await(await downloading).path()))) as any;
+ const system=saved.universe.systems.find((s:any)=>s.id===saved.systemId),destination=system.bodies.find((b:any)=>b.id===destinationId),parent=system.bodies.find((b:any)=>b.id===destination.parentId),
+  radius=destination.ephemeris.radius,phase=destination.ephemeris.phaseRadiansAtEpoch,omega=(destination.ephemeris.direction??1)*Math.sqrt(parent.mu/(radius*radius*radius)),
+  position=[radius*Math.cos(phase)-(destinationId==='moon'?3000:15000),radius*Math.sin(phase)+(destinationId==='moon'?600:3000)],
+  velocity=[-Math.sin(phase)*omega*radius+80,Math.cos(phase)*omega*radius],altitude=destinationId==='moon'?100:512;
+ saved.tick=0;saved.time=0;saved.paused=true;
+ const ship=saved.ships[0];Object.assign(ship,{bodyId:parent.id,position,velocity,heading:0,throttle:0,status:'flying',revision:0});delete ship.coast;
+ saved.flightPlans={format:'space-sim-flight-plans/1',plans:[{shipId:ship.id,universeId:saved.universe.id,systemId:saved.systemId,fingerprint:before.fingerprint,motionIdentity:before.modelIdentity,bodyId:parent.id,epoch:{time:0,position:{x:position[0],y:position[1]},velocity:{x:velocity[0],y:velocity[1]},heading:0},nodes:[
+  {id:'departure',label:'Departure',bodyId:parent.id,time:0,prograde:50,radial:0,completed:true},
+  {id:'arrival',label:`Arrival · ${destination.name}`,bodyId:destinationId,time:.1,prograde:-60,radial:6,targetOrbit:{periapsisAltitude:altitude,apoapsisAltitude:altitude}}]}]};
+ await page.locator('#world-file').setInputFiles({name:'arrival-correction.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
+ await expect(page.locator('#flight-message')).toContainText('Universe loaded');await closePanel(page);
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-node-tab').click();await page.locator('#maneuver-continue').click();
+ await expect(page.locator('#maneuver-nodes option:checked')).toContainText(`Correction · ${destination.name}`,{timeout:20000});
+ const offered=await debug(page);expect(offered.body).toBe(destinationId);expect(offered.engine).toBe(false);expect(offered.maneuver.automatic).toBe(false);expect(offered.maneuver.nodes).toBe(3);
+ await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+ await expect(page.locator('#maneuver-execute')).toBeEnabled();await page.locator('#maneuver-execute').click();
+ await expect.poll(async()=>{const d=await debug(page);return d.maneuver?.selected==='arrival'&&!d.engine&&!d.maneuver.execution;},{timeout:20000}).toBe(true);
+ expect((await debug(page)).maneuver.completed).toBe(false);await page.locator('#maneuver-continue').click();
+ await expect(page.locator('#maneuver-status')).toContainText('Plan complete',{timeout:30000});
+ const done=await debug(page);expect(done.body).toBe(destinationId);expect(done.engine).toBe(false);expect(done.orbit.kind).toBe('elliptic');expect(done.maneuver.nodes).toBe(3);
+ await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#throttle-value')).toHaveText('0%');
+});

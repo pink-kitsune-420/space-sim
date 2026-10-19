@@ -15,6 +15,7 @@ interface Run {
  job?: Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>;
  encounterJob?:Generator<void,EncounterResult>;
  arrivalJob?:Generator<void,ArrivalResult>;
+ proposal?:{correction:FlightPlanNode;arrival:FlightPlanNode};
  encounter?:{time:number;bodyId:string};
  awaitingBody?:string;
  enteredBody?:string;
@@ -29,6 +30,7 @@ export interface FleetPlans {
  completed(shipId: string, nodeId: string): void;
  invalidated?(shipId: string, reason: string): void;
  retargeted?(shipId:string,node:FlightPlanNode):void;
+ proposed?(shipId:string,correction:FlightPlanNode,arrival:FlightPlanNode):void;
 }
 /** Per-ship, explicitly armed, session-local execution. The host alone supplies owned
  * ship controls. Forecasts are disposable; only the session advances the real clock.
@@ -70,15 +72,15 @@ export class FleetPlansRunner {
   if (reason) this.options.notify(`${run.world.ship(shipId)?.name ?? 'Ship'}: ${reason}`);
  }
  manualWarp(): void {
-  for(const run of this.runs.values())if(run.autoWarp||run.burn||run.status==='Waiting for host warp approval'||run.status==='Approaching burn at real time')this.fail(run,'Manual warp took over.');
+  for(const run of this.runs.values())if(run.autoWarp||run.burn||run.proposal||run.status==='Waiting for host warp approval'||run.status==='Approaching burn at real time')this.fail(run,'Manual warp took over.');
  }
  clear(): void { for (const id of this.runs.keys()) this.stop(id); }
  dispose(): void { if (this.disposed) return; this.clear(); this.disposed = true; }
  private fail(run: Run, reason: string): void { this.store.invalidated?.(run.shipId,reason); this.stop(run.shipId, `${reason} Automatic plan stopped; review before rearming.`); }
- private review(run: Run): void {
+ private review(run: Run,arrivalPrepared=false): void {
   const ship = run.world.ship(run.shipId)!;
   run.job?.return([]);run.encounterJob?.return({reason:'replaced'});run.arrivalJob?.return({reason:'replaced'});
-  run.job=undefined;run.encounterJob=undefined;run.arrivalJob=undefined;run.encounter=undefined;run.plan=undefined;
+  run.job=undefined;run.encounterJob=undefined;run.arrivalJob=undefined;run.encounter=undefined;run.plan=undefined;run.proposal=undefined;
   run.node = undefined; run.expected = undefined;run.prepareAt=undefined;run.preparing=false;
   for(const node of this.store.nodes(ship.id)){
    if(node.completed)continue;
@@ -91,7 +93,7 @@ export class FleetPlansRunner {
    run.awaitingBody=next.bodyId;run.encounterJob=findEncounter(run.world,ship.id,next.bodyId,next.time);
    run.status=`Checking the actual coast to ${run.world.body(next.bodyId).name}…`;return;
   }
-  if(next&&(run.awaitingBody===ship.bodyId||next.targetOrbit&&next.time<=ship.state.time)){
+  if(!arrivalPrepared&&next&&(run.awaitingBody===ship.bodyId||next.targetOrbit&&(next.time<=ship.state.time||this.store.nodes(ship.id).some(node=>node.completed&&node.bodyId!==next.bodyId)))){
    run.enteredBody=ship.bodyId;
    if(next.targetOrbit){run.arrivalJob=prepareArrival(run.world,ship.id,next,this.burns);run.status='Reviewing capture against the actual encounter…';return;}
    run.awaitingBody=undefined;
@@ -145,8 +147,13 @@ export class FleetPlansRunner {
     run.arrivalJob=undefined;
     if(!result.value.node){this.fail(run,result.value.reason);break;}
     const actual=run.world.ship(run.shipId);if(!actual||!this.followsCoast(run,actual)){this.fail(run,'Trajectory changed while reviewing the arrival.');break;}
+    if(result.value.correction){
+     if(!this.store.proposed||this.store.nodes(run.shipId).length>=16){this.fail(run,'A correction maneuver is needed. This plan cannot accept another node; review and replan the arrival.');break;}
+     run.proposal={correction:result.value.correction,arrival:result.value.node};run.preparing=true;
+     run.status='Correction prepared · stopping warp for review';break;
+    }
     if(!this.store.retargeted){this.fail(run,'Encounter reached. This host cannot update the arrival; review and replan before burning.');break;}
-    this.store.retargeted(run.shipId,result.value.node);run.awaitingBody=undefined;this.review(run);continue;
+    this.store.retargeted(run.shipId,result.value.node);run.awaitingBody=undefined;this.review(run,true);continue;
    }
    const result=run.job!.next();if(result.done){this.reviewed(run,result.value);break;}
   }
@@ -165,6 +172,18 @@ export class FleetPlansRunner {
    }
    try {
     if(run.enteredBody&&ship.bodyId!==run.enteredBody){this.fail(run,'The ship left the destination before capture. Replan the arrival.');continue;}
+    if(run.proposal){
+     if(!this.followsCoast(run,ship)){this.fail(run,'Trajectory changed while preparing the correction.');continue;}
+     if(flight.requestedWarp!==1){
+      if(!run.autoWarp){
+       const allowed=this.options.fleet.authorizeWarp?.(run.shipId,{id:run.permissionId,mode:'slowdown'});
+       if(allowed)this.options.setWarp(1);else if(!this.options.fleet.authorizeWarp)this.options.fleet.requestSlowWarp(run.shipId);
+      }
+      continue;
+     }
+     const {correction,arrival}=run.proposal;this.stop(run.shipId);this.store.proposed!(run.shipId,correction,arrival);
+     this.options.notify(`${ship.name}: Arrival needs a correction. Correction and capture prepared for review; execute the correction separately.`);continue;
+    }
     if (run.burn) {
      if (ship.bodyId !== run.bodyId) { this.fail(run, 'Body changed during a finite burn.'); continue; }
      if (flight.requestedWarp !== 1 && !(run.autoWarp&&this.alignmentWarp>1&&run.burn.phase==='aligning'&&run.burn.start-ship.state.time>.45)) this.options.fleet.requestSlowWarp(run.shipId);

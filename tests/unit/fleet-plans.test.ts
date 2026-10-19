@@ -20,10 +20,11 @@ function fixture(plans=createFlightPlans(),alignmentWarp=4) {
  const options:ManeuverPlannerOptions={container:null!,flight:()=>({world,ship:world.ship(ships[2]!),body:world.body('planet'),enabled:true,canWarp:true,paused,inputBlocked:false,warp:session.warp,requestedWarp:session.requestedWarp}),
   setWarp:factor=>session.setWarp(factor),setThrottle:(id,value)=>session.setThrottle(id,value),releaseControls:id=>session.host.setControls(session.playerId,id,IDLE),notify,
   fleet:{owns:id=>world.record(id)?.ownerId===session.playerId,setControls:(id,controls)=>session.host.setControls(session.playerId,id,controls),requestSlowWarp:request}};
- const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed,
+ const proposed=vi.fn((id:string,correction:FlightPlanNode,arrival:FlightPlanNode)=>{const nodes=intents.get(id)!;intents.set(id,nodes.flatMap(node=>node.id===arrival.id?[correction,arrival]:[node]));});
+ const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed,proposed,
   retargeted:(id,node)=>intents.set(id,intents.get(id)!.map(value=>value.id===node.id?node:value))},clampWarpFactor,alignmentWarp);
  const tick=()=>{runner.beforeAdvance(IDLE);session.update(.01,ships[2],IDLE,undefined,()=>runner.step());};
- return {world,session,ships,intents,completed,runner,tick,options,notify,request,pause:()=>{paused=true;}};
+ return {world,session,ships,intents,completed,proposed,runner,tick,options,notify,request,pause:()=>{paused=true;}};
 }
 it('flies two independent unselected ships through both finite burns on the same real clock',()=>{
  const f=fixture();
@@ -270,5 +271,54 @@ it('finishes detached review between frames without commanding the clock or igni
   expect(f.runner.reviewing).toBe(false);expect(writes).not.toHaveBeenCalled();expect(f.world.tick).toBe(0);expect(f.world.ship(id)!.controls.engine).toBe(false);
   f.runner.beforeAdvance(IDLE);expect(f.session.requestedWarp).toBeGreaterThan(1);
   f.runner.stop(id);const count=writes.mock.calls.length;f.runner.advanceReviews();expect(writes.mock.calls.length).toBe(count);expect(f.runner.active).toBe(false);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it.each([1/60,.2,2])('offers a generated unreachable Moon arrival correction without arming it, then captures after explicit execution with %s-second frames',frameSeconds=>{
+ const f=fixture(),id=f.ships[0]!,planet=f.world.body('planet'),r=planet.radius+40.2;
+ try{
+  f.world.restoreClock(7100,71);for(const ship of f.world.ships())f.world.put({...ship,state:{...ship.state,time:71,coast:undefined}});
+  f.session.teleport(id,planet.id,{x:0,y:r},{x:Math.sqrt(planet.mu/r),y:0});
+  const job=createTransferPlanner(createFlightPlans()).search(f.world,{shipId:id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
+  for(let i=0;i<1000000;i++){
+   const step=job.next();if(step.value.options?.length){f.intents.set(id,[...step.value.options[0]!.plan.nodes]);break;}if(step.done)break;
+  }
+  job.return({options:[],reason:'adopted'});expect(f.intents.get(id)![1]!.bodyId).toBe('moon');
+  f.options.fleet!.authorizeWarp=()=>true;
+  const frame=()=>{f.runner.beforeAdvance(IDLE);f.session.update(frameSeconds,f.ships[2],IDLE,undefined,()=>f.runner.step());};
+  f.runner.arm(id,false,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+  expect(f.proposed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(1);expect(f.completed).toHaveBeenCalledTimes(1);
+  expect(f.runner.active).toBe(false);expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(1);
+  const correction=f.intents.get(id)![1]!,arrival=f.intents.get(id)![2]!;
+  expect(correction.label).toContain('Correction');expect(arrival.targetOrbit).toEqual({periapsisAltitude:100,apoapsisAltitude:100});
+  for(let i=0;i<3;i++)frame();expect(f.completed).toHaveBeenCalledTimes(1);expect(f.world.ship(id)!.controls.engine).toBe(false);
+  // Each next burn still needs explicit permission; proposing changes never arms.
+  f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(2);expect(f.intents.get(id)![2]!.completed).not.toBe(true);
+  f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(3);expect(f.proposed).toHaveBeenCalledTimes(1);
+  const ship=f.world.ship(id)!,moon=f.world.body('moon'),orbit=f.world.contextFor(ship).services.orbits.elements(ship.state,moon.mu);
+  expect(ship.bodyId).toBe('moon');expect(ship.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(1);
+  expect(Math.abs(orbit.periapsis-moon.radius-100)).toBeLessThan(20);expect(Math.abs(orbit.apoapsis!-moon.radius-100)).toBeLessThan(20);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it.each(['approve','manual'] as const)('waits for host approval before stopping warp for a correction proposal; %s retains clock authority',action=>{
+ const f=fixture(),id=f.ships[0]!,writes=vi.fn((factor:number)=>f.session.setWarp(factor));let approved=false;
+ try{
+  f.session.teleport(id,'moon',{x:-2800,y:600},{x:80,y:0});
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+   {id:'arrival',label:'Arrival',bodyId:'moon',time:100,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:100,apoapsisAltitude:100}}]);
+  f.options.fleet!.authorizeWarp=()=>approved;f.options.setWarp=writes;f.session.setWarp(100);f.runner.arm(id,true,true);
+  f.runner.beforeAdvance(IDLE);for(let i=0;i<100&&f.runner.reviewing;i++)f.runner.advanceReviews();
+  f.runner.beforeAdvance(IDLE);expect(writes).not.toHaveBeenCalled();expect(f.proposed).not.toHaveBeenCalled();expect(f.world.time).toBe(0);
+  if(action==='manual'){
+   f.runner.manualWarp();f.session.setWarp(2);for(let i=0;i<3;i++)f.runner.beforeAdvance(IDLE);
+   expect(f.runner.active).toBe(false);expect(f.proposed).not.toHaveBeenCalled();expect(f.session.requestedWarp).toBe(2);expect(writes).not.toHaveBeenCalled();
+  }else{
+   approved=true;for(let i=0;i<3;i++)f.runner.beforeAdvance(IDLE);
+   expect(writes).toHaveBeenCalledWith(1);expect(f.proposed).toHaveBeenCalledTimes(1);expect(f.runner.active).toBe(false);expect(f.session.requestedWarp).toBe(1);
+  }
+  expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.completed).not.toHaveBeenCalled();
  }finally{f.runner.dispose();f.session.dispose();}
 });
