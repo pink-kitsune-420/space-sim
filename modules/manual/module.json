@@ -38,7 +38,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "42f797367e8f056763c0ead588d726220d82c2b978a6338acec98a7119c44b21"
+    "inputsDigest": "f0d16a87a571481cf9c4a9353df3d452acf20cde3ec77d43d43bd9baaa635515"
   },
   "compatibility": {
     "deterministic": true,
@@ -99,7 +99,7 @@
     },
     {
       "path": "game-api/flight-input.ts",
-      "sha256": "00e21e35cad32ba7d0337bc44f55cd10b8dd3dcd8751701c92cc63a7a7dd02f2",
+      "sha256": "f0f34c9f245a7ad8a2acabeda94561e926e90ab8ad2407db8d88d5b5208de13b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -147,7 +147,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "3684fd947496705f255f3b2efa6226f4ac7925b15a84b2e77224df5dc500b04d",
+      "sha256": "56d56be3e96e5364fb1a184b2e2687b1b49f5d343b20e8c8e31e940e2dcedc01",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },

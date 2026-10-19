@@ -161,7 +161,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         this.completeCoastNodes(shipId,options.flight().world.time);
         this.invalidateLater(node);this.selectNextNode(shipId);this.preview.invalidate();this.lastUi=-Infinity;
       },
-    });
+    },services.motion.clampWarpFactor);
     try {
     this.window = services.windows.create({ id: this.id, title: 'Maneuver', icon: 'trajectory', pinned: true,
       container: options.container,
@@ -179,7 +179,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
           <button id="${this.id}-continue" class="maneuver-review" type="button" hidden>Continue to next burn</button>
           <button id="${this.id}-review" class="maneuver-review" type="button" hidden>Review remaining nodes</button>
         </div>
-        <div id="${this.id}-fleet" ${this.fleet?'':'hidden'}><label><input id="${this.id}-automatic" type="checkbox"> Automatically execute this ship’s plan</label><output id="${this.id}-automatic-status" class="maneuver-help"></output></div>
+        <div id="${this.id}-fleet" ${this.fleet?'':'hidden'}><label><input id="${this.id}-automatic" type="checkbox"> Automatically execute this ship’s plan</label><output id="${this.id}-automatic-status" class="maneuver-help"></output><label ${options.fleet?.authorizeWarp?'':'hidden'}><input id="${this.id}-auto-warp" type="checkbox"> Auto-warp between burns</label></div>
         <output class="maneuver-summary" id="${this.id}-summary"></output>
         <output class="maneuver-status" id="${this.id}-status" aria-live="polite">Click the coast line to place a burn, or choose Transfer window.</output>
         <div class="maneuver-fields">
@@ -253,6 +253,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       this.fleet?.stop(ship.id);this.current=next;this.nodes.set(ship.id,next);this.continueShip=ship.id;
       this.rebuildPlan(true);this.refreshInputs();
     });
+    on(get('auto-warp'),'change',()=>{const ship=options.flight().ship;if(ship)this.fleet?.setAutoWarp(ship.id,get<HTMLInputElement>('auto-warp').checked);this.lastUi=-Infinity;});
     on(get('automatic'),'change',()=>{
       const ship=options.flight().ship;if(!ship||!this.fleet)return;
       if(get<HTMLInputElement>('automatic').checked){this.abortExecution();this.stopWarp();this.cancelPlanEvaluation();this.fleet.arm(ship.id);}
@@ -521,7 +522,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       if(this.current?.bodyId===ship.bodyId)this.execute();
       else if(this.fleet){
         if(this.options.flight().paused)this.options.setPaused?.(false);
-        this.fleet.arm(ship.id,true);
+        this.fleet.arm(ship.id,true,true);
       }
     }else if(review)this.options.notify('Plan reviewed against current flight. Execute each node separately, or enable this ship’s automatic plan.');
     this.preview.invalidate();this.lastUi=-Infinity;
@@ -808,6 +809,8 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.refreshPlanList();
     this.alarmControls?.updateUi(node,locked);
     const automatic=this.window.body.querySelector<HTMLInputElement>(`#${this.id}-automatic`)!;
+    const autoWarp=this.window.body.querySelector<HTMLInputElement>(`#${this.id}-auto-warp`)!;
+    autoWarp.checked=!!flight.ship&&!!this.fleet?.autoWarp(flight.ship.id);autoWarp.disabled=!armed||!!this.execution||!!flight.ship&&!!this.fleet?.isBurning(flight.ship.id);
     automatic.checked=armed;automatic.disabled=!flight.ship||!flight.canWarp||!this.options.fleet?.owns(flight.ship.id)||!this.plans.get(flight.ship.id)?.some(value=>!value.completed)||!!this.execution;
     write(this.window.body.querySelector<HTMLElement>(`#${this.id}-automatic-status`)!,armed?this.fleet!.status(node!.shipId):'Off by default. Follows the clock; multiplayer warp changes need host approval.');
     const continueButton=this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-continue`)!;

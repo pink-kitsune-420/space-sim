@@ -35,7 +35,7 @@ it('matches independently calculated Hohmann cost while its faster option arrive
  const efficient=result.options.find(o=>o.kind==='efficient')!,faster=result.options.find(o=>o.kind==='faster')!;
  const a=(640+target)/2,expected=Math.sqrt(body.mu*(2/640-1/a))-Math.sqrt(body.mu/640)+Math.sqrt(body.mu/target)-Math.sqrt(body.mu*(2/target-1/a));
  expect(efficient.deltaV).toBeCloseTo(expected,7);expect(efficient.travelSeconds).toBeCloseTo(Math.PI*Math.sqrt(a*a*a/body.mu),7);
- expect(faster.waitSeconds+faster.travelSeconds).toBeLessThan((efficient.waitSeconds+efficient.travelSeconds)*.98);
+ expect(faster.waitSeconds+faster.travelSeconds).toBeLessThan((efficient.waitSeconds+efficient.travelSeconds)*.9);
  expect(Math.abs(faster.plan.nodes[1]!.radial)).toBeGreaterThan(.1);expect(faster.deltaV).toBeGreaterThan(efficient.deltaV);world.dispose();
 });
 it('solves the existing nonorthogonal radial/prograde basis without losing arrival delta-v',()=>{
@@ -48,6 +48,7 @@ it('explains unsuitable or unsupported conditions and distinguishes weak-engine 
  for(const changed of [{...request,destinationId:'nix'},{...request,periapsisAltitude:-1},{...request,apoapsisAltitude:Infinity}])expect(search(world,changed).result.options).toEqual([]);
  expect(search(world,{...request,destinationId:'nix'}).result.reason).toContain('direct parent/child');
  const weak=setup(640,1,1),result=search(weak.world,{...request,shipId:weak.ship.id}).result;expect(result.options[0]!.warning).toContain('Long finite burn');weak.world.dispose();
+ const tooWeak=setup(640,1,.05),blocked=search(tooWeak.world,{...request,shipId:tooWeak.ship.id}).result;expect(blocked.options).toEqual([]);expect(blocked.reason).toContain('finite burns');tooWeak.world.dispose();
  const noEngine=setup(640,1,0);expect(search(noEngine.world,request).result.reason).toContain('no engine');noEngine.world.dispose();
  world.setControls(ship.id,{turn:0,throttle:0,engine:true});expect(search(world,request).result.reason).toContain('Stop thrust');world.dispose();
 });
@@ -78,3 +79,22 @@ it('handles actual packaged services without UI or view-prediction modules and e
   }
  }finally{await rm(dir,{recursive:true,force:true});}
 },60000);
+
+it('omits excessive shortcuts for the reported 512 m to 513 m circular orbit change',()=>{
+ const {world,ship,body}=setup(1024);
+ try {
+  const {result}=search(world,{shipId:ship.id,destinationId:body.id,periapsisAltitude:513,apoapsisAltitude:513});
+  expect(result.options.map(option=>option.kind)).toEqual(['efficient']);expect(result.options[0]!.deltaV).toBeLessThan(.1);
+ }finally{world.dispose();}
+});
+it('limits faster alternatives to twice the cost and at least ten percent earlier total arrival',()=>{
+ const {world,ship,body}=setup();
+ try {
+  for(const altitude of [129,256,512,768,1536]){
+   const {result}=search(world,{shipId:ship.id,destinationId:body.id,periapsisAltitude:altitude,apoapsisAltitude:altitude});
+   const efficient=result.options[0]!,faster=result.options[1];expect(efficient).toBeDefined();
+   if(faster){expect(faster.deltaV).toBeLessThanOrEqual(efficient.deltaV*2);expect(faster.waitSeconds+faster.travelSeconds).toBeLessThanOrEqual((efficient.waitSeconds+efficient.travelSeconds)*.9);}
+   for(const option of result.options)if(option.departureDeltaV>1e-8&&option.arrivalDeltaV>1e-8)expect((option.departureBurnSeconds+option.arrivalBurnSeconds)/2).toBeLessThan(option.travelSeconds);
+  }
+ }finally{world.dispose();}
+});

@@ -27,8 +27,9 @@ export function bindFlightInput(options: FlightKeyboardOptions): Disposable {
 
   listen(window, 'keydown', event => {
     const target=event.target as HTMLElement;
-    if(target.closest('input, select, textarea, [contenteditable]'))return;
-    if(target.closest('button, summary, a')&&!options.controlShortcut?.(options.binding?.(event)??event.code))return;
+    const toggle=target.closest('input[type="checkbox"], input[type="radio"]');
+    if(target.closest('input, select, textarea, [contenteditable]')&&!toggle)return;
+    if((toggle||target.closest('button, summary, a'))&&!options.controlShortcut?.(options.binding?.(event)??event.code))return;
     // A modifier can turn an already-held flight key into a shortcut. Release the
     // old intent immediately; only a new bare-key press may restore it.
     if (options.binding && /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(event.code)) {

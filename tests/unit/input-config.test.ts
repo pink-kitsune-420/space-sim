@@ -307,13 +307,13 @@ describe('bindFlightInput lifecycle events', () => {
     vi.stubGlobal('window',target);vi.stubGlobal('document',{...target,querySelectorAll:()=>[]});
     const shortcut=vi.fn(),binding=bindFlightInput({keys:new Set(),pointers:new Map(),paused:()=>false,shortcut,command:()=>false,autoPause(){},visibility(){},controlShortcut:code=>code==='Period'});
     const down=(code:string,tag:string)=>{
-      const event={code,repeat:false,target:{closest:(selector:string)=>selector.split(',').map(value=>value.trim()).includes(tag)?{}:null},preventDefault(){}} as unknown as KeyboardEvent;
+      const event={code,repeat:false,target:{closest:(selector:string)=>selector.split(',').map(value=>value.trim()).some(value=>value===tag||value==='input'&&tag.startsWith('input['))?{}:null},preventDefault(){}} as unknown as KeyboardEvent;
       for(const fn of handlers.keydown??[])fn(event);
     };
-    for(const tag of ['button','summary','a'])down('Period',tag);
-    expect(shortcut).toHaveBeenCalledTimes(3);
+    for(const tag of ['button','summary','a','input[type="checkbox"]','input[type="radio"]'])down('Period',tag);
+    expect(shortcut).toHaveBeenCalledTimes(5);
     for(const tag of ['input','select','textarea','[contenteditable]'])down('Period',tag);
-    down('KeyR','button');expect(shortcut).toHaveBeenCalledTimes(3);binding.dispose();
+    down('KeyR','button');down('KeyR','input[type="checkbox"]');expect(shortcut).toHaveBeenCalledTimes(5);binding.dispose();
   });
 
   it('releases held steering when a modifier selects a camera shortcut, without restoring stale intent', () => {

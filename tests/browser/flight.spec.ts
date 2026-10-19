@@ -228,6 +228,10 @@ test('the coast preview traces progressively, then stays as a full orbit', async
   // tracing prefix. Any prefixes that are displayed must advance monotonically.
   expect(counts).toEqual([...counts].sort((a, b) => a - b));
   await expect(page.locator('#prediction')).toHaveText(/^Full orbit · period 28\.1 s$/);
+  // The first live step installs the coast epoch and can trigger one new pass.
+  // Wait for that transition before checking reuse of the completed orbit.
+  await expect.poll(async () => (await diagnostics(page)).dynamics).toBe('kepler');
+  await tracedOrbit(page);
   const before = await diagnostics(page);
   await page.waitForTimeout(600);
   const after = await diagnostics(page);

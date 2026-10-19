@@ -39,6 +39,9 @@ export interface ManeuverPlannerOptions {
   setControls(shipId: string, controls: Controls): void;
   /** Request 1×; false means pending/refused. Multiplayer requires host approval. */
   requestSlowWarp(shipId: string): boolean;
+  /** Optional permission query without clock writes. An auto-warp grant covers
+   * this explicitly armed plan; a slowdown grant covers one upcoming burn. */
+  authorizeWarp?(shipId: string, scope: {readonly id: string;readonly mode: 'slowdown'|'auto-warp'}): boolean;
  };
  setWarp(factor: number): void;
  /** Optional host pause command; explicitly executing a burn may resume flight.

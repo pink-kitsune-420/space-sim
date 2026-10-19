@@ -33,7 +33,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "d2de63e47f31f80d6196a14f3bac468dc78f0f2d08b41ee0115ed3a0aa4d63bf"
+    "inputsDigest": "964e130a4ebeecda3b825f0906632de1e0abb53bb3cef7c61264c56ae7207c64"
   },
   "compatibility": {
     "deterministic": true,
@@ -83,7 +83,7 @@
     },
     {
       "path": "game-api/flight-input.ts",
-      "sha256": "00e21e35cad32ba7d0337bc44f55cd10b8dd3dcd8751701c92cc63a7a7dd02f2",
+      "sha256": "f0f34c9f245a7ad8a2acabeda94561e926e90ab8ad2407db8d88d5b5208de13b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -131,7 +131,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "3684fd947496705f255f3b2efa6226f4ac7925b15a84b2e77224df5dc500b04d",
+      "sha256": "56d56be3e96e5364fb1a184b2e2687b1b49f5d343b20e8c8e31e940e2dcedc01",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -377,7 +377,7 @@
     },
     {
       "path": "src/legacy.ts",
-      "sha256": "65f99dcecf6f30f0dc61c935f9c6191e375a85e8f8ff32c7972aab0eb1d85ebd",
+      "sha256": "2d307c6d32b95710d4b73f1cd434a869e57477a65adf58aa28061f0b3da2db6d",
       "license": "MIT",
       "attribution": "Space Sim keyboard input implementation and legacy console adapter. Licensed under MIT.\n"
     }

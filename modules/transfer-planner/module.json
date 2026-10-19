@@ -39,7 +39,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "5d7b2b7c9ed36c6256785c24a134fa63712f0962ebc5de4ff1f0757689d82ea5"
+    "inputsDigest": "1d66f035a0617c1774f2bb33a1ceb614f94bbfd88f7d1256771fab41264ffd24"
   },
   "compatibility": {
     "deterministic": true,
@@ -90,7 +90,7 @@
     },
     {
       "path": "game-api/flight-input.ts",
-      "sha256": "f7f5e9a9a9970794cb377ec09632dbb95e3608a9cb1dce4b0dfe03cffb402017",
+      "sha256": "f0f34c9f245a7ad8a2acabeda94561e926e90ab8ad2407db8d88d5b5208de13b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -138,7 +138,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "5539b0e4f3b78a66b4adfb47c3a34ddab6ff405e8a12520fda10bcb5fb466f69",
+      "sha256": "56d56be3e96e5364fb1a184b2e2687b1b49f5d343b20e8c8e31e940e2dcedc01",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -216,7 +216,7 @@
     },
     {
       "path": "game-api/presentation.ts",
-      "sha256": "c22cf4c28ea0d8abc0105585f0c9b95438fa0ca172a3e587887e9c1bfba439c1",
+      "sha256": "ae69caa4201a09bec1ced52d5b1bffc313195d4c91720fa692f36c6977c0176c",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -264,7 +264,7 @@
     },
     {
       "path": "game-api/session.ts",
-      "sha256": "49ce762b273b3f4ad819fd32c3062b85bc98ee2dc00ccb8b12296929c2e3c3a3",
+      "sha256": "d8a3f99322fd65a700feee4460ef337a11a8f474acb9eadd471f84c8ec158a38",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -378,13 +378,13 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "53fe9e5b8e5d483cc3972d12cef13ad59431294f4f8a6fddedb9abba7fc1fe16",
+      "sha256": "44b7ac18f66ffd8a284c07b875d9722967b7cb3f8bb535a083dd10821c104f31",
       "license": "MIT",
       "attribution": "Space Sim first-party bounded orbital transfer planning over public selected motion and flight-plan contracts. Licensed under MIT.\n"
     },
     {
       "path": "src/interbody.ts",
-      "sha256": "f3751efe4c43039985f4b9510f35d971ed1d10235fd6162bc864c8ae53be52e9",
+      "sha256": "3cfac990d499d40b8130005c17e9bd70cb1014b55a4c148f1233274320d73302",
       "license": "MIT",
       "attribution": "Space Sim first-party bounded orbital transfer planning over public selected motion and flight-plan contracts. Licensed under MIT.\n"
     },
@@ -396,7 +396,7 @@
     },
     {
       "path": "src/math.ts",
-      "sha256": "d06be18777de66b17cc9d42c37674dec1392dffaecc05c03f33806bc1fa07b05",
+      "sha256": "6ad41a4cf30168ed19f6282d8fc2cf30aa3ae8160bdaeb3c8b9a0429e9850fdb",
       "license": "MIT",
       "attribution": "Space Sim first-party bounded orbital transfer planning over public selected motion and flight-plan contracts. Licensed under MIT.\n"
     }

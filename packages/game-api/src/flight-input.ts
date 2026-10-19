@@ -146,7 +146,7 @@ export interface FlightKeyboardOptions {
   readonly visibility: () => void;
   readonly isFlightKey?: (code: string) => boolean;
   readonly isShortcutKey?: (code: string) => boolean;
-  /** Optional safe shortcuts while a button, summary or link has focus. Text/edit
+  /** Optional safe shortcuts while a button, checkbox, radio, summary or link has focus. Text/edit
    * controls still suppress flight shortcuts. Receives the resolved binding code. */
   readonly controlShortcut?: (code: string) => boolean;
 }

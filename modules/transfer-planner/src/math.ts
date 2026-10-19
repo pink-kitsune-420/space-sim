@@ -6,9 +6,19 @@ export function transferOptions(candidates:readonly Omit<TransferOption,'kind'>[
  const available=candidates.filter(c=>c.plan.nodes[0]!.time-c.departureBurnSeconds/2>now+1)
   .sort((a,b)=>a.deltaV-b.deltaV||a.waitSeconds+a.travelSeconds-b.waitSeconds-b.travelSeconds);
  if(!available.length)return [];
- const efficient=available[0]!,faster=available.filter(c=>c.waitSeconds+c.travelSeconds<(efficient.waitSeconds+efficient.travelSeconds)*.98)
+ const efficient=available[0]!,faster=available.filter(c=>c.deltaV<=efficient.deltaV*2&&c.waitSeconds+c.travelSeconds<=(efficient.waitSeconds+efficient.travelSeconds)*.9)
   .sort((a,b)=>a.waitSeconds+a.travelSeconds-b.waitSeconds-b.travelSeconds||a.deltaV-b.deltaV)[0];
  return [{...efficient,kind:'efficient'},...(faster?[{...faster,kind:'faster' as const}]:[])];
+}
+/** Full-throttle burns are centered on their impulse times. Leave room to cut
+ * off the first, turn in inertial space, then begin the second. A zero-impulse
+ * review checkpoint needs neither ignition nor steering and may cross a burn. */
+export function burnsFit(travel:number,departure:Vec,arrival:Vec,acceleration:number,turnRate:number):boolean {
+ const first=radius(departure),second=radius(arrival);
+ if(first<=1e-8||second<=1e-8)return true;
+ const angle=Math.abs(dm.normalizeAngle(dm.atan2(arrival.y,arrival.x)-dm.atan2(departure.y,departure.x)));
+ const turn=angle<1e-7?0:turnRate>0?angle/turnRate:Infinity;
+ return (first+second)/(2*acceleration)+turn<travel;
 }
 /** Existing planner's bases are not generally orthogonal: prograde follows velocity. */
 export function deltaComponents(position:Vec,velocity:Vec,delta:Vec):{prograde:number;radial:number}|undefined {

@@ -11,6 +11,7 @@ export class TransferControls {
  private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement}[]=[];
  private readonly status:HTMLOutputElement;private readonly choices:HTMLDivElement;
  private shownOptions?:readonly TransferOption[];
+ private scheduled?:number;
  constructor(private readonly root:HTMLElement,private readonly prefix:string,private readonly service:TransferPlanner,
   private readonly options:ManeuverPlannerOptions,private readonly install:(plan:FlightPlan)=>void,private readonly signal:AbortSignal){
   root.innerHTML=`<p class="maneuver-help">Find a departure window and arrival burn. Choose the destination and the orbit you want there. Pause flight to keep departure windows available while searching.</p>
@@ -73,9 +74,10 @@ export class TransferControls {
   if(!coast){this.status.textContent='No safe analytic starting coast is available.';return;}
   this.anchor={world:flight.world,shipId:ship.id,bodyId:ship.bodyId,state,context,coast};
   this.job=this.service.search(flight.world,{shipId:ship.id,destinationId:this.destination.value,periapsisAltitude:this.low.valueAsNumber,apoapsisAltitude:this.circular.checked?this.low.valueAsNumber:this.high.valueAsNumber});
-  this.cancelButton.hidden=false;this.status.textContent='Searching bounded transfer options…';
+  this.cancelButton.hidden=false;this.status.textContent='Searching bounded transfer options…';this.schedule();
  }
  cancel(message?:string):void {
+  this.cancelScheduled();
   try{this.job?.return({options:[],reason:'cancelled'});}finally{this.job=undefined;this.cancelButton.hidden=true;this.anchor=undefined;this.shownOptions=undefined;this.choices.replaceChildren();this.cards.length=0;if(message)this.status.textContent=message;}
  }
  update():void {
@@ -90,12 +92,32 @@ export class TransferControls {
    this.refreshCards();
    if(!this.job&&this.cards.every(card=>card.button.disabled)){this.cancel('The departure preparation windows passed. Find new options.');return;}
   }
+  this.advance(1);this.schedule();
+ }
+ private cancelScheduled():void {
+  if(this.scheduled!==undefined)this.root.ownerDocument.defaultView?.clearTimeout(this.scheduled);
+  this.scheduled=undefined;
+ }
+ /** Separate 1 ms tasks use spare time between rendered frames without starving
+  * input or rendering. An 8 ms delay bounds task frequency across browser hosts;
+  * idle callbacks can defer this work for many frames during continuous flight. */
+ private schedule():void {
+  const view=this.root.ownerDocument.defaultView,job=this.job;
+  if(!job||!view||this.root.ownerDocument.hidden||this.scheduled!==undefined||this.disposed||this.signal.aborted)return;
+  this.scheduled=view.setTimeout(()=>{
+   this.scheduled=undefined;
+   if(this.job!==job||this.disposed||this.signal.aborted||this.root.ownerDocument.hidden)return;
+   this.advance(1);this.schedule();
+  },8);
+ }
+ private advance(budget:number):void {
   if(!this.job)return;
+  if(!this.options.flight().enabled||!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
   const start=performance.now();let latest:TransferProgress|undefined;
   try {
-   for(let count=0;count<128&&performance.now()-start<1;count++) {
+   for(let count=0;count<4096&&performance.now()-start<budget;count++) {
     const result=this.job.next();
-    if(result.done){this.job=undefined;this.cancelButton.hidden=true;this.show(result.value);return;}
+    if(result.done){this.job=undefined;this.cancelScheduled();this.cancelButton.hidden=true;this.show(result.value);return;}
     latest=result.value;
     if(latest.options&&latest.options!==this.shownOptions){this.shownOptions=latest.options;this.show({options:latest.options,reason:''});}
    }

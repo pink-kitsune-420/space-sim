@@ -360,9 +360,10 @@ an inaccurate burn or optimise the arrival. A stale, missed or unsupported node 
 This is off by default and applies only to that ship. It can continue while you select another ship.
 After each burn it cuts the engine and reviews the remaining intent against actual flight. Review validates intent;
 it does not correct a missed encounter or optimise a new capture burn.</p>
-<p>Background ships follow the current game clock. They never fast-forward the whole simulation.
-They may request 1× for alignment and thrust. While hosting multiplayer, approve or decline that request in the host prompt;
-a pending or refused request cannot change warp. Direct Execute and Continue are the host’s explicit commands.
+<p>By default, background ships <b>follow the current clock</b>. They request 1× only when alignment and thrust need it.
+Optionally check <b>Auto-warp between burns</b> to coast at the fastest permitted warp, slowing for every running ship’s next burn, alignment, and normal world safety limits.
+After the final burn, flight continues at 1× and automatic clock control ends. Manual warp keys and buttons take priority; they cancel conflicting automation. While hosting multiplayer, approve or decline the request in the host prompt. Approval for an approach permits its needed slowdown; auto-warp approval covers the remaining prepared burns of that armed run.
+Approval itself does not change the clock. A pending or refused request cannot change warp. Direct Execute and Continue are the host’s explicit commands.
 Remote pilots can prepare plans and fly manually; automatic control requires the authoritative host seat.</p>
 <p>Pause, hidden input, manual takeover, a missed window or changed trajectory stops an active burn and requires review.
 Resetting or repositioning a ship clears its old plan. Resetting the world clears every plan.
@@ -392,6 +393,7 @@ its single-node planning mode, without the multi-node save controls. Loaded plan
   <li>Keep <b>Destination</b> set to <b>Primus</b>. Leave <b>Circular target</b> checked and enter
     <b>768</b> for <b>Target low altitude (m)</b>.</li>
   <li>Choose <b>Find transfer windows</b>. Compare the wait before departure, travel time, total Δv and both burn durations.</li>
+  <li><b>Faster</b> is offered only when it saves at least 10% of wait plus travel and costs no more than twice the efficient plan’s Δv. Sequences without time to finish departure, turn and start arrival are excluded.</li>
   <li>Choose <b>Use plan</b> on the <b>Efficient</b> card, or the <b>Faster</b> card when offered. Expand <b>Burn estimates &amp; limits</b> for per-burn durations and uncertainty.
     This installs editable <b>Departure</b> and <b>Arrival</b> nodes; it replaces the ship’s current plan and leaves the engine off.</li>
   <li>Inspect Departure. Resume, then execute it explicitly or fly it manually. Afterward,

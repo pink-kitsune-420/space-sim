@@ -4,7 +4,7 @@ import { FLIGHT_PLANS, TRANSFERS, maneuverDelta,
 
 const MAX_SECONDS=365.25*86400;
 const FACTORS=[1,1.25,1.6,2,4,8,.9,.75,.5,.25] as const;
-import {deltaComponents,radius,tolerance} from './math';
+import {burnsFit,deltaComponents,radius,tolerance,transferOptions} from './math';
 export {deltaComponents} from './math';
 import {searchInterbody} from './interbody';
 const unsupported=(reason:string):TransferResult=>({options:[],reason});
@@ -82,6 +82,7 @@ export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
     const firstDelta=maneuverDelta(evaluated[0]!.before!,departureComponents.prograde,departureComponents.radial);
     const secondDelta=maneuverDelta(evaluated[1]!.before!,arrivalComponents.prograde,arrivalComponents.radial);
     const departureDeltaV=radius(firstDelta),arrivalDeltaV=radius(secondDelta),departureBurnSeconds=departureDeltaV/context.vehicle.acceleration,arrivalBurnSeconds=arrivalDeltaV/context.vehicle.acceleration;
+    if(!burnsFit(travel,firstDelta,secondDelta,context.vehicle.acceleration,context.vehicle.turnRate)){lastReason='No sampled transfer leaves enough time between finite burns to turn and prepare the arrival. Try a stronger engine or a different target.';continue;}
     const scale=Math.min(travel,Math.sqrt(r2*r2*r2/body.mu));
     const warning=Math.max(departureBurnSeconds,arrivalBurnSeconds)>.1*scale
      ?'Long finite burn: the impulsive arrival estimate may differ materially. Review after departure.'
@@ -89,10 +90,8 @@ export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
     candidates.push({plan,waitSeconds:departure-start.time,travelSeconds:travel,deltaV:departureDeltaV+arrivalDeltaV,departureDeltaV,arrivalDeltaV,departureBurnSeconds,arrivalBurnSeconds,warning});accepted++;
    }
    if(!candidates.length)return unsupported(lastReason);
-   candidates.sort((a,b)=>a.deltaV-b.deltaV||(a.waitSeconds+a.travelSeconds)-(b.waitSeconds+b.travelSeconds));
-   const efficient=candidates[0]!,faster=candidates.filter(c=>c.waitSeconds+c.travelSeconds<(efficient.waitSeconds+efficient.travelSeconds)*.98)
-    .sort((a,b)=>(a.waitSeconds+a.travelSeconds)-(b.waitSeconds+b.travelSeconds)||a.deltaV-b.deltaV)[0];
-   return{options:[{...efficient,kind:'efficient'},...(faster?[{...faster,kind:'faster' as const}]:[])],reason:faster?'':'No meaningfully faster validated option in this bounded search.'};
+   const options=transferOptions(candidates,world.time);
+   return{options,reason:!options.length?'The validated departure windows passed while searching. Pause flight and search again.':options.length>1?'':'No faster option saves at least 10% of wait plus travel within twice the efficient plan’s delta-v.'};
   }catch(error){return unsupported(error instanceof Error?error.message:'Transfer search failed.');}
   finally{context.dispose();}
  }});

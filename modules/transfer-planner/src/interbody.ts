@@ -1,7 +1,7 @@
 import {flightSampleInFrame,maneuverDelta,deterministicMath as dm,
  type FlightPlanService,type GhostEnd,type GhostSample,type State,type TransferOption,type TransferProgress,type TransferRequest,type TransferResult,type Vec,type WorldRead} from '@space-sim/game-api';
 import {lambert,ejection} from './lambert';
-import {deltaComponents,radius,tolerance,transferOptions} from './math';
+import {burnsFit,deltaComponents,radius,tolerance,transferOptions} from './math';
 const YEAR=365.25*86400;
 const add=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y});
 const subtract=(a:Vec,b:Vec):Vec=>({x:a.x-b.x,y:a.y-b.y});
@@ -139,13 +139,14 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
     arrivalDeltaV=radius(maneuverDelta(evaluated[1]!.before!,arrivalComponents.prograde,arrivalComponents.radial)),
     departureBurnSeconds=departureDeltaV/context.vehicle.acceleration,arrivalBurnSeconds=arrivalDeltaV/context.vehicle.acceleration,
     dynamical=Math.min(travel,Math.sqrt(rp*rp*rp/destination.mu),Math.sqrt(radius(at.state.position)**3/origin.mu));
+   if(!burnsFit(travel,maneuverDelta(evaluated[0]!.before!,departureComponents.prograde,departureComponents.radial),maneuverDelta(evaluated[1]!.before!,arrivalComponents.prograde,arrivalComponents.radial),context.vehicle.acceleration,context.vehicle.turnRate)){lastReason='No sampled transfer leaves enough time between finite burns to turn and prepare the arrival. Try a stronger engine or a different target.';continue;}
    candidates.push({plan,waitSeconds:departure-start.time,travelSeconds:travel,deltaV:departureDeltaV+arrivalDeltaV,departureDeltaV,arrivalDeltaV,departureBurnSeconds,arrivalBurnSeconds,
     warning:`${Math.max(departureBurnSeconds,arrivalBurnSeconds)>.1*dynamical?'Long finite burn: material arrival uncertainty. ':''}Impulsive patched-conic estimate. Review actual flight after departure and SOI changes; execute each burn separately.`});accepted++;
    options=transferOptions(candidates,world.time);yield progress();
   }
   if(!candidates.length)return none(lastReason);
   options=transferOptions(candidates,world.time);
-  return{options,reason:!options.length?'The validated departure windows passed while searching. Pause flight and search again.':options.length>1?'':'No meaningfully faster validated option in this bounded search.'};
+  return{options,reason:!options.length?'The validated departure windows passed while searching. Pause flight and search again.':options.length>1?'':'No faster option saves at least 10% of wait plus travel within twice the efficient plan’s delta-v.'};
  }catch(error){return none(error instanceof Error?error.message:'Interbody search failed.');}
  finally{context.dispose();}
 }

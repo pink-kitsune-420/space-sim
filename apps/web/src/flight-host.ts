@@ -312,14 +312,15 @@ const maneuver = new ManeuverPlanner(workspace, {
       if(session!==local||local.world.record(shipId)?.ownerId!==local.playerId)throw new Error('This ship is not under your authority.');
       local.host.setControls(local.playerId,shipId,controls);
     },
+    authorizeWarp: (shipId,scope) => {
+      if(session!==local||!session.canWarp)throw new Error('Only the host may approve warp changes.');
+      return !local.hosting||warpApproval.request(shipId,session.world.ship(shipId)?.name??'Ship',scope.id,scope.mode);
+    },
     requestSlowWarp: shipId => {
       if(session!==local||!session.canWarp)throw new Error('Only the host may approve warp changes.');
       if(session.requestedWarp===1)return true;
-      const world=session.world;
-      if(local.hosting)return warpApproval.request(shipId,world.ship(shipId)?.name??'Ship',()=>{
-        if(session===local&&session.world===world&&session.canWarp&&maneuver.isAutomatic(shipId))setWarp(1);
-      });
-      setWarp(1);return session.requestedWarp===1;
+      if(local.hosting&&!warpApproval.approved(shipId))return false;
+      warpApproval.consume(shipId);setWarp(1);return session.requestedWarp===1;
     },
   },
   setThrottle: (shipId, throttle) => session.setThrottle(shipId, throttle),

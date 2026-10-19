@@ -1,9 +1,13 @@
-import { deterministicMath as dm, maneuverDelta, type Controls, type EvaluatedFlightNode, type FlightPlan, type FlightPlanNode, type FlightPlanProgress, type FlightPlanService, type ManeuverBurnControl, type ManeuverBurnFactory, type ManeuverPlannerOptions, type State, type WorldRead, type ClockService } from '@space-sim/game-api';
+import { deterministicMath as dm, maneuverDelta, type Controls, type EvaluatedFlightNode, type FlightPlan, type FlightPlanNode, type FlightPlanProgress, type FlightPlanService, type ManeuverBurnControl, type ManeuverBurnFactory, type ManeuverPlannerOptions, type State, type WorldRead, type ClockService, type CoreMotion } from '@space-sim/game-api';
 
 interface Run {
  readonly shipId: string;
  readonly world: WorldRead;
  readonly once: boolean;
+ readonly permissionId: string;
+ autoWarp: boolean;
+ prepareAt?: number;
+ preparing?: boolean;
  bodyId?: string;
  root?: State;
  plan?: FlightPlan;
@@ -21,28 +25,34 @@ export interface FleetPlans {
 }
 /** Per-ship, explicitly armed, session-local execution. The host alone supplies owned
  * ship controls. Forecasts are disposable; only the session advances the real clock.
- * Background plans can request slower time and never increase the shared warp. */
+ * Follow-clock plans only slow time; explicitly enabled auto-warp plans share
+ * a clock coordinator bounded by every running ship’s preparation deadline. */
 export class FleetPlansRunner {
  private readonly runs = new Map<string, Run>();
  private disposed = false;
+ private nextPermission=1;
  constructor(private readonly options: ManeuverPlannerOptions, private readonly plans: FlightPlanService,
   private readonly burns: ManeuverBurnFactory, private readonly clock: Pick<ClockService, 'stepSeconds' | 'idle'>,
-  private readonly store: FleetPlans) {}
+  private readonly store: FleetPlans, private readonly clampWarp: CoreMotion['clampWarpFactor']) {}
  has(shipId: string): boolean { return this.runs.has(shipId); }
+ isBurning(shipId:string):boolean {return !!this.runs.get(shipId)?.burn;}
+ autoWarp(shipId:string):boolean {return this.runs.get(shipId)?.autoWarp??false;}
+ setAutoWarp(shipId:string,enabled:boolean):void {const run=this.runs.get(shipId);if(run&&!run.burn)run.autoWarp=enabled;}
  status(shipId: string): string { return this.runs.get(shipId)?.status ?? ''; }
  get active(): boolean { return this.runs.size > 0; }
  get burning(): boolean { for (const run of this.runs.values()) if (run.burn) return true; return false; }
  ownsNode(shipId: string, nodeId: string): boolean { return this.runs.has(shipId) && this.store.nodes(shipId).find(node=>!node.completed)?.id===nodeId; }
- arm(shipId: string, once = false): void {
+ arm(shipId: string, once = false, autoWarp = false): void {
   const flight = this.options.flight(), port = this.options.fleet;
   if (this.disposed || !port?.owns(shipId) || !flight.canWarp || !flight.enabled) return;
   this.stop(shipId);
   if (this.runs.size >= 64 || !this.store.nodes(shipId).some(node => !node.completed)) return;
-  this.runs.set(shipId, { shipId, world: flight.world, once, status: 'Reviewing actual flight…' });
+  this.runs.set(shipId, { shipId, world: flight.world, once, autoWarp, permissionId:`plan-${this.nextPermission++}`, status: 'Reviewing actual flight…' });
  }
  stop(shipId: string, reason?: string): void {
   const run = this.runs.get(shipId); if (!run) return;
   this.runs.delete(shipId); run.job?.return([]); run.burn?.dispose();
+  if(run.burn)this.store.invalidated?.(shipId,reason??'Burn interrupted. Review actual flight before rearming.');
   // The owner cuts thrust even if pause or another window interrupted execution.
   if(this.options.flight().world===run.world){
    this.options.releaseControls(shipId);
@@ -51,14 +61,14 @@ export class FleetPlansRunner {
   if (reason) this.options.notify(`${run.world.ship(shipId)?.name ?? 'Ship'}: ${reason}`);
  }
  manualWarp(): void {
-  for(const run of this.runs.values())if(run.burn||run.status==='Waiting for host warp approval'||run.status==='Approaching burn at real time')this.fail(run,'Manual warp took over.');
+  for(const run of this.runs.values())if(run.autoWarp||run.burn||run.status==='Waiting for host warp approval'||run.status==='Approaching burn at real time')this.fail(run,'Manual warp took over.');
  }
  clear(): void { for (const id of this.runs.keys()) this.stop(id); }
  dispose(): void { if (this.disposed) return; this.clear(); this.disposed = true; }
  private fail(run: Run, reason: string): void { this.store.invalidated?.(run.shipId,reason); this.stop(run.shipId, `${reason} Automatic plan stopped; review before rearming.`); }
  private review(run: Run): void {
   const ship = run.world.ship(run.shipId)!;
-  run.job?.return([]); run.node = undefined; run.expected = undefined;
+  run.job?.return([]); run.node = undefined; run.expected = undefined;run.prepareAt=undefined;run.preparing=false;
   for(const node of this.store.nodes(ship.id)){
    if(node.completed)continue;
    if(node.time>ship.state.time+1e-7||Math.hypot(node.prograde,node.radial)>1e-8)break;
@@ -106,7 +116,7 @@ export class FleetPlansRunner {
     }
     if (!this.runs.has(run.shipId) || !run.node) continue;
     const { intent, before } = run.node;
-    if (ship.state.time > intent.time + this.clock.stepSeconds) { this.fail(run, 'Burn window passed.'); continue; }
+    if (Math.hypot(intent.prograde,intent.radial)>1e-8&&ship.state.time > intent.time + this.clock.stepSeconds) { this.fail(run, 'Burn window passed.'); continue; }
     const context = flight.world.contextFor(ship), root = run.root!, body = flight.world.body(ship.bodyId), surface = flight.world.surface(body.id);
     const coast = root.coast ?? context.keplerCoast(root, body, surface);
     const actual = coast && context.coastAt(coast, ship.state.time, body, surface, { cache: false });
@@ -114,28 +124,62 @@ export class FleetPlansRunner {
      || Math.hypot(actual.state.velocity.x - ship.state.velocity.x, actual.state.velocity.y - ship.state.velocity.y) > .05 || ship.controls.engine) {
      this.fail(run, 'Trajectory changed.'); continue;
     }
-    // Future-body nodes remain inert until their actual SOI handoff is reviewed.
-    if (ship.bodyId !== intent.bodyId) continue;
     const delta = maneuverDelta(before!, intent.prograde, intent.radial), magnitude = Math.hypot(delta.x, delta.y);
     if (magnitude <= 1e-8) {
-     if (ship.state.time >= intent.time) this.complete(run);
+     run.prepareAt=intent.time;
+     if (ship.bodyId===intent.bodyId&&ship.state.time >= intent.time) this.complete(run);
      continue;
     }
     const angle = Math.abs(dm.normalizeAngle(dm.atan2(delta.y, delta.x) - ship.state.heading));
     const alignment = angle < 1e-7 ? 0 : context.vehicle.turnRate > 0 ? angle / context.vehicle.turnRate : Infinity;
     const start = intent.time - magnitude / context.vehicle.acceleration / 2;
     if (!Number.isFinite(alignment) || !(context.vehicle.acceleration > 0)) { this.fail(run, 'No steering or thrust available.'); continue; }
-    // Ask early enough for a host to approve. Until granted, no clock or thrust writes.
-    const remaining = start - alignment - 1 - ship.state.time;
-    if (flight.requestedWarp > 1 && remaining <= Math.max(15, flight.requestedWarp * .2)) {
-     run.status = this.options.fleet.requestSlowWarp(run.shipId) ? 'Approaching burn at real time' : 'Waiting for host warp approval';
+    run.prepareAt=start-alignment-1;
+    const remaining = run.prepareAt - ship.state.time;
+    const scope={id:run.autoWarp?run.permissionId:`node/${intent.id}`,mode:run.autoWarp?'auto-warp' as const:'slowdown' as const};
+    let allowed: boolean | undefined;
+    // Ask ahead without changing the clock. Auto-warp consent lasts for this run.
+    if(flight.requestedWarp>1&&remaining<=Math.max(15,flight.requestedWarp*2)&&this.options.fleet.authorizeWarp){
+     allowed=this.options.fleet.authorizeWarp(run.shipId,scope);
+     run.status=allowed?'Following the clock · approach approved':'Waiting for host warp approval';
+    }
+    if (!run.autoWarp && flight.requestedWarp > 1 && remaining <= Math.max(.25, flight.warp * .1 + this.clock.stepSeconds)) {
+     if(this.options.fleet.authorizeWarp){
+      allowed??=this.options.fleet.authorizeWarp(run.shipId,scope);
+      if(allowed)this.options.setWarp(1);
+     }else allowed=this.options.fleet.requestSlowWarp(run.shipId);
+     run.preparing=!!allowed;
+     run.status=allowed?'Approaching burn at real time':'Waiting for host warp approval';
      continue;
     }
-    if (remaining > .01) continue;
+    if (remaining > .01 || ship.bodyId!==intent.bodyId || flight.requestedWarp!==1) continue;
     if (start - ship.state.time < alignment - this.clock.stepSeconds) { this.fail(run, 'Insufficient alignment time.'); continue; }
     run.burn = this.burns.create(intent.time, delta, context.vehicle); run.status = 'Aligning and executing burn';
    } catch (error) { this.fail(run, error instanceof Error ? error.message : 'Plan evaluation failed.'); }
   }
+  this.coordinateWarp();
+ }
+ /** One shared clock decision, bounded by every running ship's next preparation.
+  * HostSession applies its independent thrust/contact/orbit/SOI safety limits. */
+ private coordinateWarp():void {
+  const flight=this.options.flight(),port=this.options.fleet;
+  if(this.disposed||flight.paused||flight.inputBlocked||!flight.enabled||!flight.canWarp||!port?.authorizeWarp)return;
+  let owner:Run|undefined,deadline=Infinity,hold=false;
+  for(const run of this.runs.values()){
+   if(run.world!==flight.world)continue;
+   hold||=!!run.burn||!!run.job||!run.node||!!run.preparing;
+   if(run.prepareAt!==undefined)deadline=Math.min(deadline,run.prepareAt);
+   if(!run.autoWarp)continue;
+   try {
+    if(port.authorizeWarp(run.shipId,{id:run.permissionId,mode:'auto-warp'}))owner??=run;
+    else run.status='Waiting for host auto-warp approval';
+   }catch(error){this.fail(run,error instanceof Error?error.message:'Auto-warp refused.');}
+  }
+  if(!owner||!this.runs.has(owner.shipId))return;
+  const remaining=deadline-flight.world.time;
+  const factor=hold||!Number.isFinite(remaining)||remaining<=.25?1:this.clampWarp(remaining/.2);
+  if(factor!==this.options.flight().requestedWarp)this.options.setWarp(factor);
+  if(factor>1)owner.status=`Auto-warp · ${this.options.flight().warp}×`;
  }
  private complete(run: Run): void {
   const node = run.node!;
@@ -143,7 +187,7 @@ export class FleetPlansRunner {
   this.options.releaseControls(run.shipId); this.options.setThrottle(run.shipId, 0);
   this.store.completed(run.shipId, node.intent.id);
   this.options.notify(`${run.world.ship(run.shipId)?.name ?? 'Ship'}: ${node.intent.label} complete. Engine off.`);
-  run.plan = undefined; run.node = undefined;
+  run.plan = undefined; run.node = undefined;run.prepareAt=undefined;run.preparing=false;
   if (run.once || !this.store.nodes(run.shipId).some(value => !value.completed)) this.stop(run.shipId);
  }
  /** Called before every compatible fixed tick, including for unselected ships. */
