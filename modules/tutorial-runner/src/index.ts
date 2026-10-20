@@ -68,6 +68,11 @@ export function createTutorialRunners(): TutorialRunnerFactory {
     return runner;
   } };
 }
+/**
+ * Contributes the reusable read-only tutorial runner state machine and versioned progress tracker.
+ * Provides learning.runner@1.0.0 in slot learning.runner.
+ * Requires no external services and declares no settings.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.provide(TUTORIAL_RUNNERS, createTutorialRunners());
   context.contributeGuide({ id: 'runner', audience: 'creators', title: 'Reusable tutorial runner', summary: 'Read-only objectives, versioned local progress and explicit knowledge checks.', asset: 'docs/creators/usage.json' });

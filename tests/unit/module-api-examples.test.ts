@@ -321,6 +321,31 @@ import profilerDescriptor from '../../modules/profiler/module.json';
 import profilerGuide from '../../modules/profiler/docs/creators/usage.json';
 import profilerExampleInitialize, { FRAME_TIMER } from '../../examples/modules/profiler/src/main';
 import profilerExampleDescriptor from '../../examples/modules/profiler/module.json';
+import academyUiInitialize from '../../modules/academy-ui/src/index';
+import academyUiDescriptor from '../../modules/academy-ui/module.json';
+import academyUiGuide from '../../modules/academy-ui/docs/creators/usage.json';
+import academyUiExampleInitialize, { ACADEMY_UI_HELPER } from '../../examples/modules/academy-ui/src/main';
+import academyUiExampleDescriptor from '../../examples/modules/academy-ui/module.json';
+import tutorialRunnerInitialize from '../../modules/tutorial-runner/src/index';
+import tutorialRunnerDescriptor from '../../modules/tutorial-runner/module.json';
+import tutorialRunnerGuide from '../../modules/tutorial-runner/docs/creators/usage.json';
+import tutorialRunnerExampleInitialize, { TUTORIAL_RUNNER_HELPER } from '../../examples/modules/tutorial-runner/src/main';
+import tutorialRunnerExampleDescriptor from '../../examples/modules/tutorial-runner/module.json';
+import orbitalLessonsInitialize from '../../modules/orbital-lessons/src/index';
+import orbitalLessonsDescriptor from '../../modules/orbital-lessons/module.json';
+import orbitalLessonsGuide from '../../modules/orbital-lessons/docs/creators/usage.json';
+import orbitalLessonsExampleInitialize, { ORBITAL_COURSE_HELPER } from '../../examples/modules/orbital-lessons/src/main';
+import orbitalLessonsExampleDescriptor from '../../examples/modules/orbital-lessons/module.json';
+import audioControlsInitialize from '../../modules/audio-controls/src/index';
+import audioControlsDescriptor from '../../modules/audio-controls/module.json';
+import audioControlsGuide from '../../modules/audio-controls/docs/creators/usage.json';
+import audioControlsExampleInitialize, { AUDIO_CONTROLS_HELPER } from '../../examples/modules/audio-controls/src/main';
+import audioControlsExampleDescriptor from '../../examples/modules/audio-controls/module.json';
+import audioProceduralInitialize from '../../modules/audio-procedural/src/index';
+import audioProceduralDescriptor from '../../modules/audio-procedural/module.json';
+import audioProceduralGuide from '../../modules/audio-procedural/docs/creators/usage.json';
+import audioProceduralExampleInitialize, { AUDIO_PROCEDURAL_HELPER } from '../../examples/modules/audio-procedural/src/main';
+import audioProceduralExampleDescriptor from '../../examples/modules/audio-procedural/module.json';
 
 import universeSaveControlsInitialize from '../../modules/universe-save-controls/src/index';
 import universeSaveControlsDescriptor from '../../modules/universe-save-controls/module.json';
@@ -2506,3 +2531,407 @@ it('times frames and summarizes them via profiler example', () => {
     candidate.dispose();
   }
 });
+
+const academyAssets: Record<string, string> = {
+  'assets/academy.css': readFileSync('modules/academy-ui/assets/academy.css', 'utf8'),
+};
+
+const orbitalLessonsAssets: Record<string, string> = {
+  'docs/players/course.json': readFileSync('modules/orbital-lessons/docs/players/course.json', 'utf8'),
+};
+
+it('evaluates timed scalar holds, knowledge checks and versioned progress via tutorial-runner example', () => {
+  const graph = registry([
+    [tutorialRunnerDescriptor, tutorialRunnerInitialize, tutorialRunnerGuide],
+    [tutorialRunnerExampleDescriptor, tutorialRunnerExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([tutorialRunnerDescriptor, tutorialRunnerExampleDescriptor], {
+    'learning.runner': 'spacelab.tutorial-runner',
+    'example.tutorial-runner': 'example.tutorial-runner',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(TUTORIAL_RUNNER_HELPER);
+    const saved = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => saved.get(key) ?? null,
+      setItem: (key: string, value: string) => { saved.set(key, value); },
+    };
+    const runner = helper.create('course/v1/seat-0', storage);
+    const identity = {};
+    const lesson = {
+      id: 'orbit-hold',
+      version: 2,
+      title: 'Hold safe orbit',
+      level: 'First flights' as const,
+      introduction: 'Keep coasting.',
+      deeper: 'Two-body Keplerian motion.',
+      steps: [
+        {
+          title: 'Hold 2 s',
+          instruction: 'Coast safely.',
+          hint: 'Cut thrust.',
+          conditions: [{ field: 'safe', operator: 'eq' as const, value: true }],
+          holdSeconds: 2,
+        },
+        {
+          title: 'Check',
+          instruction: 'What keeps the ship turning?',
+          hint: 'Central gravity.',
+          question: {
+            choices: ['Hidden thrust', 'Gravity'],
+            correct: 1,
+            explanation: 'Gravity bends the trajectory.',
+          },
+        },
+      ],
+    };
+    expect(() => helper.evaluate(runner, { ...lesson, steps: [] }, [{ identity, time: 0, paused: false, values: { safe: true } }])).toThrow('Invalid lesson');
+    helper.evaluate(runner, lesson, [
+      { identity, time: 0, paused: false, values: { safe: true } },
+      { identity, time: 1, paused: false, values: { safe: true } },
+      { identity, time: 1, paused: true, values: { safe: true } },
+      { identity, time: 3, paused: false, values: { safe: true } },
+    ]);
+    expect(runner.step).toBe(1);
+    expect(runner.answer(0)).toBe(false);
+    expect(runner.finished).toBe(false);
+    expect(runner.answer(1)).toBe(true);
+    expect(runner.finished).toBe(true);
+    expect(runner.completed.has('orbit-hold@2')).toBe(true);
+    expect(JSON.parse(saved.get('course/v1/seat-0') ?? '[]')).toEqual(['orbit-hold@2']);
+    runner.dispose();
+    expect(() => runner.start(lesson, { identity, time: 0, paused: false, values: { safe: true } })).toThrow('disposed');
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('queries orbital course lessons, practice setups and target ratios via orbital-lessons example', () => {
+  const graph = registry([
+    [orbitalLessonsDescriptor, orbitalLessonsInitialize, orbitalLessonsGuide, orbitalLessonsAssets],
+    [orbitalLessonsExampleDescriptor, orbitalLessonsExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([orbitalLessonsDescriptor, orbitalLessonsExampleDescriptor], {
+    'learning.orbital-course': 'spacelab.orbital-lessons',
+    'example.orbital-lessons': 'example.orbital-lessons',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(ORBITAL_COURSE_HELPER);
+    expect(helper.course.id).toBe('spacelab.orbital-academy');
+    expect(helper.course.lessons).toHaveLength(24);
+    expect(helper.byLevel('First flights').length).toBeGreaterThan(0);
+    expect(helper.byLevel('Orbital skills').length).toBeGreaterThan(0);
+    expect(helper.byLevel('Advanced').length).toBeGreaterThan(0);
+    const transfer = helper.find('transfer');
+    expect(transfer?.practice).toEqual({ kind: 'circle', bodyId: 'planet', low: 2, high: 2 });
+    expect(transfer?.target).toEqual({ low: 2, high: 4 });
+    expect(helper.find('nonexistent')).toBeUndefined();
+    expect(candidate.contributions('guide').map(entry => entry.id)).toEqual([
+      'spacelab.orbital-lessons/academy',
+      'spacelab.orbital-lessons/lessons',
+    ]);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('mounts the Academy flight panel, triggers explicit practice and draws target orbit overlays via academy-ui example', () => {
+  const graph = registry([
+    [tutorialRunnerDescriptor, tutorialRunnerInitialize, tutorialRunnerGuide],
+    [orbitalLessonsDescriptor, orbitalLessonsInitialize, orbitalLessonsGuide, orbitalLessonsAssets],
+    [academyUiDescriptor, academyUiInitialize, academyUiGuide, academyAssets],
+    [academyUiExampleDescriptor, academyUiExampleInitialize],
+  ]);
+  expect(() => graph.prepare(profile([academyUiDescriptor, orbitalLessonsDescriptor], {
+    'learning.orbital-course': 'spacelab.orbital-lessons',
+    'learning.academy': 'spacelab.academy-ui',
+  }), 'browser')).toThrow('learning.runner');
+  const candidate = graph.prepare(profile([
+    tutorialRunnerDescriptor,
+    orbitalLessonsDescriptor,
+    academyUiDescriptor,
+    academyUiExampleDescriptor,
+  ], {
+    'learning.runner': 'spacelab.tutorial-runner',
+    'learning.orbital-course': 'spacelab.orbital-lessons',
+    'learning.academy': 'spacelab.academy-ui',
+    'example.academy-ui': 'example.academy-ui',
+  }), 'browser');
+  try {
+    const buttons = new Map<string, () => void>();
+    let selectChange: (() => void) | undefined;
+    const makeEl = (tag: string): any => {
+      const el = createMockEl(tag);
+      el.ownerDocument = doc;
+      el.options = [];
+      let text = '';
+      Object.defineProperty(el, 'textContent', {
+        get: () => text,
+        set: (v: string) => { text = v; },
+      });
+      el.append = (...nodes: any[]) => {
+        for (const node of nodes) {
+          el.childNodes.push(node);
+          if (tag === 'select' && node?.tagName === 'OPTGROUP') {
+            el.options.push(...node.childNodes);
+          }
+        }
+      };
+      el.addEventListener = (event: string, fn: () => void) => {
+        if (tag === 'button' && event === 'click') buttons.set(text, fn);
+        if (tag === 'select' && event === 'change') selectChange = fn;
+      };
+      return el;
+    };
+    const doc: any = {
+      ...uiDocument(),
+      createElement: (tag: string) => makeEl(tag),
+      createElementNS: (_ns: string, tag: string) => makeEl(tag),
+      createTextNode: (text: string) => ({ textContent: text }),
+    };
+    const container = doc.createElement('div');
+    const windowBody = doc.createElement('div');
+    const windowClose = vi.fn();
+    const dockDispose = vi.fn();
+    const practiced: unknown[] = [];
+    const identity = {};
+    let simTime = 0;
+    const readFlight = () => ({
+      identity,
+      time: simTime,
+      paused: false,
+      state: {
+        time: simTime,
+        position: { x: 1024, y: 0 },
+        velocity: { x: 0, y: 300 },
+        heading: Math.PI / 2,
+        throttle: 0.5,
+        status: 'flying' as const,
+        revision: 1,
+      },
+      engine: false,
+      body: { id: 'planet', name: 'Primus', radius: 512, mu: 5e7, surfaceTop: 520, soi: 20000 },
+      orbit: {
+        energy: -20000,
+        angularMomentum: 307200,
+        eccentricityVector: { x: 0, y: 0 },
+        eccentricity: 0,
+        semilatusRectum: 1024,
+        periapsis: 1024,
+        apoapsis: 1024,
+        semiMajorAxis: 1024,
+        period: 21,
+        periapsisAngle: 0,
+        kind: 'elliptic' as const,
+        radial: false,
+      },
+      clearance: 512,
+      analytic: true,
+      prediction: 'closed',
+      plannedNodes: 0,
+      plannedDeltaV: 0,
+      alarms: 0,
+    });
+    const panel = candidate.providedService(ACADEMY_UI_HELPER).mount({
+      container,
+      windows: {
+        create: () => ({
+          id: 'academy',
+          title: 'Orbital Academy',
+          icon: 'manual',
+          element: doc.createElement('section'),
+          body: windowBody,
+          isOpen: true,
+          pinned: true,
+          isFront: true,
+          open: vi.fn(),
+          close: vi.fn(),
+          toggle: vi.fn(),
+          raise: vi.fn(),
+          setPinned: vi.fn(),
+          onChange: () => ({ dispose() {} }),
+          dispose: windowClose,
+        }),
+      },
+      shell: { addInstrument: () => ({ dispose: dockDispose }) },
+      learnerKey: 'seat-0',
+      read: readFlight,
+      bindings: () => 'Controls · Engine: Space',
+      practice: setup => { practiced.push(setup); },
+    });
+    // Select "coasting", which defines target orbit ratios.
+    const selectEl = windowBody.childNodes[0].childNodes.find((n: any) => n.tagName === 'SELECT');
+    selectEl.value = 'coasting';
+    selectChange?.();
+    buttons.get('Load practice setup')?.();
+    expect(practiced).toHaveLength(1);
+    simTime = 1;
+    panel.update(0.2);
+    const view: any = { body: { id: 'planet', position: { x: 10, y: 20 } } };
+    const firstOverlay = panel.draw(view);
+    const secondOverlay = panel.draw(view);
+    expect(firstOverlay.length).toBeGreaterThan(0);
+    expect(firstOverlay[0]).toBe(secondOverlay[0]);
+    panel.dispose();
+    expect(dockDispose).toHaveBeenCalledTimes(1);
+    expect(windowClose).toHaveBeenCalledTimes(1);
+    expect(panel.draw(view)).toEqual([]);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('mounts scoped flight sound controls, deduplicates contacts and restores borrowed DOM on disposal via audio-controls example', () => {
+  const graph = registry([
+    [audioControlsDescriptor, audioControlsInitialize, audioControlsGuide],
+    [audioControlsExampleDescriptor, audioControlsExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([audioControlsDescriptor, audioControlsExampleDescriptor], {
+    'audio.flight-controls': 'spacelab.audio-controls',
+    'example.audio-controls': 'example.audio-controls',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(AUDIO_CONTROLS_HELPER);
+    const doc = uiDocument();
+    doc.hidden = false;
+    doc.defaultView.addEventListener = vi.fn();
+    doc.defaultView.removeEventListener = vi.fn();
+    const docListeners = new Map<string, (event: any) => void>();
+    doc.addEventListener = (type: string, fn: (event: any) => void) => { docListeners.set(type, fn); };
+    const subElements = new Map<string, any>();
+    const root = doc.createElement('div');
+    const originalChild = doc.createElement('span');
+    root.childNodes = [originalChild];
+    root.replaceChildren = (...nodes: any[]) => { root.childNodes = [...nodes]; };
+    root.querySelector = (sel: string) => {
+      if (!subElements.has(sel)) {
+        const el = doc.createElement(sel.endsWith('-volume') ? 'input' : sel.endsWith('-toggle') ? 'button' : 'p');
+        el.valueAsNumber = 50;
+        subElements.set(sel, el);
+      }
+      return subElements.get(sel);
+    };
+
+    expect(() => helper.mount({ root, prefix: '1invalid' })).toThrow('Invalid audio control ID prefix');
+    expect(root.childNodes).toEqual([originalChild]);
+
+    const cues: string[] = [];
+    const thrusts: number[] = [];
+    let outputDisposed = false;
+    const mockProvider = {
+      id: 'mock.audio',
+      version: '1.0.0',
+      label: 'Mock Audio',
+      create: () => ({
+        resume: async () => {},
+        suspend: () => {},
+        setVolume: () => {},
+        setThrust: (level: number) => { thrusts.push(level); },
+        play: (cue: string) => { cues.push(cue); },
+        dispose: () => { outputDisposed = true; },
+      }),
+    };
+
+    const control = helper.mount({ root, prefix: 'flight-sound' }, mockProvider);
+    docListeners.get('pointerdown')?.({ isTrusted: true });
+    control.contact(10, 'land', true);
+    control.contact(10, 'land', true);
+    control.contact(12, 'splash', true);
+    expect(cues).toEqual(['land', 'splash']);
+    control.reset(20);
+    control.contact(15, 'crash', true);
+    expect(cues).toEqual(['land', 'splash']);
+    control.update(0.75, true);
+    expect(thrusts).toContain(0.75);
+    control.dispose();
+    expect(outputDisposed).toBe(true);
+    expect(root.childNodes).toEqual([originalChild]);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('creates procedural audio outputs, clamps levels and schedules Web Audio voices via audio-procedural example', async () => {
+  const graph = registry([
+    [audioProceduralDescriptor, audioProceduralInitialize, audioProceduralGuide],
+    [audioProceduralExampleDescriptor, audioProceduralExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([audioProceduralDescriptor, audioProceduralExampleDescriptor], {
+    'audio.procedural': 'builtin.audio',
+    'example.audio-procedural': 'example.audio-procedural',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(AUDIO_PROCEDURAL_HELPER);
+    expect(helper.synth.id).toBe('builtin.audio');
+    const startedVoices: number[] = [];
+    let closed = false;
+    class MockBufferSource {
+      buffer: any = null;
+      loop = false;
+      onended: (() => void) | null = null;
+      connect(next: any) { return next; }
+      start(when = 0) { startedVoices.push(when); }
+      stop() {}
+      disconnect() {}
+    }
+    vi.stubGlobal('AudioBufferSourceNode', MockBufferSource);
+    vi.stubGlobal('AudioContext', class {
+      state = 'running';
+      currentTime = 1;
+      sampleRate = 8000;
+      destination = {};
+      async resume() { this.state = 'running'; }
+      async suspend() { this.state = 'suspended'; }
+      async close() { this.state = 'closed'; closed = true; }
+      createGain() {
+        return {
+          gain: { value: 0, setTargetAtTime: vi.fn(), setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect(next: any) { return next; },
+          disconnect: vi.fn(),
+        };
+      }
+      createBiquadFilter() {
+        return {
+          type: 'lowpass',
+          frequency: { value: 0, setTargetAtTime: vi.fn(), setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect(next: any) { return next; },
+          disconnect: vi.fn(),
+        };
+      }
+      createOscillator() {
+        return {
+          type: 'sine',
+          frequency: { value: 0, setTargetAtTime: vi.fn(), setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          onended: null,
+          connect(next: any) { return next; },
+          start: vi.fn((when = 0) => { startedVoices.push(when); }),
+          stop: vi.fn(),
+          disconnect: vi.fn(),
+        };
+      }
+      createBuffer(_channels: number, length: number) {
+        const data = new Float32Array(length);
+        return { getChannelData: () => data };
+      }
+      createBufferSource() { return new MockBufferSource(); }
+    });
+
+    const output = helper.createOutput(0.5, 0.8);
+    // Before resume(), no AudioContext is allocated.
+    expect(startedVoices).toHaveLength(0);
+    await output.resume();
+    // 2 continuous sources (noise + rumble) start on initialization.
+    expect(startedVoices).toHaveLength(2);
+    helper.triggerCue(output, 'land', 0.3);
+    expect(startedVoices).toHaveLength(3);
+    output.suspend();
+    output.dispose();
+    expect(closed).toBe(true);
+    helper.synth.dispose();
+    expect(() => helper.createOutput()).toThrow('disposed');
+  } finally {
+    vi.unstubAllGlobals();
+    candidate.dispose();
+  }
+});
+

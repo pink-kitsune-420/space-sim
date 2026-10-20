@@ -1,9 +1,12 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7c878813d8906403",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d4921c477d766c67",
   "modules": [
+    "spacelab.academy-ui",
     "spacelab.alarm-panel",
     "spacelab.trainer-appearance",
+    "spacelab.audio-controls",
+    "builtin.audio",
     "spacelab.camera-follow",
     "spacelab.camera-smart",
     "spacelab.chat-console",
@@ -34,6 +37,7 @@
     "spacelab.net-webrtc",
     "spacelab.net-websocket",
     "spacelab.orbital-alarms",
+    "spacelab.orbital-lessons",
     "builtin.motion",
     "spacelab.planet-designer",
     "spacelab.player-controller",
@@ -49,6 +53,7 @@
     "spacelab.theme-customizer",
     "spacelab.throttle-hud",
     "spacelab.transfer-planner",
+    "spacelab.tutorial-runner",
     "spacelab.ui-shell",
     "spacelab.ui-windows",
     "spacelab.universe-files",
@@ -70,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7c878813d8906403"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d4921c477d766c67"
         },
         {
           "type": "paragraph",
@@ -82,6 +87,11 @@
         },
         {
           "type": "link",
+          "text": "Orbital Academy interface (spacelab.academy-ui)",
+          "page": "api-reference/module/spacelab.academy-ui"
+        },
+        {
+          "type": "link",
           "text": "Alarms dock instrument (spacelab.alarm-panel)",
           "page": "api-reference/module/spacelab.alarm-panel"
         },
@@ -89,6 +99,16 @@
           "type": "link",
           "text": "Trainer vector appearance (spacelab.trainer-appearance)",
           "page": "api-reference/module/spacelab.trainer-appearance"
+        },
+        {
+          "type": "link",
+          "text": "Flight sound controls (spacelab.audio-controls)",
+          "page": "api-reference/module/spacelab.audio-controls"
+        },
+        {
+          "type": "link",
+          "text": "Procedural sound (builtin.audio)",
+          "page": "api-reference/module/builtin.audio"
         },
         {
           "type": "link",
@@ -242,6 +262,11 @@
         },
         {
           "type": "link",
+          "text": "Orbital mechanics course (spacelab.orbital-lessons)",
+          "page": "api-reference/module/spacelab.orbital-lessons"
+        },
+        {
+          "type": "link",
           "text": "Shared rails motion (builtin.motion)",
           "page": "api-reference/module/builtin.motion"
         },
@@ -317,6 +342,11 @@
         },
         {
           "type": "link",
+          "text": "Tutorial runner (spacelab.tutorial-runner)",
+          "page": "api-reference/module/spacelab.tutorial-runner"
+        },
+        {
+          "type": "link",
           "text": "Window shell and dock (spacelab.ui-shell)",
           "page": "api-reference/module/spacelab.ui-shell"
         },
@@ -363,6 +393,11 @@
           "type": "link",
           "text": "alarms.ts",
           "page": "api-reference/game-api/alarms"
+        },
+        {
+          "type": "link",
+          "text": "audio.ts",
+          "page": "api-reference/game-api/audio"
         },
         {
           "type": "link",
@@ -566,6 +601,11 @@
         },
         {
           "type": "link",
+          "text": "tutorials.ts",
+          "page": "api-reference/game-api/tutorials"
+        },
+        {
+          "type": "link",
           "text": "universe.ts",
           "page": "api-reference/game-api/universe"
         },
@@ -613,6 +653,109 @@
           "type": "link",
           "text": "Code modules: manifests, packaging and installation",
           "page": "modules"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.academy-ui",
+      "title": "Orbital Academy interface reference",
+      "summary": "Explicit practice actions and read-only orbital guidance.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Explicit practice actions and read-only orbital guidance."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.academy-ui",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "learning.academy@1.0.0 · ACADEMY_PANELS: ServiceKey<AcademyPanelFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "learning.runner@^1.0.0 · TUTORIAL_RUNNERS: ServiceKey<TutorialRunnerFactory>",
+            "learning.orbital-course@^1.0.0 · ORBITAL_COURSE: ServiceKey<OrbitalCourse>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: learning.academy",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ACADEMY_PANELS, AcademyFlight, AcademyOrbitPreview, AcademyPanel, AcademyPanelFactory, AcademyPanelOptions, AcademyTarget, ModuleInitializationV2, ORBITAL_COURSE, OrbitalCourse, OverlayPrimitive, ServiceKey, TUTORIAL_RUNNERS, TutorialObservation, TutorialRunnerFactory, Vec"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api tutorials.ts",
+          "page": "api-reference/game-api/tutorials"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/academy-ui (build with npm run module:build -- examples/modules/academy-ui/module.json out.spacemod)."
         }
       ]
     },
@@ -814,6 +957,219 @@
           "type": "link",
           "text": "Vehicle vector artwork: how to use, replace and remove it",
           "page": "spacelab.trainer-appearance/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.audio-controls",
+      "title": "Flight sound controls reference",
+      "summary": "Public audio.flight-controls@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public audio.flight-controls@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.audio-controls",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "audio.flight-controls@1.0.0 · FLIGHT_SOUND: ServiceKey<FlightAudioFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: audio.flight-controls",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "volume: number, default 0.4, from 0 to 1, step 0.01. Default sound volume: Initial gain for viewers without saved audio preferences. 0 is silent and 1 is full gain; browser activation is still required.",
+            "enabled: number, default 1, from 0 to 1, step 1. Sound enabled by default: 0 starts sound disabled; 1 enables it after a permitted browser gesture. A saved viewer preference takes precedence."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "AudioCue, AudioOutput, AudioProvider, FLIGHT_SOUND, FlightAudioControl, FlightAudioFactory, FlightAudioMountOptions, FlightAudioOptions, ModuleInitializationV2, ServiceKey, State, WorldEvent"
+        },
+        {
+          "type": "link",
+          "text": "game-api audio.ts",
+          "page": "api-reference/game-api/audio"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/audio-controls (build with npm run module:build -- examples/modules/audio-controls/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Flight sound controls: how to use, replace and remove it",
+          "page": "spacelab.audio-controls/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/builtin.audio",
+      "title": "Procedural sound reference",
+      "summary": "Public audio.procedural@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public audio.procedural@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: builtin.audio",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "audio.procedural@1.0.0 · PROCEDURAL_SOUND: ServiceKey<AudioSynth>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: audio.procedural",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "AudioCue, AudioOutput, AudioProvider, AudioSynth, ModuleInitializationV2, PROCEDURAL_SOUND, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api audio.ts",
+          "page": "api-reference/game-api/audio"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/audio-procedural (build with npm run module:build -- examples/modules/audio-procedural/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Procedural sound: how to use, replace and remove it",
+          "page": "builtin.audio/usage"
         }
       ]
     },
@@ -4042,6 +4398,96 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.orbital-lessons",
+      "title": "Orbital mechanics course reference",
+      "summary": "Independent lesson content and simulation-checked objectives.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Independent lesson content and simulation-checked objectives."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.orbital-lessons",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "learning.orbital-course@1.0.0 · ORBITAL_COURSE: ServiceKey<OrbitalCourse>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: learning.orbital-course",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "AcademyPractice, ModuleInitializationV2, ORBITAL_COURSE, OrbitalCourse, OrbitalLesson, ServiceKey, TutorialCondition, TutorialStep"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api tutorials.ts",
+          "page": "api-reference/game-api/tutorials"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/orbital-lessons (build with npm run module:build -- examples/modules/orbital-lessons/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/builtin.motion",
       "title": "Shared rails motion reference",
       "summary": "Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.",
@@ -5764,6 +6210,101 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.tutorial-runner",
+      "title": "Tutorial runner reference",
+      "summary": "Read-only objectives, versioned local progress and explicit knowledge checks.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Read-only objectives, versioned local progress and explicit knowledge checks."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.tutorial-runner",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "learning.runner@1.0.0 · TUTORIAL_RUNNERS: ServiceKey<TutorialRunnerFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: learning.runner",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, ServiceKey, TUTORIAL_RUNNERS, ThemePreferences, TutorialCondition, TutorialLesson, TutorialObservation, TutorialRunner, TutorialRunnerFactory, TutorialValues"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api theme.ts",
+          "page": "api-reference/game-api/theme"
+        },
+        {
+          "type": "link",
+          "text": "game-api tutorials.ts",
+          "page": "api-reference/game-api/tutorials"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/tutorial-runner (build with npm run module:build -- examples/modules/tutorial-runner/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.ui-shell",
       "title": "Window shell and dock reference",
       "summary": "Optional grouped dock and window lifecycle.",
@@ -6768,6 +7309,134 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.alarm-panel."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/audio",
+      "title": "game-api: audio.ts",
+      "summary": "Declarations from audio.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/audio.ts."
+        },
+        {
+          "type": "heading",
+          "text": "AudioSynth"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable procedural or sample-backed audio provider (`audio.procedural@1.0.0`). Viewer-local only; never reads or writes authoritative simulation state. Disposing the synth disposes every `AudioOutput` it created and rejects future `create()` calls."
+        },
+        {
+          "type": "code",
+          "text": "export interface AudioSynth extends AudioProvider, Disposable {}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.audio."
+        },
+        {
+          "type": "heading",
+          "text": "FlightAudioControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Browser-side controller bridging flight observations, user gestures, visibility and local volume preferences to an optional `AudioProvider`. Viewer-local only; never affects simulation state or determinism. Disposing aborts DOM listeners, disposes the active `AudioOutput` and restores mounted DOM nodes if created via `mount`."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightAudioControl extends Disposable {\n  /**\n   * Binds or replaces the underlying sound synthesis provider. Disposes the previous `AudioOutput` immediately.\n   * Passing `undefined` silences output and releases the current `AudioOutput`. Throws if the control is disposed and `provider` is defined.\n   */\n  setProvider(provider: AudioProvider | undefined): void;\n  /**\n   * Updates continuous engine thrust level (`0` to `1` linear scale; non-finite values clamp to `0`) and viewer activity flag.\n   * Suspends output when `active` becomes `false` and resumes if previously activated by a user gesture when `active` becomes `true`.\n   */\n  update(level: number, active: boolean): void;\n  /** Plays a one-shot device-local cue when enabled, audible (`volume > 0`), active and the document is visible. */\n  play(cue: AudioCue): void;\n  /**\n   * Resets the contact-time watermark (simulation seconds, default `-Infinity`) and zeroes thrust on world load,\n   * ship switch or session reconnect so historical contacts do not replay.\n   */\n  reset(contactTime?: number): void;\n  /**\n   * Records a contact at simulation `time` (seconds) and plays `cue` once if `time` is strictly greater than the last\n   * recorded contact time and `live` is `true`.\n   */\n  contact(time: number, cue: 'land' | 'crash' | 'splash', live: boolean): void;\n  /** Handles an authoritative terrain `contact` world event, mapping status and surface material (`water` vs rock) to a contact cue at `event.contact.time` (simulation seconds). */\n  terrainContact(event: Extract<WorldEvent, {type: 'contact'}>, live: boolean): void;\n  /** Detects a transition from `'flying'` to `'landed'` or `'crashed'` on smooth bodies without terrain (`hasSurface === false`) and triggers a contact cue at `state.time` (simulation seconds). */\n  status(previous: State['status'], state: State, hasSurface: boolean, live: boolean): void;\n  /**\n   * Convenience per-frame flight hook: feeds `state.throttle` (`0` to `1`) to `update` only when `engine` is firing,\n   * unpaused, not crashed, not faulted and `warp === 1`; otherwise feeds `0`.\n   */\n  flight(state: State, engine: boolean, fault: boolean, warp: number, paused: boolean, active: boolean): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
+          "text": "FlightAudioOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for binding a `FlightAudioControl` to caller-supplied DOM controls. The caller retains DOM node ownership; `dispose()` removes event listeners without removing the nodes."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightAudioOptions {\n  /** Borrowed mute/enable toggle button; `aria-pressed` and label text are synchronized by the controller. */\n  readonly toggle: HTMLButtonElement;\n  /** Borrowed range input (`0` to `100` percent); synchronized with normalized linear gain (`0` to `1`). */\n  readonly slider: HTMLInputElement;\n  /** Borrowed status element displaying provider availability, activation errors or help text. */\n  readonly status: HTMLElement;\n  /** Optional local preference storage (reads/writes JSON `{ enabled, volume }` under `'space-sim.audio/1'`). Storage errors are ignored. */\n  readonly storage?: ThemePreferences;\n  /** Fallback initial gain in `[0, 1]` when storage has no saved volume (default `0.4`). Throws if outside `[0, 1]` or non-finite. */\n  readonly defaultVolume?: number;\n  /** Fallback initial enabled state when storage has no saved preference (default `true`). */\n  readonly defaultEnabled?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
+          "text": "FlightAudioMountOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for mounting the standard sound settings template into a borrowed container element. `root` children are replaced during mount and restored when the returned `FlightAudioControl` is disposed."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightAudioMountOptions extends Pick<FlightAudioOptions,'storage'|'defaultVolume'|'defaultEnabled'> {\n  /** Borrowed container element whose children are replaced with the sound controls template until disposal. */\n  readonly root: HTMLElement;\n  /** Optional HTML ID prefix matching `/^[a-z][a-z0-9-]{0,63}$/` (defaults to auto-incrementing `'module-audio-N'`). Throws on invalid prefix. */\n  readonly prefix?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
+          "text": "FlightAudioFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating viewer-local flight audio controllers (`audio.flight-controls@1.0.0`). Candidate-owned: disposing the factory disposes all active controllers and rejects subsequent `create` or `mount` calls."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightAudioFactory extends Disposable {\n  /** Binds a new `FlightAudioControl` to existing toggle, slider and status elements. Throws if disposed, volume is invalid, or `ownerDocument.defaultView` is missing. */\n  create(options: FlightAudioOptions): FlightAudioControl;\n  /** Mounts the reusable settings content into `options.root` and restores the borrowed root's previous children on disposal. */\n  mount(options: FlightAudioMountOptions): FlightAudioControl;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
+          "text": "PROCEDURAL_SOUND"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the procedural sound synthesis provider (`audio.procedural@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const PROCEDURAL_SOUND: ServiceKey<AudioSynth> = Object.freeze({slot: 'audio.procedural', version: '1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.audio."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_SOUND"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the flight sound controls factory (`audio.flight-controls@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_SOUND: ServiceKey<FlightAudioFactory> = Object.freeze({slot: 'audio.flight-controls', version: '1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.audio-controls."
         },
         {
           "type": "link",
@@ -9307,7 +9976,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud."
+          "text": "Used by: builtin.audio, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -9347,7 +10016,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.alarm-panel."
+          "text": "Used by: spacelab.academy-ui."
         },
         {
           "type": "heading",
@@ -9435,7 +10104,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -9459,7 +10128,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "link",
@@ -10839,6 +11508,54 @@
         },
         {
           "type": "heading",
+          "text": "AudioCue"
+        },
+        {
+          "type": "paragraph",
+          "text": "Device-local flight cues; none of these commands changes simulation state."
+        },
+        {
+          "type": "code",
+          "text": "export type AudioCue = 'confirm' | 'pause' | 'resume' | 'warp' | 'land' | 'crash' | 'splash';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.audio, spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
+          "text": "AudioOutput"
+        },
+        {
+          "type": "paragraph",
+          "text": "Browser-owned output. Creation is silent; resume() is called after a user gesture. Levels are normalized to 0–1. The host suspends hidden tabs and disposes replaced outputs."
+        },
+        {
+          "type": "code",
+          "text": "export interface AudioOutput {\n  resume(): Promise<void>;\n  suspend(): void;\n  setVolume(level: number): void;\n  setThrust(level: number): void;\n  play(cue: AudioCue): void;\n  dispose(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.audio, spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
+          "text": "AudioProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional `audio` presentation slot. A stateless factory, independent of renderer lifetime."
+        },
+        {
+          "type": "code",
+          "text": "export interface AudioProvider {\n  readonly id: string;\n  readonly version: string;\n  readonly label: string;\n  create(): AudioOutput;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.audio, spacelab.audio-controls."
+        },
+        {
+          "type": "heading",
           "text": "OverlayPrimitive"
         },
         {
@@ -10847,7 +11564,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -12075,7 +12792,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -12103,7 +12820,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner."
+          "text": "Used by: spacelab.audio-controls, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -12407,7 +13124,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer, spacelab.tutorial-runner."
         },
         {
           "type": "heading",
@@ -12680,6 +13397,326 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/tutorials",
+      "title": "game-api: tutorials.ts",
+      "summary": "Declarations from tutorials.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/tutorials.ts."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialValues"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only scalar telemetry map observed by tutorial runners (e.g. `flying`, `landed`, `coasting`, `safe`, `bound`, `bodyId`, `clearance` in metres, `radius` in metres, `radiusRatio`, `speed` in m/s, `periapsis` and `apoapsis` in metres, `periapsisRatio` and `apoapsisRatio`, `eccentricity`, `energy` in J/kg, `angularMomentum` in m²/s, `period` in seconds, `nodeCount`, `nodeDv` in m/s, and `alarmCount`). Never writes simulation state."
+        },
+        {
+          "type": "code",
+          "text": "export type TutorialValues = Readonly<Record<string, number | string | boolean>>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialObservation"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached read-only observation snapshot passed to a tutorial runner at start and on each update. Tutorials are read-only observers: they read scalar telemetry and never mutate simulation state."
+        },
+        {
+          "type": "code",
+          "text": "export interface TutorialObservation {\n  /** Session, target and revision/teleport continuity. Changing it invalidates an attempt. */\n  readonly identity: object;\n  /** Monotonic simulation time in seconds. Rewinds (`time < lastTime`) or non-finite values interrupt the active attempt. */\n  readonly time: number;\n  /** Whether the simulation is currently paused; paused frames do not advance timed holds. */\n  readonly paused: boolean;\n  /** Read-only scalar telemetry fields evaluated against step conditions. */\n  readonly values: TutorialValues;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui, spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialCondition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Single scalar predicate evaluated by a `TutorialRunner` against `TutorialObservation.values` and the lesson-start baseline. Non-finite numbers or missing fields evaluate to `false`; `'ratio-gte'` and `'ratio-lte'` require a finite positive baseline."
+        },
+        {
+          "type": "code",
+          "text": "export interface TutorialCondition {\n  /** Name of the scalar key in `TutorialValues` to inspect. */\n  readonly field: string;\n  /** Comparison operator: value threshold (`'gte'`, `'lte'`, `'eq'`), change from baseline (`'changed'`), or ratio to baseline (`'ratio-gte'`, `'ratio-lte'`). */\n  readonly operator: 'gte' | 'lte' | 'eq' | 'changed' | 'ratio-gte' | 'ratio-lte';\n  /** Target threshold or exact match value (omitted for `'changed'`). */\n  readonly value?: number | string | boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-lessons, spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialStep"
+        },
+        {
+          "type": "paragraph",
+          "text": "One sequential objective within a `TutorialLesson`: either simulation-checked `conditions` (up to 32) or a multiple-choice `question`, never both."
+        },
+        {
+          "type": "code",
+          "text": "export interface TutorialStep {\n  /** Short step heading shown in the objective banner and HUD button. */\n  readonly title: string;\n  /** Actionable player instruction explaining what to fly, observe or answer. */\n  readonly instruction: string;\n  /** Optional guidance revealed when the learner opens the hint disclosure. */\n  readonly hint: string;\n  /** Read-only scalar predicates (1 to 32) that must all hold simultaneously. Mutually exclusive with `question`. */\n  readonly conditions?: readonly TutorialCondition[];\n  /** UI/planning objectives may complete while paused; they cannot have a timed hold. */\n  readonly allowPaused?: boolean;\n  /** Consecutive simulation seconds; paused frames never accrue credit. */\n  readonly holdSeconds?: number;\n  /** Multiple-choice knowledge check (mutually exclusive with `conditions`); `correct` is the 0-based index in `choices`. */\n  readonly question?: { readonly choices: readonly string[]; readonly correct: number; readonly explanation: string };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-lessons."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialLesson"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only definition of a multi-step tutorial lesson (1 to 64 steps). Versioned so changes to completion criteria invalidate stale completion records (`<id>@<version>`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface TutorialLesson {\n  /** Stable lesson identifier within a course. */\n  readonly id: string;\n  /** Positive integer version encoded in persisted completion keys (`<id>@<version>`). */\n  readonly version: number;\n  /** Human-readable lesson title. */\n  readonly title: string;\n  /** Difficulty tier used to group lessons in the selector. */\n  readonly level: 'First flights' | 'Orbital skills' | 'Advanced';\n  /** Introductory summary shown above the objective. */\n  readonly introduction: string;\n  /** Expandable physics and orbital mechanics notes (\"Go deeper\"). */\n  readonly deeper: string;\n  /** Ordered sequence of 1 to 64 checked objectives or knowledge questions. */\n  readonly steps: readonly TutorialStep[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-lessons, spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialRunner"
+        },
+        {
+          "type": "paragraph",
+          "text": "Stateful read-only state machine evaluating a `TutorialLesson` against `TutorialObservation` snapshots and persisting versioned completion keys (`<lesson.id>@<lesson.version>`, up to 256 entries). Never mutates simulation state, DOM nodes or timers. Caller owns and disposes the runner."
+        },
+        {
+          "type": "code",
+          "text": "export interface TutorialRunner extends Disposable {\n  /** Currently active lesson, or `undefined` when idle or stopped. */\n  readonly lesson: TutorialLesson | undefined;\n  /** Zero-based index of the current step in `lesson.steps`. */\n  readonly step: number;\n  /** `true` once all steps of `lesson` have been completed. */\n  readonly finished: boolean;\n  /** `true` if `observation.identity` changed or `observation.time` rewound or became non-finite during an active lesson. */\n  readonly interrupted: boolean;\n  /** Latest learner-facing status or explanation message. */\n  readonly feedback: string;\n  /** Read-only set of completed `<lesson.id>@<lesson.version>` keys loaded from storage and updated on lesson completion. */\n  readonly completed: ReadonlySet<string>;\n  /**\n   * Validates `lesson` (1–64 steps, each with either 1–32 conditions or a valid question, non-negative finite `holdSeconds`,\n   * and no `holdSeconds > 0` when `allowPaused` is set) and starts tracking from `observation` as the baseline.\n   * Throws if disposed or if the lesson or observation time is invalid.\n   */\n  start(lesson: TutorialLesson, observation: TutorialObservation): void;\n  /**\n   * Evaluates the current step's conditions against `observation`. Interrupts the attempt if `identity` changed or simulation\n   * `time` decreased. Advances the step once conditions hold for `holdSeconds` consecutive unpaused simulation seconds.\n   */\n  update(observation: TutorialObservation): void;\n  /**\n   * Submits a 0-based `choice` index for the current step's knowledge question.\n   * Returns `true` and advances the step when `choice === question.correct`; returns `false` otherwise or when inactive.\n   */\n  answer(choice: number): boolean;\n  /** Clears the active lesson, interruption state and hold timer while preserving `completed` progress. */\n  stop(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "TutorialRunnerFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Stateless factory creating independent `TutorialRunner` state machines (`learning.runner@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface TutorialRunnerFactory {\n  /**\n   * Creates a runner backed by optional `storage` under `storageKey` (recommended format: `<courseId>/v<courseVersion>/<learnerKey>`).\n   * Storage read/write failures fall back silently to in-memory tracking.\n   */\n  create(options: { readonly storage?: ThemePreferences; readonly storageKey: string }): TutorialRunner;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui, spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "TUTORIAL_RUNNERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the reusable tutorial runner factory (`learning.runner@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const TUTORIAL_RUNNERS: ServiceKey<TutorialRunnerFactory> = Object.freeze({ slot: 'learning.runner', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui, spacelab.tutorial-runner."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyPractice"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declarative practice ship placement requested only by an explicit learner button action. Ratios are measured from the body's reference radius; no world physics is changed."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyPractice {\n  /** Placement archetype: launch pad respawn (`'pad'`), bound orbit (`'circle'`, `'ellipse'`), hyperbolic lunar approach (`'approach'`), or moon transfer (`'encounter'`). */\n  readonly kind: 'pad' | 'circle' | 'ellipse' | 'approach' | 'encounter';\n  /** Target celestial body identifier (e.g. `'planet'` for Primus or `'moon'` for Parvus). */\n  readonly bodyId: string;\n  /** Periapsis or low-side radius expressed as a multiple of `body.radius`. */\n  readonly low: number;\n  /** Apoapsis or high-side radius expressed as a multiple of `body.radius`. */\n  readonly high: number;\n  /** Optional starting apsis for elliptical placements (`'periapsis'` or `'apoapsis'`). */\n  readonly at?: 'periapsis' | 'apoapsis';\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-lessons."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyTarget"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional geometric teaching-guide ellipse ratios (`low` and `high` as multiples of `body.radius`). Purely illustrative: never predicts burns, steers the ship or alters simulation state."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyTarget {\n  /** Periapsis radius of the suggested guide orbit as a multiple of `body.radius`. */\n  readonly low: number;\n  /** Apoapsis radius of the suggested guide orbit as a multiple of `body.radius`. */\n  readonly high: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalLesson"
+        },
+        {
+          "type": "paragraph",
+          "text": "An `OrbitalCourse` lesson pairing a `TutorialLesson` with an explicit `AcademyPractice` setup and optional `AcademyTarget` guide ellipse."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalLesson extends TutorialLesson {\n  /** Practice setup loaded only when the learner explicitly clicks \"Load practice setup\" or \"Restart practice\". */\n  readonly practice: AcademyPractice;\n  /** Optional suggested target orbit ratios (`low` and `high` in multiples of `body.radius`) drawn as a cyan teaching guide. */\n  readonly target?: AcademyTarget;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-lessons."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalCourse"
+        },
+        {
+          "type": "paragraph",
+          "text": "Immutable orbital mechanics curriculum (`learning.orbital-course@1.0.0`) consumed by `learning.academy`."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalCourse {\n  /** Stable course identifier used in progress storage keys. */\n  readonly id: string;\n  /** Positive integer course version used to namespace learner progress (`<id>/v<version>/<learnerKey>`). */\n  readonly version: number;\n  /** Display title for the Academy window. */\n  readonly title: string;\n  /** Ordered catalogue of beginner, orbital-skills and advanced lessons. */\n  readonly lessons: readonly OrbitalLesson[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui, spacelab.orbital-lessons."
+        },
+        {
+          "type": "heading",
+          "text": "ORBITAL_COURSE"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the orbital mechanics course data (`learning.orbital-course@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const ORBITAL_COURSE: ServiceKey<OrbitalCourse> = Object.freeze({ slot: 'learning.orbital-course', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui, spacelab.orbital-lessons."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyFlight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached committed flight state, SI and body-relative inertial coordinates. No mutable session/world reference crosses the learning boundary. Tutorials read this snapshot to derive `TutorialObservation` values and never write back to the world."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyFlight {\n  /** Opaque continuity token for the controlled session, ship and teleport/respawn epoch. */\n  readonly identity: object;\n  /** Committed simulation time in seconds. */\n  readonly time: number;\n  /** Whether the flight session is currently paused. */\n  readonly paused: boolean;\n  /** Detached ship state in body-relative SI coordinates (metres, m/s, radians). */\n  readonly state: State;\n  /** Whether the ship's main engine is currently firing. */\n  readonly engine: boolean;\n  /** Active gravitating body parameters in SI units (`radius`, `surfaceTop` and `soi` in metres; `mu` in m³/s²). */\n  readonly body: { readonly id: string; readonly name: string; readonly radius: number; readonly mu: number;\n    readonly surfaceTop: number; readonly soi: number };\n  /** Analytic two-body Keplerian elements when `analytic` is `true` and the ship is flying, or `null`. */\n  readonly orbit: Elements | null;\n  /** Height above terrain or sea level in metres, or `null` when unavailable. */\n  readonly clearance: number | null;\n  /** Whether the active motion model provides analytic two-body orbital elements. */\n  readonly analytic: boolean;\n  /** Current trajectory prediction end classification (e.g. `'closed'`, `'impact'`, `'escape'`). */\n  readonly prediction: string;\n  /** Count of valid planned maneuver nodes for the selected ship. */\n  readonly plannedNodes: number;\n  /** Total planned delta-v magnitude in m/s across valid maneuver nodes. */\n  readonly plannedDeltaV: number;\n  /** Count of pending (unhandled) orbital alarms. */\n  readonly alarms: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyPanelOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host adapters supplied when mounting an `AcademyPanel`. Keeps the Academy UI decoupled from mutable sessions: `read()` returns detached snapshots and `practice()` runs only on explicit user click."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyPanelOptions {\n  /** Borrowed viewport container element into which the HUD reopen button and floating window are mounted. */\n  readonly container: HTMLElement;\n  /** Window factory used to create the pinned Academy floating window (`id: 'academy'`). */\n  readonly windows: Pick<WindowSystem, 'create'>;\n  /** Window shell used to register the Academy dock instrument button. */\n  readonly shell: Pick<WindowShell, 'addInstrument'>;\n  /** Optional local storage backend for lesson completion progress. */\n  readonly storage?: ThemePreferences;\n  /** Learner/seat identifier appended to the course storage key (`<course.id>/v<course.version>/<learnerKey>`). */\n  readonly learnerKey: string;\n  /** Returns a detached `AcademyFlight` snapshot for the currently selected owned ship, or `undefined` when no owned ship is selected. */\n  read(): AcademyFlight | undefined;\n  /** Actual current bindings, resolved by the host; never hard-coded by lessons. */\n  bindings(): string;\n  /** Explicit button action only. The host checks local authority/ownership again. */\n  practice(setup: AcademyPractice): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyPanel"
+        },
+        {
+          "type": "paragraph",
+          "text": "Mounted Orbital Academy UI panel and world-space target orbit overlay source. Disposing removes the HUD button, disposes the dock instrument, window and tutorial runner."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyPanel extends Disposable {\n  /**\n   * Advances UI and tutorial runner state by `elapsed` wall-clock seconds (throttled internally to 0.1 s intervals).\n   * Reads `options.read()` and never mutates simulation state.\n   */\n  update(elapsed: number): void;\n  /**\n   * Returns world-space `OverlayPrimitive` line segments (in metres) for the suggested target orbit when a lesson with a target\n   * is active, un-interrupted, checked by the learner and orbiting the viewed body; otherwise returns `[]`. Reuses preallocated line objects.\n   */\n  draw(view: PresentationView): readonly OverlayPrimitive[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyPanelFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating mounted `AcademyPanel` instances (`learning.academy@1.0.0`). Candidate-owned: disposing the provider disposes all active panels and rejects subsequent `create()` calls."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyPanelFactory {\n  /** Mounts the Academy window, dock instrument, HUD objective button and tutorial runner. Throws if the provider is disposed. */\n  create(options: AcademyPanelOptions): AcademyPanel;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
+        },
+        {
+          "type": "heading",
+          "text": "ACADEMY_PANELS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the Orbital Academy flight UI factory (`learning.academy@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const ACADEMY_PANELS: ServiceKey<AcademyPanelFactory> = Object.freeze({ slot: 'learning.academy', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
+        },
+        {
+          "type": "heading",
+          "text": "AcademyOrbitPreview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Sampled 97-point geometric conic (`points` in body-relative metres) for a lesson's suggested target orbit around `bodyId`."
+        },
+        {
+          "type": "code",
+          "text": "export interface AcademyOrbitPreview {\n  /** Celestial body identifier in whose frame `points` are expressed. */\n  readonly bodyId: string;\n  /** Closed 97-vertex polyline in body-relative inertial coordinates (metres). */\n  readonly points: readonly Vec[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.academy-ui."
         },
         {
           "type": "link",
@@ -13963,7 +15000,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.audio-controls, spacelab.session-flight."
         },
         {
           "type": "link",

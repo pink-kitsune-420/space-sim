@@ -147,6 +147,11 @@ export function createAcademyPanels(runners: TutorialRunnerFactory, course: Orbi
     panels.add(panel); return panel;
   }, dispose() { if (disposed) return; disposed = true; for (const panel of [...panels]) panel.dispose(); panels.clear(); } };
 }
+/**
+ * Contributes the Orbital Academy flight UI panel and world-space target orbit preview provider.
+ * Provides learning.academy@1.0.0 in slot learning.academy.
+ * Requires learning.runner@^1.0.0 and learning.orbital-course@^1.0.0.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   // The host explicitly supplies the compatible flight and window adapters at mount.
   context.provide(ACADEMY_PANELS, context.own(createAcademyPanels(context.use(TUTORIAL_RUNNERS), context.use(ORBITAL_COURSE), context.assets.text('assets/academy.css'))));

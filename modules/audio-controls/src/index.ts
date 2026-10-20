@@ -25,5 +25,10 @@ export function createFlightAudio(defaults:Pick<FlightAudioOptions,'defaultVolum
     controls.clear(); if (errors.length) throw new AggregateError(errors, 'Audio controls provider cleanup failed'); } };
   return Object.freeze(factory);
 }
+/**
+ * Contributes viewer-local flight sound controls and browser audio activation lifecycle management.
+ * Provides audio.flight-controls@1.0.0 in slot audio.flight-controls.
+ * Requires no external services. Reads settings volume (0 to 1, default 0.4) and enabled (0 or 1, default 1).
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({id:'usage',audience:'creators',title:"Flight sound controls",summary:"Public audio.flight-controls@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'}); context.provide(FLIGHT_SOUND, context.own(createFlightAudio({defaultVolume:context.settings.volume??.4,defaultEnabled:(context.settings.enabled??1)>=1}))); }

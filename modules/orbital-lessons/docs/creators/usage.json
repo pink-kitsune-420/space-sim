@@ -1,16 +1,96 @@
 {
   "id": "lessons",
   "audience": "creators",
-  "title": "Editing the orbital course",
-  "summary": "Editing the orbital course",
+  "title": "Edit the orbital course",
+  "summary": "Independent lesson content and simulation-checked objectives.",
   "blocks": [
     {
       "type": "heading",
-      "text": "Editing the orbital course"
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Edit src/index.ts, rebuild orbital-lessons and run npm run academy:build to embed it in the game. Content is independent from the reusable runner and UI. Increment a lesson version when its completion criteria change, or the course version when progress must be separate. Practice uses compatible Primus/Parvus bodies and selected analytic flight. Unsupported custom worlds get diagnostics. Future automatic interplanetary transfers, 3D inclination, N-body/Lagrange dynamics and aerodynamic reentry are outside this course\u2019s current simulated exercises."
+      "text": "Publishes the 24-lesson Orbital Academy curriculum (spacelab.orbital-academy, version 1) across First flights, Orbital skills and Advanced tiers, together with the Players course guide. Lesson data is pure declarative content: each lesson defines an explicit practice placement (pad, circle, ellipse, approach or encounter on Primus or Parvus), optional target orbit ratios, physics notes and steps checked by scalar telemetry conditions or multiple-choice questions. The course never mutates world physics; unsupported custom worlds or non-analytic motion models receive clear diagnostics when starting a lesson. Automatic interplanetary transfers, 3D inclination changes, N-body/Lagrange dynamics and aerodynamic reentry are outside this 2D patched-conic course."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides learning.orbital-course@1.0.0 through the ORBITAL_COURSE service key: exposes the immutable OrbitalCourse lesson catalogue.",
+        "Fills the learning.orbital-course slot in presentation and platform profiles.",
+        "Requires nothing. Consumers such as spacelab.academy-ui declare learning.orbital-course@^1.0.0; if no provider fills learning.orbital-course, dependent modules fail profile resolution."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers the static course object under ORBITAL_COURSE and contributes both the Players guide (docs/players/course.json) and this Creators guide (docs/creators/usage.json).",
+        "Consumers read course.id, course.version, course.title and course.lessons synchronously at mount time.",
+        "Increment an individual lesson's version when its completion criteria change so learners re-verify only that lesson, or increment course.version when progress storage must be separated across the entire course.",
+        "After editing src/index.ts, rebuild the package and run npm run academy:build to embed updated module archives into dist/orbital-academy.spacegame."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Provide a replacement learning.orbital-course@1.0.0 module in the learning.orbital-course slot to supply custom lessons, practice orbits or knowledge checks without changing spacelab.academy-ui or spacelab.tutorial-runner. Removing this module is supported when no enabled module requires learning.orbital-course."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: lesson fields and observation telemetry keys may be extended before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/orbital-lessons inspects the provided OrbitalCourse catalogue by difficulty tier and looks up lesson practice and target orbit metadata. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/orbital-lessons/module.json /tmp/example-orbital-lessons.spacemod\nnpm run module:validate -- /tmp/example-orbital-lessons.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Orbital mechanics course",
+      "page": "api-reference/module/spacelab.orbital-lessons"
+    },
+    {
+      "type": "link",
+      "text": "game-api: tutorials.ts",
+      "page": "api-reference/game-api/tutorials"
     }
   ]
 }

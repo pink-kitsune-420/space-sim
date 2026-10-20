@@ -7,12 +7,15 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7c878813d8906403
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d4921c477d766c67
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
+-> Orbital Academy interface (spacelab.academy-ui) [api-reference/module/spacelab.academy-ui]
 -> Alarms dock instrument (spacelab.alarm-panel) [api-reference/module/spacelab.alarm-panel]
 -> Trainer vector appearance (spacelab.trainer-appearance) [api-reference/module/spacelab.trainer-appearance]
+-> Flight sound controls (spacelab.audio-controls) [api-reference/module/spacelab.audio-controls]
+-> Procedural sound (builtin.audio) [api-reference/module/builtin.audio]
 -> Independent follow cameras (spacelab.camera-follow) [api-reference/module/spacelab.camera-follow]
 -> Smart camera add-on (spacelab.camera-smart) [api-reference/module/spacelab.camera-smart]
 -> Chat console (spacelab.chat-console) [api-reference/module/spacelab.chat-console]
@@ -43,6 +46,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Manual WebRTC transport (spacelab.net-webrtc) [api-reference/module/spacelab.net-webrtc]
 -> WebSocket transport (spacelab.net-websocket) [api-reference/module/spacelab.net-websocket]
 -> Orbital alarm clock (spacelab.orbital-alarms) [api-reference/module/spacelab.orbital-alarms]
+-> Orbital mechanics course (spacelab.orbital-lessons) [api-reference/module/spacelab.orbital-lessons]
 -> Shared rails motion (builtin.motion) [api-reference/module/builtin.motion]
 -> Planet appearance designer (spacelab.planet-designer) [api-reference/module/spacelab.planet-designer]
 -> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
@@ -58,6 +62,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Theme controls (spacelab.theme-customizer) [api-reference/module/spacelab.theme-customizer]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
 -> Orbital transfer search (spacelab.transfer-planner) [api-reference/module/spacelab.transfer-planner]
+-> Tutorial runner (spacelab.tutorial-runner) [api-reference/module/spacelab.tutorial-runner]
 -> Window shell and dock (spacelab.ui-shell) [api-reference/module/spacelab.ui-shell]
 -> Shared windows (spacelab.ui-windows) [api-reference/module/spacelab.ui-windows]
 -> Universe files (spacelab.universe-files) [api-reference/module/spacelab.universe-files]
@@ -69,6 +74,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 
 ## Game API topics
 -> alarms.ts [api-reference/game-api/alarms]
+-> audio.ts [api-reference/game-api/audio]
 -> chat.ts [api-reference/game-api/chat]
 -> commands.ts [api-reference/game-api/commands]
 -> context.ts [api-reference/game-api/context]
@@ -109,6 +115,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> theme.ts [api-reference/game-api/theme]
 -> theme-customizer.ts [api-reference/game-api/theme-customizer]
 -> transfers.ts [api-reference/game-api/transfers]
+-> tutorials.ts [api-reference/game-api/tutorials]
 -> universe.ts [api-reference/game-api/universe]
 -> universe-saving.ts [api-reference/game-api/universe-saving]
 -> vehicles.ts [api-reference/game-api/vehicles]
@@ -119,6 +126,44 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> windows.ts [api-reference/game-api/windows]
 -> world.ts [api-reference/game-api/world]
 -> Code modules: manifests, packaging and installation [modules]
+
+=== Orbital Academy interface reference [api-reference/module/spacelab.academy-ui]
+Explicit practice actions and read-only orbital guidance.
+- ID: spacelab.academy-ui
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- learning.academy@1.0.0 · ACADEMY_PANELS: ServiceKey<AcademyPanelFactory>
+
+## Requires
+- learning.runner@^1.0.0 · TUTORIAL_RUNNERS: ServiceKey<TutorialRunnerFactory>
+- learning.orbital-course@^1.0.0 · ORBITAL_COURSE: ServiceKey<OrbitalCourse>
+
+## Composition
+- Slots: learning.academy
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ACADEMY_PANELS, AcademyFlight, AcademyOrbitPreview, AcademyPanel, AcademyPanelFactory, AcademyPanelOptions, AcademyTarget, ModuleInitializationV2, ORBITAL_COURSE, OrbitalCourse, OverlayPrimitive, ServiceKey, TUTORIAL_RUNNERS, TutorialObservation, TutorialRunnerFactory, Vec
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api tutorials.ts [api-reference/game-api/tutorials]
+
+## Guide and example
+Example source: examples/modules/academy-ui (build with npm run module:build -- examples/modules/academy-ui/module.json out.spacemod).
 
 === Alarms dock instrument reference [api-reference/module/spacelab.alarm-panel]
 Optional read-only window over independent orbital clocks.
@@ -194,6 +239,83 @@ ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleAppearance, Vehic
 ## Guide and example
 Example source: examples/modules/appearance-trainer (build with npm run module:build -- examples/modules/appearance-trainer/module.json out.spacemod).
 -> Vehicle vector artwork: how to use, replace and remove it [spacelab.trainer-appearance/usage]
+
+=== Flight sound controls reference [api-reference/module/spacelab.audio-controls]
+Public audio.flight-controls@1.0.0 service and lifecycle.
+- ID: spacelab.audio-controls
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- audio.flight-controls@1.0.0 · FLIGHT_SOUND: ServiceKey<FlightAudioFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: audio.flight-controls
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- volume: number, default 0.4, from 0 to 1, step 0.01. Default sound volume: Initial gain for viewers without saved audio preferences. 0 is silent and 1 is full gain; browser activation is still required.
+- enabled: number, default 1, from 0 to 1, step 1. Sound enabled by default: 0 starts sound disabled; 1 enables it after a permitted browser gesture. A saved viewer preference takes precedence.
+
+## Game API used
+AudioCue, AudioOutput, AudioProvider, FLIGHT_SOUND, FlightAudioControl, FlightAudioFactory, FlightAudioMountOptions, FlightAudioOptions, ModuleInitializationV2, ServiceKey, State, WorldEvent
+-> game-api audio.ts [api-reference/game-api/audio]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api world.ts [api-reference/game-api/world]
+
+## Guide and example
+Example source: examples/modules/audio-controls (build with npm run module:build -- examples/modules/audio-controls/module.json out.spacemod).
+-> Flight sound controls: how to use, replace and remove it [spacelab.audio-controls/usage]
+
+=== Procedural sound reference [api-reference/module/builtin.audio]
+Public audio.procedural@1.0.0 service and lifecycle.
+- ID: builtin.audio
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- audio.procedural@1.0.0 · PROCEDURAL_SOUND: ServiceKey<AudioSynth>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: audio.procedural
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+AudioCue, AudioOutput, AudioProvider, AudioSynth, ModuleInitializationV2, PROCEDURAL_SOUND, ServiceKey
+-> game-api audio.ts [api-reference/game-api/audio]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+
+## Guide and example
+Example source: examples/modules/audio-procedural (build with npm run module:build -- examples/modules/audio-procedural/module.json out.spacemod).
+-> Procedural sound: how to use, replace and remove it [builtin.audio/usage]
 
 === Independent follow cameras reference [api-reference/module/spacelab.camera-follow]
 Reusable basic camera control with an explicit flight adapter and optional smart-camera policy.
@@ -1377,6 +1499,41 @@ ALARM_CATALOGUE, Disposable, ModuleInitializationV2, ORBITAL_ALARMS, OrbitalAlar
 Example source: examples/modules/orbital-alarms (build with npm run module:build -- examples/modules/orbital-alarms/module.json out.spacemod).
 -> Simulation-time orbital alarms: how to use, replace and remove it [spacelab.orbital-alarms/usage]
 
+=== Orbital mechanics course reference [api-reference/module/spacelab.orbital-lessons]
+Independent lesson content and simulation-checked objectives.
+- ID: spacelab.orbital-lessons
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- learning.orbital-course@1.0.0 · ORBITAL_COURSE: ServiceKey<OrbitalCourse>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: learning.orbital-course
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+AcademyPractice, ModuleInitializationV2, ORBITAL_COURSE, OrbitalCourse, OrbitalLesson, ServiceKey, TutorialCondition, TutorialStep
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api tutorials.ts [api-reference/game-api/tutorials]
+
+## Guide and example
+Example source: examples/modules/orbital-lessons (build with npm run module:build -- examples/modules/orbital-lessons/module.json out.spacemod).
+
 === Shared rails motion reference [api-reference/module/builtin.motion]
 Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.
 - ID: builtin.motion
@@ -1990,6 +2147,42 @@ EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanNode, FlightPlanService
 Example source: examples/modules/transfer-planner (build with npm run module:build -- examples/modules/transfer-planner/module.json out.spacemod).
 -> Bounded orbital transfer search: how to use, replace and remove it [spacelab.transfer-planner/usage]
 
+=== Tutorial runner reference [api-reference/module/spacelab.tutorial-runner]
+Read-only objectives, versioned local progress and explicit knowledge checks.
+- ID: spacelab.tutorial-runner
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- learning.runner@1.0.0 · TUTORIAL_RUNNERS: ServiceKey<TutorialRunnerFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: learning.runner
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, ServiceKey, TUTORIAL_RUNNERS, ThemePreferences, TutorialCondition, TutorialLesson, TutorialObservation, TutorialRunner, TutorialRunnerFactory, TutorialValues
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api theme.ts [api-reference/game-api/theme]
+-> game-api tutorials.ts [api-reference/game-api/tutorials]
+
+## Guide and example
+Example source: examples/modules/tutorial-runner (build with npm run module:build -- examples/modules/tutorial-runner/module.json out.spacemod).
+
 === Window shell and dock reference [api-reference/module/spacelab.ui-shell]
 Optional grouped dock and window lifecycle.
 - ID: spacelab.ui-shell
@@ -2379,6 +2572,102 @@ Used by: spacelab.alarm-panel.
 Service key for the alarm dock instrument panel factory (`view.alarms@1.0.0`).
     export const ALARM_PANELS: ServiceKey<AlarmPanelFactory> = Object.freeze({slot:'view.alarms',version:'1.0.0'});
 Used by: spacelab.alarm-panel.
+-> API reference index [api-reference]
+
+=== game-api: audio.ts [api-reference/game-api/audio]
+Declarations from audio.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/audio.ts.
+
+## AudioSynth
+Disposable procedural or sample-backed audio provider (`audio.procedural@1.0.0`). Viewer-local only; never reads or writes authoritative simulation state. Disposing the synth disposes every `AudioOutput` it created and rejects future `create()` calls.
+    export interface AudioSynth extends AudioProvider, Disposable {}
+Used by: builtin.audio.
+
+## FlightAudioControl
+Browser-side controller bridging flight observations, user gestures, visibility and local volume preferences to an optional `AudioProvider`. Viewer-local only; never affects simulation state or determinism. Disposing aborts DOM listeners, disposes the active `AudioOutput` and restores mounted DOM nodes if created via `mount`.
+    export interface FlightAudioControl extends Disposable {
+      /**
+       * Binds or replaces the underlying sound synthesis provider. Disposes the previous `AudioOutput` immediately.
+       * Passing `undefined` silences output and releases the current `AudioOutput`. Throws if the control is disposed and `provider` is defined.
+       */
+      setProvider(provider: AudioProvider | undefined): void;
+      /**
+       * Updates continuous engine thrust level (`0` to `1` linear scale; non-finite values clamp to `0`) and viewer activity flag.
+       * Suspends output when `active` becomes `false` and resumes if previously activated by a user gesture when `active` becomes `true`.
+       */
+      update(level: number, active: boolean): void;
+      /** Plays a one-shot device-local cue when enabled, audible (`volume > 0`), active and the document is visible. */
+      play(cue: AudioCue): void;
+      /**
+       * Resets the contact-time watermark (simulation seconds, default `-Infinity`) and zeroes thrust on world load,
+       * ship switch or session reconnect so historical contacts do not replay.
+       */
+      reset(contactTime?: number): void;
+      /**
+       * Records a contact at simulation `time` (seconds) and plays `cue` once if `time` is strictly greater than the last
+       * recorded contact time and `live` is `true`.
+       */
+      contact(time: number, cue: 'land' | 'crash' | 'splash', live: boolean): void;
+      /** Handles an authoritative terrain `contact` world event, mapping status and surface material (`water` vs rock) to a contact cue at `event.contact.time` (simulation seconds). */
+      terrainContact(event: Extract<WorldEvent, {type: 'contact'}>, live: boolean): void;
+      /** Detects a transition from `'flying'` to `'landed'` or `'crashed'` on smooth bodies without terrain (`hasSurface === false`) and triggers a contact cue at `state.time` (simulation seconds). */
+      status(previous: State['status'], state: State, hasSurface: boolean, live: boolean): void;
+      /**
+       * Convenience per-frame flight hook: feeds `state.throttle` (`0` to `1`) to `update` only when `engine` is firing,
+       * unpaused, not crashed, not faulted and `warp === 1`; otherwise feeds `0`.
+       */
+      flight(state: State, engine: boolean, fault: boolean, warp: number, paused: boolean, active: boolean): void;
+    }
+Used by: spacelab.audio-controls.
+
+## FlightAudioOptions
+Options for binding a `FlightAudioControl` to caller-supplied DOM controls. The caller retains DOM node ownership; `dispose()` removes event listeners without removing the nodes.
+    export interface FlightAudioOptions {
+      /** Borrowed mute/enable toggle button; `aria-pressed` and label text are synchronized by the controller. */
+      readonly toggle: HTMLButtonElement;
+      /** Borrowed range input (`0` to `100` percent); synchronized with normalized linear gain (`0` to `1`). */
+      readonly slider: HTMLInputElement;
+      /** Borrowed status element displaying provider availability, activation errors or help text. */
+      readonly status: HTMLElement;
+      /** Optional local preference storage (reads/writes JSON `{ enabled, volume }` under `'space-sim.audio/1'`). Storage errors are ignored. */
+      readonly storage?: ThemePreferences;
+      /** Fallback initial gain in `[0, 1]` when storage has no saved volume (default `0.4`). Throws if outside `[0, 1]` or non-finite. */
+      readonly defaultVolume?: number;
+      /** Fallback initial enabled state when storage has no saved preference (default `true`). */
+      readonly defaultEnabled?: boolean;
+    }
+Used by: spacelab.audio-controls.
+
+## FlightAudioMountOptions
+Options for mounting the standard sound settings template into a borrowed container element. `root` children are replaced during mount and restored when the returned `FlightAudioControl` is disposed.
+    export interface FlightAudioMountOptions extends Pick<FlightAudioOptions,'storage'|'defaultVolume'|'defaultEnabled'> {
+      /** Borrowed container element whose children are replaced with the sound controls template until disposal. */
+      readonly root: HTMLElement;
+      /** Optional HTML ID prefix matching `/^[a-z][a-z0-9-]{0,63}$/` (defaults to auto-incrementing `'module-audio-N'`). Throws on invalid prefix. */
+      readonly prefix?: string;
+    }
+Used by: spacelab.audio-controls.
+
+## FlightAudioFactory
+Factory creating viewer-local flight audio controllers (`audio.flight-controls@1.0.0`). Candidate-owned: disposing the factory disposes all active controllers and rejects subsequent `create` or `mount` calls.
+    export interface FlightAudioFactory extends Disposable {
+      /** Binds a new `FlightAudioControl` to existing toggle, slider and status elements. Throws if disposed, volume is invalid, or `ownerDocument.defaultView` is missing. */
+      create(options: FlightAudioOptions): FlightAudioControl;
+      /** Mounts the reusable settings content into `options.root` and restores the borrowed root's previous children on disposal. */
+      mount(options: FlightAudioMountOptions): FlightAudioControl;
+    }
+Used by: spacelab.audio-controls.
+
+## PROCEDURAL_SOUND
+Service key for the procedural sound synthesis provider (`audio.procedural@1.0.0`).
+    export const PROCEDURAL_SOUND: ServiceKey<AudioSynth> = Object.freeze({slot: 'audio.procedural', version: '1.0.0'});
+Used by: builtin.audio.
+
+## FLIGHT_SOUND
+Service key for the flight sound controls factory (`audio.flight-controls@1.0.0`).
+    export const FLIGHT_SOUND: ServiceKey<FlightAudioFactory> = Object.freeze({slot: 'audio.flight-controls', version: '1.0.0'});
+Used by: spacelab.audio-controls.
 -> API reference index [api-reference]
 
 === game-api: chat.ts [api-reference/game-api/chat]
@@ -4110,7 +4399,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud.
+Used by: builtin.audio, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud.
 
 ## NumberSetting
     export interface NumberSetting {
@@ -4181,7 +4470,7 @@ Initialization is synchronous in Phase 2. Own resources immediately after alloca
       /** The API exposed by one of this module's declared dependencies, which initialize first. */
       dependency<T extends object>(id: string): T;
     }
-Used by: spacelab.alarm-panel.
+Used by: spacelab.academy-ui.
 
 ## RegisteredModule
     export interface RegisteredModule {
@@ -4262,7 +4551,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
+Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
 
 ## ModuleAssets
     export interface ModuleAssets {
@@ -4302,7 +4591,7 @@ Used by: spacelab.vector-shaders.
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
+Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
 -> API reference index [api-reference]
 
 === game-api: motion.ts [api-reference/game-api/motion]
@@ -5199,6 +5488,33 @@ The `renderer` slot of a presentation profile. A stateless factory: each rendere
     }
 Used by: spacelab.flight-split.
 
+## AudioCue
+Device-local flight cues; none of these commands changes simulation state.
+    export type AudioCue = 'confirm' | 'pause' | 'resume' | 'warp' | 'land' | 'crash' | 'splash';
+Used by: builtin.audio, spacelab.audio-controls.
+
+## AudioOutput
+Browser-owned output. Creation is silent; resume() is called after a user gesture. Levels are normalized to 0–1. The host suspends hidden tabs and disposes replaced outputs.
+    export interface AudioOutput {
+      resume(): Promise<void>;
+      suspend(): void;
+      setVolume(level: number): void;
+      setThrust(level: number): void;
+      play(cue: AudioCue): void;
+      dispose(): void;
+    }
+Used by: builtin.audio, spacelab.audio-controls.
+
+## AudioProvider
+Optional `audio` presentation slot. A stateless factory, independent of renderer lifetime.
+    export interface AudioProvider {
+      readonly id: string;
+      readonly version: string;
+      readonly label: string;
+      create(): AudioOutput;
+    }
+Used by: builtin.audio, spacelab.audio-controls.
+
 ## OverlayPrimitive
     export type OverlayPrimitive =
       /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */
@@ -5209,7 +5525,7 @@ Used by: spacelab.flight-split.
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' };
-Used by: builtin.maneuver-planner, builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
 
 ## PresentationSnapshot
 A detached, frozen snapshot of what the pilot sees. Built at most once per frame.
@@ -5944,7 +6260,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Vec
     export interface Vec { readonly x: number; readonly y: number }
-Used by: builtin.maneuver-planner, builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner.
+Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner.
 
 ## Body
     export interface Body {
@@ -5977,7 +6293,7 @@ A flying state is in the body-centred inertial frame. On a rotating body a lande
       /** Split drift vertex retained for prediction of a gentle sea entry. */
       readonly waterEntry?: GhostSample;
     }
-Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner.
+Used by: spacelab.audio-controls, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner.
 
 ## Coast
     export interface Coast {
@@ -6244,7 +6560,7 @@ Persistent storage abstraction for theme preferences (e.g. window.localStorage o
       /** Store a preference string under the specified key. */
       setItem(key: string, value: string): void;
     }
-Used by: spacelab.theme, spacelab.theme-customizer.
+Used by: spacelab.theme, spacelab.theme-customizer, spacelab.tutorial-runner.
 
 ## ThemeOptions
 Options for instantiating an isolated theme controller.
@@ -6420,6 +6736,284 @@ Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
 Service key for the orbital transfer planner (`flight.transfers@1.0.0`).
     export const TRANSFERS: ServiceKey<TransferPlanner> = Object.freeze({ slot: 'flight.transfers', version: '1.0.0' });
 Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+-> API reference index [api-reference]
+
+=== game-api: tutorials.ts [api-reference/game-api/tutorials]
+Declarations from tutorials.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/tutorials.ts.
+
+## TutorialValues
+Read-only scalar telemetry map observed by tutorial runners (e.g. `flying`, `landed`, `coasting`, `safe`, `bound`, `bodyId`, `clearance` in metres, `radius` in metres, `radiusRatio`, `speed` in m/s, `periapsis` and `apoapsis` in metres, `periapsisRatio` and `apoapsisRatio`, `eccentricity`, `energy` in J/kg, `angularMomentum` in m²/s, `period` in seconds, `nodeCount`, `nodeDv` in m/s, and `alarmCount`). Never writes simulation state.
+    export type TutorialValues = Readonly<Record<string, number | string | boolean>>;
+Used by: spacelab.tutorial-runner.
+
+## TutorialObservation
+Detached read-only observation snapshot passed to a tutorial runner at start and on each update. Tutorials are read-only observers: they read scalar telemetry and never mutate simulation state.
+    export interface TutorialObservation {
+      /** Session, target and revision/teleport continuity. Changing it invalidates an attempt. */
+      readonly identity: object;
+      /** Monotonic simulation time in seconds. Rewinds (`time < lastTime`) or non-finite values interrupt the active attempt. */
+      readonly time: number;
+      /** Whether the simulation is currently paused; paused frames do not advance timed holds. */
+      readonly paused: boolean;
+      /** Read-only scalar telemetry fields evaluated against step conditions. */
+      readonly values: TutorialValues;
+    }
+Used by: spacelab.academy-ui, spacelab.tutorial-runner.
+
+## TutorialCondition
+Single scalar predicate evaluated by a `TutorialRunner` against `TutorialObservation.values` and the lesson-start baseline. Non-finite numbers or missing fields evaluate to `false`; `'ratio-gte'` and `'ratio-lte'` require a finite positive baseline.
+    export interface TutorialCondition {
+      /** Name of the scalar key in `TutorialValues` to inspect. */
+      readonly field: string;
+      /** Comparison operator: value threshold (`'gte'`, `'lte'`, `'eq'`), change from baseline (`'changed'`), or ratio to baseline (`'ratio-gte'`, `'ratio-lte'`). */
+      readonly operator: 'gte' | 'lte' | 'eq' | 'changed' | 'ratio-gte' | 'ratio-lte';
+      /** Target threshold or exact match value (omitted for `'changed'`). */
+      readonly value?: number | string | boolean;
+    }
+Used by: spacelab.orbital-lessons, spacelab.tutorial-runner.
+
+## TutorialStep
+One sequential objective within a `TutorialLesson`: either simulation-checked `conditions` (up to 32) or a multiple-choice `question`, never both.
+    export interface TutorialStep {
+      /** Short step heading shown in the objective banner and HUD button. */
+      readonly title: string;
+      /** Actionable player instruction explaining what to fly, observe or answer. */
+      readonly instruction: string;
+      /** Optional guidance revealed when the learner opens the hint disclosure. */
+      readonly hint: string;
+      /** Read-only scalar predicates (1 to 32) that must all hold simultaneously. Mutually exclusive with `question`. */
+      readonly conditions?: readonly TutorialCondition[];
+      /** UI/planning objectives may complete while paused; they cannot have a timed hold. */
+      readonly allowPaused?: boolean;
+      /** Consecutive simulation seconds; paused frames never accrue credit. */
+      readonly holdSeconds?: number;
+      /** Multiple-choice knowledge check (mutually exclusive with `conditions`); `correct` is the 0-based index in `choices`. */
+      readonly question?: { readonly choices: readonly string[]; readonly correct: number; readonly explanation: string };
+    }
+Used by: spacelab.orbital-lessons.
+
+## TutorialLesson
+Read-only definition of a multi-step tutorial lesson (1 to 64 steps). Versioned so changes to completion criteria invalidate stale completion records (`<id>@<version>`).
+    export interface TutorialLesson {
+      /** Stable lesson identifier within a course. */
+      readonly id: string;
+      /** Positive integer version encoded in persisted completion keys (`<id>@<version>`). */
+      readonly version: number;
+      /** Human-readable lesson title. */
+      readonly title: string;
+      /** Difficulty tier used to group lessons in the selector. */
+      readonly level: 'First flights' | 'Orbital skills' | 'Advanced';
+      /** Introductory summary shown above the objective. */
+      readonly introduction: string;
+      /** Expandable physics and orbital mechanics notes ("Go deeper"). */
+      readonly deeper: string;
+      /** Ordered sequence of 1 to 64 checked objectives or knowledge questions. */
+      readonly steps: readonly TutorialStep[];
+    }
+Used by: spacelab.orbital-lessons, spacelab.tutorial-runner.
+
+## TutorialRunner
+Stateful read-only state machine evaluating a `TutorialLesson` against `TutorialObservation` snapshots and persisting versioned completion keys (`<lesson.id>@<lesson.version>`, up to 256 entries). Never mutates simulation state, DOM nodes or timers. Caller owns and disposes the runner.
+    export interface TutorialRunner extends Disposable {
+      /** Currently active lesson, or `undefined` when idle or stopped. */
+      readonly lesson: TutorialLesson | undefined;
+      /** Zero-based index of the current step in `lesson.steps`. */
+      readonly step: number;
+      /** `true` once all steps of `lesson` have been completed. */
+      readonly finished: boolean;
+      /** `true` if `observation.identity` changed or `observation.time` rewound or became non-finite during an active lesson. */
+      readonly interrupted: boolean;
+      /** Latest learner-facing status or explanation message. */
+      readonly feedback: string;
+      /** Read-only set of completed `<lesson.id>@<lesson.version>` keys loaded from storage and updated on lesson completion. */
+      readonly completed: ReadonlySet<string>;
+      /**
+       * Validates `lesson` (1–64 steps, each with either 1–32 conditions or a valid question, non-negative finite `holdSeconds`,
+       * and no `holdSeconds > 0` when `allowPaused` is set) and starts tracking from `observation` as the baseline.
+       * Throws if disposed or if the lesson or observation time is invalid.
+       */
+      start(lesson: TutorialLesson, observation: TutorialObservation): void;
+      /**
+       * Evaluates the current step's conditions against `observation`. Interrupts the attempt if `identity` changed or simulation
+       * `time` decreased. Advances the step once conditions hold for `holdSeconds` consecutive unpaused simulation seconds.
+       */
+      update(observation: TutorialObservation): void;
+      /**
+       * Submits a 0-based `choice` index for the current step's knowledge question.
+       * Returns `true` and advances the step when `choice === question.correct`; returns `false` otherwise or when inactive.
+       */
+      answer(choice: number): boolean;
+      /** Clears the active lesson, interruption state and hold timer while preserving `completed` progress. */
+      stop(): void;
+    }
+Used by: spacelab.tutorial-runner.
+
+## TutorialRunnerFactory
+Stateless factory creating independent `TutorialRunner` state machines (`learning.runner@1.0.0`).
+    export interface TutorialRunnerFactory {
+      /**
+       * Creates a runner backed by optional `storage` under `storageKey` (recommended format: `<courseId>/v<courseVersion>/<learnerKey>`).
+       * Storage read/write failures fall back silently to in-memory tracking.
+       */
+      create(options: { readonly storage?: ThemePreferences; readonly storageKey: string }): TutorialRunner;
+    }
+Used by: spacelab.academy-ui, spacelab.tutorial-runner.
+
+## TUTORIAL_RUNNERS
+Service key for the reusable tutorial runner factory (`learning.runner@1.0.0`).
+    export const TUTORIAL_RUNNERS: ServiceKey<TutorialRunnerFactory> = Object.freeze({ slot: 'learning.runner', version: '1.0.0' });
+Used by: spacelab.academy-ui, spacelab.tutorial-runner.
+
+## AcademyPractice
+Declarative practice ship placement requested only by an explicit learner button action. Ratios are measured from the body's reference radius; no world physics is changed.
+    export interface AcademyPractice {
+      /** Placement archetype: launch pad respawn (`'pad'`), bound orbit (`'circle'`, `'ellipse'`), hyperbolic lunar approach (`'approach'`), or moon transfer (`'encounter'`). */
+      readonly kind: 'pad' | 'circle' | 'ellipse' | 'approach' | 'encounter';
+      /** Target celestial body identifier (e.g. `'planet'` for Primus or `'moon'` for Parvus). */
+      readonly bodyId: string;
+      /** Periapsis or low-side radius expressed as a multiple of `body.radius`. */
+      readonly low: number;
+      /** Apoapsis or high-side radius expressed as a multiple of `body.radius`. */
+      readonly high: number;
+      /** Optional starting apsis for elliptical placements (`'periapsis'` or `'apoapsis'`). */
+      readonly at?: 'periapsis' | 'apoapsis';
+    }
+Used by: spacelab.orbital-lessons.
+
+## AcademyTarget
+Optional geometric teaching-guide ellipse ratios (`low` and `high` as multiples of `body.radius`). Purely illustrative: never predicts burns, steers the ship or alters simulation state.
+    export interface AcademyTarget {
+      /** Periapsis radius of the suggested guide orbit as a multiple of `body.radius`. */
+      readonly low: number;
+      /** Apoapsis radius of the suggested guide orbit as a multiple of `body.radius`. */
+      readonly high: number;
+    }
+Used by: spacelab.academy-ui.
+
+## OrbitalLesson
+An `OrbitalCourse` lesson pairing a `TutorialLesson` with an explicit `AcademyPractice` setup and optional `AcademyTarget` guide ellipse.
+    export interface OrbitalLesson extends TutorialLesson {
+      /** Practice setup loaded only when the learner explicitly clicks "Load practice setup" or "Restart practice". */
+      readonly practice: AcademyPractice;
+      /** Optional suggested target orbit ratios (`low` and `high` in multiples of `body.radius`) drawn as a cyan teaching guide. */
+      readonly target?: AcademyTarget;
+    }
+Used by: spacelab.orbital-lessons.
+
+## OrbitalCourse
+Immutable orbital mechanics curriculum (`learning.orbital-course@1.0.0`) consumed by `learning.academy`.
+    export interface OrbitalCourse {
+      /** Stable course identifier used in progress storage keys. */
+      readonly id: string;
+      /** Positive integer course version used to namespace learner progress (`<id>/v<version>/<learnerKey>`). */
+      readonly version: number;
+      /** Display title for the Academy window. */
+      readonly title: string;
+      /** Ordered catalogue of beginner, orbital-skills and advanced lessons. */
+      readonly lessons: readonly OrbitalLesson[];
+    }
+Used by: spacelab.academy-ui, spacelab.orbital-lessons.
+
+## ORBITAL_COURSE
+Service key for the orbital mechanics course data (`learning.orbital-course@1.0.0`).
+    export const ORBITAL_COURSE: ServiceKey<OrbitalCourse> = Object.freeze({ slot: 'learning.orbital-course', version: '1.0.0' });
+Used by: spacelab.academy-ui, spacelab.orbital-lessons.
+
+## AcademyFlight
+Detached committed flight state, SI and body-relative inertial coordinates. No mutable session/world reference crosses the learning boundary. Tutorials read this snapshot to derive `TutorialObservation` values and never write back to the world.
+    export interface AcademyFlight {
+      /** Opaque continuity token for the controlled session, ship and teleport/respawn epoch. */
+      readonly identity: object;
+      /** Committed simulation time in seconds. */
+      readonly time: number;
+      /** Whether the flight session is currently paused. */
+      readonly paused: boolean;
+      /** Detached ship state in body-relative SI coordinates (metres, m/s, radians). */
+      readonly state: State;
+      /** Whether the ship's main engine is currently firing. */
+      readonly engine: boolean;
+      /** Active gravitating body parameters in SI units (`radius`, `surfaceTop` and `soi` in metres; `mu` in m³/s²). */
+      readonly body: { readonly id: string; readonly name: string; readonly radius: number; readonly mu: number;
+        readonly surfaceTop: number; readonly soi: number };
+      /** Analytic two-body Keplerian elements when `analytic` is `true` and the ship is flying, or `null`. */
+      readonly orbit: Elements | null;
+      /** Height above terrain or sea level in metres, or `null` when unavailable. */
+      readonly clearance: number | null;
+      /** Whether the active motion model provides analytic two-body orbital elements. */
+      readonly analytic: boolean;
+      /** Current trajectory prediction end classification (e.g. `'closed'`, `'impact'`, `'escape'`). */
+      readonly prediction: string;
+      /** Count of valid planned maneuver nodes for the selected ship. */
+      readonly plannedNodes: number;
+      /** Total planned delta-v magnitude in m/s across valid maneuver nodes. */
+      readonly plannedDeltaV: number;
+      /** Count of pending (unhandled) orbital alarms. */
+      readonly alarms: number;
+    }
+Used by: spacelab.academy-ui.
+
+## AcademyPanelOptions
+Host adapters supplied when mounting an `AcademyPanel`. Keeps the Academy UI decoupled from mutable sessions: `read()` returns detached snapshots and `practice()` runs only on explicit user click.
+    export interface AcademyPanelOptions {
+      /** Borrowed viewport container element into which the HUD reopen button and floating window are mounted. */
+      readonly container: HTMLElement;
+      /** Window factory used to create the pinned Academy floating window (`id: 'academy'`). */
+      readonly windows: Pick<WindowSystem, 'create'>;
+      /** Window shell used to register the Academy dock instrument button. */
+      readonly shell: Pick<WindowShell, 'addInstrument'>;
+      /** Optional local storage backend for lesson completion progress. */
+      readonly storage?: ThemePreferences;
+      /** Learner/seat identifier appended to the course storage key (`<course.id>/v<course.version>/<learnerKey>`). */
+      readonly learnerKey: string;
+      /** Returns a detached `AcademyFlight` snapshot for the currently selected owned ship, or `undefined` when no owned ship is selected. */
+      read(): AcademyFlight | undefined;
+      /** Actual current bindings, resolved by the host; never hard-coded by lessons. */
+      bindings(): string;
+      /** Explicit button action only. The host checks local authority/ownership again. */
+      practice(setup: AcademyPractice): void;
+    }
+Used by: spacelab.academy-ui.
+
+## AcademyPanel
+Mounted Orbital Academy UI panel and world-space target orbit overlay source. Disposing removes the HUD button, disposes the dock instrument, window and tutorial runner.
+    export interface AcademyPanel extends Disposable {
+      /**
+       * Advances UI and tutorial runner state by `elapsed` wall-clock seconds (throttled internally to 0.1 s intervals).
+       * Reads `options.read()` and never mutates simulation state.
+       */
+      update(elapsed: number): void;
+      /**
+       * Returns world-space `OverlayPrimitive` line segments (in metres) for the suggested target orbit when a lesson with a target
+       * is active, un-interrupted, checked by the learner and orbiting the viewed body; otherwise returns `[]`. Reuses preallocated line objects.
+       */
+      draw(view: PresentationView): readonly OverlayPrimitive[];
+    }
+Used by: spacelab.academy-ui.
+
+## AcademyPanelFactory
+Factory creating mounted `AcademyPanel` instances (`learning.academy@1.0.0`). Candidate-owned: disposing the provider disposes all active panels and rejects subsequent `create()` calls.
+    export interface AcademyPanelFactory {
+      /** Mounts the Academy window, dock instrument, HUD objective button and tutorial runner. Throws if the provider is disposed. */
+      create(options: AcademyPanelOptions): AcademyPanel;
+    }
+Used by: spacelab.academy-ui.
+
+## ACADEMY_PANELS
+Service key for the Orbital Academy flight UI factory (`learning.academy@1.0.0`).
+    export const ACADEMY_PANELS: ServiceKey<AcademyPanelFactory> = Object.freeze({ slot: 'learning.academy', version: '1.0.0' });
+Used by: spacelab.academy-ui.
+
+## AcademyOrbitPreview
+Sampled 97-point geometric conic (`points` in body-relative metres) for a lesson's suggested target orbit around `bodyId`.
+    export interface AcademyOrbitPreview {
+      /** Celestial body identifier in whose frame `points` are expressed. */
+      readonly bodyId: string;
+      /** Closed 97-vertex polyline in body-relative inertial coordinates (metres). */
+      readonly points: readonly Vec[];
+    }
+Used by: spacelab.academy-ui.
 -> API reference index [api-reference]
 
 === game-api: universe.ts [api-reference/game-api/universe]
@@ -7127,8 +7721,48 @@ Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spac
       | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
       | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }
       | { readonly type: 'fault'; readonly shipId: string; readonly message: string };
-Used by: spacelab.session-flight.
+Used by: spacelab.audio-controls, spacelab.session-flight.
 -> API reference index [api-reference]
+
+=== Academy flight adapter [spacelab.academy-ui/usage]
+Explicit practice actions and read-only orbital guidance.
+
+
+## What it does
+Provides the Orbital Academy flight window, dock instrument, HUD objective reopen button, SVG orbit comparison diagram and world-space target orbit overlay. The interface is a read-only observer during flight: it polls detached committed flight state through host-supplied callbacks, evaluates lesson steps through the tutorial runner, and never imports private host modules, runs timers, steers the ship or steps the simulation. Practice setups are invoked only when the learner explicitly clicks Load practice setup or Restart practice, where the host validates local ship ownership, cancels armed maneuvers, cuts thrust and pauses.
+
+## Provides and requires
+- Provides learning.academy@1.0.0 through the ACADEMY_PANELS service key: creates mounted AcademyPanel instances.
+- Fills the learning.academy slot in platform profiles.
+- Requires learning.runner@^1.0.0 through the TUTORIAL_RUNNERS service key: creates the TutorialRunner state machine that checks step conditions, holds and questions. Profile resolution fails if no learning.runner provider is enabled.
+- Requires learning.orbital-course@^1.0.0 through the ORBITAL_COURSE service key: supplies the lesson catalogue, practice setups and target orbit ratios. Profile resolution fails if no learning.orbital-course provider is enabled.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization resolves TUTORIAL_RUNNERS and ORBITAL_COURSE, reads assets/academy.css, registers a candidate-owned ACADEMY_PANELS factory and contributes this guide.
+- create(options) creates a TutorialRunner scoped to <course.id>/v<course.version>/<learnerKey>, builds the Academy DOM, opens a pinned window (id: 'academy'), appends the HUD button to options.container and registers the Academy dock instrument on options.shell. If dock registration throws, the HUD button, runner and window are cleaned up before rethrowing.
+- Starting a lesson checks that an owned ship is selected and analytic two-body orbital elements are active; practice buttons call options.practice(selected.practice) before capturing the initial observation and continuity identity.
+- update(seconds) throttles DOM and runner updates to 0.1 s wall-clock intervals while the window is open or a lesson is active, stops guidance if no owned ship is selected, and clears the target preview if the flight identity changes or the runner is interrupted.
+- draw(view) transforms the 97-point geometric target ellipse into world-space line segments around view.body.position without per-frame allocation when a target orbit is active and checked.
+- dispose() removes the HUD button and disposes the runner, dock entry and window; disposing the provider disposes all active panels.
+
+## Remove or replace
+To customize the Academy layout, diagram or overlay styling while keeping the same curriculum and runner, provide another learning.academy@1.0.0 implementation in the learning.academy slot. Removing this module from a profile that does not require learning.academy removes the Academy window, dock button and target orbit overlays while leaving flight simulation and the Manual untouched.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: panel adapter callbacks and preview helpers may evolve before final freeze. Progress keys are namespaced as <course.id>/v<course.version>/<learnerKey>.
+
+## Example
+examples/modules/academy-ui mounts an Academy panel against minimal window, shell and flight adapters, starts guidance and draws the target orbit overlay. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/academy-ui/module.json /tmp/example-academy-ui.spacemod
+    npm run module:validate -- /tmp/example-academy-ui.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Orbital Academy interface [api-reference/module/spacelab.academy-ui]
+-> game-api: tutorials.ts [api-reference/game-api/tutorials]
 
 === Alarms dock instrument [spacelab.alarm-panel/usage]
 Optional read-only window over independent orbital clocks.
@@ -7206,6 +7840,87 @@ examples/modules/appearance-trainer demonstrates contributing custom vehicle vec
 -> API reference: Trainer vector appearance [api-reference/module/spacelab.trainer-appearance]
 -> Canvas 2D: Canvas scene rendering [spacelab.render-canvas/usage]
 -> WebGL 2: WebGL scene rendering [spacelab.render-webgl/usage]
+
+=== Flight sound controls [spacelab.audio-controls/usage]
+Public audio.flight-controls@1.0.0 service and lifecycle.
+
+
+## What it does
+Bridges browser sound settings UI, user-gesture activation, document visibility and local preference storage to an optional AudioProvider. Flight code supplies read-only observations (thrust, pause, time warp, faults and terrain or smooth-body contacts); this module never mutates simulation state. Confirmed terrain contacts and smooth-body status transitions play at most one land, crash or splash cue per increasing simulation timestamp, and continuous thrust is silenced during pause, time warp above 1x, faults, hidden tabs or inactive views.
+
+## Provides and requires
+- Provides audio.flight-controls@1.0.0 through the FLIGHT_SOUND service key: creates or mounts FlightAudioControl instances.
+- Fills the audio.flight-controls slot in platform profiles.
+- Requires nothing. An AudioProvider (such as audio.procedural@1.0.0) is attached dynamically via control.setProvider(provider); when no provider is set, controls remain usable and display instructions to enable Procedural sound.
+
+## Settings
+- volume (default 0.4, from 0 to 1, step 0.01): initial linear gain for viewers without saved audio preferences, where 0 is silent and 1 is full gain; browser gesture activation is still required.
+- enabled (default 1, from 0 to 1, step 1): 0 starts sound disabled and 1 enables sound after a permitted browser gesture; a saved viewer preference in storage takes precedence.
+
+## Lifecycle
+- Initialization reads volume and enabled settings, registers a candidate-owned FLIGHT_SOUND factory and contributes this guide.
+- create(options) binds to borrowed toggle, slider and status elements in a browser document (throwing if defaultVolume is outside [0, 1] or ownerDocument.defaultView is absent) and loads saved preferences from storage key space-sim.audio/1.
+- mount(options) validates prefix against /^[a-z][a-z0-9-]{0,63}$/, replaces options.root children with the scoped sound settings template, and restores the original child nodes when the returned control is disposed or if creation throws.
+- Trusted pointerdown or keydown gestures, toggle clicks and slider inputs activate and resume the bound AudioOutput; visibilitychange and pagehide suspend output when hidden.
+- reset(contactTime) zeroes thrust and sets the simulation-time contact watermark so world loads or session reconnects do not replay old contacts.
+- Disposing a control aborts DOM listeners, disposes its AudioOutput and restores any mounted root children; disposing the provider disposes all active controls.
+
+## Remove or replace
+Provide another audio.flight-controls@1.0.0 implementation in the audio.flight-controls slot to customize sound settings UI or cue routing. If this module is removed, the host hides the sound settings section and substitutes a silent no-op controller while gameplay and rendering continue normally.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: control options and status messages may change before final freeze. Viewer preferences persist under storage key space-sim.audio/1.
+
+## Example
+examples/modules/audio-controls mounts flight sound controls into a container, attaches a custom AudioProvider and routes thrust and contact cues. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/audio-controls/module.json /tmp/example-audio-controls.spacemod
+    npm run module:validate -- /tmp/example-audio-controls.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Flight sound controls [api-reference/module/spacelab.audio-controls]
+-> game-api: audio.ts [api-reference/game-api/audio]
+-> game-api: presentation.ts [api-reference/game-api/presentation]
+
+=== Procedural sound [builtin.audio/usage]
+Public audio.procedural@1.0.0 service and lifecycle.
+
+
+## What it does
+Provides the sample-free Web Audio procedural synthesizer (builtin.audio) for engine thrust rumble and one-shot flight cues (confirm, pause, resume, warp, land, crash and splash). Synthesis is viewer-local and never feeds simulation state. Creating the provider or an AudioOutput is completely silent and allocates no AudioContext until resume() is called after a browser gesture. Engine noise and oscillator nodes are created once per output and reused; transient contact and notification voices are rate-limited to 0.06 s and capped at 8 concurrent voices.
+
+## Provides and requires
+- Provides audio.procedural@1.0.0 through the PROCEDURAL_SOUND service key: exposes the disposable AudioSynth provider.
+- Fills the audio.procedural slot in presentation profiles.
+- Requires nothing. Host sound controls (such as spacelab.audio-controls) receive the provider when enabled and remain functional without audio when it is absent.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers a candidate-owned AudioSynth under PROCEDURAL_SOUND and contributes this guide without creating an AudioContext.
+- create() returns an isolated AudioOutput whose initial volume (default 0.4) and thrust (default 0) are stored in memory until audio starts; throws if the provider is disposed.
+- resume() lazily constructs the Web Audio graph (deterministic 2-second xorshift noise buffer, highpass/lowpass filters and sine sub-rumble oscillator) on first call and resumes the AudioContext.
+- setVolume(level) and setThrust(level) clamp non-finite or out-of-range inputs to [0, 1] and smoothly ramp Web Audio gain and filter targets; play(cue) schedules a short filtered noise or sine envelope when the context is running.
+- suspend() zeroes thrust, stops active transient voices and suspends the AudioContext.
+- Disposing an output stops and disconnects all continuous and transient nodes and closes its AudioContext; disposing the provider disposes every tracked output.
+
+## Remove or replace
+Provide another audio.procedural@1.0.0 implementation in the audio.procedural slot to replace the synthesizer with custom procedural recipes or sample playback. Removing or disabling builtin.audio in ModMenu immediately disposes active outputs and leaves the simulation and renderer unaffected.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2, retaining the builtin.audio module ID for profile compatibility. Both are pre-freeze: synthesis parameters and voice limits may be tuned before final freeze.
+
+## Example
+examples/modules/audio-procedural wraps audio.procedural to create a managed sound output, clamp telemetry levels and trigger flight cues safely in headless or browser environments. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/audio-procedural/module.json /tmp/example-audio-procedural.spacemod
+    npm run module:validate -- /tmp/example-audio-procedural.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Procedural sound [api-reference/module/builtin.audio]
+-> game-api: audio.ts [api-reference/game-api/audio]
+-> game-api: presentation.ts [api-reference/game-api/presentation]
 
 === Independent follow cameras [spacelab.camera-follow/usage]
 Reusable basic camera control with an explicit flight adapter and optional smart-camera policy.
@@ -8397,6 +9112,43 @@ examples/modules/orbital-alarms demonstrates creating an orbital alarm clock, sy
 -> game-api: alarms.ts [api-reference/game-api/alarms]
 -> Alarms dock instrument: how to use, replace and remove it [spacelab.alarm-panel/usage]
 
+=== Edit the orbital course [spacelab.orbital-lessons/usage]
+Independent lesson content and simulation-checked objectives.
+
+
+## What it does
+Publishes the 24-lesson Orbital Academy curriculum (spacelab.orbital-academy, version 1) across First flights, Orbital skills and Advanced tiers, together with the Players course guide. Lesson data is pure declarative content: each lesson defines an explicit practice placement (pad, circle, ellipse, approach or encounter on Primus or Parvus), optional target orbit ratios, physics notes and steps checked by scalar telemetry conditions or multiple-choice questions. The course never mutates world physics; unsupported custom worlds or non-analytic motion models receive clear diagnostics when starting a lesson. Automatic interplanetary transfers, 3D inclination changes, N-body/Lagrange dynamics and aerodynamic reentry are outside this 2D patched-conic course.
+
+## Provides and requires
+- Provides learning.orbital-course@1.0.0 through the ORBITAL_COURSE service key: exposes the immutable OrbitalCourse lesson catalogue.
+- Fills the learning.orbital-course slot in presentation and platform profiles.
+- Requires nothing. Consumers such as spacelab.academy-ui declare learning.orbital-course@^1.0.0; if no provider fills learning.orbital-course, dependent modules fail profile resolution.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers the static course object under ORBITAL_COURSE and contributes both the Players guide (docs/players/course.json) and this Creators guide (docs/creators/usage.json).
+- Consumers read course.id, course.version, course.title and course.lessons synchronously at mount time.
+- Increment an individual lesson's version when its completion criteria change so learners re-verify only that lesson, or increment course.version when progress storage must be separated across the entire course.
+- After editing src/index.ts, rebuild the package and run npm run academy:build to embed updated module archives into dist/orbital-academy.spacegame.
+
+## Remove or replace
+Provide a replacement learning.orbital-course@1.0.0 module in the learning.orbital-course slot to supply custom lessons, practice orbits or knowledge checks without changing spacelab.academy-ui or spacelab.tutorial-runner. Removing this module is supported when no enabled module requires learning.orbital-course.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: lesson fields and observation telemetry keys may be extended before final freeze.
+
+## Example
+examples/modules/orbital-lessons inspects the provided OrbitalCourse catalogue by difficulty tier and looks up lesson practice and target orbit metadata. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/orbital-lessons/module.json /tmp/example-orbital-lessons.spacemod
+    npm run module:validate -- /tmp/example-orbital-lessons.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Orbital mechanics course [api-reference/module/spacelab.orbital-lessons]
+-> game-api: tutorials.ts [api-reference/game-api/tutorials]
+
 === Rails and shared motion services [builtin.motion/usage]
 Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.
 
@@ -9002,6 +9754,45 @@ examples/modules/transfer-planner demonstrates querying transfer solver capabili
 -> API reference: Orbital transfer search [api-reference/module/spacelab.transfer-planner]
 -> game-api: transfers.ts [api-reference/game-api/transfers]
 -> Flight plans: how to use, replace and remove it [spacelab.flight-plans/usage]
+
+=== Reusable tutorial runner [spacelab.tutorial-runner/usage]
+Read-only objectives, versioned local progress and explicit knowledge checks.
+
+
+## What it does
+Provides a bounded, read-only tutorial state machine that evaluates scalar flight observations and multiple-choice knowledge checks without touching simulation state, DOM elements, timers or session storage directly. Each lesson step requires either simulation-checked conditions or an explicit knowledge question. Timed holds accrue only across consecutive unpaused simulation seconds, and any change in flight continuity identity or simulation time rewind interrupts the active attempt.
+
+## Provides and requires
+- Provides learning.runner@1.0.0 through the TUTORIAL_RUNNERS service key: creates independent TutorialRunner instances.
+- Fills the learning.runner slot in presentation and platform profiles.
+- Requires nothing. Consumers such as spacelab.academy-ui declare learning.runner@^1.0.0; if no provider fills learning.runner, dependent modules fail profile resolution.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers TUTORIAL_RUNNERS and contributes this guide.
+- create({ storage, storageKey }) loads up to 256 completed lesson strings (each at most 160 characters) from storageKey; unavailable or corrupt storage falls back silently to an in-memory Set.
+- start(lesson, observation) validates that lesson has 1 to 64 steps, each step has either 1 to 32 conditions or a valid question (never both), holdSeconds is finite and non-negative, and allowPaused steps have holdSeconds === 0; it then records observation.values as the baseline and observation.identity as the continuity token.
+- update(observation) interrupts the attempt if observation.identity changed, observation.time is non-finite or observation.time decreased; otherwise it checks every condition against current and baseline values and advances once held for holdSeconds consecutive unpaused simulation seconds (or immediately when allowPaused is true).
+- answer(choice) checks the 0-based choice index against the current step's question, sets explanation feedback and advances on a correct answer; when the final step completes, <lesson.id>@<lesson.version> is added to completed and persisted.
+- stop() clears the active lesson and hold state; dispose() stops the runner and causes subsequent start() calls to throw.
+
+## Remove or replace
+Provide another learning.runner@1.0.0 implementation in the learning.runner slot to customize condition evaluation or progress persistence. Removing this module is supported when no enabled module requires learning.runner; if spacelab.academy-ui is enabled, removing learning.runner prevents profile resolution.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: condition operators and runner diagnostics may be refined before final freeze. Completion entries use the versioned <lesson.id>@<lesson.version> format.
+
+## Example
+examples/modules/tutorial-runner creates a runner, evaluates a timed scalar hold objective and answers a knowledge check through learning.runner. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/tutorial-runner/module.json /tmp/example-tutorial-runner.spacemod
+    npm run module:validate -- /tmp/example-tutorial-runner.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Tutorial runner [api-reference/module/spacelab.tutorial-runner]
+-> game-api: tutorials.ts [api-reference/game-api/tutorials]
 
 === Window shell and dock [spacelab.ui-shell/usage]
 Optional grouped dock and window lifecycle.

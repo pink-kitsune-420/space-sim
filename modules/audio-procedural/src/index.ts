@@ -13,5 +13,10 @@ export function createAudioSynth(): AudioSynth {
     outputs.clear(); if (errors.length) throw new AggregateError(errors, 'Audio cleanup failed');
   } });
 }
+/**
+ * Contributes the sample-free Web Audio procedural sound synthesizer (builtin.audio).
+ * Provides audio.procedural@1.0.0 in slot audio.procedural.
+ * Requires no external services and declares no settings.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({id:'usage',audience:'creators',title:"Procedural sound",summary:"Public audio.procedural@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'}); context.provide(PROCEDURAL_SOUND, context.own(createAudioSynth())); }
