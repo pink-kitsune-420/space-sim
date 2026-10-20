@@ -1,3 +1,4 @@
+/** Host-only multi-ship simulation world (`packages/sim-core`). Modules create and interact with worlds through `@space-sim/game-api` `CORE_WORLD` (`WorldFactory.create`), `WorldRead`, and `WorldControl`. */
 import { captureVehicleCatalog, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from '../../game-runtime/src/authoritative';
 import { ModuleDataStore } from '../../game-runtime/src/module-data';
@@ -23,10 +24,12 @@ export type { Ship, WorldEvent } from '../../game-api/src/index';
 const physicalIdentity = (body: ResolvedBody): string => surfaceIdentity(body)
   + (body.rotation ? `|spin:${body.rotation.period}:${body.rotation.direction}:${body.rotation.phase}` : '');
 
+/** Maximum printable character length (`32`) for a sanitized vessel display name. Host-only (`packages/sim-core`). */
 export const MAX_SHIP_NAME = 32;
+/** Regular expression (`/^[A-Za-z0-9_.:-]{1,64}$/`) validating vessel, owner, pilot, world and host identifiers in worlds and saves. Host-only (`packages/sim-core`). */
 export const SHIP_ID_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/;
 
-/** Printable, trimmed and bounded; an empty result means "use the default". */
+/** Printable, trimmed and bounded to `limit` characters; an empty result means "use the default". Host-only (`packages/sim-core`). */
 export function cleanName(name: unknown, limit = MAX_SHIP_NAME): string {
   if (typeof name !== 'string') return '';
   return name.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, limit).trim();
@@ -48,7 +51,7 @@ interface Rail {
 
 export type { WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 
-/** Every vessel in one loaded system, advanced together on a single simulation clock.
+/** Every vessel in one loaded system, advanced together on a single simulation clock (`STEP = 0.01` s per tick, `time` in `s`).
  * Ships never interact with each other; each one runs the same `advance` as single
  * flight, against the same body ephemerides and terrain profiles.
  *
@@ -56,7 +59,8 @@ export type { WorldCreationOptions as WorldOptions } from '../../game-api/src/in
  * Kepler epoch, so it sleeps until the earliest time it could change sphere of influence
  * (see `soiHorizon`); landed and wrecked ships at rest sleep until commanded. Reading a
  * sleeping ship evaluates the same expressions the per-step path would have produced, bit
- * for bit, so sleeping never changes results. */
+ * for bit, so sleeping never changes results.
+ * Host-only (`packages/sim-core`); modules create and access worlds via `@space-sim/game-api` `CORE_WORLD` (`WorldFactory.create`), `WorldRead`, and `WorldControl` (projected through `worldFacade`). */
 export class World implements WorldControl {
   readonly predictionFeatures = Object.freeze({ futureSeeds: true, endTime: true });
   readonly data: ModuleDataStore;

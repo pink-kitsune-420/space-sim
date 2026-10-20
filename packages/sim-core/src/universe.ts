@@ -1,3 +1,6 @@
+/** Host-only universe validation, celestial body ephemerides, and patched-conic SOI transitions (`packages/sim-core`).
+ * Modules access universe validation and system loading through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.validateUniverse`, `CoreMotion.services.bodies.load`), `BODY_FRAMES` (`BodyProvider.load`), and `WorldRead.system` (`LoadedSystem`).
+ * Uses SI units (`radius` and positions in `m`, velocities in `m/s`, `mass` in `kg`, `mu = GM` in `m³/s²`, angles in `rad`, `period` and `time` in `s`) and deterministic IEEE-754 float64 `dmath`. */
 import { APPEARANCE_TUNING } from '../../game-api/src/index';
 import type { AppearanceStyle, AppearanceTuning, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
 export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
@@ -8,13 +11,13 @@ import { surfaceContactTolerance } from './surface-contact';
 import { safeSurfaceLanding, surfaceSupport, validateMotionSurface } from './surface-flight';
 import * as dm from './dmath';
 
-/** Standard gravitational constant G in m^3 / (kg * s^2) */
+/** Standard gravitational constant $G$ in $\text{m}^3 / (\text{kg} \cdot \text{s}^2)$ (`6.67430e-11`). Host-only (`packages/sim-core`). */
 export const GRAVITATIONAL_CONSTANT = 6.67430e-11;
 
-/** Smallest computed sphere of influence, in body radii (authored `soi` values are kept). */
+/** Smallest computed sphere of influence, in dimensionless body radii (`1.5`; authored `soi` values are kept). Host-only (`packages/sim-core`). */
 export const MIN_SOI_RADII = 1.5;
 
-/** Calculate standard Laplace sphere of influence radius */
+/** Calculate standard Laplace sphere of influence radius $r_{\text{SOI}} = a (m / M)^{2/5}$ in `m` (`semiMajorAxis` in `m`, `bodyMass` and `parentMass` in `kg`) using deterministic `dmath.twoFifths`. Host-only (`packages/sim-core`). */
 export function calculateLaplaceSOI(semiMajorAxis: number, bodyMass: number, parentMass: number): number {
   if (parentMass <= 0 || bodyMass <= 0 || semiMajorAxis <= 0) return 0;
   return semiMajorAxis * dm.twoFifths(bodyMass / parentMass);

@@ -1,12 +1,13 @@
 import { STEP } from './constants';
 
-/** Fixed-step scheduler; stalled frames drop excess wall time and report it. */
+/** Fixed-step scheduler (`STEP = 0.01` s); stalled frames drop excess wall time (in `s`) and report it in `droppedSeconds`.
+ * Host-only (`packages/sim-core`); modules create and use clocks through `@space-sim/game-api` `CORE_CLOCK` (`ClockService.create(): SimClock`). */
 export class Clock {
   private accumulator = 0;
   droppedSeconds = 0;
   lastSteps = 0;
   reset(): void { this.accumulator = 0; this.lastSteps = 0; }
-  /** Elapsed fraction of the next step, for presentation interpolation only. */
+  /** Elapsed fraction (`[0, 1]`) of the next `0.01` s step, for presentation interpolation only. */
   get alpha(): number { return Math.max(0, Math.min(1, this.accumulator / STEP)); }
   advance(seconds: number, tick: () => void, warp = 1, maxSteps = 20): void {
     if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Invalid elapsed time');

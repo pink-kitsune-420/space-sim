@@ -1275,9 +1275,10 @@ prediction and camera. If a hook throws an error, only that contribution is swit
 The host or server advances the authoritative multiplayer world; clients receive snapshots. Replays, prediction and compatible hosts still need reproducible results. Simulation
 modules have to follow a few rules:</p>
 <ul>
-  <li>Use the maths functions from the API (<code>sin</code>, <code>cos</code>, <code>atan2</code>, <code>exp</code> and so on) instead of <code>Math.sin</code> and friends.</li>
-  <li>Use the seeded random number generator from the context. Never use <code>Math.random()</code>.</li>
+  <li>Use the IEEE-754 float64 maths functions from <code>@space-sim/game-api</code> (<code>deterministicMath</code> or the hook’s <code>math</code> table: <code>sin</code>, <code>cos</code>, <code>atan2</code>, <code>hypot</code>, <code>exp</code> and friends) instead of <code>Math.sin</code> and friends.</li>
+  <li>Use the seeded random number generator from the context. Never use <code>Math.random()</code> or wall-clock time.</li>
   <li>Keep state in the per-ship or shared-world module state that the context provides, so it saves, loads and syncs.</li>
+  <li>Use SI units everywhere and keep per-step force, motion and rule hooks allocation-light on the fixed <code>0.01</code> s step grid.</li>
 </ul>
 ${deeper('why these rules exist', `
 <p>Browsers may compute <code>Math.sin</code> and similar functions slightly differently. Over thousands of steps,
@@ -1287,7 +1288,30 @@ bit-identical results everywhere.</p>
 Module state is part of the save and of every snapshot sent to players.</p>
 <p>Each world has a fingerprint built from its modules' code, settings and model identities. Put every
 parameter that affects physics into your model identity, so two different setups can never be mistaken for
-the same one.</p>`)}`,
+the same one.</p>`)}
+${deeper('units, coordinate frames, hot paths and host services', `
+<p>All simulation contracts use <b>SI units</b> in IEEE-754 double precision: position and radii in metres (<code>m</code>),
+velocity in metres per second (<code>m/s</code>), acceleration in <code>m/s²</code>, angles in radians (<code>rad</code>),
+angular rates in <code>rad/s</code>, mass in kilograms (<code>kg</code>), gravitational parameter <code>μ = GM</code> in
+<code>m³/s²</code>, and time on the fixed <code>0.01</code> s (<code>10</code> ms) simulation step grid (<code>s</code>).</p>
+<p>Check the <b>coordinate frame</b> before combining vectors:</p>
+<ul>
+  <li><b>Primary-body-centred inertial:</b> a <code>flying</code> ship’s <code>State.position</code> and <code>velocity</code>,
+    force-hook kinematics, and two-body orbital elements (<code>ORBITAL_MOTION</code>) are measured relative to the current reference body’s centre without rotating with its ground.</li>
+  <li><b>Body-fixed rotating:</b> on a rotating body, a resting (<code>landed</code> or <code>crashed</code>) ship’s <code>State</code> and
+    polar terrain queries/sweeps (<code>SURFACE_GEOMETRY</code>) turn with the surface. Use <code>CORE_ROTATION</code> (<code>spinRate</code>,
+    <code>spinAngle</code>, <code>rotate</code>, <code>groundVelocity</code>, <code>bodyFixed</code>) to convert between body-fixed and inertial coordinates.</li>
+  <li><b>System / world inertial:</b> <code>LoadedSystem.getBodyPosition</code> and <code>getBodyVelocity</code> (<code>BODY_FRAMES</code>)
+    are measured relative to the system’s root body; multi-body trajectory predictions convert samples into the chosen reference body’s inertial frame.</li>
+</ul>
+<p><b>Zero-allocation hot paths:</b> force hooks (evaluated at both ends of every <code>0.01</code> s KDK step, plus once at any contact point),
+custom dynamics steps, surface sweeps and world rules run inside tight simulation and prediction loops. Avoid per-step array spreads,
+temporary closures or unbounded caches, and never mutate frozen input records.</p>
+<p><b>Host-only engine boundary:</b> <code>packages/sim-core</code> is host-only and cannot be imported by modules.
+Modules reach engine behavior exclusively through <code>@space-sim/game-api</code> service keys—<code>CORE_MOTION</code>,
+<code>CORE_ROTATION</code>, <code>CORE_WORLD</code>, <code>CORE_CLOCK</code>, <code>CORE_SAVE</code>, <code>CORE_COMMANDS</code>
+and <code>CORE_MODULE_DATA</code>—and the replaceable motion service slots (<code>MOTION_CONTEXTS</code>, <code>ORBITAL_MOTION</code>,
+<code>BODY_FRAMES</code>, <code>SURFACE_GEOMETRY</code>, <code>RAILS_POLICY</code>). See the <a data-page="api-reference">API reference</a> for each contract.</p>`)}`,
   },
   {
     id: 'sharing',

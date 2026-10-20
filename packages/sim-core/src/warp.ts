@@ -1,21 +1,25 @@
+/** Host-only time-warp ladder and rails safety policy (`packages/sim-core`). Modules access warp evaluation and stepping through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.checkWarpSafety`, `nextWarpFactor`, `clampWarpFactor`). */
 import type { WorldRead, WarpSafety } from '../../game-api/src/index';
 export type { WarpSafety } from '../../game-api/src/index';
 
-/** Standard stepped time-warp factors (1x to 100,000x), calibrated for smooth, predictable acceleration. */
+/** Standard stepped dimensionless time-warp factors (`1x` to `100,000x`), calibrated for smooth, predictable acceleration. Host-only (`packages/sim-core`). */
 export const WARP_FACTORS = Object.freeze([
   1, 2, 3, 4, 5, 10, 20, 50, 100, 200, 500, 1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000,
 ] as const);
+/** Union of standard stepped dimensionless time-warp multipliers in `WARP_FACTORS`. Host-only (`packages/sim-core`). */
 export type WarpFactor = typeof WARP_FACTORS[number];
 
+/** Maximum dimensionless time-warp multiplier (`100,000x`) permitted when all ships are on analytic Kepler rails or at rest. Host-only (`packages/sim-core`). */
 export const MAX_WARP = 100_000;
-/** Maximum warp permitted while numerical integration is active (thrust or proximity). */
+/** Maximum dimensionless warp multiplier (`4x`) permitted while fixed `0.01` s numerical integration is active (thrust, steering, or surface/water proximity). Host-only (`packages/sim-core`). */
 export const PHYSICAL_WARP_MAX = 4;
 
 /** Evaluates whether high-warp time acceleration is safe for the current world state.
  * High warp (>4x) is only permitted when all ships are on rails (unpowered Kepler coast,
  * landed, or crashed) and no custom world rules require per-step execution.
  * Rails already bound skips by verified surface/SOI wake times. Orbital period and
- * nominal altitude do not limit safe analytic coasts, including many revolutions. */
+ * nominal altitude do not limit safe analytic coasts, including many revolutions.
+ * Host-only (`packages/sim-core`); exposed to modules via `CORE_MOTION.checkWarpSafety`. */
 export function checkWarpSafety(world: WorldRead): WarpSafety {
   if (world.paused) {
     return { maxGranted: 1, reason: world.fault ? `World fault: ${world.fault}` : 'Simulation is paused', railsEligible: false };

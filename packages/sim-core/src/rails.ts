@@ -1,3 +1,4 @@
+/** Host-only analytic rails horizon and wake-up min-heap (`packages/sim-core`). Modules access the conservative SOI/surface horizon through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.services.rails.horizon`) and `RAILS_POLICY` (`RailsProvider.horizon`). */
 import { elements, timeToRadius, type Elements, type OrbitalState } from './orbit';
 import { contactMargin, STEP } from './constants';
 import type { LoadedSystem, ResolvedBody } from './universe';
@@ -6,10 +7,10 @@ import * as dm from './dmath';
 /** Relative safety factor on analytic event times (their solver error is far smaller). */
 const TIME_MARGIN = 1e-6;
 
-/** Earliest simulation time, in seconds from `time`, at which a ship coasting on the given
- * two-body orbit about `body` could change sphere of influence (reach the body's exit
+/** Earliest simulation time, in seconds (`s`) from `time` (`s`), at which a ship coasting on the given
+ * two-body orbit about `body` (in `body`'s primary-body-centred inertial frame, with `position` in `m`, `velocity` in `m/s`, and `mu` in `m³/s²`) could change sphere of influence (reach the body's exit
  * radius, or come within entry radius of one of its moons) or leave Kepler motion for the
- * numerical final approach of an arc that hits the ground (`top`: highest ground radius).
+ * numerical final approach of an arc that hits the ground (`top`: highest ground radius in `m`).
  * Infinity when that can never happen; 0 when it cannot be bounded.
  *
  * Every bound is conservative, so skipping the per-step SOI test before this time cannot
@@ -20,7 +21,8 @@ const TIME_MARGIN = 1e-6;
  *   radius is within the entry radius of a (triangle inequality). Until the ship's radius
  *   reaches that band (exact two-body time) and until the gap to the moon could close at
  *   the largest possible relative speed (periapsis speed plus the moon's orbital speed),
- *   the moon is out of reach. */
+ *   the moon is out of reach.
+ * Exposed via `CORE_MOTION.services.rails.horizon` and `RAILS_POLICY`. Host-only (`packages/sim-core`). */
 export function soiHorizon(system: LoadedSystem, body: ResolvedBody, state: OrbitalState, epoch: OrbitalState,
   time: number, top = body.radius): number {
   let orbit: Elements;
@@ -91,8 +93,8 @@ export function soiHorizon(system: LoadedSystem, body: ResolvedBody, state: Orbi
   return horizon;
 }
 
-/** Binary min-heap of (tick, id, generation) wake-up entries. Stale entries are skipped by
- * the owner when popped (generation mismatch). */
+/** Binary min-heap of `(tick, id, generation)` wake-up entries backed by flat `Float64Array` buffers for zero-allocation hot-path scheduling. Stale entries are skipped by
+ * the owner (`World`) when popped (generation mismatch). Host-only (`packages/sim-core`). */
 export class WakeQueue {
   private ticks = new Float64Array(64);
   private gens = new Float64Array(64);

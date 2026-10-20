@@ -1,15 +1,18 @@
+/** Host-only patched-conic trajectory predictor (`packages/sim-core`). Modules consume multi-body trajectory predictions through `@space-sim/game-api` `WorldRead.predictShip` (and the `PREDICTIONS` `PredictionFactory` views built on it). */
 import type { GhostEnd, GhostSample, LoadedSystem, ResolvedBody, SimulationContext, State, SurfaceProfile } from '../../game-api/src/index';
 import { MAX_FLIGHT_PLAN_SECONDS } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import * as dm from './dmath';
 import { contactFraction, ghostSample } from './context';
 
-/** Display work bounds, independent of live physics. Numerical contact retains STEP. */
+/** Display work bound on total yielded `GhostSample` points (`16,384`), independent of live physics. Numerical contact retains `STEP` (`0.01` s). Host-only (`packages/sim-core`). */
 export const TRAJECTORY_MAX_SAMPLES = 16384;
+/** Maximum number of patched-conic sphere-of-influence (SOI) transitions (`16`) traced in a single `predictTrajectory` pass before returning `'open'`. Host-only (`packages/sim-core`). */
 export const TRAJECTORY_MAX_TRANSITIONS = 16;
+/** Upper cap (`365.25 * 86,400` `s`, one Julian year) on the automatic `predictTrajectory` lookahead (two initial orbital periods, at least `3,600` `s`) used when `endTime` is omitted. Host-only (`packages/sim-core`). */
 export const TRAJECTORY_MAX_SECONDS = 365.25 * 86400;
 
-/** Timed frame conversion shared by analytic and fleet/rule forecasts. */
+/** Timed coordinate-frame conversion shared by analytic and fleet/rule forecasts: transforms a `GhostSample` from `bodyId`'s primary-body-centred inertial frame into `frameId`'s inertial frame using `system` ephemerides at `sample.time` (`s`, positions in `m`, velocities in `m/s`). Host-only (`packages/sim-core`). */
 export function frameSample(sample: GhostSample, bodyId: string, frameId: string, system: LoadedSystem,
   encounter?: GhostSample['encounter']): GhostSample {
   if (bodyId === frameId && !encounter) return { ...sample, bodyId, frameId };
@@ -29,8 +32,9 @@ export function frameSample(sample: GhostSample, bodyId: string, frameId: string
 }
 
 /** Patched conics use the SAME conservative rails horizon and fixed-grid SOI checks as
- * live flight. Outside a verified analytic interval, one yield performs one live step.
- * No renderer, browser, wall clock or authority writes. The caller owns this context. */
+ * live flight. Outside a verified analytic interval, one yield performs one live `0.01` s step.
+ * No renderer, browser, wall clock or authority writes. The caller owns this `context`.
+ * Exposed to modules through `WorldRead.predictShip`. Host-only (`packages/sim-core`). */
 export function* predictTrajectory(context: SimulationContext, initial: State, initialBody: ResolvedBody,
   system: LoadedSystem, surfaces: ReadonlyMap<string, SurfaceProfile>, coarse = false, endTime?: number): Generator<GhostSample, GhostEnd> {
   if (initial.status !== 'flying') return 'grounded';
