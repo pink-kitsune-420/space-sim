@@ -322,6 +322,8 @@ describe('flight data toolset', () => {
     expect(candidate.lock.order).toEqual(['builtin.canvas', 'builtin.flight-data', 'builtin.webgl', 'example.lead-camera']);
     const s = snapshot(flying({ x: 0, y: 700 }, { x: 160, y: 0 }));
     const target = runner.camera('example.lead-camera/lead', Object.freeze({ ...s, scale: .5 }))!;
+    expect('center' in target).toBe(true);
+    if (!('center' in target)) throw new Error('Expected single CameraTarget');
     // A third of the 600 px side at 0.5 px/m: 400 m ahead along +X.
     expect(target.center.x - s.ship!.position.x).toBeCloseTo(400, 9);
     expect(target.center.y).toBeCloseTo(s.ship!.position.y, 9);

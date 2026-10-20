@@ -2,7 +2,7 @@
 import { captureVehicleCatalog, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from '../../game-runtime/src/authoritative';
 import { ModuleDataStore } from '../../game-runtime/src/module-data';
-import type { Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
+import type { AvatarControls, AvatarMode, AvatarState, Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import { createSimulationContext, ghostSample, magnitude, normalizeAngle, setGodMode } from './context';
@@ -12,13 +12,13 @@ import { captureCommands } from '../../game-runtime/src/commands';
 import { DEFAULT_BUILTIN_LOCK, computeAuthoritativeLock, computeSimulationFingerprint } from '../../game-runtime/src/authoritative';
 import * as dm from './dmath';
 import { BUILTIN_SERVICES } from './services';
-import { surfaceIdentity, type SurfaceProfile } from './surface';
+import { evaluateSafeRadialGravity, querySurface, surfaceIdentity, type SurfaceProfile } from './surface';
 import { WakeQueue } from './rails';
 import { frameSample, predictTrajectory } from './trajectory';
-import { groundPreset } from './spin';
+import { groundPreset, groundVelocity, spinAngle, spinRate } from './spin';
 import { type LoadedSystem, type ResolvedBody, type UniverseDefinition } from './universe';
 
-export type { Ship, WorldEvent } from '../../game-api/src/index';
+export type { AvatarControls, AvatarMode, AvatarState, Ship, WorldEvent } from '../../game-api/src/index';
 
 /** Everything about a body's ground that motion depends on: its surface and how it turns. */
 const physicalIdentity = (body: ResolvedBody): string => surfaceIdentity(body)
@@ -130,6 +130,9 @@ export class World implements WorldControl {
   private readonly owners = new Map<string, Set<string>>();
   private static readonly NONE: ReadonlySet<string> = new Set();
   private readonly pendingModuleEvents: WorldEvent[] = [];
+  private readonly avatarMap = new Map<string, AvatarState>();
+  private readonly avatarControlsMap = new Map<string, AvatarControls>();
+  private nextAvatarNumber = 1;
 
   readonly configuration: WorldOptions['configuration'];
   constructor(universe: UniverseDefinition, options: WorldOptions = {}) {
@@ -277,6 +280,10 @@ export class World implements WorldControl {
   }
   ship(id: string): Ship | undefined { return this.asleepRails.has(id) ? this.materialize(id) : this.fleet.get(id); }
   has(id: string): boolean { return this.fleet.has(id); }
+  avatar(id: string): AvatarState | undefined { return this.avatarMap.get(id); }
+  avatars(): readonly AvatarState[] { return [...this.avatarMap.values()]; }
+  setAvatarControls(id: string, controls: AvatarControls): void { this.avatarControlsMap.set(id, controls); }
+  putAvatar(avatar: AvatarState): void { this.avatarMap.set(avatar.id, avatar); }
   /** A stored record without evaluating it (see `records`). */
   record(id: string): Ship | undefined { return this.fleet.get(id); }
   /** Stored records without evaluating sleeping ships: their `state` may be from an earlier
@@ -437,9 +444,100 @@ export class World implements WorldControl {
     return removed;
   }
 
+  spawnAvatar(options: {
+    readonly id?: string;
+    readonly ownerId: string;
+    readonly bodyId?: string;
+    readonly parentBodyId?: string;
+    readonly position: Vec;
+    readonly velocity?: Vec;
+    readonly heading?: number;
+    readonly mode?: AvatarMode;
+    readonly mountedShipId?: string;
+    readonly revision?: number;
+  }): AvatarState {
+    const avatarId = options.id ?? `avatar-${this.nextAvatarNumber++}`;
+    const bodyId = options.bodyId ?? options.parentBodyId ?? this.system.presets[0]?.bodyId ?? 'planet';
+    const body = this.body(bodyId);
+    const surface = this.surfaces.get(bodyId);
+    const position = options.position;
+    const velocity = options.velocity ?? { x: 0, y: 0 };
+    const r = dm.hypot(position.x, position.y);
+    const angle = dm.atan2(position.y, position.x);
+    const thetaLocal = dm.normalizeAngle(angle - spinAngle(body, this.time));
+    const groundRadius = surface ? querySurface(surface, thetaLocal).groundRadius : body.radius;
+    const isNearSurface = Math.abs(r - groundRadius) <= 1.0;
+    const mode = options.mode ?? (isNearSurface ? 'surface' : 'eva');
+    const heading = options.heading ?? angle + Math.PI / 2;
+    const state: AvatarState = Object.freeze({
+      id: avatarId,
+      ownerId: options.ownerId,
+      parentBodyId: bodyId,
+      position: Object.freeze({ x: position.x, y: position.y }),
+      velocity: Object.freeze({ x: velocity.x, y: velocity.y }),
+      heading,
+      mode,
+      ...(options.mountedShipId ? { mountedShipId: options.mountedShipId } : {}),
+      revision: options.revision ?? 1,
+    });
+    this.avatarMap.set(avatarId, state);
+    return state;
+  }
+
+  removeAvatar(id: string): boolean {
+    this.avatarControlsMap.delete(id);
+    return this.avatarMap.delete(id);
+  }
+
+  boardShip(avatarId: string, shipId: string): void {
+    const avatar = this.avatarMap.get(avatarId);
+    if (!avatar) throw new Error(`Avatar ${avatarId} not found`);
+    const ship = this.fleet.get(shipId);
+    if (!ship) throw new Error(`Ship ${shipId} not found`);
+    const updated: AvatarState = Object.freeze({
+      ...avatar,
+      mode: 'boarded',
+      mountedShipId: shipId,
+      parentBodyId: ship.bodyId,
+      position: ship.state.position,
+      velocity: ship.state.velocity,
+      heading: ship.state.heading,
+      revision: avatar.revision + 1,
+    });
+    this.avatarMap.set(avatarId, updated);
+    this.pendingModuleEvents.push({ type: 'avatar-board', avatarId, shipId });
+  }
+
+  disembarkShip(avatarId: string): AvatarState {
+    const avatar = this.avatarMap.get(avatarId);
+    if (!avatar) throw new Error(`Avatar ${avatarId} not found`);
+    if (avatar.mode !== 'boarded' || !avatar.mountedShipId) {
+      throw new Error(`Avatar ${avatarId} is not boarded`);
+    }
+    const shipId = avatar.mountedShipId;
+    const ship = this.fleet.get(shipId);
+    if (!ship) throw new Error(`Mounted ship ${shipId} not found`);
+    const mode: AvatarMode = ship.state.status === 'landed' ? 'surface' : 'eva';
+    const updated: AvatarState = Object.freeze({
+      id: avatar.id,
+      ownerId: avatar.ownerId,
+      parentBodyId: ship.bodyId,
+      position: ship.state.position,
+      velocity: ship.state.velocity,
+      heading: ship.state.heading,
+      mode,
+      revision: avatar.revision + 1,
+    });
+    this.avatarMap.set(avatarId, updated);
+    this.pendingModuleEvents.push({ type: 'avatar-exit', avatarId, shipId });
+    return updated;
+  }
+
   /** Remove every ship and rewind the clock: a fresh flight in the same system. */
   reset(): void {
     this.data.clear();
+    this.avatarMap.clear();
+    this.avatarControlsMap.clear();
     if (this.trackChanges) for (const id of this.fleet.keys()) { this.changedIds.delete(id); this.removedIds.add(id); }
     this.version++;
     this.fleet.clear();
@@ -550,6 +648,7 @@ export class World implements WorldControl {
       this.fleet.set(id, next);
       if (next.fault) { this.awake.delete(id); this.touched(id); } else if (this.rails) this.sleep(next, tick);
     }
+    this.stepAvatars(events);
     this.tick = tick;
     this.time = time;
     this.version++;
@@ -584,7 +683,7 @@ export class World implements WorldControl {
 
     let stepsTaken = 0;
     while (this.tick < targetTick && !this.paused) {
-      if (this.awake.size > 0) {
+      if (this.awake.size > 0 || this.avatarMap.size > 0) {
         if (stepsTaken >= maxSteps) break;
         events.push(...this.step());
         stepsTaken++;
@@ -610,7 +709,7 @@ export class World implements WorldControl {
         }
         events.push(...this.step());
         stepsTaken++;
-        if (events.length > 0 || this.awake.size > 0 || this.paused) {
+        if (events.length > 0 || this.awake.size > 0 || this.avatarMap.size > 0 || this.paused) {
           break;
         }
       }
@@ -639,11 +738,158 @@ export class World implements WorldControl {
         }
       }
       this.ruleState = staged.state;
+      this.stepAvatars(events);
       this.tick++; this.time += STEP; this.version++;
       return events;
     } catch (error) {
       this.paused = true; this.fault = (error as Error).message;
       return [{ type: 'world-fault', message: this.fault }];
+    }
+  }
+
+  private stepAvatars(events: WorldEvent[]): void {
+    if (this.avatarMap.size === 0) return;
+    for (const [id, avatar] of this.avatarMap) {
+      if (avatar.mode === 'boarded') {
+        if (avatar.mountedShipId) {
+          const ship = this.fleet.get(avatar.mountedShipId);
+          if (ship) {
+            this.avatarMap.set(id, Object.freeze({
+              ...avatar,
+              parentBodyId: ship.bodyId,
+              position: ship.state.position,
+              velocity: ship.state.velocity,
+              heading: ship.state.heading,
+              revision: avatar.revision + 1,
+            }));
+          }
+        }
+        continue;
+      }
+
+      const ctrl = this.avatarControlsMap.get(id) ?? { move: 0, jump: 0, turn: 0 };
+      const body = this.body(avatar.parentBodyId);
+      const surface = this.surfaces.get(avatar.parentBodyId);
+
+      if (avatar.mode === 'surface') {
+        let r = dm.hypot(avatar.position.x, avatar.position.y);
+        if (r < 1e-6) r = 1e-6;
+        const r_hat = { x: avatar.position.x / r, y: avatar.position.y / r };
+        const t_hat = { x: -r_hat.y, y: r_hat.x };
+        const theta = dm.atan2(avatar.position.y, avatar.position.x);
+        const thetaLocal = dm.normalizeAngle(theta - spinAngle(body, this.time));
+        const groundRadius = surface ? querySurface(surface, thetaLocal).groundRadius : body.radius;
+
+        if (ctrl.jump > 0) {
+          const vJump = ctrl.jump * 3.0;
+          const vWalk = ctrl.move * 4.0;
+          const vx = t_hat.x * vWalk + r_hat.x * vJump;
+          const vy = t_hat.y * vWalk + r_hat.y * vJump;
+          const px = avatar.position.x + vx * STEP;
+          const py = avatar.position.y + vy * STEP;
+          const heading = ctrl.move < 0 ? dm.atan2(-t_hat.y, -t_hat.x) : dm.atan2(t_hat.y, t_hat.x);
+          this.avatarMap.set(id, Object.freeze({
+            ...avatar,
+            position: Object.freeze({ x: px, y: py }),
+            velocity: Object.freeze({ x: vx, y: vy }),
+            heading,
+            mode: 'eva',
+            revision: avatar.revision + 1,
+          }));
+          continue;
+        }
+
+        const deltaS = ctrl.move * 4.0 * STEP;
+        const deltaTheta = deltaS / groundRadius;
+        const nextTheta = dm.normalizeAngle(theta + deltaTheta);
+        const nextThetaLocal = dm.normalizeAngle(nextTheta - spinAngle(body, this.time + STEP));
+        const nextGroundRadius = surface ? querySurface(surface, nextThetaLocal).groundRadius : body.radius;
+        const r_hat_next = { x: dm.cos(nextTheta), y: dm.sin(nextTheta) };
+        const t_hat_next = { x: -r_hat_next.y, y: r_hat_next.x };
+        const px = r_hat_next.x * nextGroundRadius;
+        const py = r_hat_next.y * nextGroundRadius;
+        const groundSpd = spinRate(body) ? groundVelocity(spinRate(body), { x: px, y: py }) : { x: 0, y: 0 };
+        const vx = t_hat_next.x * (ctrl.move * 4.0) + groundSpd.x;
+        const vy = t_hat_next.y * (ctrl.move * 4.0) + groundSpd.y;
+        let heading = avatar.heading;
+        if (ctrl.move > 0) {
+          heading = dm.atan2(t_hat_next.y, t_hat_next.x);
+        } else if (ctrl.move < 0) {
+          heading = dm.atan2(-t_hat_next.y, -t_hat_next.x);
+        } else if (ctrl.turn !== 0) {
+          heading = dm.normalizeAngle(avatar.heading + ctrl.turn * Math.PI * STEP);
+        }
+        const clearance = Math.abs(r - groundRadius);
+        const mode: AvatarMode = clearance > 0.5 ? 'eva' : 'surface';
+        this.avatarMap.set(id, Object.freeze({
+          ...avatar,
+          position: Object.freeze({ x: px, y: py }),
+          velocity: Object.freeze({ x: vx, y: vy }),
+          heading,
+          mode,
+          revision: avatar.revision + 1,
+        }));
+        continue;
+      }
+
+      if (avatar.mode === 'eva') {
+        const heading = dm.normalizeAngle(avatar.heading + ctrl.turn * Math.PI * STEP);
+        const g = evaluateSafeRadialGravity(avatar.position.x, avatar.position.y, body.mu, body.radius * 0.5, { x: 0, y: 0 });
+        const fwd = { x: dm.cos(heading), y: dm.sin(heading) };
+        const aThrust = { x: fwd.x * (ctrl.move * 5.0), y: fwd.y * (ctrl.move * 5.0) };
+        let r = dm.hypot(avatar.position.x, avatar.position.y);
+        if (r < 1e-6) r = 1e-6;
+        const r_hat = { x: avatar.position.x / r, y: avatar.position.y / r };
+        const aJump = { x: r_hat.x * (ctrl.jump * 5.0), y: r_hat.y * (ctrl.jump * 5.0) };
+        const ax = g.x + aThrust.x + aJump.x;
+        const ay = g.y + aThrust.y + aJump.y;
+        const vx = avatar.velocity.x + ax * STEP;
+        const vy = avatar.velocity.y + ay * STEP;
+        const px = avatar.position.x + vx * STEP;
+        const py = avatar.position.y + vy * STEP;
+        const nextR = dm.hypot(px, py);
+        const nextTheta = dm.atan2(py, px);
+        const nextThetaLocal = dm.normalizeAngle(nextTheta - spinAngle(body, this.time + STEP));
+        const groundRadius = surface ? querySurface(surface, nextThetaLocal).groundRadius : body.radius;
+
+        if (nextR <= groundRadius) {
+          const prevR = dm.hypot(avatar.position.x, avatar.position.y);
+          const fraction = (prevR !== nextR) ? Math.max(0, Math.min(1, (prevR - groundRadius) / (prevR - nextR))) : 1;
+          events.push({ type: 'avatar-contact', avatarId: avatar.id, bodyId: avatar.parentBodyId, fraction });
+          const impactSpeed = dm.hypot(vx, vy);
+          const r_hat_next = { x: px / nextR, y: py / nextR };
+          const pSurface = { x: r_hat_next.x * groundRadius, y: r_hat_next.y * groundRadius };
+          if (impactSpeed < 8.0) {
+            const gVel = spinRate(body) ? groundVelocity(spinRate(body), pSurface) : { x: 0, y: 0 };
+            this.avatarMap.set(id, Object.freeze({
+              ...avatar,
+              position: Object.freeze(pSurface),
+              velocity: Object.freeze(gVel),
+              heading,
+              mode: 'surface',
+              revision: avatar.revision + 1,
+            }));
+          } else {
+            this.avatarMap.set(id, Object.freeze({
+              ...avatar,
+              position: Object.freeze(pSurface),
+              velocity: Object.freeze({ x: -vx * 0.2, y: -vy * 0.2 }),
+              heading,
+              mode: 'eva',
+              revision: avatar.revision + 1,
+            }));
+          }
+        } else {
+          this.avatarMap.set(id, Object.freeze({
+            ...avatar,
+            position: Object.freeze({ x: px, y: py }),
+            velocity: Object.freeze({ x: vx, y: vy }),
+            heading,
+            mode: 'eva',
+            revision: avatar.revision + 1,
+          }));
+        }
+      }
     }
   }
 
@@ -691,6 +937,7 @@ export class World implements WorldControl {
     clone.tick = this.tick; clone.time = this.time; clone.nextShipNumber = this.nextShipNumber;
     clone.rails = false;
     for (const ship of this.ships()) clone.put(structuredClone(ship));
+    for (const avatar of this.avatars()) clone.putAvatar(structuredClone(avatar));
     if (this.data.schemas.length) clone.data.apply(this.data.snapshot());
     clone.ruleState = copyRuleState(this.ruleState);
     return clone;

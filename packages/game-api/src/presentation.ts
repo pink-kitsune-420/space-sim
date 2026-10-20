@@ -370,13 +370,37 @@ export interface CameraTarget {
    * The host blends rotation changes and keeps the pilot's zoom. */
   readonly rotation?: number;
 }
-/** Synchronous presentation camera mode hook computing a `CameraTarget` once per rendered frame from a frozen `CameraInput`. */
+/** Single rectangular viewport descriptor in normalized screen space [0..1]. */
+export interface ViewportRect {
+  /** Left offset [0..1]. */
+  readonly x: number;
+  /** Top offset [0..1]. */
+  readonly y: number;
+  /** Width [0..1]. */
+  readonly width: number;
+  /** Height [0..1]. */
+  readonly height: number;
+}
+/** Individual viewport camera target in a multi-viewport presentation layout. */
+export interface SubViewportCameraTarget {
+  readonly seatSlot: number;
+  readonly center: Vec;
+  readonly rotation?: number;
+  readonly rect: ViewportRect;
+  /** Optional custom zoom scale (CSS pixels per metre) override. */
+  readonly scale?: number;
+}
+/** Multi-viewport presentation layout returned by a CameraHook. */
+export interface MultiViewportCameraFrame {
+  readonly viewports: readonly SubViewportCameraTarget[];
+}
+/** Synchronous presentation camera mode hook computing a `CameraTarget` or `MultiViewportCameraFrame` once per rendered frame from a frozen `CameraInput`. */
 export interface CameraHook {
   readonly name: string;
   /** Camera button text while selected, such as "Lead camera". */
   readonly label: string;
-  /** Once per frame while selected. */
-  frame(input: CameraInput): CameraTarget;
+  /** Once per frame while selected. May return a single camera target or a multi-viewport layout. */
+  frame(input: CameraInput): CameraTarget | MultiViewportCameraFrame;
 }
 /** Resolved presentation hook contribution (`<moduleId>/<hook.name>`) bound to its owning module identity and version. */
 export interface PresentationContribution<T> {

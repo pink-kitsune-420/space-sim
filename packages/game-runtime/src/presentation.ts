@@ -1,7 +1,7 @@
 /** Host-only (`packages/game-runtime`): presentation hook capture, output limits and fault isolation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeLayer`, `contributePanel` and `contributeCamera`. */
 import type {
-  CameraExtension, CameraHook, CameraInput, CameraTarget, LayerExtension, LayerHook, OverlayPrimitive, PanelExtension,
-  PanelHook, PanelRow, PresentationContribution, PresentationFault, PresentationView, Vec,
+  CameraExtension, CameraHook, CameraInput, CameraTarget, LayerExtension, LayerHook, MultiViewportCameraFrame, OverlayPrimitive, PanelExtension,
+  PanelHook, PanelRow, PresentationContribution, PresentationFault, PresentationView, SubViewportCameraTarget, Vec,
 } from '../../game-api/src/index';
 
 /** Most layer, panel or camera hooks per module, for each kind (`8`; `Module <id>: at most 8 <kind> hooks`). Host-only (`packages/game-runtime`). */
@@ -148,8 +148,72 @@ export function validatePanelRows(raw: unknown): readonly PanelRow[] {
   }));
 }
 
-/** Validates a camera hook result: a world-space `center` in metres (each coordinate within 1e18) and an optional finite `rotation` in radians. Host-only (`packages/game-runtime`). */
-export function validateCameraTarget(raw: unknown): CameraTarget {
+/** Validates a camera hook result: a world-space `center` in metres (each coordinate within 1e18) and an optional finite `rotation` in radians, or a `MultiViewportCameraFrame` with non-overlapping viewports within [0..1]. Host-only (`packages/game-runtime`). */
+export function validateCameraTarget(raw: unknown): CameraTarget | MultiViewportCameraFrame {
+  if (raw && typeof raw === 'object' && 'viewports' in (raw as Record<string, unknown>)) {
+    const frame = record(raw, ['viewports'], 'multi-viewport camera frame');
+    if (!Array.isArray(frame.viewports)) {
+      throw new Error('multi-viewport camera frame viewports must be an array');
+    }
+    if (frame.viewports.length === 0) {
+      throw new Error('multi-viewport camera frame viewports must not be empty');
+    }
+    const validatedViewports: SubViewportCameraTarget[] = [];
+    for (let i = 0; i < frame.viewports.length; i++) {
+      const v = record(frame.viewports[i], ['seatSlot', 'center', 'rotation', 'rect', 'scale'], `viewport ${i}`);
+      if (typeof v.seatSlot !== 'number' || !Number.isInteger(v.seatSlot) || v.seatSlot < 0) {
+        throw new Error(`viewport ${i}: seatSlot must be a non-negative integer`);
+      }
+      const center = point(v.center, 'world', `viewport ${i} center`);
+      if (v.rotation !== undefined && (typeof v.rotation !== 'number' || !Number.isFinite(v.rotation))) {
+        throw new Error(`viewport ${i}: rotation must be finite radians`);
+      }
+      if (v.scale !== undefined && (typeof v.scale !== 'number' || !Number.isFinite(v.scale) || v.scale <= 0)) {
+        throw new Error(`viewport ${i}: scale must be a positive finite number`);
+      }
+      const r = record(v.rect, ['x', 'y', 'width', 'height'], `viewport ${i} rect`);
+      const x = r.x, y = r.y, w = r.width, h = r.height;
+      if (typeof x !== 'number' || !Number.isFinite(x) || x < 0 || x >= 1) {
+        throw new Error(`viewport ${i}: rect x must be in [0, 1)`);
+      }
+      if (typeof y !== 'number' || !Number.isFinite(y) || y < 0 || y >= 1) {
+        throw new Error(`viewport ${i}: rect y must be in [0, 1)`);
+      }
+      if (typeof w !== 'number' || !Number.isFinite(w) || w <= 0 || w > 1) {
+        throw new Error(`viewport ${i}: rect width must be in (0, 1]`);
+      }
+      if (typeof h !== 'number' || !Number.isFinite(h) || h <= 0 || h > 1) {
+        throw new Error(`viewport ${i}: rect height must be in (0, 1]`);
+      }
+      if (x + w > 1.000001) {
+        throw new Error(`viewport ${i}: rect overflows horizontal bounds (x + width > 1)`);
+      }
+      if (y + h > 1.000001) {
+        throw new Error(`viewport ${i}: rect overflows vertical bounds (y + height > 1)`);
+      }
+      validatedViewports.push(Object.freeze({
+        seatSlot: v.seatSlot as number,
+        center,
+        ...(v.rotation !== undefined ? { rotation: v.rotation as number } : {}),
+        ...(v.scale !== undefined ? { scale: v.scale as number } : {}),
+        rect: Object.freeze({ x: x as number, y: y as number, width: w as number, height: h as number }),
+      }));
+    }
+
+    for (let i = 0; i < validatedViewports.length; i++) {
+      for (let j = i + 1; j < validatedViewports.length; j++) {
+        const a = validatedViewports[i]!.rect;
+        const b = validatedViewports[j]!.rect;
+        if (a.x < b.x + b.width - 1e-6 && a.x + a.width > b.x + 1e-6 &&
+            a.y < b.y + b.height - 1e-6 && a.y + a.height > b.y + 1e-6) {
+          throw new Error(`viewport rects must not overlap: viewport ${i} and viewport ${j}`);
+        }
+      }
+    }
+
+    return Object.freeze({ viewports: Object.freeze(validatedViewports) });
+  }
+
   const target = record(raw, ['center', 'rotation'], 'camera target');
   if (target.rotation !== undefined && (typeof target.rotation !== 'number' || !Number.isFinite(target.rotation))) {
     throw new Error('camera rotation must be finite radians');
@@ -201,7 +265,7 @@ export class PresentationHooks {
     return output;
   }
   /** Undefined when the mode is unknown or has been disabled by a fault. */
-  camera(id: string, input: CameraInput): CameraTarget | undefined {
+  camera(id: string, input: CameraInput): CameraTarget | MultiViewportCameraFrame | undefined {
     const camera = this.cameras.find(c => c.id === id);
     if (!camera || this.disabled.has(id)) return undefined;
     try { return validateCameraTarget(camera.hook.frame(input)); } catch (error) { this.fail('camera', camera, error); return undefined; }

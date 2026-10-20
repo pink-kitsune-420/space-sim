@@ -4,7 +4,7 @@ import type { ModuleProfile, ModuleEnvironment } from './modules';
 import type { ModuleProfileV2 } from './modules-v2';
 import type { AuthoritativeLock, ModuleLock, Disposable } from './modules';
 import type { Controls, State, Vec, GhostSample, GhostEnd } from './state';
-import type { Ship, WorldEvent } from './world';
+import type { AvatarControls, AvatarMode, AvatarState, Ship, WorldEvent } from './world';
 import type { SimulationContext, SimulationContextFactory } from './context';
 import type { UniverseDefinition, LoadedSystem, ResolvedBody, VehicleDefaults } from './universe';
 import type { SurfaceProfile } from './surface';
@@ -45,6 +45,18 @@ export interface SavedShip {
   readonly coast?: SavedCoast;
   readonly fault?: string;
   readonly moduleState?: Readonly<Record<string, ModuleState>>;
+}
+/** Lightweight body-relative avatar snapshot for world saves. */
+export interface SavedAvatar {
+  readonly id: string;
+  readonly ownerId: string;
+  readonly parentBodyId: string;
+  readonly position: Pair;
+  readonly velocity: Pair;
+  readonly heading: number;
+  readonly mode: AvatarMode;
+  readonly mountedShipId?: string;
+  readonly revision: number;
 }
 /** A player identity. Only a SHA-256 hash of the secret reconnect token is stored. */
 export interface SavedPlayer {
@@ -88,6 +100,7 @@ export interface WorldSave {
   readonly hostId?: string;
   readonly players: readonly SavedPlayer[];
   readonly ships: readonly SavedShip[];
+  readonly avatars?: readonly SavedAvatar[];
   readonly lock?: AuthoritativeLock | ModuleLock;
   readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
@@ -115,6 +128,7 @@ export interface WorldRead {
   readonly surfaces: ReadonlyMap<string, SurfaceProfile>;
   record(id: string): Ship | undefined; records(): IterableIterator<Ship>;
   ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;
+  avatar(id: string): AvatarState | undefined; avatars(): readonly AvatarState[];
   awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;
   ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;
   stateAt(id: string, time: number): State | undefined;
@@ -140,6 +154,11 @@ export interface WorldControl extends WorldRead, Disposable {
   spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;
   respawn(id: string, preset?: string, godMode?: boolean): Ship;
   teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;
+  spawnAvatar(options: { readonly id?: string; readonly ownerId: string; readonly bodyId: string; readonly position: Vec; readonly velocity?: Vec }): AvatarState;
+  removeAvatar(id: string): boolean;
+  boardShip(avatarId: string, shipId: string): void;
+  disembarkShip(avatarId: string): AvatarState;
+  setAvatarControls?(id: string, controls: AvatarControls): void;
   reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;
   rename(id: string, name: string): void; clearFault(id: string): void;
   setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;
@@ -177,6 +196,8 @@ export interface SaveCodec {
   };
   shipToSaved(ship: Ship): SavedShip;
   shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;
+  avatarToSaved?(avatar: AvatarState): SavedAvatar;
+  avatarFromSaved?(raw: unknown, context?: string): AvatarState;
   playerFromSaved(raw: unknown, context?: string): SavedPlayer;
 }
 /** Fixed-timestep accumulator converting elapsed wall-clock seconds into discrete `0.01 s` simulation ticks and an interpolation fraction `alpha` in `[0, 1)`. */

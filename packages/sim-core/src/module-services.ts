@@ -8,7 +8,7 @@ import { spinRate, spinAngle, rotate, groundVelocity, bodyFixed } from './spin';
 import { IDLE, MODEL, STEP } from './constants';
 import { createSimulationContext, magnitude, normalizeAngle } from './context';
 import { World } from './world';
-import { DEFAULT_BUILTIN_LOCK, loadWorld, playerFromSaved, saveWorld, shipFromSaved, shipToSaved } from './save';
+import { DEFAULT_BUILTIN_LOCK, avatarFromSaved, avatarToSaved, loadWorld, playerFromSaved, saveWorld, shipFromSaved, shipToSaved } from './save';
 import { BUILTIN_SERVICES } from './services';
 import { validateUniverse } from './universe';
 import { checkWarpSafety, clampWarpFactor, nextWarpFactor } from './warp';
@@ -36,6 +36,7 @@ export function worldFacade(world: WorldControl): { readonly read: WorldRead; re
     get version() { return world.version; }, get nextShipNumber() { return world.nextShipNumber; }, get saveVersion() { return world.saveVersion; },
     get migrateState() { return world.migrateState; }, get surfaces() { return world.surfaces; },
     record: world.record.bind(world), records: world.records.bind(world), ship: world.ship.bind(world), ships: world.ships.bind(world),
+    avatar: world.avatar.bind(world), avatars: world.avatars.bind(world),
     has: world.has.bind(world), awakeShips: world.awakeShips.bind(world), previous: world.previous.bind(world), ownedBy: world.ownedBy.bind(world),
     isAsleep: world.isAsleep.bind(world), settles: world.settles.bind(world), stateAt: world.stateAt.bind(world), hasBody: world.hasBody.bind(world),
     body: world.body.bind(world), surface: world.surface.bind(world), presetId: world.presetId.bind(world), presetState: world.presetState.bind(world),
@@ -44,13 +45,16 @@ export function worldFacade(world: WorldControl): { readonly read: WorldRead; re
   const control: WorldControl = Object.freeze(Object.assign(Object.create(read, { data: { value: world.data, enumerable: true } }) as WorldControl, {
     setControls: world.setControls.bind(world), setThrottle: world.setThrottle.bind(world), step: world.step.bind(world), advanceTo: world.advanceTo.bind(world),
     put: world.put.bind(world), remove: world.remove.bind(world), spawn: world.spawn.bind(world), respawn: world.respawn.bind(world),
-    teleport: world.teleport.bind(world), reset: world.reset.bind(world), setGodMode: world.setGodMode.bind(world), setGodModeAll: world.setGodModeAll.bind(world),
+    teleport: world.teleport.bind(world), spawnAvatar: world.spawnAvatar.bind(world), removeAvatar: world.removeAvatar.bind(world),
+    boardShip: world.boardShip.bind(world), disembarkShip: world.disembarkShip.bind(world),
+    setAvatarControls: world.setAvatarControls ? world.setAvatarControls.bind(world) : undefined,
+    reset: world.reset.bind(world), setGodMode: world.setGodMode.bind(world), setGodModeAll: world.setGodModeAll.bind(world),
     rename: world.rename.bind(world), clearFault: world.clearFault.bind(world), setModuleState: world.setModuleState.bind(world), adopt: world.adopt.bind(world),
     restoreClock: world.restoreClock.bind(world), subscribeChanges: world.subscribeChanges.bind(world), dispose: world.dispose.bind(world),
   }));
   return Object.freeze({ read, control });
 }
-const saveCodec: SaveCodec = Object.freeze({ defaultLock: DEFAULT_BUILTIN_LOCK, save: saveWorld, shipFromSaved, shipToSaved, playerFromSaved,
+const saveCodec: SaveCodec = Object.freeze({ defaultLock: DEFAULT_BUILTIN_LOCK, save: saveWorld, shipFromSaved, shipToSaved, avatarFromSaved, avatarToSaved, playerFromSaved,
   load: (raw: unknown, options?: Parameters<SaveCodec['load']>[1]) => { const loaded = loadWorld(raw, options); return { ...loaded, world: worldFacade(loaded.world).control }; } });
 /** The single fixed motion kernel exposed to modules through `@space-sim/game-api` `CORE_MOTION` (`core.motion@1.0.0`), also borrowed by
  * the explicit v1 compatibility adapter without changing legacy service identity. Host-only (`packages/sim-core`). */
