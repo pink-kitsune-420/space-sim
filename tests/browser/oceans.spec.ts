@@ -148,8 +148,8 @@ test('offline ocean flight predicts splashes, floats, dives, crashes and resets'
   } finally { await page.keyboard.up('ArrowRight'); }
   await page.keyboard.down('Space');
   await expect(page.locator('#status')).toHaveText('SUBMERGED');
-  await page.keyboard.up('Space');
   await expect.poll(async () => (await debug(page)).waterDepth).toBeGreaterThan(.25);
+  await page.keyboard.up('Space');
   await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Reset flight' }).click();
   await page.locator('#preset').selectOption('pad');

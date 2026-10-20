@@ -693,7 +693,10 @@ for(const destinationId of ['moon','velum'] as const)for(const automatic of [fal
  await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
  await expect(page.locator('#maneuver-nodes option')).toHaveText([/flown/,new RegExp(`Correction · ${destination.name}.*flown`),/flown/]);
  await expect(page.getByRole('button',{name:'Clear completed plan',exact:true})).toBeEnabled();
- await page.locator('#pause').click();const beforeClear=await debug(page);
+ if(await page.locator('#pause').textContent()==='Pause'){await page.locator('#pause').click();}
+ await expect(page.locator('#status')).toHaveText('PAUSED');
+ await page.waitForTimeout(100);
+ const beforeClear=await debug(page);
  await page.getByRole('button',{name:'Clear completed plan',exact:true}).click();
  await expect.poll(async()=>(await debug(page)).maneuver).toBeNull();
  const afterClear=await debug(page);expect(afterClear.tick).toBe(beforeClear.tick);expect(afterClear.position).toEqual(beforeClear.position);expect(afterClear.velocity).toEqual(beforeClear.velocity);
