@@ -1,0 +1,48 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.chat-history-formatter",
+    "name": "Chat history formatter example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "node",
+      "offline"
+    ],
+    "tier": "platform",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.chat-history-formatter",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "ui.chat",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.chat-history-formatter"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

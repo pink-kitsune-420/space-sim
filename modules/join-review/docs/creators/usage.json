@@ -2,15 +2,96 @@
   "id": "usage",
   "audience": "creators",
   "title": "Server pack review",
-  "summary": "Exact server/source/module review with Cancel focused by default.",
+  "summary": "Exact package review and explicit consent with Cancel focused by default.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides ui.join-review@1.0.0 in browser/offline. Displays the selected server address/name, protocol, required package versions, digests, license, source availability, code/data and total transfer size. Cancel has default focus. Code consent explains access to game data, input and network. Both code and changed data require exact-offer review."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The review UI returns a decision only. The host installer separately verifies all content, stages authority, installs atomically and records scoped approval. Cached bytes never imply consent. Aborting or disposing the service closes dialogs and restores focus. No simulation or authoritative save state is owned here."
+      "text": "This module renders an accessible modal dialog prompting the user to review and approve game packages required by a remote multiplayer server. It details the server endpoint, total download size, required module versions, licenses, architectural tiers, and exact SHA-256 digests. If an offer contains executable code, it presents an explicit security warning and places default keyboard focus on the Cancel button to prevent accidental approval."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.join-review@1.0.0 through the JOIN_REVIEW key: a JoinReviewService instance.",
+        "Requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization instantiates and provides the JoinReviewService, registered for owned disposal.",
+        "review(offer, address, signal) creates and mounts a standard HTML dialog element, styling it according to active UI theme variables.",
+        "The dialog autofocuses the Cancel action; pressing Escape or clicking Cancel rejects the offer, resolving the promise to false.",
+        "Selecting 'Install and join' approves the offer, resolving to true.",
+        "Aborting the signal cancels the dialog and removes it from the document body.",
+        "Disposing the service cancels any pending review modal and cleans up active listeners."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module is a platform-tier presentation provider designed for browser environments. Headless dedicated servers do not need it. In custom client distributions or automated test rigs, it can be replaced by a module that automatically accepts or filters packages. To replace it, author a module providing ui.join-review@1.0.0 implementing JoinReviewService."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Dialog presentation and styling conform to current Spacelab UI theme guidelines."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/join-review demonstrates creating a custom automated review service that verifies required package tiers without displaying DOM modals. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/join-review/module.json /tmp/join-review-example.spacemod\nnpm run module:validate -- /tmp/join-review-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api join-pack.ts: JoinReviewService and JoinOffer contracts",
+      "page": "api-reference/game-api/join-pack"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Server pack review",
+      "page": "api-reference/module/spacelab.join-review"
     }
   ]
 }

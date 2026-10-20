@@ -44,6 +44,7 @@ export function createFlightSessions(services: FlightSessionServices): FlightSes
     },
   };
 }
+/** Initialize the flight sessions module, providing session.flight@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Flight sessions',
     summary: 'Explicit flight protocol using privileged public engine ports and replaceable transports.', asset: 'docs/creators/usage.json' });

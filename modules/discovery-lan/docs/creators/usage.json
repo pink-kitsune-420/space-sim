@@ -2,19 +2,100 @@
   "id": "usage",
   "audience": "creators",
   "title": "LAN discovery",
-  "summary": "Bounded discovery with borrowed transport and explicit session greeting adapters.",
+  "summary": "Borrowed text transports and explicit greeting codecs; no world dependencies.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides net.lan-discovery@1.0.0 in browser, offline and Node. No required services and no network IO during initialization. Create a discovery instance with a borrowed reliable text transport, expected protocol ID and bounded greeting parser from a compatible session adapter. Model matching is optional and explicit."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Candidate generation uses private IPv4 hint subnets, common home subnets and localhost at an explicitly selected port. Scan defaults to 32 concurrent probes, capped at 64, with 800 ms probe timeout. Disposing an instance/provider or aborting a scan cancels pending and established probes, removes timers and suppresses late reports. No world, pilot, renderer or authoritative persistence is owned by discovery."
+      "text": "This module scans local network addresses to discover active multiplayer game servers. It generates candidate endpoint lists across local subnet ranges, opens probe connections over a borrowed TransportProvider, reads the server's initial handshake greeting, and validates protocol identifier and universe model compatibility without importing world or physics logic."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides net.lan-discovery@1.0.0 through the LAN_DISCOVERY key: a LanDiscoveryFactory instance.",
+        "Requires no services at initialization. Probing requires a caller-supplied TransportProvider (such as net.websocket)."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "timeoutMs (default 800, from 1 to 60000, step 1): Maximum wait for one candidate server to return a compatible greeting in milliseconds. A scan can explicitly override this default.",
+        "concurrency (default 32, from 1 to 64, step 1): Maximum number of candidate addresses probed together. Lower values reduce network load; higher values complete large scans sooner.",
+        "maxGreetingLength (default 16384, from 1 to 65536, step 1): Maximum UTF-16 characters accepted in a discovery greeting. Larger session messages are handled by the transport, not discovery."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization instantiates and provides the LanDiscoveryFactory configured with active module settings.",
+        "create(options) builds a dedicated LanDiscovery scanner bound to a transport, protocol ID, and greeting parser.",
+        "candidates(hints, port) generates candidate address lists from subnet hints and common private network prefixes.",
+        "probe(address, timeoutMs?, signal?) initiates a single handshake probe, closing the connection as soon as a greeting arrives or timeout expires.",
+        "scan(candidates, options) coordinates worker pools up to the concurrency limit, invoking onfound and onprogress callbacks.",
+        "Disposing the discovery instance or factory aborts all pending probe connections immediately."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Discovery reports compatibility metadata only. Joining still requires matching state/command schemas, package identity, authentication and ownership checks. Optional removal leaves manual server addresses available. Build, edit, rebuild and replace the .spacemod through ordinary consent."
+      "text": "Removing this module disables automated LAN server scanning in multiplayer menus. Manual IP entry, tab discovery, and WebRTC invite codes remain operational. To replace it, author a module providing net.lan-discovery@1.0.0 implementing LanDiscoveryFactory."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: discovery interfaces and candidate formats may be updated before release."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/discovery-lan demonstrates generating LAN candidate addresses and scanning endpoints with a mock transport. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/discovery-lan/module.json /tmp/discovery-lan-example.spacemod\nnpm run module:validate -- /tmp/discovery-lan-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api session-discovery.ts: LanDiscovery and LanDiscoveryFactory contracts",
+      "page": "api-reference/game-api/session-discovery"
+    },
+    {
+      "type": "link",
+      "text": "API reference: LAN discovery",
+      "page": "api-reference/module/spacelab.discovery-lan"
     }
   ]
 }

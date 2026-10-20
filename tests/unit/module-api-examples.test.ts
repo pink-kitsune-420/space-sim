@@ -1,10 +1,14 @@
 import { expect, it, vi } from 'vitest';
-import { FLIGHT_HUD_STATE, FLIGHT_PLANS, LOCAL_PILOTS, THROTTLE_HUD, type FlightHudAdapter, type ManifestV2, type ModuleProfileV2,
-  type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type ThrottleLeverState } from '../../packages/game-api/src/index';
+import { FLIGHT_HUD_STATE, FLIGHT_PLANS, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
+  type FlightHudAdapter, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
+  type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type TextConnection,
+  type ThrottleLeverState, type TransportProvider } from '../../packages/game-api/src/index';
 import { ModuleRegistryV2, moduleAssets } from '../../packages/game-runtime/src/modules-v2';
 import { World } from '../../packages/sim-core/src/world';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
 import { saveWorld } from '../../packages/sim-core/src/save';
+import { engineModuleServices } from '../../packages/sim-core/src/module-services';
+import { nativeWebSocketCodecs } from '../../apps/server/src/websocket';
 import { createViewHud } from '../../modules/view-hud/src/index';
 import throttleInitialize from '../../modules/throttle-hud/src/index';
 import throttleDescriptor from '../../modules/throttle-hud/module.json';
@@ -70,9 +74,63 @@ import menuGuide from '../../modules/controller-menu/docs/creators/usage.json';
 import minimalMenuInitialize, { MINIMAL_MENU } from '../../examples/modules/controller-menu/src/main';
 import minimalMenuDescriptor from '../../examples/modules/controller-menu/module.json';
 
+import netWebsocketInitialize from '../../modules/net-websocket/src/index';
+import netWebsocketDescriptor from '../../modules/net-websocket/module.json';
+import netWebsocketGuide from '../../modules/net-websocket/docs/creators/usage.json';
+import wsClientInitialize, { WEBSOCKET_CLIENT, createWebSocketClientHelper } from '../../examples/modules/net-websocket/src/main';
+import wsClientDescriptor from '../../examples/modules/net-websocket/module.json';
+
+import netNodeWsInitialize from '../../modules/net-node-ws/src/index';
+import netNodeWsDescriptor from '../../modules/net-node-ws/module.json';
+import netNodeWsGuide from '../../modules/net-node-ws/docs/creators/usage.json';
+import customNodeWsInitialize, { CUSTOM_NODE_WS } from '../../examples/modules/net-node-ws/src/main';
+import customNodeWsDescriptor from '../../examples/modules/net-node-ws/module.json';
+
+import netTabInitialize from '../../modules/net-tab/src/index';
+import netTabDescriptor from '../../modules/net-tab/module.json';
+import netTabGuide from '../../modules/net-tab/docs/creators/usage.json';
+import tabBridgeInitialize, { TAB_BRIDGE } from '../../examples/modules/net-tab/src/main';
+import tabBridgeDescriptor from '../../examples/modules/net-tab/module.json';
+
+import netWebrtcInitialize from '../../modules/net-webrtc/src/index';
+import netWebrtcDescriptor from '../../modules/net-webrtc/module.json';
+import netWebrtcGuide from '../../modules/net-webrtc/docs/creators/usage.json';
+import webrtcExchangeInitialize, { WEBRTC_EXCHANGE } from '../../examples/modules/net-webrtc/src/main';
+import webrtcExchangeDescriptor from '../../examples/modules/net-webrtc/module.json';
+
+import discoveryLanInitialize from '../../modules/discovery-lan/src/index';
+import discoveryLanDescriptor from '../../modules/discovery-lan/module.json';
+import discoveryLanGuide from '../../modules/discovery-lan/docs/creators/usage.json';
+import lanScannerInitialize, { LAN_SCANNER } from '../../examples/modules/discovery-lan/src/main';
+import lanScannerDescriptor from '../../examples/modules/discovery-lan/module.json';
+
+import sessionFlightInitialize from '../../modules/session-flight/src/index';
+import sessionFlightDescriptor from '../../modules/session-flight/module.json';
+import sessionFlightGuide from '../../modules/session-flight/docs/creators/usage.json';
+import flightHostManagerInitialize, { FLIGHT_HOST_MANAGER } from '../../examples/modules/session-flight/src/main';
+import flightHostManagerDescriptor from '../../examples/modules/session-flight/module.json';
+
+import sessionJoinInitialize from '../../modules/session-join/src/index';
+import sessionJoinDescriptor from '../../modules/session-join/module.json';
+import sessionJoinGuide from '../../modules/session-join/docs/creators/usage.json';
+import joinNegotiatorInitialize, { JOIN_NEGOTIATOR } from '../../examples/modules/session-join/src/main';
+import joinNegotiatorDescriptor from '../../examples/modules/session-join/module.json';
+
+import joinReviewInitialize from '../../modules/join-review/src/index';
+import joinReviewDescriptor from '../../modules/join-review/module.json';
+import joinReviewGuide from '../../modules/join-review/docs/creators/usage.json';
+import headlessJoinReviewInitialize from '../../examples/modules/join-review/src/main';
+import headlessJoinReviewDescriptor from '../../examples/modules/join-review/module.json';
+
+import chatConsoleInitialize from '../../modules/chat-console/src/index';
+import chatConsoleDescriptor from '../../modules/chat-console/module.json';
+import chatConsoleGuide from '../../modules/chat-console/docs/creators/usage.json';
+import chatHelperInitialize, { CHAT_HELPER } from '../../examples/modules/chat-console/src/main';
+import chatHelperDescriptor from '../../examples/modules/chat-console/module.json';
+
 // The Creators guides link these examples; each test exercises the behavior its guide describes.
-function registry(entries: readonly (readonly [unknown, RegisteredModuleV2['initialize'], unknown?])[]): ModuleRegistryV2 {
-  const result = new ModuleRegistryV2();
+function registry(entries: readonly (readonly [unknown, RegisteredModuleV2['initialize'], unknown?])[], hostServices: readonly HostServiceAccess[] = []): ModuleRegistryV2 {
+  const result = new ModuleRegistryV2(hostServices);
   for (const [descriptor, initialize, guide] of entries) {
     const files = new Map(guide ? [['docs/creators/usage.json', new TextEncoder().encode(JSON.stringify(guide))] as const] : []);
     result.register({ manifest: (descriptor as { manifest: ManifestV2 }).manifest, initialize }, moduleAssets(files));
@@ -430,4 +488,274 @@ it('configures player counts and device assignments headlessly via controller-me
     candidate.dispose();
   }
 });
+
+it('connects and handles text messages via net-websocket client helper example', async () => {
+  const graph = registry([[netWebsocketDescriptor, netWebsocketInitialize, netWebsocketGuide], [wsClientDescriptor, wsClientInitialize]]);
+  const candidate = graph.prepare(profile([netWebsocketDescriptor, wsClientDescriptor], {
+    'net.websocket': 'spacelab.net-websocket',
+    'example.websocket-custom-client': 'example.websocket-custom-client',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(WEBSOCKET_CLIENT);
+    expect(helper).toBeDefined();
+    const mockPeer: TextConnection = {
+      label: 'test-peer',
+      bufferedAmount: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+      onmessage: null,
+      onclose: null,
+    };
+    const mockTransport: TransportProvider = {
+      name: 'mock',
+      schemes: ['ws'],
+      connect: vi.fn(async () => mockPeer),
+    };
+    const client = await createWebSocketClientHelper(mockTransport).connect('ws://localhost:8080', new AbortController().signal);
+    expect(client.address).toBe('ws://localhost:8080');
+    client.send('ping');
+    expect(mockPeer.send).toHaveBeenCalledWith('ping');
+    mockPeer.onmessage?.('pong');
+    expect(client.messages).toEqual(['pong']);
+    client.close();
+    expect(mockPeer.close).toHaveBeenCalled();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('accepts server upgrades via net-node-ws example', () => {
+  const hostAccess: HostServiceAccess = { key: NODE_WEBSOCKET_CODECS, service: nativeWebSocketCodecs, tiers: ['network'], environments: ['node'] };
+  const graph = registry([[netNodeWsDescriptor, netNodeWsInitialize, netNodeWsGuide], [customNodeWsDescriptor, customNodeWsInitialize]], [hostAccess]);
+  const candidate = graph.prepare(profile([netNodeWsDescriptor, customNodeWsDescriptor], {
+    'net.node-ws': 'spacelab.net-node-ws',
+    'example.node-ws-custom-server': 'example.node-ws-custom-server',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(CUSTOM_NODE_WS);
+    expect(helper).toBeDefined();
+    const mockReq = { headers: {} } as any;
+    const mockStream = { on: vi.fn(), write: vi.fn(), end: vi.fn(), destroy: vi.fn() } as any;
+    const result = helper.upgrade(mockReq, mockStream, new Uint8Array(0));
+    expect(result).toBeUndefined();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('creates scoped networks with custom channel factory via net-tab example', () => {
+  const graph = registry([[netTabDescriptor, netTabInitialize, netTabGuide], [tabBridgeDescriptor, tabBridgeInitialize]]);
+  const candidate = graph.prepare(profile([netTabDescriptor, tabBridgeDescriptor], {
+    'net.tab': 'spacelab.net-tab',
+    'example.tab-channel-bridge': 'example.tab-channel-bridge',
+  }), 'browser');
+  try {
+    const bridge = candidate.providedService(TAB_BRIDGE);
+    expect(bridge).toBeDefined();
+    const network = bridge.createScopedNetwork('test-universe', 'space-sim-flight/1');
+    expect(network.scope).toBe('test-universe');
+    expect(network.protocolId).toBe('space-sim-flight/1');
+    network.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('validates invitation format strings and generates codes via net-webrtc example', async () => {
+  const graph = registry([[netWebrtcDescriptor, netWebrtcInitialize, netWebrtcGuide], [webrtcExchangeDescriptor, webrtcExchangeInitialize]]);
+  const candidate = graph.prepare(profile([netWebrtcDescriptor, webrtcExchangeDescriptor], {
+    'net.webrtc-signaling': 'spacelab.net-webrtc',
+    'example.webrtc-manual-exchange': 'example.webrtc-manual-exchange',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(WEBRTC_EXCHANGE);
+    expect(helper.validateCode('SSO1.test-offer')).toBe('invite');
+    expect(helper.validateCode('SSA1.test-reply')).toBe('reply');
+    expect(helper.validateCode('random-text')).toBe('invalid');
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('generates LAN candidate addresses and scans endpoints via discovery-lan example', async () => {
+  const graph = registry([[discoveryLanDescriptor, discoveryLanInitialize, discoveryLanGuide], [lanScannerDescriptor, lanScannerInitialize]]);
+  const candidate = graph.prepare(profile([discoveryLanDescriptor, lanScannerDescriptor], {
+    'net.lan-discovery': 'spacelab.discovery-lan',
+    'example.lan-service-scanner': 'example.lan-service-scanner',
+  }), 'browser');
+  try {
+    const scanner = candidate.providedService(LAN_SCANNER);
+    const candidates = scanner.generateCandidates(['192.168.1.5'], 8080);
+    expect(candidates).toContain('192.168.1.5:8080');
+    const mockTransport: TransportProvider = {
+      name: 'mock',
+      schemes: ['http'],
+      connect: vi.fn(async () => { throw new Error('Refused'); }),
+    };
+    const found = await scanner.scan(mockTransport, 'space-sim-flight/1', ['http://192.168.1.5:8080'], { timeoutMs: 10 });
+    expect(found).toEqual([]);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('starts authoritative flight session host and steps world via session-flight example', () => {
+  const hostServices = engineModuleServices();
+  const graph = registry([[sessionFlightDescriptor, sessionFlightInitialize, sessionFlightGuide], [flightHostManagerDescriptor, flightHostManagerInitialize]], hostServices);
+  const candidate = graph.prepare(profile([sessionFlightDescriptor, flightHostManagerDescriptor], {
+    'session.flight': 'spacelab.session-flight',
+    'example.flight-session-host': 'example.flight-session-host',
+  }), 'node');
+  const world = new World(DEFAULT_UNIVERSE, { id: 'api-example-flight-host' });
+  try {
+    const manager = candidate.providedService(FLIGHT_HOST_MANAGER);
+    const host = manager.startSession(world, { name: 'Test Flight' });
+    expect(host.settings.name).toBe('Test Flight');
+    expect(host.paused).toBe(false);
+    manager.stepSession(host, 2);
+    host.close();
+  } finally {
+    candidate.dispose();
+    world.dispose();
+  }
+});
+
+it('performs prejoin client negotiation via session-join example', async () => {
+  const graph = registry([[sessionJoinDescriptor, sessionJoinInitialize, sessionJoinGuide], [joinNegotiatorDescriptor, joinNegotiatorInitialize]]);
+  const candidate = graph.prepare(profile([sessionJoinDescriptor, joinNegotiatorDescriptor], {
+    'session.join-pack': 'spacelab.session-join',
+    'example.join-pack-negotiator': 'example.join-pack-negotiator',
+  }), 'browser');
+  try {
+    const negotiator = candidate.providedService(JOIN_NEGOTIATOR);
+    expect(negotiator).toBeDefined();
+    let messageListener: ((text: string) => void) | undefined;
+    const mockPeer: TextConnection = {
+      label: 'peer',
+      bufferedAmount: 0,
+      send: vi.fn(),
+      close: vi.fn(),
+      get onmessage() { return messageListener ?? null; },
+      set onmessage(fn) { messageListener = fn ?? undefined; },
+      onclose: null,
+    };
+    const mockPort = {
+      allowRuntimeCode: true,
+      approved: vi.fn(async () => true),
+      review: vi.fn(async () => true),
+      cached: vi.fn(async () => undefined),
+      stage: vi.fn(async () => ({ options: {} as any, dispose: vi.fn() })),
+      remember: vi.fn(async () => {}),
+    };
+    const promise = negotiator.negotiate(mockPeer, mockPort);
+    (messageListener as ((text: string) => void) | undefined)?.(JSON.stringify({ t: 'info', protocol: 'space-sim-flight/1' }));
+    const result = await promise;
+    expect(result.peer).toBeDefined();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('replaces join review provider and reviews package requirements headlessly via join-review example', async () => {
+  const graph = registry([[joinReviewDescriptor, joinReviewInitialize, joinReviewGuide], [headlessJoinReviewDescriptor, headlessJoinReviewInitialize]]);
+  const candidate = graph.prepare(profile([joinReviewDescriptor, headlessJoinReviewDescriptor], {
+    'ui.join-review': 'example.headless-join-reviewer',
+  }), 'browser', ['ui.join-review']);
+  try {
+    const reviewer = candidate.providedService(JOIN_REVIEW);
+    expect(reviewer).toBeDefined();
+    const safeOffer = {
+      format: 'spacelab-join-offer/1' as const,
+      id: 'offer-1',
+      sessionId: 'sess-1',
+      name: 'Safe Game',
+      protocol: 'space-sim-flight/1',
+      entitySchema: 'entities/1',
+      model: 'default',
+      fingerprint: 'fp',
+      lockDigest: 'ld',
+      packDigest: 'pd',
+      packBytes: 100,
+      packages: [
+        { id: 'data.planets', version: '1.0.0', digest: 'd1', bytes: 100, license: 'MIT', containsCode: false, sourceIncluded: false, required: true, tier: 'platform' as const },
+      ],
+    };
+    const approved = await reviewer.review(safeOffer, 'localhost:8080', new AbortController().signal);
+    expect(approved).toBe(true);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('mounts chat console and logs formatted messages via chat-console example', () => {
+  const graph = registry([[chatConsoleDescriptor, chatConsoleInitialize, chatConsoleGuide], [chatHelperDescriptor, chatHelperInitialize]]);
+  const candidate = graph.prepare(profile([chatConsoleDescriptor, chatHelperDescriptor], {
+    'ui.chat': 'spacelab.chat-console',
+    'example.chat-history-formatter': 'example.chat-history-formatter',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(CHAT_HELPER);
+    expect(helper).toBeDefined();
+    const mockDoc = {
+      defaultView: {
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
+      createElement: (tag: string) => ({
+        tagName: tag.toUpperCase(),
+        classList: { add: vi.fn(), remove: vi.fn(), contains: () => false, toggle: vi.fn() },
+        style: {} as any,
+        append: vi.fn(),
+        remove: vi.fn(),
+        setAttribute: vi.fn(),
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }),
+    };
+    const mockRoot: any = {
+      ownerDocument: mockDoc,
+      classList: { add: vi.fn(), remove: vi.fn(), contains: () => false, toggle: vi.fn() },
+      style: {} as any,
+      innerHTML: '',
+      append: vi.fn(),
+      remove: vi.fn(),
+      replaceChildren: vi.fn(),
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 400, height: 300 }),
+      clientWidth: 800,
+      clientHeight: 600,
+      offsetWidth: 400,
+      offsetHeight: 300,
+    };
+    vi.stubGlobal('ResizeObserver', class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    });
+    vi.stubGlobal('MutationObserver', class {
+      observe() {}
+      disconnect() {}
+    });
+    const chat = helper.mount({
+      root: mockRoot,
+      viewport: mockRoot,
+      submit: vi.fn(),
+    });
+    expect(chat).toBeDefined();
+    helper.logFormatted(chat, 'system', 'Welcome to the session');
+    chat.clear();
+    chat.dispose();
+  } finally {
+    vi.unstubAllGlobals();
+    candidate.dispose();
+  }
+});
+
 

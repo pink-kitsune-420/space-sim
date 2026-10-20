@@ -2,27 +2,100 @@
   "id": "usage",
   "audience": "creators",
   "title": "Flight sessions",
-  "summary": "Explicit flight protocol, headless hosts and predicted clients through public engine ports.",
+  "summary": "Explicit flight protocol using privileged public engine ports and replaceable transports.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides session.flight@1.0.0 and retains space-sim-net/5 with space-sim-ships/1. Requires core.world, core.save, core.clock, core.motion and core.commands. Browser, offline and Node use the same code; no device, renderer or DOM dependency."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Host borrows a supplied privileged world and owns peers and its change subscription. A local session owns its world; a joined client owns its mirror. The caller schedules a shared world once; inputs, views and transports never step it. Disposal closes sessions and releases held controls before world disposal. Save and restore use the selected public codec and preserve legacy identity."
+      "text": "This module provides the core authoritative flight multiplayer protocol and session management. It manages local sessions, dedicated server hosts, and remote client sessions. A flight host borrows an existing simulation world, manages seated players, synchronizes ship state, dispatches flight commands, handles time warp acceleration, and broadcasts state snapshots over reliable text connections."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides session.flight@1.0.0 through the FLIGHT_SESSIONS key: a FlightSessionFactory instance.",
+        "Requires core.world@^1.0.0 through CORE_WORLD: world lifecycle and entity management.",
+        "Requires core.save@^1.0.0 through CORE_SAVE: world state serialization.",
+        "Requires core.clock@^1.0.0 through CORE_CLOCK: simulation timing and scheduling.",
+        "Requires core.motion@^1.0.0 through CORE_MOTION: physical motion stepping.",
+        "Requires core.commands@^1.0.0 through CORE_COMMANDS: ship control command dispatch."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "This explicit adapter retains flight ownership, command validation, snapshots, prediction replay, reconnect tokens, chat limits and shared pause/warp. A different entity or state schema needs its own compatible session adapter. Transport advertisements alone do not prove compatible state or commands."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization binds the required engine ports and exposes the FlightSessionFactory.",
+        "host(world, settings, options) instantiates an authoritative FlightHost borrowing an existing WorldControl.",
+        "local(world, options) constructs a standalone single-player session owning its private world.",
+        "join(peer, options, signal) performs client-side handshake over a TextConnection, synchronizing entities into a local mirror world.",
+        "step() and advance(seconds) execute discrete ticks or wall-clock durations, returning world simulation events.",
+        "Disposing the factory or provider closes all active sessions and disconnects peers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Build and import through normal .spacemod tools and code consent. Choose a compatible replacement when a required service is removed. Downloaded modules never bypass authoritative identity or game-pack installation approval."
+      "text": "This module is essential for flight multiplayer sessions and standard flight gameplay. Standalone non-flight tools like planet viewers do not require it. To replace it, author a network-tier module providing session.flight@1.0.0 implementing FlightSessionFactory."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "Authoritative v2 modules may contributeData adapters for world/player/entity records. Read session.world.data; request host-validated updates with session.dataCommand. Exact schemas negotiate space-sim-module-data/1; snapshots and revision deltas preserve reliable order independently of predicted flight. Save version 3 requires the active adapters and uses their one-version migrations. Ordinary worlds preserve their legacy saves and protocol. All replicated data is public to peers; keep credentials outside this store."
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-flight/1 and entity schema space-sim-flight-entities/1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/session-flight demonstrates creating an authoritative flight host over a simulation world and asserting pause and step controls. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/session-flight/module.json /tmp/session-flight-example.spacemod\nnpm run module:validate -- /tmp/session-flight-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-session.ts: FlightSessionFactory and FlightHost contracts",
+      "page": "api-reference/game-api/flight-session"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Flight sessions",
+      "page": "api-reference/module/spacelab.session-flight"
     }
   ]
 }

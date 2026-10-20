@@ -21,6 +21,7 @@ export function createNodeWebSocketProvider(codecs: WebSocketCodecs): NodeWebSoc
     },
   };
 }
+/** Initialize the Node WebSocket server transport module, providing net.node-ws@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Node WebSocket server transport',
     summary: 'Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.', asset: 'docs/creators/usage.json' });

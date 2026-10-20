@@ -5,20 +5,96 @@
   "summary": "An ordered reliable text transport without flight or session implementation imports.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides net.websocket@1.0.0 and a transport contribution; no required services. Browser, offline and Node environments. Network tier; no authoritative persistence or migration. Native WebSocket support is required when connecting, not when importing the package."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The module owns URL normalization, connection timeout, cancellation, text-length validation and connection cleanup. It has no ship, planet, renderer or UI dependency. Existing 6464 /ws defaults and the received text limit are preserved; session semantics belong to a compatible adapter."
+      "text": "This module provides client-side WebSocket communication for connecting to remote flight servers. It normalizes target URLs (default port 6464, path /ws, and automatic promotion to secure wss: on HTTPS pages), establishes reliable ordered text connections (TextConnection), validates incoming message lengths, and handles timeouts and cancellations via AbortSignal. The module is decoupled from flight mechanics, physics, and UI rendering."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides net.websocket@1.0.0 through the WEBSOCKET_TRANSPORT key: a TransportProvider instance for ws:// and wss:// schemes.",
+        "Contributes itself to the runtime transport registry via context.contributeTransport.",
+        "Requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "timeoutMs (default 10000, from 1 to 60000, step 1): Maximum wait for a WebSocket connection to open in milliseconds. Does not alter the server heartbeat or session protocol.",
+        "maxTextLength (default 67108864, from 1 to 67108864, step 1): Maximum UTF-16 characters in a WebSocket text message. Lowering it can reject large snapshots or join packages; peers still enforce their own limits."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides one shared TransportProvider and registers it with the module context for owned disposal.",
+        "connect(address, signal) initiates an asynchronous handshake, returning a TextConnection on success.",
+        "TextConnection exposes label, bufferedAmount, send(text), close(reason), onmessage, and onclose.",
+        "Aborting the signal cancels pending connection attempts and closes any open socket.",
+        "Provider disposal cancels all in-flight connections and cleanly disconnects active peers with an AggregateError if cleanup fails."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "A signal cancels pending connections and closes established links. Disposing the provider cancels pending requests and closes its links. Optional removal leaves local play intact; required consumers must select a compatible transport before activation."
+      "text": "Removing this module disables WebSocket connectivity for multiplayer client sessions. Single-player games, offline scenarios, and local tab-to-tab multiplayer remain functional without it. To replace it, author a network-tier module that provides net.websocket@1.0.0 with a compatible TransportProvider implementation."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "Build, export, unpack, edit and rebuild through module:build. Imported code requires explicit consent. Sharing a transport does not establish compatible commands, snapshots, saves or replay."
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: network transport contracts can change before final release. Wire protocol compatibility is governed by the underlying WebSocket RFC 6455 standard."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/net-websocket demonstrates connecting to a WebSocket server with custom timeouts and validating incoming text messages. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/net-websocket/module.json /tmp/websocket-example.spacemod\nnpm run module:validate -- /tmp/websocket-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api platform.ts: TextConnection and TransportProvider contracts",
+      "page": "api-reference/game-api/platform"
+    },
+    {
+      "type": "link",
+      "text": "API reference: WebSocket transport",
+      "page": "api-reference/module/spacelab.net-websocket"
     }
   ]
 }

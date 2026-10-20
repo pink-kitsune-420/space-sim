@@ -305,43 +305,70 @@ export interface LocalViewFactory {
   dynamicPaneRects(count: number, separatedGuests: ReadonlySet<number>, layout: TwoPlayerLayout, width: number, height: number): { rects: PaneRect[]; visible: boolean[] };
 }
 export const LOCAL_VIEWS: ServiceKey<LocalViewFactory> = Object.freeze({ slot: 'view.local', version: '1.0.0' });
-/** Text and backpressure contract shared by browser and headless adapters. */
+/**
+ * Bidirectional text transport connection with backpressure and lifecycle events.
+ * Shared by browser WebSockets, WebRTC data channels, scoped tab channels, and Node server sockets.
+ */
 export interface TextConnection {
+  /** Human-readable peer label or endpoint address for diagnostics. */
   readonly label: string;
+  /** Number of bytes currently queued but not yet transmitted over the wire. */
   readonly bufferedAmount: number;
+  /** Transmit an application text message. Dropped or throws if the connection is closed. */
   send(text: string): void;
+  /** Close the connection cleanly, optionally passing a reason message to the remote peer. */
   close(reason?: string): void;
+  /** Handler invoked when a text message arrives from the remote peer. */
   onmessage: ((text: string) => void) | null;
+  /** Handler invoked once when the connection closes, receiving the close reason. */
   onclose: ((reason: string) => void) | null;
 }
+/**
+ * Pluggable network transport provider capable of opening or listening for reliable text connections.
+ */
 export interface TransportProvider {
+  /** Transport identifier, such as 'websocket' or 'tab'. */
   readonly name: string;
+  /** Supported URL schemes, e.g. ['ws', 'wss'] or ['tab']. */
   readonly schemes: readonly string[];
   /** Signal owns pending IO and the established connection's lifetime. */
   connect(address: string, signal: AbortSignal): Promise<TextConnection>;
   /** Signal owns pending IO and the listener; accepted peers remain separately owned. */
   listen?(address: string, accept: (peer: TextConnection) => void, signal: AbortSignal): Promise<Disposable>;
 }
+/** ServiceKey for the WebSocket transport provider (slot `net.websocket`). */
 export const WEBSOCKET_TRANSPORT: ServiceKey<TransportProvider> = Object.freeze({ slot: 'net.websocket', version: '1.0.0' });
+/** Advertised server information discovered over LAN, tab broadcast, or directory service. */
 export interface ServerAdvert {
+  /** Unique server session identifier. */
   readonly id: string;
+  /** Human-readable session or world name. */
   readonly name: string;
+  /** Address URL used by a TransportProvider to connect (e.g. `ws://...` or `tab://...`). */
   readonly address: string;
+  /** Current count of connected players. */
   readonly players: number;
+  /** Maximum supported players for this session. */
   readonly maxPlayers: number;
+  /** Protocol identifier expected by the session host (e.g. `space-sim-flight/1`). */
   readonly protocol: string;
 }
+/** Service for scanning local or tab networks to discover advertised sessions. */
 export interface DiscoveryProvider {
+  /** Name of the discovery mechanism (e.g. 'lan' or 'tab'). */
   readonly name: string;
+  /** Scan for active server adverts until signal is aborted, invoking emit for each found server. */
   scan(emit: (advert: ServerAdvert) => void, signal: AbortSignal): Promise<void>;
 }
 /** @deprecated Use ManualSignalingProvider: reply codes must precede connection. */
 export interface InviteProvider {
+  /** Generate an invitation offer. */
   create(signal: AbortSignal): Promise<{
     readonly offer: string;
     accept(reply: string): Promise<TextConnection>;
     dispose(): void;
   }>;
+  /** Answer an invitation offer with a reply. */
   answer(offer: string, signal: AbortSignal): Promise<{
     readonly reply: string;
     readonly connection: TextConnection;

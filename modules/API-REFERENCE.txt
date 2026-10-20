@@ -7,11 +7,13 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f777b342b590265d
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c4fe07cafc86aeff
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
+-> Chat console (spacelab.chat-console) [api-reference/module/spacelab.chat-console]
 -> Controller menu (spacelab.controller-menu) [api-reference/module/spacelab.controller-menu]
+-> LAN discovery (spacelab.discovery-lan) [api-reference/module/spacelab.discovery-lan]
 -> Shared flight plans (spacelab.flight-plans) [api-reference/module/spacelab.flight-plans]
 -> Progressive flight prediction (spacelab.flight-prediction) [api-reference/module/spacelab.flight-prediction]
 -> Flight actions (spacelab.input-actions) [api-reference/module/spacelab.input-actions]
@@ -19,27 +21,83 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Keyboard (spacelab.input-keyboard) [api-reference/module/spacelab.input-keyboard]
 -> Flight controller profiles (spacelab.input-profiles) [api-reference/module/spacelab.input-profiles]
 -> Touch (spacelab.input-touch) [api-reference/module/spacelab.input-touch]
+-> Server pack review (spacelab.join-review) [api-reference/module/spacelab.join-review]
 -> Local pilots (spacelab.local-pilots) [api-reference/module/spacelab.local-pilots]
+-> Node WebSocket server transport (spacelab.net-node-ws) [api-reference/module/spacelab.net-node-ws]
+-> Scoped tab transport (spacelab.net-tab) [api-reference/module/spacelab.net-tab]
+-> Manual WebRTC transport (spacelab.net-webrtc) [api-reference/module/spacelab.net-webrtc]
+-> WebSocket transport (spacelab.net-websocket) [api-reference/module/spacelab.net-websocket]
 -> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
+-> Flight sessions (spacelab.session-flight) [api-reference/module/spacelab.session-flight]
+-> Install on join (spacelab.session-join) [api-reference/module/spacelab.session-join]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
 
 ## Game API topics
+-> chat.ts [api-reference/game-api/chat]
+-> commands.ts [api-reference/game-api/commands]
 -> context.ts [api-reference/game-api/context]
 -> engine.ts [api-reference/game-api/engine]
 -> flight-input.ts [api-reference/game-api/flight-input]
 -> flight-plans.ts [api-reference/game-api/flight-plans]
+-> flight-session.ts [api-reference/game-api/flight-session]
 -> flight-view.ts [api-reference/game-api/flight-view]
+-> join-pack.ts [api-reference/game-api/join-pack]
 -> maneuver.ts [api-reference/game-api/maneuver]
+-> module-data.ts [api-reference/game-api/module-data]
 -> modules.ts [api-reference/game-api/modules]
 -> modules-v2.ts [api-reference/game-api/modules-v2]
+-> motion.ts [api-reference/game-api/motion]
+-> node-transport.ts [api-reference/game-api/node-transport]
 -> platform.ts [api-reference/game-api/platform]
 -> presentation.ts [api-reference/game-api/presentation]
+-> rules.ts [api-reference/game-api/rules]
+-> session.ts [api-reference/game-api/session]
+-> session-discovery.ts [api-reference/game-api/session-discovery]
 -> state.ts [api-reference/game-api/state]
 -> surface.ts [api-reference/game-api/surface]
+-> tab-transport.ts [api-reference/game-api/tab-transport]
 -> universe.ts [api-reference/game-api/universe]
+-> vehicles.ts [api-reference/game-api/vehicles]
 -> view-hud.ts [api-reference/game-api/view-hud]
+-> webrtc-transport.ts [api-reference/game-api/webrtc-transport]
 -> world.ts [api-reference/game-api/world]
 -> Code modules: manifests, packaging and installation [modules]
+
+=== Chat console reference [api-reference/module/spacelab.chat-console]
+Optional session chat and command UI with owned DOM lifecycle.
+- ID: spacelab.chat-console
+- Version: 0.1.1
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.chat@1.0.0 · CHAT_CONSOLES: ServiceKey<ChatConsoleFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: ui.chat
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- historyLines: number, default 60, from 1 to 1000, step 1. Visible chat history lines: Maximum messages retained in this local chat window. This does not change server chat history, permissions or message limits.
+
+## Game API used
+CHAT_CONSOLES, ChatConsole, ChatConsoleFactory, ChatConsoleOptions, ChatMessageKind, Disposable, ModuleInitializationV2, ServiceKey, WindowInteractions
+-> game-api chat.ts [api-reference/game-api/chat]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+
+## Guide and example
+Example source: examples/modules/chat-console (build with npm run module:build -- examples/modules/chat-console/module.json out.spacemod).
 
 === Controller menu reference [api-reference/module/spacelab.controller-menu]
 Editable local-player and controller settings UI.
@@ -80,6 +138,45 @@ CONTROLLER_MENUS, ControllerFamily, ControllerMenuOptions, ControllerMenuService
 
 ## Guide and example
 Example source: examples/modules/controller-menu (build with npm run module:build -- examples/modules/controller-menu/module.json out.spacemod).
+
+=== LAN discovery reference [api-reference/module/spacelab.discovery-lan]
+Borrowed text transports and explicit greeting codecs; no world dependencies.
+- ID: spacelab.discovery-lan
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- net.lan-discovery@1.0.0 · LAN_DISCOVERY: ServiceKey<LanDiscoveryFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: net.lan-discovery
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- timeoutMs: number, default 800, from 1 to 60000, step 1. Discovery probe timeout (ms): Maximum wait for one candidate server to return a compatible greeting. A scan can explicitly override this default.
+- concurrency: number, default 32, from 1 to 64, step 1. Concurrent discovery probes: Maximum number of candidate addresses probed together. Lower values reduce network load; higher values complete large scans sooner.
+- maxGreetingLength: number, default 16384, from 1 to 65536, step 1. Greeting text limit: Maximum UTF-16 characters accepted in a discovery greeting. Larger session messages are handled by the transport, not discovery.
+
+## Game API used
+Disposable, FoundSession, LAN_DISCOVERY, LanDiscovery, LanDiscoveryFactory, LanDiscoveryOptions, LanScanOptions, ModuleInitializationV2, ServiceKey, TextConnection, TransportProvider
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api session-discovery.ts [api-reference/game-api/session-discovery]
+
+## Guide and example
+Example source: examples/modules/discovery-lan (build with npm run module:build -- examples/modules/discovery-lan/module.json out.spacemod).
 
 === Shared flight plans reference [api-reference/module/spacelab.flight-plans]
 A shared service that stores maneuver plans as portable intent and checks them against the selected physics.
@@ -347,6 +444,42 @@ ActionDefinitionV2, FlightActionId, InputSource, ModuleInitializationV2, Service
 ## Guide and example
 Example source: examples/modules/input-touch (build with npm run module:build -- examples/modules/input-touch/module.json out.spacemod).
 
+=== Server pack review reference [api-reference/module/spacelab.join-review]
+Exact package review and explicit consent with Cancel focused by default.
+- ID: spacelab.join-review
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.join-review@1.0.0 · JOIN_REVIEW: ServiceKey<JoinReviewService>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: ui.join-review
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+Disposable, JOIN_REVIEW, JoinOffer, JoinReviewService, ModuleInitializationV2
+-> game-api join-pack.ts [api-reference/game-api/join-pack]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+
+## Guide and example
+Example source: examples/modules/join-review (build with npm run module:build -- examples/modules/join-review/module.json out.spacemod).
+
 === Local pilots reference [api-reference/module/spacelab.local-pilots]
 Adapts one to four active local seats to borrowed session identities and device preferences.
 - ID: spacelab.local-pilots
@@ -385,6 +518,155 @@ ControllerProfile, Disposable, FLIGHT_PROFILES, FlightControllerProfiles, InputD
 Example source: examples/modules/local-pilots (build with npm run module:build -- examples/modules/local-pilots/module.json out.spacemod).
 -> Local pilot registry: how to use, replace and remove it [spacelab.local-pilots/usage]
 
+=== Node WebSocket server transport reference [api-reference/module/spacelab.net-node-ws]
+Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.
+- ID: spacelab.net-node-ws
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- net.node-ws@1.0.0 · NODE_WEBSOCKET_TRANSPORT: ServiceKey<NodeWebSocketProvider>
+
+## Requires
+- core.websocket-codecs@^1.0.0 · NODE_WEBSOCKET_CODECS: ServiceKey<WebSocketCodecs>
+
+## Composition
+- Slots: net.node-ws
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+HttpUpgrade, ModuleInitializationV2, NODE_WEBSOCKET_CODECS, NODE_WEBSOCKET_TRANSPORT, NodeWebSocketProvider, ServerSocketOptions, ServerTextConnection, ServiceKey, UpgradeByteStream, WebSocketCodecs
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api node-transport.ts [api-reference/game-api/node-transport]
+
+## Guide and example
+Example source: examples/modules/net-node-ws (build with npm run module:build -- examples/modules/net-node-ws/module.json out.spacemod).
+
+=== Scoped tab transport reference [api-reference/module/spacelab.net-tab]
+Same-origin text links and discovery scoped by game and session protocol.
+- ID: spacelab.net-tab
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- net.tab@1.0.0 · TAB_TRANSPORT: ServiceKey<TabNetworkFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: net.tab
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- beatMs: number, default 2000, from 1 to 300000, step 1. Tab heartbeat interval (ms): Heartbeat spacing for same-browser peers when Web Locks are unavailable. No network traffic leaves this browser.
+- idleTimeoutMs: number, default 30000, from 1 to 300000, step 1. Tab peer timeout (ms): Wait this long without peer liveness before closing a same-browser connection. Keep it comfortably longer than the heartbeat interval.
+- connectTimeoutMs: number, default 5000, from 1 to 300000, step 1. Tab connection timeout (ms): Maximum wait for a hosting tab to answer a new connection request. Independent of established-peer liveness.
+- maxTextLength: number, default 67108864, from 1 to 67108864, step 1. Tab message text limit: Maximum UTF-16 characters in an application message and queued backlog. Lowering it can reject large game snapshots or join packages.
+
+## Game API used
+Disposable, ModuleInitializationV2, ServiceKey, TAB_TRANSPORT, TabAdvert, TabChannel, TabDiscovery, TabLocks, TabNetwork, TabNetworkFactory, TabNetworkOptions, TextConnection
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api tab-transport.ts [api-reference/game-api/tab-transport]
+
+## Guide and example
+Example source: examples/modules/net-tab (build with npm run module:build -- examples/modules/net-tab/module.json out.spacemod).
+
+=== Manual WebRTC transport reference [api-reference/module/spacelab.net-webrtc]
+Manual invite/reply signaling over reliable ordered text, independent of session state.
+- ID: spacelab.net-webrtc
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- net.webrtc-signaling@1.0.0 · WEBRTC_SIGNALING: ServiceKey<ManualSignalingProvider>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: net.webrtc-signaling
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ConnectionDiagnostics, Disposable, ManualInvite, ManualSignalingProvider, ModuleInitializationV2, ServiceKey, TextConnection, WEBRTC_SIGNALING
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api webrtc-transport.ts [api-reference/game-api/webrtc-transport]
+
+## Guide and example
+Example source: examples/modules/net-webrtc (build with npm run module:build -- examples/modules/net-webrtc/module.json out.spacemod).
+
+=== WebSocket transport reference [api-reference/module/spacelab.net-websocket]
+An ordered reliable text transport without flight or session implementation imports.
+- ID: spacelab.net-websocket
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- net.websocket@1.0.0 · WEBSOCKET_TRANSPORT: ServiceKey<TransportProvider>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: net.websocket
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- timeoutMs: number, default 10000, from 1 to 60000, step 1. Connection timeout (ms): Maximum wait for a WebSocket connection to open. Does not alter the server heartbeat or session protocol.
+- maxTextLength: number, default 67108864, from 1 to 67108864, step 1. Message text limit: Maximum UTF-16 characters in a WebSocket text message. Lowering it can reject large snapshots or join packages; peers still enforce their own limits.
+
+## Game API used
+Disposable, ModuleInitializationV2, ServiceKey, TextConnection, TransportProvider, WEBSOCKET_TRANSPORT
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/net-websocket (build with npm run module:build -- examples/modules/net-websocket/module.json out.spacemod).
+
 === Player controller reference [api-reference/module/spacelab.player-controller]
 Routes namespaced intent to a compatible entity/session adapter without advancing a world.
 - ID: spacelab.player-controller
@@ -420,6 +702,95 @@ ActionSink, ControlTargetAdapter, ControlTargetBinding, InputFrame, ModuleInitia
 ## Guide and example
 Example source: examples/modules/player-controller (build with npm run module:build -- examples/modules/player-controller/module.json out.spacemod).
 -> Player controller: how to use, replace and remove it [spacelab.player-controller/usage]
+
+=== Flight sessions reference [api-reference/module/spacelab.session-flight]
+Explicit flight protocol using privileged public engine ports and replaceable transports.
+- ID: spacelab.session-flight
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- session.flight@1.0.0 · FLIGHT_SESSIONS: ServiceKey<FlightSessionFactory>
+
+## Requires
+- core.world@^1.0.0 · CORE_WORLD: ServiceKey<WorldFactory>
+- core.save@^1.0.0 · CORE_SAVE: ServiceKey<SaveCodec>
+- core.clock@^1.0.0 · CORE_CLOCK: ServiceKey<ClockService>
+- core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>
+- core.commands@^1.0.0 · CORE_COMMANDS: ServiceKey<CoreCommands>
+
+## Composition
+- Slots: session.flight
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId
+-> game-api commands.ts [api-reference/game-api/commands]
+-> game-api context.ts [api-reference/game-api/context]
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api flight-session.ts [api-reference/game-api/flight-session]
+-> game-api module-data.ts [api-reference/game-api/module-data]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api motion.ts [api-reference/game-api/motion]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api rules.ts [api-reference/game-api/rules]
+-> game-api session.ts [api-reference/game-api/session]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api universe.ts [api-reference/game-api/universe]
+-> game-api vehicles.ts [api-reference/game-api/vehicles]
+-> game-api world.ts [api-reference/game-api/world]
+
+## Guide and example
+Example source: examples/modules/session-flight (build with npm run module:build -- examples/modules/session-flight/module.json out.spacemod).
+
+=== Install on join reference [api-reference/module/spacelab.session-join]
+Bounded, versioned negotiation before session construction and exact package approval.
+- ID: spacelab.session-join
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: network
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- session.join-pack@1.0.0 · JOIN_PACKS: ServiceKey<JoinPackFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: session.join-pack
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+Disposable, JOIN_PACKS, JoinClientPort, JoinNegotiation, JoinOffer, JoinPackFactory, JoinPackageRequirement, JoinStage, ModuleInitializationV2, ServiceKey, TextConnection
+-> game-api join-pack.ts [api-reference/game-api/join-pack]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/session-join (build with npm run module:build -- examples/modules/session-join/module.json out.spacemod).
 
 === Throttle HUD reference [api-reference/module/spacelab.throttle-hud]
 A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.
@@ -460,6 +831,106 @@ FLIGHT_HUD_STATE, HudInstrumentDefinition, HudSurface, ModuleInitializationV2, O
 Example source: examples/modules/throttle-hud (build with npm run module:build -- examples/modules/throttle-hud/module.json out.spacemod).
 -> Throttle HUD: how to use, replace and remove it [spacelab.throttle-hud/usage]
 
+=== game-api: chat.ts [api-reference/game-api/chat]
+Declarations from chat.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/chat.ts.
+
+## ChatMessageKind
+Categorical style tag for messages logged to the chat console.
+    export type ChatMessageKind = 'system' | 'error' | 'success' | 'chat';
+Used by: spacelab.chat-console.
+
+## WindowInteractions
+Borrowed window interaction service; the caller owns the shared stacking order.
+    export interface WindowInteractions {
+      /** Bring the window panel to the top of the z-order stack. */
+      raise(panel: HTMLElement): void;
+      /** Release the window panel when closing or blurring. */
+      release(panel: HTMLElement): void;
+      /** Attach drag-resize behavior to a floating window panel. */
+      resize(panel: HTMLElement, viewport: HTMLElement, title: string, options: {
+        start?: () => void; change(width: number, height: number, x: number, y: number): void; end(): void;
+      }): Disposable;
+    }
+Used by: spacelab.chat-console.
+
+## ChatConsoleOptions
+Options configuring a chat console UI instance.
+    export interface ChatConsoleOptions {
+      /** Maximum number of history lines retained in the DOM (1–1000, default 60). */
+      readonly historyLines?: number;
+      /** Root container element where the chat console markup is injected. */
+      readonly root: HTMLElement;
+      /** Viewport bounding container for dragging and positioning. */
+      readonly viewport: HTMLElement;
+      /** Optional button element toggling the chat console open/closed. */
+      readonly toggle?: HTMLElement;
+      /** Optional window interaction manager for floating, dragging and resizing. */
+      readonly windows?: WindowInteractions;
+      /** Optional initial system banner message displayed upon initialization. */
+      readonly initialMessage?: string;
+      /** Check whether the chat console is currently visible. */
+      visible?(): boolean;
+      /** Show or hide the chat console. */
+      setVisible?(visible: boolean): void;
+      /** Callback invoked when the user submits an input text line or command. */
+      submit(text: string): void;
+    }
+Used by: spacelab.chat-console.
+
+## ChatConsole
+Active in-game chat console instance managing DOM rendering and history.
+    export interface ChatConsole extends Disposable {
+      /** Append a message with a specific visual kind and optional sender label. */
+      log(kind: ChatMessageKind, text: string, sender?: string): void;
+      /** Render an incoming session ChatLine, attributing sender or self tag based on playerId. */
+      show(line: ChatLine, playerId?: string): void;
+      /** Clear all message lines currently displayed in the chat log. */
+      clear(): void;
+      /** Minimize the chat overlay to a pill button or restore it to normal size. */
+      minimize(minimized: boolean, focusInput?: boolean): void;
+    }
+Used by: spacelab.chat-console.
+
+## ChatConsoleFactory
+Factory creating chat console UI instances.
+    export interface ChatConsoleFactory {
+      /** Construct and mount a new ChatConsole inside options.root. */
+      create(options: ChatConsoleOptions): ChatConsole;
+    }
+Used by: spacelab.chat-console.
+
+## CHAT_CONSOLES
+ServiceKey for the in-game chat console UI factory (slot `ui.chat`).
+    export const CHAT_CONSOLES: ServiceKey<ChatConsoleFactory> = Object.freeze({ slot: 'ui.chat', version: '1.0.0' });
+Used by: spacelab.chat-console.
+-> API reference index [api-reference]
+
+=== game-api: commands.ts [api-reference/game-api/commands]
+Declarations from commands.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/commands.ts.
+
+## CommandEffect
+Applied to the commanded ship between fixed steps, through the same world operations as built-in commands: held controls ([-1, 1] turn/throttle rate, engine) and throttle [0, 1].
+    export interface CommandEffect {
+      readonly controls?: Controls;
+      readonly throttle?: number;
+    }
+Used by: spacelab.session-flight.
+
+## CommandExtension
+    export interface CommandExtension {
+      readonly moduleId: string;
+      readonly version: string;
+      /** `<module id>/<name>`. */
+      readonly id: string;
+      readonly hook: CommandHook;
+    }
+Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
 === game-api: context.ts [api-reference/game-api/context]
 Declarations from context.ts used by documented modules.
 
@@ -486,12 +957,49 @@ Motion context with an optional numerical/contact replacement and force schedule
       dispose(): void;
     }
 Used by: spacelab.flight-prediction.
+
+## SimulationContextFactory
+Composition supplies a fresh context for each world, including restores and mirrors.
+    export type SimulationContextFactory = (settings: Readonly<VehicleDefaults>, options?: MotionContextOptions) => SimulationContext;
+Used by: spacelab.session-flight.
 -> API reference index [api-reference]
 
 === game-api: engine.ts [api-reference/game-api/engine]
 Declarations from engine.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/engine.ts.
+
+## SavedShip
+Body-relative Float64 state. Derived caches and per-step diagnostics are rebuilt.
+    export interface SavedShip {
+      readonly vehicleId?: string;
+      readonly id: string;
+      readonly name: string;
+      readonly ownerId: string;
+      readonly bodyId: string;
+      readonly position: Pair;
+      readonly velocity: Pair;
+      readonly heading: number;
+      readonly throttle: number;
+      readonly status: State['status'];
+      readonly revision: number;
+      readonly godMode?: boolean;
+      readonly water?: 'submerged' | 'floating';
+      /** Present while coasting: the epoch this ship's exact Kepler motion is evaluated from. */
+      readonly coast?: SavedCoast;
+      readonly fault?: string;
+      readonly moduleState?: Readonly<Record<string, ModuleState>>;
+    }
+Used by: spacelab.session-flight.
+
+## SavedPlayer
+A player identity. Only a SHA-256 hash of the secret reconnect token is stored.
+    export interface SavedPlayer {
+      readonly id: string;
+      readonly name: string;
+      readonly tokenHash?: string;
+    }
+Used by: spacelab.session-flight.
 
 ## WorldRead
 Body-relative SI state. Read operations retain the world's established rails semantics.
@@ -527,7 +1035,100 @@ Body-relative SI state. Read operations retain the world's established rails sem
       predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
       cloneForPrediction(): WorldControl;
     }
-Used by: spacelab.flight-plans, spacelab.flight-prediction.
+Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight.
+
+## WorldChanges
+    export interface WorldChanges extends Disposable {
+      take(): { readonly changed: readonly string[]; readonly removed: readonly string[] };
+    }
+Used by: spacelab.session-flight.
+
+## WorldControl
+    export interface WorldControl extends WorldRead, Disposable {
+      readonly data: ModuleDataControl;
+      setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;
+      step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];
+      put(ship: Ship): void; remove(id: string): boolean;
+      spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;
+      respawn(id: string, preset?: string, godMode?: boolean): Ship;
+      teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;
+      reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;
+      rename(id: string, name: string): void; clearFault(id: string): void;
+      setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;
+      adopt(record: Ship, ticks: number, before?: (ship: Ship, tick: number) => Ship): WorldEvent[];
+      /** Reconciliation may rewind. No stepping, rounding or epoch conversion occurs here. */
+      restoreClock(tick: number, time: number): void;
+      /** One owned delta consumer per world, released before another session can subscribe. */
+      subscribeChanges(): WorldChanges;
+    }
+Used by: spacelab.session-flight.
+
+## WorldFactory
+    export interface WorldFactory { create(universe: UniverseDefinition, options?: WorldCreationOptions): WorldControl }
+Used by: spacelab.session-flight.
+
+## SaveCodec
+    export interface SaveCodec {
+      /** Exact legacy authority identity used for worlds predating explicit locks. */
+      readonly defaultLock: AuthoritativeLock;
+      save(world: WorldRead, extra?: SavedWorldOptions): WorldSave;
+      load(raw: unknown, options?: Pick<WorldCreationOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>): {
+        readonly world: WorldControl; readonly players: readonly SavedPlayer[]; readonly hostId?: string; readonly paused: boolean;
+      };
+      shipToSaved(ship: Ship): SavedShip;
+      shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;
+      playerFromSaved(raw: unknown, context?: string): SavedPlayer;
+    }
+Used by: spacelab.session-flight.
+
+## FixedClock
+    export interface FixedClock {
+      readonly alpha: number; readonly lastSteps: number; readonly droppedSeconds: number;
+      reset(): void; advance(seconds: number, tick: () => void, warp?: number, maxSteps?: number): void;
+    }
+Used by: spacelab.session-flight.
+
+## ClockService
+    export interface ClockService { readonly stepSeconds: 0.01; readonly idle: Controls; readonly model: string; create(): FixedClock }
+Used by: spacelab.session-flight.
+
+## CoreMotion
+    export interface CoreMotion {
+      readonly services: MotionServices;
+      createContext(settings?: Partial<VehicleDefaults>, options?: MotionContextOptions): SimulationContext;
+      validateUniverse(raw: unknown): UniverseDefinition;
+      checkWarpSafety(world: WorldRead): WarpSafety;
+      clampWarpFactor(factor: number, maxAllowed?: number): number;
+      nextWarpFactor(factor: number, direction: 1 | -1, maxAllowed?: number): number;
+      magnitude(value: Vec): number; normalizeAngle(value: number): number;
+    }
+Used by: spacelab.session-flight.
+
+## CoreCommands
+    export interface CoreCommands {
+      resolve(command: CommandExtension, ship: Ship, args: unknown, tick: number, time: number): CommandEffect;
+    }
+Used by: spacelab.session-flight.
+
+## CORE_WORLD
+    export const CORE_WORLD: ServiceKey<WorldFactory> = Object.freeze({ slot: 'core.world', version: '1.0.0' });
+Used by: spacelab.session-flight.
+
+## CORE_SAVE
+    export const CORE_SAVE: ServiceKey<SaveCodec> = Object.freeze({ slot: 'core.save', version: '1.0.0' });
+Used by: spacelab.session-flight.
+
+## CORE_CLOCK
+    export const CORE_CLOCK: ServiceKey<ClockService> = Object.freeze({ slot: 'core.clock', version: '1.0.0' });
+Used by: spacelab.session-flight.
+
+## CORE_MOTION
+    export const CORE_MOTION: ServiceKey<CoreMotion> = Object.freeze({ slot: 'core.motion', version: '1.0.0' });
+Used by: spacelab.session-flight.
+
+## CORE_COMMANDS
+    export const CORE_COMMANDS: ServiceKey<CoreCommands> = Object.freeze({ slot: 'core.commands', version: '1.0.0' });
+Used by: spacelab.session-flight.
 -> API reference index [api-reference]
 
 === game-api: flight-input.ts [api-reference/game-api/flight-input]
@@ -870,6 +1471,151 @@ Translate a timed sample between nonrotating body frames, including velocity. bo
 Used by: spacelab.flight-plans.
 -> API reference index [api-reference]
 
+=== game-api: flight-session.ts [api-reference/game-api/flight-session]
+Declarations from flight-session.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-session.ts.
+
+## FlightSessionServices
+Privileged headless ports for the explicit flight protocol; not a general entity codec.
+    export interface FlightSessionServices {
+      /** Core world construction and entity management factory. */
+      readonly world: WorldFactory;
+      /** Save file encoding and decoding service. */
+      readonly save: SaveCodec;
+      /** High-resolution simulation clock service. */
+      readonly clock: ClockService;
+      /** Numerical integration and motion update engine. */
+      readonly motion: CoreMotion;
+      /** Flight command registry and executor. */
+      readonly commands: CoreCommands;
+    }
+Used by: spacelab.session-flight.
+
+## FlightHostSettings
+Settings configuring a FlightHost server instance.
+    export interface FlightHostSettings {
+      /** Server display name. */
+      readonly name: string;
+      /** Server access password (empty string if open). */
+      readonly password: string;
+      /** Maximum concurrent players allowed. */
+      readonly maxPlayers: number;
+      /** Maximum active ships one player can pilot concurrently. */
+      readonly maxShipsPerPlayer: number;
+      /** Maximum total ships permitted in the simulation world. */
+      readonly maxShips: number;
+      /** Whether god mode (invulnerability, unlimited fuel) is allowed on this server. */
+      readonly allowGodMode: boolean;
+      /** Interval in simulation ticks between state snapshots sent to clients. */
+      readonly snapshotEveryTicks: number;
+      /** Initial spawn preset identifier (e.g. 'earth-orbit'). */
+      readonly spawnPreset?: string;
+      /** Grace period in milliseconds before releasing a disconnected player's ships. */
+      readonly releaseAfterMs: number;
+      /** Maximum duration in milliseconds allowed for a client join handshake. */
+      readonly joinTimeoutMs: number;
+    }
+Used by: spacelab.session-flight.
+
+## FlightHost
+Authoritative flight session host owning peer connections and world stepping. Borrows the supplied WorldControl; steps the simulation and broadcasts events.
+    export interface FlightHost extends Disposable {
+      /** Borrowed simulation world control interface. */
+      readonly world: WorldControl;
+      /** Active host settings. */
+      readonly settings: FlightHostSettings;
+      /** Host player identifier, if seated. */
+      readonly hostId?: string;
+      /** Whether the simulation is currently paused. */
+      readonly paused: boolean;
+      /** Diagnostic reason why the simulation is paused. */
+      readonly pauseReason: string;
+      /** Active simulation time warp acceleration factor (1x, 2x, etc.). */
+      readonly warp: number;
+      /** Time warp factor requested by the host or client. */
+      readonly requestedWarp: number;
+      /** Reason why the requested warp factor was clamped or granted. */
+      readonly warpReason: string;
+      /** Listener notified whenever players connect, disconnect, or change seats. */
+      onplayers: (() => void) | null;
+      /** Listener notified when chat messages are posted. */
+      onchat: ((line: ChatLine) => void) | null;
+      /** Seat the local host player, returning the assigned player ID. */
+      seatHost(name: string, token: string, savedHostId?: string): string;
+      /** Seat a local player, returning their player ID. */
+      seatLocal(name: string, token: string): string;
+      /** Unseat a local player by ID. */
+      unseatLocal(id: string): void;
+      /** Accept an established TextConnection from a remote client. */
+      accept(connection: TextConnection): void;
+      /** Number of currently connected peer connections. */
+      connectedCount(): number;
+      /** Number of remote players currently seated. */
+      remoteCount(): number;
+      /** List active connected session players with names, IDs and ship lists. */
+      playerList(): SessionPlayer[];
+      /** Snapshot the complete player roster including saved session tokens. */
+      roster(): SavedPlayer[];
+      /** Retrieve player display name by ID. */
+      playerName(id: string): string | undefined;
+      /** Set or clear the simulation pause state. */
+      setPaused(paused: boolean, reason?: string): void;
+      /** Check whether a given player has permission to change time warp. */
+      canWarp(playerId?: string): boolean;
+      /** Request a change to the simulation warp multiplier. */
+      setWarp(factor: number, playerId?: string): { readonly granted: number; readonly reason?: string };
+      /** Spawn a new ship in the world for the specified player. */
+      spawnShip(playerId: string, presetId?: string, godMode?: boolean, vehicleId?: string): Ship;
+      /** Respawn an existing destroyed or lost ship for a player. */
+      respawnShip(playerId: string, shipId: string, presetId?: string, godMode?: boolean): Ship;
+      /** Remove a ship from the world. */
+      removeShip(playerId: string, shipId: string): void;
+      /** Set god mode on a specific ship belonging to a player. */
+      setGodMode(playerId: string, shipId: string, enabled: boolean): void;
+      /** Set god mode on all ships in the world. */
+      setGodModeAll(enabled: boolean): void;
+      /** Teleport a ship to an orbital body, position, and velocity vector. */
+      teleportShip(playerId: string, shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): Ship;
+      /** Apply flight control inputs (pitch, yaw, roll, throttle) to a ship. */
+      setControls(playerId: string, shipId: string, controls: Controls): void;
+      /** Directly set throttle lever position [0, 1] on a ship. */
+      setThrottle(playerId: string, shipId: string, throttle: number): void;
+      /** Dispatch a named flight command to a ship. */
+      command(playerId: string, shipId: string, commandId: string, args?: unknown): void;
+      /** Route a custom module data command request. */
+      dataCommand(playerId: string, request: ModuleDataCommand): void;
+      /** Broadcast a chat message across all connected players. */
+      chat(playerId: string | undefined, text: string): void;
+      /** Kick a player by ID with an optional reason message. */
+      kick(playerId: string, message?: string): boolean;
+      /** Advance the world simulation by one discrete tick. */
+      step(): WorldEvent[];
+      /** Advance the world simulation by a duration in wall seconds. */
+      advance(seconds: number): WorldEvent[];
+      /** Perform periodic housekeeping (pruning stale connections, heartbeat checks). */
+      service(): void;
+      /** Close the host session and disconnect all peers with the given reason. */
+      close(reason?: string): void;
+      /** Generate an authoritative wire snapshot for broadcasting to clients. */
+      snapshot(): unknown;
+    }
+Used by: spacelab.session-flight.
+
+## FlightSessionFactory
+Factory creating flight session hosts, local sessions and remote client sessions.
+    export interface FlightSessionFactory extends SessionFactory {
+      /** Create an authoritative FlightHost borrowing an existing WorldControl. */
+      host(world: WorldControl, settings?: Partial<FlightHostSettings>, options?: FlightHostOptions): FlightHost;
+    }
+Used by: spacelab.session-flight.
+
+## FLIGHT_SESSIONS
+ServiceKey for the flight session factory (slot `session.flight`).
+    export const FLIGHT_SESSIONS: ServiceKey<FlightSessionFactory> = Object.freeze({ slot: 'session.flight', version: '1.0.0' });
+Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
 === game-api: flight-view.ts [api-reference/game-api/flight-view]
 Declarations from flight-view.ts used by documented modules.
 
@@ -949,6 +1695,134 @@ Service key for the controller menu UI provider.
 Used by: spacelab.controller-menu.
 -> API reference index [api-reference]
 
+=== game-api: join-pack.ts [api-reference/game-api/join-pack]
+Declarations from join-pack.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/join-pack.ts.
+
+## JoinPackageRequirement
+Metadata description for one module package required by a server join offer.
+    export interface JoinPackageRequirement {
+      /** Unique module package identifier. */
+      readonly id: string;
+      /** Semver package version. */
+      readonly version: string;
+      /** SHA-256 digest of the module package contents. */
+      readonly digest: string;
+      /** Package file size in bytes. */
+      readonly bytes: number;
+      /** SPDX license expression or license reference. */
+      readonly license: string;
+      /** Whether the package contains executable code (requiring user security consent). */
+      readonly containsCode: boolean;
+      /** Whether source code sidecars are bundled inside the package. */
+      readonly sourceIncluded: boolean;
+      /** Whether this package is strictly required to join the session. */
+      readonly required: boolean;
+      /** Architectural tier of the module. */
+      readonly tier: 'authoritative' | 'presentation' | 'platform' | 'network';
+    }
+Used by: spacelab.session-join.
+
+## JoinOffer
+Pre-join offer sent by a server listing required module packages and session metadata.
+    export interface JoinOffer {
+      /** Join offer format schema identifier. */
+      readonly format: 'spacelab-join-offer/1';
+      /** Unique offer identifier hash. */
+      readonly id: string;
+      /** Unique server session identifier. */
+      readonly sessionId: string;
+      /** Human-readable session or world name. */
+      readonly name: string;
+      /** Session protocol identifier (e.g. `space-sim-flight/1`). */
+      readonly protocol: string;
+      /** Entity schema identifier (e.g. `space-sim-flight-entities/1`). */
+      readonly entitySchema: string;
+      /** World physics and universe model identifier. */
+      readonly model: string;
+      /** Fingerprint identifying the composition of active modules. */
+      readonly fingerprint: string;
+      /** SHA-256 digest of the lock file. */
+      readonly lockDigest: string;
+      /** SHA-256 digest of the combined game pack payload. */
+      readonly packDigest: string;
+      /** Total byte size of the combined game pack payload. */
+      readonly packBytes: number;
+      /** List of individual module packages included in this game pack. */
+      readonly packages: readonly JoinPackageRequirement[];
+    }
+Used by: spacelab.join-review, spacelab.session-join.
+
+## JoinStage
+Isolated staging environment for an incoming game pack. Staged candidate has passed validation; `activate()` commits and publishes once authenticated.
+    export interface JoinStage extends Disposable {
+      /** Client session join options derived from the staged game environment. */
+      readonly options: JoinOptions;
+      /** Publish the staged modules into active runtime use upon successful session authentication. */
+      activate?(): void;
+    }
+Used by: spacelab.session-join.
+
+## JoinClientPort
+Client-side integration port for reviewing, caching, and staging incoming join packs.
+    export interface JoinClientPort {
+      /** Whether the current client runtime allows loading third-party executable code. */
+      readonly allowRuntimeCode: boolean;
+      /** Check whether this exact offer has already been approved by the user. */
+      approved(offer: JoinOffer): Promise<boolean>;
+      /** Prompt the user to review the offer and grant explicit installation consent. */
+      review(offer: JoinOffer, signal: AbortSignal): Promise<boolean>;
+      /** Check if identical game pack bytes are already available in local cache. */
+      cached(offer: JoinOffer): Promise<Uint8Array | undefined>;
+      /** Validate and stage the game pack in an isolated temporary environment. */
+      stage(offer: JoinOffer, bytes: Uint8Array, signal: AbortSignal): Promise<JoinStage>;
+      /** Persist the verified game pack and record scoped user approval. */
+      remember(offer: JoinOffer, bytes: Uint8Array, signal: AbortSignal): Promise<void>;
+      /** Optional callback reporting byte download progress. */
+      progress?(received: number, total: number): void;
+    }
+Used by: spacelab.session-join.
+
+## JoinNegotiation
+Result of a completed prejoin negotiation.
+    export interface JoinNegotiation {
+      /** Active text connection handed off to the session protocol. */
+      readonly peer: TextConnection;
+      /** Staged game environment, if custom packages were negotiated. */
+      readonly stage?: JoinStage;
+    }
+Used by: spacelab.session-join.
+
+## JoinPackFactory
+Pre-join game pack negotiation factory for clients and hosts.
+    export interface JoinPackFactory {
+      /** Perform client-side prejoin negotiation with the remote peer before session connection. */
+      client(peer: TextConnection, port: JoinClientPort, signal: AbortSignal): Promise<JoinNegotiation>;
+      /** Host-side prejoin negotiation: delivers offer and chunks, then invokes accept with the authenticated peer. */
+      host(peer: TextConnection, source: JoinPackSource, accept: (peer: TextConnection) => void, signal: AbortSignal): Promise<void>;
+    }
+Used by: spacelab.session-join.
+
+## JOIN_PACKS
+ServiceKey for pre-join game pack negotiation (slot `session.join-pack`).
+    export const JOIN_PACKS: ServiceKey<JoinPackFactory> = Object.freeze({ slot: 'session.join-pack', version: '1.0.0' });
+Used by: spacelab.session-join.
+
+## JoinReviewService
+User interface service for presenting incoming server package offers for consent.
+    export interface JoinReviewService {
+      /** Present the join offer dialog to the user, resolving to true if approved or false if rejected. */
+      review(offer: JoinOffer, address: string, signal: AbortSignal): Promise<boolean>;
+    }
+Used by: spacelab.join-review.
+
+## JOIN_REVIEW
+ServiceKey for the server package review UI service (slot `ui.join-review`).
+    export const JOIN_REVIEW: ServiceKey<JoinReviewService> = Object.freeze({ slot: 'ui.join-review', version: '1.0.0' });
+Used by: spacelab.join-review.
+-> API reference index [api-reference]
+
 === game-api: maneuver.ts [api-reference/game-api/maneuver]
 Declarations from maneuver.ts used by documented modules.
 
@@ -964,6 +1838,33 @@ Velocity-relative prograde plus body-relative radial intent, in metres/second.
 Used by: spacelab.flight-plans.
 -> API reference index [api-reference]
 
+=== game-api: module-data.ts [api-reference/game-api/module-data]
+Declarations from module-data.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/module-data.ts.
+
+## ModuleDataSchema
+    export interface ModuleDataSchema {
+      /** Stable module namespace plus local name, e.g. example.inventory/items. */
+      readonly id: string;
+      readonly version: number;
+      readonly scope: ModuleDataScope;
+    }
+Used by: spacelab.session-flight.
+
+## ModuleDataTarget
+    export interface ModuleDataTarget { readonly adapter: string; readonly id: string }
+Used by: spacelab.session-flight.
+
+## ModuleDataCommand
+    export interface ModuleDataCommand extends ModuleDataTarget { readonly command: string; readonly args: ModuleValue }
+Used by: spacelab.session-flight.
+
+## ModuleDataExtension
+    export interface ModuleDataExtension extends ModuleDataSchema { readonly adapter: ModuleDataAdapter }
+Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
 === game-api: modules.ts [api-reference/game-api/modules]
 Declarations from modules.ts used by documented modules.
 
@@ -971,7 +1872,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: spacelab.controller-menu, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.local-pilots, spacelab.player-controller.
+Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join.
 
 ## ModuleInitialization
 Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile.
@@ -1004,7 +1905,7 @@ Initialization is synchronous in Phase 2. Own resources immediately after alloca
       /** The API exposed by one of this module's declared dependencies, which initialize first. */
       dependency<T extends object>(id: string): T;
     }
-Used by: spacelab.controller-menu.
+Used by: spacelab.chat-console.
 
 ## RegisteredModule
     export interface RegisteredModule {
@@ -1016,6 +1917,33 @@ Used by: spacelab.controller-menu.
       initialize(context: ModuleInitialization): void;
     }
 Used by: spacelab.throttle-hud.
+
+## ModuleLock
+    export interface ModuleLock {
+      readonly format: 'space-sim-lock/1';
+      readonly profileId: string;
+      readonly modules: readonly ModuleReference[];
+      readonly order: readonly string[];
+      readonly providers: Readonly<Record<string, string>>;
+      readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
+    }
+Used by: spacelab.session-flight.
+
+## AuthoritativeLock
+Canonical authoritative lock: excludes presentation modules and binds physics/settings/geometry/rules.
+    export interface AuthoritativeLock {
+      readonly format: 'space-sim-auth-lock/1';
+      readonly profileId: string;
+      readonly modules: readonly ModuleReference[];
+      readonly order: readonly string[];
+      readonly providers: Readonly<Record<string, string>>;
+      readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
+      readonly contentDigests: Readonly<Record<string, string>>;
+      readonly physicalGeometry: Readonly<Record<string, string>>;
+      readonly rules: readonly { readonly moduleId: string; readonly version: string; readonly modelIdentity: string; readonly seed: number }[];
+      readonly forces: readonly { readonly moduleId: string; readonly version: string; readonly modelIdentity: string }[];
+    }
+Used by: spacelab.session-flight.
 -> API reference index [api-reference]
 
 === game-api: modules-v2.ts [api-reference/game-api/modules-v2]
@@ -1030,7 +1958,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.player-controller.
+Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join.
 
 ## ModuleInitializationV2
     export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {
@@ -1062,7 +1990,119 @@ Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-predic
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.player-controller, spacelab.throttle-hud.
+Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join, spacelab.throttle-hud.
+-> API reference index [api-reference]
+
+=== game-api: motion.ts [api-reference/game-api/motion]
+Declarations from motion.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/motion.ts.
+
+## ForceExtension
+Identity and order come from the resolved registry, one hook per module.
+    export interface ForceExtension {
+      readonly moduleId: string;
+      readonly version: string;
+      readonly hook: ForceHook;
+    }
+Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
+=== game-api: node-transport.ts [api-reference/game-api/node-transport]
+Declarations from node-transport.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/node-transport.ts.
+
+## UpgradeByteStream
+Borrowed native byte stream interface (e.g. Node.js `net.Socket`). Protocol providers do not own the HTTP server or port listener.
+    export interface UpgradeByteStream {
+      /** Number of bytes buffered for writing. */
+      readonly writableLength: number;
+      /** Whether the stream is open for writes. */
+      readonly writable: boolean;
+      /** Whether the underlying socket has been destroyed. */
+      readonly destroyed: boolean;
+      /** Enable or disable TCP_NODELAY (Nagle's algorithm). */
+      setNoDelay?(enabled: boolean): unknown;
+      /** Subscribe to data chunks received on the socket. */
+      on(event: 'data', listener: (data: Uint8Array) => void): unknown;
+      /** Subscribe to socket communication errors. */
+      on(event: 'error', listener: (error: Error) => void): unknown;
+      /** Subscribe to socket closure or termination events. */
+      on(event: 'close' | 'end', listener: () => void): unknown;
+      /** Write string or byte data to the socket. */
+      write(data: string | Uint8Array): unknown;
+      /** End the stream, optionally sending final data. */
+      end(data?: string | Uint8Array): unknown;
+      /** Destroy the stream immediately. */
+      destroy(): unknown;
+    }
+Used by: spacelab.net-node-ws.
+
+## HttpUpgrade
+HTTP upgrade request headers passed from the Node HTTP server.
+    export interface HttpUpgrade {
+      /** HTTP method (usually 'GET'). */
+      readonly method?: string;
+      /** Case-insensitive HTTP request headers. */
+      readonly headers: Readonly<Record<string, string | readonly string[] | undefined>>;
+    }
+Used by: spacelab.net-node-ws.
+
+## WebSocketCodecs
+Node-only engine primitives; no HTTP/WebSocket policy or connection state.
+    export interface WebSocketCodecs {
+      /** Compute standard SHA-1 base64 hash for the Sec-WebSocket-Accept handshake. */
+      sha1Base64(text: string): string;
+      /** Raw DEFLATE with level 1 and sync-flush termination, including its final empty block. */
+      deflate(bytes: Uint8Array): Uint8Array;
+      /** Raw sync-flushed DEFLATE. Must reject output exceeding maximumBytes. */
+      inflate(bytes: Uint8Array, maximumBytes: number): Uint8Array;
+    }
+Used by: spacelab.net-node-ws.
+
+## NODE_WEBSOCKET_CODECS
+ServiceKey for native WebSocket cryptographic and compression codecs (slot `core.websocket-codecs`).
+    export const NODE_WEBSOCKET_CODECS: ServiceKey<WebSocketCodecs> = Object.freeze({ slot: 'core.websocket-codecs', version: '1.0.0' });
+Used by: spacelab.net-node-ws.
+
+## ServerSocketOptions
+Configuration options for an accepted server WebSocket connection.
+    export interface ServerSocketOptions {
+      /** Maximum accepted message size in bytes before closing the connection. */
+      readonly maxMessageBytes: number;
+      /** Heartbeat ping interval in milliseconds. Zero or negative disables pings. */
+      readonly pingIntervalMs: number;
+      /** Diagnostic label identifying this server socket or endpoint. */
+      readonly label: string;
+      /** Whether permessage-deflate compression was negotiated. */
+      readonly deflate?: boolean;
+    }
+Used by: spacelab.net-node-ws.
+
+## ServerTextConnection
+Server-side text connection extending TextConnection with socket close notification.
+    export interface ServerTextConnection extends TextConnection {
+      /** Resolves when TCP has closed, including the bounded close-handshake grace period. */
+      readonly closed: Promise<void>;
+    }
+Used by: spacelab.net-node-ws.
+
+## NodeWebSocketProvider
+Server WebSocket provider capable of upgrading HTTP requests into ServerTextConnection instances.
+    export interface NodeWebSocketProvider extends Disposable {
+      /**
+       * Accept one borrowed HTTP upgrade or refuse it with an HTTP response.
+       * Returns undefined if the handshake headers or key are invalid.
+       */
+      accept(request: HttpUpgrade, stream: UpgradeByteStream, head: Uint8Array, options: ServerSocketOptions): ServerTextConnection | undefined;
+    }
+Used by: spacelab.net-node-ws.
+
+## NODE_WEBSOCKET_TRANSPORT
+ServiceKey for the Node WebSocket server transport (slot `net.node-ws`).
+    export const NODE_WEBSOCKET_TRANSPORT: ServiceKey<NodeWebSocketProvider> = Object.freeze({ slot: 'net.node-ws', version: '1.0.0' });
+Used by: spacelab.net-node-ws.
 -> API reference index [api-reference]
 
 === game-api: platform.ts [api-reference/game-api/platform]
@@ -1360,6 +2400,43 @@ Used by: spacelab.controller-menu.
 ## ScreenMode
     export type ScreenMode = 'dynamic' | 'split';
 Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## TextConnection
+Bidirectional text transport connection with backpressure and lifecycle events. Shared by browser WebSockets, WebRTC data channels, scoped tab channels, and Node server sockets.
+    export interface TextConnection {
+      /** Human-readable peer label or endpoint address for diagnostics. */
+      readonly label: string;
+      /** Number of bytes currently queued but not yet transmitted over the wire. */
+      readonly bufferedAmount: number;
+      /** Transmit an application text message. Dropped or throws if the connection is closed. */
+      send(text: string): void;
+      /** Close the connection cleanly, optionally passing a reason message to the remote peer. */
+      close(reason?: string): void;
+      /** Handler invoked when a text message arrives from the remote peer. */
+      onmessage: ((text: string) => void) | null;
+      /** Handler invoked once when the connection closes, receiving the close reason. */
+      onclose: ((reason: string) => void) | null;
+    }
+Used by: spacelab.discovery-lan, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.session-flight, spacelab.session-join.
+
+## TransportProvider
+Pluggable network transport provider capable of opening or listening for reliable text connections.
+    export interface TransportProvider {
+      /** Transport identifier, such as 'websocket' or 'tab'. */
+      readonly name: string;
+      /** Supported URL schemes, e.g. ['ws', 'wss'] or ['tab']. */
+      readonly schemes: readonly string[];
+      /** Signal owns pending IO and the established connection's lifetime. */
+      connect(address: string, signal: AbortSignal): Promise<TextConnection>;
+      /** Signal owns pending IO and the listener; accepted peers remain separately owned. */
+      listen?(address: string, accept: (peer: TextConnection) => void, signal: AbortSignal): Promise<Disposable>;
+    }
+Used by: spacelab.discovery-lan, spacelab.net-tab, spacelab.net-websocket.
+
+## WEBSOCKET_TRANSPORT
+ServiceKey for the WebSocket transport provider (slot `net.websocket`).
+    export const WEBSOCKET_TRANSPORT: ServiceKey<TransportProvider> = Object.freeze({ slot: 'net.websocket', version: '1.0.0' });
+Used by: spacelab.net-websocket.
 -> API reference index [api-reference]
 
 === game-api: presentation.ts [api-reference/game-api/presentation]
@@ -1380,6 +2457,223 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 Used by: spacelab.throttle-hud.
 -> API reference index [api-reference]
 
+=== game-api: rules.ts [api-reference/game-api/rules]
+Declarations from rules.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/rules.ts.
+
+## WorldRuleExtension
+    export interface WorldRuleExtension {
+      readonly moduleId: string;
+      readonly version: string;
+      readonly hook: WorldRuleHook;
+    }
+Used by: spacelab.session-flight.
+
+## WorldRuleState
+    export interface WorldRuleState {
+      readonly state: ModuleState;
+      readonly randomState: number;
+    }
+Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
+=== game-api: session.ts [api-reference/game-api/session]
+Declarations from session.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/session.ts.
+
+## ChatLine
+    export type ChatLine = { readonly from?: string; readonly name: string; readonly text: string };
+Used by: spacelab.session-flight.
+
+## SessionRead
+What the flight loop needs from a game, whether this browser owns the world or follows someone else's.
+    export interface SessionRead {
+      readonly kind: 'local' | 'client';
+      readonly world: WorldRead;
+      readonly playerId: string;
+      readonly paused: boolean;
+      readonly pauseReason: string;
+      readonly warp: number;
+      readonly requestedWarp: number;
+      readonly warpReason: string;
+      /** True if this seat controls time warp (only the host can activate warp). */
+      readonly canWarp: boolean;
+      setWarp(factor: number): void;
+      /** Presentation fraction of the next fixed step. */
+      readonly alpha: number;
+      /** Ship record before the latest fixed step, for interpolation. */
+      previous(shipId: string): Ship | undefined;
+      /** Fading body-relative display correction; zero for local worlds. */
+      displayOffset(shipId: string): Vec;
+      /** Advance by wall-clock seconds. Held controls apply to `shipId` only.
+       * On a local normal-speed tick, beforeTick runs first (owned fleet commands),
+       * then beforeStep may replace the selected ship controls. Neither runs on rails. */
+      update(seconds: number, shipId: string | undefined, controls: Controls, beforeStep?: () => Controls, beforeTick?: () => void): WorldEvent[];
+      /** Returns the new ship's id when it exists immediately (local worlds). */
+      spawn(presetId: string, godMode: boolean, vehicleId?: string): string | undefined;
+      respawn(shipId: string, presetId: string): void;
+      /** Place an owned ship (throw, orbit and teleport cheats). Local worlds apply it now or
+       * throw a SessionError; remote hosts check it and answer with the next snapshot or a notice. */
+      teleport(shipId: string, bodyId: string, position: Vec, velocity: Vec, heading?: number): void;
+      remove(shipId: string): void;
+      setThrottle(shipId: string, throttle: number): void;
+      setGodMode(shipId: string, enabled: boolean): void;
+      setGodModeAll(enabled: boolean): void;
+      /** A module command for an owned ship. Local worlds apply it now through the host's
+       * checks (or throw a SessionError); remote results arrive with the next snapshot. */
+      command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void;
+      players(): readonly SessionPlayer[];
+      playerName(id: string): string | undefined;
+      /** Say something to everyone in this world (just this pilot when playing alone). */
+      chat(text: string): void;
+      dataCommand(request: ModuleDataCommand): void;
+      /** Every chat line in this world, this pilot's own included. */
+      onchat: ((line: ChatLine) => void) | null;
+    }
+Used by: spacelab.session-flight.
+
+## SessionHandle
+    export interface SessionHandle extends SessionRead, Disposable {}
+Used by: spacelab.session-flight.
+
+## LocalSessionOptions
+    export interface LocalSessionOptions {
+      readonly name: string; readonly token?: string; readonly hostId?: string; readonly players?: readonly SavedPlayer[];
+    }
+Used by: spacelab.session-flight.
+
+## JoinOptions
+    export interface JoinOptions {
+      readonly vehicles?: VehicleCatalog;
+      readonly dataAdapters?: readonly ModuleDataExtension[];
+      readonly createContext?: SimulationContextFactory; readonly name: string; readonly password?: string;
+      /** May reserve a saved pilot asynchronously before sending the join request. */
+      readonly token?: (worldId: string, hostId?: string) => string | undefined | Promise<string | undefined>;
+      readonly saveToken?: (worldId: string, token: string, playerId: string) => void;
+      /** Monotonic milliseconds, used only for network scheduling/interpolation. */
+      readonly now?: () => number;
+      readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
+      readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[]; readonly commands?: readonly CommandExtension[];
+      /** Validate only against locally installed/enabled modules. A different server universe
+       * may return its independently computed fingerprint; returning true alone retains the
+       * local simulationFingerprint requirement. Never return the host's hash without recomputing it. */
+      readonly verifyCandidate?: (candidate: {
+        lock?: AuthoritativeLock | ModuleLock; fingerprint?: string; universe: UniverseDefinition; systemId: string;
+      }) => { ok: boolean; reason?: string; simulationFingerprint?: string } | boolean;
+    }
+Used by: spacelab.session-flight.
+
+## LocalSessionControl
+    export interface LocalSessionControl {
+      readonly token: string; readonly hosting: boolean;
+      seatGuest(name: string, token: string): string; unseatGuest(id: string): void;
+      guestControls(player: string, ship: string, controls: Controls): void;
+      spawnGuest(player: string, preset: string, godMode?: boolean): string;
+      respawnGuest(player: string, ship: string, preset: string, godMode?: boolean): void;
+      setGuestThrottle(player: string, ship: string, value: number): void;
+      accept(connection: TextConnection): void;
+      setPaused(paused: boolean, reason?: string): void; settle(): void;
+      catchUp(seconds: number, ship: string | undefined): WorldEvent[];
+      service(): void; snapshot(): string; roster(): readonly SavedPlayer[]; close(reason?: string): void;
+    }
+Used by: spacelab.session-flight.
+
+## SessionFactory
+    export interface SessionFactory {
+      readonly protocol: string; readonly entitySchema: string;
+      local(world: WorldControl, options: LocalSessionOptions): LocalSessionHandle;
+      join(peer: TextConnection, options: JoinOptions, signal: AbortSignal): Promise<SessionHandle>;
+    }
+Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
+=== game-api: session-discovery.ts [api-reference/game-api/session-discovery]
+Declarations from session-discovery.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/session-discovery.ts.
+
+## FoundSession
+Discovered server endpoint record with verified protocol compatibility.
+    export interface FoundSession {
+      /** Target server URL or connection address. */
+      readonly address: string;
+      /** Human-readable session or world name. */
+      readonly name: string;
+      /** Current count of connected players. */
+      readonly players: number;
+      /** Maximum players accepted by the host. */
+      readonly maxPlayers: number;
+      /** Whether the server requires password authentication. */
+      readonly password: boolean;
+      /** Whether the server protocol and model match the client's expected requirements. */
+      readonly compatible: boolean;
+    }
+Used by: spacelab.discovery-lan.
+
+## LanScanOptions
+Options controlling a concurrent discovery scan across candidate addresses.
+    export interface LanScanOptions {
+      /** Maximum number of simultaneous probes (1–64, default 32). */
+      readonly concurrency?: number;
+      /** Timeout per candidate probe in milliseconds (1–60000, default 800). */
+      readonly timeoutMs?: number;
+      /** Abort signal cancelling pending and future candidate probes. */
+      readonly signal?: AbortSignal;
+      /** Callback invoked as each compatible or incompatible server responds. */
+      readonly onfound?: (server: FoundSession) => void;
+      /** Progress callback reporting (probesCompleted, totalCandidates). */
+      readonly onprogress?: (done: number, total: number) => void;
+    }
+Used by: spacelab.discovery-lan.
+
+## LanDiscoveryOptions
+Configuration options for a LAN discovery scanner instance.
+    export interface LanDiscoveryOptions {
+      /** Default probe timeout in milliseconds. */
+      readonly timeoutMs?: number;
+      /** Default concurrency limit for candidate scanning. */
+      readonly concurrency?: number;
+      /** Maximum characters accepted in a discovery greeting before aborting (default 16384). */
+      readonly maxGreetingLength?: number;
+      /** Borrowed transport provider used to establish probe connections. */
+      readonly transport: TransportProvider;
+      /** Expected session protocol identifier (e.g. `space-sim-flight/1`). */
+      readonly protocolId: string;
+      /** Optional model identifier to check for exact world model compatibility. */
+      readonly modelId?: string;
+      /** Protocol adapter parsing the initial server text message into a SessionGreeting. */
+      greeting(text: string): SessionGreeting | undefined;
+    }
+Used by: spacelab.discovery-lan.
+
+## LanDiscovery
+Active LAN discovery scanner instance.
+    export interface LanDiscovery extends Disposable {
+      /** Probe a single candidate address. Resolves with FoundSession if responding, or undefined on timeout/error. */
+      probe(address: string, timeoutMs?: number, signal?: AbortSignal): Promise<FoundSession | undefined>;
+      /** Concurrently scan a list of candidate addresses, returning all responding servers. */
+      scan(candidates: readonly string[], options?: LanScanOptions): Promise<FoundSession[]>;
+    }
+Used by: spacelab.discovery-lan.
+
+## LanDiscoveryFactory
+Factory creating LAN discovery scanner instances and generating candidate IP lists.
+    export interface LanDiscoveryFactory {
+      /** Create a new LanDiscovery instance configured with the given options. */
+      create(options: LanDiscoveryOptions): LanDiscovery;
+      /** Expand subnet hints and host addresses into candidate URLs with the specified port. */
+      candidates(hints: readonly string[], port: number): string[];
+    }
+Used by: spacelab.discovery-lan.
+
+## LAN_DISCOVERY
+ServiceKey for the LAN discovery factory (slot `net.lan-discovery`).
+    export const LAN_DISCOVERY: ServiceKey<LanDiscoveryFactory> = Object.freeze({ slot: 'net.lan-discovery', version: '1.0.0' });
+Used by: spacelab.discovery-lan.
+-> API reference index [api-reference]
+
 === game-api: state.ts [api-reference/game-api/state]
 Declarations from state.ts used by documented modules.
 
@@ -1387,7 +2681,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Vec
     export interface Vec { readonly x: number; readonly y: number }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.session-flight.
 
 ## Body
     export interface Body {
@@ -1424,7 +2718,7 @@ Used by: spacelab.flight-plans, spacelab.flight-prediction.
 
 ## Controls
     export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.session-flight.
 
 ## Sample
     export interface Sample { readonly time: number; readonly position: Vec }
@@ -1483,10 +2777,123 @@ Private Float64 storage; reads/copies cannot mutate authoritative geometry. No c
 Used by: spacelab.flight-prediction.
 -> API reference index [api-reference]
 
+=== game-api: tab-transport.ts [api-reference/game-api/tab-transport]
+Declarations from tab-transport.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/tab-transport.ts.
+
+## TabChannel
+Message channel abstraction for intra-browser communication (e.g. `BroadcastChannel`).
+    export interface TabChannel {
+      /** Post a message object across all listeners on this channel name. */
+      postMessage(message: unknown): void;
+      /** Close and release this channel instance. */
+      close(): void;
+      /** Handler receiving incoming message events. */
+      onmessage: ((event: { readonly data: unknown }) => void) | null;
+    }
+Used by: spacelab.net-tab.
+
+## TabLocks
+Web Locks API abstraction for leader election and mutual exclusion between browser tabs.
+    export interface TabLocks {
+      /** Request an exclusive or shared lock by name. */
+      request(name: string, options: { readonly signal?: AbortSignal }, callback: () => Promise<void>): Promise<unknown>;
+    }
+Used by: spacelab.net-tab.
+
+## TabNetworkOptions
+Options for configuring a scoped same-origin tab network instance.
+    export interface TabNetworkOptions {
+      /** Namespace or game scope partitioning BroadcastChannels and Web Locks. */
+      readonly scope: string;
+      /** Session protocol identifier (e.g. `space-sim-flight/1`). */
+      readonly protocolId: string;
+      /** Optional channel factory. Defaults to native `BroadcastChannel` in browser environments. */
+      readonly channel?: (name: string) => TabChannel;
+      /** Optional lock adapter. Defaults to `navigator.locks`. Null disables Web Locks. */
+      readonly locks?: TabLocks | null;
+      /** Heartbeat interval in milliseconds when Web Locks are unavailable. */
+      readonly beatMs?: number;
+      /** Inactivity timeout in milliseconds before considering an idle peer disconnected. */
+      readonly timeoutMs?: number;
+      /** Maximum wait in milliseconds for a host tab to answer a connection handshake. */
+      readonly connectTimeoutMs?: number;
+      /** Maximum message text length in UTF-16 code units. */
+      readonly maxTextLength?: number;
+    }
+Used by: spacelab.net-tab.
+
+## TabAdvert
+Broadcast advertisement published by a hosting tab.
+    export interface TabAdvert {
+      /** 32-character hexadecimal host identifier. */
+      readonly host: string;
+      /** Human-readable session name. */
+      readonly name: string;
+      /** Unique session identifier. */
+      readonly sessionId: string;
+      /** Current count of players in the session. */
+      readonly players: number;
+      /** Maximum players accepted by the host. */
+      readonly maxPlayers: number;
+    }
+Used by: spacelab.net-tab.
+
+## TabDiscovery
+Active discovery subscription observing tab session advertisements.
+    export interface TabDiscovery extends Disposable {
+      /** Return snapshot of currently active tab session adverts. */
+      adverts(): readonly TabAdvert[];
+    }
+Used by: spacelab.net-tab.
+
+## TabNetwork
+Tab transport network instance providing scoped peer-to-peer connections and discovery across browser tabs.
+    export interface TabNetwork extends TransportProvider, Disposable {
+      /** Scope partitioning this tab network. */
+      readonly scope: string;
+      /** Session protocol identifier. */
+      readonly protocolId: string;
+      /** Discovery provider for scanning advertised sessions within this scope. */
+      readonly discovery: DiscoveryProvider;
+      /** Advertise and host a session from this tab, accepting incoming peer connections. */
+      host(describe: () => Omit<TabAdvert, 'host'>, accept: (peer: TextConnection) => void, signal: AbortSignal): TabHost;
+      /** Watch for active tab hosts, invoking change callback whenever adverts update. */
+      watch(change: (adverts: readonly TabAdvert[]) => void, signal: AbortSignal): TabDiscovery;
+    }
+Used by: spacelab.net-tab.
+
+## TabNetworkFactory
+Factory creating scoped TabNetwork instances.
+    export interface TabNetworkFactory {
+      /** Create a scoped tab network instance with the provided options. */
+      create(options: TabNetworkOptions): TabNetwork;
+    }
+Used by: spacelab.net-tab.
+
+## TAB_TRANSPORT
+ServiceKey for the scoped tab transport factory (slot `net.tab`).
+    export const TAB_TRANSPORT: ServiceKey<TabNetworkFactory> = Object.freeze({ slot: 'net.tab', version: '1.0.0' });
+Used by: spacelab.net-tab.
+-> API reference index [api-reference]
+
 === game-api: universe.ts [api-reference/game-api/universe]
 Declarations from universe.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe.ts.
+
+## UniverseDefinition
+    export interface UniverseDefinition {
+      readonly schemaVersion: number;
+      readonly id: string;
+      readonly name: string;
+      readonly description?: string;
+      readonly author?: string;
+      readonly defaultSystemId: string;
+      readonly systems: readonly SystemDefinition[];
+    }
+Used by: spacelab.session-flight.
 
 ## ResolvedBody
     export interface ResolvedBody extends Body {
@@ -1513,6 +2920,29 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
       readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };
     }
 Used by: spacelab.flight-prediction.
+-> API reference index [api-reference]
+
+=== game-api: vehicles.ts [api-reference/game-api/vehicles]
+Declarations from vehicles.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/vehicles.ts.
+
+## VehicleCatalog
+Explicit opt-in for mixed-vehicle saves/sessions. Definitions come from enabled, approved modules; saved definitions never install or execute missing packages.
+    export interface VehicleCatalog {
+      readonly format: 'space-sim-vehicles/1';
+      readonly defaultId: string;
+      readonly definitions: readonly VehicleDefinition[];
+    }
+Used by: spacelab.session-flight.
+
+## vehicleId
+    export function vehicleId(value: unknown): string;
+Used by: spacelab.session-flight.
+
+## captureVehicleCatalog
+    export function captureVehicleCatalog(value: unknown): VehicleCatalog;
+Used by: spacelab.session-flight.
 -> API reference index [api-reference]
 
 === game-api: view-hud.ts [api-reference/game-api/view-hud]
@@ -1576,6 +3006,59 @@ Per-seat throttle lever instrument, provided by `spacelab.throttle-hud` in Space
 Used by: spacelab.throttle-hud.
 -> API reference index [api-reference]
 
+=== game-api: webrtc-transport.ts [api-reference/game-api/webrtc-transport]
+Declarations from webrtc-transport.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/webrtc-transport.ts.
+
+## ConnectionDiagnostics
+Diagnostic metrics for a WebRTC peer connection. Exposes counts and state codes only; never IP addresses, raw SDP or secrets.
+    export interface ConnectionDiagnostics {
+      /** Current ICE gathering state (e.g. 'new', 'gathering', 'complete'). */
+      readonly gathering: RTCIceGatheringState;
+      /** Current peer connection state (e.g. 'new', 'connecting', 'connected', 'disconnected', 'failed', 'closed'). */
+      readonly connection: RTCPeerConnectionState;
+      /** Count of gathered ICE candidates grouped by candidate type (host, srflx, relay). */
+      readonly candidates: Readonly<Record<string, number>>;
+      /** Numerical error codes encountered during ICE or handshake. */
+      readonly errors: readonly number[];
+    }
+Used by: spacelab.net-webrtc.
+
+## ManualInvite
+Active manual WebRTC invitation created by a session host.
+    export interface ManualInvite extends Disposable {
+      /** Compact base64url encoded invitation code containing compressed SDP offer. */
+      readonly code: string;
+      /** Whether STUN reflex candidate gathering was enabled for this invitation. */
+      readonly stun: boolean;
+      /** Return current connection and ICE gathering diagnostics. */
+      diagnostics(): ConnectionDiagnostics;
+      /** Accept a guest's reply code to finalize the connection. Resolves to the established TextConnection. */
+      accept(reply: string): Promise<TextConnection>;
+    }
+Used by: spacelab.net-webrtc.
+
+## ManualSignalingProvider
+Manual WebRTC signaling provider exchanging copy-paste invite/reply codes for peer-to-peer data channels.
+    export interface ManualSignalingProvider {
+      /** Create a new invitation offer. Signal owns the invite lifecycle and pending gathering. */
+      create(stun: boolean, signal: AbortSignal): Promise<ManualInvite>;
+      /** Answer an invitation offer code, generating a reply code and pending connection promise. */
+      answer(offer: string, signal: AbortSignal): Promise<ManualReply>;
+      /** Validate whether text matches the expected invitation code format. */
+      isInviteCode(text: string): boolean;
+      /** Validate whether text matches the expected reply code format. */
+      isReplyCode(text: string): boolean;
+    }
+Used by: spacelab.net-webrtc.
+
+## WEBRTC_SIGNALING
+ServiceKey for manual WebRTC invite/reply signaling (slot `net.webrtc-signaling`).
+    export const WEBRTC_SIGNALING: ServiceKey<ManualSignalingProvider> = Object.freeze({ slot: 'net.webrtc-signaling', version: '1.0.0' });
+Used by: spacelab.net-webrtc.
+-> API reference index [api-reference]
+
 === game-api: world.ts [api-reference/game-api/world]
 Declarations from world.ts used by documented modules.
 
@@ -1597,8 +3080,54 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
        * cleared or it respawns. */
       readonly fault?: string;
     }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.session-flight.
+
+## WorldEvent
+    export type WorldEvent =
+      | { readonly type: 'world-fault'; readonly message: string }
+      | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
+      | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }
+      | { readonly type: 'fault'; readonly shipId: string; readonly message: string };
+Used by: spacelab.session-flight.
 -> API reference index [api-reference]
+
+=== Chat console [spacelab.chat-console/usage]
+Optional session chat and command UI with owned DOM lifecycle.
+
+
+## What it does
+This module renders the in-game text chat overlay and command entry console. It mounts an interactive UI into a caller-supplied container element, manages message history pruning up to a configured line count, supports keyboard shortcuts (Enter to focus, Slash to begin commands, Escape to minimize), displays message categories (system, error, success, player chat), and saves minimize state to local browser storage.
+
+## Provides and requires
+- Provides ui.chat@1.0.0 through the CHAT_CONSOLES key: a ChatConsoleFactory instance.
+- Requires no services at module initialization.
+
+## Settings
+- historyLines (default 60, from 1 to 1000, step 1): Maximum messages retained in this local chat window. This does not change server chat history, permissions or message limits.
+
+## Lifecycle
+- Initialization provides the ChatConsoleFactory and registers it for owned disposal.
+- create(options) mounts the chat HTML template and stylesheet into options.root, wiring keyboard listeners via AbortController.
+- log(kind, text, sender) and show(line, playerId) format and append message rows, auto-scrolling to the bottom and pruning old lines.
+- minimize(minimized, focusInput) toggles between full overlay and minimized pill views, persisting preference to space-sim:chat:minimized.
+- clear() empties all current message lines from the log.
+- Disposing the console aborts all DOM event listeners, removes injected stylesheets, and clears the container element.
+
+## Remove or replace
+Removing this module disables in-game chat and command console rendering. Dedicated servers and non-chat games operate normally without it. To replace it, author a presentation-tier module providing ui.chat@1.0.0 implementing ChatConsoleFactory.
+
+## Stability
+Module version 0.1.1 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Visual styling adopts standard Spacelab UI theme CSS custom properties.
+
+## Example
+examples/modules/chat-console demonstrates mounting a chat console, submitting text lines, and formatting message kinds. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/chat-console/module.json /tmp/chat-example.spacemod
+    npm run module:validate -- /tmp/chat-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api chat.ts: ChatConsole and ChatConsoleFactory contracts [api-reference/game-api/chat]
+-> API reference: Chat console [api-reference/module/spacelab.chat-console]
 
 === Controller menu [spacelab.controller-menu/usage]
 Editable local-player and controller settings UI.
@@ -1639,6 +3168,46 @@ examples/modules/controller-menu is a creator example implementing a minimal rep
 -> Code modules: manifests, packaging and installation [modules]
 -> API reference: Controller menu [api-reference/module/spacelab.controller-menu]
 -> game-api flight-view.ts: controller menu and splitscreen view contracts [api-reference/game-api/flight-view]
+
+=== LAN discovery [spacelab.discovery-lan/usage]
+Borrowed text transports and explicit greeting codecs; no world dependencies.
+
+
+## What it does
+This module scans local network addresses to discover active multiplayer game servers. It generates candidate endpoint lists across local subnet ranges, opens probe connections over a borrowed TransportProvider, reads the server's initial handshake greeting, and validates protocol identifier and universe model compatibility without importing world or physics logic.
+
+## Provides and requires
+- Provides net.lan-discovery@1.0.0 through the LAN_DISCOVERY key: a LanDiscoveryFactory instance.
+- Requires no services at initialization. Probing requires a caller-supplied TransportProvider (such as net.websocket).
+
+## Settings
+- timeoutMs (default 800, from 1 to 60000, step 1): Maximum wait for one candidate server to return a compatible greeting in milliseconds. A scan can explicitly override this default.
+- concurrency (default 32, from 1 to 64, step 1): Maximum number of candidate addresses probed together. Lower values reduce network load; higher values complete large scans sooner.
+- maxGreetingLength (default 16384, from 1 to 65536, step 1): Maximum UTF-16 characters accepted in a discovery greeting. Larger session messages are handled by the transport, not discovery.
+
+## Lifecycle
+- Initialization instantiates and provides the LanDiscoveryFactory configured with active module settings.
+- create(options) builds a dedicated LanDiscovery scanner bound to a transport, protocol ID, and greeting parser.
+- candidates(hints, port) generates candidate address lists from subnet hints and common private network prefixes.
+- probe(address, timeoutMs?, signal?) initiates a single handshake probe, closing the connection as soon as a greeting arrives or timeout expires.
+- scan(candidates, options) coordinates worker pools up to the concurrency limit, invoking onfound and onprogress callbacks.
+- Disposing the discovery instance or factory aborts all pending probe connections immediately.
+
+## Remove or replace
+Removing this module disables automated LAN server scanning in multiplayer menus. Manual IP entry, tab discovery, and WebRTC invite codes remain operational. To replace it, author a module providing net.lan-discovery@1.0.0 implementing LanDiscoveryFactory.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: discovery interfaces and candidate formats may be updated before release.
+
+## Example
+examples/modules/discovery-lan demonstrates generating LAN candidate addresses and scanning endpoints with a mock transport. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/discovery-lan/module.json /tmp/discovery-lan-example.spacemod
+    npm run module:validate -- /tmp/discovery-lan-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api session-discovery.ts: LanDiscovery and LanDiscoveryFactory contracts [api-reference/game-api/session-discovery]
+-> API reference: LAN discovery [api-reference/module/spacelab.discovery-lan]
 
 === Shared flight plans [spacelab.flight-plans/usage]
 A shared service that stores maneuver plans as portable intent and checks them against the selected physics.
@@ -1911,6 +3480,44 @@ examples/modules/input-touch is a consumer module that uses input.touch@1.0.0 to
 -> API reference: Touch input [api-reference/module/spacelab.input-touch]
 -> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
 
+=== Server pack review [spacelab.join-review/usage]
+Exact package review and explicit consent with Cancel focused by default.
+
+
+## What it does
+This module renders an accessible modal dialog prompting the user to review and approve game packages required by a remote multiplayer server. It details the server endpoint, total download size, required module versions, licenses, architectural tiers, and exact SHA-256 digests. If an offer contains executable code, it presents an explicit security warning and places default keyboard focus on the Cancel button to prevent accidental approval.
+
+## Provides and requires
+- Provides ui.join-review@1.0.0 through the JOIN_REVIEW key: a JoinReviewService instance.
+- Requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization instantiates and provides the JoinReviewService, registered for owned disposal.
+- review(offer, address, signal) creates and mounts a standard HTML dialog element, styling it according to active UI theme variables.
+- The dialog autofocuses the Cancel action; pressing Escape or clicking Cancel rejects the offer, resolving the promise to false.
+- Selecting 'Install and join' approves the offer, resolving to true.
+- Aborting the signal cancels the dialog and removes it from the document body.
+- Disposing the service cancels any pending review modal and cleans up active listeners.
+
+## Remove or replace
+This module is a platform-tier presentation provider designed for browser environments. Headless dedicated servers do not need it. In custom client distributions or automated test rigs, it can be replaced by a module that automatically accepts or filters packages. To replace it, author a module providing ui.join-review@1.0.0 implementing JoinReviewService.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Dialog presentation and styling conform to current Spacelab UI theme guidelines.
+
+## Example
+examples/modules/join-review demonstrates creating a custom automated review service that verifies required package tiers without displaying DOM modals. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/join-review/module.json /tmp/join-review-example.spacemod
+    npm run module:validate -- /tmp/join-review-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api join-pack.ts: JoinReviewService and JoinOffer contracts [api-reference/game-api/join-pack]
+-> API reference: Server pack review [api-reference/module/spacelab.join-review]
+
 === Local pilot registry [spacelab.local-pilots/usage]
 Adapts one to four active local seats to borrowed session identities and device preferences.
 
@@ -1947,6 +3554,160 @@ examples/modules/local-pilots is a consumer module that implements a headless Lo
 -> Code modules: manifests, packaging and installation [modules]
 -> API reference: Local pilot registry [api-reference/module/spacelab.local-pilots]
 -> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Node WebSocket server transport [spacelab.net-node-ws/usage]
+Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.
+
+
+## What it does
+This module provides server-side WebSocket protocol termination for Node.js dedicated servers. It accepts incoming HTTP upgrade requests over borrowed byte streams, handles Sec-WebSocket-Key cryptographic handshakes, manages RFC 6455 data framing and unmasking, maintains keep-alive ping/pong heartbeats, and negotiates permessage-deflate compression using native engine codecs. The HTTP port listener remains host-owned.
+
+## Provides and requires
+- Provides net.node-ws@1.0.0 through the NODE_WEBSOCKET_TRANSPORT key: a NodeWebSocketProvider instance.
+- Requires core.websocket-codecs@^1.0.0 through the NODE_WEBSOCKET_CODECS key: engine-supplied native SHA-1 and DEFLATE codecs.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization resolves the required WebSocketCodecs service and provides the NodeWebSocketProvider, registering it for owned disposal.
+- accept(request, stream, head, options) inspects upgrade headers, completes the HTTP switching-protocols handshake, and returns a ServerTextConnection, or undefined if the request is invalid.
+- ServerTextConnection extends TextConnection with a closed promise that resolves once TCP termination and handshake grace periods conclude.
+- Disposing the provider cleanly closes all active server connections with reason 'Module disposed'.
+
+## Remove or replace
+This module is restricted to the Node environment. Browser clients and offline single-player modes do not load or require it. Dedicated server hosts running multiplayer sessions need a provider for net.node-ws. To replace it, author a network-tier module that provides net.node-ws@1.0.0 implementing NodeWebSocketProvider.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: server transport interfaces may be revised prior to API stabilization.
+
+## Example
+examples/modules/net-node-ws demonstrates upgrading HTTP requests into ServerTextConnection instances with configured message limits. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/net-node-ws/module.json /tmp/node-ws-example.spacemod
+    npm run module:validate -- /tmp/node-ws-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api node-transport.ts: NodeWebSocketProvider and WebSocketCodecs contracts [api-reference/game-api/node-transport]
+-> API reference: Node WebSocket server transport [api-reference/module/spacelab.net-node-ws]
+
+=== Scoped tab transport [spacelab.net-tab/usage]
+Same-origin text links and discovery scoped by game and session protocol.
+
+
+## What it does
+This module enables multiplayer sessions across multiple browser tabs within the same origin without sending network packets outside the machine. It uses the browser BroadcastChannel API for message passing and Web Locks for host leader election and connection coordination. Each network is strictly scoped by namespace and protocol ID to avoid cross-game interference.
+
+## Provides and requires
+- Provides net.tab@1.0.0 through the TAB_TRANSPORT key: a TabNetworkFactory creating scoped TabNetwork instances.
+- Requires no services.
+
+## Settings
+- beatMs (default 2000, from 1 to 300000, step 1): Heartbeat spacing for same-browser peers when Web Locks are unavailable in milliseconds. No network traffic leaves this browser.
+- idleTimeoutMs (default 30000, from 1 to 300000, step 1): Wait this long without peer liveness before closing a same-browser connection in milliseconds. Keep it comfortably longer than the heartbeat interval.
+- connectTimeoutMs (default 5000, from 1 to 300000, step 1): Maximum wait for a hosting tab to answer a new connection request in milliseconds. Independent of established-peer liveness.
+- maxTextLength (default 67108864, from 1 to 67108864, step 1): Maximum UTF-16 characters in an application message and queued backlog. Lowering it can reject large game snapshots or join packages.
+
+## Lifecycle
+- Initialization verifies that idleTimeoutMs exceeds beatMs and provides the TabNetworkFactory.
+- create(options) builds a TabNetwork managing channel multiplexing for a specific game scope and protocol ID.
+- network.host(describe, accept, signal) registers a tab session, broadcasts advertisements, and receives connections.
+- network.watch(change, signal) listens for active tab hosts, providing reactive updates to discovery menus.
+- network.connect(address, signal) opens a TextConnection to a tab:// URL using an AbortSignal.
+- Disposing the network closes all channels, releases locks, and disconnects all open connections.
+
+## Remove or replace
+Removing this module disables local same-browser multi-tab sessions. Single-player modes, split-screen play, and remote WebSocket multiplayer are unaffected. To replace it, author a module providing net.tab@1.0.0 with a compatible TabNetworkFactory.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Tab connection URLs use the tab:// URI scheme with a 32-character hexadecimal host identifier.
+
+## Example
+examples/modules/net-tab demonstrates creating a scoped tab network, publishing a session advert, and discovering peers. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/net-tab/module.json /tmp/tab-example.spacemod
+    npm run module:validate -- /tmp/tab-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api tab-transport.ts: TabNetwork and TabNetworkFactory contracts [api-reference/game-api/tab-transport]
+-> API reference: Scoped tab transport [api-reference/module/spacelab.net-tab]
+
+=== Manual WebRTC transport [spacelab.net-webrtc/usage]
+Manual invite/reply signaling over reliable ordered text, independent of session state.
+
+
+## What it does
+This module enables serverless peer-to-peer multiplayer by exchanging manual copy-paste invite and reply text codes between players. It encapsulates WebRTC RTCPeerConnection management, gathers ICE candidates with optional STUN server assistance, compresses SDP negotiation data into compact base64url strings, and establishes an ordered, reliable RTCDataChannel exposed as a standard TextConnection.
+
+## Provides and requires
+- Provides net.webrtc-signaling@1.0.0 through the WEBRTC_SIGNALING key: a ManualSignalingProvider instance.
+- Requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization provides the ManualSignalingProvider and registers it for owned disposal.
+- The host calls create(stun, signal), returning a ManualInvite with a compact offer code and an accept(reply) function.
+- The joining guest calls answer(offer, signal), returning a ManualReply with an answer code and a connection promise.
+- The host feeds the guest's reply code into accept(reply), establishing the bidirectional TextConnection.
+- Aborting the signal cancels pending candidate gathering and closes any in-flight peer connection.
+- Provider disposal closes all active peer connections and terminates gathering.
+
+## Remove or replace
+Removing this module disables manual invite-code peer-to-peer multiplayer. Dedicated server connections via WebSocket and same-origin tab sessions remain fully functional. To replace it, author a network-tier module that provides net.webrtc-signaling@1.0.0 implementing ManualSignalingProvider.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Invitation and reply codes use compact format prefixes SSO1 (Space Sim Offer v1) and SSA1 (Space Sim Answer v1) with compressed SDP payloads.
+
+## Example
+examples/modules/net-webrtc demonstrates generating invitation codes, validating format strings, and checking connection diagnostics. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/net-webrtc/module.json /tmp/webrtc-example.spacemod
+    npm run module:validate -- /tmp/webrtc-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api webrtc-transport.ts: ManualSignalingProvider and connection diagnostics [api-reference/game-api/webrtc-transport]
+-> API reference: Manual WebRTC transport [api-reference/module/spacelab.net-webrtc]
+
+=== WebSocket transport [spacelab.net-websocket/usage]
+An ordered reliable text transport without flight or session implementation imports.
+
+
+## What it does
+This module provides client-side WebSocket communication for connecting to remote flight servers. It normalizes target URLs (default port 6464, path /ws, and automatic promotion to secure wss: on HTTPS pages), establishes reliable ordered text connections (TextConnection), validates incoming message lengths, and handles timeouts and cancellations via AbortSignal. The module is decoupled from flight mechanics, physics, and UI rendering.
+
+## Provides and requires
+- Provides net.websocket@1.0.0 through the WEBSOCKET_TRANSPORT key: a TransportProvider instance for ws:// and wss:// schemes.
+- Contributes itself to the runtime transport registry via context.contributeTransport.
+- Requires no services.
+
+## Settings
+- timeoutMs (default 10000, from 1 to 60000, step 1): Maximum wait for a WebSocket connection to open in milliseconds. Does not alter the server heartbeat or session protocol.
+- maxTextLength (default 67108864, from 1 to 67108864, step 1): Maximum UTF-16 characters in a WebSocket text message. Lowering it can reject large snapshots or join packages; peers still enforce their own limits.
+
+## Lifecycle
+- Initialization provides one shared TransportProvider and registers it with the module context for owned disposal.
+- connect(address, signal) initiates an asynchronous handshake, returning a TextConnection on success.
+- TextConnection exposes label, bufferedAmount, send(text), close(reason), onmessage, and onclose.
+- Aborting the signal cancels pending connection attempts and closes any open socket.
+- Provider disposal cancels all in-flight connections and cleanly disconnects active peers with an AggregateError if cleanup fails.
+
+## Remove or replace
+Removing this module disables WebSocket connectivity for multiplayer client sessions. Single-player games, offline scenarios, and local tab-to-tab multiplayer remain functional without it. To replace it, author a network-tier module that provides net.websocket@1.0.0 with a compatible TransportProvider implementation.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: network transport contracts can change before final release. Wire protocol compatibility is governed by the underlying WebSocket RFC 6455 standard.
+
+## Example
+examples/modules/net-websocket demonstrates connecting to a WebSocket server with custom timeouts and validating incoming text messages. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/net-websocket/module.json /tmp/websocket-example.spacemod
+    npm run module:validate -- /tmp/websocket-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api platform.ts: TextConnection and TransportProvider contracts [api-reference/game-api/platform]
+-> API reference: WebSocket transport [api-reference/module/spacelab.net-websocket]
 
 === Player controller [spacelab.player-controller/usage]
 Routes namespaced intent to a compatible entity/session adapter without advancing a world.
@@ -1985,6 +3746,87 @@ examples/modules/player-controller is a creator example implementing a custom Co
 -> Code modules: manifests, packaging and installation [modules]
 -> API reference: Player controller [api-reference/module/spacelab.player-controller]
 -> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Flight sessions [spacelab.session-flight/usage]
+Explicit flight protocol using privileged public engine ports and replaceable transports.
+
+
+## What it does
+This module provides the core authoritative flight multiplayer protocol and session management. It manages local sessions, dedicated server hosts, and remote client sessions. A flight host borrows an existing simulation world, manages seated players, synchronizes ship state, dispatches flight commands, handles time warp acceleration, and broadcasts state snapshots over reliable text connections.
+
+## Provides and requires
+- Provides session.flight@1.0.0 through the FLIGHT_SESSIONS key: a FlightSessionFactory instance.
+- Requires core.world@^1.0.0 through CORE_WORLD: world lifecycle and entity management.
+- Requires core.save@^1.0.0 through CORE_SAVE: world state serialization.
+- Requires core.clock@^1.0.0 through CORE_CLOCK: simulation timing and scheduling.
+- Requires core.motion@^1.0.0 through CORE_MOTION: physical motion stepping.
+- Requires core.commands@^1.0.0 through CORE_COMMANDS: ship control command dispatch.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization binds the required engine ports and exposes the FlightSessionFactory.
+- host(world, settings, options) instantiates an authoritative FlightHost borrowing an existing WorldControl.
+- local(world, options) constructs a standalone single-player session owning its private world.
+- join(peer, options, signal) performs client-side handshake over a TextConnection, synchronizing entities into a local mirror world.
+- step() and advance(seconds) execute discrete ticks or wall-clock durations, returning world simulation events.
+- Disposing the factory or provider closes all active sessions and disconnects peers.
+
+## Remove or replace
+This module is essential for flight multiplayer sessions and standard flight gameplay. Standalone non-flight tools like planet viewers do not require it. To replace it, author a network-tier module providing session.flight@1.0.0 implementing FlightSessionFactory.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-flight/1 and entity schema space-sim-flight-entities/1.
+
+## Example
+examples/modules/session-flight demonstrates creating an authoritative flight host over a simulation world and asserting pause and step controls. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/session-flight/module.json /tmp/session-flight-example.spacemod
+    npm run module:validate -- /tmp/session-flight-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api flight-session.ts: FlightSessionFactory and FlightHost contracts [api-reference/game-api/flight-session]
+-> API reference: Flight sessions [api-reference/module/spacelab.session-flight]
+
+=== Install on join [spacelab.session-join/usage]
+Bounded, versioned negotiation before session construction and exact package approval.
+
+
+## What it does
+This module coordinates pre-join game pack distribution between multiplayer hosts and connecting clients before the flight session starts. It transmits structured package offers listing required modules, licenses, and digests. When the client requires missing assets, it transfers chunked archive data, validates SHA-256 digests, requests user approval via review hooks, and stages modules in isolation without affecting global configuration.
+
+## Provides and requires
+- Provides session.join-pack@1.0.0 through the JOIN_PACKS key: a JoinPackFactory instance.
+- Requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization provides the JoinPackFactory and registers it for owned disposal.
+- client(peer, port, signal) reads the initial wire message; legacy servers sending 'info' pass through immediately, while prejoin servers negotiate offers.
+- The client validates code permissions against port.allowRuntimeCode, checks local caches, and prompts the user via port.review.
+- port.stage prepares the verified modules in a temporary staging container (JoinStage).
+- Upon successful authentication, calling stage.activate() publishes the newly acquired modules into active runtime use.
+- host(peer, source, accept, signal) serves package offers and chunks, completing with accept(peer) once the client signals readiness.
+- Provider disposal aborts all pending negotiations with an error.
+
+## Remove or replace
+Removing this module disables automatic server package downloads when joining custom multiplayer worlds. Connecting to vanilla servers without custom packs remains operational. To replace it, author a network-tier module providing session.join-pack@1.0.0 implementing JoinPackFactory.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Negotiation follows protocol spacelab-prejoin/1 and offer format spacelab-join-offer/1.
+
+## Example
+examples/modules/session-join demonstrates executing client-side prejoin negotiation with mock package verification. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/session-join/module.json /tmp/session-join-example.spacemod
+    npm run module:validate -- /tmp/session-join-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api join-pack.ts: JoinPackFactory and JoinOffer contracts [api-reference/game-api/join-pack]
+-> API reference: Install on join [api-reference/module/spacelab.session-join]
 
 === Throttle HUD [spacelab.throttle-hud/usage]
 A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.

@@ -5,6 +5,7 @@ import { sha256Bytes } from './sha256';
 const PROTOCOL = 'spacelab-prejoin/1';
 /** Human consent has its own limit; byte transfer is separately bounded to two minutes. */
 const REVIEW_MS = 10 * 60_000, TRANSFER_MS = 120_000;
+/** Construct a join pack factory orchestrating prejoin game pack exchange. */
 export function createJoinPacks(): JoinPackFactory & Disposable {
   const pending = new Set<AbortController>(); let disposed = false;
   async function run<T>(peer: Parameters<JoinPackFactory['client']>[0], signal: AbortSignal, work: (inbox: Inbox, signal: AbortSignal, transfer: () => void) => Promise<T>): Promise<T> {
@@ -89,6 +90,7 @@ export function createJoinPacks(): JoinPackFactory & Disposable {
     dispose() { if (disposed) return; disposed = true; for (const controller of pending) controller.abort(new Error('Join-pack provider disposed')); pending.clear(); },
   };
 }
+/** Initialize the session join-pack module, providing session.join-pack@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Install on join', summary: 'Bounded, versioned negotiation before session construction and exact package approval.', asset: 'docs/creators/usage.json' });
   context.provide(JOIN_PACKS, context.own(createJoinPacks()));

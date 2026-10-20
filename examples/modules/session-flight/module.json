@@ -1,0 +1,48 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.flight-session-host",
+    "name": "Flight session host example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "node",
+      "offline"
+    ],
+    "tier": "network",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.flight-session-host",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "session.flight",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.flight-session-host"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

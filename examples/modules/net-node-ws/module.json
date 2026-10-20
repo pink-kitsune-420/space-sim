@@ -1,0 +1,46 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.node-ws-custom-server",
+    "name": "Node WebSocket server example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "node"
+    ],
+    "tier": "network",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.node-ws-custom-server",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "net.node-ws",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.node-ws-custom-server"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}
