@@ -29,10 +29,21 @@ html = html.replace('href="./"', 'href="#app"');
 html = html.replace('LOCAL FLIGHT', 'OFFLINE FLIGHT');
 html = html.replace(/<link\b[^>]*\brel="(?:manifest|icon)"[^>]*>\s*/gi, '');
 if (/<(?:script|link)\b[^>]*(?:src|href)="[^#]/i.test(html)) throw new Error('External build asset remains');
+const gameCatalog = JSON.parse(await readFile(new URL('../games/catalog.json', import.meta.url), 'utf8'));
+if (gameCatalog.format !== 'space-lab-game-catalog/1' || !Array.isArray(gameCatalog.games)) {
+  throw new Error('Invalid game catalog format');
+}
+// Embed catalog metadata into offline HTML for client-side discovery without network
+html = html.replace('</head>', `<script id="space-lab-game-catalog" type="application/json">${JSON.stringify(gameCatalog)}</script>\n</head>`);
 const output = resolve(root, 'space-lab-offline.html');
 await writeFile(output, html);
-const game = JSON.parse(await readFile(new URL('../games/space-sim/game.json', import.meta.url), 'utf8'));
-await writeFile(resolve(root, 'space-sim.spacegame'), gzipSync(JSON.stringify(game), { level: 9 }));
+await writeFile(resolve(root, 'catalog.json'), `${JSON.stringify(gameCatalog, null, 2)}\n`);
+
+for (const entry of gameCatalog.games) {
+  const gamePath = new URL(`../games/${entry.path}`, import.meta.url);
+  const gameData = JSON.parse(await readFile(gamePath, 'utf8'));
+  await writeFile(resolve(root, `${entry.alias}.spacegame`), gzipSync(JSON.stringify(gameData), { level: 9 }));
+}
 const universe = JSON.parse(await readFile(new URL('../games/space-sim/universes/sandbox/default/universe.json', import.meta.url), 'utf8'));
 await writeFile(resolve(root, 'space-sim.spaceuniverse'), gzipSync(JSON.stringify(universe), { level: 9 }));
 // Mirror authored organization so every universe is editable and independently shareable.

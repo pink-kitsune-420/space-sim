@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://space-sim.local/schemas/game-catalog-v1.json",
+  "title": "Space Lab Game Catalog Format",
+  "description": "Schema for the authoritative Spacelab multi-game catalog manifest.",
+  "type": "object",
+  "required": [
+    "format",
+    "defaultGame",
+    "games"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "type": "string",
+      "const": "space-lab-game-catalog/1",
+      "description": "Catalog format identifier."
+    },
+    "defaultGame": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+      "description": "Namespaced ID of the default game to load on startup."
+    },
+    "games": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "alias",
+          "name",
+          "description",
+          "category",
+          "adapter",
+          "path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)+$",
+            "description": "Unique namespaced game identifier."
+          },
+          "alias": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Short URL slug and archive filename identifier."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Display name of the game."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4096,
+            "description": "Description of the game and its gameplay features."
+          },
+          "category": {
+            "type": "string",
+            "enum": ["game", "example"],
+            "description": "Top-level categorization of the entry."
+          },
+          "adapter": {
+            "type": "string",
+            "enum": ["flight", "legacy-sandbox", "static-viewer", "bounded-survey"],
+            "description": "Compatible host adapter required to launch the game."
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+/[a-z0-9-.]+\\.json$",
+            "description": "Relative path to the game package JSON from games/ directory."
+          },
+          "defaultUniverse": {
+            "type": "string",
+            "description": "Optional default universe path within the game's universes directory."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,7 +1,7 @@
 {
   "format": "space-lab-game/1",
   "info": {
-    "id": "spacelab.orbital-academy",
+    "id": "builtin.orbit-academy",
     "name": "Orbital Academy",
     "description": "Learn to fly, then explore orbital mechanics in 24 beginner and advanced lessons with explicit practice setups, live objectives and suggested orbits."
   },

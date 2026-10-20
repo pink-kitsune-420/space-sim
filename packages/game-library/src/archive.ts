@@ -134,3 +134,5 @@ export async function decodePackage(bytes: Uint8Array<ArrayBuffer>, options: Shi
 
 // Keep existing imports compatible while execution policy lives in the pure runtime.
 export { artifactModules } from '../../game-runtime/src/loader';
+export { validateGameCatalog, type GameCatalog, type GameCatalogEntry } from './catalog';
+
