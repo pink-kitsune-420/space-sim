@@ -332,7 +332,8 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await page.locator('#maneuver-transfers-tab').click();
  await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
  await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
- await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();
+ // Searching collapses the chooser; reopen it before browsing a deeper destination.
+ await page.locator('#maneuver-transfer-change').click();await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();
  await expect(page.locator('#maneuver-transfer-support')).toContainText('accepts this relationship');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
@@ -814,6 +815,12 @@ test('a distant moon route exposes every stop and burn; mission-time edits disca
  await page.locator('.transfer-option').first().evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:info.outputPath('end-to-end-burns-narrow.png')});
  await page.locator('#maneuver-transfer-years').fill('20');await expect(use).toHaveCount(0);
  await stale!.evaluate(el=>(el as HTMLButtonElement).click());expect((await debug(page)).maneuver).toBeNull();expect((await debug(page)).tick).toBe(before.tick);
+ const parking=page.locator('#maneuver-transfer-high-parking');await expect(parking).toBeChecked();
+ await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});
+ // Parking choice is a search input: changing it discards results, both settings search.
+ await parking.uncheck();await expect(use).toHaveCount(0);await expect(page.locator('#maneuver-transfer-status')).toContainText('Parking stops changed');
+ await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});
+ await parking.check();await expect(use).toHaveCount(0);
  await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});await use.click();
  await expect.poll(async()=>(await debug(page)).maneuver?.valid,{timeout:30000}).toBe(true);
  await expect(page.locator('#maneuver-nodes option').last()).toContainText('Capture · Nix');expect((await debug(page)).engine).toBe(false);

@@ -14,7 +14,7 @@ export function createTransferPlanner(plans:FlightPlanService,burns?:ManeuverBur
   const qualified=plans.withBurns?.(burns);
   if(qualified?.simulateBurn&&qualified.refineCapture&&qualified.evaluateAsync)plans=qualified;else burns=undefined;
  }
- return Object.freeze<TransferPlanner>({withBurns:controller=>createTransferPlanner(plans,controller),maxFlightSeconds:burns?MAX_FLIGHT_PLAN_SECONDS:undefined,defaultFlightSeconds:burns?50*365.25*86400:undefined,relationships:Object.freeze(burns?['same-body','child','parent','sibling','other'] as const:['same-body','child','parent','sibling'] as const),*search(world,request){
+ return Object.freeze<TransferPlanner>({withBurns:controller=>createTransferPlanner(plans,controller),maxFlightSeconds:burns?MAX_FLIGHT_PLAN_SECONDS:undefined,defaultFlightSeconds:burns?50*365.25*86400:undefined,parkingOrbits:burns?true:undefined,relationships:Object.freeze(burns?['same-body','child','parent','sibling','other'] as const:['same-body','child','parent','sibling'] as const),*search(world,request){
   const ship=world.ship(request.shipId);
   if(!ship||ship.state.status!=='flying')return unsupported('Choose a flying ship in a bound orbit.');
   if(request.destinationId!==ship.bodyId)return yield* (burns?searchRoutes(plans,world,request,burns):searchInterbody(plans,world,request));

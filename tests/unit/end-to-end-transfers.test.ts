@@ -82,6 +82,30 @@ function executeRoute(plan:FlightPlan,once=false) {
  }finally{runner.dispose();burns.dispose();session.dispose();}
 }
 
+import {stopAltitudes} from '../../modules/transfer-planner/src/routes';
+it('parks intermediate stops high beside the route moon and clear of every moon SOI',()=>{
+ const world=new World(DEFAULT_UNIVERSE);
+ try{
+  // Just outside Parvus at Primus and Nix at Magnus, rather than deep in either well.
+  const primus=stopAltitudes(world,['moon','planet','nix'],1,0);expect(primus).toHaveLength(1);expect(primus[0]).toBeCloseTo(15360*1.5-512,6);
+  // Players may turn high parking off and keep the original low parking orbits.
+  const low=stopAltitudes(world,['moon','planet','nix'],1,0,false);expect(low).toHaveLength(2);expect(Math.max(...low)).toBeLessThan(512);
+  expect(stopAltitudes(world,['moon','planet','magnus','nix'],2,0)[0]).toBeCloseTo(12288*1.5-2048,6);
+  const magnus=world.body('magnus'),r=stopAltitudes(world,['planet','magnus','nix'],1,0)[0]!+magnus.radius;
+  for(const moon of world.system.getAllBodies().filter(b=>b.parentId==='magnus'))
+   expect(Math.abs(r-Math.hypot(world.system.getBodyPosition(moon.id,0).x-world.system.getBodyPosition('magnus',0).x,world.system.getBodyPosition(moon.id,0).y-world.system.getBodyPosition('magnus',0).y))).toBeGreaterThan(moon.soi.exitMetres*1.5);
+ }finally{world.dispose();}
+ const nested=(radius:number,exit:number)=>{
+  const universe=structuredClone(DEFAULT_UNIVERSE),system=universe.systems[0]!;
+  const body={id:'nested',name:'Nested',parentId:'moon',radius:32,mu:4096,soi:{radius:exit,entryMetres:exit*.95,exitMetres:exit},ephemeris:{kind:'circular-kepler' as const,radius,phaseRadiansAtEpoch:1,direction:-1 as const}};
+  const world=new World({...universe,systems:[{...system,bodies:[...system.bodies,body]},...universe.systems.slice(1)]});
+  try{return stopAltitudes(world,['planet','moon','nested'],1,0);}finally{world.dispose();}
+ };
+ // Outside would leave Parvus's exit SOI, so park inside; with no clear high orbit, keep low parking.
+ expect(nested(2000,200)[0]).toBeCloseTo(1200-128,6);
+ const fallback=nested(2000,900);expect(fallback).toHaveLength(2);expect(Math.max(...fallback)).toBeLessThan(1200-128);
+});
+
 it.each([['moon','planet'],['nix','umbra'],['moon','nix'],['nix','moon'],['planet','velum']])('connects %s to %s without altering live flight', (from,to)=>{
  const world=new World(DEFAULT_UNIVERSE),spawn=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),body=world.body(from),r=body.radius*1.4,burns=createManeuverBurns(clock),plans=createFlightPlans(burns);
  world.teleport(spawn.id,from,{x:0,y:r},{x:Math.sqrt(body.mu/r),y:0});const ship=world.ship(spawn.id)!,before=JSON.stringify(ship),job=createTransferPlanner(plans,burns).search(world,{shipId:ship.id,destinationId:to,periapsisAltitude:100,apoapsisAltitude:100});

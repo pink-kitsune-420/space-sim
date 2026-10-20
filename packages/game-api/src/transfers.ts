@@ -7,6 +7,10 @@ export interface TransferRequest {
  readonly periapsisAltitude: number; readonly apoapsisAltitude: number;
  /** Optional total search horizon from the source epoch, in SI seconds. */
  readonly maxFlightSeconds?: number;
+ /** Staged routes park in a high orbit beside the neighbouring moon when true or
+  * omitted; false keeps low parking near each stop body. Honoured when the provider
+  * declares parkingOrbits. */
+ readonly highParking?: boolean;
 }
 export interface TransferOption {
  readonly kind: 'efficient' | 'faster'; readonly plan: FlightPlan;
@@ -41,6 +45,8 @@ export interface TransferPlanner {
  /** Optional bounds for an explicit mission-duration input. */
  readonly maxFlightSeconds?:number;
  readonly defaultFlightSeconds?:number;
+ /** True when search honours TransferRequest.highParking for intermediate stops. */
+ readonly parkingOrbits?:boolean;
  search(world: WorldRead, request: TransferRequest): Generator<TransferProgress, TransferResult>;
 }
 export const TRANSFERS: ServiceKey<TransferPlanner> = Object.freeze({ slot: 'flight.transfers', version: '1.0.0' });

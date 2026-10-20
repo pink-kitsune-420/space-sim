@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Choose one final body and enter the desired low altitude in metres above its reference radius. Turn off Circular target for a separate high altitude. Set Maximum mission time in Julian years: this includes waiting, coasts and intermediate stops, up to 100 years. The default interbody planner compares direct approaches with routes parking around intermediate ancestors. The selected moon always remains the final destination. Disconnected hierarchies and incompatible providers may have no route. All starting, parking and target orbits must clear terrain and stay inside the relevant SOI."
+      "text": "Choose one final body and enter the desired low altitude in metres above its reference radius. Turn off Circular target for a separate high altitude. Set Maximum mission time in Julian years: this includes waiting, coasts and intermediate stops, up to 100 years. The default interbody planner compares direct approaches with routes parking around intermediate ancestors. An intermediate stop parks in a high orbit just outside (or inside) the neighbouring moon's orbit, clear of every moon's SOI, so the route avoids paying to descend deep into the parent's gravity well and climb out again; low parking is used only when no such orbit fits. Turn off High parking stops to park low near each stop instead. The selected moon always remains the final destination. Disconnected hierarchies and incompatible providers may have no route. All starting, parking and target orbits must clear terrain and stay inside the relevant SOI."
     },
     {
       "type": "paragraph",

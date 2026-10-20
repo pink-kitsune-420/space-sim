@@ -8,7 +8,7 @@ export class TransferControls {
  private anchor?: {world:WorldRead;shipId:string;bodyId:string;state:State;context:SimulationContext;coast:Coast};
  private world?:WorldRead;private bodyId='';private shipId='';private disposed=false;private generation=0;
  private readonly destination:DestinationPicker;private readonly low:HTMLInputElement;private readonly high:HTMLInputElement;private readonly circular:HTMLInputElement;
- private readonly horizon?:HTMLInputElement;
+ private readonly horizon?:HTMLInputElement;private readonly highParking?:HTMLInputElement;
  private readonly cancelButton:HTMLButtonElement;private readonly find:HTMLButtonElement;
  private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement;autoWarp:HTMLButtonElement}[]=[];
  private readonly status:HTMLOutputElement;private readonly choices:HTMLDivElement;
@@ -24,7 +24,9 @@ export class TransferControls {
    <label class="transfer-circle"><input id="${prefix}-circular" type="checkbox" checked> Circular</label>
    <label class="transfer-field transfer-high">High altitude (m)<input id="${prefix}-high" type="number" step="any" disabled aria-describedby="${prefix}-orbit-help"></label></div>
    <details class="transfer-help"><summary>About target altitude</summary><p id="${prefix}-orbit-help" class="maneuver-help">Altitudes are metres above the destination’s reference radius. Circular uses the same low and high altitude; turn it off to set both apsides. Search checks terrain clearance and orbit limits.</p></details></fieldset>
-   ${service.maxFlightSeconds?`<fieldset class="transfer-section"><legend>2 · Timing</legend><div class="transfer-timing"><label for="${prefix}-years">Mission limit (yr)</label><input id="${prefix}-years" type="number" min="0.000001" max="${service.maxFlightSeconds/(365.25*86400)}" step="any" value="${(service.defaultFlightSeconds??service.maxFlightSeconds)/(365.25*86400)}" aria-describedby="${prefix}-timing-hint ${prefix}-timing-help"></div><p id="${prefix}-timing-hint" class="maneuver-help">Maximum wait + travel, including all stops.</p><details class="transfer-help"><summary>How timing affects search</summary><p id="${prefix}-timing-help" class="maneuver-help">This is a duration limit, not an arrival date. One Julian year is 365.25 days. Search compares direct trips and intermediate parking stops within this limit (up to ${service.maxFlightSeconds/(365.25*86400)} yr). A shorter limit can exclude routes.</p></details></fieldset>`:''}
+   ${service.maxFlightSeconds?`<fieldset class="transfer-section"><legend>2 · Timing${service.parkingOrbits?' & stops':''}</legend><div class="transfer-timing"><label for="${prefix}-years">Mission limit (yr)</label><input id="${prefix}-years" type="number" min="0.000001" max="${service.maxFlightSeconds/(365.25*86400)}" step="any" value="${(service.defaultFlightSeconds??service.maxFlightSeconds)/(365.25*86400)}" aria-describedby="${prefix}-timing-hint ${prefix}-timing-help"></div><p id="${prefix}-timing-hint" class="maneuver-help">Maximum wait + travel, including all stops.</p><details class="transfer-help"><summary>How timing affects search</summary><p id="${prefix}-timing-help" class="maneuver-help">This is a duration limit, not an arrival date. One Julian year is 365.25 days. Search compares direct trips and intermediate parking stops within this limit (up to ${service.maxFlightSeconds/(365.25*86400)} yr). A shorter limit can exclude routes.</p></details>${service.parkingOrbits?`
+   <label class="transfer-circle"><input id="${prefix}-high-parking" type="checkbox" checked aria-describedby="${prefix}-parking-help"> High parking stops</label>
+   <details class="transfer-help"><summary>About parking stops</summary><p id="${prefix}-parking-help" class="maneuver-help">Staged routes may stop in orbit around a planet on the way. High parking stops orbit just outside (or inside) the neighbouring moon’s orbit, clear of every moon’s SOI. This usually saves Δv and search time. Turn it off to park in a low orbit near each stop instead.</p></details>`:''}</fieldset>`:''}
    <section class="transfer-section" aria-labelledby="${prefix}-review-title"><h3 id="${prefix}-review-title">${service.maxFlightSeconds?'3':'2'} · Search & review</h3>
    <p id="${prefix}-pause-hint" class="maneuver-help">Pause flight to keep departure windows available.</p>
    <div class="maneuver-adjust"><button id="${prefix}-find" type="button">Find transfer windows</button><button id="${prefix}-cancel" type="button" hidden>Cancel search</button></div>
@@ -32,6 +34,7 @@ export class TransferControls {
    <details class="transfer-help"><summary>Using a transfer plan</summary><p class="maneuver-help">Compare wait, travel time, total Δv and all burns. Use plan creates editable nodes for review; execute them separately. Auto warp adopts the plan and authorizes automatic flight through its burns. Finite-burn checks apply to the current flight conditions; review warnings before departure.</p></details></section>`;
   const get=<T extends HTMLElement>(name:string)=>root.querySelector<T>(`#${prefix}-${name}`)!;
   this.horizon=root.querySelector<HTMLInputElement>(`#${prefix}-years`)??undefined;
+  this.highParking=root.querySelector<HTMLInputElement>(`#${prefix}-high-parking`)??undefined;
   this.cancelButton=get('cancel');this.find=get('find');this.low=get('low');this.high=get('high');this.circular=get('circular');this.status=get('status');this.choices=get('choices');
   this.pauseHint=get('pause-hint');
   this.destination=new DestinationPicker(get('picker'),prefix,service,()=>{this.cancel('Destination changed. Find new options.');this.resetTarget();this.destinationStatus();},signal);
@@ -40,6 +43,7 @@ export class TransferControls {
   this.high.closest('label')!.hidden=this.circular.checked;
   on(this.circular,'change',()=>{this.high.closest('label')!.hidden=this.circular.checked;this.high.disabled=this.circular.checked;if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
   if(this.horizon)on(this.horizon,'input',()=>this.cancel('Mission time changed. Find new options.'));
+  if(this.highParking)on(this.highParking,'change',()=>this.cancel('Parking stops changed. Find new options.'));
   on(get('find'),'click',()=>this.search());on(get('cancel'),'click',()=>this.cancel('Search cancelled.'));
  }
  private resetTarget():void {
@@ -68,7 +72,7 @@ export class TransferControls {
   const context=flight.world.contextFor(ship),state=structuredClone(ship.state),coast=context.keplerCoast(state,flight.body,flight.world.surface(flight.body.id));
   if(!coast){this.status.textContent='No safe analytic starting coast is available.';return;}
   this.anchor={world:flight.world,shipId:ship.id,bodyId:ship.bodyId,state,context,coast};
-  this.job=this.service.search(flight.world,{shipId:ship.id,destinationId:this.destination.value,periapsisAltitude:this.low.valueAsNumber,apoapsisAltitude:this.circular.checked?this.low.valueAsNumber:this.high.valueAsNumber,...(this.horizon?{maxFlightSeconds:this.horizon.valueAsNumber*365.25*86400}:{})});
+  this.job=this.service.search(flight.world,{shipId:ship.id,destinationId:this.destination.value,periapsisAltitude:this.low.valueAsNumber,apoapsisAltitude:this.circular.checked?this.low.valueAsNumber:this.high.valueAsNumber,...(this.horizon?{maxFlightSeconds:this.horizon.valueAsNumber*365.25*86400}:{}),...(this.highParking?{highParking:this.highParking.checked}:{})});
   this.cancelButton.hidden=false;this.status.textContent='Searching bounded transfer options…';this.schedule();
  }
  cancel(message?:string):void {
