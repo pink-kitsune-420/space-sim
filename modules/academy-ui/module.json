@@ -42,7 +42,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "03d5f9279170e4d5433c87cddfcc220ee9be4df65a31c706525fd7bcfed98ddd"
+    "inputsDigest": "0514ca08aebafdfe2027e6b1259418268f0d56b9849314e00dae7302b99ac266"
   },
   "compatibility": {
     "deterministic": true,
@@ -85,7 +85,7 @@
     },
     {
       "path": "game-api/commands.ts",
-      "sha256": "6400cc84652bcac7531945719b2d79b067fc868c2b148a7c31617eac64b10ef1",
+      "sha256": "204e14d6c2e51d24a791135750a0cd1ea8ed5c63e7a52fd5a7380456526fd4bd",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -97,7 +97,7 @@
     },
     {
       "path": "game-api/engine.ts",
-      "sha256": "3103a4b992f64e396b3aca8bfc180e8b37e6db521b7a93108d27d19161ba01b5",
+      "sha256": "ef379d74357a25fb2a864af20eb10ac592b7911919aa9325f8700d10b429608c",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -385,7 +385,7 @@
     },
     {
       "path": "game-api/world.ts",
-      "sha256": "3cfa57279f5ef7f49569ef4420c360864ab4502f7a7c4896daf0f54e1fc4a71b",
+      "sha256": "25e771238d4a919f5f980c8fd87e1ef6e471fb9a9671676083dc0785cdec814b",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
