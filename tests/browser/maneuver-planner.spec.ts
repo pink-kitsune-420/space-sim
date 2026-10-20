@@ -799,7 +799,10 @@ for(const follow of [false,true])test(`a background ship alarm ${follow?'selects
  // camera that was already following the alarm's ship.
  if((await debug(page)).camera.mode!=='free')await page.locator('#camera').click();
  await expect.poll(async()=>(await debug(page)).camera.mode).toBe('free');
- await page.locator('#pause').click();await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ if((await page.locator('#pause').textContent())==='Resume')await page.locator('#pause').click();
+ await expect(page.locator('#pause')).toHaveText('Pause');
+ // The warp button stays disabled until the host UI syncs after resuming (slow in WebKit), and a click on a disabled button is dropped.
+ for(let i=0;i<5;i++){const up=page.locator('#warp-up');await expect(up).toBeEnabled();await up.click();}
  await expect(page.locator('#pause')).toHaveText('Resume',{timeout:20000});
  await expect.poll(async()=>(await debug(page)).ship).toBe(follow?first:second);
  const after=await debug(page);expect(after.camera.mode).toBe(follow?'follow':'free');expect(after.engine).toBe(false);expect(after.maneuver?.execution??null).toBeNull();
