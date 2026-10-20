@@ -1,6 +1,7 @@
 import type { ModuleState } from './motion';
 import type { Ship, WorldEvent } from './world';
 import type { RuleCommand } from './services';
+import type { SparsePageDelta, SparsePageStore } from './state';
 
 /** Cross-engine deterministic floating-point math operations supplied to authoritative world rules. */
 export interface DeterministicMath {
@@ -20,11 +21,16 @@ export interface WorldRuleHook {
   readonly initialState: ModuleState;
   /** Nonzero uint32 seed. RNG authority is committed/rolled back with state. */
   readonly seed: number;
+  /** Optional sparse page size (1024, 2048, or 4096 bytes). */
+  readonly pageSizeBytes?: 1024 | 2048 | 4096;
+  /** Optional initial sparse page store. */
+  readonly pageStore?: SparsePageStore;
   evaluate(input: Readonly<{
     tick: number; time: number; seconds: number; ships: readonly Ship[];
     events: readonly WorldEvent[]; state: ModuleState;
     math: DeterministicMath; random: () => number;
-  }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[] }>;
+    pages?: SparsePageStore;
+  }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[]; dirtyPages?: readonly SparsePageDelta[] }>;
 }
 /** Resolved authoritative world-rule contribution bound to its owning module identity and version. */
 export interface WorldRuleExtension {
@@ -32,8 +38,11 @@ export interface WorldRuleExtension {
   readonly version: string;
   readonly hook: WorldRuleHook;
 }
-/** Persisted authoritative world-rule namespace combining module state and deterministic PRNG uint32 state. */
+/** Persisted authoritative world-rule namespace combining module state, deterministic PRNG uint32 state, and optional sparse pages. */
 export interface WorldRuleState {
   readonly state: ModuleState;
   readonly randomState: number;
+  readonly pages?: SparsePageStore;
+  readonly dirtyHash?: string;
 }
+

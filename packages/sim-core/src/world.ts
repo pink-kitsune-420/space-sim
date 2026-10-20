@@ -7,7 +7,7 @@ export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import { createSimulationContext, ghostSample, magnitude, normalizeAngle, setGodMode } from './context';
 import { motionCopy as motionRuleStateCopy, validateModuleState } from '../../game-runtime/src/motion';
-import { captureWorldRules, initialRuleState, stageWorldRules } from '../../game-runtime/src/rules';
+import { captureWorldRules, copyRuleState, initialRuleState, stageWorldRules } from '../../game-runtime/src/rules';
 import { captureCommands } from '../../game-runtime/src/commands';
 import { DEFAULT_BUILTIN_LOCK, computeAuthoritativeLock, computeSimulationFingerprint } from '../../game-runtime/src/authoritative';
 import * as dm from './dmath';
@@ -82,6 +82,18 @@ export class World implements WorldControl {
   private ruleState: Readonly<Record<string, WorldRuleState>>;
   get requiresWorldPrediction(): boolean { return this.rules.length > 0 || this.customFrames; }
   get moduleState(): Readonly<Record<string, WorldRuleState>> { return this.ruleState; }
+  get tickFingerprint(): string {
+    const dirtyHashes: string[] = [];
+    for (const [modId, s] of Object.entries(this.ruleState)) {
+      if (s.dirtyHash) dirtyHashes.push(`${modId}:${s.dirtyHash}`);
+    }
+    return sha256Hex(canonicalJson({
+      simulation: this.simulationFingerprint,
+      tick: this.tick,
+      version: this.version,
+      ruleHashes: dirtyHashes.sort(),
+    }));
+  }
   /** A shared hook failure leaves the entire candidate tick uncommitted. */
   paused = false;
   fault: string | undefined;
@@ -648,7 +660,7 @@ export class World implements WorldControl {
         throw new Error(`Module ${moduleId}: invalid RNG state`);
       }
     }
-    this.ruleState = motionRuleStateCopy(state);
+    this.ruleState = copyRuleState(state);
   }
 
   private computeDefaultFingerprint(): string {
@@ -680,7 +692,7 @@ export class World implements WorldControl {
     clone.rails = false;
     for (const ship of this.ships()) clone.put(structuredClone(ship));
     if (this.data.schemas.length) clone.data.apply(this.data.snapshot());
-    clone.ruleState = motionRuleStateCopy(this.ruleState);
+    clone.ruleState = copyRuleState(this.ruleState);
     return clone;
   }
 

@@ -1,6 +1,6 @@
 export * from './universe-saving';
 /** Public simulation contracts. No implementation or platform dependencies. */
-export type * from './state';
+export * from './state';
 export type * from './orbit';
 export type * from './surface';
 export type * from './universe';

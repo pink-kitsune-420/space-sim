@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7de87120581cba42",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b314d7ad533fa853",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7de87120581cba42"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b314d7ad533fa853"
         },
         {
           "type": "paragraph",
@@ -14211,7 +14211,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldRuleHook {\n  readonly modelIdentity: string;\n  readonly initialState: ModuleState;\n  /** Nonzero uint32 seed. RNG authority is committed/rolled back with state. */\n  readonly seed: number;\n  evaluate(input: Readonly<{\n    tick: number; time: number; seconds: number; ships: readonly Ship[];\n    events: readonly WorldEvent[]; state: ModuleState;\n    math: DeterministicMath; random: () => number;\n  }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[] }>;\n}"
+          "text": "export interface WorldRuleHook {\n  readonly modelIdentity: string;\n  readonly initialState: ModuleState;\n  /** Nonzero uint32 seed. RNG authority is committed/rolled back with state. */\n  readonly seed: number;\n  /** Optional sparse page size (1024, 2048, or 4096 bytes). */\n  readonly pageSizeBytes?: 1024 | 2048 | 4096;\n  /** Optional initial sparse page store. */\n  readonly pageStore?: SparsePageStore;\n  evaluate(input: Readonly<{\n    tick: number; time: number; seconds: number; ships: readonly Ship[];\n    events: readonly WorldEvent[]; state: ModuleState;\n    math: DeterministicMath; random: () => number;\n    pages?: SparsePageStore;\n  }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[]; dirtyPages?: readonly SparsePageDelta[] }>;\n}"
         },
         {
           "type": "paragraph",
@@ -14239,11 +14239,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Persisted authoritative world-rule namespace combining module state and deterministic PRNG uint32 state."
+          "text": "Persisted authoritative world-rule namespace combining module state, deterministic PRNG uint32 state, and optional sparse pages."
         },
         {
           "type": "code",
-          "text": "export interface WorldRuleState {\n  readonly state: ModuleState;\n  readonly randomState: number;\n}"
+          "text": "export interface WorldRuleState {\n  readonly state: ModuleState;\n  readonly randomState: number;\n  readonly pages?: SparsePageStore;\n  readonly dirtyHash?: string;\n}"
         },
         {
           "type": "paragraph",
@@ -15176,6 +15176,86 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-prediction, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "SparsePageDelta"
+        },
+        {
+          "type": "paragraph",
+          "text": "Delta entry representing a modified sparse binary page in a `SparsePageStore`."
+        },
+        {
+          "type": "code",
+          "text": "export interface SparsePageDelta {\n  readonly key: string;\n  readonly delta: Uint8Array;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SparsePageStore"
+        },
+        {
+          "type": "paragraph",
+          "text": "Versioned copy-on-write sparse binary page store for high-capacity state (e.g. voxel chunks, tile grids)."
+        },
+        {
+          "type": "code",
+          "text": "export interface SparsePageStore {\n  readonly pageSizeBytes: 1024 | 2048 | 4096;\n  getPage(key: string): Uint8Array | undefined;\n  setPage(key: string, data: Uint8Array): void;\n  markDirty(key: string): void;\n  commitDirtyPages(): readonly SparsePageDelta[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "MAX_SPARSE_PAGE_STORE_BYTES"
+        },
+        {
+          "type": "paragraph",
+          "text": "Maximum aggregate size in bytes (32 MiB) allowable in a single `SparsePageStore`."
+        },
+        {
+          "type": "code",
+          "text": "export const MAX_SPARSE_PAGE_STORE_BYTES = 32 * 1024 * 1024;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CopyOnWriteSparsePageStore"
+        },
+        {
+          "type": "paragraph",
+          "text": "Copy-on-write implementation of `SparsePageStore` with per-tick transaction and rollback support."
+        },
+        {
+          "type": "code",
+          "text": "export class CopyOnWriteSparsePageStore implements SparsePageStore {\n  readonly pageSizeBytes: 1024 | 2048 | 4096;\n  private readonly committedPages: Map<string, Uint8Array>;\n  private readonly uncommittedPages: Map<string, Uint8Array>;\n  private readonly dirtyKeySet: Set<string>;\n\n  constructor(\n    pageSizeBytes: 1024 | 2048 | 4096 = 2048,\n    committedPages: Map<string, Uint8Array> = new Map(),\n    uncommittedPages: Map<string, Uint8Array> = new Map(),\n    dirtyKeySet: Set<string> = new Set()\n  ) {\n    if (pageSizeBytes !== 1024 && pageSizeBytes !== 2048 && pageSizeBytes !== 4096) {\n      throw new Error(`Invalid pageSizeBytes: ${pageSizeBytes}. Must be 1024, 2048, or 4096.`);\n    }\n    this.pageSizeBytes = pageSizeBytes;\n    this.committedPages = committedPages;\n    this.uncommittedPages = uncommittedPages;\n    this.dirtyKeySet = dirtyKeySet;\n  }\n\n  get pageCount(): number {\n    let count = this.committedPages.size;\n    for (const key of this.uncommittedPages.keys()) {\n      if (!this.committedPages.has(key)) count++;\n    }\n    return count;\n  }\n\n  getPage(key: string): Uint8Array | undefined {\n    return this.uncommittedPages.get(key) ?? this.committedPages.get(key);\n  }\n\n  setPage(key: string, data: Uint8Array): void {\n    if (!key || typeof key !== 'string') throw new Error('SparsePageStore page key must be a non-empty string');\n    if (!(data instanceof Uint8Array) || data.byteLength !== this.pageSizeBytes) {\n      throw new Error(`SparsePageStore page data must be a Uint8Array of length ${this.pageSizeBytes}`);\n    }\n    const isNew = !this.committedPages.has(key) && !this.uncommittedPages.has(key);\n    if (isNew && (this.pageCount + 1) * this.pageSizeBytes > MAX_SPARSE_PAGE_STORE_BYTES) {\n      throw new Error(`SparsePageStore exceeds maximum capacity of ${MAX_SPARSE_PAGE_STORE_BYTES} bytes (32 MiB)`);\n    }\n    const copy = new Uint8Array(this.pageSizeBytes);\n    copy.set(data);\n    this.uncommittedPages.set(key, copy);\n    this.dirtyKeySet.add(key);\n  }\n\n  markDirty(key: string): void {\n    if (!key || typeof key !== 'string') throw new Error('SparsePageStore page key must be a non-empty string');\n    if (this.uncommittedPages.has(key)) return;\n    const existing = this.committedPages.get(key);\n    if (existing) {\n      const copy = new Uint8Array(this.pageSizeBytes);\n      copy.set(existing);\n      this.uncommittedPages.set(key, copy);\n      this.dirtyKeySet.add(key);\n    } else {\n      if ((this.pageCount + 1) * this.pageSizeBytes > MAX_SPARSE_PAGE_STORE_BYTES) {\n        throw new Error(`SparsePageStore exceeds maximum capacity of ${MAX_SPARSE_PAGE_STORE_BYTES} bytes (32 MiB)`);\n      }\n      const blank = new Uint8Array(this.pageSizeBytes);\n      this.uncommittedPages.set(key, blank);\n      this.dirtyKeySet.add(key);\n    }\n  }\n\n  commitDirtyPages(): readonly SparsePageDelta[] {\n    if (this.dirtyKeySet.size === 0) return [];\n    const sortedKeys = Array.from(this.dirtyKeySet).sort();\n    const deltas: SparsePageDelta[] = [];\n    for (const key of sortedKeys) {\n      const page = this.uncommittedPages.get(key)!;\n      this.committedPages.set(key, page);\n      deltas.push(Object.freeze({ key, delta: page }));\n    }\n    this.uncommittedPages.clear();\n    this.dirtyKeySet.clear();\n    return Object.freeze(deltas);\n  }\n\n  discardDirtyPages(): void {\n    this.uncommittedPages.clear();\n    this.dirtyKeySet.clear();\n  }\n\n  clone(): CopyOnWriteSparsePageStore {\n    const newCommitted = new Map(this.committedPages);\n    const newUncommitted = new Map<string, Uint8Array>();\n    for (const [k, v] of this.uncommittedPages) {\n      const copy = new Uint8Array(this.pageSizeBytes);\n      copy.set(v);\n      newUncommitted.set(k, copy);\n    }\n    return new CopyOnWriteSparsePageStore(\n      this.pageSizeBytes,\n      newCommitted,\n      newUncommitted,\n      new Set(this.dirtyKeySet)\n    );\n  }\n\n  keys(): IterableIterator<string> {\n    const keys = new Set([...this.committedPages.keys(), ...this.uncommittedPages.keys()]);\n    return keys.values();\n  }\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "createSparsePageStore"
+        },
+        {
+          "type": "paragraph",
+          "text": "Creates a new `SparsePageStore` initialized with optional pages."
+        },
+        {
+          "type": "code",
+          "text": "export function createSparsePageStore(\n  pageSizeBytes: 1024 | 2048 | 4096 = 2048,\n  initialPages?: Iterable<[string, Uint8Array]> | Record<string, Uint8Array>\n): CopyOnWriteSparsePageStore;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",

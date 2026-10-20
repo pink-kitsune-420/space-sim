@@ -93,3 +93,149 @@ export interface GhostSample extends Sample {
 }
 /** Why an orbital ghost projection pass ended. */
 export type GhostEnd = 'closed' | 'impact' | 'escape' | 'open' | 'grounded' | 'floating' | 'failed' | 'horizon';
+
+/** Delta entry representing a modified sparse binary page in a `SparsePageStore`. */
+export interface SparsePageDelta {
+  readonly key: string;
+  readonly delta: Uint8Array;
+}
+
+/** Versioned copy-on-write sparse binary page store for high-capacity state (e.g. voxel chunks, tile grids). */
+export interface SparsePageStore {
+  readonly pageSizeBytes: 1024 | 2048 | 4096;
+  getPage(key: string): Uint8Array | undefined;
+  setPage(key: string, data: Uint8Array): void;
+  markDirty(key: string): void;
+  commitDirtyPages(): readonly SparsePageDelta[];
+}
+
+/** Maximum aggregate size in bytes (32 MiB) allowable in a single `SparsePageStore`. */
+export const MAX_SPARSE_PAGE_STORE_BYTES = 32 * 1024 * 1024;
+
+/** Copy-on-write implementation of `SparsePageStore` with per-tick transaction and rollback support. */
+export class CopyOnWriteSparsePageStore implements SparsePageStore {
+  readonly pageSizeBytes: 1024 | 2048 | 4096;
+  private readonly committedPages: Map<string, Uint8Array>;
+  private readonly uncommittedPages: Map<string, Uint8Array>;
+  private readonly dirtyKeySet: Set<string>;
+
+  constructor(
+    pageSizeBytes: 1024 | 2048 | 4096 = 2048,
+    committedPages: Map<string, Uint8Array> = new Map(),
+    uncommittedPages: Map<string, Uint8Array> = new Map(),
+    dirtyKeySet: Set<string> = new Set()
+  ) {
+    if (pageSizeBytes !== 1024 && pageSizeBytes !== 2048 && pageSizeBytes !== 4096) {
+      throw new Error(`Invalid pageSizeBytes: ${pageSizeBytes}. Must be 1024, 2048, or 4096.`);
+    }
+    this.pageSizeBytes = pageSizeBytes;
+    this.committedPages = committedPages;
+    this.uncommittedPages = uncommittedPages;
+    this.dirtyKeySet = dirtyKeySet;
+  }
+
+  get pageCount(): number {
+    let count = this.committedPages.size;
+    for (const key of this.uncommittedPages.keys()) {
+      if (!this.committedPages.has(key)) count++;
+    }
+    return count;
+  }
+
+  getPage(key: string): Uint8Array | undefined {
+    return this.uncommittedPages.get(key) ?? this.committedPages.get(key);
+  }
+
+  setPage(key: string, data: Uint8Array): void {
+    if (!key || typeof key !== 'string') throw new Error('SparsePageStore page key must be a non-empty string');
+    if (!(data instanceof Uint8Array) || data.byteLength !== this.pageSizeBytes) {
+      throw new Error(`SparsePageStore page data must be a Uint8Array of length ${this.pageSizeBytes}`);
+    }
+    const isNew = !this.committedPages.has(key) && !this.uncommittedPages.has(key);
+    if (isNew && (this.pageCount + 1) * this.pageSizeBytes > MAX_SPARSE_PAGE_STORE_BYTES) {
+      throw new Error(`SparsePageStore exceeds maximum capacity of ${MAX_SPARSE_PAGE_STORE_BYTES} bytes (32 MiB)`);
+    }
+    const copy = new Uint8Array(this.pageSizeBytes);
+    copy.set(data);
+    this.uncommittedPages.set(key, copy);
+    this.dirtyKeySet.add(key);
+  }
+
+  markDirty(key: string): void {
+    if (!key || typeof key !== 'string') throw new Error('SparsePageStore page key must be a non-empty string');
+    if (this.uncommittedPages.has(key)) return;
+    const existing = this.committedPages.get(key);
+    if (existing) {
+      const copy = new Uint8Array(this.pageSizeBytes);
+      copy.set(existing);
+      this.uncommittedPages.set(key, copy);
+      this.dirtyKeySet.add(key);
+    } else {
+      if ((this.pageCount + 1) * this.pageSizeBytes > MAX_SPARSE_PAGE_STORE_BYTES) {
+        throw new Error(`SparsePageStore exceeds maximum capacity of ${MAX_SPARSE_PAGE_STORE_BYTES} bytes (32 MiB)`);
+      }
+      const blank = new Uint8Array(this.pageSizeBytes);
+      this.uncommittedPages.set(key, blank);
+      this.dirtyKeySet.add(key);
+    }
+  }
+
+  commitDirtyPages(): readonly SparsePageDelta[] {
+    if (this.dirtyKeySet.size === 0) return [];
+    const sortedKeys = Array.from(this.dirtyKeySet).sort();
+    const deltas: SparsePageDelta[] = [];
+    for (const key of sortedKeys) {
+      const page = this.uncommittedPages.get(key)!;
+      this.committedPages.set(key, page);
+      deltas.push(Object.freeze({ key, delta: page }));
+    }
+    this.uncommittedPages.clear();
+    this.dirtyKeySet.clear();
+    return Object.freeze(deltas);
+  }
+
+  discardDirtyPages(): void {
+    this.uncommittedPages.clear();
+    this.dirtyKeySet.clear();
+  }
+
+  clone(): CopyOnWriteSparsePageStore {
+    const newCommitted = new Map(this.committedPages);
+    const newUncommitted = new Map<string, Uint8Array>();
+    for (const [k, v] of this.uncommittedPages) {
+      const copy = new Uint8Array(this.pageSizeBytes);
+      copy.set(v);
+      newUncommitted.set(k, copy);
+    }
+    return new CopyOnWriteSparsePageStore(
+      this.pageSizeBytes,
+      newCommitted,
+      newUncommitted,
+      new Set(this.dirtyKeySet)
+    );
+  }
+
+  keys(): IterableIterator<string> {
+    const keys = new Set([...this.committedPages.keys(), ...this.uncommittedPages.keys()]);
+    return keys.values();
+  }
+}
+
+/** Creates a new `SparsePageStore` initialized with optional pages. */
+export function createSparsePageStore(
+  pageSizeBytes: 1024 | 2048 | 4096 = 2048,
+  initialPages?: Iterable<[string, Uint8Array]> | Record<string, Uint8Array>
+): CopyOnWriteSparsePageStore {
+  const store = new CopyOnWriteSparsePageStore(pageSizeBytes);
+  if (initialPages) {
+    const entries = Symbol.iterator in Object(initialPages)
+      ? (initialPages as Iterable<[string, Uint8Array]>)
+      : Object.entries(initialPages);
+    for (const [k, v] of entries) {
+      store.setPage(k, v);
+    }
+    store.commitDirtyPages();
+  }
+  return store;
+}
+

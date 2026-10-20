@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RegisteredModule, WorldRuleExtension, WorldRuleHook } from '../../packages/game-api/src/index';
-import { deterministicMath } from '../../packages/game-api/src/index';
-import { captureWorldRules } from '../../packages/game-runtime/src/rules';
+import { deterministicMath, createSparsePageStore, CopyOnWriteSparsePageStore, MAX_SPARSE_PAGE_STORE_BYTES } from '../../packages/game-api/src/index';
+import { captureWorldRules, hashSparsePageDeltas } from '../../packages/game-runtime/src/rules';
 import { DEFAULT_PROFILE, builtinManifest, prepareGame } from '../../packages/modules/src/index';
 import { World } from '../../packages/sim-core/src/world';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
@@ -174,4 +174,177 @@ describe('staged shared-world rules', () => {
       profile: { ...DEFAULT_PROFILE, modules: [...DEFAULT_PROFILE.modules, { id: 'test.visual', version: '0.1.0' }] } })).toThrow('authoritative');
     a.dispose(); b.dispose(); p.candidate.dispose();
   });
+
+  describe('SparsePageStore copy-on-write binary pages (RFC REC-05)', () => {
+    it('validates page size and capacity limits, and manages dirty deltas deterministically', () => {
+      expect(() => createSparsePageStore(512 as any)).toThrow('Invalid pageSizeBytes');
+      const store = createSparsePageStore(2048);
+      expect(store).toBeInstanceOf(CopyOnWriteSparsePageStore);
+      expect(MAX_SPARSE_PAGE_STORE_BYTES).toBe(32 * 1024 * 1024);
+      expect(store.pageSizeBytes).toBe(2048);
+      expect(store.getPage('missing')).toBeUndefined();
+
+      // setPage validation
+      expect(() => store.setPage('', new Uint8Array(2048))).toThrow('non-empty string');
+      expect(() => store.setPage('chunk-1', new Uint8Array(1024))).toThrow('length 2048');
+
+      const data1 = new Uint8Array(2048);
+      data1[0] = 42;
+      data1[2047] = 99;
+      store.setPage('chunk-1', data1);
+      // External mutation of original buffer does not mutate store's copy
+      data1[0] = 0;
+      expect(store.getPage('chunk-1')![0]).toBe(42);
+
+      // commitDirtyPages
+      const deltas = store.commitDirtyPages();
+      expect(deltas).toHaveLength(1);
+      expect(deltas[0]!.key).toBe('chunk-1');
+      expect(deltas[0]!.delta[0]).toBe(42);
+      expect(deltas[0]!.delta[2047]).toBe(99);
+
+      // Subsequent commit without changes returns empty
+      expect(store.commitDirtyPages()).toEqual([]);
+
+      // markDirty on existing page allows mutation
+      store.markDirty('chunk-1');
+      const editable = store.getPage('chunk-1')!;
+      editable[0] = 77;
+      const deltas2 = store.commitDirtyPages();
+      expect(deltas2).toHaveLength(1);
+      expect(deltas2[0]!.delta[0]).toBe(77);
+
+      // markDirty on new key allocates a zero-filled page
+      store.markDirty('chunk-2');
+      const newPage = store.getPage('chunk-2')!;
+      expect(newPage).toHaveLength(2048);
+      expect(newPage[0]).toBe(0);
+      newPage[10] = 5;
+      expect(store.commitDirtyPages()[0]!.key).toBe('chunk-2');
+    });
+
+    it('isolates mutations across copy-on-write clones without deep buffer duplication', () => {
+      const original = createSparsePageStore(1024);
+      const data = new Uint8Array(1024);
+      data[50] = 100;
+      original.setPage('tile-0', data);
+      original.commitDirtyPages();
+
+      // Clone store
+      const clone = original.clone();
+      expect(clone.getPage('tile-0')![50]).toBe(100);
+
+      // Mutate clone only
+      clone.markDirty('tile-0');
+      clone.getPage('tile-0')![50] = 200;
+      const cloneDeltas = clone.commitDirtyPages();
+      expect(cloneDeltas[0]!.delta[50]).toBe(200);
+
+      // Original remains untouched!
+      expect(original.getPage('tile-0')![50]).toBe(100);
+      expect(original.commitDirtyPages()).toEqual([]);
+    });
+
+    it('hashes only dirty pages in O(dirty) time and updates world tickFingerprint', () => {
+      const store = createSparsePageStore(1024);
+      // Create 50 pages (50 KiB, exceeds 16 KiB limit)
+      for (let i = 0; i < 50; i++) {
+        const page = new Uint8Array(1024);
+        page[0] = i;
+        store.setPage(`page-${i.toString().padStart(2, '0')}`, page);
+      }
+      const initialDeltas = store.commitDirtyPages();
+      expect(initialDeltas).toHaveLength(50);
+      const initialHash = hashSparsePageDeltas(initialDeltas);
+      expect(initialHash).toMatch(/^[0-9a-f]{64}$/);
+
+      // Only modify 1 page
+      store.markDirty('page-25');
+      store.getPage('page-25')![0] = 255;
+      const singleDirty = store.commitDirtyPages();
+      expect(singleDirty).toHaveLength(1);
+      const singleHash = hashSparsePageDeltas(singleDirty);
+      expect(singleHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(singleHash).not.toBe(initialHash);
+    });
+
+    it('integrates with WorldRuleHook, scales past 16 KiB JSON limit, and supports rollback on failure', () => {
+      const pageStore = createSparsePageStore(2048);
+      // Populate 20 pages = 40 KiB (> 16 KiB)
+      for (let i = 0; i < 20; i++) {
+        const buf = new Uint8Array(2048);
+        buf[0] = i;
+        pageStore.setPage(`chunk-${i}`, buf);
+      }
+      pageStore.commitDirtyPages();
+
+      let tickCount = 0;
+      const terrainRule: WorldRuleHook = {
+        modelIdentity: 'terrain/v1',
+        initialState: { version: 1, value: { modifiedTiles: 0 } },
+        seed: 42,
+        pageSizeBytes: 2048,
+        pageStore,
+        evaluate({ pages, tick }) {
+          expect(pages).toBeDefined();
+          tickCount++;
+          // Mine a tile in chunk-0
+          pages!.markDirty('chunk-0');
+          const chunk = pages!.getPage('chunk-0')!;
+          chunk[tick] = 0xaa;
+          return {
+            state: { version: 1, value: { modifiedTiles: tick + 1 } }
+          };
+        }
+      };
+
+      const w = new World(DEFAULT_UNIVERSE, { rules: [extension(terrainRule, 'terrain.voxel')] });
+      w.spawn({ ownerId: 'pilot', presetId: 'planet-orbit' });
+
+      // Step 5 times without hitting the 16 KiB JSON serialization error
+      for (let n = 0; n < 5; n++) {
+        expect(w.step()).toEqual([]);
+      }
+      expect(tickCount).toBe(5);
+      const ruleState = w.moduleState['terrain.voxel']!;
+      expect(ruleState.pages).toBeDefined();
+      expect(ruleState.pages!.getPage('chunk-0')![0]).toBe(0xaa);
+      expect(ruleState.pages!.getPage('chunk-0')![4]).toBe(0xaa);
+      expect(ruleState.dirtyHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(w.tickFingerprint).toMatch(/^[0-9a-f]{64}$/);
+
+      // Test clone for prediction retains independent page copy
+      const clone = w.cloneForPrediction();
+      clone.step();
+      // Clone modified index 5
+      expect(clone.moduleState['terrain.voxel']!.pages!.getPage('chunk-0')![5]).toBe(0xaa);
+      // Original world still only has up to index 4 modified
+      expect(w.moduleState['terrain.voxel']!.pages!.getPage('chunk-0')![5]).toBe(0);
+
+      // Test rollback on failure
+      const failingRule: WorldRuleHook = {
+        modelIdentity: 'failing/v1',
+        initialState: { version: 1, value: 0 },
+        seed: 99,
+        evaluate() {
+          throw new Error('boom');
+        }
+      };
+      const wFail = new World(DEFAULT_UNIVERSE, { rules: [
+        extension(terrainRule, 'terrain.voxel'),
+        extension(failingRule, 'fail.rule')
+      ] });
+      wFail.spawn({ ownerId: 'pilot', presetId: 'planet-orbit' });
+      const beforeChunk0_0 = wFail.moduleState['terrain.voxel']!.pages!.getPage('chunk-0')![0];
+      const events = wFail.step();
+      expect(events).toMatchObject([{ type: 'world-fault' }]);
+      expect(wFail.paused).toBe(true);
+      // Pages uncorrupted
+      expect(wFail.moduleState['terrain.voxel']!.pages!.getPage('chunk-0')![0]).toBe(beforeChunk0_0);
+      w.dispose();
+      clone.dispose();
+      wFail.dispose();
+    });
+  });
 });
+
