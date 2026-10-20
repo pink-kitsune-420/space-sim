@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "This module provides client-side WebSocket communication for connecting to remote flight servers. It normalizes target URLs (default port 6464, path /ws, and automatic promotion to secure wss: on HTTPS pages), establishes reliable ordered text connections (TextConnection), validates incoming message lengths, and handles timeouts and cancellations via AbortSignal. The module is decoupled from flight mechanics, physics, and UI rendering."
+      "text": "This module provides client-side WebSocket communication for connecting to remote flight servers. It normalizes target URLs (default port 6464, path /ws, and automatic promotion to secure wss: on HTTPS pages), establishes reliable ordered text connections (TextConnection), validates incoming message lengths, and handles timeouts and cancellations via AbortSignal. The module is decoupled from flight mechanics, physics, UI rendering, and session semantics."
     },
     {
       "type": "heading",

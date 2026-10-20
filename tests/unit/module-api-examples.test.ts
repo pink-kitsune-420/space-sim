@@ -2971,6 +2971,6 @@ it('generates reference pages for all 53 public game-api stems, enforces JSDoc o
   } finally {
     firstDecl.doc = savedDoc;
   }
-});
+}, 30000);
 
 

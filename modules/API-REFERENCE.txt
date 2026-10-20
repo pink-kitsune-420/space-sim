@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 103ee740b08ee2d1
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 246d36f6e58a87b5
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -10513,7 +10513,7 @@ This module has no settings.
 ## Lifecycle
 - Initialization provides the ManualSignalingProvider and registers it for owned disposal.
 - The host calls create(stun, signal), returning a ManualInvite with a compact offer code and an accept(reply) function.
-- The joining guest calls answer(offer, signal), returning a ManualReply with an answer code and a connection promise.
+- The joining guest calls answer(offer, signal), returning a ManualReply with an answer code and a connection Promise.
 - The host feeds the guest's reply code into accept(reply), establishing the bidirectional TextConnection.
 - Aborting the signal cancels pending candidate gathering and closes any in-flight peer connection.
 - Provider disposal closes all active peer connections and terminates gathering.
@@ -10539,7 +10539,7 @@ An ordered reliable text transport without flight or session implementation impo
 
 
 ## What it does
-This module provides client-side WebSocket communication for connecting to remote flight servers. It normalizes target URLs (default port 6464, path /ws, and automatic promotion to secure wss: on HTTPS pages), establishes reliable ordered text connections (TextConnection), validates incoming message lengths, and handles timeouts and cancellations via AbortSignal. The module is decoupled from flight mechanics, physics, and UI rendering.
+This module provides client-side WebSocket communication for connecting to remote flight servers. It normalizes target URLs (default port 6464, path /ws, and automatic promotion to secure wss: on HTTPS pages), establishes reliable ordered text connections (TextConnection), validates incoming message lengths, and handles timeouts and cancellations via AbortSignal. The module is decoupled from flight mechanics, physics, UI rendering, and session semantics.
 
 ## Provides and requires
 - Provides net.websocket@1.0.0 through the WEBSOCKET_TRANSPORT key: a TransportProvider instance for ws:// and wss:// schemes.
@@ -10964,7 +10964,7 @@ This module has no settings.
 This module is essential for flight multiplayer sessions and standard flight gameplay. Standalone non-flight tools like planet viewers do not require it. To replace it, author a network-tier module providing session.flight@1.0.0 implementing FlightSessionFactory.
 
 ## Stability
-Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-flight/1 and entity schema space-sim-flight-entities/1.
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-net/5 and entity schema space-sim-flight-entities/1.
 
 ## Example
 examples/modules/session-flight demonstrates creating an authoritative flight host over a simulation world and asserting pause and step controls. Build and validate it from the repository root:

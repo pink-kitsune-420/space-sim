@@ -40,7 +40,7 @@
       "items": [
         "Initialization provides the ManualSignalingProvider and registers it for owned disposal.",
         "The host calls create(stun, signal), returning a ManualInvite with a compact offer code and an accept(reply) function.",
-        "The joining guest calls answer(offer, signal), returning a ManualReply with an answer code and a connection promise.",
+        "The joining guest calls answer(offer, signal), returning a ManualReply with an answer code and a connection Promise.",
         "The host feeds the guest's reply code into accept(reply), establishing the bidirectional TextConnection.",
         "Aborting the signal cancels pending candidate gathering and closes any in-flight peer connection.",
         "Provider disposal closes all active peer connections and terminates gathering."

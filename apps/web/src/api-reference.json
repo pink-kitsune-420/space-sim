@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 103ee740b08ee2d1",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 246d36f6e58a87b5",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 103ee740b08ee2d1"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 246d36f6e58a87b5"
         },
         {
           "type": "paragraph",
