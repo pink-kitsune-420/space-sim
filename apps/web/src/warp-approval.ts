@@ -36,6 +36,6 @@ export class WarpApproval {
   const pending=[...this.requests.values()].filter(value=>!value.denied&&!value.approved);
   this.panel.hidden=!pending.length;
   this.panel.querySelector('[data-warp-approve]')!.textContent=pending[0]?.mode==='auto-warp'?'Allow automatic warp':'Allow burn approach';
-  this.text.textContent=pending.length?`${pending[0]!.label} requests permission ${pending[0]!.mode==='auto-warp'?'to auto-warp through its remaining prepared burns':'to reduce warp when its burn needs alignment and thrust'}.${pending.length>1?` ${pending.length-1} more pending.`:''}`:'';
+  this.text.textContent=pending.length?`${pending[0]!.label} requests permission ${pending[0]!.mode==='auto-warp'?'to auto-warp through its remaining prepared burns and validated arrival corrections':'to reduce warp when its burn needs alignment and thrust'}.${pending.length>1?` ${pending.length-1} more pending.`:''}`:'';
  }
 }

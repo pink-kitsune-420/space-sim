@@ -28,8 +28,10 @@ export interface FleetPlans {
  nodes(shipId: string): readonly FlightPlanNode[];
  reviewed(shipId: string, plan: FlightPlan, nodes: readonly EvaluatedFlightNode[]): void;
  completed(shipId: string, nodeId: string): void;
+ stopped?(shipId: string, reason: string): void;
  invalidated?(shipId: string, reason: string): void;
  retargeted?(shipId:string,node:FlightPlanNode):void;
+ /** Insert validated intent; a full automatic run remains armed during this callback. */
  proposed?(shipId:string,correction:FlightPlanNode,arrival:FlightPlanNode):void;
 }
 /** Per-ship, explicitly armed, session-local execution. The host alone supplies owned
@@ -69,12 +71,12 @@ export class FleetPlansRunner {
    this.options.releaseControls(shipId);
    if (run.burn) this.options.setThrottle(shipId, 0);
   }
-  if (reason) this.options.notify(`${run.world.ship(shipId)?.name ?? 'Ship'}: ${reason}`);
+  if (reason) { this.store.stopped?.(shipId,reason); this.options.notify(`${run.world.ship(shipId)?.name ?? 'Ship'}: ${reason}`); }
  }
  manualWarp(): void {
   for(const run of this.runs.values())if(run.autoWarp||run.burn||run.proposal||run.status==='Waiting for host warp approval'||run.status==='Approaching burn at real time')this.fail(run,'Manual warp took over.');
  }
- clear(): void { for (const id of this.runs.keys()) this.stop(id); }
+ clear(reason?:string): void { for (const id of this.runs.keys()) this.stop(id,reason); }
  dispose(): void { if (this.disposed) return; this.clear(); this.disposed = true; }
  private fail(run: Run, reason: string): void { this.store.invalidated?.(run.shipId,reason); this.stop(run.shipId, `${reason} Automatic plan stopped; review before rearming.`); }
  private review(run: Run,arrivalPrepared=false): void {
@@ -150,7 +152,7 @@ export class FleetPlansRunner {
     if(result.value.correction){
      if(!this.store.proposed||this.store.nodes(run.shipId).length>=16){this.fail(run,'A correction maneuver is needed. This plan cannot accept another node; review and replan the arrival.');break;}
      run.proposal={correction:result.value.correction,arrival:result.value.node};run.preparing=true;
-     run.status='Correction prepared · stopping warp for review';break;
+     run.status=run.once?'Correction prepared · stopping warp for review':'Validated correction prepared · continuing automatic plan';break;
     }
     if(!this.store.retargeted){this.fail(run,'Encounter reached. This host cannot update the arrival; review and replan before burning.');break;}
     this.store.retargeted(run.shipId,result.value.node);run.awaitingBody=undefined;this.review(run,true);continue;
@@ -181,8 +183,16 @@ export class FleetPlansRunner {
       }
       continue;
      }
-     const {correction,arrival}=run.proposal;this.stop(run.shipId);this.store.proposed!(run.shipId,correction,arrival);
-     this.options.notify(`${ship.name}: Arrival needs a correction. Correction and capture prepared for review; execute the correction separately.`);continue;
+     const {correction,arrival}=run.proposal;
+     if(run.once)this.stop(run.shipId,'Arrival needs a correction. Correction and capture prepared for review; execute the correction separately.');
+     this.store.proposed!(run.shipId,correction,arrival);
+     if(!run.once){
+      // Keep the existing run and its clock grant. Revalidate the inserted
+      // correction now, then review capture again after its actual finite burn.
+      run.awaitingBody=undefined;this.review(run,true);
+      this.options.notify(`${ship.name}: Validated correction added. Automatic plan continues through capture.`);
+     }
+     continue;
     }
     if (run.burn) {
      if (ship.bodyId !== run.bodyId) { this.fail(run, 'Body changed during a finite burn.'); continue; }

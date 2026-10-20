@@ -21,10 +21,11 @@ function fixture(plans=createFlightPlans(),alignmentWarp=4) {
   setWarp:factor=>session.setWarp(factor),setThrottle:(id,value)=>session.setThrottle(id,value),releaseControls:id=>session.host.setControls(session.playerId,id,IDLE),notify,
   fleet:{owns:id=>world.record(id)?.ownerId===session.playerId,setControls:(id,controls)=>session.host.setControls(session.playerId,id,controls),requestSlowWarp:request}};
  const proposed=vi.fn((id:string,correction:FlightPlanNode,arrival:FlightPlanNode)=>{const nodes=intents.get(id)!;intents.set(id,nodes.flatMap(node=>node.id===arrival.id?[correction,arrival]:[node]));});
- const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed,proposed,
+ const stopped=vi.fn();
+ const runner=new FleetPlansRunner(options,plans,{create:(time,delta,vehicle)=>new ManeuverBurn(time,delta,vehicle,{stepSeconds:STEP,idle:IDLE})},{stepSeconds:STEP,idle:IDLE},{nodes:id=>intents.get(id)??[],reviewed:vi.fn(),completed,proposed,stopped,
   retargeted:(id,node)=>intents.set(id,intents.get(id)!.map(value=>value.id===node.id?node:value))},clampWarpFactor,alignmentWarp);
  const tick=()=>{runner.beforeAdvance(IDLE);session.update(.01,ships[2],IDLE,undefined,()=>runner.step());};
- return {world,session,ships,intents,completed,proposed,runner,tick,options,notify,request,pause:()=>{paused=true;}};
+ return {world,session,ships,intents,completed,proposed,stopped,runner,tick,options,notify,request,pause:()=>{paused=true;}};
 }
 it('flies two independent unselected ships through both finite burns on the same real clock',()=>{
  const f=fixture();
@@ -274,7 +275,7 @@ it('finishes detached review between frames without commanding the clock or igni
  }finally{f.runner.dispose();f.session.dispose();}
 });
 
-it.each([1/60,.2,2])('offers a generated unreachable Moon arrival correction without arming it, then captures after explicit execution with %s-second frames',frameSeconds=>{
+it.each([1/60,.2,2].flatMap(frameSeconds=>[false,true].map(once=>({frameSeconds,once}))))('flies a generated Moon correction and capture with one-shot $once and $frameSeconds-second frames',({frameSeconds,once})=>{
  const f=fixture(),id=f.ships[0]!,planet=f.world.body('planet'),r=planet.radius+40.2;
  try{
   f.world.restoreClock(7100,71);for(const ship of f.world.ships())f.world.put({...ship,state:{...ship.state,time:71,coast:undefined}});
@@ -286,16 +287,23 @@ it.each([1/60,.2,2])('offers a generated unreachable Moon arrival correction wit
   job.return({options:[],reason:'adopted'});expect(f.intents.get(id)![1]!.bodyId).toBe('moon');
   f.options.fleet!.authorizeWarp=()=>true;
   const frame=()=>{f.runner.beforeAdvance(IDLE);f.session.update(frameSeconds,f.ships[2],IDLE,undefined,()=>f.runner.step());};
-  f.runner.arm(id,false,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
-  expect(f.proposed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(1);expect(f.completed).toHaveBeenCalledTimes(1);
+  if(once){
+   f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+   expect(f.completed).toHaveBeenCalledTimes(1);
+  }
+  f.runner.arm(id,once,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+  expect(f.proposed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(1);
   expect(f.runner.active).toBe(false);expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(1);
   const correction=f.intents.get(id)![1]!,arrival=f.intents.get(id)![2]!;
   expect(correction.label).toContain('Correction');expect(arrival.targetOrbit).toEqual({periapsisAltitude:100,apoapsisAltitude:100});
-  for(let i=0;i<3;i++)frame();expect(f.completed).toHaveBeenCalledTimes(1);expect(f.world.ship(id)!.controls.engine).toBe(false);
-  // Each next burn still needs explicit permission; proposing changes never arms.
-  f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
-  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(2);expect(f.intents.get(id)![2]!.completed).not.toBe(true);
-  f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+  if(once){
+   expect(f.completed).toHaveBeenCalledTimes(1);expect(f.stopped).toHaveBeenCalledWith(id,expect.stringContaining('execute the correction separately'));
+   for(let i=0;i<3;i++)frame();expect(f.completed).toHaveBeenCalledTimes(1);expect(f.world.ship(id)!.controls.engine).toBe(false);
+   // One-shot commands still need separate permission for correction and capture.
+   f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+   expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(2);expect(f.intents.get(id)![2]!.completed).not.toBe(true);
+   f.runner.arm(id,true,true);for(let i=0;i<30000&&f.runner.active;i++)frame();
+  }
   expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(3);expect(f.proposed).toHaveBeenCalledTimes(1);
   const ship=f.world.ship(id)!,moon=f.world.body('moon'),orbit=f.world.contextFor(ship).services.orbits.elements(ship.state,moon.mu);
   expect(ship.bodyId).toBe('moon');expect(ship.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(1);
@@ -303,22 +311,88 @@ it.each([1/60,.2,2])('offers a generated unreachable Moon arrival correction wit
  }finally{f.runner.dispose();f.session.dispose();}
 });
 
-it.each(['approve','manual'] as const)('waits for host approval before stopping warp for a correction proposal; %s retains clock authority',action=>{
+it.each([false,true].flatMap(once=>(['approve','manual'] as const).map(action=>({once,action}))))('gates correction warp on host approval with one-shot $once; $action retains clock authority',({once,action})=>{
  const f=fixture(),id=f.ships[0]!,writes=vi.fn((factor:number)=>f.session.setWarp(factor));let approved=false;
  try{
   f.session.teleport(id,'moon',{x:-2800,y:600},{x:80,y:0});
   f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
    {id:'arrival',label:'Arrival',bodyId:'moon',time:100,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:100,apoapsisAltitude:100}}]);
-  f.options.fleet!.authorizeWarp=()=>approved;f.options.setWarp=writes;f.session.setWarp(100);f.runner.arm(id,true,true);
+  f.options.fleet!.authorizeWarp=()=>approved;f.options.setWarp=writes;f.session.setWarp(100);f.runner.arm(id,once,true);
   f.runner.beforeAdvance(IDLE);for(let i=0;i<100&&f.runner.reviewing;i++)f.runner.advanceReviews();
   f.runner.beforeAdvance(IDLE);expect(writes).not.toHaveBeenCalled();expect(f.proposed).not.toHaveBeenCalled();expect(f.world.time).toBe(0);
   if(action==='manual'){
    f.runner.manualWarp();f.session.setWarp(2);for(let i=0;i<3;i++)f.runner.beforeAdvance(IDLE);
    expect(f.runner.active).toBe(false);expect(f.proposed).not.toHaveBeenCalled();expect(f.session.requestedWarp).toBe(2);expect(writes).not.toHaveBeenCalled();
   }else{
-   approved=true;for(let i=0;i<3;i++)f.runner.beforeAdvance(IDLE);
-   expect(writes).toHaveBeenCalledWith(1);expect(f.proposed).toHaveBeenCalledTimes(1);expect(f.runner.active).toBe(false);expect(f.session.requestedWarp).toBe(1);
+   approved=true;for(let i=0;i<2;i++)f.runner.beforeAdvance(IDLE);
+   expect(writes).toHaveBeenCalledWith(1);expect(f.proposed).toHaveBeenCalledTimes(1);expect(f.runner.active).toBe(!once);expect(f.session.requestedWarp).toBe(1);
   }
   expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.completed).not.toHaveBeenCalled();
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it.each([false,true])('flies a validated correction and capture while retaining auto-warp %s and its permission scope',autoWarp=>{
+ const f=fixture(),id=f.ships[0]!,writes=vi.fn((factor:number)=>f.session.setWarp(factor)),authorize=vi.fn(()=>true);
+ try{
+  f.session.teleport(id,'moon',{x:-2800,y:600},{x:80,y:0});
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+   {id:'arrival',label:'Arrival',bodyId:'moon',time:100,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:100,apoapsisAltitude:100}}]);
+  f.options.fleet!.authorizeWarp=authorize;f.options.setWarp=writes;f.session.setWarp(100);f.runner.arm(id,false,autoWarp);
+  for(let i=0;i<30000&&f.runner.active;i++)f.tick();
+  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(2);expect(f.proposed).toHaveBeenCalledTimes(1);expect(f.runner.active).toBe(false);
+  expect(f.intents.get(id)!.every(node=>node.completed)).toBe(true);expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(1);
+  if(autoWarp){
+   const scopes=authorize.mock.calls as unknown as [string,{id:string;mode:string}][];
+   expect(scopes.length).toBeGreaterThan(0);expect(new Set(scopes.map(([,scope])=>scope.id)).size).toBe(1);
+   expect(scopes.every(([,scope])=>scope.mode==='auto-warp')).toBe(true);
+  }else expect(writes.mock.calls.every(([factor])=>factor===1)).toBe(true);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it('cancels an automatic correction on pilot warp and never rearms it during detached review',()=>{
+ const f=fixture(),id=f.ships[0]!;
+ try{
+  f.session.teleport(id,'moon',{x:-2800,y:600},{x:80,y:0});
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+   {id:'arrival',label:'Arrival',bodyId:'moon',time:100,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:100,apoapsisAltitude:100}}]);
+  f.options.fleet!.authorizeWarp=()=>true;f.runner.arm(id,false,true);
+  for(let i=0;i<10000&&!f.proposed.mock.calls.length;i++)f.runner.beforeAdvance(IDLE);
+  expect(f.proposed).toHaveBeenCalledTimes(1);expect(f.runner.has(id)).toBe(true);
+  f.runner.manualWarp();f.session.setWarp(2);
+  for(let i=0;i<10;i++){f.runner.advanceReviews();f.tick();}
+  expect(f.runner.active).toBe(false);expect(f.completed).not.toHaveBeenCalled();expect(f.world.ship(id)!.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(2);
+  expect(f.stopped).toHaveBeenCalledWith(id,expect.stringContaining('Manual warp took over'));
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it('automatically corrects and captures an inbound Lumen orbit after leaving a planet',()=>{
+ const f=fixture(),id=f.ships[0]!,star=f.world.body('star'),radius=30000,periapsis=22000,eccentricity=.2,
+  tangent=Math.sqrt(star.mu*periapsis*(1+eccentricity))/radius,
+  radial=-Math.sqrt(star.mu*(2/radius-(1-eccentricity)/periapsis)-tangent*tangent);
+ try{
+  f.session.teleport(id,star.id,{x:0,y:radius},{x:tangent,y:radial});
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+   {id:'arrival',label:'Arrival · Lumen',bodyId:star.id,time:100,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:5000,apoapsisAltitude:5000}}]);
+  f.options.fleet!.authorizeWarp=()=>true;f.runner.arm(id,false,true);
+  for(let i=0;i<30000&&f.runner.active;i++)f.tick();
+  expect(f.proposed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(1);expect(f.intents.get(id)![1]!.label).toBe('Correction · Lumen');
+  expect(f.completed.mock.calls,JSON.stringify(f.notify.mock.calls)).toHaveLength(2);expect(f.intents.get(id)!.every(node=>node.completed)).toBe(true);
+  const ship=f.world.ship(id)!,orbit=f.world.contextFor(ship).services.orbits.elements(ship.state,star.mu);
+  expect(ship.bodyId).toBe(star.id);expect(orbit.kind).toBe('elliptic');expect(orbit.periapsis).toBeGreaterThan(star.radius);
+  expect(ship.controls.engine).toBe(false);expect(f.session.requestedWarp).toBe(1);
+ }finally{f.runner.dispose();f.session.dispose();}
+});
+
+it.each(['outbound','unsafe target'] as const)('stops an automatic arrival with an %s instead of authorizing unsafe thrust',condition=>{
+ const f=fixture(),id=f.ships[0]!;
+ try{
+  f.session.teleport(id,'moon',{x:condition==='outbound'?2800:-2800,y:600},{x:80,y:0});
+  const altitude=condition==='unsafe target'?-100:100;
+  f.intents.set(id,[{id:'departure',label:'Departure',bodyId:'planet',time:0,prograde:50,radial:0,completed:true},
+   {id:'arrival',label:'Arrival',bodyId:'moon',time:100,prograde:-20,radial:0,targetOrbit:{periapsisAltitude:altitude,apoapsisAltitude:altitude}}]);
+  f.options.fleet!.authorizeWarp=()=>true;f.runner.arm(id,false,true);
+  for(let i=0;i<10000&&f.runner.active;i++)f.runner.beforeAdvance(IDLE);
+  expect(f.runner.active).toBe(false);expect(f.proposed).not.toHaveBeenCalled();expect(f.completed).not.toHaveBeenCalled();expect(f.world.ship(id)!.controls.engine).toBe(false);
+  expect(f.stopped).toHaveBeenCalledWith(id,expect.stringContaining(condition==='outbound'?'no safe correction':'does not clear the terrain'));
  }finally{f.runner.dispose();f.session.dispose();}
 });

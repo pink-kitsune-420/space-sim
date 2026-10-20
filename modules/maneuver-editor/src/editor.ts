@@ -97,6 +97,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   private readonly plans = new Map<string, Node[]>();
   private readonly anchors = new Map<string, FlightPlan>();
   private readonly needsReview = new Set<string>();
+  private readonly executionNotices = new Map<string,string>();
   private readonly chains = new Map<string, { readonly source: WorldRead; readonly seed: State }>();
   private planEvaluation?: { job: Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>; plan: FlightPlan; flight: Flight; nodes: Node[]; review: boolean; editableNode?: Node };
   private dragCoast?: {node:Node;path:readonly GhostSample[]};
@@ -146,6 +147,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (services.plans && options.fleet) this.fleet = new FleetPlansRunner(options, services.plans, services.burns, services.clock, {
       nodes: shipId => this.plans.get(shipId) ?? [],
       reviewed: (shipId, plan, results) => {
+        this.executionNotices.delete(shipId);
         this.anchors.set(shipId, plan); this.needsReview.delete(shipId);
         for (const result of results) {
           const node=this.plans.get(shipId)?.find(value=>value.id===result.intent.id); if(!node)continue;
@@ -160,6 +162,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         for(const node of this.plans.get(shipId)??[])if(!node.completed){node.valid=false;node.reason=`${reason} Review and replan before arming.`;}
         this.preview.invalidate();this.lastUi=-Infinity;
       },
+      stopped:(shipId,reason)=>{this.executionNotices.set(shipId,reason);this.lastUi=-Infinity;},
       completed: (shipId, nodeId) => {
         const node=this.plans.get(shipId)?.find(value=>value.id===nodeId);if(!node)return;
         node.completed=true;node.valid=false;node.reason='Burn complete. Review remaining nodes against actual flight.';
@@ -170,9 +173,10 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         const nodes=this.plans.get(shipId),node=nodes?.find(value=>value.id===arrival.id);if(!nodes||!node)throw Error('The arrival node was removed.');
         Object.assign(node,arrival);
         let id:string;do{id=`node-${this.nextNode++}`;}while(nodes.some(value=>value.id===id));
-        const proposed:Node={...node,...correction,id,completed:false,alarm:undefined,targetOrbit:undefined,valid:false,reason:'Correction prepared. Review and execute separately.'};
+        const automatic=!!this.fleet?.has(shipId);
+        const proposed:Node={...node,...correction,id,completed:false,alarm:undefined,targetOrbit:undefined,valid:false,reason:automatic?'Validated correction prepared. Reviewing actual flight…':'Correction prepared. Review and execute separately.'};
         nodes.splice(nodes.indexOf(node),0,proposed);this.nodes.set(shipId,proposed);
-        if(this.options.flight().ship?.id===shipId){this.current=proposed;this.rebuildPlan(true);this.refreshInputs();}
+        if(this.options.flight().ship?.id===shipId){this.current=proposed;if(!automatic)this.rebuildPlan(true);this.refreshInputs();}
         else this.needsReview.add(shipId);
         this.preview.invalidate();this.lastUi=-Infinity;
       },
@@ -199,6 +203,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
           <label class="maneuver-node-label">Plan node<select id="${this.id}-nodes" aria-label="Plan node"></select></label>
           <button id="${this.id}-continue" class="maneuver-review" type="button" hidden>Continue to next burn</button>
           <button id="${this.id}-review" class="maneuver-review" type="button" hidden>Review remaining nodes</button>
+          <button id="${this.id}-clear-plan" class="maneuver-review" type="button" hidden>Clear completed plan</button>
         </div>
         <div id="${this.id}-fleet" ${this.fleet?'':'hidden'}><label><input id="${this.id}-automatic" type="checkbox"> Automatically execute this ship’s plan</label><output id="${this.id}-automatic-status" class="maneuver-help"></output><label ${options.fleet?.authorizeWarp?'':'hidden'}><input id="${this.id}-auto-warp" type="checkbox"> Auto-warp between burns</label></div>
         <output class="maneuver-summary" id="${this.id}-summary"></output>
@@ -217,7 +222,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
           <div class="maneuver-adjust"><button id="${this.id}-export" type="button">Export plan</button><button id="${this.id}-import" type="button">Load plan</button><input id="${this.id}-file" type="file" accept=".json,application/json" hidden></div>
         </details>
         <div class="maneuver-adjust maneuver-secondary"><button id="${this.id}-clear" type="button">Clear Δv</button><button id="${this.id}-delete" type="button">Delete node</button></div>
-        <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. Burn arrows show the delta-v direction at departure and arrival. Durations at the current throttle setting assume constant thrust and alignment; automatic execution still uses full throttle with a final-tick cutoff. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; Continue to next burn reviews actual flight and authorizes just the next burn. If arrival needs an extra correction, a validated correction and updated capture are offered for review at 1×; execute the correction separately, then Continue to next burn. Automatically execute this ship’s plan opts this ship into the remaining prepared burns. Background plans follow the current clock and never increase warp; multiplayer warp changes require host approval. Imported or saved plans never arm themselves.</p></details>
+        <details class="panel-note"><summary>Flying the plan</summary><p class="maneuver-help">Warp to node only coasts, even with zero Δv or no engine. It stops 10 seconds before the node, plus half the estimated burn duration when available. Execute burn separately handles warp, alignment, thrust and cutoff (host only). Manual flight input or Abort burn takes over. Adjustment buttons use the selected step; Shift makes it ten times finer. Map drags use that step per 4 pixels. Shift on time buttons moves by 1 second. Escape cancels a map drag. Burn arrows show the delta-v direction at departure and arrival. Durations at the current throttle setting assume constant thrust and alignment; automatic execution still uses full throttle with a final-tick cutoff. The dashed line assumes an instant burn; finite burns can differ. Plans can be exported or saved with a universe when the shared plan service is available. Later nodes preview earlier impulsive burns. Review remaining nodes against actual flight after each flown burn; Continue to next burn reviews actual flight and authorizes just the next burn. If arrival needs an extra correction, Execute and Continue offer a validated correction and updated capture for review at 1×; execute the correction separately, then Continue to next burn. Automatically execute this ship’s plan includes validated arrival corrections and continues through capture, reviewing actual flight after every burn. If automation stops, its reason remains beside the checkbox until you execute or rearm. Background plans follow the current clock and never increase warp; multiplayer warp changes require host approval. Imported or saved plans never arm themselves. Once every node is flown, Clear completed plan removes this ship’s plan and markers while flight continues.</p></details>
       </section>`;
     const get = <T extends HTMLElement>(id: string): T => this.window.body.querySelector<T>(`#${this.id}-${id}`)!;
     if (services.transfers) this.transferControls = new TransferControls(get('transfers'), `${this.id}-transfer`, services.transfers, options, plan => {
@@ -268,6 +273,11 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     });
     on(get('add'), 'click', () => this.addNode());
     on(get('review'), 'click', () => this.rebuildPlan(true));
+    on(get('clear-plan'),'click',()=>{
+      const ship=options.flight().ship,nodes=ship&&this.plans.get(ship.id);
+      if(!ship||this.execution||this.fleet?.has(ship.id)||!nodes?.length||nodes.some(node=>!node.completed))return;
+      this.clearPlan(ship.id);this.options.notify('Completed flight plan cleared.');
+    });
     on(get('continue'), 'click', () => {
       const flight=options.flight(),ship=flight.ship,nodes=ship&&this.plans.get(ship.id),next=nodes?.find(node=>!node.completed);
       if(!ship||!next||this.execution||!flight.canWarp)return;
@@ -279,7 +289,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     on(get('automatic'),'change',()=>{
       const ship=options.flight().ship;if(!ship||!this.fleet)return;
       if(get<HTMLInputElement>('automatic').checked){this.abortExecution();this.stopWarp();this.cancelPlanEvaluation();this.fleet.arm(ship.id);}
-      else this.fleet.stop(ship.id);
+      else this.fleet.stop(ship.id,'Automatic plan turned off.');
       this.lastUi=-Infinity;
     });
     on(get('flown'), 'click', () => {
@@ -312,7 +322,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         this.fleet?.stop(current.shipId);
         const remaining = (this.plans.get(current.shipId) ?? []).filter(node => node !== current);
         if (remaining.length) { this.plans.set(current.shipId, remaining); this.nodes.set(current.shipId, remaining[0]!); }
-        else { this.plans.delete(current.shipId); this.anchors.delete(current.shipId); this.nodes.delete(current.shipId); }
+        else { this.plans.delete(current.shipId); this.anchors.delete(current.shipId); this.executionNotices.delete(current.shipId); this.nodes.delete(current.shipId); }
       }
       this.stopWarp(); this.current = current ? this.nodes.get(current.shipId) : undefined; this.rebuildPlan();
       this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity;
@@ -327,7 +337,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     on(this.cancelWarp, 'click', () => this.stopWarp());
     on(this.executeButton, 'click', () => this.execute());
     on(this.abortButton, 'click', () => { if(this.current)this.fleet?.stop(this.current.shipId,'Automatic plan aborted.');this.abortExecution('Autonomous burn aborted.'); });
-    on(document, 'visibilitychange', () => { if (document.hidden) { this.fleet?.clear();this.abortExecution('Autonomous burn aborted: tab hidden.'); this.stopWarp(); } });
+    on(document, 'visibilitychange', () => { if (document.hidden) { this.fleet?.clear('Automatic plan stopped: tab hidden. Review before rearming.');this.abortExecution('Autonomous burn aborted: tab hidden.'); this.stopWarp(); } });
     if (options.map) this.map = new ManeuverMap(options, {
       node: () => this.current, position:()=>this.current?this.nodePosition(this.current):undefined, enabled: () => !this.disposed && !!this.current && (this.current.valid || this.planEvaluation?.editableNode===this.current) && !this.execution && !this.fleet?.has(this.current.shipId) && options.flight().enabled && !options.flight().inputBlocked,
       increment: () => Number(this.increment.value), open: () => this.window.open(),
@@ -356,7 +366,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   dispose(): void {
     if (this.disposed) return; this.disposed = true; this.cancelFleetReview(); const errors: unknown[] = [];
     for (const close of [() => this.fleet?.dispose(), () => this.cancelPlanEvaluation(), () => this.lifetime.abort(), () => this.transferControls?.dispose(), () => this.alarmControls?.dispose(), () => this.map?.dispose(), () => this.abortExecution(), () => this.stopWarp(), () => this.dock?.dispose(), () => this.preview.dispose(), () => this.window.dispose()]) { try { close(); } catch (error) { errors.push(error); } }
-    this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.world = undefined; this.prediction = undefined; this.dock = undefined;
+    this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.executionNotices.clear(); this.nodes.clear(); this.current = undefined; this.world = undefined; this.prediction = undefined; this.dock = undefined;
     if (errors.length) throw new AggregateError(errors, 'Maneuver editor cleanup failed');
   }
 
@@ -374,6 +384,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     }
     this.lastUi = -Infinity;
     if (reason) { try { this.options.notify(reason); } catch (error) { errors.push(error); } }
+    if(reason)this.executionNotices.set(execution.node.shipId,reason);
     if (errors.length) throw new AggregateError(errors, 'Maneuver execution cleanup failed');
   }
   manualWarp():void {
@@ -411,6 +422,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       if (!this.canExecute(flight, node, plan)) return;
     }
     this.stopWarp();
+    this.executionNotices.delete(node.shipId);
     this.execution = { node, burn: this.services.burns.create(node.time, plan!.deltaVelocity, flightMotion(flight).vehicle), initialThrottle: flight.ship!.state.throttle };
     this.warping = true; this.lastRequest = flight.requestedWarp; this.lastUi = -Infinity;
     this.event('maneuver-execute', { ship: node.shipId, time: node.time });
@@ -569,7 +581,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
         if(this.options.flight().paused)this.options.setPaused?.(false);
         this.fleet.arm(ship.id,true,true);
       }
-    }else if(review)this.options.notify('Plan reviewed against current flight. Execute each node separately, or enable this ship’s automatic plan.');
+    }else if(review)this.options.notify(this.executionNotices.get(ship.id)??'Plan reviewed against current flight. Execute each node separately, or enable this ship’s automatic plan.');
     this.preview.invalidate();this.lastUi=-Infinity;
   }
   /** Validate the unchanged live root before any pending burn, even if that burn
@@ -605,6 +617,9 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       const button = this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-${name}`);
       if (button) { if(name==='review')button.hidden=!this.needsReview.has(this.current?.shipId??'')&&!nodes.some(node=>!node.completed&&!node.valid); button.disabled = !!this.execution || !!this.current&&!!this.fleet?.has(this.current.shipId) || !nodes.length || (name === 'add' && nodes.length >= 16) || (name === 'flown' && !!this.current?.completed); }
     }
+    const clear=this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-clear-plan`)!;
+    clear.hidden=!nodes.length||nodes.some(node=>!node.completed);
+    clear.disabled=!!this.execution||!!this.current&&!!this.fleet?.has(this.current.shipId);
   }
   savePlans(): FlightPlanArchive {
     const plans: FlightPlan[] = [];
@@ -620,7 +635,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if(this.execution?.node.shipId===shipId)this.abortExecution();
     if(this.planEvaluation?.plan.shipId===shipId)this.cancelPlanEvaluation();
     if(this.current?.shipId===shipId){this.stopWarp();this.current=undefined;this.preview.invalidate();}
-    this.plans.delete(shipId);this.anchors.delete(shipId);this.chains.delete(shipId);this.needsReview.delete(shipId);this.nodes.delete(shipId);
+    this.plans.delete(shipId);this.anchors.delete(shipId);this.chains.delete(shipId);this.needsReview.delete(shipId);this.executionNotices.delete(shipId);this.nodes.delete(shipId);
     if(this.options.flight().ship?.id===shipId)this.transferControls?.cancel('Flight replaced. Find new options.');
     this.map?.update();this.refreshInputs();this.lastUi=-Infinity;
   }
@@ -628,13 +643,14 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (this.disposed) return;
     const service = this.services.plans, archive = raw === undefined ? undefined : service?.read(raw);
     if (raw !== undefined && !service) throw new Error('Shared flight plans are unavailable in this game.');
-    this.continueShip=undefined;this.fleet?.clear();this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate();
+    this.continueShip=undefined;this.fleet?.clear();this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.executionNotices.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate();
     const flight = this.options.flight(); this.world = flight.world;
     for (const plan of archive?.plans ?? []) this.insertPlan(plan, flight);
     this.current = flight.ship ? this.nodes.get(flight.ship.id) : undefined; if(this.current)this.showMode('node'); this.refreshInputs(); this.lastUi = -Infinity;
   }
   private insertPlan(plan: FlightPlan, flight: Flight): void {
       const ship = flight.world.ship(plan.shipId); if (!ship) return;
+      this.executionNotices.delete(ship.id);
       this.anchors.set(ship.id, plan); this.needsReview.add(ship.id);
       const seed: State = { ...plan.epoch, throttle: 0, status: 'flying', revision: 0 };
       const nodes: Node[] = plan.nodes.map(intent => ({ ...intent, shipId: ship.id, context: flight.world.contextFor(ship), seed,
@@ -802,7 +818,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (this.disposed) return;
     const flight = this.options.flight(), ship = flight.ship;
     this.prediction = prediction;
-    if (flight.world !== this.world) { this.continueShip=undefined;this.fleet?.clear();this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.world = flight.world; this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate(); }
+    if (flight.world !== this.world) { this.continueShip=undefined;this.fleet?.clear();this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.world = flight.world; this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.executionNotices.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate(); }
     const node = ship && this.nodes.get(ship.id);
     if (node !== this.current) { this.continueShip=undefined;this.abortExecution(); this.stopWarp(); this.current = node; this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity; }
     if (node?.valid && ship && !this.fleet?.has(ship.id) && this.execution?.burn.phase !== 'burning') {
@@ -874,9 +890,10 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.alarmControls?.updateUi(node,locked);
     const automatic=this.window.body.querySelector<HTMLInputElement>(`#${this.id}-automatic`)!;
     const autoWarp=this.window.body.querySelector<HTMLInputElement>(`#${this.id}-auto-warp`)!;
+    const stopped=flight.ship&&this.executionNotices.get(flight.ship.id);
     autoWarp.checked=!!flight.ship&&!!this.fleet?.autoWarp(flight.ship.id);autoWarp.disabled=!armed||!!this.execution||!!flight.ship&&!!this.fleet?.isBurning(flight.ship.id);
     automatic.checked=armed;automatic.disabled=!flight.ship||!flight.canWarp||!this.options.fleet?.owns(flight.ship.id)||!this.plans.get(flight.ship.id)?.some(value=>!value.completed)||!!this.execution;
-    write(this.window.body.querySelector<HTMLElement>(`#${this.id}-automatic-status`)!,armed?this.fleet!.status(node!.shipId):'Off by default. Follows the clock; multiplayer warp changes need host approval.');
+    write(this.window.body.querySelector<HTMLElement>(`#${this.id}-automatic-status`)!,armed?this.fleet!.status(node!.shipId):stopped||'Off by default. Follows the clock; multiplayer warp changes need host approval.');
     const continueButton=this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-continue`)!;
     continueButton.hidden=!node||!(this.plans.get(node.shipId)?.some(value=>value.completed)&&this.plans.get(node.shipId)?.some(value=>!value.completed));
     continueButton.disabled=locked||!flight.canWarp||!!this.planEvaluation;

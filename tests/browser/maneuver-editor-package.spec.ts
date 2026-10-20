@@ -136,6 +136,27 @@ test('a missed first burn invalidates later nodes and marking it flown still req
  expect(result).toEqual({missed:true,laterInvalid:true,stillInvalid:true,reviewed:true,commands:[]});
 });
 
+test('clearing a completed plan preserves flight and the other ship’s pending plan',async({page})=>{
+ await setup(page,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,{factory,prediction,world,body,root}=f,first=f.current(),other=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),commands:string[]=[];let selected=first.id;
+  const planner=factory.create({container:root,id:'clear-completed',flight:()=>({world,ship:world.ship(selected),body,enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
+  const update=()=>planner.update(.1,prediction,false),clear=()=>document.getElementById('clear-completed-clear-plan') as HTMLButtonElement;
+  update();planner.place(f.pointer,f.camera,f.origin,800,600,prediction);update();
+  const hiddenWhilePending=clear().hidden,beforePending=JSON.stringify(planner.savePlans());clear().click();
+  const pendingPreserved=JSON.stringify(planner.savePlans())===beforePending;
+  selected=other.id;update();planner.place(f.pointer,f.camera,f.origin,800,600,prediction);update();
+  const beforeOther=JSON.stringify(planner.savePlans().plans.find((plan:any)=>plan.shipId===other.id));
+  selected=first.id;update();(document.getElementById('clear-completed-flown') as HTMLButtonElement).click();update();
+  const offered=!clear().hidden&&!clear().disabled,beforeWorld=JSON.stringify(f.api.saveWorld(world));clear().click();update();
+  const archive=planner.savePlans(),removed=archive.plans.every((plan:any)=>plan.shipId!==first.id),otherPreserved=JSON.stringify(archive.plans.find((plan:any)=>plan.shipId===other.id))===beforeOther,
+   flightPreserved=JSON.stringify(f.api.saveWorld(world))===beforeWorld,markersCleared=!planner.snapshot()&&!planner.diagnostics(),hiddenAfterClear=clear().hidden;
+  planner.dispose();f.candidate.dispose();world.dispose();
+  return{hiddenWhilePending,pendingPreserved,offered,removed,otherPreserved,flightPreserved,markersCleared,hiddenAfterClear,commands};
+ });
+ expect(result).toEqual({hiddenWhilePending:true,pendingPreserved:true,offered:true,removed:true,otherPreserved:true,flightPreserved:true,markersCleared:true,hiddenAfterClear:true,commands:[]});
+});
+
 test('using a generated transfer preserves another ship’s plan and disposed search buttons cannot install anything',async({page})=>{
  await setup(page,false,true,true);
  const result=await page.evaluate(()=>{

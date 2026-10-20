@@ -539,6 +539,11 @@ test('pilot warp overrides optional auto-warp and leaves the chosen clock alone'
  await expect(page.locator('#warp-factor')).not.toHaveText('1×');await page.keyboard.press('Comma');
  await expect(page.locator('#maneuver-automatic')).not.toBeChecked();const chosen=await page.locator('#warp-factor').textContent();
  await page.waitForTimeout(500);await expect(page.locator('#warp-factor')).toHaveText(chosen!);expect((await debug(page)).engine).toBe(false);
+ await expect(page.locator('#maneuver-automatic-status')).toContainText('Manual warp took over');
+ await page.locator('#maneuver-review').click();
+ // The pilot clock can pass the node; either review outcome retains the stop reason.
+ await expect(page.locator('#maneuver-automatic-status')).toContainText('Manual warp took over');
+ await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
 });
 test('host approval permits a whole automatic plan without changing warp merely on approval',async({page})=>{
  await setup(page);await place(page);await page.locator('#maneuver-prograde').fill('4');await page.locator('#maneuver-time').fill('120');await page.locator('#maneuver-time').press('Tab');
@@ -546,6 +551,7 @@ test('host approval permits a whole automatic plan without changing warp merely 
  await page.locator('#maneuver-automatic').check();await page.locator('#maneuver-auto-warp').check();
  if(await page.locator('#pause').textContent()==='Resume')await page.locator('#pause').click();
  await expect(page.locator('#warp-approval')).toContainText('remaining prepared burns');await expect(page.locator('#warp-factor')).toHaveText('1×');
+ await expect(page.locator('#warp-approval')).toContainText('validated arrival corrections');
  // Both operations run in one task: granting permission itself has no clock effect.
  await page.locator('#warp-approval [data-warp-approve]').evaluate(el=>{(el as HTMLButtonElement).click();if(document.querySelector('#warp-factor')!.textContent!=='1×')throw new Error('Approval changed the clock synchronously');});
  await expect(page.locator('#warp-factor')).not.toHaveText('1×');await expect(page.locator('#warp-approval')).toBeHidden();
@@ -609,7 +615,7 @@ test('a reverse-direction Moon transfer raises the orbit instead of wasting delt
  expect((await debug(page)).tick).toBe(7100);expect((await debug(page)).engine).toBe(false);
 });
 
-for(const destinationId of ['moon','velum'] as const)test(`${destinationId} arrival offers a correction at SOI entry and captures only after explicit execution`,async({page})=>{
+for(const destinationId of ['moon','velum'] as const)for(const automatic of [false,true])test(`${destinationId} arrival correction and capture with automatic plan ${automatic}`,async({page})=>{
  await setup(page);const before=await debug(page);await openPanel(page,'fleet');
  const downloading=page.waitForEvent('download');await page.locator('#save-world').click();
  const kit=await packageContracts(),saved=await kit.decodeUniverseSave(new Uint8Array(await readFile(await(await downloading).path()))) as any;
@@ -624,16 +630,34 @@ for(const destinationId of ['moon','velum'] as const)test(`${destinationId} arri
   {id:'arrival',label:`Arrival · ${destination.name}`,bodyId:destinationId,time:.1,prograde:-60,radial:6,targetOrbit:{periapsisAltitude:altitude,apoapsisAltitude:altitude}}]}]};
  await page.locator('#world-file').setInputFiles({name:'arrival-correction.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
  await expect(page.locator('#flight-message')).toContainText('Universe loaded');await closePanel(page);
- await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-node-tab').click();await page.locator('#maneuver-continue').click();
- await expect(page.locator('#maneuver-nodes option:checked')).toContainText(`Correction · ${destination.name}`,{timeout:20000});
- await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,automatic:d.maneuver?.automatic,nodes:d.maneuver?.nodes};}).toEqual({body:destinationId,engine:false,automatic:false,nodes:3});
- await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
- await expect(page.locator('#maneuver-execute')).toBeEnabled();await page.locator('#maneuver-execute').click();
- await expect.poll(async()=>{const d=await debug(page);return d.maneuver?.selected==='arrival'&&!d.engine&&!d.maneuver.execution;},{timeout:20000}).toBe(true);
- expect((await debug(page)).maneuver.completed).toBe(false);await page.locator('#maneuver-continue').click();
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-node-tab').click();
+ await expect(page.locator('#maneuver-clear-plan')).toBeHidden();
+ if(automatic){
+  await page.locator('#maneuver-automatic').check();await page.locator('#maneuver-auto-warp').check();await page.locator('#pause').click();
+ }else{
+  await page.locator('#maneuver-continue').click();
+  await expect(page.locator('#maneuver-nodes option:checked')).toContainText(`Correction · ${destination.name}`,{timeout:20000});
+  await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,automatic:d.maneuver?.automatic,nodes:d.maneuver?.nodes};}).toEqual({body:destinationId,engine:false,automatic:false,nodes:3});
+  await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+  await expect(page.locator('#maneuver-execute')).toBeEnabled();
+  // The asynchronous review must retain the explanation for the handoff.
+  await expect(page.locator('#maneuver-automatic-status')).toContainText('execute the correction separately');
+  // Burn alarms can replace the transient toast; the explanation stays beside Auto.
+  await page.locator('#maneuver-execute').click();
+  await expect.poll(async()=>{const d=await debug(page);return d.maneuver?.selected==='arrival'&&!d.engine&&!d.maneuver.execution;},{timeout:20000}).toBe(true);
+  expect((await debug(page)).maneuver.completed).toBe(false);await page.locator('#maneuver-continue').click();
+ }
  await expect(page.locator('#maneuver-status')).toContainText('Plan complete',{timeout:30000});
  await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,orbit:d.orbit?.kind,nodes:d.maneuver?.nodes,completed:d.maneuver?.completed};}).toEqual({body:destinationId,engine:false,orbit:'elliptic',nodes:3,completed:true});
  await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#throttle-value')).toHaveText('0%');
+ await expect(page.locator('#maneuver-automatic')).not.toBeChecked();
+ await expect(page.locator('#maneuver-nodes option')).toHaveText([/flown/,new RegExp(`Correction · ${destination.name}.*flown`),/flown/]);
+ await expect(page.getByRole('button',{name:'Clear completed plan',exact:true})).toBeEnabled();
+ await page.locator('#pause').click();const beforeClear=await debug(page);
+ await page.getByRole('button',{name:'Clear completed plan',exact:true}).click();
+ await expect.poll(async()=>(await debug(page)).maneuver).toBeNull();
+ const afterClear=await debug(page);expect(afterClear.tick).toBe(beforeClear.tick);expect(afterClear.position).toEqual(beforeClear.position);expect(afterClear.velocity).toEqual(beforeClear.velocity);
+ await expect(page.locator('#maneuver-clear-plan')).toBeHidden();await expect(page.locator('#maneuver-nodes option')).toHaveCount(0);
 });
 
 test('the production Transfer picker searches collapsed Solar System moons and keeps the destination visible in a short panel',async({page},info)=>{
