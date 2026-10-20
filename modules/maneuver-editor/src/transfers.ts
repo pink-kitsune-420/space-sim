@@ -19,22 +19,32 @@ export class TransferControls {
   private readonly automate?:(plan:FlightPlan)=>void){
   root.innerHTML=`<p class="maneuver-help">Plan a complete trip to the orbit you want. Choose a destination and review the route and all burns before adopting. Pause flight to keep departure windows available while searching.</p>
    <div id="${prefix}-picker" class="transfer-picker"></div>
-   <label>Target low altitude (m)<input id="${prefix}-low" type="number" step="any" value="512"></label>
+   <label>Target low altitude (m)<input id="${prefix}-low" type="number" step="any"></label>
    <label><input id="${prefix}-circular" type="checkbox" checked> Circular target</label>
-   <label>Target high altitude (m)<input id="${prefix}-high" type="number" step="any" value="512" disabled></label>
+   <label>Target high altitude (m)<input id="${prefix}-high" type="number" step="any" disabled></label>
    ${service.maxFlightSeconds?`<label>Maximum mission time (Julian years)<input id="${prefix}-years" type="number" min="0.000001" max="${service.maxFlightSeconds/(365.25*86400)}" step="any" value="${(service.defaultFlightSeconds??service.maxFlightSeconds)/(365.25*86400)}"></label><p class="maneuver-help">Includes waiting and all legs. Search compares direct trips and intermediate parking stops within this limit.</p>`:''}
    <div class="maneuver-adjust"><button id="${prefix}-find" type="button">Find transfer windows</button><button id="${prefix}-cancel" type="button" hidden>Cancel search</button></div>
    <output id="${prefix}-status" aria-live="polite">Choose an orbit and find options.</output><div id="${prefix}-choices"></div>`;
   const get=<T extends HTMLElement>(name:string)=>root.querySelector<T>(`#${prefix}-${name}`)!;
   this.horizon=root.querySelector<HTMLInputElement>(`#${prefix}-years`)??undefined;
   this.cancelButton=get('cancel');this.find=get('find');this.low=get('low');this.high=get('high');this.circular=get('circular');this.status=get('status');this.choices=get('choices');
-  this.destination=new DestinationPicker(get('picker'),prefix,service,()=>{this.cancel('Destination changed. Find new options.');this.destinationStatus();},signal);
+  this.destination=new DestinationPicker(get('picker'),prefix,service,()=>{this.cancel('Destination changed. Find new options.');this.resetTarget();this.destinationStatus();},signal);
   const on=(target:EventTarget,type:string,callback:()=>void)=>target.addEventListener(type,callback,{signal:this.signal});
   for(const input of [this.low,this.high])on(input,'input',()=>{if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
   this.high.closest('label')!.hidden=this.circular.checked;
   on(this.circular,'change',()=>{this.high.closest('label')!.hidden=this.circular.checked;this.high.disabled=this.circular.checked;if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
   if(this.horizon)on(this.horizon,'input',()=>this.cancel('Mission time changed. Find new options.'));
   on(get('find'),'click',()=>this.search());on(get('cancel'),'click',()=>this.cancel('Search cancelled.'));
+ }
+ private resetTarget():void {
+  const world=this.options.flight().world,id=this.destination.value;
+  if(!world.hasBody(id)){this.low.value=this.high.value='';return;}
+  const body=world.body(id),surface=world.surface(id),top=Math.max(body.radius,surface?.bounds.maxRadius??body.radius,surface?.seaRadiusMetres??body.radius);
+  // A low circular orbit with generous clearance above terrain and water, scaled
+  // to the destination. Leave room below the exit SOI for unusually tight systems.
+  let altitude=Math.ceil(top-body.radius+Math.max(1,body.radius*.25));
+  if(body.parentId&&body.soi.exitMetres>top)altitude=Math.min(altitude,top-body.radius+(body.soi.exitMetres-top)/2);
+  this.low.value=this.high.value=String(altitude);
  }
  private destinationStatus():boolean {
   this.find.disabled=!this.destination.accepted;
@@ -64,7 +74,10 @@ export class TransferControls {
   if(flight.world!==this.world||(flight.ship?.bodyId??'')!==this.bodyId||(flight.ship?.id??'')!==this.shipId){
    const reset=flight.world!==this.world||(flight.ship?.id??'')!==this.shipId;
    this.cancel('Flight changed. Find new options.');this.world=flight.world;this.bodyId=flight.ship?.bodyId??'';this.shipId=flight.ship?.id??'';
-   this.destination.populate(flight.world,this.bodyId,reset);this.destinationStatus();
+   const previous=this.destination.value;
+   this.destination.populate(flight.world,this.bodyId,reset);
+   if(reset||this.destination.value!==previous)this.resetTarget();
+   this.destinationStatus();
   }
   if(!flight.enabled){this.cancel();return;}
   if(this.anchor&&!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
