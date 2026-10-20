@@ -115,6 +115,10 @@ export function createFleetViews(options: FleetViewTuning = {}): FleetViewFactor
   views.clear(); if (errors.length) throw new AggregateError(errors, 'Fleet view provider cleanup failed');
  } });
 }
+/**
+ * Contributes independent fleet rendering, orbit-annulus culling, and coast position caching.
+ * Provides view.fleet@1.0.0 in the view.fleet slot.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
  context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Independent fleet views', summary: 'Selected-provider coast queries, per-view culling/cache and borrowed world reads.', asset: 'docs/creators/usage.json' });
  context.provide(FLEET_VIEWS, context.own(createFleetViews(context.settings)));

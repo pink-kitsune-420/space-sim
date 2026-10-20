@@ -7,16 +7,21 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2784fe7b981cbcd6
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 12cfccc228fbb2c2
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
 -> Trainer vector appearance (spacelab.trainer-appearance) [api-reference/module/spacelab.trainer-appearance]
+-> Independent follow cameras (spacelab.camera-follow) [api-reference/module/spacelab.camera-follow]
+-> Smart camera add-on (spacelab.camera-smart) [api-reference/module/spacelab.camera-smart]
 -> Chat console (spacelab.chat-console) [api-reference/module/spacelab.chat-console]
 -> Controller menu (spacelab.controller-menu) [api-reference/module/spacelab.controller-menu]
 -> LAN discovery (spacelab.discovery-lan) [api-reference/module/spacelab.discovery-lan]
+-> Independent fleet views (spacelab.fleet-view) [api-reference/module/spacelab.fleet-view]
 -> Shared flight plans (spacelab.flight-plans) [api-reference/module/spacelab.flight-plans]
 -> Progressive flight prediction (spacelab.flight-prediction) [api-reference/module/spacelab.flight-prediction]
+-> Flight split screen (spacelab.flight-split) [api-reference/module/spacelab.flight-split]
+-> HUD layout and visibility (spacelab.hud-layout) [api-reference/module/spacelab.hud-layout]
 -> Flight actions (spacelab.input-actions) [api-reference/module/spacelab.input-actions]
 -> Gamepad (spacelab.input-gamepad) [api-reference/module/spacelab.input-gamepad]
 -> Keyboard (spacelab.input-keyboard) [api-reference/module/spacelab.input-keyboard]
@@ -24,19 +29,24 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Touch (spacelab.input-touch) [api-reference/module/spacelab.input-touch]
 -> Server pack review (spacelab.join-review) [api-reference/module/spacelab.join-review]
 -> Local pilots (spacelab.local-pilots) [api-reference/module/spacelab.local-pilots]
+-> Local views (spacelab.local-views) [api-reference/module/spacelab.local-views]
+-> Navball HUD (builtin.navball) [api-reference/module/builtin.navball]
 -> Node WebSocket server transport (spacelab.net-node-ws) [api-reference/module/spacelab.net-node-ws]
 -> Scoped tab transport (spacelab.net-tab) [api-reference/module/spacelab.net-tab]
 -> Manual WebRTC transport (spacelab.net-webrtc) [api-reference/module/spacelab.net-webrtc]
 -> WebSocket transport (spacelab.net-websocket) [api-reference/module/spacelab.net-websocket]
 -> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
+-> Player view adapters (spacelab.player-view) [api-reference/module/spacelab.player-view]
 -> Canvas 2D (spacelab.render-canvas) [api-reference/module/spacelab.render-canvas]
 -> WebGL 2 (spacelab.render-webgl) [api-reference/module/spacelab.render-webgl]
 -> Flight sessions (spacelab.session-flight) [api-reference/module/spacelab.session-flight]
 -> Install on join (spacelab.session-join) [api-reference/module/spacelab.session-join]
 -> Vector shader pack (spacelab.vector-shaders) [api-reference/module/spacelab.vector-shaders]
+-> Body spin presentation (spacelab.spin-view) [api-reference/module/spacelab.spin-view]
 -> Theme and procedural backdrop (spacelab.theme) [api-reference/module/spacelab.theme]
 -> Theme controls (spacelab.theme-customizer) [api-reference/module/spacelab.theme-customizer]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
+-> Shared per-view HUD (spacelab.view-hud) [api-reference/module/spacelab.view-hud]
 
 ## Game API topics
 -> chat.ts [api-reference/game-api/chat]
@@ -47,6 +57,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> flight-plans.ts [api-reference/game-api/flight-plans]
 -> flight-session.ts [api-reference/game-api/flight-session]
 -> flight-view.ts [api-reference/game-api/flight-view]
+-> hud-layout.ts [api-reference/game-api/hud-layout]
 -> join-pack.ts [api-reference/game-api/join-pack]
 -> maneuver.ts [api-reference/game-api/maneuver]
 -> module-data.ts [api-reference/game-api/module-data]
@@ -55,13 +66,16 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> motion.ts [api-reference/game-api/motion]
 -> node-transport.ts [api-reference/game-api/node-transport]
 -> platform.ts [api-reference/game-api/platform]
+-> player-view.ts [api-reference/game-api/player-view]
 -> presentation.ts [api-reference/game-api/presentation]
 -> render-math.ts [api-reference/game-api/render-math]
 -> rendering.ts [api-reference/game-api/rendering]
+-> rotation.ts [api-reference/game-api/rotation]
 -> rules.ts [api-reference/game-api/rules]
 -> session.ts [api-reference/game-api/session]
 -> session-discovery.ts [api-reference/game-api/session-discovery]
 -> shader-format.ts [api-reference/game-api/shader-format]
+-> smart-camera.ts [api-reference/game-api/smart-camera]
 -> state.ts [api-reference/game-api/state]
 -> surface.ts [api-reference/game-api/surface]
 -> tab-transport.ts [api-reference/game-api/tab-transport]
@@ -71,6 +85,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> vehicles.ts [api-reference/game-api/vehicles]
 -> view-hud.ts [api-reference/game-api/view-hud]
 -> webrtc-transport.ts [api-reference/game-api/webrtc-transport]
+-> windows.ts [api-reference/game-api/windows]
 -> world.ts [api-reference/game-api/world]
 -> Code modules: manifests, packaging and installation [modules]
 
@@ -109,6 +124,87 @@ ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleAppearance, Vehic
 ## Guide and example
 Example source: examples/modules/appearance-trainer (build with npm run module:build -- examples/modules/appearance-trainer/module.json out.spacemod).
 -> Vehicle vector artwork: how to use, replace and remove it [spacelab.trainer-appearance/usage]
+
+=== Independent follow cameras reference [api-reference/module/spacelab.camera-follow]
+Reusable basic camera control with an explicit flight adapter and optional smart-camera policy.
+- ID: spacelab.camera-follow
+- Version: 0.3.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.camera@1.0.0 · VIEW_CAMERAS: ServiceKey<LocalCameraFactory>
+- view.flight-camera@1.0.0 · FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory>
+
+## Requires
+- view.smart-camera@1.0.0 (optional) · SMART_CAMERAS: ServiceKey<SmartCameraFactory>
+
+## Composition
+- Slots: view.camera, view.flight-camera
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- initialZoom: number, default 10, from 0.1 to 50. Initial camera zoom: Starting magnification for each independent view. Changing a view later affects that view only.
+- referenceMetres: number, default 1500, from 1 to 1000000000. View span at zoom 1 (m): World metres framed by the shorter viewport dimension at zoom 1. Changes presentation scale only.
+- orientationSeconds: number, default 0.12, from 0 to 2, step 0.01. Orientation smoothing (s): Wall seconds for camera rotation to approach the target orientation. Zero snaps immediately; simulation time is unchanged.
+
+## Game API used
+Camera, CameraExtension, CameraFocusTarget, CameraTarget, FLIGHT_CAMERAS, FlightCameraController, FlightCameraFactory, LocalCameraFactory, LocalCameraInput, LocalViewCamera, ModuleInitializationV2, SMART_CAMERAS, ServiceKey, SmartCameraControl, SmartCameraFactory, SmartTargetMatch, VIEW_CAMERAS, Vec, blendAngle, dragCamera
+-> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api smart-camera.ts [api-reference/game-api/smart-camera]
+-> game-api state.ts [api-reference/game-api/state]
+
+## Guide and example
+Example source: examples/modules/camera-follow (build with npm run module:build -- examples/modules/camera-follow/module.json out.spacemod).
+-> Independent follow cameras: how to use, replace and remove it [spacelab.camera-follow/usage]
+
+=== Smart camera add-on reference [api-reference/module/spacelab.camera-smart]
+Optional target search, guided arrival and focus tracking for compatible cameras.
+- ID: spacelab.camera-smart
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.smart-camera@1.0.0 · SMART_CAMERAS: ServiceKey<SmartCameraFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: view.smart-camera
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, SMART_CAMERAS, ServiceKey, SmartCameraCandidate, SmartCameraControl, SmartCameraFactory, SmartCameraSearch, SmartCameraTarget, Vec
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api smart-camera.ts [api-reference/game-api/smart-camera]
+-> game-api state.ts [api-reference/game-api/state]
+
+## Guide and example
+Example source: examples/modules/camera-smart (build with npm run module:build -- examples/modules/camera-smart/module.json out.spacemod).
+-> Smart camera add-on: how to use, replace and remove it [spacelab.camera-smart/usage]
 
 === Chat console reference [api-reference/module/spacelab.chat-console]
 Optional session chat and command UI with owned DOM lifecycle.
@@ -225,6 +321,48 @@ Disposable, FoundSession, LAN_DISCOVERY, LanDiscovery, LanDiscoveryFactory, LanD
 ## Guide and example
 Example source: examples/modules/discovery-lan (build with npm run module:build -- examples/modules/discovery-lan/module.json out.spacemod).
 
+=== Independent fleet views reference [api-reference/module/spacelab.fleet-view]
+Selected-provider coast queries, per-view culling/cache and borrowed world reads.
+- ID: spacelab.fleet-view
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.fleet@1.0.0 · FLEET_VIEWS: ServiceKey<FleetViewFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: view.fleet
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- marginPixels: number, default 40, from 40 to 256, step 1. Fleet viewport margin (px): Conservative extra CSS-pixel margin when culling off-screen fleet objects. At least the existing renderer margin; does not change world positions.
+- stillPixels: number, default 0.25, from 0 to 1, step 0.05. Cached coast motion limit (px): Reuse a solved presentation position only while its maximum possible motion stays below this CSS-pixel limit. Zero solves every view update; authoritative positions remain exact.
+
+## Game API used
+Coast, FLEET_VIEWS, FleetViewFactory, FleetViewInput, FleetViewStats, FlightFleetView, ModuleInitializationV2, RenderShip, ServiceKey, Ship, State, Vec, WorldRead, interpolateState
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api world.ts [api-reference/game-api/world]
+
+## Guide and example
+Example source: examples/modules/fleet-view (build with npm run module:build -- examples/modules/fleet-view/module.json out.spacemod).
+-> Independent fleet views: how to use, replace and remove it [spacelab.fleet-view/usage]
+
 === Shared flight plans reference [api-reference/module/spacelab.flight-plans]
 A shared service that stores maneuver plans as portable intent and checks them against the selected physics.
 - ID: spacelab.flight-plans
@@ -307,6 +445,100 @@ Controls, FlightPrediction, GhostEnd, GhostSample, ModuleInitializationV2, PREDI
 ## Guide and example
 Example source: examples/modules/flight-prediction (build with npm run module:build -- examples/modules/flight-prediction/module.json out.spacemod).
 -> Progressive flight prediction: how to use, replace and remove it [spacelab.flight-prediction/usage]
+
+=== Flight split screen reference [api-reference/module/spacelab.flight-split]
+Independent local flight seats and split/dynamic panes over a borrowed session.
+- ID: spacelab.flight-split
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.flight-split@1.0.0 · FLIGHT_SPLIT: ServiceKey<FlightSplitFactory>
+
+## Requires
+- input.local-pilots@^1.0.0 · LOCAL_PILOTS: ServiceKey<LocalPilotFactory>
+- input.flight-profiles@^1.0.0 · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>
+- view.flight-camera@^1.0.0 · FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory>
+- view.prediction@^1.0.0 · PREDICTIONS: ServiceKey<PredictionFactory>
+- view.fleet@^1.0.0 · FLEET_VIEWS: ServiceKey<FleetViewFactory>
+- view.local@^1.0.0 · LOCAL_VIEWS: ServiceKey<LocalViewFactory>
+- input.gamepad@^1.0.0 (optional) · GAMEPAD_INPUT: ServiceKey<GamepadInputFactory>
+
+## Composition
+- Slots: view.flight-split
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- joinButton: number, default 9, from 0 to 31, step 1. Controller join button: Standard gamepad button index that lets an unclaimed controller join local play. Default 9 is Start/Menu/Options; ownership rules still apply.
+- guestPredictionMs: number, default 1.5, from 0.1 to 10, step 0.1. Guest prediction budget (ms): Wall-time prediction budget for each guest view. Higher budgets refine previews sooner; they do not advance or alter the shared world.
+- wheelZoom: number, default 0.0015, from 0.0001 to 0.01, step 0.0001. Guest wheel zoom sensitivity: Exponential zoom factor per mouse-wheel unit in guest panes. Each guest camera remains independent.
+- separateScreenRatio: number, default 0.55, from 0.1 to 1, step 0.01. Screen separation threshold: Split a guest into its own pane when its screen distance exceeds this fraction of the viewport’s smaller dimension.
+- mergeScreenRatio: number, default 0.35, from 0.05 to 1, step 0.01. Screen merge threshold: A separated guest must fall below this screen-distance fraction before merging. Must not exceed the separation threshold.
+- separateDistance: number, default 5000, from 1 to 1000000, step 1. World separation threshold (m): Split a guest when its body-relative distance from Player 1 exceeds this distance, even if the shared camera is zoomed far out.
+- mergeDistance: number, default 3500, from 1 to 1000000, step 1. World merge threshold (m): A guest must be closer than this distance before merging. Must not exceed the world separation threshold.
+- mergeDelayMs: number, default 600, from 0 to 10000, step 1. Merge stability delay (ms): Keep a guest inside both merge thresholds for this long before returning to the shared view. Prevents rapid split/merge flicker.
+
+## Game API used
+Controls, FLEET_VIEWS, FLIGHT_CAMERAS, FLIGHT_PROFILES, FLIGHT_SPLIT, FlightActionId, FlightCameraController, FlightFleetView, FlightGuestPilot, FlightLocalSession, FlightPrediction, FlightSplitFactory, FlightSplitScreen, FlightSplitScreenHost, FlightSplitServices, GAMEPAD_INPUT, LOCAL_PILOTS, LOCAL_VIEWS, LocalPlayersConfig, ModuleInitializationV2, PREDICTIONS, Renderer, RendererProvider, ResolvedBody, ServiceKey, SessionRead, ShaderPack, Ship, State, Vec
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api session.ts [api-reference/game-api/session]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api universe.ts [api-reference/game-api/universe]
+-> game-api world.ts [api-reference/game-api/world]
+
+## Guide and example
+Example source: examples/modules/flight-split (build with npm run module:build -- examples/modules/flight-split/module.json out.spacemod).
+-> Flight split screen: how to use, replace and remove it [spacelab.flight-split/usage]
+
+=== HUD layout and visibility reference [api-reference/module/spacelab.hud-layout]
+Optional viewer layout, movement and visibility with complete cleanup.
+- ID: spacelab.hud-layout
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.hud-layout@1.0.0 · HUD_LAYOUT: ServiceKey<HudLayoutFactory>
+
+## Requires
+- ui.windows@^1.0.0 · WINDOWS: ServiceKey<WindowSystem>
+
+## Composition
+- Slots: ui.hud-layout
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- moveStepPx: number, default 8, from 1 to 128, step 1. HUD arrow-key movement (px): Distance moved by one arrow-key press on a focused HUD grip. Saved positions remain normalized to the viewport.
+- fastMoveStepPx: number, default 32, from 1 to 128, step 1. HUD Shift-arrow movement (px): Distance moved by Shift plus an arrow key on a focused HUD grip. Does not change pointer dragging or world coordinates.
+
+## Game API used
+Disposable, HUD_LAYOUT, HudEditor, HudEditorOptions, HudLayout, HudLayoutFactory, HudLayoutOptions, HudRect, HudVisibilityController, HudVisibilityOptions, ModuleInitializationV2, ServiceKey, WINDOWS, WindowIcon, WindowSystem
+-> game-api hud-layout.ts [api-reference/game-api/hud-layout]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api windows.ts [api-reference/game-api/windows]
+
+## Guide and example
+Example source: examples/modules/hud-layout (build with npm run module:build -- examples/modules/hud-layout/module.json out.spacemod).
 
 === Flight actions reference [api-reference/module/spacelab.input-actions]
 Namespaced flight actions and persistent keyboard bindings.
@@ -565,6 +797,82 @@ ControllerProfile, Disposable, FLIGHT_PROFILES, FlightControllerProfiles, InputD
 Example source: examples/modules/local-pilots (build with npm run module:build -- examples/modules/local-pilots/module.json out.spacemod).
 -> Local pilot registry: how to use, replace and remove it [spacelab.local-pilots/usage]
 
+=== Local views reference [api-reference/module/spacelab.local-views]
+Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts.
+- ID: spacelab.local-views
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.local@1.0.0 · LOCAL_VIEWS: ServiceKey<LocalViewFactory>
+
+## Requires
+- view.camera@^1.0.0 · VIEW_CAMERAS: ServiceKey<LocalCameraFactory>
+
+## Composition
+- Slots: view.local
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+LOCAL_VIEWS, LocalCameraFactory, LocalCameraInput, LocalViewFactory, LocalViewOptions, LocalViews, ModuleInitializationV2, PaneRect, ServiceKey, TwoPlayerLayout, VIEW_CAMERAS
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/local-views (build with npm run module:build -- examples/modules/local-views/module.json out.spacemod).
+-> Independent local views: how to use, replace and remove it [spacelab.local-views/usage]
+
+=== Navball HUD reference [api-reference/module/builtin.navball]
+Optional attitude instrument using the shared HUD lifecycle.
+- ID: builtin.navball
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- hud.navball@1.0.0 · NAVBALL_HUD: ServiceKey<HudInstrumentDefinition>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: hud.navball
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- frame: number, default 0, from 0 to 2, step 1. Velocity reference frame: 0 automatically selects the surface or orbital frame; 1 always uses the orbital frame; 2 always uses the rotating surface frame.
+- orientation: number, default 0, from 0 to 1, step 1. Dial orientation: 0 keeps the local horizon upright; 1 rotates the dial with its view camera. This changes only the instrument display.
+- minimumSpeed: number, default 0.05, from 0 to 10, step 0.01. Direction noise floor (m/s): Hide prograde and retrograde direction markers below this speed in the selected reference frame. Does not affect physical velocity.
+
+## Game API used
+FLIGHT_HUD_STATE, HudInstrument, HudInstrumentContext, HudInstrumentDefinition, ModuleInitializationV2, ModuleManifest, NAVBALL_HUD, OverlayPrimitive, PresentationSnapshot, PresentationView, RegisteredModule, ServiceKey, Vec
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api view-hud.ts [api-reference/game-api/view-hud]
+
+## Guide and example
+Example source: examples/modules/navball (build with npm run module:build -- examples/modules/navball/module.json out.spacemod).
+
 === Node WebSocket server transport reference [api-reference/module/spacelab.net-node-ws]
 Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.
 - ID: spacelab.net-node-ws
@@ -749,6 +1057,43 @@ ActionSink, ControlTargetAdapter, ControlTargetBinding, InputFrame, ModuleInitia
 ## Guide and example
 Example source: examples/modules/player-controller (build with npm run module:build -- examples/modules/player-controller/module.json out.spacemod).
 -> Player controller: how to use, replace and remove it [spacelab.player-controller/usage]
+
+=== Player view adapters reference [api-reference/module/spacelab.player-view]
+Independent input, camera, HUD and appearance adapters with shared identity and cleanup.
+- ID: spacelab.player-view
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.player-view@1.0.0 · PLAYER_VIEWS: ServiceKey<PlayerViewFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: ui.player-view
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+HudBinding, ModuleInitializationV2, PLAYER_VIEWS, PlayerView, PlayerViewAdapter, PlayerViewAdapters, PlayerViewFactory, ServiceKey
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api player-view.ts [api-reference/game-api/player-view]
+-> game-api view-hud.ts [api-reference/game-api/view-hud]
+
+## Guide and example
+Example source: examples/modules/player-view (build with npm run module:build -- examples/modules/player-view/module.json out.spacemod).
+-> Customizable player views: how to use, replace and remove it [spacelab.player-view/usage]
 
 === Canvas 2D reference [api-reference/module/spacelab.render-canvas]
 Public render.canvas@1.0.0 service and lifecycle.
@@ -964,6 +1309,46 @@ ModuleAssets, ModuleInitializationV2, ServiceKey, ShaderLibrary, ShaderPack, Sha
 ## Guide and example
 Example source: examples/modules/shaders-vector (build with npm run module:build -- examples/modules/shaders-vector/module.json out.spacemod).
 
+=== Body spin presentation reference [api-reference/module/spacelab.spin-view]
+Optional anti-strobe display over pure prescribed sidereal rotation.
+- ID: spacelab.spin-view
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.spin@1.0.0 · SPIN_VIEWS: ServiceKey<SpinViewFactory>
+
+## Requires
+- core.rotation@^1.0.0 · CORE_ROTATION: ServiceKey<RotationMath>
+
+## Composition
+- Slots: view.spin
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- holdRadiansPerFrame: number, default 0.08726646259971647, from 0.01 to 0.5. Spin hold threshold (rad/frame): Hold a rapidly spinning body visually still above this turn per displayed frame, avoiding strobing during warp. Physics always uses its true angle.
+- resumeRatio: number, default 0.6, from 0.1 to 0.9, step 0.05. Spin resume threshold ratio: Resume visible rotation below this fraction of the hold threshold, reducing flicker around the transition.
+- releaseSeconds: number, default 0.4, from 0 to 2, step 0.05. Spin release easing (s): Wall seconds to ease a held body back to its true angle. Zero snaps immediately; physical rotation and saves are unchanged.
+
+## Game API used
+Body, CORE_ROTATION, ModuleInitializationV2, RotationMath, SPIN_VIEWS, ServiceKey, SpinViewControl, SpinViewFactory, State, Vec, deterministicMath, interpolateState
+-> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api rotation.ts [api-reference/game-api/rotation]
+-> game-api state.ts [api-reference/game-api/state]
+
+## Guide and example
+Example source: examples/modules/spin-view (build with npm run module:build -- examples/modules/spin-view/module.json out.spacemod).
+
 === Theme and procedural backdrop reference [api-reference/module/spacelab.theme]
 Public presentation.themes@1.0.0 service and lifecycle.
 - ID: spacelab.theme
@@ -1081,6 +1466,43 @@ FLIGHT_HUD_STATE, HudInstrumentDefinition, HudSurface, ModuleInitializationV2, O
 Example source: examples/modules/throttle-hud (build with npm run module:build -- examples/modules/throttle-hud/module.json out.spacemod).
 -> Throttle HUD: how to use, replace and remove it [spacelab.throttle-hud/usage]
 
+=== Shared per-view HUD reference [api-reference/module/spacelab.view-hud]
+Optional instruments with independent per-view lifetimes.
+- ID: spacelab.view-hud
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.view-hud@1.0.0 · VIEW_HUD: ServiceKey<ViewHudFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: ui.view-hud
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+HudBinding, HudInstrument, HudInstrumentDefinition, HudSurface, ModuleInitializationV2, OverlayPrimitive, ServiceKey, VIEW_HUD, ViewHud, ViewHudFactory, ViewHudOptions
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api view-hud.ts [api-reference/game-api/view-hud]
+
+## Guide and example
+Example source: examples/modules/view-hud (build with npm run module:build -- examples/modules/view-hud/module.json out.spacemod).
+-> Shared view HUD lifecycle: how to use, replace and remove it [spacelab.view-hud/usage]
+
 === game-api: chat.ts [api-reference/game-api/chat]
 Declarations from chat.ts used by documented modules.
 
@@ -1103,7 +1525,7 @@ Borrowed window interaction service; the caller owns the shared stacking order.
         start?: () => void; change(width: number, height: number, x: number, y: number): void; end(): void;
       }): Disposable;
     }
-Used by: spacelab.chat-console.
+Used by: spacelab.chat-console, spacelab.hud-layout.
 
 ## ChatConsoleOptions
 Options configuring a chat console UI instance.
@@ -1285,7 +1707,7 @@ Body-relative SI state. Read operations retain the world's established rails sem
       predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
       cloneForPrediction(): WorldControl;
     }
-Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight.
 
 ## WorldChanges
     export interface WorldChanges extends Disposable {
@@ -1416,7 +1838,7 @@ Legacy Space Sim flight identifiers, retained only by compatible flight adapters
       | 'cyclePlanet'
       | 'cyclePlanetPrev'
       | 'throwShip';
-Used by: spacelab.controller-menu, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-profiles, spacelab.input-touch.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-profiles, spacelab.input-touch.
 
 ## ControllerFamily
 Hardware controller family used for formatting button labels (e.g. A vs Cross vs B).
@@ -1523,7 +1945,7 @@ Flight mapping defaults and migration remain reusable without a gamepad device.
       normalize(raw: unknown): ControllerProfile;
       legacy(): ControllerProfile | undefined;
     }
-Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
 
 ## FlightKeyboardOptions
 Options configuring the legacy Space Sim flight keyboard adapter.
@@ -1598,7 +2020,7 @@ Full local multiplayer and splitscreen preference configuration.
       readonly screenMode: ScreenMode;
       readonly slots: readonly PlayerSlot[];
     }
-Used by: spacelab.controller-menu, spacelab.local-pilots.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.local-pilots.
 
 ## LocalPlayerPreferences
 Persisted flight seat preferences; separate from the session's authority and identity.
@@ -1871,6 +2293,51 @@ Declarations from flight-view.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-view.ts.
 
+## SmartTargetMatch
+Matched target descriptor returned by smart camera searches.
+    export interface SmartTargetMatch { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly isPilotedShip?: boolean }
+Used by: spacelab.camera-follow.
+
+## CameraFocusTarget
+Target identity focused by a follow or orbit camera.
+    export interface CameraFocusTarget { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string }
+Used by: spacelab.camera-follow.
+
+## FlightCameraController
+Flight adaptation of basic camera control; generic cameras use view.camera. Smart target/focus state is optional presentation policy. A provider without that add-on ignores smart assignments and retains ordinary follow/pan/zoom/inertia.
+    export interface FlightCameraController extends Disposable {
+      mode: string; pan: Vec; zoom: number; rotation: number; horizon: boolean; dragged: boolean;
+      /** Fixed viewer orientation in radians. Follow, recenter, mode changes and new focus
+       * release it; ordinary pan/zoom retain it. The chosen horizon preference is independent. */
+      manualRotation?: number;
+      last: Camera; panVelocity: Vec; smartTarget: SmartTargetMatch | undefined; focusTarget: CameraFocusTarget | undefined;
+      readonly follow: boolean;
+      label(cameras: readonly CameraExtension[]): string;
+      scale(width: number, height: number): number;
+      setZoom(zoom: number, maximum?: number): void;
+      changeZoom(factor: number): void;
+      followShip(): void; planetView(bodyRadius?: number): void; recenter(): void; clearFocus(): void;
+      cycle(cameras: readonly CameraExtension[], bodyRadius?: number): void;
+      retain(cameras: readonly CameraExtension[]): void;
+      rebase(oldBody: Vec, newBody: Vec): void;
+      drag(delta: Vec, body: Vec, ship: Vec, width: number, height: number): void;
+      stopFling(): void;
+      fling(screenVelocity: Vec, width: number, height: number, smartTarget?: SmartTargetMatch): void;
+      update(options: { readonly body: Vec; readonly ship: Vec; readonly elapsed: number; readonly instant: boolean;
+        readonly width: number; readonly height: number; readonly target?: CameraTarget; readonly focusPosition?: Vec }): Camera;
+    }
+Used by: spacelab.camera-follow, spacelab.flight-split.
+
+## FlightCameraFactory
+Factory creating flight camera controllers.
+    export interface FlightCameraFactory { create(): FlightCameraController }
+Used by: spacelab.camera-follow, spacelab.flight-split.
+
+## FLIGHT_CAMERAS
+Service key for the flight camera controller factory (`view.flight-camera@1.0.0`).
+    export const FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory> = Object.freeze({ slot: 'view.flight-camera', version: '1.0.0' });
+Used by: spacelab.camera-follow, spacelab.flight-split.
+
 ## PredictionSummary
 Result of one completed tracing pass. `workMs` is wall-clock work, not simulated time; `coarse` is true for a preview traced while the engine was burning.
     export interface PredictionSummary { end: GhostEnd; samples: number; workMs: number; coarse: boolean }
@@ -1893,17 +2360,121 @@ A progressive trajectory preview for one view. It traces on an isolated motion-c
       /** Short status for a readout, such as `Full orbit · period 5400.0 s` or `Tracing · 120 points`. */
       text(state: State): string;
     }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.flight-split.
 
 ## PredictionFactory
 Creates independent previews. Each preview owns its job and cloned context; disposing the preview or the provider closes both. `onComplete` runs once per finished pass.
     export interface PredictionFactory { create(onComplete: (summary: PredictionSummary) => void): FlightPrediction }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.flight-split.
 
 ## PREDICTIONS
 Progressive flight prediction, provided by `spacelab.flight-prediction` in Space Sim.
     export const PREDICTIONS: ServiceKey<PredictionFactory> = Object.freeze({ slot: 'view.prediction', version: '1.0.0' });
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.flight-split.
+
+## FleetViewInput
+Frame inputs for fleet visibility evaluation, orbital culling, and presentation rendering.
+    export interface FleetViewInput {
+      readonly world: WorldRead; readonly time: number; readonly alpha: number; readonly paused: boolean; readonly skipId?: string;
+      readonly playerId: string; readonly camera: Camera; readonly width: number; readonly height: number;
+      previous(shipId: string): Ship | undefined; isRock?(ship: Ship): boolean; displayOffset(shipId: string): Vec;
+      playerName(id: string): string | undefined; display?(state: State, bodyId: string): State;
+      interpolate?(from: State, to: State, alpha: number, bodyId: string): State;
+    }
+Used by: spacelab.fleet-view.
+
+## FleetViewStats
+Diagnostics for orbit culling, Kepler solving, and caching in a fleet view update.
+    export interface FleetViewStats { ships: number; culledByOrbit: number; solved: number; reused: number; visible: number }
+Used by: spacelab.fleet-view.
+
+## FlightFleetView
+Independent per-view fleet renderer with orbit-annulus culling and stationary coast caching.
+    export interface FlightFleetView extends Disposable { readonly stats: FleetViewStats; build(input: FleetViewInput): RenderShip[] }
+Used by: spacelab.fleet-view, spacelab.flight-split.
+
+## FleetViewFactory
+Factory creating independent fleet view instances.
+    export interface FleetViewFactory { create(): FlightFleetView }
+Used by: spacelab.fleet-view, spacelab.flight-split.
+
+## FLEET_VIEWS
+Service key for the fleet view factory (`view.fleet@1.0.0`).
+    export const FLEET_VIEWS: ServiceKey<FleetViewFactory> = Object.freeze({ slot: 'view.fleet', version: '1.0.0' });
+Used by: spacelab.fleet-view, spacelab.flight-split.
+
+## FlightLocalSession
+Local flight session interface providing guest seating, spawning, and authoritative world control.
+    export interface FlightLocalSession extends SessionRead, Pick<LocalSessionControl, 'seatGuest' | 'unseatGuest' | 'guestControls' | 'spawnGuest' | 'respawnGuest'> { readonly world: WorldControl }
+Used by: spacelab.flight-split.
+
+## FlightGuestPilot
+Per-guest splitscreen flight state, camera, prediction preview, pane DOM, and input handlers.
+    export interface FlightGuestPilot extends Disposable {
+      readonly slot: number; readonly camera: FlightCameraController; readonly prediction: FlightPrediction; readonly fleetView: FlightFleetView;
+      readonly pane: HTMLDivElement; canvas: HTMLCanvasElement;
+      playerId: string | undefined; shipId: string | undefined; body: ResolvedBody | undefined; state: State | undefined; view: State | undefined;
+      controls: Controls; renderer: Renderer | undefined; provider: RendererProvider | undefined; shaders: ShaderPack | undefined; problem: string;
+      onPointerDown?: (event: PointerEvent) => boolean; onPointerMove?: (event: PointerEvent) => void; onPointerUp?: (event: PointerEvent) => void;
+      ship(session: SessionRead): Ship | undefined;
+      ensureShip(local: FlightLocalSession, presetId: string, godMode?: boolean): void;
+      select(shipId: string | undefined): void; retrySpawn(): void; refresh(session: SessionRead): void;
+    }
+Used by: spacelab.flight-split.
+
+## FlightSplitScreenHost
+Host callbacks and session access provided to the splitscreen flight manager.
+    export interface FlightSplitScreenHost {
+      readonly gamepads?: FlightGamepad;
+      /** Renderer replacement may replace the element; resolve the current surface at use. */
+      primaryCanvas(): HTMLCanvasElement;
+      session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;
+      keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;
+      throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;
+      releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;
+      /** Release this seat's held device intent when its target or device assignment changes. */
+      releaseInput?(slot: number): void;
+      execute(action: FlightActionId): void; notify(text: string): void; changed(): void;
+      onGuestPointer?(guest: FlightGuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void;
+      isSlotThrowing?(slot: number): boolean;
+      isSessionError(error: unknown): error is Error;
+    }
+Used by: spacelab.flight-split.
+
+## FlightSplitServices
+Injected services required by splitscreen flight management.
+    export interface FlightSplitServices {
+      readonly tuning?: FlightSplitTuning;
+      readonly preferences: LocalPlayerPreferences; readonly profiles: FlightControllerProfiles;
+      readonly cameras: FlightCameraFactory; readonly predictions: PredictionFactory; readonly fleets: FleetViewFactory;
+      readonly layouts: Pick<LocalViewFactory, 'paneRects' | 'dynamicPaneRects'>;
+    }
+Used by: spacelab.flight-split.
+
+## FlightSplitScreen
+Multi-seat flight splitscreen controller managing guest seats, viewports, and input dispatch.
+    export interface FlightSplitScreen extends Disposable {
+      config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;
+      readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;
+      isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];
+      pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
+      resetGuests(): void; layout(): void;
+      updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };
+      applyInput(elapsed: number): void;
+      updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;
+      rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;
+    }
+Used by: spacelab.flight-split.
+
+## FlightSplitFactory
+Factory creating splitscreen flight managers.
+    export interface FlightSplitFactory { create(viewport: HTMLElement, host: FlightSplitScreenHost): FlightSplitScreen }
+Used by: spacelab.flight-split.
+
+## FLIGHT_SPLIT
+Service key for the flight split-screen manager (`view.flight-split@1.0.0`).
+    export const FLIGHT_SPLIT: ServiceKey<FlightSplitFactory> = Object.freeze({ slot: 'view.flight-split', version: '1.0.0' });
+Used by: spacelab.flight-split.
 
 ## ControllerMenuOptions
 Options configuring a ControllerMenu instance.
@@ -1943,6 +2514,102 @@ Used by: spacelab.controller-menu.
 Service key for the controller menu UI provider.
     export const CONTROLLER_MENUS: ServiceKey<ControllerMenuFactory> = Object.freeze({ slot: 'input.controller-menu', version: '1.0.0' });
 Used by: spacelab.controller-menu.
+
+## SpinViewControl
+Viewer-only anti-strobe orientation over the fixed prescribed rotation contract.
+    export interface SpinViewControl extends Disposable {
+     readonly holding: ReadonlySet<string>;
+     update(bodies: readonly Body[], time: number, elapsed: number, instant: boolean): void;
+     angle(body: Body, time: number): number;
+     point(body: Body, time: number, point: Vec): Vec;
+     state(state: State, body: Body): State;
+     interpolate(from: State, to: State, alpha: number, body: Body): State;
+    }
+Used by: spacelab.spin-view.
+
+## SpinViewFactory
+Factory creating body spin presentation controllers.
+    export interface SpinViewFactory { create(): SpinViewControl }
+Used by: spacelab.spin-view.
+
+## SPIN_VIEWS
+Service key for the body spin presentation factory (`view.spin@1.0.0`).
+    export const SPIN_VIEWS: ServiceKey<SpinViewFactory> = Object.freeze({ slot: 'view.spin', version: '1.0.0' });
+Used by: spacelab.spin-view.
+-> API reference index [api-reference]
+
+=== game-api: hud-layout.ts [api-reference/game-api/hud-layout]
+Declarations from hud-layout.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/hud-layout.ts.
+
+## HudRect
+CSS-pixel rectangle defining HUD component bounds.
+    export interface HudRect {readonly x:number;readonly y:number;readonly width:number;readonly height:number}
+Used by: spacelab.hud-layout.
+
+## HudEditorOptions
+Configuration options for the interactive HUD position editor.
+    export interface HudEditorOptions {
+     readonly viewport:HTMLElement;readonly toggle:HTMLElement;readonly reset:HTMLElement;readonly items:readonly HudEditorItem[];
+     readonly storage?:ThemePreferences;readonly storageKey?:string;changed():void;
+     readonly hint?:string;
+     readonly moveStepPx?:number;readonly fastMoveStepPx?:number;
+    }
+Used by: spacelab.hud-layout.
+
+## HudEditor
+Controller managing interactive HUD component movement, grip focus, and saved placement.
+    export interface HudEditor extends Disposable {readonly editing:boolean;refresh():HTMLElement[]}
+Used by: spacelab.hud-layout.
+
+## HudLayoutOptions
+Options configuring responsive HUD layout and obstacle avoidance.
+    export interface HudLayoutOptions {
+     readonly viewport:HTMLElement;
+     readonly editor?:Omit<HudEditorOptions,'viewport'|'changed'>;
+     /** Optional responsive arrangement; games supply their own DOM roles. */
+     readonly roles?:{readonly status:HTMLElement;readonly right:HTMLElement;readonly dock:HTMLElement;readonly chat:HTMLElement;readonly telemetry:HTMLElement};
+     readonly touchSelector?:string;readonly discoverSelector?:string;
+    }
+Used by: spacelab.hud-layout.
+
+## HudLayout
+Responsive HUD layout controller fitting instruments around obstacles.
+    export interface HudLayout extends Disposable {
+     readonly editing:boolean;readonly revision:number;
+     fit(preferred:HudRect,width:number,height:number,canvas?:HTMLCanvasElement,avoid?:boolean):HudRect;
+    }
+Used by: spacelab.hud-layout.
+
+## HudVisibilityOptions
+Options configuring HUD component visibility checkboxes and persistent preferences.
+    export interface HudVisibilityOptions {
+     readonly viewport:HTMLElement;readonly list:HTMLElement;readonly items:readonly HudVisibilityItem[];
+     readonly defaults?:Readonly<Record<string,boolean>>;readonly storage?:ThemePreferences;readonly storageKey?:string;
+    }
+Used by: spacelab.hud-layout.
+
+## HudVisibilityController
+Controller managing visibility state and settings persistence for HUD elements.
+    export interface HudVisibilityController extends Disposable {
+     visible(id:string):boolean;set(id:string,value:boolean):void;
+     bind(id:string,label:string,read:()=>boolean,write:(value:boolean)=>void,reset:()=>void):Disposable;
+    }
+Used by: spacelab.hud-layout.
+
+## HudLayoutFactory
+Factory creating HUD layout managers and visibility controllers.
+    export interface HudLayoutFactory extends Disposable {
+     create(options:HudLayoutOptions):HudLayout;
+     visibility(options:HudVisibilityOptions):HudVisibilityController;
+    }
+Used by: spacelab.hud-layout.
+
+## HUD_LAYOUT
+Service key for the HUD layout and visibility factory (`ui.hud-layout@1.0.0`).
+    export const HUD_LAYOUT:ServiceKey<HudLayoutFactory>=Object.freeze({slot:'ui.hud-layout',version:'1.0.0'});
+Used by: spacelab.hud-layout.
 -> API reference index [api-reference]
 
 === game-api: join-pack.ts [api-reference/game-api/join-pack]
@@ -2122,7 +2789,31 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer.
+Used by: builtin.navball, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud.
+
+## ModuleManifest
+    export interface ModuleManifest {
+      readonly format: 'space-sim-module/1';
+      readonly apiVersion: 'space-sim-game-api/1';
+      readonly id: string;
+      readonly name: string;
+      readonly version: string;
+      readonly kind: 'provider' | 'data';
+      readonly authority: 'authoritative' | 'presentation';
+      readonly environments: readonly ModuleEnvironment[];
+      /** Enabled before this module, which may use their exposed APIs. */
+      readonly dependencies: readonly ModuleDependency[];
+      /** Modules that cannot be enabled together with this one. */
+      readonly conflicts?: readonly ModuleDependency[];
+      readonly provides: readonly string[];
+      readonly requires: readonly string[];
+      readonly slots: readonly string[];
+      readonly before: readonly string[];
+      readonly after: readonly string[];
+      readonly settings: Readonly<Record<string, NumberSetting>>;
+      readonly license: string;
+    }
+Used by: builtin.navball.
 
 ## ModuleInitialization
 Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile.
@@ -2166,7 +2857,7 @@ Used by: spacelab.trainer-appearance.
       readonly supportsMultiplayer?: boolean;
       initialize(context: ModuleInitialization): void;
     }
-Used by: spacelab.throttle-hud.
+Used by: builtin.navball, spacelab.throttle-hud.
 
 ## ModuleLock
     export interface ModuleLock {
@@ -2208,7 +2899,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders.
+Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud.
 
 ## ModuleAssets
     export interface ModuleAssets {
@@ -2248,7 +2939,7 @@ Used by: spacelab.vector-shaders.
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders.
+Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud.
 -> API reference index [api-reference]
 
 === game-api: motion.ts [api-reference/game-api/motion]
@@ -2454,12 +3145,12 @@ Factory creating local pilot seat registries and flight player preference codecs
       /** Returns the local player preferences codec backed by flight controller profiles. */
       preferences(): LocalPlayerPreferences;
     }
-Used by: spacelab.controller-menu, spacelab.local-pilots.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.local-pilots.
 
 ## LOCAL_PILOTS
 Service key for the local pilot seats provider.
     export const LOCAL_PILOTS: ServiceKey<LocalPilotFactory> = Object.freeze({ slot: 'input.local-pilots', version: '1.0.0' });
-Used by: spacelab.controller-menu, spacelab.local-pilots.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.local-pilots.
 
 ## ControlTargetBinding
 Local routing identity connecting a seat and viewport to a session player and target entity.
@@ -2610,17 +3301,17 @@ Factory creating generic gamepad input sources and flight gamepad managers.
       /** Formats a physical button index into a family-specific label (e.g. 'A', 'Cross'). */
       formatButton(index: number, family: ControllerFamily): string;
     }
-Used by: spacelab.controller-menu, spacelab.input-gamepad.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad.
 
 ## GAMEPAD_INPUT
 Service key for the gamepad input provider.
     export const GAMEPAD_INPUT: ServiceKey<GamepadInputFactory> = Object.freeze({ slot: 'input.gamepad', version: '1.0.0' });
-Used by: spacelab.controller-menu, spacelab.input-gamepad.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad.
 
 ## FLIGHT_PROFILES
 Service key for flight controller profile codecs and defaults.
     export const FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles> = Object.freeze({ slot: 'input.flight-profiles', version: '1.0.0' });
-Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
+Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
 
 ## TouchInputOptions
 Options configuring a touch input source.
@@ -2651,13 +3342,93 @@ Service key for the touch input provider.
     export const TOUCH_INPUT: ServiceKey<TouchInputFactory> = Object.freeze({ slot: 'input.touch', version: '1.0.0' });
 Used by: spacelab.input-touch.
 
+## LocalCameraInput
+Frame inputs for local camera calculations: wall-clock elapsed time, viewport CSS pixels, and target transforms.
+    export interface LocalCameraInput {
+      readonly elapsed: number; readonly width: number; readonly height: number;
+      transform(targetId: string): ViewTargetTransform | undefined;
+    }
+Used by: spacelab.camera-follow, spacelab.local-views.
+
+## LocalViewCamera
+Independent viewport camera managing focus, zoom, and frame projection.
+    export interface LocalViewCamera extends Disposable {
+      readonly viewportId: string;
+      readonly targetId: string | undefined;
+      readonly mode: 'follow' | 'free';
+      focus(targetId: string | undefined): void;
+      changeZoom(factor: number): void;
+      frame(input: LocalCameraInput): Camera;
+    }
+Used by: spacelab.camera-follow.
+
+## LocalCameraFactory
+Factory creating independent viewport cameras by viewport identity.
+    export interface LocalCameraFactory { create(viewportId: string): LocalViewCamera }
+Used by: spacelab.camera-follow, spacelab.local-views.
+
+## VIEW_CAMERAS
+Service key for independent viewport cameras (`view.camera@1.0.0`).
+    export const VIEW_CAMERAS: ServiceKey<LocalCameraFactory> = Object.freeze({ slot: 'view.camera', version: '1.0.0' });
+Used by: spacelab.camera-follow, spacelab.local-views.
+
 ## TwoPlayerLayout
+Layout arrangement for two-player splitscreen ('auto' | 'side' | 'stacked').
     export type TwoPlayerLayout = 'auto' | 'side' | 'stacked';
-Used by: spacelab.controller-menu.
+Used by: spacelab.controller-menu, spacelab.local-views.
 
 ## ScreenMode
+Splitscreen display mode ('dynamic' merges when close, 'split' always partitions).
     export type ScreenMode = 'dynamic' | 'split';
 Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## PaneRect
+Normalized rectangle (x, y, w, h in 0..1 range) defining a viewport pane.
+    export interface PaneRect { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
+Used by: spacelab.local-views.
+
+## LocalViewBinding
+Viewport and seat identification binding tying a player to a camera and display pane.
+    export interface LocalViewBinding {
+      readonly viewportId: string; readonly seatId: string; readonly playerId?: string; readonly targetId?: string;
+    }
+Used by: spacelab.player-view.
+
+## LocalViewOptions
+Options configuring multi-view local allocation and surface binding.
+    export interface LocalViewOptions {
+      readonly bindings: readonly LocalViewBinding[];
+      readonly layout: TwoPlayerLayout;
+      readonly mode: ScreenMode;
+      surface(binding: LocalViewBinding): LocalViewSurface;
+    }
+Used by: spacelab.local-views.
+
+## LocalViews
+Controller managing independent local viewports, cameras, surfaces, reflow, and rendering.
+    export interface LocalViews extends Disposable {
+      readonly count: number;
+      /** Connected support is independent of whether more than one pane is visible. */
+      readonly splitActive: boolean;
+      camera(viewportId: string): LocalViewCamera;
+      reflow(width: number, height: number, separatedGuests?: ReadonlySet<number>): void;
+      render(elapsed: number, transform: LocalCameraInput['transform']): void;
+    }
+Used by: spacelab.local-views.
+
+## LocalViewFactory
+Factory creating local multi-view managers and calculating pane rectangle layouts.
+    export interface LocalViewFactory {
+      create(options: LocalViewOptions): LocalViews;
+      paneRects(count: number, layout: TwoPlayerLayout, width: number, height: number): PaneRect[];
+      dynamicPaneRects(count: number, separatedGuests: ReadonlySet<number>, layout: TwoPlayerLayout, width: number, height: number): { rects: PaneRect[]; visible: boolean[] };
+    }
+Used by: spacelab.flight-split, spacelab.local-views.
+
+## LOCAL_VIEWS
+Service key for the local view multi-pane manager (`view.local@1.0.0`).
+    export const LOCAL_VIEWS: ServiceKey<LocalViewFactory> = Object.freeze({ slot: 'view.local', version: '1.0.0' });
+Used by: spacelab.flight-split, spacelab.local-views.
 
 ## TextConnection
 Bidirectional text transport connection with backpressure and lifecycle events. Shared by browser WebSockets, WebRTC data channels, scoped tab channels, and Node server sockets.
@@ -2741,6 +3512,56 @@ Used by: spacelab.render-webgl.
 Used by: spacelab.render-webgl.
 -> API reference index [api-reference]
 
+=== game-api: player-view.ts [api-reference/game-api/player-view]
+Declarations from player-view.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/player-view.ts.
+
+## PlayerViewAdapter
+One player's adapter instance. Configuration/schema belongs to its provider, allowing future editors without a shared bag of game-specific settings. The view owns this adapter; underlying borrowed services retain their owner.
+    export interface PlayerViewAdapter extends Disposable {
+      /** Stable underlying resource identity; prevents mutable instances crossing players. */
+      readonly resource: object;
+      rebind(binding: HudBinding): void;
+      release(): void;
+    }
+Used by: spacelab.player-view.
+
+## PlayerViewAdapters
+Map of player view roles to their active adapter instances.
+    export type PlayerViewAdapters = Readonly<Partial<Record<PlayerViewRole, PlayerViewAdapter>>>;
+Used by: spacelab.player-view.
+
+## PlayerView
+    export interface PlayerView extends Disposable {
+      readonly binding: HudBinding;
+      readonly adapters: PlayerViewAdapters;
+      /** Release all old intent before rebinding. A failed rebind removes every adapter,
+       * leaving a neutral view that can be configured again. Seat/view identity is fixed. */
+      bind(binding: HudBinding): void;
+      /** Replace only this player's parts. Failed preparation retains the old parts,
+       * with their intent released; no game world is created or advanced. */
+      configure(adapters: PlayerViewAdapters): void;
+      release(): void;
+    }
+Used by: spacelab.player-view.
+
+## PlayerViewFactory
+    export interface PlayerViewFactory extends Disposable {
+      create(options: { readonly binding: HudBinding; readonly adapters: PlayerViewAdapters }): PlayerView;
+      controller(controller: PlayerController, ownership?: PlayerAdapterOwnership,
+        target?: (binding: HudBinding) => ControlTargetBinding | undefined): PlayerViewAdapter;
+      camera(camera: LocalViewCamera, ownership?: PlayerAdapterOwnership): PlayerViewAdapter;
+      hud(hud: ViewHud, ownership?: PlayerAdapterOwnership): PlayerViewAdapter;
+    }
+Used by: spacelab.player-view.
+
+## PLAYER_VIEWS
+Service key for the player view composition factory (`ui.player-view@1.0.0`).
+    export const PLAYER_VIEWS: ServiceKey<PlayerViewFactory> = Object.freeze({ slot: 'ui.player-view', version: '1.0.0' });
+Used by: spacelab.player-view.
+-> API reference index [api-reference]
+
 === game-api: presentation.ts [api-reference/game-api/presentation]
 Declarations from presentation.ts used by documented modules.
 
@@ -2749,7 +3570,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## Camera
 System world coordinates (metres, +Y up) to CSS pixels: `scale` pixels per metre, `rotation` radians counter-clockwise applied to the world before projection.
     export interface Camera { readonly center: Vec; readonly rotation: number; readonly scale: number }
-Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.theme.
+Used by: spacelab.camera-follow, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme.
 
 ## RenderBody
     export interface RenderBody {
@@ -2793,7 +3614,7 @@ Another vessel in the same world: one of this player's fleet, or someone else's.
       /** Drawn as a small unlabeled rock instead of a vessel (asteroids and debris). */
       readonly rock?: boolean;
     }
-Used by: spacelab.render-canvas, spacelab.render-webgl.
+Used by: spacelab.fleet-view, spacelab.render-canvas, spacelab.render-webgl.
 
 ## RenderFrame
     export interface RenderFrame {
@@ -2908,7 +3729,7 @@ Used by: spacelab.render-webgl.
       readonly name: string;
       readonly passes: Readonly<Record<ShaderPass, ShaderSources>>;
     }
-Used by: spacelab.render-webgl, spacelab.vector-shaders.
+Used by: spacelab.flight-split, spacelab.render-webgl, spacelab.vector-shaders.
 
 ## RendererFeatures
 Optional features of a renderer instance. Applications discover them here, never by class.
@@ -2926,7 +3747,19 @@ Used by: spacelab.render-canvas, spacelab.render-webgl.
       draw(frame: RenderFrame, timer?: RenderTimer): void;
       dispose?(): void;
     }
-Used by: spacelab.render-canvas, spacelab.render-webgl.
+Used by: spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl.
+
+## RendererProvider
+The `renderer` slot of a presentation profile. A stateless factory: each renderer owns everything it allocates (contexts, programs, buffers, textures) and frees it in dispose(), so a renderer may outlive the candidate whose provider created it.
+    export interface RendererProvider {
+      readonly id: string;
+      readonly version: string;
+      /** Short UI label, such as "WebGL" or "2D". */
+      readonly label: string;
+      readonly capabilities: RendererCapabilities;
+      create(canvas: HTMLCanvasElement, options?: { readonly shaders?: ShaderPack }): Renderer;
+    }
+Used by: spacelab.flight-split.
 
 ## OverlayPrimitive
     export type OverlayPrimitive =
@@ -2938,7 +3771,55 @@ Used by: spacelab.render-canvas, spacelab.render-webgl.
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' };
-Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud.
+Used by: builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+
+## PresentationSnapshot
+A detached, frozen snapshot of what the pilot sees. Built at most once per frame.
+    export interface PresentationSnapshot {
+      /** Interpolated presentation time (seconds) and the last committed simulation tick. */
+      readonly time: number;
+      readonly tick: number;
+      readonly paused: boolean;
+      /** Wall seconds since the previous frame. Presentation only; never feeds the simulation. */
+      readonly elapsed: number;
+      readonly viewport: { readonly width: number; readonly height: number; readonly pixelRatio: number };
+      readonly body: PresentationBody;
+      readonly ship?: PresentationShip;
+      readonly vehicle: Readonly<VehicleDefaults>;
+      /** The active motion model provides analytic orbital diagnostics. */
+      readonly analyticOrbits: boolean;
+      /** Analytic elements of a flying ship's orbit, when `analyticOrbits`. */
+      readonly orbit: Elements | null;
+      /** Height above local ground or sea in metres (negative underwater). */
+      readonly groundClearance: number | null;
+      readonly prediction: { readonly status: GhostEnd | 'tracing' | 'none'; readonly samples: number; readonly last?: GhostSample };
+      /** Optional local flight plan. Body-relative SI coordinates; a preview never changes live motion. */
+      readonly maneuver?: ManeuverPreview;
+      /** Shared-world rule namespaces at the last committed tick. */
+      readonly moduleState: Readonly<Record<string, WorldRuleState>>;
+    }
+Used by: builtin.navball.
+
+## PresentationView
+    export interface PresentationView extends PresentationSnapshot {
+      /** The camera this frame is drawn with. */
+      readonly camera: Camera;
+    }
+Used by: builtin.navball.
+
+## CameraTarget
+    export interface CameraTarget {
+      /** System coordinates (metres). */
+      readonly center: Vec;
+      /** Target rotation in radians; omitted keeps the pilot's North up/Horizon up choice.
+       * The host blends rotation changes and keeps the pilot's zoom. */
+      readonly rotation?: number;
+    }
+Used by: spacelab.camera-follow.
+
+## CameraExtension
+    export type CameraExtension = PresentationContribution<CameraHook>;
+Used by: spacelab.camera-follow.
 -> API reference index [api-reference]
 
 === game-api: render-math.ts [api-reference/game-api/render-math]
@@ -2950,6 +3831,20 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 Cache camera constants once per frame, shared by every body/path/ship vertex.
     export function createProjector(camera: Camera, width: number, height: number): (p: Vec) => Vec;
 Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## dragCamera
+Move the scene by a screen-space pointer displacement (CSS pixels).
+    export function dragCamera(camera: Camera, delta: Vec): Camera;
+Used by: spacelab.camera-follow.
+
+## blendAngle
+    export function blendAngle(current: number, target: number, fraction: number): number;
+Used by: spacelab.camera-follow.
+
+## interpolateState
+Presentation snapshot `alpha` of the way from one fixed physics step to the next, so motion stays smooth when 10-ms steps do not divide the display's frame interval. Visual only: physics must never read the result.
+    export function interpolateState(from: State, to: State, alpha: number): State;
+Used by: spacelab.fleet-view, spacelab.spin-view.
 
 ## hermiteControls
 Bézier control points of the cubic Hermite curve between two timed states. Exact end positions and velocities keep sparse quantized samples smooth at any zoom; the projection is affine, so world-space control points project directly.
@@ -3093,6 +3988,27 @@ Service key for the public vector shader pack library (`render.vector-shaders@1.
 Used by: spacelab.vector-shaders.
 -> API reference index [api-reference]
 
+=== game-api: rotation.ts [api-reference/game-api/rotation]
+Declarations from rotation.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/rotation.ts.
+
+## RotationMath
+Fixed prescribed sidereal rotation. SI metres/seconds, radians; pure queries never advance body state. This does not declare support for dynamic N-body orientation.
+    export interface RotationMath {
+     spinRate(body: Body): number;
+     spinAngle(body: Body, time: number): number;
+     rotate(vector: Vec, angle: number): Vec;
+     groundVelocity(omega: number, position: Vec): Vec;
+     bodyFixed(state: State, body: Body): boolean;
+    }
+Used by: spacelab.spin-view.
+
+## CORE_ROTATION
+    export const CORE_ROTATION: ServiceKey<RotationMath> = Object.freeze({ slot: 'core.rotation', version: '1.0.0' });
+Used by: spacelab.spin-view.
+-> API reference index [api-reference]
+
 === game-api: rules.ts [api-reference/game-api/rules]
 Declarations from rules.ts used by documented modules.
 
@@ -3168,7 +4084,7 @@ What the flight loop needs from a game, whether this browser owns the world or f
       /** Every chat line in this world, this pilot's own included. */
       onchat: ((line: ChatLine) => void) | null;
     }
-Used by: spacelab.session-flight.
+Used by: spacelab.flight-split, spacelab.session-flight.
 
 ## SessionHandle
     export interface SessionHandle extends SessionRead, Disposable {}
@@ -3214,7 +4130,7 @@ Used by: spacelab.session-flight.
       catchUp(seconds: number, ship: string | undefined): WorldEvent[];
       service(): void; snapshot(): string; roster(): readonly SavedPlayer[]; close(reason?: string): void;
     }
-Used by: spacelab.session-flight.
+Used by: spacelab.flight-split, spacelab.session-flight.
 
 ## SessionFactory
     export interface SessionFactory {
@@ -3326,6 +4242,63 @@ Parse and validate a GLSL fragment file or JSON shader pack string. A .frag/.gls
 Used by: spacelab.render-webgl, spacelab.vector-shaders.
 -> API reference index [api-reference]
 
+=== game-api: smart-camera.ts [api-reference/game-api/smart-camera]
+Declarations from smart-camera.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/smart-camera.ts.
+
+## SmartCameraTarget
+Viewer identities only: targets may be vehicles, celestial bodies or any other object.
+    export interface SmartCameraTarget { readonly id: string; readonly name: string }
+Used by: spacelab.camera-smart.
+
+## SmartCameraCandidate
+Candidate target with world-metre position for smart camera targeting searches.
+    export interface SmartCameraCandidate extends SmartCameraTarget { readonly position: Vec }
+Used by: spacelab.camera-smart.
+
+## SmartCameraSearch
+Search criteria describing camera center, drag velocity, rotation and priority candidate groups.
+    export interface SmartCameraSearch<T extends SmartCameraCandidate> {
+      readonly currentCenter: Vec;
+      /** Drag-release velocity in CSS pixels per wall second. */
+      readonly screenVelocity: Vec;
+      readonly cameraRotation: number;
+      /** CSS pixels per world metre. Groups are searched in priority order. */
+      readonly scale: number;
+      readonly groups: readonly (readonly T[])[];
+      readonly currentFocusId?: string;
+    }
+Used by: spacelab.camera-smart.
+
+## SmartCameraControl
+Per-view smart camera guidance controller tracking and guiding toward candidate targets.
+    export interface SmartCameraControl<T extends SmartCameraTarget = SmartCameraTarget> extends Disposable {
+      target: T | undefined;
+      focus: T | undefined;
+      start(target: T, followOnArrival?: boolean): void;
+      /** Stop guided movement while retaining an already acquired focus. */
+      stop(): void;
+      clear(): void;
+      /** Undefined means ordinary base-camera movement; a missing target releases focus. */
+      update(frame: SmartCameraFrame): SmartCameraStep | undefined;
+    }
+Used by: spacelab.camera-follow, spacelab.camera-smart.
+
+## SmartCameraFactory
+Optional policy: owns targeting and guidance, never a renderer, world step or device.
+    export interface SmartCameraFactory {
+      create<T extends SmartCameraTarget>(): SmartCameraControl<T>;
+      select<T extends SmartCameraCandidate>(search: SmartCameraSearch<T>): T | undefined;
+    }
+Used by: spacelab.camera-follow, spacelab.camera-smart.
+
+## SMART_CAMERAS
+Service key for the smart camera add-on factory (`view.smart-camera@1.0.0`).
+    export const SMART_CAMERAS: ServiceKey<SmartCameraFactory> = Object.freeze({ slot: 'view.smart-camera', version: '1.0.0' });
+Used by: spacelab.camera-follow, spacelab.camera-smart.
+-> API reference index [api-reference]
+
 === game-api: state.ts [api-reference/game-api/state]
 Declarations from state.ts used by documented modules.
 
@@ -3333,7 +4306,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Vec
     export interface Vec { readonly x: number; readonly y: number }
-Used by: spacelab.flight-plans, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight.
+Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view.
 
 ## Body
     export interface Body {
@@ -3343,7 +4316,7 @@ Used by: spacelab.flight-plans, spacelab.render-canvas, spacelab.render-webgl, s
       readonly surface?: SurfaceDefinition;
       readonly rotation?: BodyRotation;
     }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.spin-view.
 
 ## State
 A flying state is in the body-centred inertial frame. On a rotating body a landed or crashed state is in the body-fixed frame instead: it rests with constant position and heading.
@@ -3366,11 +4339,27 @@ A flying state is in the body-centred inertial frame. On a rotating body a lande
       /** Split drift vertex retained for prediction of a gentle sea entry. */
       readonly waterEntry?: GhostSample;
     }
-Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view.
+
+## Coast
+    export interface Coast {
+      readonly modelIdentity?: string;
+      readonly bodyId: string;
+      readonly epochSeconds: number;
+      readonly position: Vec;
+      readonly velocity: Vec;
+      readonly mu: number;
+      readonly revision: number;
+      readonly surfaceRadius: number;
+      readonly surfaceIdentity: string;
+      /** Absent for the circular preview contact model, even on configured bodies. */
+      readonly contactSurfaceIdentity?: string;
+    }
+Used by: spacelab.fleet-view.
 
 ## Controls
     export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }
-Used by: spacelab.flight-prediction, spacelab.session-flight.
+Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.session-flight.
 
 ## Sample
     export interface Sample { readonly time: number; readonly position: Vec }
@@ -3756,7 +4745,7 @@ Used by: spacelab.session-flight.
       /** Always four colours once resolved. */
       readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };
     }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.flight-split.
 -> API reference index [api-reference]
 
 === game-api: vehicles.ts [api-reference/game-api/vehicles]
@@ -3822,10 +4811,40 @@ Declarations from view-hud.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/view-hud.ts.
 
+## HudBinding
+Per-view binding tying a HUD view to a seat, viewport, session, and optional context.
+    export interface HudBinding extends LocalViewBinding { readonly session: object; readonly context?: object }
+Used by: spacelab.player-view, spacelab.view-hud.
+
 ## HudSurface
 The pane an instrument draws in. Sizes and offsets are CSS pixels; `root` is the DOM parent the instrument may append its own elements to and must remove them on dispose.
     export interface HudSurface { readonly root: HTMLElement; readonly width: number; readonly height: number; readonly x: number; readonly y: number }
-Used by: spacelab.throttle-hud.
+Used by: spacelab.throttle-hud, spacelab.view-hud.
+
+## HudInstrumentContext
+Per-instrument initialization context providing access to declared required adapters.
+    export interface HudInstrumentContext {
+      readonly binding: HudBinding;
+      /** Returns an adapter listed in the definition's `requires`; throws for any other key. */
+      use<T>(key: ServiceKey<T>): T;
+    }
+Used by: builtin.navball.
+
+## HudInstrument
+One instrument instance for one seat and viewport, owned by a ViewHud. A method that throws disables only this instrument: the owner cancels and disposes it and reports the fault.
+    export interface HudInstrument extends Disposable {
+      /** Stop any pointer or keyboard gesture in progress; a new gesture is needed afterwards. */
+      cancel(): void;
+      /** The seat's session, player or target changed. Gestures were cancelled first. */
+      rebind(binding: HudBinding): void;
+      resize(surface: HudSurface): void;
+      /** Once per rendered frame. `elapsed` is wall-clock seconds since the previous frame,
+       * not simulation time; do not advance or write the world here. */
+      update(elapsed: number): void;
+      /** Append overlay shapes for this frame; shapes appended before a throw are discarded. */
+      draw(into: OverlayPrimitive[]): void;
+    }
+Used by: builtin.navball, spacelab.view-hud.
 
 ## HudInstrumentDefinition
 A selectable instrument, published as a service such as `THROTTLE_HUD`. Stateless and reusable: the HUD owner calls `create` once per seat and disposes each instance.
@@ -3836,7 +4855,42 @@ A selectable instrument, published as a service such as `THROTTLE_HUD`. Stateles
       readonly requires: readonly Pick<ServiceKey<unknown>, 'slot' | 'version'>[];
       create(context: HudInstrumentContext): HudInstrument;
     }
-Used by: spacelab.throttle-hud.
+Used by: builtin.navball, spacelab.throttle-hud, spacelab.view-hud.
+
+## ViewHud
+Per-seat HUD controller coordinating active instruments, surface sizing, updates and overlays.
+    export interface ViewHud extends Disposable {
+      readonly binding: HudBinding;
+      readonly count: number;
+      bind(binding: HudBinding): void;
+      select(instruments: readonly HudInstrumentDefinition[]): void;
+      /** Cancel instrument gestures without removing the current selection. */
+      cancel?(): void;
+      resize(surface: HudSurface): void;
+      update(elapsed: number): void;
+      draw(into: OverlayPrimitive[]): void;
+    }
+Used by: spacelab.view-hud.
+
+## ViewHudOptions
+Configuration options for instantiating a ViewHud.
+    export interface ViewHudOptions {
+      readonly binding: HudBinding;
+      readonly adapters: readonly HudAdapter[];
+      readonly instruments?: readonly HudInstrumentDefinition[];
+      fault?(id: string, error: unknown): void;
+    }
+Used by: spacelab.view-hud.
+
+## ViewHudFactory
+Creates one ViewHud per seat and viewport. Each ViewHud owns the instruments it creates.
+    export interface ViewHudFactory extends Disposable { create(options: ViewHudOptions): ViewHud }
+Used by: spacelab.view-hud.
+
+## VIEW_HUD
+Service key for the shared per-view HUD factory (`ui.view-hud@1.0.0`).
+    export const VIEW_HUD: ServiceKey<ViewHudFactory> = Object.freeze({slot:'ui.view-hud',version:'1.0.0'});
+Used by: spacelab.view-hud.
 
 ## ThrottleLeverState
 Throttle readout for one seat. `throttle` is a fraction from 0 to 1; Space Sim reports 0 while the engine is not firing. `locked` means the host is ignoring throttle input, for example while paused. `world` and `shipId` identify the target so a gesture can detect a switch.
@@ -3865,12 +4919,17 @@ Per-seat flight bridge supplied by the host as the `view.flight-hud-state` adapt
       setThrottle(value: number): void;
       cancelGestures?(): void;
     }
-Used by: spacelab.throttle-hud.
+Used by: builtin.navball.
 
 ## FLIGHT_HUD_STATE
 Host adapter for flight instruments. Declare it in `HudInstrumentDefinition.requires`.
     export const FLIGHT_HUD_STATE: ServiceKey<FlightHudAdapter> = Object.freeze({slot:'view.flight-hud-state',version:'1.0.0'});
-Used by: spacelab.throttle-hud.
+Used by: builtin.navball, spacelab.throttle-hud.
+
+## NAVBALL_HUD
+Per-view navball attitude instrument, provided by `builtin.navball` in Space Sim.
+    export const NAVBALL_HUD: ServiceKey<HudInstrumentDefinition> = Object.freeze({slot:'hud.navball',version:'1.0.0'});
+Used by: builtin.navball.
 
 ## THROTTLE_HUD
 Per-seat throttle lever instrument, provided by `spacelab.throttle-hud` in Space Sim.
@@ -3931,6 +4990,29 @@ ServiceKey for manual WebRTC invite/reply signaling (slot `net.webrtc-signaling`
 Used by: spacelab.net-webrtc.
 -> API reference index [api-reference]
 
+=== game-api: windows.ts [api-reference/game-api/windows]
+Declarations from windows.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/windows.ts.
+
+## WindowIcon
+    export type WindowIcon = 'grip' | 'setup' | 'ship' | 'fleet' | 'online' | 'instruments' | 'trajectory' | 'telemetry' | 'alarm' | 'chat' | 'settings' | 'tools' | 'library' | 'manual' | 'pin';
+Used by: spacelab.hud-layout.
+
+## WindowSystem
+    export interface WindowSystem extends Disposable, WindowInteractions {
+      /** Fixed first-party vector paths; labels and imported content remain DOM text. */
+      icon(name: WindowIcon): string;
+      create(options: WindowChromeOptions): WindowChrome;
+      isFront(panel: HTMLElement): boolean;
+    }
+Used by: spacelab.hud-layout.
+
+## WINDOWS
+    export const WINDOWS: ServiceKey<WindowSystem> = Object.freeze({slot:'ui.windows', version:'1.0.0'});
+Used by: spacelab.hud-layout.
+-> API reference index [api-reference]
+
 === game-api: world.ts [api-reference/game-api/world]
 Declarations from world.ts used by documented modules.
 
@@ -3952,7 +5034,7 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
        * cleared or it respawns. */
       readonly fault?: string;
     }
-Used by: spacelab.flight-plans, spacelab.session-flight.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.session-flight.
 
 ## WorldEvent
     export type WorldEvent =
@@ -4000,6 +5082,86 @@ examples/modules/appearance-trainer demonstrates contributing custom vehicle vec
 -> API reference: Trainer vector appearance [api-reference/module/spacelab.trainer-appearance]
 -> Canvas 2D: Canvas scene rendering [spacelab.render-canvas/usage]
 -> WebGL 2: WebGL scene rendering [spacelab.render-webgl/usage]
+
+=== Independent follow cameras [spacelab.camera-follow/usage]
+Reusable basic camera control with an explicit flight adapter and optional smart-camera policy.
+
+
+## What it does
+This module provides independent follow and free camera controllers across local viewports. It tracks target positions and orientations in double-precision world coordinates, projects celestial bodies and vehicles to viewport CSS pixels, and manages smooth zoom, panning, inertial fling gestures, and horizon alignment without altering physical simulation stepping.
+
+## Provides and requires
+- Provides view.camera@1.0.0 through the VIEW_CAMERAS service key: creates LocalViewCamera instances for multi-view and presentation compositions.
+- Provides view.flight-camera@1.0.0 through the FLIGHT_CAMERAS service key: provides the CameraController flight adapter supporting planet views, body-relative tracking, drag gestures, and rebasing.
+- Requires view.smart-camera@1.0.0 (optional) through the SMART_CAMERAS service key: enables candidate search, guided arrival transitions, and focus acquisition when available.
+- Fills the view.camera and view.flight-camera slots.
+
+## Settings
+- initialZoom (default 10, from 0.1 to 50): Starting magnification for each independent view. Changing a view later affects that view only.
+- referenceMetres (default 1500, from 1 to 1000000000): World metres framed by the shorter viewport dimension at zoom 1. Changes presentation scale only.
+- orientationSeconds (default 0.12, from 0 to 2, step 0.01): Wall seconds for camera rotation to approach the target orientation. Zero snaps immediately; simulation time is unchanged.
+
+## Lifecycle
+- Initialization captures initialZoom, referenceMetres, and orientationSeconds settings, queries optional SMART_CAMERAS, and contributes this guide.
+- Selected slots register follow cameras for VIEW_CAMERAS and flight cameras for FLIGHT_CAMERAS.
+- Each camera instance tracks zoom, pan velocity, orientation, and focus state, reprojecting frames during viewport reflow and rendering passes.
+- Disposing a camera releases fling state and focus bindings; disposing the provider terminates all active camera instances.
+
+## Remove or replace
+To replace camera behavior, provide alternative services implementing view.camera@1.0.0 or view.flight-camera@1.0.0 in their respective slots. Removing this module without an alternative camera provider leaves viewports and flight splits without projection controllers.
+
+## Stability
+Module version 0.3.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: camera projection parameters, flight control hooks, and smart camera integration points may evolve before final API freeze.
+
+## Example
+examples/modules/camera-follow demonstrates instantiating a flight camera, adjusting magnification, and tracking target coordinates. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/camera-follow/module.json /tmp/example-camera-follow.spacemod
+    npm run module:validate -- /tmp/example-camera-follow.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Independent follow cameras [api-reference/module/spacelab.camera-follow]
+-> Smart camera add-on: target search and guided arrival [spacelab.camera-smart/usage]
+-> game-api flight-view.ts: flight camera interfaces and controllers [api-reference/game-api/flight-view]
+
+=== Smart camera add-on [spacelab.camera-smart/usage]
+Optional target search, guided arrival and focus tracking for compatible cameras.
+
+
+## What it does
+This module provides optional targeting heuristics, guided arrival interpolations, and target tracking for compatible cameras. When a pilot flings or drags toward a cluster of vehicles or celestial bodies, the smart camera selects the most relevant candidate based on distance, screen velocity, and group priority, easing the view smoothly toward the acquired target.
+
+## Provides and requires
+- Provides view.smart-camera@1.0.0 through the SMART_CAMERAS service key: creates SmartCameraControl instances and candidate target selection functions.
+- Fills the view.smart-camera slot in presentation configurations.
+- Requires no external services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization contributes this guide and registers the SMART_CAMERAS factory.
+- create() produces independent SmartCameraControl instances per viewport.
+- select(search) evaluates candidate target groups in prioritized order and returns the closest candidate matching trajectory vectors.
+- start(target, followOnArrival) initiates guided camera movement toward the target's position until arrival, optionally handing off to follow mode.
+- Disposing a control releases active tracking state; disposing the provider terminates all active smart camera controllers.
+
+## Remove or replace
+This module is completely optional. If removed or omitted from a profile, camera systems fall back to standard follow and drag behaviors without target snapping or guided arrival curves.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: candidate target scoring and guidance interfaces may be refined prior to API freeze.
+
+## Example
+examples/modules/camera-smart demonstrates selecting candidate targets and guiding a smart camera controller. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/camera-smart/module.json /tmp/example-camera-smart.spacemod
+    npm run module:validate -- /tmp/example-camera-smart.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Smart camera add-on [api-reference/module/spacelab.camera-smart]
+-> Independent follow cameras: target tracking and flight viewports [spacelab.camera-follow/usage]
+-> game-api smart-camera.ts: smart camera interfaces and factory keys [api-reference/game-api/smart-camera]
 
 === Chat console [spacelab.chat-console/usage]
 Optional session chat and command UI with owned DOM lifecycle.
@@ -4119,6 +5281,45 @@ examples/modules/discovery-lan demonstrates generating LAN candidate addresses a
 -> game-api session-discovery.ts: LanDiscovery and LanDiscoveryFactory contracts [api-reference/game-api/session-discovery]
 -> API reference: LAN discovery [api-reference/module/spacelab.discovery-lan]
 
+=== Independent fleet views [spacelab.fleet-view/usage]
+Selected-provider coast queries, per-view culling/cache and borrowed world reads.
+
+
+## What it does
+This module provides per-view fleet culling and render list generation for secondary vessels and unpiloted objects. It uses orbit-annulus geometric bounds to cull ships outside the camera view before computing expensive Kepler solves, and caches solved positions while sub-pixel motion remains below a threshold, maintaining high frame rates across large fleets.
+
+## Provides and requires
+- Provides view.fleet@1.0.0 through the FLEET_VIEWS key: creates FlightFleetView instances for per-view ship list construction.
+- Fills the view.fleet slot in presentation profiles.
+- Requires no external services in its module manifest.
+
+## Settings
+- marginPixels (default 40, from 40 to 256, step 1): Viewport margin in CSS pixels matching the renderer margin, avoiding visual pop-in at screen edges.
+- stillPixels (default 0.25, from 0 to 1, step 0.05): Maximum CSS-pixel drift allowed before recomputing a cached coast position.
+
+## Lifecycle
+- Initialization captures marginPixels and stillPixels settings, contributes this guide, and registers FLEET_VIEWS.
+- create() produces an independent FlightFleetView for each viewport.
+- build(input) inspects borrowed world state, culls off-screen orbits, solves visible coast states, projects screen positions, and generates RenderShip records.
+- dispose clears placed ship caches, label strings, and world references.
+
+## Remove or replace
+To replace fleet culling and rendering behaviors, provide view.fleet@1.0.0 in the view.fleet slot. Removing this module disables fleet presentation in multi-ship scenarios.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: fleet statistics structures and culling heuristics may evolve before API freeze.
+
+## Example
+examples/modules/fleet-view demonstrates instantiating a fleet view, submitting frame parameters, and reading culling statistics. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/fleet-view/module.json /tmp/example-fleet-view.spacemod
+    npm run module:validate -- /tmp/example-fleet-view.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Independent fleet views [api-reference/module/spacelab.fleet-view]
+-> Flight split screen: multi-player split and dynamic views [spacelab.flight-split/usage]
+-> game-api flight-view.ts: flight view and fleet interfaces [api-reference/game-api/flight-view]
+
 === Shared flight plans [spacelab.flight-plans/usage]
 A shared service that stores maneuver plans as portable intent and checks them against the selected physics.
 
@@ -4205,6 +5406,96 @@ examples/modules/flight-prediction consumes view.prediction: it creates a previe
 -> game-api flight-view.ts: PredictionFactory and FlightPrediction [api-reference/game-api/flight-view]
 -> Determinism: why previews never change the live world [determinism]
 -> API reference: Progressive flight prediction [api-reference/module/spacelab.flight-prediction]
+
+=== Flight split screen [spacelab.flight-split/usage]
+Independent local flight seats and split/dynamic panes over a borrowed session.
+
+
+## What it does
+This module provides dynamic and fixed splitscreen flight views for up to four local players. When players fly together, they share a single adaptive camera pane; as vessels diverge past distance or screen thresholds, the viewport splits smoothly into independent player panes with dedicated cameras, trajectory predictions, fleet culling, and gamepad assignments.
+
+## Provides and requires
+- Provides view.flight-split@1.0.0 through the FLIGHT_SPLIT service key: creates FlightSplitScreen controllers managing guest seating and viewports.
+- Requires input.local-pilots@^1.0.0 through the LOCAL_PILOTS key: queries player color and profile preferences.
+- Requires input.flight-profiles@^1.0.0 through the FLIGHT_PROFILES key: manages controller mapping profiles.
+- Requires view.flight-camera@^1.0.0 through the FLIGHT_CAMERAS key: creates independent flight cameras for guest viewports.
+- Requires view.prediction@^1.0.0 through the PREDICTIONS key: allocates independent progressive trajectory previews.
+- Requires view.fleet@^1.0.0 through the FLEET_VIEWS key: builds per-pane fleet ship visibility lists.
+- Requires view.local@^1.0.0 through the LOCAL_VIEWS key: calculates responsive split pane rectangles.
+- Requires input.gamepad@^1.0.0 (optional) through the GAMEPAD_INPUT key: enables controller polling for guest joining.
+- Fills the view.flight-split slot in platform configurations.
+
+## Settings
+- joinButton (default 9, from 0 to 31, step 1): Standard gamepad button index that lets an unclaimed controller join local play. Default 9 is Start/Menu/Options; ownership rules still apply.
+- guestPredictionMs (default 1.5, from 0.1 to 10, step 0.1): Wall-time prediction budget for each guest view. Higher budgets refine previews sooner; they do not advance or alter the shared world.
+- wheelZoom (default 0.0015, from 0.0001 to 0.01, step 0.0001): Exponential zoom factor per mouse-wheel unit in guest panes. Each guest camera remains independent.
+- separateScreenRatio (default 0.55, from 0.1 to 1, step 0.01): Split a guest into its own pane when its screen distance exceeds this fraction of the viewport’s smaller dimension.
+- mergeScreenRatio (default 0.35, from 0.05 to 1, step 0.01): A separated guest must fall below this screen-distance fraction before merging. Must not exceed the separation threshold.
+- separateDistance (default 5000, from 1 to 1000000, step 1): Split a guest when its body-relative distance from Player 1 exceeds this distance, even if the shared camera is zoomed far out.
+- mergeDistance (default 3500, from 1 to 1000000, step 1): A guest must be closer than this distance before merging. Must not exceed the world separation threshold.
+- mergeDelayMs (default 600, from 0 to 10000, step 1): Keep a guest inside both merge thresholds for this long before returning to the shared view. Prevents rapid split/merge flicker.
+
+## Lifecycle
+- Initialization validates separation and merge threshold constraints, binds required input and camera services, contributes this guide, and registers FLIGHT_SPLIT.
+- create(viewport, host) mounts the splitscreen container and wires session callbacks.
+- pollPads() checks for join button presses on unassigned controllers and seats new players.
+- updateDynamic evaluates inter-ship separation and switches between single-view centroid tracking and multi-pane layouts.
+- dispose cleans up active guest cameras, prediction engines, fleet views, and gamepad instances.
+
+## Remove or replace
+To customize multiplayer flight presentation, implement view.flight-split@1.0.0 in the view.flight-split slot. Removing this module disables local multi-seat flight, restricting games to single-player viewports.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: split-screen host interfaces and dynamic centroid algorithms may be refined prior to API freeze.
+
+## Example
+examples/modules/flight-split demonstrates instantiating the flight split-screen manager and configuring local player seats. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/flight-split/module.json /tmp/example-flight-split.spacemod
+    npm run module:validate -- /tmp/example-flight-split.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Flight split screen [api-reference/module/spacelab.flight-split]
+-> Independent local views: layout allocation and pane geometry [spacelab.local-views/usage]
+-> game-api flight-view.ts: flight view and split screen interfaces [api-reference/game-api/flight-view]
+
+=== HUD layout and visibility [spacelab.hud-layout/usage]
+Optional viewer layout, movement and visibility with complete cleanup.
+
+
+## What it does
+This module provides responsive HUD placement and interactive layout editing for flight instruments and UI controls. It enables dragging and keyboard repositioning of HUD elements, fits flexible instruments around obstacles, and provides a visibility controller for toggling individual instruments with persistent theme preferences.
+
+## Provides and requires
+- Provides ui.hud-layout@1.0.0 through the HUD_LAYOUT key: creates HudLayout responsive positioning controllers and HudVisibilityController managers.
+- Requires ui.windows@^1.0.0 through the WINDOWS key: uses window system icon assets for layout handles.
+- Fills the ui.hud-layout slot in platform profiles.
+
+## Settings
+- moveStepPx (default 8, from 1 to 128, step 1): Distance moved by one arrow-key press on a focused HUD grip in CSS pixels. Saved positions remain normalized to the viewport.
+- fastMoveStepPx (default 32, from 1 to 128, step 1): Distance moved by Shift plus an arrow key on a focused HUD grip in CSS pixels. Does not change pointer dragging or world coordinates.
+
+## Lifecycle
+- Initialization binds WINDOWS, loads layout stylesheets, captures moveStepPx and fastMoveStepPx, contributes this guide, and registers HUD_LAYOUT.
+- create(options) mounts layout styling and manages obstacle avoidance and drag bounds across viewport canvases.
+- visibility(options) instantiates visibility controllers managing toggle checkboxes and persisting display choices.
+- dispose cleanly detaches injected style elements, listeners, and interactive layout handles.
+
+## Remove or replace
+To customize HUD layout behavior, provide an alternative implementation of ui.hud-layout@1.0.0 in the ui.hud-layout slot. Removing this module disables interactive HUD rearranging and visibility panels, leaving instruments at their default fixed coordinates.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: layout coordinate normalization formulas and visibility storage schemas may be adjusted prior to API freeze.
+
+## Example
+examples/modules/hud-layout demonstrates configuring a HUD layout controller and obstacle avoidance. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/hud-layout/module.json /tmp/example-hud-layout.spacemod
+    npm run module:validate -- /tmp/example-hud-layout.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: HUD layout and visibility [api-reference/module/spacelab.hud-layout]
+-> game-api hud-layout.ts: layout and visibility interfaces [api-reference/game-api/hud-layout]
 
 === Flight actions [spacelab.input-actions/usage]
 Namespaced flight actions and persistent keyboard bindings.
@@ -4465,6 +5756,85 @@ examples/modules/local-pilots is a consumer module that implements a headless Lo
 -> API reference: Local pilot registry [api-reference/module/spacelab.local-pilots]
 -> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
 
+=== Independent local views [spacelab.local-views/usage]
+Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts.
+
+
+## What it does
+This module allocates independent local viewport lifetimes, camera instances, and rendering surfaces for up to four local players. It computes split and dynamic pane rectangles across side-by-side, stacked, and automatic layouts, maintaining independent zoom, orientation, and focus bindings across viewports without advancing simulation state.
+
+## Provides and requires
+- Provides view.local@1.0.0 through the LOCAL_VIEWS key: creates LocalViews multi-pane managers and calculates pane layout partitions.
+- Requires view.camera@^1.0.0 through the VIEW_CAMERAS key: creates independent LocalViewCamera instances for each bound viewport.
+- Fills the view.local slot in platform profiles.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization binds VIEW_CAMERAS, contributes this guide, and registers the LOCAL_VIEWS provider.
+- create(options) validates 1 to 4 distinct seat and viewport bindings, instantiates independent cameras and surfaces, and returns a LocalViews controller.
+- reflow(width, height, separatedGuests) recalculates pane rectangles, toggles pane visibility, and notifies each surface of its resized bounds.
+- render(elapsed, transform) steps each visible camera frame and renders projected scenes across active surfaces.
+- dispose cleanly releases all child surface adapters and camera instances.
+
+## Remove or replace
+This module can be replaced by any provider supplying view.local@1.0.0 in the view.local slot. Removing it disables local multi-view partitioning and splitscreen pane allocations.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: pane layout algorithms and viewport surface binding interfaces may evolve before final API freeze.
+
+## Example
+examples/modules/local-views demonstrates calculating splitscreen pane rectangles and allocating local viewport controllers. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/local-views/module.json /tmp/example-local-views.spacemod
+    npm run module:validate -- /tmp/example-local-views.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Independent local views [api-reference/module/spacelab.local-views]
+-> Independent follow cameras: target tracking and flight viewports [spacelab.camera-follow/usage]
+-> game-api platform.ts: local view cameras, surfaces, and layouts [api-reference/game-api/platform]
+
+=== Per-view navball [builtin.navball/usage]
+Optional attitude instrument using the shared HUD lifecycle.
+
+
+## What it does
+This module provides a flight attitude and velocity vector navball instrument rendered as vector overlay primitives. It displays ship pitch, heading, roll, prograde, retrograde, normal, anti-normal, radial, anti-radial, and maneuver target vectors across orbital and rotating surface reference frames without modifying flight mechanics.
+
+## Provides and requires
+- Provides hud.navball@1.0.0 through the NAVBALL_HUD service key: provides the navball HudInstrumentDefinition for ViewHud hosting.
+- Fills the hud.navball slot in presentation profiles.
+- Requires no external services in its module manifest.
+
+## Settings
+- frame (default 0, from 0 to 2, step 1): Velocity reference frame mode: 0 automatically selects surface or orbital frame, 1 forces orbital frame, and 2 forces rotating surface frame.
+- orientation (default 0, from 0 to 1, step 1): Attitude dial orientation: 0 keeps local horizon upright, 1 rotates dial with camera orientation.
+- minimumSpeed (default 0.05, from 0 to 10, step 0.01): Direction marker noise floor in metres per second. Hides prograde/retrograde markers below this speed without modifying physics.
+
+## Lifecycle
+- Initialization captures frame, orientation, and minimumSpeed settings, contributes this guide, and provides NAVBALL_HUD.
+- The instrument creates per-view instances using FLIGHT_HUD_STATE adapters supplied by the HUD context.
+- draw(into) samples ship attitude, velocity vectors, and maneuver nodes, pushing vector overlay circles, crosshairs, and markers into the overlay buffer.
+- dispose clears cached frame references and releases gesture bindings.
+
+## Remove or replace
+To replace attitude indicator styling, implement hud.navball@1.0.0 in the hud.navball slot. Removing this module omits the spherical navball dial from HUD views while leaving other telemetry instruments active.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: attitude projection algorithms and marker drawing contracts may evolve prior to final API freeze.
+
+## Example
+examples/modules/navball demonstrates creating a navball instrument instance and rendering attitude vector overlays. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/navball/module.json /tmp/example-navball.spacemod
+    npm run module:validate -- /tmp/example-navball.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Per-view navball [api-reference/module/builtin.navball]
+-> Shared view HUD lifecycle: instrument management and surfaces [spacelab.view-hud/usage]
+-> game-api view-hud.ts: HUD instruments and surface interfaces [api-reference/game-api/view-hud]
+
 === Node WebSocket server transport [spacelab.net-node-ws/usage]
 Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.
 
@@ -4656,6 +6026,46 @@ examples/modules/player-controller is a creator example implementing a custom Co
 -> Code modules: manifests, packaging and installation [modules]
 -> API reference: Player controller [api-reference/module/spacelab.player-controller]
 -> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Customizable player views [spacelab.player-view/usage]
+Independent input, camera, HUD and appearance adapters with shared identity and cleanup.
+
+
+## What it does
+This module provides composite player view adapters unifying input controllers, camera tracking, HUD instruments, and vehicle appearance settings under a single identity lifecycle. It manages safe rebinding when players switch seats or targets, releasing gestures and held input intent before applying changes without creating or advancing simulation worlds.
+
+## Provides and requires
+- Provides ui.player-view@1.0.0 through the PLAYER_VIEWS service key: creates PlayerView instances and role adapters for controllers, cameras, and HUDs.
+- Fills the ui.player-view slot in platform configurations.
+- Requires no external services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization contributes this guide and registers the PLAYER_VIEWS factory.
+- create(options) instantiates a composite PlayerView bound to a seat, viewport, and session identity.
+- controller, camera, and hud helper methods wrap underlying components into distinct role adapters with borrowed or owned lifecycles.
+- bind(binding) stops active gestures, releases old target intent, and safely rebinds each role adapter to the new target identity.
+- configure(adapters) replaces role adapters dynamically, reclaiming old resources and catching configuration faults.
+- dispose terminates the player view and safely disposes owned resources.
+
+## Remove or replace
+To customize view lifecycle management, provide a module implementing ui.player-view@1.0.0 in the ui.player-view slot. Removing it requires hosts to manage per-player controller, camera, and HUD bindings individually.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: role adapter definitions and composite lifecycle hooks may undergo refinements prior to API freeze.
+
+## Example
+examples/modules/player-view demonstrates wrapping camera, controller, and HUD adapters into a composite player view and rebinding target identities. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/player-view/module.json /tmp/example-player-view.spacemod
+    npm run module:validate -- /tmp/example-player-view.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Customizable player views [api-reference/module/spacelab.player-view]
+-> Shared view HUD lifecycle: instrument management and surfaces [spacelab.view-hud/usage]
+-> game-api player-view.ts: player view interfaces and adapters [api-reference/game-api/player-view]
 
 === Canvas 2D [spacelab.render-canvas/usage]
 Public render.canvas@1.0.0 service and lifecycle.
@@ -4854,6 +6264,46 @@ examples/modules/shaders-vector demonstrates reading default shader stages, pars
 -> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
 -> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
 
+=== Body spin presentation [spacelab.spin-view/usage]
+Optional anti-strobe display over pure prescribed sidereal rotation.
+
+
+## What it does
+This module provides presentation smoothing for rapidly rotating celestial bodies during high time warp. When a body's apparent rotation rate exceeds a visual threshold, it holds the drawn angle visually still to prevent stroboscopic optical illusions and jarring camera spins while preserving exact physical rotation in Keplerian simulation.
+
+## Provides and requires
+- Provides view.spin@1.0.0 through the SPIN_VIEWS service key: creates SpinViewControl smoothing instances.
+- Requires core.rotation@^1.0.0 through the CORE_ROTATION service key: uses rotation mathematics for spin rates and body-fixed transformations.
+- Fills the view.spin slot in presentation profiles.
+
+## Settings
+- holdRadiansPerFrame (default 0.08726646259971647, from 0.01 to 0.5): Hold a rapidly spinning body visually still above this turn per displayed frame, avoiding strobing during warp. Physics always uses its true angle.
+- resumeRatio (default 0.6, from 0.1 to 0.9, step 0.05): Resume visible rotation below this fraction of the hold threshold, reducing flicker around the transition.
+- releaseSeconds (default 0.4, from 0 to 2, step 0.05): Wall seconds to ease a held body back to its true angle. Zero snaps immediately; physical rotation and saves are unchanged.
+
+## Lifecycle
+- Initialization captures holdRadiansPerFrame, resumeRatio, and releaseSeconds settings, binds CORE_ROTATION, contributes this guide, and registers SPIN_VIEWS.
+- create() allocates independent SpinViewControl controllers.
+- update(bodies, time, elapsed, instant) samples spin rates, detects high-warp rotation thresholds, and eases offsets during release.
+- angle, point, and state transform body-fixed positions and resting ships into visually stabilized presentation coordinates.
+- dispose resets angle offsets, release easings, and tracked body state.
+
+## Remove or replace
+To replace spin presentation behavior, provide view.spin@1.0.0 in the view.spin slot. Removing this module causes celestial bodies to be drawn at their exact unbuffered physical angle at all warp speeds, which may induce visual strobing during fast forward.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: easing functions and angle offset interpolation hooks may evolve before API freeze.
+
+## Example
+examples/modules/spin-view demonstrates instantiating a spin-view controller, stepping warp presentation, and querying stabilized body angles. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/spin-view/module.json /tmp/example-spin-view.spacemod
+    npm run module:validate -- /tmp/example-spin-view.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Body spin presentation [api-reference/module/spacelab.spin-view]
+-> game-api flight-view.ts: flight view and spin presentation interfaces [api-reference/game-api/flight-view]
+
 === Themes [spacelab.theme/usage]
 Public presentation.themes@1.0.0 service and lifecycle.
 
@@ -4977,4 +6427,45 @@ examples/modules/throttle-hud is a minimal replacement provider: a text readout 
 -> Code modules: manifests, packaging and installation [modules]
 -> game-api view-hud.ts: the instrument lifecycle and flight adapter contracts [api-reference/game-api/view-hud]
 -> API reference: Throttle HUD [api-reference/module/spacelab.throttle-hud]
+
+=== Shared view HUD lifecycle [spacelab.view-hud/usage]
+Optional instruments with independent per-view lifetimes.
+
+
+## What it does
+This module provides a robust multi-instrument HUD manager with independent lifetimes per seat and viewport. It coordinates resizing, input gesture cancellations, updates, and overlay drawing across contributed flight instruments while isolating instrument faults so an error in one instrument never disrupts others or crashes the host view.
+
+## Provides and requires
+- Provides ui.view-hud@1.0.0 through the VIEW_HUD service key: creates ViewHud managers for viewport HUD surfaces.
+- Fills the ui.view-hud slot in platform configurations.
+- Requires no external services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization contributes this guide and registers the VIEW_HUD factory.
+- create(options) instantiates a ViewHud controller bound to a viewport and seat identity.
+- select(definitions) dynamically activates declared instruments matching available service adapters and tears down unselected instruments.
+- resize(surface) adjusts CSS-pixel dimensions and dispatches new surface bounds to active instruments.
+- update(elapsed) steps instrument logic with wall-clock elapsed seconds.
+- draw(into) collects vector overlay primitives; shapes appended before a fault are discarded.
+- dispose terminates all active instruments cleanly.
+
+## Remove or replace
+To customize HUD instrument hosting, implement ui.view-hud@1.0.0 in the ui.view-hud slot. Removing this module disables instrument aggregation and overlays across flight viewports.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: instrument definition schemas and fault notification interfaces may evolve before API freeze.
+
+## Example
+examples/modules/view-hud demonstrates creating a ViewHud instance, selecting instrument definitions, and drawing overlays. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/view-hud/module.json /tmp/example-view-hud.spacemod
+    npm run module:validate -- /tmp/example-view-hud.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Shared view HUD lifecycle [api-reference/module/spacelab.view-hud]
+-> Customizable player views: composite seat adapters [spacelab.player-view/usage]
+-> game-api view-hud.ts: HUD instruments and surface interfaces [api-reference/game-api/view-hud]
 

@@ -260,10 +260,12 @@ export const TOUCH_INPUT: ServiceKey<TouchInputFactory> = Object.freeze({ slot: 
 
 /** System coordinates in metres, orientation in radians; a read must never step a world. */
 export interface ViewTargetTransform { readonly position: Vec; readonly orientation: number }
+/** Frame inputs for local camera calculations: wall-clock elapsed time, viewport CSS pixels, and target transforms. */
 export interface LocalCameraInput {
   readonly elapsed: number; readonly width: number; readonly height: number;
   transform(targetId: string): ViewTargetTransform | undefined;
 }
+/** Independent viewport camera managing focus, zoom, and frame projection. */
 export interface LocalViewCamera extends Disposable {
   readonly viewportId: string;
   readonly targetId: string | undefined;
@@ -272,11 +274,17 @@ export interface LocalViewCamera extends Disposable {
   changeZoom(factor: number): void;
   frame(input: LocalCameraInput): Camera;
 }
+/** Factory creating independent viewport cameras by viewport identity. */
 export interface LocalCameraFactory { create(viewportId: string): LocalViewCamera }
+/** Service key for independent viewport cameras (`view.camera@1.0.0`). */
 export const VIEW_CAMERAS: ServiceKey<LocalCameraFactory> = Object.freeze({ slot: 'view.camera', version: '1.0.0' });
+/** Layout arrangement for two-player splitscreen ('auto' | 'side' | 'stacked'). */
 export type TwoPlayerLayout = 'auto' | 'side' | 'stacked';
+/** Splitscreen display mode ('dynamic' merges when close, 'split' always partitions). */
 export type ScreenMode = 'dynamic' | 'split';
+/** Normalized rectangle (x, y, w, h in 0..1 range) defining a viewport pane. */
 export interface PaneRect { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
+/** Viewport and seat identification binding tying a player to a camera and display pane. */
 export interface LocalViewBinding {
   readonly viewportId: string; readonly seatId: string; readonly playerId?: string; readonly targetId?: string;
 }
@@ -285,12 +293,14 @@ export interface LocalViewSurface extends Disposable {
   resize(rect: PaneRect, width: number, height: number, visible: boolean): void;
   draw(camera: Camera): void;
 }
+/** Options configuring multi-view local allocation and surface binding. */
 export interface LocalViewOptions {
   readonly bindings: readonly LocalViewBinding[];
   readonly layout: TwoPlayerLayout;
   readonly mode: ScreenMode;
   surface(binding: LocalViewBinding): LocalViewSurface;
 }
+/** Controller managing independent local viewports, cameras, surfaces, reflow, and rendering. */
 export interface LocalViews extends Disposable {
   readonly count: number;
   /** Connected support is independent of whether more than one pane is visible. */
@@ -299,11 +309,13 @@ export interface LocalViews extends Disposable {
   reflow(width: number, height: number, separatedGuests?: ReadonlySet<number>): void;
   render(elapsed: number, transform: LocalCameraInput['transform']): void;
 }
+/** Factory creating local multi-view managers and calculating pane rectangle layouts. */
 export interface LocalViewFactory {
   create(options: LocalViewOptions): LocalViews;
   paneRects(count: number, layout: TwoPlayerLayout, width: number, height: number): PaneRect[];
   dynamicPaneRects(count: number, separatedGuests: ReadonlySet<number>, layout: TwoPlayerLayout, width: number, height: number): { rects: PaneRect[]; visible: boolean[] };
 }
+/** Service key for the local view multi-pane manager (`view.local@1.0.0`). */
 export const LOCAL_VIEWS: ServiceKey<LocalViewFactory> = Object.freeze({ slot: 'view.local', version: '1.0.0' });
 /**
  * Bidirectional text transport connection with backpressure and lifecycle events.

@@ -2,19 +2,101 @@
   "id": "usage",
   "audience": "creators",
   "title": "Smart camera add-on",
-  "summary": "Optional target selection, guided arrival and independent focus tracking.",
+  "summary": "Optional target search, guided arrival and focus tracking for compatible cameras.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "view.smart-camera@1.0.0 is an optional presentation policy. It does not own a base camera, renderer, input device, world, physics model or split-screen layout. Connect a compatible provider by capability; camera-follow requests it optionally for its explicit flight adapter. Basic follow, pan, zoom and inertial dragging remain useful without it. The Space Sim host explicitly connects the add-on to preserve existing behavior."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "select(search) accepts named targets with read-only positions, CSS-pixel release velocity, camera rotation and CSS pixels per world metre. Candidate groups express game-specific priority; the policy has no ship/body requirement. create() returns one independent controller per view. start(target, followOnArrival) guides toward targetPosition in update(frame), then retains focus or requests the base camera’s own follow mode. origin, pan and velocity use world metres and wall seconds, never simulation stepping."
+      "text": "This module provides optional targeting heuristics, guided arrival interpolations, and target tracking for compatible cameras. When a pilot flings or drags toward a cluster of vehicles or celestial bodies, the smart camera selects the most relevant candidate based on distance, screen velocity, and group priority, easing the view smoothly toward the acquired target."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.smart-camera@1.0.0 through the SMART_CAMERAS service key: creates SmartCameraControl instances and candidate target selection functions.",
+        "Fills the view.smart-camera slot in presentation configurations.",
+        "Requires no external services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Output storage is borrowed and reused on the next update; copy it for historical snapshots. Missing targets release guidance and focus so the base camera can continue ordinary movement. stop() retains acquired focus; clear() releases both; disposal clears state. Provider removal owns all instances. Change supported module configurations with prepare/activate/dispose; live detachment inside an active graph is not assumed. Ships, body labels, local pilot ownership and return-to-ship semantics belong in the game adapter, not this policy."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization contributes this guide and registers the SMART_CAMERAS factory.",
+        "create() produces independent SmartCameraControl instances per viewport.",
+        "select(search) evaluates candidate target groups in prioritized order and returns the closest candidate matching trajectory vectors.",
+        "start(target, followOnArrival) initiates guided camera movement toward the target's position until arrival, optionally handing off to follow mode.",
+        "Disposing a control releases active tracking state; disposing the provider terminates all active smart camera controllers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module is completely optional. If removed or omitted from a profile, camera systems fall back to standard follow and drag behaviors without target snapping or guided arrival curves."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: candidate target scoring and guidance interfaces may be refined prior to API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/camera-smart demonstrates selecting candidate targets and guiding a smart camera controller. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/camera-smart/module.json /tmp/example-camera-smart.spacemod\nnpm run module:validate -- /tmp/example-camera-smart.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Smart camera add-on",
+      "page": "api-reference/module/spacelab.camera-smart"
+    },
+    {
+      "type": "link",
+      "text": "Independent follow cameras: target tracking and flight viewports",
+      "page": "spacelab.camera-follow/usage"
+    },
+    {
+      "type": "link",
+      "text": "game-api smart-camera.ts: smart camera interfaces and factory keys",
+      "page": "api-reference/game-api/smart-camera"
     }
   ]
 }

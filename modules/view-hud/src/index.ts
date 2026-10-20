@@ -88,6 +88,10 @@ export function createViewHuds(): ViewHudFactory {
     hud.dispose=()=>{if(closed)return;closed=true;views.delete(hud);close();};views.add(hud);return hud;},
     dispose(){if(disposed)return;disposed=true;const errors:unknown[]=[];for(const view of views){try{view.dispose();}catch(error){errors.push(error);}}if(errors.length)throw new AggregateError(errors,'View HUD provider cleanup failed');}});
 }
+/**
+ * Contributes shared per-view HUD instrument lifecycles and fault isolation.
+ * Provides ui.view-hud@1.0.0 in the ui.view-hud slot.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
   context.contributeGuide({id:'usage',audience:'creators',title:'Shared view HUD lifecycle',summary:'Optional instruments with independent per-view lifetimes.',asset:'docs/creators/usage.json'});
   context.provide(VIEW_HUD,context.own(createViewHuds()));

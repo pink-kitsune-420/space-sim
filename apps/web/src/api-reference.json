@@ -1,13 +1,18 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2784fe7b981cbcd6",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 12cfccc228fbb2c2",
   "modules": [
     "spacelab.trainer-appearance",
+    "spacelab.camera-follow",
+    "spacelab.camera-smart",
     "spacelab.chat-console",
     "spacelab.controller-menu",
     "spacelab.discovery-lan",
+    "spacelab.fleet-view",
     "spacelab.flight-plans",
     "spacelab.flight-prediction",
+    "spacelab.flight-split",
+    "spacelab.hud-layout",
     "spacelab.input-actions",
     "spacelab.input-gamepad",
     "spacelab.input-keyboard",
@@ -15,19 +20,24 @@
     "spacelab.input-touch",
     "spacelab.join-review",
     "spacelab.local-pilots",
+    "spacelab.local-views",
+    "builtin.navball",
     "spacelab.net-node-ws",
     "spacelab.net-tab",
     "spacelab.net-webrtc",
     "spacelab.net-websocket",
     "spacelab.player-controller",
+    "spacelab.player-view",
     "spacelab.render-canvas",
     "spacelab.render-webgl",
     "spacelab.session-flight",
     "spacelab.session-join",
     "spacelab.vector-shaders",
+    "spacelab.spin-view",
     "spacelab.theme",
     "spacelab.theme-customizer",
-    "spacelab.throttle-hud"
+    "spacelab.throttle-hud",
+    "spacelab.view-hud"
   ],
   "pages": [
     {
@@ -41,7 +51,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2784fe7b981cbcd6"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 12cfccc228fbb2c2"
         },
         {
           "type": "paragraph",
@@ -55,6 +65,16 @@
           "type": "link",
           "text": "Trainer vector appearance (spacelab.trainer-appearance)",
           "page": "api-reference/module/spacelab.trainer-appearance"
+        },
+        {
+          "type": "link",
+          "text": "Independent follow cameras (spacelab.camera-follow)",
+          "page": "api-reference/module/spacelab.camera-follow"
+        },
+        {
+          "type": "link",
+          "text": "Smart camera add-on (spacelab.camera-smart)",
+          "page": "api-reference/module/spacelab.camera-smart"
         },
         {
           "type": "link",
@@ -73,6 +93,11 @@
         },
         {
           "type": "link",
+          "text": "Independent fleet views (spacelab.fleet-view)",
+          "page": "api-reference/module/spacelab.fleet-view"
+        },
+        {
+          "type": "link",
           "text": "Shared flight plans (spacelab.flight-plans)",
           "page": "api-reference/module/spacelab.flight-plans"
         },
@@ -80,6 +105,16 @@
           "type": "link",
           "text": "Progressive flight prediction (spacelab.flight-prediction)",
           "page": "api-reference/module/spacelab.flight-prediction"
+        },
+        {
+          "type": "link",
+          "text": "Flight split screen (spacelab.flight-split)",
+          "page": "api-reference/module/spacelab.flight-split"
+        },
+        {
+          "type": "link",
+          "text": "HUD layout and visibility (spacelab.hud-layout)",
+          "page": "api-reference/module/spacelab.hud-layout"
         },
         {
           "type": "link",
@@ -118,6 +153,16 @@
         },
         {
           "type": "link",
+          "text": "Local views (spacelab.local-views)",
+          "page": "api-reference/module/spacelab.local-views"
+        },
+        {
+          "type": "link",
+          "text": "Navball HUD (builtin.navball)",
+          "page": "api-reference/module/builtin.navball"
+        },
+        {
+          "type": "link",
           "text": "Node WebSocket server transport (spacelab.net-node-ws)",
           "page": "api-reference/module/spacelab.net-node-ws"
         },
@@ -140,6 +185,11 @@
           "type": "link",
           "text": "Player controller (spacelab.player-controller)",
           "page": "api-reference/module/spacelab.player-controller"
+        },
+        {
+          "type": "link",
+          "text": "Player view adapters (spacelab.player-view)",
+          "page": "api-reference/module/spacelab.player-view"
         },
         {
           "type": "link",
@@ -168,6 +218,11 @@
         },
         {
           "type": "link",
+          "text": "Body spin presentation (spacelab.spin-view)",
+          "page": "api-reference/module/spacelab.spin-view"
+        },
+        {
+          "type": "link",
           "text": "Theme and procedural backdrop (spacelab.theme)",
           "page": "api-reference/module/spacelab.theme"
         },
@@ -180,6 +235,11 @@
           "type": "link",
           "text": "Throttle HUD (spacelab.throttle-hud)",
           "page": "api-reference/module/spacelab.throttle-hud"
+        },
+        {
+          "type": "link",
+          "text": "Shared per-view HUD (spacelab.view-hud)",
+          "page": "api-reference/module/spacelab.view-hud"
         },
         {
           "type": "heading",
@@ -227,6 +287,11 @@
         },
         {
           "type": "link",
+          "text": "hud-layout.ts",
+          "page": "api-reference/game-api/hud-layout"
+        },
+        {
+          "type": "link",
           "text": "join-pack.ts",
           "page": "api-reference/game-api/join-pack"
         },
@@ -267,6 +332,11 @@
         },
         {
           "type": "link",
+          "text": "player-view.ts",
+          "page": "api-reference/game-api/player-view"
+        },
+        {
+          "type": "link",
           "text": "presentation.ts",
           "page": "api-reference/game-api/presentation"
         },
@@ -279,6 +349,11 @@
           "type": "link",
           "text": "rendering.ts",
           "page": "api-reference/game-api/rendering"
+        },
+        {
+          "type": "link",
+          "text": "rotation.ts",
+          "page": "api-reference/game-api/rotation"
         },
         {
           "type": "link",
@@ -299,6 +374,11 @@
           "type": "link",
           "text": "shader-format.ts",
           "page": "api-reference/game-api/shader-format"
+        },
+        {
+          "type": "link",
+          "text": "smart-camera.ts",
+          "page": "api-reference/game-api/smart-camera"
         },
         {
           "type": "link",
@@ -344,6 +424,11 @@
           "type": "link",
           "text": "webrtc-transport.ts",
           "page": "api-reference/game-api/webrtc-transport"
+        },
+        {
+          "type": "link",
+          "text": "windows.ts",
+          "page": "api-reference/game-api/windows"
         },
         {
           "type": "link",
@@ -447,6 +532,233 @@
           "type": "link",
           "text": "Vehicle vector artwork: how to use, replace and remove it",
           "page": "spacelab.trainer-appearance/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.camera-follow",
+      "title": "Independent follow cameras reference",
+      "summary": "Reusable basic camera control with an explicit flight adapter and optional smart-camera policy.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Reusable basic camera control with an explicit flight adapter and optional smart-camera policy."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.camera-follow",
+            "Version: 0.3.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.camera@1.0.0 · VIEW_CAMERAS: ServiceKey<LocalCameraFactory>",
+            "view.flight-camera@1.0.0 · FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.smart-camera@1.0.0 (optional) · SMART_CAMERAS: ServiceKey<SmartCameraFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.camera, view.flight-camera",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "initialZoom: number, default 10, from 0.1 to 50. Initial camera zoom: Starting magnification for each independent view. Changing a view later affects that view only.",
+            "referenceMetres: number, default 1500, from 1 to 1000000000. View span at zoom 1 (m): World metres framed by the shorter viewport dimension at zoom 1. Changes presentation scale only.",
+            "orientationSeconds: number, default 0.12, from 0 to 2, step 0.01. Orientation smoothing (s): Wall seconds for camera rotation to approach the target orientation. Zero snaps immediately; simulation time is unchanged."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Camera, CameraExtension, CameraFocusTarget, CameraTarget, FLIGHT_CAMERAS, FlightCameraController, FlightCameraFactory, LocalCameraFactory, LocalCameraInput, LocalViewCamera, ModuleInitializationV2, SMART_CAMERAS, ServiceKey, SmartCameraControl, SmartCameraFactory, SmartTargetMatch, VIEW_CAMERAS, Vec, blendAngle, dragCamera"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api smart-camera.ts",
+          "page": "api-reference/game-api/smart-camera"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/camera-follow (build with npm run module:build -- examples/modules/camera-follow/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Independent follow cameras: how to use, replace and remove it",
+          "page": "spacelab.camera-follow/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.camera-smart",
+      "title": "Smart camera add-on reference",
+      "summary": "Optional target search, guided arrival and focus tracking for compatible cameras.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional target search, guided arrival and focus tracking for compatible cameras."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.camera-smart",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.smart-camera@1.0.0 · SMART_CAMERAS: ServiceKey<SmartCameraFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.smart-camera",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, SMART_CAMERAS, ServiceKey, SmartCameraCandidate, SmartCameraControl, SmartCameraFactory, SmartCameraSearch, SmartCameraTarget, Vec"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api smart-camera.ts",
+          "page": "api-reference/game-api/smart-camera"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/camera-smart (build with npm run module:build -- examples/modules/camera-smart/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Smart camera add-on: how to use, replace and remove it",
+          "page": "spacelab.camera-smart/usage"
         }
       ]
     },
@@ -757,6 +1069,129 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.fleet-view",
+      "title": "Independent fleet views reference",
+      "summary": "Selected-provider coast queries, per-view culling/cache and borrowed world reads.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Selected-provider coast queries, per-view culling/cache and borrowed world reads."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.fleet-view",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.fleet@1.0.0 · FLEET_VIEWS: ServiceKey<FleetViewFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.fleet",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "marginPixels: number, default 40, from 40 to 256, step 1. Fleet viewport margin (px): Conservative extra CSS-pixel margin when culling off-screen fleet objects. At least the existing renderer margin; does not change world positions.",
+            "stillPixels: number, default 0.25, from 0 to 1, step 0.05. Cached coast motion limit (px): Reuse a solved presentation position only while its maximum possible motion stays below this CSS-pixel limit. Zero solves every view update; authoritative positions remain exact."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Coast, FLEET_VIEWS, FleetViewFactory, FleetViewInput, FleetViewStats, FlightFleetView, ModuleInitializationV2, RenderShip, ServiceKey, Ship, State, Vec, WorldRead, interpolateState"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/fleet-view (build with npm run module:build -- examples/modules/fleet-view/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Independent fleet views: how to use, replace and remove it",
+          "page": "spacelab.fleet-view/usage"
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.flight-plans",
       "title": "Shared flight plans reference",
       "summary": "A shared service that stores maneuver plans as portable intent and checks them against the selected physics.",
@@ -992,6 +1427,258 @@
           "type": "link",
           "text": "Progressive flight prediction: how to use, replace and remove it",
           "page": "spacelab.flight-prediction/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.flight-split",
+      "title": "Flight split screen reference",
+      "summary": "Independent local flight seats and split/dynamic panes over a borrowed session.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Independent local flight seats and split/dynamic panes over a borrowed session."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.flight-split",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.flight-split@1.0.0 · FLIGHT_SPLIT: ServiceKey<FlightSplitFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.local-pilots@^1.0.0 · LOCAL_PILOTS: ServiceKey<LocalPilotFactory>",
+            "input.flight-profiles@^1.0.0 · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>",
+            "view.flight-camera@^1.0.0 · FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory>",
+            "view.prediction@^1.0.0 · PREDICTIONS: ServiceKey<PredictionFactory>",
+            "view.fleet@^1.0.0 · FLEET_VIEWS: ServiceKey<FleetViewFactory>",
+            "view.local@^1.0.0 · LOCAL_VIEWS: ServiceKey<LocalViewFactory>",
+            "input.gamepad@^1.0.0 (optional) · GAMEPAD_INPUT: ServiceKey<GamepadInputFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.flight-split",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "joinButton: number, default 9, from 0 to 31, step 1. Controller join button: Standard gamepad button index that lets an unclaimed controller join local play. Default 9 is Start/Menu/Options; ownership rules still apply.",
+            "guestPredictionMs: number, default 1.5, from 0.1 to 10, step 0.1. Guest prediction budget (ms): Wall-time prediction budget for each guest view. Higher budgets refine previews sooner; they do not advance or alter the shared world.",
+            "wheelZoom: number, default 0.0015, from 0.0001 to 0.01, step 0.0001. Guest wheel zoom sensitivity: Exponential zoom factor per mouse-wheel unit in guest panes. Each guest camera remains independent.",
+            "separateScreenRatio: number, default 0.55, from 0.1 to 1, step 0.01. Screen separation threshold: Split a guest into its own pane when its screen distance exceeds this fraction of the viewport’s smaller dimension.",
+            "mergeScreenRatio: number, default 0.35, from 0.05 to 1, step 0.01. Screen merge threshold: A separated guest must fall below this screen-distance fraction before merging. Must not exceed the separation threshold.",
+            "separateDistance: number, default 5000, from 1 to 1000000, step 1. World separation threshold (m): Split a guest when its body-relative distance from Player 1 exceeds this distance, even if the shared camera is zoomed far out.",
+            "mergeDistance: number, default 3500, from 1 to 1000000, step 1. World merge threshold (m): A guest must be closer than this distance before merging. Must not exceed the world separation threshold.",
+            "mergeDelayMs: number, default 600, from 0 to 10000, step 1. Merge stability delay (ms): Keep a guest inside both merge thresholds for this long before returning to the shared view. Prevents rapid split/merge flicker."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controls, FLEET_VIEWS, FLIGHT_CAMERAS, FLIGHT_PROFILES, FLIGHT_SPLIT, FlightActionId, FlightCameraController, FlightFleetView, FlightGuestPilot, FlightLocalSession, FlightPrediction, FlightSplitFactory, FlightSplitScreen, FlightSplitScreenHost, FlightSplitServices, GAMEPAD_INPUT, LOCAL_PILOTS, LOCAL_VIEWS, LocalPlayersConfig, ModuleInitializationV2, PREDICTIONS, Renderer, RendererProvider, ResolvedBody, ServiceKey, SessionRead, ShaderPack, Ship, State, Vec"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api session.ts",
+          "page": "api-reference/game-api/session"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "link",
+          "text": "game-api world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/flight-split (build with npm run module:build -- examples/modules/flight-split/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Flight split screen: how to use, replace and remove it",
+          "page": "spacelab.flight-split/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.hud-layout",
+      "title": "HUD layout and visibility reference",
+      "summary": "Optional viewer layout, movement and visibility with complete cleanup.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional viewer layout, movement and visibility with complete cleanup."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.hud-layout",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.hud-layout@1.0.0 · HUD_LAYOUT: ServiceKey<HudLayoutFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.windows@^1.0.0 · WINDOWS: ServiceKey<WindowSystem>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.hud-layout",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "moveStepPx: number, default 8, from 1 to 128, step 1. HUD arrow-key movement (px): Distance moved by one arrow-key press on a focused HUD grip. Saved positions remain normalized to the viewport.",
+            "fastMoveStepPx: number, default 32, from 1 to 128, step 1. HUD Shift-arrow movement (px): Distance moved by Shift plus an arrow key on a focused HUD grip. Does not change pointer dragging or world coordinates."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable, HUD_LAYOUT, HudEditor, HudEditorOptions, HudLayout, HudLayoutFactory, HudLayoutOptions, HudRect, HudVisibilityController, HudVisibilityOptions, ModuleInitializationV2, ServiceKey, WINDOWS, WindowIcon, WindowSystem"
+        },
+        {
+          "type": "link",
+          "text": "game-api hud-layout.ts",
+          "page": "api-reference/game-api/hud-layout"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api windows.ts",
+          "page": "api-reference/game-api/windows"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/hud-layout (build with npm run module:build -- examples/modules/hud-layout/module.json out.spacemod)."
         }
       ]
     },
@@ -1692,6 +2379,212 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.local-views",
+      "title": "Local views reference",
+      "summary": "Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.local-views",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.local@1.0.0 · LOCAL_VIEWS: ServiceKey<LocalViewFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.camera@^1.0.0 · VIEW_CAMERAS: ServiceKey<LocalCameraFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.local",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "LOCAL_VIEWS, LocalCameraFactory, LocalCameraInput, LocalViewFactory, LocalViewOptions, LocalViews, ModuleInitializationV2, PaneRect, ServiceKey, TwoPlayerLayout, VIEW_CAMERAS"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/local-views (build with npm run module:build -- examples/modules/local-views/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Independent local views: how to use, replace and remove it",
+          "page": "spacelab.local-views/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/builtin.navball",
+      "title": "Navball HUD reference",
+      "summary": "Optional attitude instrument using the shared HUD lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional attitude instrument using the shared HUD lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: builtin.navball",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "hud.navball@1.0.0 · NAVBALL_HUD: ServiceKey<HudInstrumentDefinition>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: hud.navball",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "frame: number, default 0, from 0 to 2, step 1. Velocity reference frame: 0 automatically selects the surface or orbital frame; 1 always uses the orbital frame; 2 always uses the rotating surface frame.",
+            "orientation: number, default 0, from 0 to 1, step 1. Dial orientation: 0 keeps the local horizon upright; 1 rotates the dial with its view camera. This changes only the instrument display.",
+            "minimumSpeed: number, default 0.05, from 0 to 10, step 0.01. Direction noise floor (m/s): Hide prograde and retrograde direction markers below this speed in the selected reference frame. Does not affect physical velocity."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "FLIGHT_HUD_STATE, HudInstrument, HudInstrumentContext, HudInstrumentDefinition, ModuleInitializationV2, ModuleManifest, NAVBALL_HUD, OverlayPrimitive, PresentationSnapshot, PresentationView, RegisteredModule, ServiceKey, Vec"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api view-hud.ts",
+          "page": "api-reference/game-api/view-hud"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/navball (build with npm run module:build -- examples/modules/navball/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.net-node-ws",
       "title": "Node WebSocket server transport reference",
       "summary": "Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.",
@@ -2178,6 +3071,106 @@
           "type": "link",
           "text": "Player controller: how to use, replace and remove it",
           "page": "spacelab.player-controller/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.player-view",
+      "title": "Player view adapters reference",
+      "summary": "Independent input, camera, HUD and appearance adapters with shared identity and cleanup.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Independent input, camera, HUD and appearance adapters with shared identity and cleanup."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.player-view",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.player-view@1.0.0 · PLAYER_VIEWS: ServiceKey<PlayerViewFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.player-view",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "HudBinding, ModuleInitializationV2, PLAYER_VIEWS, PlayerView, PlayerViewAdapter, PlayerViewAdapters, PlayerViewFactory, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api player-view.ts",
+          "page": "api-reference/game-api/player-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api view-hud.ts",
+          "page": "api-reference/game-api/view-hud"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/player-view (build with npm run module:build -- examples/modules/player-view/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Customizable player views: how to use, replace and remove it",
+          "page": "spacelab.player-view/usage"
         }
       ]
     },
@@ -2821,6 +3814,117 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.spin-view",
+      "title": "Body spin presentation reference",
+      "summary": "Optional anti-strobe display over pure prescribed sidereal rotation.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional anti-strobe display over pure prescribed sidereal rotation."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.spin-view",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.spin@1.0.0 · SPIN_VIEWS: ServiceKey<SpinViewFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.rotation@^1.0.0 · CORE_ROTATION: ServiceKey<RotationMath>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.spin",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "holdRadiansPerFrame: number, default 0.08726646259971647, from 0.01 to 0.5. Spin hold threshold (rad/frame): Hold a rapidly spinning body visually still above this turn per displayed frame, avoiding strobing during warp. Physics always uses its true angle.",
+            "resumeRatio: number, default 0.6, from 0.1 to 0.9, step 0.05. Spin resume threshold ratio: Resume visible rotation below this fraction of the hold threshold, reducing flicker around the transition.",
+            "releaseSeconds: number, default 0.4, from 0 to 2, step 0.05. Spin release easing (s): Wall seconds to ease a held body back to its true angle. Zero snaps immediately; physical rotation and saves are unchanged."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Body, CORE_ROTATION, ModuleInitializationV2, RotationMath, SPIN_VIEWS, ServiceKey, SpinViewControl, SpinViewFactory, State, Vec, deterministicMath, interpolateState"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api rotation.ts",
+          "page": "api-reference/game-api/rotation"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/spin-view (build with npm run module:build -- examples/modules/spin-view/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.theme",
       "title": "Theme and procedural backdrop reference",
       "summary": "Public presentation.themes@1.0.0 service and lifecycle.",
@@ -3135,6 +4239,106 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.view-hud",
+      "title": "Shared per-view HUD reference",
+      "summary": "Optional instruments with independent per-view lifetimes.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional instruments with independent per-view lifetimes."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.view-hud",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.view-hud@1.0.0 · VIEW_HUD: ServiceKey<ViewHudFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.view-hud",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "HudBinding, HudInstrument, HudInstrumentDefinition, HudSurface, ModuleInitializationV2, OverlayPrimitive, ServiceKey, VIEW_HUD, ViewHud, ViewHudFactory, ViewHudOptions"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api view-hud.ts",
+          "page": "api-reference/game-api/view-hud"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/view-hud (build with npm run module:build -- examples/modules/view-hud/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Shared view HUD lifecycle: how to use, replace and remove it",
+          "page": "spacelab.view-hud/usage"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/chat",
       "title": "game-api: chat.ts",
       "summary": "Declarations from chat.ts used by documented modules.",
@@ -3173,7 +4377,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console."
+          "text": "Used by: spacelab.chat-console, spacelab.hud-layout."
         },
         {
           "type": "heading",
@@ -3393,7 +4597,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -3581,7 +4785,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-profiles, spacelab.input-touch."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-profiles, spacelab.input-touch."
         },
         {
           "type": "heading",
@@ -3717,7 +4921,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
         },
         {
           "type": "heading",
@@ -3825,7 +5029,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.local-pilots."
         },
         {
           "type": "heading",
@@ -4137,6 +5341,86 @@
         },
         {
           "type": "heading",
+          "text": "SmartTargetMatch"
+        },
+        {
+          "type": "paragraph",
+          "text": "Matched target descriptor returned by smart camera searches."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartTargetMatch { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly isPilotedShip?: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "CameraFocusTarget"
+        },
+        {
+          "type": "paragraph",
+          "text": "Target identity focused by a follow or orbit camera."
+        },
+        {
+          "type": "code",
+          "text": "export interface CameraFocusTarget { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "FlightCameraController"
+        },
+        {
+          "type": "paragraph",
+          "text": "Flight adaptation of basic camera control; generic cameras use view.camera. Smart target/focus state is optional presentation policy. A provider without that add-on ignores smart assignments and retains ordinary follow/pan/zoom/inertia."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightCameraController extends Disposable {\n  mode: string; pan: Vec; zoom: number; rotation: number; horizon: boolean; dragged: boolean;\n  /** Fixed viewer orientation in radians. Follow, recenter, mode changes and new focus\n   * release it; ordinary pan/zoom retain it. The chosen horizon preference is independent. */\n  manualRotation?: number;\n  last: Camera; panVelocity: Vec; smartTarget: SmartTargetMatch | undefined; focusTarget: CameraFocusTarget | undefined;\n  readonly follow: boolean;\n  label(cameras: readonly CameraExtension[]): string;\n  scale(width: number, height: number): number;\n  setZoom(zoom: number, maximum?: number): void;\n  changeZoom(factor: number): void;\n  followShip(): void; planetView(bodyRadius?: number): void; recenter(): void; clearFocus(): void;\n  cycle(cameras: readonly CameraExtension[], bodyRadius?: number): void;\n  retain(cameras: readonly CameraExtension[]): void;\n  rebase(oldBody: Vec, newBody: Vec): void;\n  drag(delta: Vec, body: Vec, ship: Vec, width: number, height: number): void;\n  stopFling(): void;\n  fling(screenVelocity: Vec, width: number, height: number, smartTarget?: SmartTargetMatch): void;\n  update(options: { readonly body: Vec; readonly ship: Vec; readonly elapsed: number; readonly instant: boolean;\n    readonly width: number; readonly height: number; readonly target?: CameraTarget; readonly focusPosition?: Vec }): Camera;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightCameraFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating flight camera controllers."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightCameraFactory { create(): FlightCameraController }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_CAMERAS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the flight camera controller factory (`view.flight-camera@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory> = Object.freeze({ slot: 'view.flight-camera', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
           "text": "PredictionSummary"
         },
         {
@@ -4165,7 +5449,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
         },
         {
           "type": "heading",
@@ -4181,7 +5465,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
         },
         {
           "type": "heading",
@@ -4197,7 +5481,199 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FleetViewInput"
+        },
+        {
+          "type": "paragraph",
+          "text": "Frame inputs for fleet visibility evaluation, orbital culling, and presentation rendering."
+        },
+        {
+          "type": "code",
+          "text": "export interface FleetViewInput {\n  readonly world: WorldRead; readonly time: number; readonly alpha: number; readonly paused: boolean; readonly skipId?: string;\n  readonly playerId: string; readonly camera: Camera; readonly width: number; readonly height: number;\n  previous(shipId: string): Ship | undefined; isRock?(ship: Ship): boolean; displayOffset(shipId: string): Vec;\n  playerName(id: string): string | undefined; display?(state: State, bodyId: string): State;\n  interpolate?(from: State, to: State, alpha: number, bodyId: string): State;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view."
+        },
+        {
+          "type": "heading",
+          "text": "FleetViewStats"
+        },
+        {
+          "type": "paragraph",
+          "text": "Diagnostics for orbit culling, Kepler solving, and caching in a fleet view update."
+        },
+        {
+          "type": "code",
+          "text": "export interface FleetViewStats { ships: number; culledByOrbit: number; solved: number; reused: number; visible: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view."
+        },
+        {
+          "type": "heading",
+          "text": "FlightFleetView"
+        },
+        {
+          "type": "paragraph",
+          "text": "Independent per-view fleet renderer with orbit-annulus culling and stationary coast caching."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightFleetView extends Disposable { readonly stats: FleetViewStats; build(input: FleetViewInput): RenderShip[] }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FleetViewFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating independent fleet view instances."
+        },
+        {
+          "type": "code",
+          "text": "export interface FleetViewFactory { create(): FlightFleetView }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FLEET_VIEWS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the fleet view factory (`view.fleet@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const FLEET_VIEWS: ServiceKey<FleetViewFactory> = Object.freeze({ slot: 'view.fleet', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightLocalSession"
+        },
+        {
+          "type": "paragraph",
+          "text": "Local flight session interface providing guest seating, spawning, and authoritative world control."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightLocalSession extends SessionRead, Pick<LocalSessionControl, 'seatGuest' | 'unseatGuest' | 'guestControls' | 'spawnGuest' | 'respawnGuest'> { readonly world: WorldControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightGuestPilot"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-guest splitscreen flight state, camera, prediction preview, pane DOM, and input handlers."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightGuestPilot extends Disposable {\n  readonly slot: number; readonly camera: FlightCameraController; readonly prediction: FlightPrediction; readonly fleetView: FlightFleetView;\n  readonly pane: HTMLDivElement; canvas: HTMLCanvasElement;\n  playerId: string | undefined; shipId: string | undefined; body: ResolvedBody | undefined; state: State | undefined; view: State | undefined;\n  controls: Controls; renderer: Renderer | undefined; provider: RendererProvider | undefined; shaders: ShaderPack | undefined; problem: string;\n  onPointerDown?: (event: PointerEvent) => boolean; onPointerMove?: (event: PointerEvent) => void; onPointerUp?: (event: PointerEvent) => void;\n  ship(session: SessionRead): Ship | undefined;\n  ensureShip(local: FlightLocalSession, presetId: string, godMode?: boolean): void;\n  select(shipId: string | undefined): void; retrySpawn(): void; refresh(session: SessionRead): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightSplitScreenHost"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host callbacks and session access provided to the splitscreen flight manager."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightSplitScreenHost {\n  readonly gamepads?: FlightGamepad;\n  /** Renderer replacement may replace the element; resolve the current surface at use. */\n  primaryCanvas(): HTMLCanvasElement;\n  session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;\n  keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;\n  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;\n  releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;\n  /** Release this seat's held device intent when its target or device assignment changes. */\n  releaseInput?(slot: number): void;\n  execute(action: FlightActionId): void; notify(text: string): void; changed(): void;\n  onGuestPointer?(guest: FlightGuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void;\n  isSlotThrowing?(slot: number): boolean;\n  isSessionError(error: unknown): error is Error;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightSplitServices"
+        },
+        {
+          "type": "paragraph",
+          "text": "Injected services required by splitscreen flight management."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightSplitServices {\n  readonly tuning?: FlightSplitTuning;\n  readonly preferences: LocalPlayerPreferences; readonly profiles: FlightControllerProfiles;\n  readonly cameras: FlightCameraFactory; readonly predictions: PredictionFactory; readonly fleets: FleetViewFactory;\n  readonly layouts: Pick<LocalViewFactory, 'paneRects' | 'dynamicPaneRects'>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightSplitScreen"
+        },
+        {
+          "type": "paragraph",
+          "text": "Multi-seat flight splitscreen controller managing guest seats, viewports, and input dispatch."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FlightSplitFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating splitscreen flight managers."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightSplitFactory { create(viewport: HTMLElement, host: FlightSplitScreenHost): FlightSplitScreen }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_SPLIT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the flight split-screen manager (`view.flight-split@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_SPLIT: ServiceKey<FlightSplitFactory> = Object.freeze({ slot: 'view.flight-split', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
         },
         {
           "type": "heading",
@@ -4262,6 +5738,214 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.controller-menu."
+        },
+        {
+          "type": "heading",
+          "text": "SpinViewControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Viewer-only anti-strobe orientation over the fixed prescribed rotation contract."
+        },
+        {
+          "type": "code",
+          "text": "export interface SpinViewControl extends Disposable {\n readonly holding: ReadonlySet<string>;\n update(bodies: readonly Body[], time: number, elapsed: number, instant: boolean): void;\n angle(body: Body, time: number): number;\n point(body: Body, time: number, point: Vec): Vec;\n state(state: State, body: Body): State;\n interpolate(from: State, to: State, alpha: number, body: Body): State;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.spin-view."
+        },
+        {
+          "type": "heading",
+          "text": "SpinViewFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating body spin presentation controllers."
+        },
+        {
+          "type": "code",
+          "text": "export interface SpinViewFactory { create(): SpinViewControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.spin-view."
+        },
+        {
+          "type": "heading",
+          "text": "SPIN_VIEWS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the body spin presentation factory (`view.spin@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const SPIN_VIEWS: ServiceKey<SpinViewFactory> = Object.freeze({ slot: 'view.spin', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.spin-view."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/hud-layout",
+      "title": "game-api: hud-layout.ts",
+      "summary": "Declarations from hud-layout.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/hud-layout.ts."
+        },
+        {
+          "type": "heading",
+          "text": "HudRect"
+        },
+        {
+          "type": "paragraph",
+          "text": "CSS-pixel rectangle defining HUD component bounds."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudRect {readonly x:number;readonly y:number;readonly width:number;readonly height:number}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudEditorOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for the interactive HUD position editor."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudEditorOptions {\n readonly viewport:HTMLElement;readonly toggle:HTMLElement;readonly reset:HTMLElement;readonly items:readonly HudEditorItem[];\n readonly storage?:ThemePreferences;readonly storageKey?:string;changed():void;\n readonly hint?:string;\n readonly moveStepPx?:number;readonly fastMoveStepPx?:number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudEditor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controller managing interactive HUD component movement, grip focus, and saved placement."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudEditor extends Disposable {readonly editing:boolean;refresh():HTMLElement[]}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudLayoutOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring responsive HUD layout and obstacle avoidance."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudLayoutOptions {\n readonly viewport:HTMLElement;\n readonly editor?:Omit<HudEditorOptions,'viewport'|'changed'>;\n /** Optional responsive arrangement; games supply their own DOM roles. */\n readonly roles?:{readonly status:HTMLElement;readonly right:HTMLElement;readonly dock:HTMLElement;readonly chat:HTMLElement;readonly telemetry:HTMLElement};\n readonly touchSelector?:string;readonly discoverSelector?:string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudLayout"
+        },
+        {
+          "type": "paragraph",
+          "text": "Responsive HUD layout controller fitting instruments around obstacles."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudLayout extends Disposable {\n readonly editing:boolean;readonly revision:number;\n fit(preferred:HudRect,width:number,height:number,canvas?:HTMLCanvasElement,avoid?:boolean):HudRect;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudVisibilityOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring HUD component visibility checkboxes and persistent preferences."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudVisibilityOptions {\n readonly viewport:HTMLElement;readonly list:HTMLElement;readonly items:readonly HudVisibilityItem[];\n readonly defaults?:Readonly<Record<string,boolean>>;readonly storage?:ThemePreferences;readonly storageKey?:string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudVisibilityController"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controller managing visibility state and settings persistence for HUD elements."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudVisibilityController extends Disposable {\n visible(id:string):boolean;set(id:string,value:boolean):void;\n bind(id:string,label:string,read:()=>boolean,write:(value:boolean)=>void,reset:()=>void):Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudLayoutFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating HUD layout managers and visibility controllers."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudLayoutFactory extends Disposable {\n create(options:HudLayoutOptions):HudLayout;\n visibility(options:HudVisibilityOptions):HudVisibilityController;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HUD_LAYOUT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the HUD layout and visibility factory (`ui.hud-layout@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const HUD_LAYOUT:ServiceKey<HudLayoutFactory>=Object.freeze({slot:'ui.hud-layout',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
         },
         {
           "type": "link",
@@ -4557,7 +6241,19 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer."
+          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleManifest"
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleManifest {\n  readonly format: 'space-sim-module/1';\n  readonly apiVersion: 'space-sim-game-api/1';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly authority: 'authoritative' | 'presentation';\n  readonly environments: readonly ModuleEnvironment[];\n  /** Enabled before this module, which may use their exposed APIs. */\n  readonly dependencies: readonly ModuleDependency[];\n  /** Modules that cannot be enabled together with this one. */\n  readonly conflicts?: readonly ModuleDependency[];\n  readonly provides: readonly string[];\n  readonly requires: readonly string[];\n  readonly slots: readonly string[];\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  readonly license: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.navball."
         },
         {
           "type": "heading",
@@ -4585,7 +6281,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.throttle-hud."
+          "text": "Used by: builtin.navball, spacelab.throttle-hud."
         },
         {
           "type": "heading",
@@ -4645,7 +6341,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders."
+          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -4669,7 +6365,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders."
+          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "link",
@@ -4973,7 +6669,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.local-pilots."
         },
         {
           "type": "heading",
@@ -4989,7 +6685,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.local-pilots."
         },
         {
           "type": "heading",
@@ -5197,7 +6893,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad."
         },
         {
           "type": "heading",
@@ -5213,7 +6909,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad."
         },
         {
           "type": "heading",
@@ -5229,7 +6925,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
         },
         {
           "type": "heading",
@@ -5281,7 +6977,75 @@
         },
         {
           "type": "heading",
+          "text": "LocalCameraInput"
+        },
+        {
+          "type": "paragraph",
+          "text": "Frame inputs for local camera calculations: wall-clock elapsed time, viewport CSS pixels, and target transforms."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalCameraInput {\n  readonly elapsed: number; readonly width: number; readonly height: number;\n  transform(targetId: string): ViewTargetTransform | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.local-views."
+        },
+        {
+          "type": "heading",
+          "text": "LocalViewCamera"
+        },
+        {
+          "type": "paragraph",
+          "text": "Independent viewport camera managing focus, zoom, and frame projection."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalViewCamera extends Disposable {\n  readonly viewportId: string;\n  readonly targetId: string | undefined;\n  readonly mode: 'follow' | 'free';\n  focus(targetId: string | undefined): void;\n  changeZoom(factor: number): void;\n  frame(input: LocalCameraInput): Camera;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "LocalCameraFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating independent viewport cameras by viewport identity."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalCameraFactory { create(viewportId: string): LocalViewCamera }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.local-views."
+        },
+        {
+          "type": "heading",
+          "text": "VIEW_CAMERAS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for independent viewport cameras (`view.camera@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const VIEW_CAMERAS: ServiceKey<LocalCameraFactory> = Object.freeze({ slot: 'view.camera', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.local-views."
+        },
+        {
+          "type": "heading",
           "text": "TwoPlayerLayout"
+        },
+        {
+          "type": "paragraph",
+          "text": "Layout arrangement for two-player splitscreen ('auto' | 'side' | 'stacked')."
         },
         {
           "type": "code",
@@ -5289,11 +7053,15 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.controller-menu."
+          "text": "Used by: spacelab.controller-menu, spacelab.local-views."
         },
         {
           "type": "heading",
           "text": "ScreenMode"
+        },
+        {
+          "type": "paragraph",
+          "text": "Splitscreen display mode ('dynamic' merges when close, 'split' always partitions)."
         },
         {
           "type": "code",
@@ -5302,6 +7070,102 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "PaneRect"
+        },
+        {
+          "type": "paragraph",
+          "text": "Normalized rectangle (x, y, w, h in 0..1 range) defining a viewport pane."
+        },
+        {
+          "type": "code",
+          "text": "export interface PaneRect { readonly x: number; readonly y: number; readonly w: number; readonly h: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-views."
+        },
+        {
+          "type": "heading",
+          "text": "LocalViewBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Viewport and seat identification binding tying a player to a camera and display pane."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalViewBinding {\n  readonly viewportId: string; readonly seatId: string; readonly playerId?: string; readonly targetId?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view."
+        },
+        {
+          "type": "heading",
+          "text": "LocalViewOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring multi-view local allocation and surface binding."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalViewOptions {\n  readonly bindings: readonly LocalViewBinding[];\n  readonly layout: TwoPlayerLayout;\n  readonly mode: ScreenMode;\n  surface(binding: LocalViewBinding): LocalViewSurface;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-views."
+        },
+        {
+          "type": "heading",
+          "text": "LocalViews"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controller managing independent local viewports, cameras, surfaces, reflow, and rendering."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalViews extends Disposable {\n  readonly count: number;\n  /** Connected support is independent of whether more than one pane is visible. */\n  readonly splitActive: boolean;\n  camera(viewportId: string): LocalViewCamera;\n  reflow(width: number, height: number, separatedGuests?: ReadonlySet<number>): void;\n  render(elapsed: number, transform: LocalCameraInput['transform']): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-views."
+        },
+        {
+          "type": "heading",
+          "text": "LocalViewFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating local multi-view managers and calculating pane rectangle layouts."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalViewFactory {\n  create(options: LocalViewOptions): LocalViews;\n  paneRects(count: number, layout: TwoPlayerLayout, width: number, height: number): PaneRect[];\n  dynamicPaneRects(count: number, separatedGuests: ReadonlySet<number>, layout: TwoPlayerLayout, width: number, height: number): { rects: PaneRect[]; visible: boolean[] };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split, spacelab.local-views."
+        },
+        {
+          "type": "heading",
+          "text": "LOCAL_VIEWS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the local view multi-pane manager (`view.local@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const LOCAL_VIEWS: ServiceKey<LocalViewFactory> = Object.freeze({ slot: 'view.local', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split, spacelab.local-views."
         },
         {
           "type": "heading",
@@ -5435,6 +7299,94 @@
       ]
     },
     {
+      "id": "api-reference/game-api/player-view",
+      "title": "game-api: player-view.ts",
+      "summary": "Declarations from player-view.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/player-view.ts."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerViewAdapter"
+        },
+        {
+          "type": "paragraph",
+          "text": "One player's adapter instance. Configuration/schema belongs to its provider, allowing future editors without a shared bag of game-specific settings. The view owns this adapter; underlying borrowed services retain their owner."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerViewAdapter extends Disposable {\n  /** Stable underlying resource identity; prevents mutable instances crossing players. */\n  readonly resource: object;\n  rebind(binding: HudBinding): void;\n  release(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerViewAdapters"
+        },
+        {
+          "type": "paragraph",
+          "text": "Map of player view roles to their active adapter instances."
+        },
+        {
+          "type": "code",
+          "text": "export type PlayerViewAdapters = Readonly<Partial<Record<PlayerViewRole, PlayerViewAdapter>>>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerView"
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerView extends Disposable {\n  readonly binding: HudBinding;\n  readonly adapters: PlayerViewAdapters;\n  /** Release all old intent before rebinding. A failed rebind removes every adapter,\n   * leaving a neutral view that can be configured again. Seat/view identity is fixed. */\n  bind(binding: HudBinding): void;\n  /** Replace only this player's parts. Failed preparation retains the old parts,\n   * with their intent released; no game world is created or advanced. */\n  configure(adapters: PlayerViewAdapters): void;\n  release(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerViewFactory"
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerViewFactory extends Disposable {\n  create(options: { readonly binding: HudBinding; readonly adapters: PlayerViewAdapters }): PlayerView;\n  controller(controller: PlayerController, ownership?: PlayerAdapterOwnership,\n    target?: (binding: HudBinding) => ControlTargetBinding | undefined): PlayerViewAdapter;\n  camera(camera: LocalViewCamera, ownership?: PlayerAdapterOwnership): PlayerViewAdapter;\n  hud(hud: ViewHud, ownership?: PlayerAdapterOwnership): PlayerViewAdapter;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view."
+        },
+        {
+          "type": "heading",
+          "text": "PLAYER_VIEWS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the player view composition factory (`ui.player-view@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const PLAYER_VIEWS: ServiceKey<PlayerViewFactory> = Object.freeze({ slot: 'ui.player-view', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/presentation",
       "title": "game-api: presentation.ts",
       "summary": "Declarations from presentation.ts used by documented modules.",
@@ -5457,7 +7409,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.theme."
+          "text": "Used by: spacelab.camera-follow, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme."
         },
         {
           "type": "heading",
@@ -5485,7 +7437,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: spacelab.fleet-view, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -5613,7 +7565,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-webgl, spacelab.vector-shaders."
+          "text": "Used by: spacelab.flight-split, spacelab.render-webgl, spacelab.vector-shaders."
         },
         {
           "type": "heading",
@@ -5641,7 +7593,23 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RendererProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "The `renderer` slot of a presentation profile. A stateless factory: each renderer owns everything it allocates (contexts, programs, buffers, textures) and frees it in dispose(), so a renderer may outlive the candidate whose provider created it."
+        },
+        {
+          "type": "code",
+          "text": "export interface RendererProvider {\n  readonly id: string;\n  readonly version: string;\n  /** Short UI label, such as \"WebGL\" or \"2D\". */\n  readonly label: string;\n  readonly capabilities: RendererCapabilities;\n  create(canvas: HTMLCanvasElement, options?: { readonly shaders?: ShaderPack }): Renderer;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-split."
         },
         {
           "type": "heading",
@@ -5653,7 +7621,59 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud."
+          "text": "Used by: builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationSnapshot"
+        },
+        {
+          "type": "paragraph",
+          "text": "A detached, frozen snapshot of what the pilot sees. Built at most once per frame."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationSnapshot {\n  /** Interpolated presentation time (seconds) and the last committed simulation tick. */\n  readonly time: number;\n  readonly tick: number;\n  readonly paused: boolean;\n  /** Wall seconds since the previous frame. Presentation only; never feeds the simulation. */\n  readonly elapsed: number;\n  readonly viewport: { readonly width: number; readonly height: number; readonly pixelRatio: number };\n  readonly body: PresentationBody;\n  readonly ship?: PresentationShip;\n  readonly vehicle: Readonly<VehicleDefaults>;\n  /** The active motion model provides analytic orbital diagnostics. */\n  readonly analyticOrbits: boolean;\n  /** Analytic elements of a flying ship's orbit, when `analyticOrbits`. */\n  readonly orbit: Elements | null;\n  /** Height above local ground or sea in metres (negative underwater). */\n  readonly groundClearance: number | null;\n  readonly prediction: { readonly status: GhostEnd | 'tracing' | 'none'; readonly samples: number; readonly last?: GhostSample };\n  /** Optional local flight plan. Body-relative SI coordinates; a preview never changes live motion. */\n  readonly maneuver?: ManeuverPreview;\n  /** Shared-world rule namespaces at the last committed tick. */\n  readonly moduleState: Readonly<Record<string, WorldRuleState>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.navball."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationView"
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationView extends PresentationSnapshot {\n  /** The camera this frame is drawn with. */\n  readonly camera: Camera;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.navball."
+        },
+        {
+          "type": "heading",
+          "text": "CameraTarget"
+        },
+        {
+          "type": "code",
+          "text": "export interface CameraTarget {\n  /** System coordinates (metres). */\n  readonly center: Vec;\n  /** Target rotation in radians; omitted keeps the pilot's North up/Horizon up choice.\n   * The host blends rotation changes and keeps the pilot's zoom. */\n  readonly rotation?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "CameraExtension"
+        },
+        {
+          "type": "code",
+          "text": "export type CameraExtension = PresentationContribution<CameraHook>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
         },
         {
           "type": "link",
@@ -5686,6 +7706,50 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "dragCamera"
+        },
+        {
+          "type": "paragraph",
+          "text": "Move the scene by a screen-space pointer displacement (CSS pixels)."
+        },
+        {
+          "type": "code",
+          "text": "export function dragCamera(camera: Camera, delta: Vec): Camera;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "blendAngle"
+        },
+        {
+          "type": "code",
+          "text": "export function blendAngle(current: number, target: number, fraction: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "interpolateState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation snapshot `alpha` of the way from one fixed physics step to the next, so motion stays smooth when 10-ms steps do not divide the display's frame interval. Visual only: physics must never read the result."
+        },
+        {
+          "type": "code",
+          "text": "export function interpolateState(from: State, to: State, alpha: number): State;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view, spacelab.spin-view."
         },
         {
           "type": "heading",
@@ -5979,6 +8043,50 @@
       ]
     },
     {
+      "id": "api-reference/game-api/rotation",
+      "title": "game-api: rotation.ts",
+      "summary": "Declarations from rotation.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/rotation.ts."
+        },
+        {
+          "type": "heading",
+          "text": "RotationMath"
+        },
+        {
+          "type": "paragraph",
+          "text": "Fixed prescribed sidereal rotation. SI metres/seconds, radians; pure queries never advance body state. This does not declare support for dynamic N-body orientation."
+        },
+        {
+          "type": "code",
+          "text": "export interface RotationMath {\n spinRate(body: Body): number;\n spinAngle(body: Body, time: number): number;\n rotate(vector: Vec, angle: number): Vec;\n groundVelocity(omega: number, position: Vec): Vec;\n bodyFixed(state: State, body: Body): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.spin-view."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_ROTATION"
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_ROTATION: ServiceKey<RotationMath> = Object.freeze({ slot: 'core.rotation', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.spin-view."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/rules",
       "title": "game-api: rules.ts",
       "summary": "Declarations from rules.ts used by documented modules.",
@@ -6053,7 +8161,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.flight-split, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -6101,7 +8209,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.flight-split, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -6283,6 +8391,118 @@
       ]
     },
     {
+      "id": "api-reference/game-api/smart-camera",
+      "title": "game-api: smart-camera.ts",
+      "summary": "Declarations from smart-camera.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/smart-camera.ts."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCameraTarget"
+        },
+        {
+          "type": "paragraph",
+          "text": "Viewer identities only: targets may be vehicles, celestial bodies or any other object."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraTarget { readonly id: string; readonly name: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-smart."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCameraCandidate"
+        },
+        {
+          "type": "paragraph",
+          "text": "Candidate target with world-metre position for smart camera targeting searches."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraCandidate extends SmartCameraTarget { readonly position: Vec }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-smart."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCameraSearch"
+        },
+        {
+          "type": "paragraph",
+          "text": "Search criteria describing camera center, drag velocity, rotation and priority candidate groups."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraSearch<T extends SmartCameraCandidate> {\n  readonly currentCenter: Vec;\n  /** Drag-release velocity in CSS pixels per wall second. */\n  readonly screenVelocity: Vec;\n  readonly cameraRotation: number;\n  /** CSS pixels per world metre. Groups are searched in priority order. */\n  readonly scale: number;\n  readonly groups: readonly (readonly T[])[];\n  readonly currentFocusId?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-smart."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCameraControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-view smart camera guidance controller tracking and guiding toward candidate targets."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraControl<T extends SmartCameraTarget = SmartCameraTarget> extends Disposable {\n  target: T | undefined;\n  focus: T | undefined;\n  start(target: T, followOnArrival?: boolean): void;\n  /** Stop guided movement while retaining an already acquired focus. */\n  stop(): void;\n  clear(): void;\n  /** Undefined means ordinary base-camera movement; a missing target releases focus. */\n  update(frame: SmartCameraFrame): SmartCameraStep | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.camera-smart."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCameraFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional policy: owns targeting and guidance, never a renderer, world step or device."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraFactory {\n  create<T extends SmartCameraTarget>(): SmartCameraControl<T>;\n  select<T extends SmartCameraCandidate>(search: SmartCameraSearch<T>): T | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.camera-smart."
+        },
+        {
+          "type": "heading",
+          "text": "SMART_CAMERAS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the smart camera add-on factory (`view.smart-camera@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const SMART_CAMERAS: ServiceKey<SmartCameraFactory> = Object.freeze({ slot: 'view.smart-camera', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.camera-follow, spacelab.camera-smart."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/state",
       "title": "game-api: state.ts",
       "summary": "Declarations from state.ts used by documented modules.",
@@ -6301,7 +8521,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight."
+          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view."
         },
         {
           "type": "heading",
@@ -6313,7 +8533,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.spin-view."
         },
         {
           "type": "heading",
@@ -6329,7 +8549,19 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view."
+        },
+        {
+          "type": "heading",
+          "text": "Coast"
+        },
+        {
+          "type": "code",
+          "text": "export interface Coast {\n  readonly modelIdentity?: string;\n  readonly bodyId: string;\n  readonly epochSeconds: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  readonly mu: number;\n  readonly revision: number;\n  readonly surfaceRadius: number;\n  readonly surfaceIdentity: string;\n  /** Absent for the circular preview contact model, even on configured bodies. */\n  readonly contactSurfaceIdentity?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.fleet-view."
         },
         {
           "type": "heading",
@@ -6341,7 +8573,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction, spacelab.session-flight."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -6821,7 +9053,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
         },
         {
           "type": "link",
@@ -6977,6 +9209,22 @@
         },
         {
           "type": "heading",
+          "text": "HudBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-view binding tying a HUD view to a seat, viewport, session, and optional context."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudBinding extends LocalViewBinding { readonly session: object; readonly context?: object }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-view, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
           "text": "HudSurface"
         },
         {
@@ -6989,7 +9237,39 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.throttle-hud."
+          "text": "Used by: spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "HudInstrumentContext"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-instrument initialization context providing access to declared required adapters."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudInstrumentContext {\n  readonly binding: HudBinding;\n  /** Returns an adapter listed in the definition's `requires`; throws for any other key. */\n  use<T>(key: ServiceKey<T>): T;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.navball."
+        },
+        {
+          "type": "heading",
+          "text": "HudInstrument"
+        },
+        {
+          "type": "paragraph",
+          "text": "One instrument instance for one seat and viewport, owned by a ViewHud. A method that throws disables only this instrument: the owner cancels and disposes it and reports the fault."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudInstrument extends Disposable {\n  /** Stop any pointer or keyboard gesture in progress; a new gesture is needed afterwards. */\n  cancel(): void;\n  /** The seat's session, player or target changed. Gestures were cancelled first. */\n  rebind(binding: HudBinding): void;\n  resize(surface: HudSurface): void;\n  /** Once per rendered frame. `elapsed` is wall-clock seconds since the previous frame,\n   * not simulation time; do not advance or write the world here. */\n  update(elapsed: number): void;\n  /** Append overlay shapes for this frame; shapes appended before a throw are discarded. */\n  draw(into: OverlayPrimitive[]): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.navball, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -7005,7 +9285,71 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.throttle-hud."
+          "text": "Used by: builtin.navball, spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "ViewHud"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-seat HUD controller coordinating active instruments, surface sizing, updates and overlays."
+        },
+        {
+          "type": "code",
+          "text": "export interface ViewHud extends Disposable {\n  readonly binding: HudBinding;\n  readonly count: number;\n  bind(binding: HudBinding): void;\n  select(instruments: readonly HudInstrumentDefinition[]): void;\n  /** Cancel instrument gestures without removing the current selection. */\n  cancel?(): void;\n  resize(surface: HudSurface): void;\n  update(elapsed: number): void;\n  draw(into: OverlayPrimitive[]): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "ViewHudOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for instantiating a ViewHud."
+        },
+        {
+          "type": "code",
+          "text": "export interface ViewHudOptions {\n  readonly binding: HudBinding;\n  readonly adapters: readonly HudAdapter[];\n  readonly instruments?: readonly HudInstrumentDefinition[];\n  fault?(id: string, error: unknown): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "ViewHudFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Creates one ViewHud per seat and viewport. Each ViewHud owns the instruments it creates."
+        },
+        {
+          "type": "code",
+          "text": "export interface ViewHudFactory extends Disposable { create(options: ViewHudOptions): ViewHud }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "VIEW_HUD"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the shared per-view HUD factory (`ui.view-hud@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const VIEW_HUD: ServiceKey<ViewHudFactory> = Object.freeze({slot:'ui.view-hud',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -7053,7 +9397,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.throttle-hud."
+          "text": "Used by: builtin.navball."
         },
         {
           "type": "heading",
@@ -7069,7 +9413,23 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.throttle-hud."
+          "text": "Used by: builtin.navball, spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "NAVBALL_HUD"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-view navball attitude instrument, provided by `builtin.navball` in Space Sim."
+        },
+        {
+          "type": "code",
+          "text": "export const NAVBALL_HUD: ServiceKey<HudInstrumentDefinition> = Object.freeze({slot:'hud.navball',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.navball."
         },
         {
           "type": "heading",
@@ -7175,6 +9535,58 @@
       ]
     },
     {
+      "id": "api-reference/game-api/windows",
+      "title": "game-api: windows.ts",
+      "summary": "Declarations from windows.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/windows.ts."
+        },
+        {
+          "type": "heading",
+          "text": "WindowIcon"
+        },
+        {
+          "type": "code",
+          "text": "export type WindowIcon = 'grip' | 'setup' | 'ship' | 'fleet' | 'online' | 'instruments' | 'trajectory' | 'telemetry' | 'alarm' | 'chat' | 'settings' | 'tools' | 'library' | 'manual' | 'pin';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "WindowSystem"
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowSystem extends Disposable, WindowInteractions {\n  /** Fixed first-party vector paths; labels and imported content remain DOM text. */\n  icon(name: WindowIcon): string;\n  create(options: WindowChromeOptions): WindowChrome;\n  isFront(panel: HTMLElement): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "WINDOWS"
+        },
+        {
+          "type": "code",
+          "text": "export const WINDOWS: ServiceKey<WindowSystem> = Object.freeze({slot:'ui.windows', version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/world",
       "title": "game-api: world.ts",
       "summary": "Declarations from world.ts used by documented modules.",
@@ -7197,7 +9609,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.session-flight."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.session-flight."
         },
         {
           "type": "heading",

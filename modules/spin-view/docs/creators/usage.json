@@ -2,15 +2,100 @@
   "id": "usage",
   "audience": "creators",
   "title": "Body spin presentation",
-  "summary": "Optional display transforms without changing physical rotation.",
+  "summary": "Optional anti-strobe display over pure prescribed sidereal rotation.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "view.spin@1.0.0 requires core.rotation@^1.0.0, the fixed prescribed sidereal rotation queries. They use metres, seconds and radians and never step a world; dynamic N-body orientation is not implied. Each view owns hold/release offsets over borrowed body definitions. Terrain, pads and resting ships must use the same display transform to stay aligned."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "holdRadiansPerFrame, resumeRatio and releaseSeconds preserve the existing 5-degree / 0.6 / 0.4-second anti-strobe defaults. Time rewind/reset clears derived offsets. Zero release easing snaps safely. No physical body angle, contact, state, save or fingerprint changes. Providers/instances release held sets and offsets; disposed views reject use. Browser/offline/node queries require no renderer or device."
+      "text": "This module provides presentation smoothing for rapidly rotating celestial bodies during high time warp. When a body's apparent rotation rate exceeds a visual threshold, it holds the drawn angle visually still to prevent stroboscopic optical illusions and jarring camera spins while preserving exact physical rotation in Keplerian simulation."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.spin@1.0.0 through the SPIN_VIEWS service key: creates SpinViewControl smoothing instances.",
+        "Requires core.rotation@^1.0.0 through the CORE_ROTATION service key: uses rotation mathematics for spin rates and body-fixed transformations.",
+        "Fills the view.spin slot in presentation profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "holdRadiansPerFrame (default 0.08726646259971647, from 0.01 to 0.5): Hold a rapidly spinning body visually still above this turn per displayed frame, avoiding strobing during warp. Physics always uses its true angle.",
+        "resumeRatio (default 0.6, from 0.1 to 0.9, step 0.05): Resume visible rotation below this fraction of the hold threshold, reducing flicker around the transition.",
+        "releaseSeconds (default 0.4, from 0 to 2, step 0.05): Wall seconds to ease a held body back to its true angle. Zero snaps immediately; physical rotation and saves are unchanged."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures holdRadiansPerFrame, resumeRatio, and releaseSeconds settings, binds CORE_ROTATION, contributes this guide, and registers SPIN_VIEWS.",
+        "create() allocates independent SpinViewControl controllers.",
+        "update(bodies, time, elapsed, instant) samples spin rates, detects high-warp rotation thresholds, and eases offsets during release.",
+        "angle, point, and state transform body-fixed positions and resting ships into visually stabilized presentation coordinates.",
+        "dispose resets angle offsets, release easings, and tracked body state."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To replace spin presentation behavior, provide view.spin@1.0.0 in the view.spin slot. Removing this module causes celestial bodies to be drawn at their exact unbuffered physical angle at all warp speeds, which may induce visual strobing during fast forward."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: easing functions and angle offset interpolation hooks may evolve before API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/spin-view demonstrates instantiating a spin-view controller, stepping warp presentation, and querying stabilized body angles. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/spin-view/module.json /tmp/example-spin-view.spacemod\nnpm run module:validate -- /tmp/example-spin-view.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Body spin presentation",
+      "page": "api-reference/module/spacelab.spin-view"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-view.ts: flight view and spin presentation interfaces",
+      "page": "api-reference/game-api/flight-view"
     }
   ]
 }

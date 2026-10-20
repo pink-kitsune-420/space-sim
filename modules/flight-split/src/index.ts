@@ -745,6 +745,10 @@ function write(target: HTMLElement, text: string): void {
   if (target.textContent !== text) target.textContent = text;
 }
 
+/**
+ * Contributes flight split-screen management with dynamic multi-seat joining and viewport splitting.
+ * Provides view.flight-split@1.0.0 in the view.flight-split slot.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({"id": "usage", "audience": "creators", "title": "Flight split screen", "summary": "Independent local flight seats and split/dynamic panes over a borrowed session.", "asset": "docs/creators/usage.json"});
   if((context.settings.mergeScreenRatio??.35)>(context.settings.separateScreenRatio??.55)||(context.settings.mergeDistance??3500)>(context.settings.separateDistance??5000))throw new Error('Split-screen merge thresholds must not exceed separation thresholds');

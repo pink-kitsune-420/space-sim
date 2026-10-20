@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { FLIGHT_HUD_STATE, FLIGHT_PLANS, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
-  type FlightHudAdapter, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
+  type FleetViewInput, type FlightHudAdapter, type FlightHudReadout, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
   type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type TextConnection,
   type ThrottleLeverState, type TransportProvider } from '../../packages/game-api/src/index';
 import { ModuleRegistryV2, moduleAssets } from '../../packages/game-runtime/src/modules-v2';
@@ -165,6 +165,78 @@ import appearanceTrainerGuide from '../../modules/appearance-trainer/docs/creato
 import trainerAppearanceExampleInitialize, { VEHICLE_ARTWORK_HELPER, scoutAppearance } from '../../examples/modules/appearance-trainer/src/main';
 import trainerAppearanceExampleDescriptor from '../../examples/modules/appearance-trainer/module.json';
 
+import cameraFollowInitialize from '../../modules/camera-follow/src/index';
+import cameraFollowDescriptor from '../../modules/camera-follow/module.json';
+import cameraFollowGuide from '../../modules/camera-follow/docs/creators/usage.json';
+import cameraFollowExampleInitialize, { FLIGHT_CAMERA_HELPER } from '../../examples/modules/camera-follow/src/main';
+import cameraFollowExampleDescriptor from '../../examples/modules/camera-follow/module.json';
+
+import cameraSmartInitialize from '../../modules/camera-smart/src/index';
+import cameraSmartDescriptor from '../../modules/camera-smart/module.json';
+import cameraSmartGuide from '../../modules/camera-smart/docs/creators/usage.json';
+import cameraSmartExampleInitialize, { SMART_CAMERA_HELPER } from '../../examples/modules/camera-smart/src/main';
+import cameraSmartExampleDescriptor from '../../examples/modules/camera-smart/module.json';
+
+import localViewsInitialize from '../../modules/local-views/src/index';
+import localViewsDescriptor from '../../modules/local-views/module.json';
+import localViewsGuide from '../../modules/local-views/docs/creators/usage.json';
+import localViewsExampleInitialize, { LOCAL_VIEWS_HELPER } from '../../examples/modules/local-views/src/main';
+import localViewsExampleDescriptor from '../../examples/modules/local-views/module.json';
+
+import playerViewInitialize from '../../modules/player-view/src/index';
+import playerViewDescriptor from '../../modules/player-view/module.json';
+import playerViewGuide from '../../modules/player-view/docs/creators/usage.json';
+import playerViewExampleInitialize, { PLAYER_VIEW_HELPER } from '../../examples/modules/player-view/src/main';
+import playerViewExampleDescriptor from '../../examples/modules/player-view/module.json';
+
+import viewHudInitialize from '../../modules/view-hud/src/index';
+import viewHudDescriptor from '../../modules/view-hud/module.json';
+import viewHudGuide from '../../modules/view-hud/docs/creators/usage.json';
+import viewHudExampleInitialize, { VIEW_HUD_HELPER } from '../../examples/modules/view-hud/src/main';
+import viewHudExampleDescriptor from '../../examples/modules/view-hud/module.json';
+
+import hudLayoutInitialize from '../../modules/hud-layout/src/index';
+import hudLayoutDescriptor from '../../modules/hud-layout/module.json';
+import hudLayoutGuide from '../../modules/hud-layout/docs/creators/usage.json';
+import hudLayoutExampleInitialize, { HUD_LAYOUT_HELPER } from '../../examples/modules/hud-layout/src/main';
+import hudLayoutExampleDescriptor from '../../examples/modules/hud-layout/module.json';
+
+import navballInitialize from '../../modules/navball/src/index';
+import navballDescriptor from '../../modules/navball/module.json';
+import navballGuide from '../../modules/navball/docs/creators/usage.json';
+import navballExampleInitialize, { NAVBALL_VIEWER_HELPER } from '../../examples/modules/navball/src/main';
+import navballExampleDescriptor from '../../examples/modules/navball/module.json';
+
+import spinViewInitialize from '../../modules/spin-view/src/index';
+import spinViewDescriptor from '../../modules/spin-view/module.json';
+import spinViewGuide from '../../modules/spin-view/docs/creators/usage.json';
+import spinViewExampleInitialize, { SPIN_VIEW_HELPER } from '../../examples/modules/spin-view/src/main';
+import spinViewExampleDescriptor from '../../examples/modules/spin-view/module.json';
+
+import fleetViewInitialize from '../../modules/fleet-view/src/index';
+import fleetViewDescriptor from '../../modules/fleet-view/module.json';
+import fleetViewGuide from '../../modules/fleet-view/docs/creators/usage.json';
+import fleetViewExampleInitialize, { FLEET_VIEWER_HELPER } from '../../examples/modules/fleet-view/src/main';
+import fleetViewExampleDescriptor from '../../examples/modules/fleet-view/module.json';
+
+import flightSplitInitialize from '../../modules/flight-split/src/index';
+import flightSplitDescriptor from '../../modules/flight-split/module.json';
+import flightSplitGuide from '../../modules/flight-split/docs/creators/usage.json';
+import flightSplitExampleInitialize, { FLIGHT_SPLIT_HELPER } from '../../examples/modules/flight-split/src/main';
+import flightSplitExampleDescriptor from '../../examples/modules/flight-split/module.json';
+
+import windowsInitialize from '../../modules/ui-windows/src/index';
+import windowsDescriptor from '../../modules/ui-windows/module.json';
+import windowsGuide from '../../modules/ui-windows/docs/creators/usage.json';
+
+const windowsAssets: Record<string, string> = {
+  'assets/windows.css': readFileSync('modules/ui-windows/assets/windows.css', 'utf8'),
+};
+
+const hudLayoutAssets: Record<string, string> = {
+  'assets/layout.css': readFileSync('modules/hud-layout/assets/layout.css', 'utf8'),
+};
+
 const vectorShaderAssets: Record<string, string> = {
   'assets/scene.vert': readFileSync('modules/shaders-vector/assets/scene.vert', 'utf8'),
   'assets/scene.frag': readFileSync('modules/shaders-vector/assets/scene.frag', 'utf8'),
@@ -201,6 +273,32 @@ const profile = (modules: readonly unknown[], providers: Record<string, string>,
   format: 'space-sim-profile/2', id: 'fixture.api-examples', capabilities: {}, settings, providers,
   modules: modules.map(descriptor => { const { id, version } = (descriptor as { manifest: ManifestV2 }).manifest; return { id, version }; }),
 });
+
+const createMockEl = (tag = 'div'): any => {
+  const el: any = {
+    tagName: tag.toUpperCase(),
+    childNodes: [],
+    children: [],
+    dataset: {},
+    classList: { add: vi.fn(), remove: vi.fn(), contains: () => false, toggle: vi.fn() },
+    style: { getPropertyValue: () => '', getPropertyPriority: () => '', setProperty: vi.fn(), removeProperty: vi.fn() },
+    append: vi.fn(),
+    appendChild: vi.fn((node: any) => { el.childNodes.push(node); return node; }),
+    remove: vi.fn(),
+    getAttribute: () => null,
+    setAttribute: vi.fn(),
+    removeAttribute: vi.fn(),
+    replaceChildren: vi.fn(),
+    querySelector: (sel: string) => createMockEl(sel.startsWith('#') ? 'div' : 'span'),
+    querySelectorAll: () => [],
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    open: false,
+    showModal: vi.fn(),
+    close: vi.fn(),
+  };
+  return el;
+};
 
 it('replaces the hud.throttle provider with the readout example and keeps its draw path allocation-free', () => {
   const graph = registry([[throttleDescriptor, throttleInitialize, throttleGuide], [readoutDescriptor, readoutInitialize]]);
@@ -1071,6 +1169,420 @@ it('inspects contributed trainer and scout vehicle vector artwork via appearance
     expect(contribs.some(c => c.value.vehicleId === 'spacelab.trainer/orbit-trainer')).toBe(true);
     expect(contribs.some(c => c.value.vehicleId === 'example.probe/scout-probe')).toBe(true);
   } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages independent follow and flight camera updates via camera-follow example', () => {
+  const graph = registry([
+    [cameraFollowDescriptor, cameraFollowInitialize, cameraFollowGuide],
+    [cameraFollowExampleDescriptor, cameraFollowExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([cameraFollowDescriptor, cameraFollowExampleDescriptor], {
+    'view.camera': 'spacelab.camera-follow',
+    'view.flight-camera': 'spacelab.camera-follow',
+    'example.camera-follow': 'example.camera-follow',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(FLIGHT_CAMERA_HELPER);
+    const camera = helper.setupCamera(5, true);
+    expect(camera.zoom).toBe(5);
+    expect(camera.horizon).toBe(true);
+    const frame = helper.trackTarget(camera, { x: 0, y: 0 }, { x: 1000, y: 2000 }, 1 / 60, false, 800, 600);
+    expect(frame).toBeDefined();
+    expect(frame.scale).toBeGreaterThan(0);
+    expect(frame.center).toBeDefined();
+    camera.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('selects priority candidate targets and starts guidance via camera-smart example', () => {
+  const graph = registry([
+    [cameraSmartDescriptor, cameraSmartInitialize, cameraSmartGuide],
+    [cameraSmartExampleDescriptor, cameraSmartExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([cameraSmartDescriptor, cameraSmartExampleDescriptor], {
+    'view.smart-camera': 'spacelab.camera-smart',
+    'example.camera-smart': 'example.camera-smart',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(SMART_CAMERA_HELPER);
+    const targetA = { id: 'ship-1', name: 'Alpha', position: { x: 300, y: 0 } };
+    const targetB = { id: 'ship-2', name: 'Beta', position: { x: 5000, y: 5000 } };
+    const found = helper.findCandidate({ x: 0, y: 0 }, { x: -800, y: 0 }, 0, 1, [[targetA, targetB]]);
+    expect(found).toBeDefined();
+    expect(found?.id).toBe('ship-1');
+    const control = helper.startGuidance(targetA, true);
+    expect(control.target?.id).toBe('ship-1');
+    control.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('computes responsive pane layouts and allocates viewports via local-views example', () => {
+  const graph = registry([
+    [cameraFollowDescriptor, cameraFollowInitialize, cameraFollowGuide],
+    [localViewsDescriptor, localViewsInitialize, localViewsGuide],
+    [localViewsExampleDescriptor, localViewsExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([cameraFollowDescriptor, localViewsDescriptor, localViewsExampleDescriptor], {
+    'view.camera': 'spacelab.camera-follow',
+    'view.local': 'spacelab.local-views',
+    'example.local-views': 'example.local-views',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(LOCAL_VIEWS_HELPER);
+    const panes = helper.computePanes(2, 'side', 1000, 500);
+    expect(panes).toHaveLength(2);
+    expect(panes[0]!.w).toBe(0.5);
+    expect(panes[1]!.w).toBe(0.5);
+
+    const views = helper.createViews({
+      bindings: [
+        { viewportId: 'vp-0', seatId: 'seat-0', targetId: 'target-0' },
+        { viewportId: 'vp-1', seatId: 'seat-1', targetId: 'target-1' },
+      ],
+      layout: 'side',
+      mode: 'split',
+      surface: () => ({ resize: vi.fn(), draw: vi.fn(), dispose: vi.fn() }),
+    });
+    expect(views.count).toBe(2);
+    views.reflow(1000, 500);
+    views.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('composes player view roles and rebinds seat identity via player-view example', () => {
+  const graph = registry([
+    [playerViewDescriptor, playerViewInitialize, playerViewGuide],
+    [playerViewExampleDescriptor, playerViewExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([playerViewDescriptor, playerViewExampleDescriptor], {
+    'ui.player-view': 'spacelab.player-view',
+    'example.player-view': 'example.player-view',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(PLAYER_VIEW_HELPER);
+    const mockControllerAdapter = {
+      resource: {},
+      rebind: vi.fn(),
+      release: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const sessionObj = {};
+    const view = helper.composeView(
+      { seatId: 'seat-0', viewportId: 'vp-0', session: sessionObj, playerId: 'p1', targetId: 'ship-1' },
+      { input: mockControllerAdapter },
+    );
+    expect(view.binding.seatId).toBe('seat-0');
+    expect(view.adapters.input).toBe(mockControllerAdapter);
+
+    helper.rebindView(view, { seatId: 'seat-0', viewportId: 'vp-0', session: sessionObj, playerId: 'p1', targetId: 'ship-2' });
+    expect(mockControllerAdapter.rebind).toHaveBeenCalled();
+    expect(view.binding.targetId).toBe('ship-2');
+    view.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages shared per-view HUD lifecycle, instruments, and overlays via view-hud example', () => {
+  const graph = registry([
+    [viewHudDescriptor, viewHudInitialize, viewHudGuide],
+    [viewHudExampleDescriptor, viewHudExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([viewHudDescriptor, viewHudExampleDescriptor], {
+    'ui.view-hud': 'spacelab.view-hud',
+    'example.view-hud': 'example.view-hud',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(VIEW_HUD_HELPER);
+    const hud = helper.createHud({
+      binding: { seatId: 'seat-0', viewportId: 'vp-0', session: {} },
+      adapters: [],
+    });
+    expect(hud.count).toBe(0);
+
+    const mockInstrument = {
+      cancel: vi.fn(),
+      rebind: vi.fn(),
+      resize: vi.fn(),
+      update: vi.fn(),
+      draw: (into: any[]) => { into.push({ kind: 'circle', x: 50, y: 50, r: 20 }); },
+      dispose: vi.fn(),
+    };
+    const testDef = {
+      id: 'example.instrument',
+      requires: [],
+      create: () => mockInstrument,
+    };
+    helper.populateInstruments(hud, [testDef]);
+    expect(hud.count).toBe(1);
+
+    const mockRoot = createMockEl('div');
+    const surface = { root: mockRoot, width: 400, height: 300, x: 0, y: 0 };
+    const overlays = helper.renderFrame(hud, surface, 1 / 60);
+    expect(overlays).toHaveLength(1);
+    expect(overlays[0]).toMatchObject({ kind: 'circle', x: 50, y: 50 });
+
+    hud.dispose();
+    expect(mockInstrument.dispose).toHaveBeenCalled();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages responsive HUD layout obstacle avoidance via hud-layout example', () => {
+  const mockDoc: any = {
+    defaultView: {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      AbortController: globalThis.AbortController,
+      ResizeObserver: class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+      MutationObserver: class {
+        observe() {}
+        disconnect() {}
+      },
+      requestAnimationFrame: () => 1,
+      cancelAnimationFrame: vi.fn(),
+    },
+    createElement: (tag: string) => createMockEl(tag),
+    head: { append: vi.fn() },
+    getElementById: vi.fn(),
+  };
+  const mockViewport = createMockEl('div');
+  mockViewport.ownerDocument = mockDoc;
+  const graph = registry([
+    [windowsDescriptor, windowsInitialize, windowsGuide, windowsAssets],
+    [hudLayoutDescriptor, hudLayoutInitialize, hudLayoutGuide, hudLayoutAssets],
+    [hudLayoutExampleDescriptor, hudLayoutExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([windowsDescriptor, hudLayoutDescriptor, hudLayoutExampleDescriptor], {
+    'ui.windows': 'spacelab.ui-windows',
+    'ui.hud-layout': 'spacelab.hud-layout',
+    'example.hud-layout': 'example.hud-layout',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(HUD_LAYOUT_HELPER);
+    const layout = helper.createLayout({ viewport: mockViewport });
+    expect(layout.editing).toBe(false);
+
+    const preferred = { x: 10, y: 10, width: 100, height: 50 };
+    const fitted = helper.fitBounds(layout, preferred, 800, 600);
+    expect(fitted.x).toBeGreaterThanOrEqual(0);
+    expect(fitted.y).toBeGreaterThanOrEqual(0);
+    expect(fitted.width).toBe(100);
+    expect(fitted.height).toBe(50);
+    layout.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('draws attitude indicator overlays via navball example', () => {
+  const graph = registry([
+    [navballDescriptor, navballInitialize, navballGuide],
+    [navballExampleDescriptor, navballExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([navballDescriptor, navballExampleDescriptor], {
+    'hud.navball': 'builtin.navball',
+    'example.navball': 'example.navball',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(NAVBALL_VIEWER_HELPER);
+    const readout: FlightHudReadout = {
+      state: {
+        time: 100,
+        position: { x: 0, y: 7000000 },
+        velocity: { x: 7500, y: 0 },
+        heading: 0,
+        status: 'flying',
+        throttle: 0,
+        revision: 0,
+      },
+      radius: 6371000,
+      spin: 0.00007292115,
+      clearance: 629000,
+      center: { x: 100, y: 100 },
+      scale: 1,
+      cameraRotation: 0,
+      frameSetting: 0,
+      orientation: 'horizon',
+      pinned: false,
+      dragging: false,
+      editing: false,
+    };
+    const mockContext: any = {
+      binding: { seatId: 'seat-0', viewportId: 'vp-0', session: {}, targetId: 'ship-1' },
+      use: () => ({
+        navball: () => readout,
+        cancelGestures: vi.fn(),
+      }),
+    };
+    const instrument = helper.createInstrument(mockContext);
+    const overlays = helper.drawNavball(instrument);
+    expect(overlays.length).toBeGreaterThan(0);
+    expect(overlays.some(shape => shape.kind === 'circle')).toBe(true);
+    instrument.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('smooths rotating body presentation during warp via spin-view example', () => {
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [spinViewDescriptor, spinViewInitialize, spinViewGuide],
+    [spinViewExampleDescriptor, spinViewExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([spinViewDescriptor, spinViewExampleDescriptor], {
+    'view.spin': 'spacelab.spin-view',
+    'example.spin-view': 'example.spin-view',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(SPIN_VIEW_HELPER);
+    const spin = helper.createSpin();
+    const testBody = {
+      id: 'earth',
+      name: 'Earth',
+      mass: 5.972e24,
+      radius: 6371000,
+      orbit: null,
+      rotation: { period: 86400, direction: 1, phase: 0 },
+    } as any;
+    const angle = helper.getAngle(spin, testBody, 3600);
+    expect(Number.isFinite(angle)).toBe(true);
+    const pt = helper.transformPoint(spin, testBody, 3600, { x: 100, y: 0 });
+    expect(Number.isFinite(pt.x)).toBe(true);
+    expect(Number.isFinite(pt.y)).toBe(true);
+    spin.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('culls and builds visible ship presentation lists via fleet-view example', () => {
+  const graph = registry([
+    [fleetViewDescriptor, fleetViewInitialize, fleetViewGuide],
+    [fleetViewExampleDescriptor, fleetViewExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([fleetViewDescriptor, fleetViewExampleDescriptor], {
+    'view.fleet': 'spacelab.fleet-view',
+    'example.fleet-view': 'example.fleet-view',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(FLEET_VIEWER_HELPER);
+    const fleet = helper.createFleet();
+    const statsInitial = helper.readStats(fleet);
+    expect(statsInitial.ships).toBe(0);
+
+    const mockWorld: any = {
+      system: {
+        getBodyPosition: () => ({ x: 0, y: 0 }),
+      },
+      records: () => [],
+      isAsleep: () => false,
+      has: () => false,
+    };
+    const input: FleetViewInput = {
+      world: mockWorld,
+      time: 100,
+      alpha: 1,
+      paused: false,
+      playerId: 'player-1',
+      camera: {
+        center: { x: 0, y: 0 },
+        scale: 0.1,
+        rotation: 0,
+      } as any,
+      width: 800,
+      height: 600,
+      previous: () => undefined,
+      displayOffset: () => ({ x: 0, y: 0 }),
+      playerName: () => 'Pilot',
+    };
+    const ships = helper.buildShips(fleet, input);
+    expect(Array.isArray(ships)).toBe(true);
+    fleet.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('initializes flight split-screen manager and coordinates guest views via flight-split example', () => {
+  const mockDoc: any = {
+    defaultView: { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+    createElement: (tag: string) => createMockEl(tag),
+    head: { append: vi.fn() },
+  };
+  vi.stubGlobal('document', mockDoc);
+  vi.stubGlobal('ResizeObserver', class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  });
+  const mockViewport = createMockEl('div');
+  mockViewport.ownerDocument = mockDoc;
+
+  const graph = registry([
+    [pilotsDescriptor, pilotsInitialize, pilotsGuide],
+    [profilesDescriptor, profilesInitialize, profilesGuide],
+    [cameraFollowDescriptor, cameraFollowInitialize, cameraFollowGuide],
+    [predictionDescriptor, predictionInitialize, predictionGuide],
+    [fleetViewDescriptor, fleetViewInitialize, fleetViewGuide],
+    [localViewsDescriptor, localViewsInitialize, localViewsGuide],
+    [flightSplitDescriptor, flightSplitInitialize, flightSplitGuide],
+    [flightSplitExampleDescriptor, flightSplitExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    pilotsDescriptor,
+    profilesDescriptor,
+    cameraFollowDescriptor,
+    predictionDescriptor,
+    fleetViewDescriptor,
+    localViewsDescriptor,
+    flightSplitDescriptor,
+    flightSplitExampleDescriptor,
+  ], {
+    'input.local-pilots': 'spacelab.local-pilots',
+    'input.flight-profiles': 'spacelab.input-profiles',
+    'view.flight-camera': 'spacelab.camera-follow',
+    'view.prediction': 'spacelab.flight-prediction',
+    'view.fleet': 'spacelab.fleet-view',
+    'view.local': 'spacelab.local-views',
+    'view.flight-split': 'spacelab.flight-split',
+    'example.flight-split': 'example.flight-split',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(FLIGHT_SPLIT_HELPER);
+    const mockHost: any = {
+      primaryCanvas: () => createMockEl('canvas'),
+      session: () => ({ id: 'session-1', players: new Map() }),
+      ownWorld: () => undefined,
+      presetId: () => 'orbit-trainer',
+      isGodMode: () => false,
+      keyboardFlight: () => ({ turn: 0, throttle: 0, engine: false }),
+      execute: vi.fn(),
+      notify: vi.fn(),
+      changed: vi.fn(),
+      isSessionError: (e: any): e is Error => e instanceof Error,
+    };
+    const split = helper.createSplit(mockViewport, mockHost);
+    expect(split).toBeDefined();
+    expect(split.split).toBe(false);
+    helper.pollJoining(split);
+    split.dispose();
+  } finally {
+    vi.unstubAllGlobals();
     candidate.dispose();
   }
 });

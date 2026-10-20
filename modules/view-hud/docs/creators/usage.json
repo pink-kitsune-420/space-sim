@@ -1,12 +1,104 @@
 {
   "id": "usage",
   "audience": "creators",
-  "title": "Shared per-view HUD",
+  "title": "Shared view HUD lifecycle",
   "summary": "Optional instruments with independent per-view lifetimes.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Create one HUD per logical view, including the first seat. Supply distinct seat/player/target/viewport identities, an opaque session/context token and exact-version read-only adapters. Select compatible instrument definitions; absent adapters omit that instrument. Reflow resizes retained instances. Target/session changes cancel all gestures before rebinding any instrument; join/leave creates/disposes only affected views. Optional absence attaches no instruments. Dispose view/provider resources on removal. No world step or hard-coded flight instrument exists in the lifecycle manager."
+      "text": "This module provides a robust multi-instrument HUD manager with independent lifetimes per seat and viewport. It coordinates resizing, input gesture cancellations, updates, and overlay drawing across contributed flight instruments while isolating instrument faults so an error in one instrument never disrupts others or crashes the host view."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.view-hud@1.0.0 through the VIEW_HUD service key: creates ViewHud managers for viewport HUD surfaces.",
+        "Fills the ui.view-hud slot in platform configurations.",
+        "Requires no external services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization contributes this guide and registers the VIEW_HUD factory.",
+        "create(options) instantiates a ViewHud controller bound to a viewport and seat identity.",
+        "select(definitions) dynamically activates declared instruments matching available service adapters and tears down unselected instruments.",
+        "resize(surface) adjusts CSS-pixel dimensions and dispatches new surface bounds to active instruments.",
+        "update(elapsed) steps instrument logic with wall-clock elapsed seconds.",
+        "draw(into) collects vector overlay primitives; shapes appended before a fault are discarded.",
+        "dispose terminates all active instruments cleanly."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize HUD instrument hosting, implement ui.view-hud@1.0.0 in the ui.view-hud slot. Removing this module disables instrument aggregation and overlays across flight viewports."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: instrument definition schemas and fault notification interfaces may evolve before API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/view-hud demonstrates creating a ViewHud instance, selecting instrument definitions, and drawing overlays. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/view-hud/module.json /tmp/example-view-hud.spacemod\nnpm run module:validate -- /tmp/example-view-hud.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Shared view HUD lifecycle",
+      "page": "api-reference/module/spacelab.view-hud"
+    },
+    {
+      "type": "link",
+      "text": "Customizable player views: composite seat adapters",
+      "page": "spacelab.player-view/usage"
+    },
+    {
+      "type": "link",
+      "text": "game-api view-hud.ts: HUD instruments and surface interfaces",
+      "page": "api-reference/game-api/view-hud"
     }
   ]
 }

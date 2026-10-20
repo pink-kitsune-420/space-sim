@@ -2,27 +2,102 @@
   "id": "usage",
   "audience": "creators",
   "title": "Customizable player views",
-  "summary": "Connect independently replaceable input, camera, HUD and appearance adapters for each local player.",
+  "summary": "Independent input, camera, HUD and appearance adapters with shared identity and cleanup.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "A player view ties a seat, viewport, player and controlled target to independently owned adapters. Games supply compatible input/entity routing, camera, HUD instruments and appearance. No adapter is mandatory: headless controls and non-flight viewers can use only the parts they need. This service never creates a world, changes physics, polls devices or advances time."
+      "text": "This module provides composite player view adapters unifying input controllers, camera tracking, HUD instruments, and vehicle appearance settings under a single identity lifecycle. It manages safe rebinding when players switch seats or targets, releasing gestures and held input intent before applying changes without creating or advancing simulation worlds."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.player-view@1.0.0 through the PLAYER_VIEWS service key: creates PlayerView instances and role adapters for controllers, cameras, and HUDs.",
+        "Fills the ui.player-view slot in platform configurations.",
+        "Requires no external services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization contributes this guide and registers the PLAYER_VIEWS factory.",
+        "create(options) instantiates a composite PlayerView bound to a seat, viewport, and session identity.",
+        "controller, camera, and hud helper methods wrap underlying components into distinct role adapters with borrowed or owned lifecycles.",
+        "bind(binding) stops active gestures, releases old target intent, and safely rebinds each role adapter to the new target identity.",
+        "configure(adapters) replaces role adapters dynamically, reclaiming old resources and catching configuration faults.",
+        "dispose terminates the player view and safely disposes owned resources."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize view lifecycle management, provide a module implementing ui.player-view@1.0.0 in the ui.player-view slot. Removing it requires hosts to manage per-player controller, camera, and HUD bindings individually."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: role adapter definitions and composite lifecycle hooks may undergo refinements prior to API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/player-view demonstrates wrapping camera, controller, and HUD adapters into a composite player view and rebinding target identities. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "const players = context.use(PLAYER_VIEWS);\nconst view = players.create({ binding, adapters: {\n  input: players.controller(controller, 'owned'),\n  camera: players.camera(camera), // borrowed from local views\n  hud: players.hud(hud, 'owned'),\n  appearance: myAppearanceAdapter,\n} });\nview.bind({ ...view.binding, targetId: nextEntity });\nview.configure({ ...view.adapters, appearance: anotherAppearanceAdapter });\nview.dispose();"
+      "text": "npm run module:build -- examples/modules/player-view/module.json /tmp/example-player-view.spacemod\nnpm run module:validate -- /tmp/example-player-view.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Each adapter exposes its underlying resource identity plus rebind, release and dispose. Mutable resources cannot be shared between players or roles. Controllers recheck entity ownership through their existing control-target adapter; seat/view identity never grants authority. Every old input/gesture is released before a new target is published. A failed rebind removes the adapters and leaves the view neutral until configured again. Failed configuration retains old adapters with intent released."
+      "type": "heading",
+      "text": "Related"
     },
     {
-      "type": "paragraph",
-      "text": "Standard controller, camera and HUD wrappers borrow their underlying instances unless ownership is explicitly owned. The view always owns its wrapper and disposes it when replaced or removed. Keep a camera borrowed when LocalViews already owns it. Camera wrappers enforce matching viewport identity. To wrap the same underlying resource differently, remove its old wrapper first. Separate players need independent instances."
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
     },
     {
-      "type": "paragraph",
-      "text": "Appearance adapters and custom parts own their typed settings, validation and rendering hooks. A future editor can configure those providers or replace one player\u2019s parts without putting game-specific theme, vehicle or physics schemas into this foundation. The flight host currently adopts the HUD/appearance lifecycle; its legacy flight input/camera wiring is still explicit. The Survey example composes controller and local camera through the same player-view service."
+      "type": "link",
+      "text": "API reference: Customizable player views",
+      "page": "api-reference/module/spacelab.player-view"
+    },
+    {
+      "type": "link",
+      "text": "Shared view HUD lifecycle: instrument management and surfaces",
+      "page": "spacelab.view-hud/usage"
+    },
+    {
+      "type": "link",
+      "text": "game-api player-view.ts: player view interfaces and adapters",
+      "page": "api-reference/game-api/player-view"
     }
   ]
 }

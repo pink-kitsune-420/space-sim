@@ -3,11 +3,14 @@ import type { ServiceKey } from './modules-v2';
 import type { OverlayPrimitive } from './presentation';
 import type { LocalViewBinding } from './platform';
 import type { State, Vec } from './state';
+/** Per-view binding tying a HUD view to a seat, viewport, session, and optional context. */
 export interface HudBinding extends LocalViewBinding { readonly session: object; readonly context?: object }
 /** The pane an instrument draws in. Sizes and offsets are CSS pixels; `root` is the DOM parent
  * the instrument may append its own elements to and must remove them on dispose. */
 export interface HudSurface { readonly root: HTMLElement; readonly width: number; readonly height: number; readonly x: number; readonly y: number }
+/** Service adapter injected into a HUD view for instrument access. */
 export interface HudAdapter<T = unknown> { readonly key: Pick<ServiceKey<T>, 'slot' | 'version'>; readonly service: T }
+/** Per-instrument initialization context providing access to declared required adapters. */
 export interface HudInstrumentContext {
   readonly binding: HudBinding;
   /** Returns an adapter listed in the definition's `requires`; throws for any other key. */
@@ -36,6 +39,7 @@ export interface HudInstrumentDefinition {
   readonly requires: readonly Pick<ServiceKey<unknown>, 'slot' | 'version'>[];
   create(context: HudInstrumentContext): HudInstrument;
 }
+/** Per-seat HUD controller coordinating active instruments, surface sizing, updates and overlays. */
 export interface ViewHud extends Disposable {
   readonly binding: HudBinding;
   readonly count: number;
@@ -47,6 +51,7 @@ export interface ViewHud extends Disposable {
   update(elapsed: number): void;
   draw(into: OverlayPrimitive[]): void;
 }
+/** Configuration options for instantiating a ViewHud. */
 export interface ViewHudOptions {
   readonly binding: HudBinding;
   readonly adapters: readonly HudAdapter[];
@@ -55,6 +60,7 @@ export interface ViewHudOptions {
 }
 /** Creates one ViewHud per seat and viewport. Each ViewHud owns the instruments it creates. */
 export interface ViewHudFactory extends Disposable { create(options: ViewHudOptions): ViewHud }
+/** Service key for the shared per-view HUD factory (`ui.view-hud@1.0.0`). */
 export const VIEW_HUD: ServiceKey<ViewHudFactory> = Object.freeze({slot:'ui.view-hud',version:'1.0.0'});
 
 /** Throttle readout for one seat. `throttle` is a fraction from 0 to 1; Space Sim reports 0
@@ -91,6 +97,7 @@ export interface FlightHudAdapter {
 }
 /** Host adapter for flight instruments. Declare it in `HudInstrumentDefinition.requires`. */
 export const FLIGHT_HUD_STATE: ServiceKey<FlightHudAdapter> = Object.freeze({slot:'view.flight-hud-state',version:'1.0.0'});
+/** Per-view navball attitude instrument, provided by `builtin.navball` in Space Sim. */
 export const NAVBALL_HUD: ServiceKey<HudInstrumentDefinition> = Object.freeze({slot:'hud.navball',version:'1.0.0'});
 /** Per-seat throttle lever instrument, provided by `spacelab.throttle-hud` in Space Sim. */
 export const THROTTLE_HUD: ServiceKey<HudInstrumentDefinition> = Object.freeze({slot:'hud.throttle',version:'1.0.0'});

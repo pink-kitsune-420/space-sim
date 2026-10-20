@@ -5,28 +5,113 @@
   "summary": "Independent local flight seats and split/dynamic panes over a borrowed session.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Requires input.local-pilots, input.flight-profiles, view.flight-camera, view.prediction, view.fleet and view.local@1.0.0. input.gamepad@1.0.0 is optional. Keyboard-only local pilots work without gamepad code. Browser and offline; platform authority."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "This explicit flight adapter owns local pilot/view composition, while camera control, prediction and fleet display are separate compatible providers. Generic non-flight games use input.controller and view.local with their own state adapter. Space Sim’s host still connects the portable factories while manifest startup migrates. Per-player camera-rotate-left/right actions rotate only that guest camera; no extra world step is introduced."
+      "text": "This module provides dynamic and fixed splitscreen flight views for up to four local players. When players fly together, they share a single adaptive camera pane; as vessels diverge past distance or screen thresholds, the viewport splits smoothly into independent player panes with dedicated cameras, trajectory predictions, fleet culling, and gamepad assignments."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.flight-split@1.0.0 through the FLIGHT_SPLIT service key: creates FlightSplitScreen controllers managing guest seating and viewports.",
+        "Requires input.local-pilots@^1.0.0 through the LOCAL_PILOTS key: queries player color and profile preferences.",
+        "Requires input.flight-profiles@^1.0.0 through the FLIGHT_PROFILES key: manages controller mapping profiles.",
+        "Requires view.flight-camera@^1.0.0 through the FLIGHT_CAMERAS key: creates independent flight cameras for guest viewports.",
+        "Requires view.prediction@^1.0.0 through the PREDICTIONS key: allocates independent progressive trajectory previews.",
+        "Requires view.fleet@^1.0.0 through the FLEET_VIEWS key: builds per-pane fleet ship visibility lists.",
+        "Requires view.local@^1.0.0 through the LOCAL_VIEWS key: calculates responsive split pane rectangles.",
+        "Requires input.gamepad@^1.0.0 (optional) through the GAMEPAD_INPUT key: enables controller polling for guest joining.",
+        "Fills the view.flight-split slot in platform configurations."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "joinButton (default 9, from 0 to 31, step 1): Standard gamepad button index that lets an unclaimed controller join local play. Default 9 is Start/Menu/Options; ownership rules still apply.",
+        "guestPredictionMs (default 1.5, from 0.1 to 10, step 0.1): Wall-time prediction budget for each guest view. Higher budgets refine previews sooner; they do not advance or alter the shared world.",
+        "wheelZoom (default 0.0015, from 0.0001 to 0.01, step 0.0001): Exponential zoom factor per mouse-wheel unit in guest panes. Each guest camera remains independent.",
+        "separateScreenRatio (default 0.55, from 0.1 to 1, step 0.01): Split a guest into its own pane when its screen distance exceeds this fraction of the viewport’s smaller dimension.",
+        "mergeScreenRatio (default 0.35, from 0.05 to 1, step 0.01): A separated guest must fall below this screen-distance fraction before merging. Must not exceed the separation threshold.",
+        "separateDistance (default 5000, from 1 to 1000000, step 1): Split a guest when its body-relative distance from Player 1 exceeds this distance, even if the shared camera is zoomed far out.",
+        "mergeDistance (default 3500, from 1 to 1000000, step 1): A guest must be closer than this distance before merging. Must not exceed the world separation threshold.",
+        "mergeDelayMs (default 600, from 0 to 10000, step 1): Keep a guest inside both merge thresholds for this long before returning to the shared view. Prevents rapid split/merge flicker."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization validates separation and merge threshold constraints, binds required input and camera services, contributes this guide, and registers FLIGHT_SPLIT.",
+        "create(viewport, host) mounts the splitscreen container and wires session callbacks.",
+        "pollPads() checks for join button presses on unassigned controllers and seats new players.",
+        "updateDynamic evaluates inter-ship separation and switches between single-view centroid tracking and multi-pane layouts.",
+        "dispose cleans up active guest cameras, prediction engines, fleet views, and gamepad instances."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "The host resolves its current primary canvas through primaryCanvas(), because renderer replacement can change the element. Seat, device and target changes release prior input and commands. Local views never advance the world; the authoritative session steps once per tick regardless of pane count."
+      "text": "To customize multiplayer flight presentation, implement view.flight-split@1.0.0 in the view.flight-split slot. Removing this module disables local multi-seat flight, restricting games to single-player viewports."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "Existing local-player preferences and legacy controller settings remain compatible. Panes, cameras, predictions, fleet caches, observers, styles and owned gamepad managers are released on disposal. HUD instruments remain optional and will attach through the separately approved shared per-view lifecycle; this package does not require a navball or throttle instrument."
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: split-screen host interfaces and dynamic centroid algorithms may be refined prior to API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/flight-split demonstrates instantiating the flight split-screen manager and configuring local player seats. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "npm run module:build -- modules/flight-split/module.json /tmp/flight-split.spacemod"
+      "text": "npm run module:build -- examples/modules/flight-split/module.json /tmp/example-flight-split.spacemod\nnpm run module:validate -- /tmp/example-flight-split.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Unpack, edit source, rebuild/repack and import into a compatible game. Downloaded code requires explicit consent and has full application privileges. Building a package does not establish runtime acceptance."
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Flight split screen",
+      "page": "api-reference/module/spacelab.flight-split"
+    },
+    {
+      "type": "link",
+      "text": "Independent local views: layout allocation and pane geometry",
+      "page": "spacelab.local-views/usage"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-view.ts: flight view and split screen interfaces",
+      "page": "api-reference/game-api/flight-view"
     }
   ]
 }

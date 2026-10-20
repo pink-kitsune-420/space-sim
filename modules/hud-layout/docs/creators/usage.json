@@ -5,12 +5,95 @@
   "summary": "Optional viewer layout, movement and visibility with complete cleanup.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Require ui.hud-layout@^1.0.0 with shared ui.windows icons. Create a layout for your viewport; optionally supply an editor toggle/reset, named movable items, viewer preference storage and responsive DOM roles. Fitting measures obstacles on layout changes and returns CSS-pixel rectangles without stepping a world. Instrument-specific geometry remains a read-only adapter."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Visibility receives caller-defined labels, selectors, defaults and optional container classes. External tools can bind their existing enabled state without a second store; dispose the returned binding on removal. The game chooses applicable groups and keeps a recovery path reachable. Editor/layout/visibility disposal aborts listeners, cancels pending animation work, disconnects observers, removes controls and restores borrowed presentation state. This preserves the existing narrow layout tools; broader HUD customization remains separate."
+      "text": "This module provides responsive HUD placement and interactive layout editing for flight instruments and UI controls. It enables dragging and keyboard repositioning of HUD elements, fits flexible instruments around obstacles, and provides a visibility controller for toggling individual instruments with persistent theme preferences."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.hud-layout@1.0.0 through the HUD_LAYOUT key: creates HudLayout responsive positioning controllers and HudVisibilityController managers.",
+        "Requires ui.windows@^1.0.0 through the WINDOWS key: uses window system icon assets for layout handles.",
+        "Fills the ui.hud-layout slot in platform profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "moveStepPx (default 8, from 1 to 128, step 1): Distance moved by one arrow-key press on a focused HUD grip in CSS pixels. Saved positions remain normalized to the viewport.",
+        "fastMoveStepPx (default 32, from 1 to 128, step 1): Distance moved by Shift plus an arrow key on a focused HUD grip in CSS pixels. Does not change pointer dragging or world coordinates."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization binds WINDOWS, loads layout stylesheets, captures moveStepPx and fastMoveStepPx, contributes this guide, and registers HUD_LAYOUT.",
+        "create(options) mounts layout styling and manages obstacle avoidance and drag bounds across viewport canvases.",
+        "visibility(options) instantiates visibility controllers managing toggle checkboxes and persisting display choices.",
+        "dispose cleanly detaches injected style elements, listeners, and interactive layout handles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize HUD layout behavior, provide an alternative implementation of ui.hud-layout@1.0.0 in the ui.hud-layout slot. Removing this module disables interactive HUD rearranging and visibility panels, leaving instruments at their default fixed coordinates."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: layout coordinate normalization formulas and visibility storage schemas may be adjusted prior to API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/hud-layout demonstrates configuring a HUD layout controller and obstacle avoidance. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/hud-layout/module.json /tmp/example-hud-layout.spacemod\nnpm run module:validate -- /tmp/example-hud-layout.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: HUD layout and visibility",
+      "page": "api-reference/module/spacelab.hud-layout"
+    },
+    {
+      "type": "link",
+      "text": "game-api hud-layout.ts: layout and visibility interfaces",
+      "page": "api-reference/game-api/hud-layout"
     }
   ]
 }

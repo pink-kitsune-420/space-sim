@@ -2,15 +2,103 @@
   "id": "usage",
   "audience": "creators",
   "title": "Independent fleet views",
-  "summary": "Read-only selected-physics coast evaluation with per-view caches.",
+  "summary": "Selected-provider coast queries, per-view culling/cache and borrowed world reads.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "view.fleet@1.0.0 creates one read-only fleet builder per view. Supply WorldRead, presentation time/alpha, camera/viewport, pilot identity, previous state, display-frame adapters and names. It never steps a world. Sleeping coasts use the selected context orbital provider and guarded coastAt, preserving custom compatible model identities instead of consulting the default global kernel."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Each instance owns its position/label caches and counters; world replacement clears them. Distinct guest instances use their own pilot identity for foreign labels. Conservative annulus/screen culling and bounded sub-pixel position reuse preserve original defaults; marginPixels and stillPixels configure viewer cost only. Dispose drops retained world/cache references and rejects future builds. No renderer, device or DOM dependency; browser/offline/node are supported."
+      "text": "This module provides per-view fleet culling and render list generation for secondary vessels and unpiloted objects. It uses orbit-annulus geometric bounds to cull ships outside the camera view before computing expensive Kepler solves, and caches solved positions while sub-pixel motion remains below a threshold, maintaining high frame rates across large fleets."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.fleet@1.0.0 through the FLEET_VIEWS key: creates FlightFleetView instances for per-view ship list construction.",
+        "Fills the view.fleet slot in presentation profiles.",
+        "Requires no external services in its module manifest."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "marginPixels (default 40, from 40 to 256, step 1): Viewport margin in CSS pixels matching the renderer margin, avoiding visual pop-in at screen edges.",
+        "stillPixels (default 0.25, from 0 to 1, step 0.05): Maximum CSS-pixel drift allowed before recomputing a cached coast position."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures marginPixels and stillPixels settings, contributes this guide, and registers FLEET_VIEWS.",
+        "create() produces an independent FlightFleetView for each viewport.",
+        "build(input) inspects borrowed world state, culls off-screen orbits, solves visible coast states, projects screen positions, and generates RenderShip records.",
+        "dispose clears placed ship caches, label strings, and world references."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To replace fleet culling and rendering behaviors, provide view.fleet@1.0.0 in the view.fleet slot. Removing this module disables fleet presentation in multi-ship scenarios."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: fleet statistics structures and culling heuristics may evolve before API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/fleet-view demonstrates instantiating a fleet view, submitting frame parameters, and reading culling statistics. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/fleet-view/module.json /tmp/example-fleet-view.spacemod\nnpm run module:validate -- /tmp/example-fleet-view.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Independent fleet views",
+      "page": "api-reference/module/spacelab.fleet-view"
+    },
+    {
+      "type": "link",
+      "text": "Flight split screen: multi-player split and dynamic views",
+      "page": "spacelab.flight-split/usage"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-view.ts: flight view and fleet interfaces",
+      "page": "api-reference/game-api/flight-view"
     }
   ]
 }
