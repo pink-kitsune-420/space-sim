@@ -64,7 +64,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-net/5 and entity schema space-sim-flight-entities/1."
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-net/6 and entity schema space-sim-flight-entities/1."
     },
     {
       "type": "heading",

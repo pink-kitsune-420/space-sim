@@ -1,9 +1,11 @@
-import type { ModuleDataCommand } from '@space-sim/game-api';
+import type { ModuleDataCommand, SparsePageStore, SparsePageDelta } from '@space-sim/game-api';
 import type { Controls, Vec, SavedPlayer, Ship, WorldEvent, CommandEffect, WorldControl, WorldChanges, FlightSessionServices } from '@space-sim/game-api';
 import type { TextConnection as Connection } from '@space-sim/game-api';
 import {
-  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, VEHICLE_PROTOCOL, MODULE_DATA_PROTOCOL, ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
-  type NetShip, type SessionRules,
+  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, VEHICLE_PROTOCOL, MODULE_DATA_PROTOCOL,
+  MAX_SUBSCRIBED_CHUNKS, MAX_CHUNK_BYTES_PER_TICK, uint8ArrayToBase64,
+  ProtocolError, parseClientMessage, type ClientMessage, type ErrorCode, type HostMessage, type NetPlayer,
+  type NetShip, type SessionRules, type ChunkDeltaPayload, type HostChunkDelta,
 } from './protocol';
 import { newPlayerId, newToken, sha256Hex } from './sha256';
 
@@ -100,6 +102,11 @@ export class HostSession<W extends WorldControl = WorldControl> {
   /** Every chat line, as sent to the players. */
   onchat: ((line: { readonly from?: string; readonly name: string; readonly text: string }) => void) | null = null;
   private readonly players = new Map<string, Player>();
+  pageStore?: SparsePageStore;
+  private readonly subscriptions = new Map<string, Set<string>>();
+  private readonly chunkBodies = new Map<string, string>();
+  private readonly chunkRevisions = new Map<string, number>();
+  private readonly outboundDeltas = new Map<string, Array<{ bodyId: string; delta: ChunkDeltaPayload; byteSize: number }>>();
   private readonly peers = new Set<Peer>();
   private readonly queues = new Map<string, PendingInput[]>();
   private readonly acks = new Map<string, number>();
@@ -112,13 +119,129 @@ export class HostSession<W extends WorldControl = WorldControl> {
 
   constructor(private readonly services: FlightSessionServices, world: W, settings: Partial<HostSettings> = {}, options: {
     readonly players?: readonly SavedPlayer[]; readonly now?: () => number; readonly log?: (message: string) => void;
+    readonly pageStore?: SparsePageStore;
   } = {}) {
     this.world = world;
     this.settings = { ...DEFAULT_HOST_SETTINGS, ...settings };
     this.now = options.now ?? (() => performance.now());
     this.log = options.log ?? (() => {});
+    this.pageStore = options.pageStore ?? (world as any).pageStore;
     this.changes = world.subscribeChanges();
     for (const p of options.players ?? []) this.players.set(p.id, { ...p });
+  }
+
+  setPageStore(store: SparsePageStore): void {
+    this.pageStore = store;
+  }
+
+  getSubscriptions(playerId: string): ReadonlySet<string> {
+    return this.subscriptions.get(playerId) ?? new Set();
+  }
+
+  subscribeChunks(playerId: string, bodyId: string, chunkKeys: readonly string[]): void {
+    this.assertActive();
+    this.requirePlayer(playerId);
+    let current = this.subscriptions.get(playerId);
+    if (!current) {
+      current = new Set<string>();
+      this.subscriptions.set(playerId, current);
+    }
+    const newCount = chunkKeys.filter(k => !current!.has(k)).length;
+    if (current.size + newCount > MAX_SUBSCRIBED_CHUNKS) {
+      throw new SessionError(`Exceeded maximum chunk subscriptions (${MAX_SUBSCRIBED_CHUNKS})`);
+    }
+    for (const key of chunkKeys) {
+      current.add(key);
+      this.chunkBodies.set(key, bodyId);
+    }
+  }
+
+  unsubscribeChunks(playerId: string, _bodyId: string, chunkKeys: readonly string[]): void {
+    this.assertActive();
+    this.requirePlayer(playerId);
+    const current = this.subscriptions.get(playerId);
+    if (!current) return;
+    for (const key of chunkKeys) {
+      current.delete(key);
+    }
+  }
+
+  broadcastChunkDeltas(): void {
+    let dirtyPages: readonly SparsePageDelta[] = [];
+    if (this.pageStore) {
+      dirtyPages = this.pageStore.commitDirtyPages();
+    }
+    if (this.world.moduleState) {
+      for (const modState of Object.values(this.world.moduleState)) {
+        if (modState.pages && typeof modState.pages.commitDirtyPages === 'function') {
+          const modDeltas = modState.pages.commitDirtyPages();
+          if (modDeltas.length > 0) {
+            dirtyPages = dirtyPages.length > 0 ? [...dirtyPages, ...modDeltas] : modDeltas;
+          }
+        }
+      }
+    }
+
+    if (dirtyPages.length > 0) {
+      for (const dirty of dirtyPages) {
+        const rev = (this.chunkRevisions.get(dirty.key) ?? 0) + 1;
+        this.chunkRevisions.set(dirty.key, rev);
+        const base64Delta = uint8ArrayToBase64(dirty.delta);
+        const payload: ChunkDeltaPayload = { key: dirty.key, delta: base64Delta, revision: rev };
+        const byteSize = dirty.delta.byteLength;
+
+        let bodyId = this.chunkBodies.get(dirty.key);
+        if (!bodyId) {
+          const match = /^b:([a-z0-9-]+):c:/.exec(dirty.key);
+          bodyId = match ? match[1]! : this.world.systemId;
+        }
+
+        for (const [playerId, subs] of this.subscriptions) {
+          if (subs.has(dirty.key)) {
+            let queue = this.outboundDeltas.get(playerId);
+            if (!queue) {
+              queue = [];
+              this.outboundDeltas.set(playerId, queue);
+            }
+            queue.push({ bodyId, delta: payload, byteSize });
+          }
+        }
+      }
+    }
+
+    for (const peer of this.peers) {
+      if (!peer.player || peer.closed) continue;
+      const playerId = peer.player.id;
+      const queue = this.outboundDeltas.get(playerId);
+      if (!queue || queue.length === 0) continue;
+
+      let bytesSent = 0;
+      const toSendByBody = new Map<string, ChunkDeltaPayload[]>();
+      while (queue.length > 0) {
+        const item = queue[0]!;
+        if (bytesSent > 0 && bytesSent + item.byteSize > MAX_CHUNK_BYTES_PER_TICK) {
+          break;
+        }
+        queue.shift();
+        bytesSent += item.byteSize;
+        let list = toSendByBody.get(item.bodyId);
+        if (!list) {
+          list = [];
+          toSendByBody.set(item.bodyId, list);
+        }
+        list.push(item.delta);
+      }
+
+      for (const [bodyId, deltas] of toSendByBody) {
+        const message: HostChunkDelta = {
+          t: 'chunk-delta',
+          bodyId,
+          tick: this.world.tick,
+          deltas,
+        };
+        peer.connection.send(JSON.stringify(message));
+      }
+    }
   }
 
   /** Seat the person playing in the hosting browser: the player holding `token`, else the
@@ -446,6 +569,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
     if (this.requestedWarp > 1) this.regulateWarp();
     const events = this.world.step();
     this.handleFaults(events);
+    this.broadcastChunkDeltas();
     if (this.world.tick % this.settings.snapshotEveryTicks === 0) this.broadcastSnapshot();
     return events;
   }
@@ -577,6 +701,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
     for (const player of this.players.values()) { try { this.releaseControls(player.id); } catch (error) { errors.push(error); } }
     try { this.changes.dispose(); } catch (error) { errors.push(error); }
     this.queues.clear(); this.acks.clear(); this.onchat = null; this.onplayers = null;
+    this.subscriptions.clear(); this.outboundDeltas.clear(); this.chunkBodies.clear(); this.chunkRevisions.clear();
     this.disposed = true; this.disposing = false;
     if (errors.length) throw new AggregateError(errors, 'Flight host cleanup failed');
   }
@@ -711,6 +836,8 @@ export class HostSession<W extends WorldControl = WorldControl> {
           this.chat(player.id, message.text);
           break;
         }
+        case 'sub-chunks': this.subscribeChunks(player.id, message.bodyId, message.chunkKeys); break;
+        case 'unsub-chunks': this.unsubscribeChunks(player.id, message.bodyId, message.chunkKeys); break;
         case 'resync':
           if (now - peer.resyncAt < RESYNC_INTERVAL_MS) break;
           peer.resyncAt = now;
@@ -807,6 +934,8 @@ export class HostSession<W extends WorldControl = WorldControl> {
     const player = peer.player;
     if (player?.peer !== peer) return;
     player.peer = undefined;
+    this.subscriptions.delete(player.id);
+    this.outboundDeltas.delete(player.id);
     this.releaseControls(player.id);
     this.log(`${player.name} left (${reason})`);
     this.changedPlayers();

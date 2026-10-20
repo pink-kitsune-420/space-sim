@@ -247,7 +247,7 @@ describe('commands on the authoritative host', () => {
 
 describe('commands over the network', () => {
   it('parses command requests strictly and bumps the protocol', () => {
-    expect(PROTOCOL).toBe('space-sim-net/5');
+    expect(PROTOCOL).toBe('space-sim-net/6');
     expect(parseClientMessage(JSON.stringify({ t: 'command', ship: 'ship-1', command: 'example.maneuvers/trim-throttle', args: { step: -.5 } })))
       .toEqual({ t: 'command', ship: 'ship-1', command: 'example.maneuvers/trim-throttle', args: { step: -.5 } });
     expect(parseClientMessage(JSON.stringify({ t: 'command', ship: 'ship-1', command: 'example.maneuvers/cut-throttle' })))

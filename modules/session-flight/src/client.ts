@@ -1,8 +1,10 @@
-import { captureVehicleCatalog } from '@space-sim/game-api';
+import { captureVehicleCatalog, type SparsePageStore } from '@space-sim/game-api';
 import type { ModuleDataCommand, ModuleDataExtension } from '@space-sim/game-api';
 import type { WorldControl, WorldFactory, AuthoritativeLock, CommandExtension, ForceExtension, JoinOptions, ModuleLock, SimulationContextFactory, WorldRuleExtension, Controls, Vec, Ship, WorldEvent, FlightSessionServices, TextConnection as Connection } from '@space-sim/game-api';
 import {
-  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, MODULE_DATA_PROTOCOL, VEHICLE_PROTOCOL, parseHostMessage, type ClientMessage, type HostMessage, type NetPlayer, type NetShip, type SessionRules,
+  MAX_CHAT, MAX_INPUT_LEAD_TICKS, PROTOCOL, MODULE_DATA_PROTOCOL, VEHICLE_PROTOCOL,
+  base64ToUint8Array, type ChunkDeltaPayload,
+  parseHostMessage, type ClientMessage, type HostMessage, type NetPlayer, type NetShip, type SessionRules,
 } from './protocol';
 
 export interface ClientOptions {
@@ -27,6 +29,10 @@ export interface ClientOptions {
   /** This client's installed command definitions; the matching fingerprint pins them to the host's. */
   readonly commands?: readonly CommandExtension[];
   readonly verifyCandidate?: JoinOptions['verifyCandidate'];
+  readonly pageStore?: SparsePageStore;
+  readonly onChunkDelta?: (bodyId: string, deltas: readonly ChunkDeltaPayload[]) => void;
+  readonly onChunkDirty?: (bodyId: string, chunkKey: string) => void;
+  readonly onnotice?: (text: string) => void;
 }
 
 type Snapshot = Extract<HostMessage, { t: 'snapshot' }>;
@@ -84,6 +90,9 @@ export class ClientSession {
   /** A chat line from a player (`from`), or from the server console. */
   onchat: ((line: { readonly from?: string; readonly name: string; readonly text: string }) => void) | null = null;
   onclose: ((reason: string) => void) | null = null;
+  pageStore?: SparsePageStore;
+  onChunkDelta?: ((bodyId: string, deltas: readonly ChunkDeltaPayload[]) => void) | null = null;
+  onChunkDirty?: ((bodyId: string, chunkKey: string) => void) | null = null;
 
   private readonly connection: Connection;
   private readonly options: ClientOptions;
@@ -114,8 +123,24 @@ export class ClientSession {
     this.connection = connection;
     this.options = options;
     this.now = options.now ?? (() => performance.now());
+    if (options.pageStore) this.pageStore = options.pageStore;
+    if (options.onChunkDelta) this.onChunkDelta = options.onChunkDelta;
+    if (options.onChunkDirty) this.onChunkDirty = options.onChunkDirty;
+    if (options.onnotice) this.onnotice = options.onnotice;
     connection.onmessage = text => this.receive(text);
     connection.onclose = reason => this.closed(reason);
+  }
+
+  setPageStore(store: SparsePageStore): void {
+    this.pageStore = store;
+  }
+
+  subChunks(bodyId: string, chunkKeys: readonly string[]): void {
+    this.send({ t: 'sub-chunks', bodyId, chunkKeys });
+  }
+
+  unsubChunks(bodyId: string, chunkKeys: readonly string[]): void {
+    this.send({ t: 'unsub-chunks', bodyId, chunkKeys });
   }
 
   ownShips(): Ship[] { return this.world ? [...this.world.records()].filter(s => s.ownerId === this.playerId) : []; }
@@ -651,6 +676,18 @@ export class ClientSession {
       case 'error':
         this.closeReason = message.message;
         return;
+      case 'chunk-delta': {
+        const store = this.pageStore ?? (this.world as any)?.pageStore;
+        if (store) {
+          for (const delta of message.deltas) {
+            const bytes = base64ToUint8Array(delta.delta);
+            store.setPage(delta.key, bytes);
+            this.onChunkDirty?.(message.bodyId, delta.key);
+          }
+        }
+        this.onChunkDelta?.(message.bodyId, message.deltas);
+        return;
+      }
     }
   }
 

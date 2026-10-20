@@ -106,7 +106,7 @@ export async function encodeJoinPack(raw: GamePackage, world: WorldRead): Promis
   if (budget.bytes + gameBytes.length + json(world.universe).length + 1024 > MAX_EXPANDED_BYTES) throw new Error('Server pack exceeds the combined expanded-byte budget');
   const bytes = await writeZip(new Map([['join.json', json({ format: 'spacelab-server-pack/1', systemId: world.systemId })],
     ['game.spacegame', gameBytes], ['world.json', json(world.universe)]]));
-  const offer = createOffer({ sessionId: world.id, name: game.info.name, protocol: 'space-sim-net/5', entitySchema: 'space-sim-ships/1', model: MODEL,
+  const offer = createOffer({ sessionId: world.id, name: game.info.name, protocol: 'space-sim-net/6', entitySchema: 'space-sim-ships/1', model: MODEL,
     fingerprint: world.simulationFingerprint, lockDigest: sha256Hex(canonicalJson(world.lock)), packDigest: sha256Bytes(bytes), packBytes: bytes.length, packages: inventory });
   return { bytes, offer };
 }

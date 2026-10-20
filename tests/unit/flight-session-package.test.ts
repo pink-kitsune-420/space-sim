@@ -35,7 +35,7 @@ describe('portable explicit flight session', () => {
     let token = '';
     const joining = provider.join(client, { name: 'Ada', saveToken: (_id, value) => { token = value; } }, new AbortController().signal);
     host.accept(server); const remote = await joining;
-    expect(provider.protocol).toBe('space-sim-net/5'); expect(provider.entitySchema).toBe('space-sim-ships/1');
+    expect(provider.protocol).toBe('space-sim-net/6'); expect(provider.entitySchema).toBe('space-sim-ships/1');
     const ship = world.ships()[0]!; expect(ship.ownerId).toBe(remote.playerId); expect(token).toMatch(/^[0-9a-f]{32}$/);
     remote.update(0.01, ship.id, { turn: 0, throttle: 0, engine: true });
     for (let tick = 0; tick < 150; tick++) { await Promise.resolve(); host.step(); host.service(); remote.update(0.01, ship.id, { turn: 0, throttle: 0, engine: true }); }
@@ -100,6 +100,6 @@ describe('portable explicit flight session', () => {
     const graph = new ModuleRegistryV2(engineModuleServices()); graph.register(registration.module, registration.assets);
     const candidate = graph.prepare(profile([registration.module]), 'node'), provider = candidate.providedService(FLIGHT_SESSIONS);
     const world = new World(DEFAULT_UNIVERSE), host = provider.host(world); expect(host.world.id).toBe(world.id);
-    expect(candidate.guideDocuments.get(`${manifest.id}/usage`)).toContain('space-sim-net/5'); candidate.dispose(); world.dispose();
+    expect(candidate.guideDocuments.get(`${manifest.id}/usage`)).toContain('space-sim-net/6'); candidate.dispose(); world.dispose();
   }, 60000);
 });
