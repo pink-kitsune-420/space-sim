@@ -1,4 +1,4 @@
-# Spacelab
+# Spacelab 🚀
 
 A free, open-source toolkit for modular 2D space games. **Space Sim**, the bundled orbital flight game, combines double-precision Keplerian mechanics, terrain and ocean landings, and multiplayer in a minimalist vector world.
 
