@@ -2,11 +2,98 @@
   "id": "usage",
   "audience": "creators",
   "title": "Server universe storage",
-  "summary": "Server universe storage",
+  "summary": "Serialized atomic saves, backups and validated recovery over borrowed native disk IO.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "universe.server-storage@1.0.0 requires node-only core.universe-disk. The host grants a directory, engine/package-aware restore and configuration-error classification. The module serializes writes through temporary-file flush and atomic replacement, preserves world.json and timestamped backup names, quarantines invalid data, and keeps configured backups. Missing required packages must report configurationError and are never quarantined. Native IO is borrowed; disposal blocks new operations and idle drains queued writes."
+      "text": "This module provides persistent server-side universe storage for Node environments. It manages serialized asynchronous disk writes via temporary file writes and atomic replacement, maintains timestamped historical backups, quarantines corrupted save files, and attempts automatic recovery from prior backups. It distinguishes engine and package configuration errors from save corruption, ensuring missing packages do not result in quarantined data."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides universe.server-storage@1.0.0 through the SERVER_UNIVERSE_STORAGE service key: creates ServerUniverseStore storage instances.",
+        "Fills the universe.server-storage slot in platform profiles.",
+        "Requires core.universe-disk@^1.0.0 through the CORE_UNIVERSE_DISK service key: performs low-level native filesystem IO operations."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures CORE_UNIVERSE_DISK, registers SERVER_UNIVERSE_STORAGE, and contributes this guide.",
+        "create(options) instantiates a ServerUniverseStore instance bound to options.directory and backup retention settings.",
+        "save(save) enqueues serialized world data writes, writing to a temporary file and atomically renaming it to world.json.",
+        "load() reads world.json, invokes options.restore, falls back to timestamped backups if corrupt, and rethrows configuration errors without quarantine.",
+        "backup() copies the current active world file into a timestamped backup and trims historical backups beyond keepBackups.",
+        "idle() returns a Promise resolving when all currently queued disk writes have completed.",
+        "dispose marks the store closed, rejecting subsequent writes and unregistering active references."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize server universe persistence (such as backing by a relational database or external object store), provide an alternative universe.server-storage@1.0.0 implementation in the universe.server-storage slot. Removing this module omits automated disk persistence and backup rotation in dedicated Node servers."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: backup file naming formats and quarantine conventions may be refined before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/universe-server-storage demonstrates creating a server universe store, saving world state, and managing backups. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/universe-server-storage/module.json /tmp/example-universe-server-storage.spacemod\nnpm run module:validate -- /tmp/example-universe-server-storage.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Server universe storage",
+      "page": "api-reference/module/spacelab.universe-server-storage"
+    },
+    {
+      "type": "link",
+      "text": "game-api: universe-saving.ts",
+      "page": "api-reference/game-api/universe-saving"
     }
   ]
 }

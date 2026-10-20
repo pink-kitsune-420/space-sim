@@ -2,19 +2,108 @@
   "id": "usage",
   "audience": "creators",
   "title": "Independent planet appearance designer",
-  "summary": "Viewer-only appearance editing over public read-only world and preview contracts.",
+  "summary": "Read-only body previews and viewer-scoped designs with explicit storage/export ports.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "ui.planet-designer@1.0.0 requires fixed core.rotation@1.0.0 and accepts optional render.webgl/render.vector-shaders providers. Without both preview providers, appearance editing, My planets and JSON export still work; absence is distinct from provider failure. Each create call receives its own root, unique idPrefix, WorldRead getter, current-body getter, viewer storage and explicit download/confirm/optional clipboard commands. No mutable world or network authority is exposed."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Applied looks use the existing space-sim.planet-looks/1 viewer key scoped by universe/system/body; My planets uses space-sim.planet-library/1 and space-sim-planets/1 exports. Designs never enter saves or fingerprints. Imports validate styles, four hex colours and bounded finite seed/tuning; physical geometry and surface fields are excluded from exported appearance. Preview turn duration, initial sun angle and pre-parse import byte limit are described settings with unchanged defaults."
+      "text": "This module provides viewer-scoped planet appearance editing and 3D previewing over public read-only world contracts. It enables customizing celestial surface styles, color palettes, procedural seeds, and tuning parameters without modifying authoritative world state, simulation physics, or multiplayer network payloads. Custom designs and applied looks are saved to viewer-local storage under space-sim.planet-looks/1 and space-sim.planet-library/1, and can be exported as standalone space-sim-planets/1 JSON documents."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.planet-designer@1.0.0 through the PLANET_DESIGNERS service key: creates PlanetDesignerControl interactive designer instances.",
+        "Fills the ui.planet-designer slot in platform profiles.",
+        "Requires core.rotation@^1.0.0 through the CORE_ROTATION service key: evaluates celestial body spin rates and body-fixed orientations.",
+        "Requires render.webgl@^1.0.0 (optional) through the WEBGL_DRAWING service key: renders 3D sphere preview views.",
+        "Requires render.vector-shaders@^1.0.0 (optional) through the VECTOR_SHADERS service key: supplies shader program defaults for the preview."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "previewSpinSeconds (default 20, from 1 to 120, step 1): Wall-clock seconds per decorative preview turn, in seconds, controlling rotational speed in the appearance preview without affecting physical world bodies.",
+        "sunDegrees (default 120, from 0 to 360, step 1): Initial lighting illumination angle, in degrees, setting the preview sun direction until user adjustment.",
+        "importMaxBytes (default 1048576, from 1024 to 8388608, step 1024): Maximum allowed file size when importing planet designs, in bytes, rejecting oversized files before parsing to protect memory."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures CORE_ROTATION, optional WEBGL_DRAWING, and optional VECTOR_SHADERS, loads stylesheet assets, registers PLANET_DESIGNERS, and contributes this guide.",
+        "create(options) mounts designer markup inside options.root, loads applied and library designs from viewer storage, and creates preview canvas elements.",
+        "appearanceFor(world, body) queries active custom looks for celestial bodies to override rendering appearance during flight or map viewing.",
+        "refresh() updates draft state against the current active body and re-renders preview canvases.",
+        "open() reveals the designer interface within the host layout.",
+        "dispose cancels preview animation frames, detaches event listeners, restores replaced DOM child nodes, and disposes preview renderers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Call open/refresh as the host reveals a standalone editor or changes worlds. Distinct editors own previews, drafts and UI. Shared storage is explicit; each mounted editor reads a snapshot and writes only through its supplied viewer store. Dispose cancels animation, disables stale controls and asynchronous import/clipboard/PNG completion, releases its preview and restores borrowed root contents even if preview cleanup fails. Omit the module to remove authoring; the live renderer uses the body\u2019s original look."
+      "text": "To customize planet appearance editing or author custom celestial shaders, provide an alternative ui.planet-designer@1.0.0 implementation in the ui.planet-designer slot. Removing this module omits the planet appearance designer and preview editor; bodies display using default procedural appearance presets."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: preset definitions, export formats (space-sim-planets/1), and tuning ranges may evolve before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/planet-designer demonstrates mounting the planet designer, querying appearance overrides, and handling lifecycle cleanup. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/planet-designer/module.json /tmp/example-planet-designer.spacemod\nnpm run module:validate -- /tmp/example-planet-designer.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Independent planet appearance designer",
+      "page": "api-reference/module/spacelab.planet-designer"
+    },
+    {
+      "type": "link",
+      "text": "game-api: planet-designer.ts",
+      "page": "api-reference/game-api/planet-designer"
+    },
+    {
+      "type": "link",
+      "text": "game-api: rotation.ts",
+      "page": "api-reference/game-api/rotation"
     }
   ]
 }

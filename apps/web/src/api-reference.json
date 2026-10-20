@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0817caf64a51d088",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 16e728ffbe7733e4",
   "modules": [
     "spacelab.alarm-panel",
     "spacelab.trainer-appearance",
@@ -32,6 +32,7 @@
     "spacelab.net-websocket",
     "spacelab.orbital-alarms",
     "builtin.motion",
+    "spacelab.planet-designer",
     "spacelab.player-controller",
     "spacelab.player-view",
     "spacelab.render-canvas",
@@ -44,6 +45,10 @@
     "spacelab.theme-customizer",
     "spacelab.throttle-hud",
     "spacelab.transfer-planner",
+    "spacelab.universe-files",
+    "spacelab.universe-save-controls",
+    "spacelab.universe-saves",
+    "spacelab.universe-server-storage",
     "spacelab.trainer",
     "spacelab.view-hud"
   ],
@@ -59,7 +64,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0817caf64a51d088"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 16e728ffbe7733e4"
         },
         {
           "type": "paragraph",
@@ -221,6 +226,11 @@
         },
         {
           "type": "link",
+          "text": "Planet appearance designer (spacelab.planet-designer)",
+          "page": "api-reference/module/spacelab.planet-designer"
+        },
+        {
+          "type": "link",
           "text": "Player controller (spacelab.player-controller)",
           "page": "api-reference/module/spacelab.player-controller"
         },
@@ -278,6 +288,26 @@
           "type": "link",
           "text": "Orbital transfer search (spacelab.transfer-planner)",
           "page": "api-reference/module/spacelab.transfer-planner"
+        },
+        {
+          "type": "link",
+          "text": "Universe files (spacelab.universe-files)",
+          "page": "api-reference/module/spacelab.universe-files"
+        },
+        {
+          "type": "link",
+          "text": "Universe save controls (spacelab.universe-save-controls)",
+          "page": "api-reference/module/spacelab.universe-save-controls"
+        },
+        {
+          "type": "link",
+          "text": "Universe save commands (spacelab.universe-saves)",
+          "page": "api-reference/module/spacelab.universe-saves"
+        },
+        {
+          "type": "link",
+          "text": "Server universe storage (spacelab.universe-server-storage)",
+          "page": "api-reference/module/spacelab.universe-server-storage"
         },
         {
           "type": "link",
@@ -385,6 +415,11 @@
         },
         {
           "type": "link",
+          "text": "planet-designer.ts",
+          "page": "api-reference/game-api/planet-designer"
+        },
+        {
+          "type": "link",
           "text": "platform.ts",
           "page": "api-reference/game-api/platform"
         },
@@ -477,6 +512,11 @@
           "type": "link",
           "text": "universe.ts",
           "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "link",
+          "text": "universe-saving.ts",
+          "page": "api-reference/game-api/universe-saving"
         },
         {
           "type": "link",
@@ -3765,6 +3805,129 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.planet-designer",
+      "title": "Planet appearance designer reference",
+      "summary": "Read-only body previews and viewer-scoped designs with explicit storage/export ports.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Read-only body previews and viewer-scoped designs with explicit storage/export ports."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.planet-designer",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.planet-designer@1.0.0 · PLANET_DESIGNERS: ServiceKey<PlanetDesignerFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.rotation@^1.0.0 · CORE_ROTATION: ServiceKey<RotationMath>",
+            "render.webgl@^1.0.0 (optional) · WEBGL_DRAWING: ServiceKey<WebGLRendererFactory>",
+            "render.vector-shaders@^1.0.0 (optional) · VECTOR_SHADERS: ServiceKey<ShaderLibrary>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.planet-designer",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "previewSpinSeconds: number, default 20, from 1 to 120, step 1. Preview turn duration (s): Wall-clock seconds per decorative preview turn. Physical body rotation and live-world time remain unchanged.",
+            "sunDegrees: number, default 120, from 0 to 360, step 1. Initial preview light angle (degrees): Initial sun direction for the independent appearance preview; the viewer can adjust it without changing a world.",
+            "importMaxBytes: number, default 1048576, from 1024 to 8388608, step 1024. Design import size limit (bytes): Reject larger My planets JSON files before reading/parsing. Preserves the existing 1 MiB default."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "APPEARANCE_TUNING, AppearanceStyle, AppearanceTuning, BodyAppearance, BodyPreview, CORE_ROTATION, ModuleInitializationV2, PLANET_DESIGNERS, PlanetDesignerControl, PlanetDesignerFactory, PlanetDesignerOptions, RenderBody, ResolvedBody, RotationMath, ServiceKey, VECTOR_SHADERS, WEBGL_DRAWING, WorldRead"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api planet-designer.ts",
+          "page": "api-reference/game-api/planet-designer"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api rendering.ts",
+          "page": "api-reference/game-api/rendering"
+        },
+        {
+          "type": "link",
+          "text": "game-api rotation.ts",
+          "page": "api-reference/game-api/rotation"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/planet-designer (build with npm run module:build -- examples/modules/planet-designer/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.player-controller",
       "title": "Player controller reference",
       "summary": "Routes namespaced intent to a compatible entity/session adapter without advancing a world.",
@@ -5146,6 +5309,403 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.universe-files",
+      "title": "Universe files reference",
+      "summary": "Bounded browser files and owned downloads, independent of save validation.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bounded browser files and owned downloads, independent of save validation."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.universe-files",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "universe.files@1.0.0 · UNIVERSE_FILES: ServiceKey<UniverseFiles>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: universe.files",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, ServiceKey, UNIVERSE_FILES, UniverseFiles"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe-saving.ts",
+          "page": "api-reference/game-api/universe-saving"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/universe-files (build with npm run module:build -- examples/modules/universe-files/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Universe file storage: how to use, replace and remove it",
+          "page": "spacelab.universe-files/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.universe-save-controls",
+      "title": "Universe save controls reference",
+      "summary": "Independent Save universe / Load universe UI over explicit commands and file storage.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Independent Save universe / Load universe UI over explicit commands and file storage."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.universe-save-controls",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.universe-saves@1.0.0 · UNIVERSE_SAVE_CONTROLS: ServiceKey<UniverseSaveControlFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "universe.files@^1.0.0 · UNIVERSE_FILES: ServiceKey<UniverseFiles>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.universe-saves",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, ServiceKey, UNIVERSE_FILES, UNIVERSE_SAVE_CONTROLS, UniverseFiles, UniverseSaveControlFactory, UniverseSaveControlOptions, UniverseSaveControls"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe-saving.ts",
+          "page": "api-reference/game-api/universe-saving"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/universe-save-controls (build with npm run module:build -- examples/modules/universe-save-controls/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Universe save controls: how to use, replace and remove it",
+          "page": "spacelab.universe-save-controls/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.universe-saves",
+      "title": "Universe save commands reference",
+      "summary": "Cancellable save/load over engine validation and independently selected storage.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Cancellable save/load over engine validation and independently selected storage."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.universe-saves",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "universe.saves@1.0.0 · UNIVERSE_SAVES: ServiceKey<UniverseSaveFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.save@^1.0.0 · CORE_SAVE: ServiceKey<SaveCodec>",
+            "core.universe-save-format@^1.0.0 · CORE_UNIVERSE_FORMAT: ServiceKey<UniverseSaveFormat>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: universe.saves",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "CORE_SAVE, CORE_UNIVERSE_FORMAT, ModuleInitializationV2, SaveCodec, ServiceKey, UNIVERSE_SAVES, UniverseSaveCommands, UniverseSaveFactory, UniverseSaveFormat, UniverseSaveOptions"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe-saving.ts",
+          "page": "api-reference/game-api/universe-saving"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/universe-saves (build with npm run module:build -- examples/modules/universe-saves/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Universe save commands: how to use, replace and remove it",
+          "page": "spacelab.universe-saves/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.universe-server-storage",
+      "title": "Server universe storage reference",
+      "summary": "Serialized atomic saves, backups and validated recovery over borrowed native disk IO.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Serialized atomic saves, backups and validated recovery over borrowed native disk IO."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.universe-server-storage",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "universe.server-storage@1.0.0 · SERVER_UNIVERSE_STORAGE: ServiceKey<ServerUniverseStorage>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.universe-disk@^1.0.0 · CORE_UNIVERSE_DISK: ServiceKey<UniverseDisk>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: universe.server-storage",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "CORE_UNIVERSE_DISK, ModuleInitializationV2, SERVER_UNIVERSE_STORAGE, ServerUniverseOptions, ServerUniverseStorage, ServerUniverseStore, ServiceKey, UniverseDisk, WorldSave"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe-saving.ts",
+          "page": "api-reference/game-api/universe-saving"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/universe-server-storage (build with npm run module:build -- examples/modules/universe-server-storage/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Server universe storage: how to use, replace and remove it",
+          "page": "spacelab.universe-server-storage/usage"
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.trainer",
       "title": "Orbit trainer reference",
       "summary": "Per-craft handling over shared physics, with explicit save/session identity.",
@@ -5798,6 +6358,18 @@
         },
         {
           "type": "heading",
+          "text": "WorldSave"
+        },
+        {
+          "type": "code",
+          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
+        },
+        {
+          "type": "heading",
           "text": "WorldRead"
         },
         {
@@ -5810,7 +6382,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.planet-designer, spacelab.session-flight, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5858,7 +6430,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.session-flight, spacelab.universe-saves."
         },
         {
           "type": "heading",
@@ -5934,7 +6506,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.session-flight, spacelab.universe-saves."
         },
         {
           "type": "heading",
@@ -7590,7 +8162,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud."
+          "text": "Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -7690,7 +8262,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -7714,7 +8286,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "link",
@@ -7931,6 +8503,86 @@
         {
           "type": "paragraph",
           "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/planet-designer",
+      "title": "game-api: planet-designer.ts",
+      "summary": "Declarations from planet-designer.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-designer.ts."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetDesignerOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for mounting an independent planet appearance designer into a DOM root element. Provides read-only world access, optional selected-body getter, viewer-scoped theme storage, and export callbacks. Operates purely in viewer presentation space: commands never receive mutable world or simulation authority."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlanetDesignerOptions {\n readonly root: HTMLElement;\n readonly idPrefix?: string;\n readonly storage?: ThemePreferences;\n world(): WorldRead;\n current?(): string | undefined;\n download(name: string, content: Blob): void;\n confirm(message: string): boolean;\n copy?(text: string): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetDesignerControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Interactive planet appearance designer control managing 3D/vector previews, color/layer editing, and exported looks (`ui.planet-designer@1.0.0`). Evaluates appearance overrides for celestial bodies in body-fixed spherical coordinates without altering authoritative world state. Releases preview canvases, styles, and animation frames on disposal."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlanetDesignerControl extends Disposable {\n appearanceFor(world: WorldRead, body: ResolvedBody): ResolvedBody['appearance'];\n refresh(): void;\n open(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetDesignerFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating independent planet appearance designer controls (`ui.planet-designer@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlanetDesignerFactory { create(options: PlanetDesignerOptions): PlanetDesignerControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
+        },
+        {
+          "type": "heading",
+          "text": "PLANET_DESIGNERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the planet appearance designer factory (`ui.planet-designer@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const PLANET_DESIGNERS: ServiceKey<PlanetDesignerFactory> = Object.freeze({ slot: 'ui.planet-designer', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
         },
         {
           "type": "link",
@@ -8810,7 +9462,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: spacelab.planet-designer, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -9322,7 +9974,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-webgl."
+          "text": "Used by: spacelab.planet-designer, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -9370,7 +10022,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-webgl."
+          "text": "Used by: spacelab.planet-designer, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -9402,7 +10054,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-webgl."
+          "text": "Used by: spacelab.planet-designer, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -9418,7 +10070,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.vector-shaders."
+          "text": "Used by: spacelab.planet-designer, spacelab.vector-shaders."
         },
         {
           "type": "heading",
@@ -9434,7 +10086,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.vector-shaders."
+          "text": "Used by: spacelab.planet-designer, spacelab.vector-shaders."
         },
         {
           "type": "link",
@@ -9466,7 +10118,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.spin-view."
+          "text": "Used by: spacelab.planet-designer, spacelab.spin-view."
         },
         {
           "type": "heading",
@@ -9478,7 +10130,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.spin-view."
+          "text": "Used by: spacelab.planet-designer, spacelab.spin-view."
         },
         {
           "type": "link",
@@ -10730,7 +11382,51 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-webgl."
+          "text": "Used by: spacelab.planet-designer, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "BodyAppearance"
+        },
+        {
+          "type": "code",
+          "text": "export interface BodyAppearance {\n  readonly style: AppearanceStyle;\n  /** Up to four '#rrggbb' colours. Their roles depend on the style:\n   * rocky [ground, dark lava seas, bright highlands, polar frost], arid [sand, rock, salt flats, polar ice],\n   * oceanic [ocean, vegetation, desert, ice and cloud],\n   * banded [band, dark band, light band, storms], icy [ice, cracks, frost, tint], hazy [cloud, dark cloud, light cloud, tint],\n   * volcanic [rock, dark crust, lava, sulfur], star [core, surface, limb, spots]. */\n  readonly colors?: readonly string[];\n  /** Pattern seed, 0 to 1000; derived from the body id when absent. */\n  readonly seed?: number;\n  /** Tuning from 0 to 1, 0.5 by default: sea level (or dry basins), cloud cover, polar ice,\n   * crater density, turbulence of bands and clouds, and volcanic glow. */\n  readonly water?: number;\n  readonly clouds?: number;\n  readonly ice?: number;\n  readonly craters?: number;\n  readonly turbulence?: number;\n  readonly glow?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
+        },
+        {
+          "type": "heading",
+          "text": "AppearanceTuning"
+        },
+        {
+          "type": "paragraph",
+          "text": "Tunable appearance settings."
+        },
+        {
+          "type": "code",
+          "text": "export type AppearanceTuning = 'water' | 'clouds' | 'ice' | 'craters' | 'turbulence' | 'glow';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
+        },
+        {
+          "type": "heading",
+          "text": "APPEARANCE_TUNING"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation tuning fields in shader order."
+        },
+        {
+          "type": "code",
+          "text": "export const APPEARANCE_TUNING: readonly AppearanceTuning[] = Object.freeze(['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow']);"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.planet-designer."
         },
         {
           "type": "heading",
@@ -10766,7 +11462,311 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.planet-designer."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/universe-saving",
+      "title": "game-api: universe-saving.ts",
+      "summary": "Declarations from universe-saving.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe-saving.ts."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveFormat"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host universe container package codec interface (`core.universe-save-format@1.0.0`). Encodes WorldSave structures into zip-compressed .spaceuniverse archives and decodes byte buffers. Decoding is inert and never executes saved module scripts or activates unapproved packages. Throws when archive format is unrecognised, corrupted, or when abort is signalled."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveFormat {\n  encode(save: WorldSave, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;\n  decode(bytes: Uint8Array<ArrayBuffer>, signal: AbortSignal): Promise<unknown>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_UNIVERSE_FORMAT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for host universe container package codec (`core.universe-save-format@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_UNIVERSE_FORMAT: ServiceKey<UniverseSaveFormat> = Object.freeze({slot:'core.universe-save-format',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host callbacks and session access supplied when instantiating a UniverseSaveCommands controller. Defines current world resolution and atomic, guarded state restoration."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveOptions {\n  current(): UniverseSaveSource;\n  /** Prepare exact installed packages, validate state, then atomically publish. Call\n   * guard immediately before publication; observe signal during asynchronous work. */\n  restore(raw: unknown, signal: AbortSignal, guard: () => void): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveCommands"
+        },
+        {
+          "type": "paragraph",
+          "text": "Single-operation universe save and load command controller (`universe.saves@1.0.0`). Serializes save/load actions, validates session consistency across async boundaries, and delegates payload encoding/decoding without activating untrusted scripts. Throws if another save/load is already in flight, if permissions are denied, or on session drift."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveCommands extends Disposable {\n  save(write: (name: string, bytes: Uint8Array<ArrayBuffer>, signal: AbortSignal) => Promise<void>, signal?: AbortSignal): Promise<WorldSave>;\n  load(read: (signal: AbortSignal) => Promise<Uint8Array<ArrayBuffer>>, signal?: AbortSignal): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating cancellable single-operation universe save and load command controllers (`universe.saves@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveFactory { create(options: UniverseSaveOptions): UniverseSaveCommands }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "UNIVERSE_SAVES"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the universe save/load command controller factory (`universe.saves@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const UNIVERSE_SAVES: ServiceKey<UniverseSaveFactory> = Object.freeze({slot:'universe.saves',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseFiles"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded browser file dialog and download management service (`universe.files@1.0.0`). Reads user-selected Blobs up to 64 MiB and writes download files via temporary object URLs. Created URLs are automatically revoked after a 10-second timeout or immediately upon provider disposal. Throws if file sizes exceed 64 MiB, filenames contain invalid characters, or if aborted."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseFiles extends Disposable {\n  read(file: Blob, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;\n  write(name: string, bytes: Uint8Array<ArrayBuffer>, signal: AbortSignal): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-files, spacelab.universe-save-controls."
+        },
+        {
+          "type": "heading",
+          "text": "UNIVERSE_FILES"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the browser universe file reader and writer (`universe.files@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const UNIVERSE_FILES: ServiceKey<UniverseFiles> = Object.freeze({slot:'universe.files',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-files, spacelab.universe-save-controls."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveControls"
+        },
+        {
+          "type": "paragraph",
+          "text": "Interactive Save universe and Load universe DOM control instance (`ui.universe-saves@1.0.0`). Reports busy status during active operations and restores original DOM on disposal."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveControls extends Disposable { readonly busy: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-save-controls."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveControlOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for mounting Save universe and Load universe controls into a host DOM element. Allows borrowing caller-supplied buttons or generating standard controls with an optional prefix."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveControlOptions {\n  readonly root: HTMLElement;\n  readonly commands: UniverseSaveCommands;\n  /** Borrow existing controls or let the module create an independent set. */\n  readonly controls?: { readonly save: HTMLButtonElement; readonly load: HTMLButtonElement; readonly file: HTMLInputElement };\n  readonly prefix?: string;\n  saved?(save: WorldSave): void;\n  loaded?(): void;\n  error?(operation: 'save' | 'load', error: unknown): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-save-controls."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveControlFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory for mounting interactive Save universe and Load universe controls (`ui.universe-saves@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveControlFactory { mount(options: UniverseSaveControlOptions): UniverseSaveControls }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-save-controls."
+        },
+        {
+          "type": "heading",
+          "text": "UNIVERSE_SAVE_CONTROLS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the universe save control UI factory (`ui.universe-saves@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const UNIVERSE_SAVE_CONTROLS: ServiceKey<UniverseSaveControlFactory> = Object.freeze({slot:'ui.universe-saves',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-save-controls."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseDisk"
+        },
+        {
+          "type": "paragraph",
+          "text": "Low-level server filesystem IO operations required by server universe storage (`core.universe-disk@1.0.0`). Native operations only. Editable server storage owns naming, serialization, queueing, recovery and retention; the host owns filesystem access and engine validation."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseDisk {\n  join(...parts: string[]): string;\n  read(path: string): Promise<string>;\n  directory(path: string): Promise<void>;\n  names(path: string): Promise<readonly string[]>;\n  rename(from: string, to: string): Promise<void>;\n  copy(from: string, to: string): Promise<void>;\n  remove(path: string): Promise<void>;\n  replace(path: string, text: string): Promise<void>;\n  replaceSync(path: string, text: string): void;\n  missing(error: unknown): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_UNIVERSE_DISK"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for native server filesystem IO primitives (`core.universe-disk@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_UNIVERSE_DISK: ServiceKey<UniverseDisk> = Object.freeze({slot:'core.universe-disk',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
+        },
+        {
+          "type": "heading",
+          "text": "ServerUniverseOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for initializing a ServerUniverseStore instance. Defines target directory, backup retention count, state restore logic, and configuration error classification."
+        },
+        {
+          "type": "code",
+          "text": "export interface ServerUniverseOptions<T> {\n  readonly directory: string; readonly keepBackups: number;\n  restore(raw: unknown): T | Promise<T>;\n  /** Missing/incompatible packages require user recovery, not quarantine or fallback. */\n  configurationError(error: unknown): boolean;\n  log?(message: string): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
+        },
+        {
+          "type": "heading",
+          "text": "ServerUniverseStore"
+        },
+        {
+          "type": "paragraph",
+          "text": "Persistent server universe storage managing world.json persistence, atomic writes, and backups. Quarantines unparseable files, falls back to timestamped backups, and preserves existing worlds on configuration error. Enqueues asynchronous writes in arrival order; idle() drains the queue prior to shutdown."
+        },
+        {
+          "type": "code",
+          "text": "export interface ServerUniverseStore<T> extends Disposable {\n  readonly file: string; readonly backups: string;\n  load(): Promise<{readonly loaded: T; readonly from: string} | undefined>;\n  save(save: WorldSave): Promise<void>;\n  saveSync(save: WorldSave): void;\n  idle(): Promise<void>;\n  backup(): Promise<string | undefined>;\n  backupFiles(): Promise<string[]>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
+        },
+        {
+          "type": "heading",
+          "text": "ServerUniverseStorage"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating persistent server universe stores for headless Node environments (`universe.server-storage@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface ServerUniverseStorage { create<T>(options: ServerUniverseOptions<T>): ServerUniverseStore<T> }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
+        },
+        {
+          "type": "heading",
+          "text": "SERVER_UNIVERSE_STORAGE"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the server universe storage factory (`universe.server-storage@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const SERVER_UNIVERSE_STORAGE: ServiceKey<ServerUniverseStorage> = Object.freeze({slot:'universe.server-storage',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.universe-server-storage."
         },
         {
           "type": "link",

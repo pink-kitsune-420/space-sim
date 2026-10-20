@@ -1,5 +1,10 @@
 import { expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { universeSaveFormatService } from '../../packages/game-library/src/universe-save-services';
+import { universeDiskService } from '../../apps/server/src/universe-disk';
 import { FLIGHT_HUD_STATE, FLIGHT_PLANS, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
   type FleetViewInput, type FlightHudAdapter, type FlightHudReadout, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
   type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type TextConnection,
@@ -276,6 +281,40 @@ import vehicleTrainerDescriptor from '../../modules/vehicle-trainer/module.json'
 import vehicleTrainerGuide from '../../modules/vehicle-trainer/docs/creators/usage.json';
 import vehicleTrainerExampleInitialize, { VEHICLE_TRAINER_HELPER } from '../../examples/modules/vehicle-trainer/src/main';
 import vehicleTrainerExampleDescriptor from '../../examples/modules/vehicle-trainer/module.json';
+
+import universeFilesInitialize from '../../modules/universe-files/src/index';
+import universeFilesDescriptor from '../../modules/universe-files/module.json';
+import universeFilesGuide from '../../modules/universe-files/docs/creators/usage.json';
+import universeFilesExampleInitialize, { UNIVERSE_FILES_HELPER } from '../../examples/modules/universe-files/src/main';
+import universeFilesExampleDescriptor from '../../examples/modules/universe-files/module.json';
+
+import universeSavesInitialize from '../../modules/universe-saves/src/index';
+import universeSavesDescriptor from '../../modules/universe-saves/module.json';
+import universeSavesGuide from '../../modules/universe-saves/docs/creators/usage.json';
+import universeSavesExampleInitialize, { UNIVERSE_SAVES_HELPER } from '../../examples/modules/universe-saves/src/main';
+import universeSavesExampleDescriptor from '../../examples/modules/universe-saves/module.json';
+
+import universeSaveControlsInitialize from '../../modules/universe-save-controls/src/index';
+import universeSaveControlsDescriptor from '../../modules/universe-save-controls/module.json';
+import universeSaveControlsGuide from '../../modules/universe-save-controls/docs/creators/usage.json';
+import universeSaveControlsExampleInitialize, { UNIVERSE_SAVE_CONTROLS_HELPER } from '../../examples/modules/universe-save-controls/src/main';
+import universeSaveControlsExampleDescriptor from '../../examples/modules/universe-save-controls/module.json';
+
+import universeServerStorageInitialize from '../../modules/universe-server-storage/src/index';
+import universeServerStorageDescriptor from '../../modules/universe-server-storage/module.json';
+import universeServerStorageGuide from '../../modules/universe-server-storage/docs/creators/usage.json';
+import universeServerStorageExampleInitialize, { UNIVERSE_SERVER_STORAGE_HELPER } from '../../examples/modules/universe-server-storage/src/main';
+import universeServerStorageExampleDescriptor from '../../examples/modules/universe-server-storage/module.json';
+
+import planetDesignerInitialize from '../../modules/planet-designer/src/index';
+import planetDesignerDescriptor from '../../modules/planet-designer/module.json';
+import planetDesignerGuide from '../../modules/planet-designer/docs/creators/usage.json';
+import planetDesignerExampleInitialize, { PLANET_DESIGNER_HELPER } from '../../examples/modules/planet-designer/src/main';
+import planetDesignerExampleDescriptor from '../../examples/modules/planet-designer/module.json';
+
+const planetDesignerAssets: Record<string, string> = {
+  'assets/designer.css': readFileSync('modules/planet-designer/assets/designer.css', 'utf8'),
+};
 
 const maneuverEditorAssets: Record<string, string> = {
   'assets/editor.css': readFileSync('modules/maneuver-editor/assets/editor.css', 'utf8'),
@@ -1996,6 +2035,276 @@ it('queries vehicle definitions and trainer defaults via vehicle-trainer example
     candidate.dispose();
   }
 });
+
+it('reads and writes universe save files via universe-files example', async () => {
+  const graph = registry([
+    [universeFilesDescriptor, universeFilesInitialize, universeFilesGuide],
+    [universeFilesExampleDescriptor, universeFilesExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    universeFilesDescriptor,
+    universeFilesExampleDescriptor,
+  ], {
+    'universe.files': 'spacelab.universe-files',
+    'example.universe-files': 'example.universe-files',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(UNIVERSE_FILES_HELPER);
+    const data = new Uint8Array([1, 2, 3, 4, 5]);
+    const blob = new Blob([data]);
+    const read = await helper.readFile(blob);
+    expect(read).toEqual(data);
+
+    const oversizedBlob = { size: 65 * 1024 * 1024, arrayBuffer: async () => new ArrayBuffer(0) } as unknown as Blob;
+    await expect(helper.readFile(oversizedBlob)).rejects.toThrow('at most 64 MiB');
+
+    const clicked: string[] = [];
+    const fakeAnchor: any = {
+      href: '',
+      download: '',
+      click: () => { clicked.push(fakeAnchor.download); },
+      remove: () => {},
+    };
+    const fakeDoc = {
+      createElement: (tag: string) => (tag === 'a' ? fakeAnchor : {}),
+      body: { append: () => {} },
+    };
+    const prevDoc = globalThis.document;
+    try {
+      (globalThis as unknown as { document: unknown }).document = fakeDoc;
+      await helper.writeFile('test.spaceuniverse', data);
+      expect(clicked).toContain('test.spaceuniverse');
+    } finally {
+      (globalThis as unknown as { document: unknown }).document = prevDoc;
+    }
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('orchestrates cancellable save and load workflows via universe-saves example', async () => {
+  const hostServices = [...engineModuleServices(), universeSaveFormatService];
+  const graph = registry([
+    [universeSavesDescriptor, universeSavesInitialize, universeSavesGuide],
+    [universeSavesExampleDescriptor, universeSavesExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    universeSavesDescriptor,
+    universeSavesExampleDescriptor,
+  ], {
+    'universe.saves': 'spacelab.universe-saves',
+    'example.universe-saves': 'example.universe-saves',
+  }), 'node');
+  const world = new World(DEFAULT_UNIVERSE);
+  try {
+    const helper = candidate.providedService(UNIVERSE_SAVES_HELPER);
+    let identity = {};
+    let currentWorld: any = world;
+    const restoredData: any[] = [];
+    const commands = helper.createCommands({
+      current: () => ({ identity, world: currentWorld, canSave: true, canLoad: true }),
+      restore: async (raw, _signal, guard) => {
+        guard();
+        restoredData.push(raw);
+      },
+    });
+
+    let savedFilename = '';
+    let savedBytes: Uint8Array<ArrayBuffer> | undefined;
+    const saveResult = await commands.save(async (name, bytes) => {
+      savedFilename = name;
+      savedBytes = bytes;
+    });
+
+    expect(savedFilename).toMatch(/\.spaceuniverse$/);
+    expect(saveResult.universe.id).toBe(world.universe.id);
+    expect(savedBytes).toBeDefined();
+
+    await commands.load(async () => savedBytes!);
+    expect(restoredData.length).toBe(1);
+
+    commands.dispose();
+    await expect(commands.save(async () => {})).rejects.toThrow('disposed');
+  } finally {
+    world.dispose();
+    candidate.dispose();
+  }
+});
+
+it('mounts Save and Load universe controls via universe-save-controls example', async () => {
+  const graph = registry([
+    [universeFilesDescriptor, universeFilesInitialize, universeFilesGuide],
+    [universeSaveControlsDescriptor, universeSaveControlsInitialize, universeSaveControlsGuide],
+    [universeSaveControlsExampleDescriptor, universeSaveControlsExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    universeFilesDescriptor,
+    universeSaveControlsDescriptor,
+    universeSaveControlsExampleDescriptor,
+  ], {
+    'universe.files': 'spacelab.universe-files',
+    'ui.universe-saves': 'spacelab.universe-save-controls',
+    'example.universe-save-controls': 'example.universe-save-controls',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(UNIVERSE_SAVE_CONTROLS_HELPER);
+    const listeners = new Map<string, Function>();
+    const saveBtn: any = {
+      ...createMockEl('button'),
+      addEventListener: (event: string, cb: Function) => listeners.set(`save-${event}`, cb),
+    };
+    const loadBtn: any = {
+      ...createMockEl('button'),
+      addEventListener: (event: string, cb: Function) => listeners.set(`load-${event}`, cb),
+    };
+    const fileInput: any = {
+      ...createMockEl('input'),
+      files: [],
+      addEventListener: (event: string, cb: Function) => listeners.set(`file-${event}`, cb),
+    };
+    const root = createMockEl('div');
+
+    const saveCalls: string[] = [];
+    const mockCommands: any = {
+      save: vi.fn(async (_write, _signal) => {
+        saveCalls.push('save');
+        return { format: 'space-sim-world' };
+      }),
+      load: vi.fn(async (_read, _signal) => {}),
+      dispose: vi.fn(),
+    };
+
+    let savedCalled = false;
+    const controls = helper.mountControls({
+      root,
+      commands: mockCommands,
+      controls: { save: saveBtn, load: loadBtn, file: fileInput },
+      saved: () => { savedCalled = true; },
+    });
+
+    expect(controls.busy).toBe(false);
+
+    await listeners.get('save-click')?.();
+    expect(saveCalls).toContain('save');
+    expect(savedCalled).toBe(true);
+
+    controls.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages atomic world persistence and backups via universe-server-storage example', async () => {
+  const hostServices = [universeDiskService];
+  const graph = registry([
+    [universeServerStorageDescriptor, universeServerStorageInitialize, universeServerStorageGuide],
+    [universeServerStorageExampleDescriptor, universeServerStorageExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    universeServerStorageDescriptor,
+    universeServerStorageExampleDescriptor,
+  ], {
+    'universe.server-storage': 'spacelab.universe-server-storage',
+    'example.universe-server-storage': 'example.universe-server-storage',
+  }), 'node');
+  const directory = await mkdtemp(join(tmpdir(), 'universe-example-store-'));
+  try {
+    const helper = candidate.providedService(UNIVERSE_SERVER_STORAGE_HELPER);
+    const store = helper.createStore({
+      directory,
+      keepBackups: 2,
+      restore: raw => raw,
+      configurationError: () => false,
+    });
+
+    const mockSave: any = {
+      format: 'space-sim-world',
+      universe: { id: 'test-universe' },
+      ships: [],
+    };
+
+    await store.save(mockSave);
+    const loaded = await store.load();
+    expect(loaded).toBeDefined();
+    expect(loaded?.loaded).toMatchObject({ universe: { id: 'test-universe' } });
+
+    const backupPath = await store.backup();
+    expect(backupPath).toBeDefined();
+    expect(typeof backupPath).toBe('string');
+
+    const backups = await store.backupFiles();
+    expect(backups.length).toBeGreaterThan(0);
+
+    store.dispose();
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+    candidate.dispose();
+  }
+});
+
+it('provides planet appearance designer and query overrides via planet-designer example', async () => {
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [planetDesignerDescriptor, planetDesignerInitialize, planetDesignerGuide, planetDesignerAssets],
+    [planetDesignerExampleDescriptor, planetDesignerExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    planetDesignerDescriptor,
+    planetDesignerExampleDescriptor,
+  ], {
+    'ui.planet-designer': 'spacelab.planet-designer',
+    'example.planet-designer': 'example.planet-designer',
+  }), 'browser');
+  const world = new World(DEFAULT_UNIVERSE);
+  try {
+    const helper = candidate.providedService(PLANET_DESIGNER_HELPER);
+    expect(helper).toBeDefined();
+
+    const mockDoc: any = {
+      defaultView: {
+        ...globalThis,
+        AbortController: globalThis.AbortController,
+        cancelAnimationFrame: vi.fn(),
+        requestAnimationFrame: vi.fn(),
+      },
+      createElement: (tag: string) => {
+        const el = createMockEl(tag);
+        el.ownerDocument = mockDoc;
+        el.closest = () => null;
+        if (tag === 'select') {
+          el.options = [];
+          el.replaceChildren = vi.fn((...children: any[]) => {
+            el.options = children;
+            el.childNodes = children;
+          });
+        }
+        return el;
+      },
+      head: { append: vi.fn() },
+    };
+    const mockRoot = mockDoc.createElement('div');
+
+    const designer = helper.createDesigner({
+      root: mockRoot,
+      world: () => world,
+      current: () => 'earth',
+      download: () => {},
+      confirm: () => true,
+    });
+
+    const body = world.system.getAllBodies()[0]!;
+    const appearance = designer.appearanceFor(world, body);
+    expect(appearance).toBeDefined();
+
+    designer.refresh();
+    designer.open();
+    designer.dispose();
+  } finally {
+    world.dispose();
+    candidate.dispose();
+  }
+});
+
 
 
 

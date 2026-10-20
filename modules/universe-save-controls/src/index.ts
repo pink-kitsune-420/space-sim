@@ -28,6 +28,11 @@ export function createUniverseSaveControls(files:UniverseFiles):UniverseSaveCont
     instances.add(control);return control;
   },dispose(){if(disposed)return;disposed=true;for(const instance of instances)instance.dispose();instances.clear();}});
 }
+/**
+ * Contributes Save universe and Load universe button and file picker mounting UI.
+ * Provides ui.universe-saves@1.0.0 in slot ui.universe-saves.
+ * Requires universe.files@^1.0.0.
+ */
 export default function initialize(context:ModuleInitializationV2):void{
   context.provide(UNIVERSE_SAVE_CONTROLS,context.own(createUniverseSaveControls(context.use(UNIVERSE_FILES))));
   context.contributeGuide({id:'usage',audience:'creators',title:'Universe save controls',summary:'Independent Save universe / Load universe UI over explicit commands and file storage.',asset:'docs/creators/usage.json'});

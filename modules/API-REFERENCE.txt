@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0817caf64a51d088
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 16e728ffbe7733e4
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -41,6 +41,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> WebSocket transport (spacelab.net-websocket) [api-reference/module/spacelab.net-websocket]
 -> Orbital alarm clock (spacelab.orbital-alarms) [api-reference/module/spacelab.orbital-alarms]
 -> Shared rails motion (builtin.motion) [api-reference/module/builtin.motion]
+-> Planet appearance designer (spacelab.planet-designer) [api-reference/module/spacelab.planet-designer]
 -> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
 -> Player view adapters (spacelab.player-view) [api-reference/module/spacelab.player-view]
 -> Canvas 2D (spacelab.render-canvas) [api-reference/module/spacelab.render-canvas]
@@ -53,6 +54,10 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Theme controls (spacelab.theme-customizer) [api-reference/module/spacelab.theme-customizer]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
 -> Orbital transfer search (spacelab.transfer-planner) [api-reference/module/spacelab.transfer-planner]
+-> Universe files (spacelab.universe-files) [api-reference/module/spacelab.universe-files]
+-> Universe save controls (spacelab.universe-save-controls) [api-reference/module/spacelab.universe-save-controls]
+-> Universe save commands (spacelab.universe-saves) [api-reference/module/spacelab.universe-saves]
+-> Server universe storage (spacelab.universe-server-storage) [api-reference/module/spacelab.universe-server-storage]
 -> Orbit trainer (spacelab.trainer) [api-reference/module/spacelab.trainer]
 -> Shared per-view HUD (spacelab.view-hud) [api-reference/module/spacelab.view-hud]
 
@@ -75,6 +80,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> motion.ts [api-reference/game-api/motion]
 -> node-transport.ts [api-reference/game-api/node-transport]
 -> orbit.ts [api-reference/game-api/orbit]
+-> planet-designer.ts [api-reference/game-api/planet-designer]
 -> platform.ts [api-reference/game-api/platform]
 -> player-view.ts [api-reference/game-api/player-view]
 -> presentation.ts [api-reference/game-api/presentation]
@@ -94,6 +100,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> theme-customizer.ts [api-reference/game-api/theme-customizer]
 -> transfers.ts [api-reference/game-api/transfers]
 -> universe.ts [api-reference/game-api/universe]
+-> universe-saving.ts [api-reference/game-api/universe-saving]
 -> vehicles.ts [api-reference/game-api/vehicles]
 -> view-hud.ts [api-reference/game-api/view-hud]
 -> webrtc-transport.ts [api-reference/game-api/webrtc-transport]
@@ -1291,6 +1298,50 @@ BODY_FRAMES, BodyFrameProvider, CORE_MOTION, CoreMotion, Elements, MOTION_CONTEX
 ## Guide and example
 Example source: examples/modules/physics-rails (build with npm run module:build -- examples/modules/physics-rails/module.json out.spacemod).
 
+=== Planet appearance designer reference [api-reference/module/spacelab.planet-designer]
+Read-only body previews and viewer-scoped designs with explicit storage/export ports.
+- ID: spacelab.planet-designer
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.planet-designer@1.0.0 · PLANET_DESIGNERS: ServiceKey<PlanetDesignerFactory>
+
+## Requires
+- core.rotation@^1.0.0 · CORE_ROTATION: ServiceKey<RotationMath>
+- render.webgl@^1.0.0 (optional) · WEBGL_DRAWING: ServiceKey<WebGLRendererFactory>
+- render.vector-shaders@^1.0.0 (optional) · VECTOR_SHADERS: ServiceKey<ShaderLibrary>
+
+## Composition
+- Slots: ui.planet-designer
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- previewSpinSeconds: number, default 20, from 1 to 120, step 1. Preview turn duration (s): Wall-clock seconds per decorative preview turn. Physical body rotation and live-world time remain unchanged.
+- sunDegrees: number, default 120, from 0 to 360, step 1. Initial preview light angle (degrees): Initial sun direction for the independent appearance preview; the viewer can adjust it without changing a world.
+- importMaxBytes: number, default 1048576, from 1024 to 8388608, step 1024. Design import size limit (bytes): Reject larger My planets JSON files before reading/parsing. Preserves the existing 1 MiB default.
+
+## Game API used
+APPEARANCE_TUNING, AppearanceStyle, AppearanceTuning, BodyAppearance, BodyPreview, CORE_ROTATION, ModuleInitializationV2, PLANET_DESIGNERS, PlanetDesignerControl, PlanetDesignerFactory, PlanetDesignerOptions, RenderBody, ResolvedBody, RotationMath, ServiceKey, VECTOR_SHADERS, WEBGL_DRAWING, WorldRead
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api planet-designer.ts [api-reference/game-api/planet-designer]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api rendering.ts [api-reference/game-api/rendering]
+-> game-api rotation.ts [api-reference/game-api/rotation]
+-> game-api universe.ts [api-reference/game-api/universe]
+
+## Guide and example
+Example source: examples/modules/planet-designer (build with npm run module:build -- examples/modules/planet-designer/module.json out.spacemod).
+
 === Player controller reference [api-reference/module/spacelab.player-controller]
 Routes namespaced intent to a compatible entity/session adapter without advancing a world.
 - ID: spacelab.player-controller
@@ -1776,6 +1827,153 @@ EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanNode, FlightPlanService
 Example source: examples/modules/transfer-planner (build with npm run module:build -- examples/modules/transfer-planner/module.json out.spacemod).
 -> Bounded orbital transfer search: how to use, replace and remove it [spacelab.transfer-planner/usage]
 
+=== Universe files reference [api-reference/module/spacelab.universe-files]
+Bounded browser files and owned downloads, independent of save validation.
+- ID: spacelab.universe-files
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- universe.files@1.0.0 · UNIVERSE_FILES: ServiceKey<UniverseFiles>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: universe.files
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, ServiceKey, UNIVERSE_FILES, UniverseFiles
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api universe-saving.ts [api-reference/game-api/universe-saving]
+
+## Guide and example
+Example source: examples/modules/universe-files (build with npm run module:build -- examples/modules/universe-files/module.json out.spacemod).
+-> Universe file storage: how to use, replace and remove it [spacelab.universe-files/usage]
+
+=== Universe save controls reference [api-reference/module/spacelab.universe-save-controls]
+Independent Save universe / Load universe UI over explicit commands and file storage.
+- ID: spacelab.universe-save-controls
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.universe-saves@1.0.0 · UNIVERSE_SAVE_CONTROLS: ServiceKey<UniverseSaveControlFactory>
+
+## Requires
+- universe.files@^1.0.0 · UNIVERSE_FILES: ServiceKey<UniverseFiles>
+
+## Composition
+- Slots: ui.universe-saves
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, ServiceKey, UNIVERSE_FILES, UNIVERSE_SAVE_CONTROLS, UniverseFiles, UniverseSaveControlFactory, UniverseSaveControlOptions, UniverseSaveControls
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api universe-saving.ts [api-reference/game-api/universe-saving]
+
+## Guide and example
+Example source: examples/modules/universe-save-controls (build with npm run module:build -- examples/modules/universe-save-controls/module.json out.spacemod).
+-> Universe save controls: how to use, replace and remove it [spacelab.universe-save-controls/usage]
+
+=== Universe save commands reference [api-reference/module/spacelab.universe-saves]
+Cancellable save/load over engine validation and independently selected storage.
+- ID: spacelab.universe-saves
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- universe.saves@1.0.0 · UNIVERSE_SAVES: ServiceKey<UniverseSaveFactory>
+
+## Requires
+- core.save@^1.0.0 · CORE_SAVE: ServiceKey<SaveCodec>
+- core.universe-save-format@^1.0.0 · CORE_UNIVERSE_FORMAT: ServiceKey<UniverseSaveFormat>
+
+## Composition
+- Slots: universe.saves
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+CORE_SAVE, CORE_UNIVERSE_FORMAT, ModuleInitializationV2, SaveCodec, ServiceKey, UNIVERSE_SAVES, UniverseSaveCommands, UniverseSaveFactory, UniverseSaveFormat, UniverseSaveOptions
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api universe-saving.ts [api-reference/game-api/universe-saving]
+
+## Guide and example
+Example source: examples/modules/universe-saves (build with npm run module:build -- examples/modules/universe-saves/module.json out.spacemod).
+-> Universe save commands: how to use, replace and remove it [spacelab.universe-saves/usage]
+
+=== Server universe storage reference [api-reference/module/spacelab.universe-server-storage]
+Serialized atomic saves, backups and validated recovery over borrowed native disk IO.
+- ID: spacelab.universe-server-storage
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- universe.server-storage@1.0.0 · SERVER_UNIVERSE_STORAGE: ServiceKey<ServerUniverseStorage>
+
+## Requires
+- core.universe-disk@^1.0.0 · CORE_UNIVERSE_DISK: ServiceKey<UniverseDisk>
+
+## Composition
+- Slots: universe.server-storage
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+CORE_UNIVERSE_DISK, ModuleInitializationV2, SERVER_UNIVERSE_STORAGE, ServerUniverseOptions, ServerUniverseStorage, ServerUniverseStore, ServiceKey, UniverseDisk, WorldSave
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api universe-saving.ts [api-reference/game-api/universe-saving]
+
+## Guide and example
+Example source: examples/modules/universe-server-storage (build with npm run module:build -- examples/modules/universe-server-storage/module.json out.spacemod).
+-> Server universe storage: how to use, replace and remove it [spacelab.universe-server-storage/usage]
+
 === Orbit trainer reference [api-reference/module/spacelab.trainer]
 Per-craft handling over shared physics, with explicit save/session identity.
 - ID: spacelab.trainer
@@ -2114,6 +2312,36 @@ A player identity. Only a SHA-256 hash of the secret reconnect token is stored.
     }
 Used by: spacelab.session-flight.
 
+## WorldSave
+    export interface WorldSave {
+      readonly vehicles?: VehicleCatalog;
+      readonly data?: ModuleDataSnapshot;
+      readonly format: 'space-sim-world';
+      /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */
+      readonly flightPlans?: FlightPlanArchive;
+      readonly configuration?: SavedGameConfiguration;
+      readonly version: number;
+      readonly model: string;
+      readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };
+      readonly worldId: string;
+      readonly savedAt?: string;
+      /** The full universe, so a save is portable between browsers and servers. */
+      readonly universe: UniverseDefinition;
+      readonly systemId: string;
+      readonly tick: number;
+      readonly time: number;
+      readonly paused?: boolean;
+      readonly nextShipNumber: number;
+      /** The player who hosted this world in a browser; whoever loads it there takes that seat. */
+      readonly hostId?: string;
+      readonly players: readonly SavedPlayer[];
+      readonly ships: readonly SavedShip[];
+      readonly lock?: AuthoritativeLock | ModuleLock;
+      readonly simulationFingerprint?: string;
+      readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
+    }
+Used by: spacelab.universe-server-storage.
+
 ## WorldRead
 Body-relative SI state. Read operations retain the world's established rails semantics.
     export interface WorldRead {
@@ -2148,7 +2376,7 @@ Body-relative SI state. Read operations retain the world's established rails sem
       predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
       cloneForPrediction(): WorldControl;
     }
-Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.planet-designer, spacelab.session-flight, spacelab.transfer-planner.
 
 ## WorldChanges
     export interface WorldChanges extends Disposable {
@@ -2192,7 +2420,7 @@ Used by: spacelab.session-flight.
       shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;
       playerFromSaved(raw: unknown, context?: string): SavedPlayer;
     }
-Used by: spacelab.session-flight.
+Used by: spacelab.session-flight, spacelab.universe-saves.
 
 ## FixedClock
     export interface FixedClock {
@@ -2230,7 +2458,7 @@ Used by: spacelab.session-flight.
 
 ## CORE_SAVE
     export const CORE_SAVE: ServiceKey<SaveCodec> = Object.freeze({ slot: 'core.save', version: '1.0.0' });
-Used by: spacelab.session-flight.
+Used by: spacelab.session-flight, spacelab.universe-saves.
 
 ## CORE_CLOCK
     export const CORE_CLOCK: ServiceKey<ClockService> = Object.freeze({ slot: 'core.clock', version: '1.0.0' });
@@ -3331,7 +3559,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud.
+Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud.
 
 ## ModuleManifest
     export interface ModuleManifest {
@@ -3441,7 +3669,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud.
+Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
 
 ## ModuleAssets
     export interface ModuleAssets {
@@ -3481,7 +3709,7 @@ Used by: spacelab.vector-shaders.
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud.
+Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
 -> API reference index [api-reference]
 
 === game-api: motion.ts [api-reference/game-api/motion]
@@ -3621,6 +3849,45 @@ Used by: builtin.motion.
       readonly radial: boolean;
     }
 Used by: builtin.motion.
+-> API reference index [api-reference]
+
+=== game-api: planet-designer.ts [api-reference/game-api/planet-designer]
+Declarations from planet-designer.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-designer.ts.
+
+## PlanetDesignerOptions
+Configuration options for mounting an independent planet appearance designer into a DOM root element. Provides read-only world access, optional selected-body getter, viewer-scoped theme storage, and export callbacks. Operates purely in viewer presentation space: commands never receive mutable world or simulation authority.
+    export interface PlanetDesignerOptions {
+     readonly root: HTMLElement;
+     readonly idPrefix?: string;
+     readonly storage?: ThemePreferences;
+     world(): WorldRead;
+     current?(): string | undefined;
+     download(name: string, content: Blob): void;
+     confirm(message: string): boolean;
+     copy?(text: string): Promise<void>;
+    }
+Used by: spacelab.planet-designer.
+
+## PlanetDesignerControl
+Interactive planet appearance designer control managing 3D/vector previews, color/layer editing, and exported looks (`ui.planet-designer@1.0.0`). Evaluates appearance overrides for celestial bodies in body-fixed spherical coordinates without altering authoritative world state. Releases preview canvases, styles, and animation frames on disposal.
+    export interface PlanetDesignerControl extends Disposable {
+     appearanceFor(world: WorldRead, body: ResolvedBody): ResolvedBody['appearance'];
+     refresh(): void;
+     open(): void;
+    }
+Used by: spacelab.planet-designer.
+
+## PlanetDesignerFactory
+Factory creating independent planet appearance designer controls (`ui.planet-designer@1.0.0`).
+    export interface PlanetDesignerFactory { create(options: PlanetDesignerOptions): PlanetDesignerControl }
+Used by: spacelab.planet-designer.
+
+## PLANET_DESIGNERS
+Service key for the planet appearance designer factory (`ui.planet-designer@1.0.0`).
+    export const PLANET_DESIGNERS: ServiceKey<PlanetDesignerFactory> = Object.freeze({ slot: 'ui.planet-designer', version: '1.0.0' });
+Used by: spacelab.planet-designer.
 -> API reference index [api-reference]
 
 === game-api: platform.ts [api-reference/game-api/platform]
@@ -4164,7 +4431,7 @@ Used by: spacelab.camera-follow, spacelab.maneuver-editor, spacelab.render-canva
       /** Procedural surface look; absent draws a plain disc (low graphics quality). */
       readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };
     }
-Used by: spacelab.render-canvas, spacelab.render-webgl.
+Used by: spacelab.planet-designer, spacelab.render-canvas, spacelab.render-webgl.
 
 ## RenderShip
 Another vessel in the same world: one of this player's fleet, or someone else's.
@@ -4511,7 +4778,7 @@ Lightweight preview renderer for standalone planet or celestial body preview dis
       /** Draw a preview of the specified body with optional shading fill factor. */
       draw(body: RenderBody, fill?: number): void;
     }
-Used by: spacelab.render-webgl.
+Used by: spacelab.planet-designer, spacelab.render-webgl.
 
 ## Render2DOptions
 Configuration options passed when creating a 2D canvas or WebGL scene renderer.
@@ -4545,7 +4812,7 @@ Factory providing WebGL 2 scene renderers and body preview instances. Disposing 
       /** Create a standalone body preview renderer for planet designer and celestial inspection. */
       preview(canvas: HTMLCanvasElement, shaders: ShaderPack): BodyPreview;
     }
-Used by: spacelab.render-webgl.
+Used by: spacelab.planet-designer, spacelab.render-webgl.
 
 ## CANVAS_DRAWING
 Service key for the public Canvas 2D renderer factory (`render.canvas@1.0.0`).
@@ -4555,7 +4822,7 @@ Used by: spacelab.render-canvas.
 ## WEBGL_DRAWING
 Service key for the public WebGL 2 renderer factory (`render.webgl@1.0.0`).
     export const WEBGL_DRAWING: ServiceKey<WebGLRendererFactory> = Object.freeze({ slot: 'render.webgl', version: '1.0.0' });
-Used by: spacelab.render-webgl.
+Used by: spacelab.planet-designer, spacelab.render-webgl.
 
 ## ShaderLibrary
 Service interface providing default GLSL shader packs and validation/parsing methods.
@@ -4567,12 +4834,12 @@ Service interface providing default GLSL shader packs and validation/parsing met
       /** Parse a .frag, .glsl or JSON shader file into a validated shader pack. */
       parse(text: string, filename: string): ShaderPack;
     }
-Used by: spacelab.vector-shaders.
+Used by: spacelab.planet-designer, spacelab.vector-shaders.
 
 ## VECTOR_SHADERS
 Service key for the public vector shader pack library (`render.vector-shaders@1.0.0`).
     export const VECTOR_SHADERS: ServiceKey<ShaderLibrary> = Object.freeze({ slot: 'render.vector-shaders', version: '1.0.0' });
-Used by: spacelab.vector-shaders.
+Used by: spacelab.planet-designer, spacelab.vector-shaders.
 -> API reference index [api-reference]
 
 === game-api: rotation.ts [api-reference/game-api/rotation]
@@ -4589,11 +4856,11 @@ Fixed prescribed sidereal rotation. SI metres/seconds, radians; pure queries nev
      groundVelocity(omega: number, position: Vec): Vec;
      bodyFixed(state: State, body: Body): boolean;
     }
-Used by: spacelab.spin-view.
+Used by: spacelab.planet-designer, spacelab.spin-view.
 
 ## CORE_ROTATION
     export const CORE_ROTATION: ServiceKey<RotationMath> = Object.freeze({ slot: 'core.rotation', version: '1.0.0' });
-Used by: spacelab.spin-view.
+Used by: spacelab.planet-designer, spacelab.spin-view.
 -> API reference index [api-reference]
 
 === game-api: rules.ts [api-reference/game-api/rules]
@@ -5457,7 +5724,39 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## AppearanceStyle
 Procedural look of a body. Presentation only: it never changes the physical outline.
     export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';
-Used by: spacelab.render-webgl.
+Used by: spacelab.planet-designer, spacelab.render-webgl.
+
+## BodyAppearance
+    export interface BodyAppearance {
+      readonly style: AppearanceStyle;
+      /** Up to four '#rrggbb' colours. Their roles depend on the style:
+       * rocky [ground, dark lava seas, bright highlands, polar frost], arid [sand, rock, salt flats, polar ice],
+       * oceanic [ocean, vegetation, desert, ice and cloud],
+       * banded [band, dark band, light band, storms], icy [ice, cracks, frost, tint], hazy [cloud, dark cloud, light cloud, tint],
+       * volcanic [rock, dark crust, lava, sulfur], star [core, surface, limb, spots]. */
+      readonly colors?: readonly string[];
+      /** Pattern seed, 0 to 1000; derived from the body id when absent. */
+      readonly seed?: number;
+      /** Tuning from 0 to 1, 0.5 by default: sea level (or dry basins), cloud cover, polar ice,
+       * crater density, turbulence of bands and clouds, and volcanic glow. */
+      readonly water?: number;
+      readonly clouds?: number;
+      readonly ice?: number;
+      readonly craters?: number;
+      readonly turbulence?: number;
+      readonly glow?: number;
+    }
+Used by: spacelab.planet-designer.
+
+## AppearanceTuning
+Tunable appearance settings.
+    export type AppearanceTuning = 'water' | 'clouds' | 'ice' | 'craters' | 'turbulence' | 'glow';
+Used by: spacelab.planet-designer.
+
+## APPEARANCE_TUNING
+Presentation tuning fields in shader order.
+    export const APPEARANCE_TUNING: readonly AppearanceTuning[] = Object.freeze(['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow']);
+Used by: spacelab.planet-designer.
 
 ## VehicleDefaults
     export interface VehicleDefaults {
@@ -5503,7 +5802,151 @@ Used by: spacelab.session-flight.
       /** Always four colours once resolved. */
       readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };
     }
-Used by: spacelab.flight-prediction, spacelab.flight-split.
+Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.planet-designer.
+-> API reference index [api-reference]
+
+=== game-api: universe-saving.ts [api-reference/game-api/universe-saving]
+Declarations from universe-saving.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe-saving.ts.
+
+## UniverseSaveFormat
+Host universe container package codec interface (`core.universe-save-format@1.0.0`). Encodes WorldSave structures into zip-compressed .spaceuniverse archives and decodes byte buffers. Decoding is inert and never executes saved module scripts or activates unapproved packages. Throws when archive format is unrecognised, corrupted, or when abort is signalled.
+    export interface UniverseSaveFormat {
+      encode(save: WorldSave, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;
+      decode(bytes: Uint8Array<ArrayBuffer>, signal: AbortSignal): Promise<unknown>;
+    }
+Used by: spacelab.universe-saves.
+
+## CORE_UNIVERSE_FORMAT
+Service key for host universe container package codec (`core.universe-save-format@1.0.0`).
+    export const CORE_UNIVERSE_FORMAT: ServiceKey<UniverseSaveFormat> = Object.freeze({slot:'core.universe-save-format',version:'1.0.0'});
+Used by: spacelab.universe-saves.
+
+## UniverseSaveOptions
+Host callbacks and session access supplied when instantiating a UniverseSaveCommands controller. Defines current world resolution and atomic, guarded state restoration.
+    export interface UniverseSaveOptions {
+      current(): UniverseSaveSource;
+      /** Prepare exact installed packages, validate state, then atomically publish. Call
+       * guard immediately before publication; observe signal during asynchronous work. */
+      restore(raw: unknown, signal: AbortSignal, guard: () => void): Promise<void>;
+    }
+Used by: spacelab.universe-saves.
+
+## UniverseSaveCommands
+Single-operation universe save and load command controller (`universe.saves@1.0.0`). Serializes save/load actions, validates session consistency across async boundaries, and delegates payload encoding/decoding without activating untrusted scripts. Throws if another save/load is already in flight, if permissions are denied, or on session drift.
+    export interface UniverseSaveCommands extends Disposable {
+      save(write: (name: string, bytes: Uint8Array<ArrayBuffer>, signal: AbortSignal) => Promise<void>, signal?: AbortSignal): Promise<WorldSave>;
+      load(read: (signal: AbortSignal) => Promise<Uint8Array<ArrayBuffer>>, signal?: AbortSignal): Promise<void>;
+    }
+Used by: spacelab.universe-saves.
+
+## UniverseSaveFactory
+Factory creating cancellable single-operation universe save and load command controllers (`universe.saves@1.0.0`).
+    export interface UniverseSaveFactory { create(options: UniverseSaveOptions): UniverseSaveCommands }
+Used by: spacelab.universe-saves.
+
+## UNIVERSE_SAVES
+Service key for the universe save/load command controller factory (`universe.saves@1.0.0`).
+    export const UNIVERSE_SAVES: ServiceKey<UniverseSaveFactory> = Object.freeze({slot:'universe.saves',version:'1.0.0'});
+Used by: spacelab.universe-saves.
+
+## UniverseFiles
+Bounded browser file dialog and download management service (`universe.files@1.0.0`). Reads user-selected Blobs up to 64 MiB and writes download files via temporary object URLs. Created URLs are automatically revoked after a 10-second timeout or immediately upon provider disposal. Throws if file sizes exceed 64 MiB, filenames contain invalid characters, or if aborted.
+    export interface UniverseFiles extends Disposable {
+      read(file: Blob, signal: AbortSignal): Promise<Uint8Array<ArrayBuffer>>;
+      write(name: string, bytes: Uint8Array<ArrayBuffer>, signal: AbortSignal): Promise<void>;
+    }
+Used by: spacelab.universe-files, spacelab.universe-save-controls.
+
+## UNIVERSE_FILES
+Service key for the browser universe file reader and writer (`universe.files@1.0.0`).
+    export const UNIVERSE_FILES: ServiceKey<UniverseFiles> = Object.freeze({slot:'universe.files',version:'1.0.0'});
+Used by: spacelab.universe-files, spacelab.universe-save-controls.
+
+## UniverseSaveControls
+Interactive Save universe and Load universe DOM control instance (`ui.universe-saves@1.0.0`). Reports busy status during active operations and restores original DOM on disposal.
+    export interface UniverseSaveControls extends Disposable { readonly busy: boolean }
+Used by: spacelab.universe-save-controls.
+
+## UniverseSaveControlOptions
+Configuration options for mounting Save universe and Load universe controls into a host DOM element. Allows borrowing caller-supplied buttons or generating standard controls with an optional prefix.
+    export interface UniverseSaveControlOptions {
+      readonly root: HTMLElement;
+      readonly commands: UniverseSaveCommands;
+      /** Borrow existing controls or let the module create an independent set. */
+      readonly controls?: { readonly save: HTMLButtonElement; readonly load: HTMLButtonElement; readonly file: HTMLInputElement };
+      readonly prefix?: string;
+      saved?(save: WorldSave): void;
+      loaded?(): void;
+      error?(operation: 'save' | 'load', error: unknown): void;
+    }
+Used by: spacelab.universe-save-controls.
+
+## UniverseSaveControlFactory
+Factory for mounting interactive Save universe and Load universe controls (`ui.universe-saves@1.0.0`).
+    export interface UniverseSaveControlFactory { mount(options: UniverseSaveControlOptions): UniverseSaveControls }
+Used by: spacelab.universe-save-controls.
+
+## UNIVERSE_SAVE_CONTROLS
+Service key for the universe save control UI factory (`ui.universe-saves@1.0.0`).
+    export const UNIVERSE_SAVE_CONTROLS: ServiceKey<UniverseSaveControlFactory> = Object.freeze({slot:'ui.universe-saves',version:'1.0.0'});
+Used by: spacelab.universe-save-controls.
+
+## UniverseDisk
+Low-level server filesystem IO operations required by server universe storage (`core.universe-disk@1.0.0`). Native operations only. Editable server storage owns naming, serialization, queueing, recovery and retention; the host owns filesystem access and engine validation.
+    export interface UniverseDisk {
+      join(...parts: string[]): string;
+      read(path: string): Promise<string>;
+      directory(path: string): Promise<void>;
+      names(path: string): Promise<readonly string[]>;
+      rename(from: string, to: string): Promise<void>;
+      copy(from: string, to: string): Promise<void>;
+      remove(path: string): Promise<void>;
+      replace(path: string, text: string): Promise<void>;
+      replaceSync(path: string, text: string): void;
+      missing(error: unknown): boolean;
+    }
+Used by: spacelab.universe-server-storage.
+
+## CORE_UNIVERSE_DISK
+Service key for native server filesystem IO primitives (`core.universe-disk@1.0.0`).
+    export const CORE_UNIVERSE_DISK: ServiceKey<UniverseDisk> = Object.freeze({slot:'core.universe-disk',version:'1.0.0'});
+Used by: spacelab.universe-server-storage.
+
+## ServerUniverseOptions
+Configuration options for initializing a ServerUniverseStore instance. Defines target directory, backup retention count, state restore logic, and configuration error classification.
+    export interface ServerUniverseOptions<T> {
+      readonly directory: string; readonly keepBackups: number;
+      restore(raw: unknown): T | Promise<T>;
+      /** Missing/incompatible packages require user recovery, not quarantine or fallback. */
+      configurationError(error: unknown): boolean;
+      log?(message: string): void;
+    }
+Used by: spacelab.universe-server-storage.
+
+## ServerUniverseStore
+Persistent server universe storage managing world.json persistence, atomic writes, and backups. Quarantines unparseable files, falls back to timestamped backups, and preserves existing worlds on configuration error. Enqueues asynchronous writes in arrival order; idle() drains the queue prior to shutdown.
+    export interface ServerUniverseStore<T> extends Disposable {
+      readonly file: string; readonly backups: string;
+      load(): Promise<{readonly loaded: T; readonly from: string} | undefined>;
+      save(save: WorldSave): Promise<void>;
+      saveSync(save: WorldSave): void;
+      idle(): Promise<void>;
+      backup(): Promise<string | undefined>;
+      backupFiles(): Promise<string[]>;
+    }
+Used by: spacelab.universe-server-storage.
+
+## ServerUniverseStorage
+Factory creating persistent server universe stores for headless Node environments (`universe.server-storage@1.0.0`).
+    export interface ServerUniverseStorage { create<T>(options: ServerUniverseOptions<T>): ServerUniverseStore<T> }
+Used by: spacelab.universe-server-storage.
+
+## SERVER_UNIVERSE_STORAGE
+Service key for the server universe storage factory (`universe.server-storage@1.0.0`).
+    export const SERVER_UNIVERSE_STORAGE: ServiceKey<ServerUniverseStorage> = Object.freeze({slot:'universe.server-storage',version:'1.0.0'});
+Used by: spacelab.universe-server-storage.
 -> API reference index [api-reference]
 
 === game-api: vehicles.ts [api-reference/game-api/vehicles]
@@ -7012,6 +7455,50 @@ examples/modules/physics-rails demonstrates accessing motion services, creating 
 -> game-api: services.ts [api-reference/game-api/services]
 -> game-api: motion.ts [api-reference/game-api/motion]
 
+=== Independent planet appearance designer [spacelab.planet-designer/usage]
+Read-only body previews and viewer-scoped designs with explicit storage/export ports.
+
+
+## What it does
+This module provides viewer-scoped planet appearance editing and 3D previewing over public read-only world contracts. It enables customizing celestial surface styles, color palettes, procedural seeds, and tuning parameters without modifying authoritative world state, simulation physics, or multiplayer network payloads. Custom designs and applied looks are saved to viewer-local storage under space-sim.planet-looks/1 and space-sim.planet-library/1, and can be exported as standalone space-sim-planets/1 JSON documents.
+
+## Provides and requires
+- Provides ui.planet-designer@1.0.0 through the PLANET_DESIGNERS service key: creates PlanetDesignerControl interactive designer instances.
+- Fills the ui.planet-designer slot in platform profiles.
+- Requires core.rotation@^1.0.0 through the CORE_ROTATION service key: evaluates celestial body spin rates and body-fixed orientations.
+- Requires render.webgl@^1.0.0 (optional) through the WEBGL_DRAWING service key: renders 3D sphere preview views.
+- Requires render.vector-shaders@^1.0.0 (optional) through the VECTOR_SHADERS service key: supplies shader program defaults for the preview.
+
+## Settings
+- previewSpinSeconds (default 20, from 1 to 120, step 1): Wall-clock seconds per decorative preview turn, in seconds, controlling rotational speed in the appearance preview without affecting physical world bodies.
+- sunDegrees (default 120, from 0 to 360, step 1): Initial lighting illumination angle, in degrees, setting the preview sun direction until user adjustment.
+- importMaxBytes (default 1048576, from 1024 to 8388608, step 1024): Maximum allowed file size when importing planet designs, in bytes, rejecting oversized files before parsing to protect memory.
+
+## Lifecycle
+- Initialization captures CORE_ROTATION, optional WEBGL_DRAWING, and optional VECTOR_SHADERS, loads stylesheet assets, registers PLANET_DESIGNERS, and contributes this guide.
+- create(options) mounts designer markup inside options.root, loads applied and library designs from viewer storage, and creates preview canvas elements.
+- appearanceFor(world, body) queries active custom looks for celestial bodies to override rendering appearance during flight or map viewing.
+- refresh() updates draft state against the current active body and re-renders preview canvases.
+- open() reveals the designer interface within the host layout.
+- dispose cancels preview animation frames, detaches event listeners, restores replaced DOM child nodes, and disposes preview renderers.
+
+## Remove or replace
+To customize planet appearance editing or author custom celestial shaders, provide an alternative ui.planet-designer@1.0.0 implementation in the ui.planet-designer slot. Removing this module omits the planet appearance designer and preview editor; bodies display using default procedural appearance presets.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: preset definitions, export formats (space-sim-planets/1), and tuning ranges may evolve before final freeze.
+
+## Example
+examples/modules/planet-designer demonstrates mounting the planet designer, querying appearance overrides, and handling lifecycle cleanup. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/planet-designer/module.json /tmp/example-planet-designer.spacemod
+    npm run module:validate -- /tmp/example-planet-designer.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Independent planet appearance designer [api-reference/module/spacelab.planet-designer]
+-> game-api: planet-designer.ts [api-reference/game-api/planet-designer]
+-> game-api: rotation.ts [api-reference/game-api/rotation]
+
 === Player controller [spacelab.player-controller/usage]
 Routes namespaced intent to a compatible entity/session adapter without advancing a world.
 
@@ -7489,6 +7976,160 @@ examples/modules/transfer-planner demonstrates querying transfer solver capabili
 -> API reference: Orbital transfer search [api-reference/module/spacelab.transfer-planner]
 -> game-api: transfers.ts [api-reference/game-api/transfers]
 -> Flight plans: how to use, replace and remove it [spacelab.flight-plans/usage]
+
+=== Universe file storage [spacelab.universe-files/usage]
+Bounded browser files and owned downloads, independent of save validation.
+
+
+## What it does
+This module provides bounded browser file reading and download triggering for universe save archives. It reads user-selected Blobs up to 64 MiB into byte arrays and dispatches downloads by creating temporary object URLs for generated archives. It tracks object URLs and revokes them upon a 10-second timeout or immediate provider disposal. It performs no decoding, world inspection, package validation, or engine state activation.
+
+## Provides and requires
+- Provides universe.files@1.0.0 through the UNIVERSE_FILES service key: creates UniverseFiles file reading and download services.
+- Fills the universe.files slot in platform profiles.
+- Requires no additional services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers the UNIVERSE_FILES service and contributes this guide.
+- read(file, signal) validates that the Blob size does not exceed 64 MiB, checks for cancellation, and resolves array buffer bytes.
+- write(name, bytes, signal) validates filename length and characters, creates an object URL, clicks a temporary anchor tag to start the download, and schedules automatic URL revocation after 10 seconds.
+- dispose clears pending revocation timers, revokes all tracked object URLs, and causes subsequent operations to throw.
+
+## Remove or replace
+To customize file transfer or route archives to cloud or IndexedDB storage, contribute an alternative universe.files@1.0.0 provider to the universe.files slot. Removing this module leaves browser save interfaces without file input reading or download triggering.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: object URL timeouts and filename validation patterns may evolve before final freeze.
+
+## Example
+examples/modules/universe-files demonstrates reading and writing universe archive bytes through the UNIVERSE_FILES provider. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/universe-files/module.json /tmp/example-universe-files.spacemod
+    npm run module:validate -- /tmp/example-universe-files.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Universe file storage [api-reference/module/spacelab.universe-files]
+-> game-api: universe-saving.ts [api-reference/game-api/universe-saving]
+
+=== Universe save controls [spacelab.universe-save-controls/usage]
+Independent Save universe / Load universe UI over explicit commands and file storage.
+
+
+## What it does
+This module provides mounting for Save universe and Load universe buttons and a file selection picker into a DOM container element. It connects user click and file selection events to caller-owned universe save commands and browser file reader and download services. It tracks busy state to disallow concurrent operations, invokes caller callbacks on success or failure, and cleanly restores original DOM children upon disposal.
+
+## Provides and requires
+- Provides ui.universe-saves@1.0.0 through the UNIVERSE_SAVE_CONTROLS service key: mounts Save and Load universe UI controls.
+- Fills the ui.universe-saves slot in platform profiles.
+- Requires universe.files@^1.0.0 through the UNIVERSE_FILES service key: performs browser file reading and download triggering.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization captures UNIVERSE_FILES, registers UNIVERSE_SAVE_CONTROLS, and contributes this guide.
+- mount(options) borrows caller-provided buttons or creates default Save universe and Load universe DOM buttons and a hidden file input inside options.root.
+- Save button click triggers commands.save using files.write, notifying options.saved upon successful completion.
+- Load button click triggers file input picker, and file selection invokes commands.load using files.read, notifying options.loaded.
+- dispose detaches event listeners, aborts in-flight control operations, restores original DOM children, and clears control references.
+
+## Remove or replace
+To customize save dialog styling or replace default buttons with a custom menu widget, provide an alternative ui.universe-saves@1.0.0 implementation in the ui.universe-saves slot. Removing this module omits the default Save and Load DOM controls from pause menus and navigation shells.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: button identifiers, prefixes, and event handling semantics may evolve before final freeze.
+
+## Example
+examples/modules/universe-save-controls demonstrates mounting Save and Load controls and handling operation callbacks. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/universe-save-controls/module.json /tmp/example-universe-save-controls.spacemod
+    npm run module:validate -- /tmp/example-universe-save-controls.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Universe save controls [api-reference/module/spacelab.universe-save-controls]
+-> game-api: universe-saving.ts [api-reference/game-api/universe-saving]
+
+=== Universe save commands [spacelab.universe-saves/usage]
+Cancellable save/load over engine validation and independently selected storage.
+
+
+## What it does
+This module provides single-operation save and load command controllers for universe sessions. It coordinates world state serialization and container encoding while restricting each controller to at most one in-flight operation. It verifies session and world identity guards prior to publication, ensuring that session transitions occurring during asynchronous operations abort safely without corrupting active worlds. The host retains package recovery, container decoding safety, and engine activation.
+
+## Provides and requires
+- Provides universe.saves@1.0.0 through the UNIVERSE_SAVES service key: creates UniverseSaveCommands controllers.
+- Fills the universe.saves slot in platform profiles.
+- Requires core.save@^1.0.0 through the CORE_SAVE service key: serializes active simulation state into WorldSave records.
+- Requires core.universe-save-format@^1.0.0 through the CORE_UNIVERSE_FORMAT service key: encodes and decodes container archive bytes.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization captures CORE_SAVE and CORE_UNIVERSE_FORMAT, registers UNIVERSE_SAVES, and contributes this guide.
+- create(options) instantiates a UniverseSaveCommands controller tracking single-operation execution and active session identity.
+- save(write, signal) captures session snapshot identity, invokes core.save, encodes container bytes, verifies identity guard, and writes formatted .spaceuniverse files.
+- load(read, signal) invokes read, enforces the 64 MiB limit, decodes container data via format.decode, checks identity guard, and restores the world.
+- dispose cancels pending save or load tasks and disassociates active controllers.
+
+## Remove or replace
+To customize save orchestration, permissions checking, or session migration rules, provide an alternative universe.saves@1.0.0 implementation in the universe.saves slot. Removing this module leaves universe save and load workflows without coordinated session guards and format delegation.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: guard checks and error reporting may be adjusted before final freeze.
+
+## Example
+examples/modules/universe-saves demonstrates creating save commands, executing serialized saves, and verifying session guards. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/universe-saves/module.json /tmp/example-universe-saves.spacemod
+    npm run module:validate -- /tmp/example-universe-saves.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Universe save commands [api-reference/module/spacelab.universe-saves]
+-> game-api: universe-saving.ts [api-reference/game-api/universe-saving]
+
+=== Server universe storage [spacelab.universe-server-storage/usage]
+Serialized atomic saves, backups and validated recovery over borrowed native disk IO.
+
+
+## What it does
+This module provides persistent server-side universe storage for Node environments. It manages serialized asynchronous disk writes via temporary file writes and atomic replacement, maintains timestamped historical backups, quarantines corrupted save files, and attempts automatic recovery from prior backups. It distinguishes engine and package configuration errors from save corruption, ensuring missing packages do not result in quarantined data.
+
+## Provides and requires
+- Provides universe.server-storage@1.0.0 through the SERVER_UNIVERSE_STORAGE service key: creates ServerUniverseStore storage instances.
+- Fills the universe.server-storage slot in platform profiles.
+- Requires core.universe-disk@^1.0.0 through the CORE_UNIVERSE_DISK service key: performs low-level native filesystem IO operations.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization captures CORE_UNIVERSE_DISK, registers SERVER_UNIVERSE_STORAGE, and contributes this guide.
+- create(options) instantiates a ServerUniverseStore instance bound to options.directory and backup retention settings.
+- save(save) enqueues serialized world data writes, writing to a temporary file and atomically renaming it to world.json.
+- load() reads world.json, invokes options.restore, falls back to timestamped backups if corrupt, and rethrows configuration errors without quarantine.
+- backup() copies the current active world file into a timestamped backup and trims historical backups beyond keepBackups.
+- idle() returns a Promise resolving when all currently queued disk writes have completed.
+- dispose marks the store closed, rejecting subsequent writes and unregistering active references.
+
+## Remove or replace
+To customize server universe persistence (such as backing by a relational database or external object store), provide an alternative universe.server-storage@1.0.0 implementation in the universe.server-storage slot. Removing this module omits automated disk persistence and backup rotation in dedicated Node servers.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: backup file naming formats and quarantine conventions may be refined before final freeze.
+
+## Example
+examples/modules/universe-server-storage demonstrates creating a server universe store, saving world state, and managing backups. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/universe-server-storage/module.json /tmp/example-universe-server-storage.spacemod
+    npm run module:validate -- /tmp/example-universe-server-storage.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Server universe storage [api-reference/module/spacelab.universe-server-storage]
+-> game-api: universe-saving.ts [api-reference/game-api/universe-saving]
 
 === Portable trainer [spacelab.trainer/usage]
 Per-craft handling over shared physics, with explicit save/session identity.

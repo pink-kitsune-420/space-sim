@@ -1,12 +1,96 @@
 {
   "id": "usage",
   "audience": "creators",
-  "title": "Universe files",
-  "summary": "Universe files",
+  "title": "Universe file storage",
+  "summary": "Bounded browser files and owned downloads, independent of save validation.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "universe.files@1.0.0 reads browser-selected files up to 64 MiB and writes .spaceuniverse download bytes. It owns object URLs and releases them on timeout or provider disposal. It does not decode, approve packages or load worlds. Native file dialogs remain under the user gesture. Storage is an explicit download, never an unreported browser autosave."
+      "text": "This module provides bounded browser file reading and download triggering for universe save archives. It reads user-selected Blobs up to 64 MiB into byte arrays and dispatches downloads by creating temporary object URLs for generated archives. It tracks object URLs and revokes them upon a 10-second timeout or immediate provider disposal. It performs no decoding, world inspection, package validation, or engine state activation."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides universe.files@1.0.0 through the UNIVERSE_FILES service key: creates UniverseFiles file reading and download services.",
+        "Fills the universe.files slot in platform profiles.",
+        "Requires no additional services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers the UNIVERSE_FILES service and contributes this guide.",
+        "read(file, signal) validates that the Blob size does not exceed 64 MiB, checks for cancellation, and resolves array buffer bytes.",
+        "write(name, bytes, signal) validates filename length and characters, creates an object URL, clicks a temporary anchor tag to start the download, and schedules automatic URL revocation after 10 seconds.",
+        "dispose clears pending revocation timers, revokes all tracked object URLs, and causes subsequent operations to throw."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize file transfer or route archives to cloud or IndexedDB storage, contribute an alternative universe.files@1.0.0 provider to the universe.files slot. Removing this module leaves browser save interfaces without file input reading or download triggering."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: object URL timeouts and filename validation patterns may evolve before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/universe-files demonstrates reading and writing universe archive bytes through the UNIVERSE_FILES provider. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/universe-files/module.json /tmp/example-universe-files.spacemod\nnpm run module:validate -- /tmp/example-universe-files.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Universe file storage",
+      "page": "api-reference/module/spacelab.universe-files"
+    },
+    {
+      "type": "link",
+      "text": "game-api: universe-saving.ts",
+      "page": "api-reference/game-api/universe-saving"
     }
   ]
 }

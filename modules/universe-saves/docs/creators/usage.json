@@ -2,11 +2,97 @@
   "id": "usage",
   "audience": "creators",
   "title": "Universe save commands",
-  "summary": "Universe save commands",
+  "summary": "Cancellable save/load over engine validation and independently selected storage.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "universe.saves@1.0.0 requires core.save and core.universe-save-format. Each controller receives a current session/world identity and a restore command. Container decoding is inert. The host retains exact-package approval, engine validation and candidate activation. Recheck the supplied guard immediately before publication. Abort or dispose cancels pending operations; failed or stale operations retain the active world. Only one operation per controller is allowed. Saves retain the .spaceuniverse filename and Save universe / Load universe naming."
+      "text": "This module provides single-operation save and load command controllers for universe sessions. It coordinates world state serialization and container encoding while restricting each controller to at most one in-flight operation. It verifies session and world identity guards prior to publication, ensuring that session transitions occurring during asynchronous operations abort safely without corrupting active worlds. The host retains package recovery, container decoding safety, and engine activation."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides universe.saves@1.0.0 through the UNIVERSE_SAVES service key: creates UniverseSaveCommands controllers.",
+        "Fills the universe.saves slot in platform profiles.",
+        "Requires core.save@^1.0.0 through the CORE_SAVE service key: serializes active simulation state into WorldSave records.",
+        "Requires core.universe-save-format@^1.0.0 through the CORE_UNIVERSE_FORMAT service key: encodes and decodes container archive bytes."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures CORE_SAVE and CORE_UNIVERSE_FORMAT, registers UNIVERSE_SAVES, and contributes this guide.",
+        "create(options) instantiates a UniverseSaveCommands controller tracking single-operation execution and active session identity.",
+        "save(write, signal) captures session snapshot identity, invokes core.save, encodes container bytes, verifies identity guard, and writes formatted .spaceuniverse files.",
+        "load(read, signal) invokes read, enforces the 64 MiB limit, decodes container data via format.decode, checks identity guard, and restores the world.",
+        "dispose cancels pending save or load tasks and disassociates active controllers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize save orchestration, permissions checking, or session migration rules, provide an alternative universe.saves@1.0.0 implementation in the universe.saves slot. Removing this module leaves universe save and load workflows without coordinated session guards and format delegation."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: guard checks and error reporting may be adjusted before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/universe-saves demonstrates creating save commands, executing serialized saves, and verifying session guards. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/universe-saves/module.json /tmp/example-universe-saves.spacemod\nnpm run module:validate -- /tmp/example-universe-saves.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Universe save commands",
+      "page": "api-reference/module/spacelab.universe-saves"
+    },
+    {
+      "type": "link",
+      "text": "game-api: universe-saving.ts",
+      "page": "api-reference/game-api/universe-saving"
     }
   ]
 }
