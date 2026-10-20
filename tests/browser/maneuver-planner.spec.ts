@@ -332,8 +332,8 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await page.locator('#maneuver-transfers-tab').click();
  await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
  await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
- await page.locator('#maneuver-transfer-destination').selectOption('nix');await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
- await expect(page.locator('#maneuver-transfer-status')).toContainText('not supported');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
+ await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-results [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
+ await expect(page.locator('#maneuver-transfer-support')).toContainText('not supported');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
 
@@ -379,7 +379,7 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
 
 test('offers a validated moon plan while the remaining search is still running',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
- await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('512');
+ await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-low').fill('512');
  const before=await debug(page);await page.locator('#maneuver-transfer-find').click();
  const use=page.locator('#maneuver-transfer-use-efficient');await expect(use).toBeEnabled({timeout:60000});
  await expect(page.locator('#maneuver-transfer-cancel')).toBeVisible();
@@ -395,7 +395,7 @@ test('moon transfers show both burn indicators, editable arrival and current-thr
  // renderers sharing a runner can need many wall-clock seconds for the same work.
  test.setTimeout(180000);
  await setup(page);await place(page);const before=await debug(page);
- await page.locator('#maneuver-transfers-tab').click();await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('100');
+ await page.locator('#maneuver-transfers-tab').click();await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-low').fill('100');
  await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();await page.locator('#maneuver-transfer-find').click();
  await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible({timeout:120000});await expect(page.locator('#maneuver-transfer-choices')).toContainText('At 50% throttle');
  await page.locator('#maneuver-transfer-use-efficient').click();await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
@@ -556,10 +556,10 @@ test('filters excessive shortcuts for a tiny orbit change and cancels background
  await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();const before=await debug(page);
  await page.locator('#maneuver-transfer-low').fill('129');await page.locator('#maneuver-transfer-find').click();
  await expect(page.locator('#maneuver-transfer-cancel')).toBeHidden();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();await expect(page.locator('#maneuver-transfer-use-faster')).toHaveCount(0);
- await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-find').click();await page.locator('#maneuver-transfer-cancel').click();
+ await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-find').click();await page.locator('#maneuver-transfer-cancel').click();
  await expect(page.locator('#maneuver-transfer-status')).toHaveText('Search cancelled.');await page.waitForTimeout(200);
  await expect(page.locator('#maneuver-transfer-choices')).toBeEmpty();await expect(page.locator('#maneuver-transfer-status')).toHaveText('Search cancelled.');
- await page.locator('#maneuver-transfer-destination').selectOption('planet');await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
+ await page.locator('#maneuver-transfer-local [data-destination="planet"]').click();await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
  await expect(page.locator('#maneuver-transfer-use-efficient')).toBeEnabled();await expect(page.locator('#maneuver-transfer-use-faster')).toBeEnabled();
  expect((await debug(page)).tick).toBe(before.tick);expect((await debug(page)).engine).toBe(false);
 });
@@ -600,7 +600,7 @@ test('a reverse-direction Moon transfer raises the orbit instead of wasting delt
  await page.locator('#world-file').setInputFiles({name:'reverse-orbit.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(saved))});
  await expect(page.locator('#flight-message')).toContainText('Universe loaded');await closePanel(page);
  await expect.poll(async()=>{const d=await debug(page);return {tick:d.tick,alt:d.groundClearance,reverse:d.velocity.x<0};}).toEqual({tick:7100,alt:512,reverse:true});
- await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-transfer-destination').selectOption('moon');await page.locator('#maneuver-transfer-low').fill('512');
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-low').fill('512');
  await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeEnabled({timeout:60000});
  await expect(page.locator('#maneuver-transfer-cancel')).toBeHidden({timeout:60000});
  const metrics=await page.locator('.transfer-option .transfer-metrics').first().textContent();expect(Number(/Δv ([\d.]+)/.exec(metrics!)![1])).toBeLessThan(100);
@@ -634,4 +634,49 @@ for(const destinationId of ['moon','velum'] as const)test(`${destinationId} arri
  await expect(page.locator('#maneuver-status')).toContainText('Plan complete',{timeout:30000});
  await expect.poll(async()=>{const d=await debug(page);return {body:d.body,engine:d.engine,orbit:d.orbit?.kind,nodes:d.maneuver?.nodes,completed:d.maneuver?.completed};}).toEqual({body:destinationId,engine:false,orbit:'elliptic',nodes:3,completed:true});
  await expect(page.locator('#warp-factor')).toHaveText('1×');await expect(page.locator('#throttle-value')).toHaveText('0%');
+});
+
+test('the production Transfer picker searches collapsed Solar System moons and keeps the destination visible in a short panel',async({page},info)=>{
+ await setup(page);await openPanel(page,'setup');
+ await page.locator('#universe-file').setInputFiles('games/space-sim/universes/astronomy/full-solar-system/universe.json');
+ await page.locator('#preset').selectOption('earth-orbit');await closePanel(page);
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ await expect(page.locator('#maneuver-transfer-context')).toContainText('Current body: Earth · parent: Sun');
+ await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();
+ await page.screenshot({path:info.outputPath('destination-local-earth.png')});
+ await page.locator('#maneuver-transfer-browser summary').click();
+ await page.locator('#maneuver-transfer-results [data-browse="jupiter"]').click();
+ await page.locator('#maneuver-transfer-results [data-destination="europa"]').click();
+ await expect(page.locator('#maneuver-transfer-destination')).toHaveText('Europa · Jupiter · Sun');
+ await page.screenshot({path:info.outputPath('destination-system-browser.png')});
+ await page.setViewportSize({width:390,height:560});
+ await page.locator('#maneuver-transfer-query').fill('titan');
+ await page.locator('#maneuver-transfer-results [data-destination="titan"]').click();
+ await expect(page.locator('#maneuver-transfer-destination')).toHaveText('Titan · Saturn · Sun');
+ const geometry=await page.locator('#maneuver-window').evaluate(el=>{const panel=el.getBoundingClientRect(),body=el.querySelector('.flight-window-body')!.getBoundingClientRect(),selected=el.querySelector('#maneuver-transfer-destination')!.getBoundingClientRect();return{width:panel.width,overflow:el.scrollWidth-el.clientWidth,selectedTop:selected.top,bodyTop:body.top,selectedBottom:selected.bottom,bodyBottom:body.bottom};});
+ expect(geometry.width).toBeLessThanOrEqual(390);expect(geometry.overflow).toBeLessThanOrEqual(1);expect(geometry.selectedTop).toBeGreaterThanOrEqual(geometry.bodyTop);expect(geometry.selectedBottom).toBeLessThanOrEqual(geometry.bodyBottom);
+ await page.screenshot({path:info.outputPath('destination-search-narrow.png')});
+ await page.locator('#maneuver-transfer-find').scrollIntoViewIfNeeded();await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
+ await expect(page.locator('#maneuver-transfer-support')).toContainText('separate legs');
+});
+
+for(const follow of [false,true])test(`a background ship alarm ${follow?'selects and follows its ship when enabled':'leaves selection and camera alone by default'}`,async({page},info)=>{
+ await setup(page);await place(page);const first=(await debug(page)).ship;
+ await page.locator('#maneuver-time').fill('30');await page.locator('#maneuver-time').press('Tab');await page.locator('#maneuver-prograde').fill('1');
+ await page.locator('#maneuver-alarms summary').click();const focus=page.locator('#maneuver-alarms [data-alarm="focus"]');await expect(focus).not.toBeChecked();if(follow)await focus.check();
+ await page.locator('#maneuver-alarms [data-alarm="pause"]').check();
+ await openPanel(page,'fleet');await page.getByRole('button',{name:'Launch another',exact:true}).click();await expect.poll(async()=>(await debug(page)).ship).not.toBe(first);
+ const second=(await debug(page)).ship;await closePanel(page);
+ // A background alarm must actively restore follow mode, not merely retain a
+ // camera that was already following the alarm's ship.
+ if((await debug(page)).camera.mode!=='free')await page.locator('#camera').click();
+ await expect.poll(async()=>(await debug(page)).camera.mode).toBe('free');
+ await page.locator('#pause').click();await page.locator('#warp-up').evaluate(el=>{for(let i=0;i<5;i++)(el as HTMLButtonElement).click();});
+ await expect(page.locator('#pause')).toHaveText('Resume',{timeout:20000});
+ await expect.poll(async()=>(await debug(page)).ship).toBe(follow?first:second);
+ const after=await debug(page);expect(after.camera.mode).toBe(follow?'follow':'free');expect(after.engine).toBe(false);expect(after.maneuver?.execution??null).toBeNull();
+ if(follow){
+  await expect(page.locator('#maneuver-alarms [data-alarm="focus"]')).toBeChecked();
+  await page.screenshot({path:info.outputPath('alarm-select-follow.png')});
+ }
 });

@@ -34,7 +34,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "62569e7380403a18d078c3da8ce45738678e471194b5cb202720801f00da6267"
+    "inputsDigest": "1ac384522e753a85498dea448fb44cdac1b7b8c6804d8cef6b262a33f232a843"
   },
   "compatibility": {
     "deterministic": true,
@@ -48,7 +48,7 @@
   "inputs": [
     {
       "path": "game-api/alarms.ts",
-      "sha256": "40cbb4fdd243beed1551b3dc6effa57e85ee3f74a1cd0abae9355463ec6b858c",
+      "sha256": "e5c06b92656658ed977324d6b79cdb1be10e902103d437757edcd9e98881b06e",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -132,7 +132,7 @@
     },
     {
       "path": "game-api/maneuver.ts",
-      "sha256": "56d56be3e96e5364fb1a184b2e2687b1b49f5d343b20e8c8e31e940e2dcedc01",
+      "sha256": "d0b2415d17841e0e63297416890492ee7ec6b11a5d9e3c0cb11a0ee325545f92",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -372,7 +372,7 @@
     },
     {
       "path": "src/index.ts",
-      "sha256": "0433d310e6ef73786c91bf2f73e1c35dc690d308c597506056646f3aa55663a4",
+      "sha256": "55a1b7fff297473bde66a0ed6113a982d58e55cc77af028e145d2e4010c47ba5",
       "license": "MIT",
       "attribution": "Space Sim first-party portable inert flight-plan intent and selected-provider evaluation. Licensed under MIT.\n"
     }

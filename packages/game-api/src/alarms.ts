@@ -3,6 +3,8 @@ import type { ServiceKey } from './modules-v2';
 /** Portable reminder preferences; notified survives save/load without saving execution. */
 export interface NodeAlarmSettings {
  readonly enabled: boolean; readonly leadSeconds: number; readonly pause: boolean;
+ /** Optional local presentation request; absent/false leaves selection and camera alone. */
+ readonly focusShip?: boolean;
  readonly notified?: boolean;
 }
 export interface OrbitalAlarmEvent {

@@ -1,13 +1,14 @@
-import type { Coast, FlightPlan, ManeuverPlannerOptions, SimulationContext, State, TransferOption, TransferPlanner, TransferProgress, TransferRelationship, TransferResult, WorldRead } from '@space-sim/game-api';
+import type { Coast, FlightPlan, ManeuverPlannerOptions, SimulationContext, State, TransferOption, TransferPlanner, TransferProgress, TransferResult, WorldRead } from '@space-sim/game-api';
+
+import { DestinationPicker } from './destinations';
 
 /** Optional search UI owns no execution. Search results are tied to the source orbit. */
 export class TransferControls {
  private job?: Generator<TransferProgress,TransferResult>;
  private anchor?: {world:WorldRead;shipId:string;bodyId:string;state:State;context:SimulationContext;coast:Coast};
- private world?:WorldRead;private bodyId='';private disposed=false;
- private readonly destination:HTMLSelectElement;private readonly low:HTMLInputElement;private readonly high:HTMLInputElement;private readonly circular:HTMLInputElement;
- private readonly relations=new Map<string,TransferRelationship>();
- private readonly cancelButton:HTMLButtonElement;private readonly find:HTMLButtonElement;private readonly context:HTMLOutputElement;
+ private world?:WorldRead;private bodyId='';private shipId='';private disposed=false;private generation=0;
+ private readonly destination:DestinationPicker;private readonly low:HTMLInputElement;private readonly high:HTMLInputElement;private readonly circular:HTMLInputElement;
+ private readonly cancelButton:HTMLButtonElement;private readonly find:HTMLButtonElement;
  private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement}[]=[];
  private readonly status:HTMLOutputElement;private readonly choices:HTMLDivElement;
  private shownOptions?:readonly TransferOption[];
@@ -15,51 +16,24 @@ export class TransferControls {
  constructor(private readonly root:HTMLElement,private readonly prefix:string,private readonly service:TransferPlanner,
   private readonly options:ManeuverPlannerOptions,private readonly install:(plan:FlightPlan)=>void,private readonly signal:AbortSignal){
   root.innerHTML=`<p class="maneuver-help">Find a departure window and arrival burn. Choose the destination and the orbit you want there. Pause flight to keep departure windows available while searching.</p>
-   <output id="${prefix}-context" class="maneuver-help"></output>
-   <label>Destination<select id="${prefix}-destination"></select></label>
+   <div id="${prefix}-picker" class="transfer-picker"></div>
    <label>Target low altitude (m)<input id="${prefix}-low" type="number" step="any" value="512"></label>
    <label><input id="${prefix}-circular" type="checkbox" checked> Circular target</label>
    <label>Target high altitude (m)<input id="${prefix}-high" type="number" step="any" value="512" disabled></label>
    <div class="maneuver-adjust"><button id="${prefix}-find" type="button">Find transfer windows</button><button id="${prefix}-cancel" type="button" hidden>Cancel search</button></div>
    <output id="${prefix}-status" aria-live="polite">Choose an orbit and find options.</output><div id="${prefix}-choices"></div>`;
   const get=<T extends HTMLElement>(name:string)=>root.querySelector<T>(`#${prefix}-${name}`)!;
-  this.cancelButton=get('cancel');this.find=get('find');this.context=get('context');this.destination=get('destination');this.low=get('low');this.high=get('high');this.circular=get('circular');this.status=get('status');this.choices=get('choices');
+  this.cancelButton=get('cancel');this.find=get('find');this.low=get('low');this.high=get('high');this.circular=get('circular');this.status=get('status');this.choices=get('choices');
+  this.destination=new DestinationPicker(get('picker'),prefix,service,()=>{this.cancel('Destination changed. Find new options.');this.destinationStatus();},signal);
   const on=(target:EventTarget,type:string,callback:()=>void)=>target.addEventListener(type,callback,{signal:this.signal});
-  for(const input of [this.destination,this.low,this.high])on(input,'input',()=>{if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
+  for(const input of [this.low,this.high])on(input,'input',()=>{if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
   this.high.closest('label')!.hidden=this.circular.checked;
   on(this.circular,'change',()=>{this.high.closest('label')!.hidden=this.circular.checked;this.high.disabled=this.circular.checked;if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
   on(get('find'),'click',()=>this.search());on(get('cancel'),'click',()=>this.cancel('Search cancelled.'));
  }
  private destinationStatus():boolean {
-  const kind=this.relations.get(this.destination.value),unsupported=kind&&this.service.relationships&&!this.service.relationships.includes(kind);
-  this.find.disabled=!kind||!!unsupported;
-  if(unsupported)this.status.textContent='This destination relationship is not supported by the selected provider. Use direct parent/child or sibling legs.';
-  return !!kind&&!unsupported;
- }
- private populateDestinations(world:WorldRead):void {
-  const document=this.root.ownerDocument,bodies=world.system.getAllBodies(),current=bodies.find(body=>body.id===this.bodyId);
-  this.destination.replaceChildren();this.relations.clear();
-  if(!current){this.context.textContent='Choose a ship to see destinations in its orbital neighborhood.';return;}
-  const parent=current.parentId?world.body(current.parentId):undefined,groups=new Map<string,{rank:number;node:HTMLOptGroupElement}>();
-  this.context.textContent=`Current body: ${current.name}${parent?` · parent: ${parent.name}`:''}`;
-  for(const body of bodies){
-   const relation:TransferRelationship=body.id===current.id?'same-body':body.parentId===current.id?'child':body.id===current.parentId?'parent':body.parentId&&body.parentId===current.parentId?'sibling':'other';
-   this.relations.set(body.id,relation);
-   const centre=body.parentId?world.body(body.parentId):undefined;
-   let title:string,rank:number,description:string;
-   if(relation==='same-body'){title='Current body · orbit raising / lowering';rank=0;description='current orbit';}
-   else if(relation==='child'){title=current.surfaceFeatures==='star'?`Planets orbiting ${current.name}`:`Moons of ${current.name}`;rank=1;description=current.surfaceFeatures==='star'?'planet':'moon';}
-   else if(relation==='sibling'&&parent?.surfaceFeatures!=='star'){title=`Other moons of ${parent?.name??'the current parent'}`;rank=2;description=`moon of ${parent?.name??'the current parent'}`;}
-   else if(relation==='parent'){title='Parent body · leave the current SOI';rank=3;description='parent body';}
-   else if(centre?.surfaceFeatures==='star'){title='Interplanetary destinations';rank=4;description=`planet orbiting ${centre.name}`;}
-   else if(centre){title=`Moons of ${centre.name} · farther destinations`;rank=5;description=`moon of ${centre.name}`;}
-   else{title='Other destinations';rank=6;description=body.surfaceFeatures==='star'?'central star':'body';}
-   let group=groups.get(title);if(!group){const node=document.createElement('optgroup');node.label=title;group={rank,node};groups.set(title,group);}
-   const option=document.createElement('option');option.value=body.id;
-   const unavailable=this.service.relationships&&!this.service.relationships.includes(relation);
-   option.textContent=`${body.name} · ${description}${unavailable?' · not available yet':''}`;group.node.append(option);
-  }
-  this.destination.append(...[...groups.values()].sort((a,b)=>a.rank-b.rank).map(group=>group.node));this.destination.value=current.id;
+  this.find.disabled=!this.destination.accepted;
+  return this.destination.accepted;
  }
  private valid():boolean {
   const anchor=this.anchor,flight=this.options.flight(),ship=flight.ship;if(!anchor||!ship)return false;
@@ -77,14 +51,15 @@ export class TransferControls {
   this.cancelButton.hidden=false;this.status.textContent='Searching bounded transfer options…';this.schedule();
  }
  cancel(message?:string):void {
-  this.cancelScheduled();
+  this.generation++;this.cancelScheduled();
   try{this.job?.return({options:[],reason:'cancelled'});}finally{this.job=undefined;this.cancelButton.hidden=true;this.anchor=undefined;this.shownOptions=undefined;this.choices.replaceChildren();this.cards.length=0;if(message)this.status.textContent=message;}
  }
  update():void {
   if(this.disposed)return;const flight=this.options.flight();
-  if(flight.world!==this.world||flight.ship?.bodyId!==this.bodyId){
-   this.cancel('Flight changed. Find new options.');this.world=flight.world;this.bodyId=flight.ship?.bodyId??'';
-   this.populateDestinations(flight.world);this.destinationStatus();
+  if(flight.world!==this.world||(flight.ship?.bodyId??'')!==this.bodyId||(flight.ship?.id??'')!==this.shipId){
+   const reset=flight.world!==this.world||(flight.ship?.id??'')!==this.shipId;
+   this.cancel('Flight changed. Find new options.');this.world=flight.world;this.bodyId=flight.ship?.bodyId??'';this.shipId=flight.ship?.id??'';
+   this.destination.populate(flight.world,this.bodyId,reset);this.destinationStatus();
   }
   if(!flight.enabled){this.cancel();return;}
   if(this.anchor&&!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
@@ -127,6 +102,7 @@ export class TransferControls {
  private show(result:TransferResult):void {
   this.choices.replaceChildren();this.cards.length=0;
   this.status.textContent=result.options.length?`Compare sampled options. ${result.reason}`:result.reason;
+  const generation=this.generation;
   for(const option of result.options) {
    const document=this.root.ownerDocument,card=document.createElement('article'),text=document.createElement('p'),button=document.createElement('button'),header=document.createElement('header'),title=document.createElement('strong'),metrics=document.createElement('output'),details=document.createElement('details'),summary=document.createElement('summary'),warning=document.createElement('p');
    card.className='transfer-option';text.className='maneuver-help';metrics.className='transfer-metrics';warning.className='transfer-warning';
@@ -135,7 +111,7 @@ export class TransferControls {
    header.append(title,button);details.append(summary,text);card.append(header,metrics,warning,details);
    button.id=`${this.prefix}-use-${option.kind}`;button.type='button';button.textContent='Use plan';button.setAttribute('aria-label',`Use ${option.kind} plan`);
    button.addEventListener('click',()=>{
-    if(this.disposed)return;
+    if(this.disposed||generation!==this.generation||!this.cards.some(card=>card.button===button))return;
     if(!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
     if(option.plan.nodes[0]!.time-option.departureBurnSeconds/2<=this.options.flight().world.time+1){this.cancel('The departure preparation window passed. Find new options.');return;}
     this.cancel();this.install(option.plan);this.options.notify('Departure and arrival nodes created. Review the impulsive plan; execute each burn separately or fly manually.');

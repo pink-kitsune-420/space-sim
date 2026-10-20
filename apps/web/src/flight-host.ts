@@ -299,6 +299,7 @@ const ownShips = (): Ship[] => [...session.world.records()].filter(s => s.ownerI
 const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship(selectedShipId) : undefined;
 const warpApproval = new WarpApproval(element('flight-console'));
 let warpApprovalWorld: object | undefined;
+let pendingAlarmFocus: { world: object; shipId: string } | undefined;
 const maneuver = new ManeuverPlanner(workspace, {
   map: () => isSlotThrowing(0) || hudLayout.editing ? undefined : { element: canvas, camera: cameraControl.last,
     origin: session.world.system.getBodyPosition(activeBody.id, view?.time ?? session.world.time) },
@@ -327,6 +328,7 @@ const maneuver = new ManeuverPlanner(workspace, {
   releaseControls: shipId => {
     if (session === local && local.world.record(shipId)?.ownerId === local.playerId) local.host.setControls(local.playerId, shipId, IDLE);
   },
+  focusShip: shipId => { pendingAlarmFocus = { world: session.world, shipId }; },
   setWarp, setPaused: value => setPaused(value, 'Burn alarm'), notify, event: (kind, detail) => profiler.event(kind, detail),
 }, { alarms: hostFeatures.lock.providers[ORBITAL_ALARMS.slot] ? hostFeatures.providedService(ORBITAL_ALARMS) : undefined, plans: hostFeatures.lock.providers[FLIGHT_PLANS.slot] ? hostFeatures.providedService(FLIGHT_PLANS) : undefined,
   transfers: hostFeatures.lock.providers[TRANSFERS.slot] ? hostFeatures.providedService(TRANSFERS) : undefined },{
@@ -4609,6 +4611,13 @@ function frame(now: number): void {
   warpApproval.retain(shipId=>maneuver.isAutomatic(shipId));
   handleEvents(session === local ? local.update(elapsed, selectedShipId, command, maneuver.executing&&maneuver.needsFixedTicks ? () => maneuver.step(command) : undefined, maneuver.needsFixedTicks?() => maneuver.stepFleet():undefined)
     : session.update(elapsed, selectedShipId, command));
+  // Apply alarm selection after the old ship's input step. Reusing that frame's
+  // held command for the newly selected ship would transfer control unexpectedly.
+  const alarmFocus = pendingAlarmFocus;pendingAlarmFocus = undefined;
+  if (alarmFocus?.world === session.world && session.world.record(alarmFocus.shipId)?.ownerId === session.playerId) {
+    if (alarmFocus.shipId !== selectedShipId) selectShip(alarmFocus.shipId);
+    cameraControl.followShip();syncCameraButton();
+  }
   syncSelected();
   if (state.status !== lastStatus) {
     presentation.audio.status(lastStatus, state, !!session.world.surface(activeBody.id), !session.paused && session.warp === 1);

@@ -3,4 +3,7 @@ export { engineModuleServices } from '../../packages/sim-core/src/module-service
 export { World } from '../../packages/sim-core/src/world';
 export { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
 export { saveWorld } from '../../packages/sim-core/src/save';
-export { TRANSFERS, FLIGHT_PLANS, ALARM_PANELS, ALARM_CATALOGUE, PREDICTIONS, MANEUVER_PLANNERS, createProjector } from '../../packages/game-api/src/index';
+export { TRANSFERS, FLIGHT_PLANS, ORBITAL_ALARMS, ALARM_PANELS, ALARM_CATALOGUE, PREDICTIONS, MANEUVER_PLANNERS, createProjector } from '../../packages/game-api/src/index';
+export { DestinationPicker } from '../../modules/maneuver-editor/src/destinations';
+export { TransferControls } from '../../modules/maneuver-editor/src/transfers';
+export { NodeAlarms } from '../../modules/maneuver-editor/src/alarms';

@@ -1,5 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
-import {cp,mkdtemp,rm} from 'node:fs/promises';
+import {cp,mkdtemp,rm,readFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {tmpdir} from 'node:os';
 import {rolldown} from 'rolldown';
@@ -249,21 +249,24 @@ test('the Alarms dock panel reads the existing node clock, follows sessions and 
  expect(result).toMatchObject({pending:'1 pending · 0 delivered',rows:1,delivered:'0 pending · 1 delivered',leaseClosed:true,noWindow:true,clocksRemain:true,clocksRemoved:true,before:1});expect(result.empty).toContain('No active reminders');expect(result.icon).toContain('circle');
 });
 
-test('transfer destinations distinguish current orbit, local moons, parent exits and interplanetary bodies without duplicates',async({page})=>{
+test('transfer local shortcuts follow the current orbital body and preserve a destination across SOI changes',async({page})=>{
  await setup(page,false,true,true);
  const result=await page.evaluate(()=>{
   const f=(window as any).fixture,{factory,prediction,world,root}=f,first=f.current(),other=world.spawn({ownerId:'pilot',presetId:'moon-orbit'});let selected=first.id;
   const planner=factory.create({container:root,id:'destinations',flight:()=>{const ship=world.ship(selected);return{world,ship,body:world.body(ship.bodyId),enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1};},setWarp(){throw Error('No warp');},setThrottle(){throw Error('No ignition');},releaseControls(){throw Error('No arming');},notify(){}});
-  const groups=()=>[...root.querySelectorAll('#destinations-transfer-destination optgroup')].map((g:any)=>({label:g.label,ids:[...g.querySelectorAll('option')].map((o:any)=>o.value)}));
-  planner.update(0,prediction,false);const planetGroups=groups(),select=document.getElementById('destinations-transfer-destination') as HTMLSelectElement;
-  const values=[...select.options].map(o=>o.value);select.value='moon';select.dispatchEvent(new Event('input'));
-  const unsupported=(document.getElementById('destinations-transfer-find') as HTMLButtonElement).disabled,reason=document.getElementById('destinations-transfer-status')?.textContent;
-  selected=other.id;planner.update(.1,prediction,false);const moonGroups=groups(),current=select.value,context=document.getElementById('destinations-transfer-context')?.textContent;
-  const clear=!document.getElementById('destinations-transfer-use-efficient'),before=world.tick;planner.dispose();f.candidate.dispose();world.dispose();return{planetGroups,moonGroups,current,context,unsupported,reason,unique:values.length===new Set(values).size,count:values.length,clear,tick:before};
+  const ids=()=>[...(root as HTMLElement).querySelectorAll<HTMLButtonElement>('#destinations-transfer-local [data-destination]')].map(button=>button.dataset.destination);
+  planner.update(0,prediction,false);const planetLocal=ids();
+  (root as HTMLElement).querySelector<HTMLButtonElement>('#destinations-transfer-local [data-destination="moon"]')!.click();
+  const accepted=!(document.getElementById('destinations-transfer-find') as HTMLButtonElement).disabled;
+  selected=other.id;planner.update(.1,prediction,false);const moonLocal=ids(),context=document.getElementById('destinations-transfer-context')?.textContent;
+  // Simulate the same ship crossing an SOI, without stepping or recomputing the world.
+  const ship=world.ship(selected);ship.bodyId='planet';planner.update(.1,prediction,false);
+  const retained=root.querySelector('[data-destination="moon"][aria-pressed="true"]')!==null;
+  const clear=!document.getElementById('destinations-transfer-use-efficient');planner.dispose();f.candidate.dispose();world.dispose();return{planetLocal,moonLocal,context,accepted,retained,clear};
  });
- expect(result.planetGroups).toEqual(expect.arrayContaining([{label:'Moons of Primus',ids:['moon']},{label:'Interplanetary destinations',ids:['ignis','velum','magnus']}]));
- expect(result.moonGroups).toEqual(expect.arrayContaining([{label:'Parent body · leave the current SOI',ids:['planet']},{label:'Interplanetary destinations',ids:['ignis','velum','magnus']}]));
- expect(result).toMatchObject({current:'moon',unsupported:false,unique:true,count:8,clear:true,tick:1});expect(result.context).toContain('Parvus');expect(result.reason).toContain('Inputs changed');
+ expect(result.planetLocal).toEqual(['planet','star','moon','ignis','magnus','velum']);
+ expect(result.moonLocal).toEqual(['moon','planet']);
+ expect(result).toMatchObject({accepted:true,retained:true,clear:true});expect(result.context).toContain('Current body: Parvus · parent: Primus');
 });
 
 test('cross-body transfer plans remain editable, frame-correct, inert and reviewable through save/load',async({page})=>{
@@ -272,7 +275,7 @@ test('cross-body transfer plans remain editable, frame-correct, inert and review
   const f=(window as any).fixture,{factory,prediction,world,current,root}=f,commands:string[]=[];
   const planner=factory.create({container:root,id:'interbody',flight:()=>({world,ship:current(),body:world.body(current().bodyId),enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
   planner.update(0,prediction,false);const before=JSON.stringify(f.api.saveWorld(world));
-  const destination=document.getElementById('interbody-transfer-destination') as HTMLSelectElement;destination.value='moon';destination.dispatchEvent(new Event('input'));
+  (root as HTMLElement).querySelector<HTMLButtonElement>('#interbody-transfer-local [data-destination="moon"]')!.click();
   const low=document.getElementById('interbody-transfer-low') as HTMLInputElement;low.value='100';low.dispatchEvent(new Event('input'));
   document.getElementById('interbody-transfer-find')!.click();let frames=0;const started=performance.now();
   // Compare the completed search with Node; early best-so-far options may differ.
@@ -350,4 +353,115 @@ test('the compact tabs open transfers without a node and preserve full precision
  });
  expect(result).toMatchObject({empty:true,transfers:true,keyboard:true,display:['1.2345679','0'],advanced:false,commands:[]});
  expect(result.untouched.prograde).toBe(1.234567890123);expect(result.untouched.radial).toBe(1e-12);expect(result.edited.prograde).toBe(2.5);expect(result.edited.radial).toBe(1e-12);
+});
+
+test('full Solar System destinations support local Earth/Moon and sibling choices, progressive browsing, global search and keyboard use in a narrow panel',async({page},info)=>{
+ await setup(page,false,true,true);await page.setViewportSize({width:390,height:560});
+ const universe=JSON.parse(await readFile(resolve('games/space-sim/universes/astronomy/full-solar-system/universe.json'),'utf8'));
+ await page.evaluate(universe=>{
+  const f=(window as any).fixture,{api,factory,root}=f,world=new api.World(universe),ships=['earth-orbit','moon-orbit','europa-orbit','sun-orbit-1au'].map(presetId=>world.spawn({ownerId:'pilot',presetId}));let selected=0;
+  root.style.width='310px';root.style.height='520px';document.body.style.background='#0a1420';
+  const planner=factory.create({container:root,id:'solar',flight:()=>{const ship=ships[selected];return{world,ship,body:world.body(ship.bodyId),enabled:true,canWarp:false,paused:true,inputBlocked:false,warp:1,requestedWarp:1};},setWarp(){throw Error('No warp');},setThrottle(){throw Error('No ignition');},releaseControls(){throw Error('No arming');},notify(){}});
+  planner.openTransfers();f.solar={world,ships,planner,select(index:number){selected=index;planner.openTransfers();}};
+ },universe);
+ const local=page.locator('#solar-transfer-local'),results=page.locator('#solar-transfer-results'),destination=page.locator('#solar-transfer-destination'),query=page.locator('#solar-transfer-query');
+ await expect(local.locator('[data-destination="moon"]')).toBeVisible();await expect(local.locator('[data-destination="europa"]')).toHaveCount(0);
+ await expect(page.locator('#solar-transfer-context')).toContainText('Current body: Earth · parent: Sun');
+ await local.locator('[data-destination="moon"]').click();await expect(destination).toHaveText('Moon · Earth · Sun');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
+ await local.locator('[data-destination="mars"]').click();await expect(destination).toHaveText('Mars · Sun');await expect(page.locator('#solar-transfer-support')).toContainText('Sibling transfer');
+ await page.locator('#solar-transfer-browser summary').click();
+ // Root browsing contains primary systems, not every moon in the catalogue.
+ expect(await results.locator('[data-destination]').count()).toBeLessThan(25);await expect(results.locator('[data-destination="europa"]')).toHaveCount(0);
+ await results.locator('[data-browse="jupiter"]').click();await expect(destination).toHaveText('Mars · Sun');
+ await expect(results.locator('[data-destination="jupiter"]')).toHaveCount(1);await expect(results.locator('[data-destination="europa"]')).toContainText('Europa · Jupiter · Sun');
+ await results.locator('[data-destination="europa"]').click();await expect(destination).toHaveText('Europa · Jupiter · Sun');await expect(page.locator('#solar-transfer-find')).toBeDisabled();
+ await expect(page.locator('#solar-transfer-support')).toContainText('separate legs');await expect(page.locator('#solar-transfer-support')).toContainText('does not build an end-to-end route');
+ await page.screenshot({path:info.outputPath('destination-browse-narrow.png')});
+ await query.fill('Titan');await expect(results.locator('[data-destination="titan"]')).toContainText('Titan · Saturn · Sun');
+ await results.locator('[data-destination="titan"]').click();await expect(destination).toHaveText('Titan · Saturn · Sun');
+ await query.fill('Europa');await expect(results.locator('[data-destination="europa"]')).toHaveCount(1);
+ await query.press('Tab');await expect(page.locator('#solar-transfer-clear')).toBeFocused();await page.keyboard.press('Tab');
+ await expect(results.locator('[data-destination="europa"]')).toBeFocused();await page.keyboard.press('Enter');await expect(destination).toHaveText('Europa · Jupiter · Sun');
+ await query.fill('no-such-body');await expect(page.locator('#solar-transfer-count')).toContainText('No destinations found');await expect(destination).toHaveText('Europa · Jupiter · Sun');
+ await page.locator('#solar-transfer-clear').click();await expect(query).toBeFocused();await expect(results.locator('[data-destination="europa"]')).toHaveCount(1);
+ await page.locator('#solar-transfer-trail [data-browse="sun"]').click();await results.locator('[data-browse="saturn"]').click();
+ expect(await results.locator('[data-destination]').count()).toBeGreaterThan(200);
+ const geometry=await results.evaluate(el=>({height:el.clientHeight,scroll:el.scrollHeight,overflow:el.scrollWidth-el.clientWidth,tabStops:el.querySelectorAll('button[tabindex="0"]').length}));
+ expect(geometry.height).toBeLessThanOrEqual(110);expect(geometry.scroll).toBeGreaterThan(geometry.height);expect(geometry.overflow).toBeLessThanOrEqual(1);expect(geometry.tabStops).toBe(1);
+ await results.locator('[data-destination="saturn"]').focus();await page.keyboard.press('End');await expect(results.locator('[data-destination]').last()).toBeFocused();
+ await page.keyboard.press('Home');await expect(results.locator('[data-destination="saturn"]')).toBeFocused();await page.keyboard.press('ArrowDown');await expect(results.locator('[data-destination]').nth(1)).toBeFocused();
+ await page.screenshot({path:info.outputPath('destination-large-catalogue.png')});
+ await page.evaluate(()=>(window as any).fixture.solar.select(1));
+ await expect(page.locator('#solar-transfer-context')).toContainText('Current body: Moon · parent: Earth');await local.locator('[data-destination="earth"]').click();await expect(destination).toHaveText('Earth · Sun');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
+ await page.evaluate(()=>(window as any).fixture.solar.select(2));await local.locator('[data-destination="io"]').click();await expect(destination).toHaveText('Io · Jupiter · Sun');await expect(page.locator('#solar-transfer-support')).toContainText('Sibling transfer');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
+ await page.evaluate(()=>(window as any).fixture.solar.select(3));await expect(page.locator('#solar-transfer-context')).toContainText('Current body: Sun · no parent');await expect(local.locator('[data-destination="earth"]')).toHaveCount(1);await expect(local.locator('[data-destination="moon"]')).toHaveCount(0);
+ // The window and its scroll body fit the narrow host, even with long parent labels.
+ const panel=await page.locator('#solar-window').evaluate(el=>({width:el.getBoundingClientRect().width,overflow:el.scrollWidth-el.clientWidth,bodyOverflow:el.querySelector('.flight-window-body')!.scrollWidth-el.querySelector('.flight-window-body')!.clientWidth}));
+ expect(panel.width).toBeLessThanOrEqual(310);expect(panel.overflow).toBeLessThanOrEqual(1);expect(panel.bodyOverflow).toBeLessThanOrEqual(1);
+});
+
+test('custom deep hierarchies and duplicate names retain identity with restricted and undeclared provider coverage',async({page})=>{
+ await setup(page);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,root=document.createElement('div');document.body.append(root);
+  const bodies=[{id:'root',name:'Anchor'},{id:'p',name:'Primary',parentId:'root'},{id:'m',name:'Twin',parentId:'p'},{id:'m2',name:'Twin',parentId:'p'},{id:'sub',name:'Small',parentId:'m'},{id:'subsub',name:'Deep',parentId:'sub'}];
+  const world={system:{getAllBodies:()=>bodies}},signal=new AbortController();let commits=0;
+  const picker=new f.api.DestinationPicker(root,'custom',{relationships:['same-body','parent']},()=>commits++,signal.signal);picker.populate(world,'m',true);
+  const local=[...root.querySelectorAll<HTMLButtonElement>('#custom-local [data-destination]')].map(el=>el.dataset.destination);
+  const query=root.querySelector<HTMLInputElement>('#custom-query')!,search=(text:string)=>{query.value=text;query.dispatchEvent(new Event('input'));};
+  search('Twin');const twins=[...root.querySelectorAll<HTMLButtonElement>('#custom-results [data-destination]')].filter(el=>['m','m2'].includes(el.dataset.destination!)).map(el=>el.textContent);
+  root.querySelector<HTMLButtonElement>('#custom-results [data-destination="m2"]')!.click();const siblingAccepted=picker.accepted,siblingReason=root.querySelector('#custom-support')!.textContent;
+  search('Deep');root.querySelector<HTMLButtonElement>('#custom-results [data-destination="subsub"]')!.click();const deepId=picker.value,deepLabel=root.querySelector('#custom-destination')!.textContent;
+  search('');root.querySelector<HTMLButtonElement>('#custom-results [data-browse="p"]')!.click();root.querySelector<HTMLButtonElement>('#custom-results [data-browse="m"]')!.click();root.querySelector<HTMLButtonElement>('#custom-results [data-browse="sub"]')!.click();
+  const browsed=root.querySelector<HTMLButtonElement>('#custom-results [data-destination="subsub"]')!.textContent;root.querySelector<HTMLButtonElement>('#custom-results [data-destination="subsub"]')!.click();
+  const stable=picker.value===deepId,unchangedCommit=commits===2;
+  const unknown=document.createElement('div');document.body.append(unknown);const unknownPicker=new f.api.DestinationPicker(unknown,'unknown',{},()=>{},signal.signal);unknownPicker.populate(world,'m',true);
+  const q=unknown.querySelector<HTMLInputElement>('#unknown-query')!;q.value='Deep';q.dispatchEvent(new Event('input'));unknown.querySelector<HTMLButtonElement>('[data-destination="subsub"]')!.click();
+  return{local,twins,siblingAccepted,siblingReason,deepId,deepLabel,browsed,stable,unchangedCommit,unknownAccepted:unknownPicker.accepted,unknownReason:unknown.querySelector('#unknown-support')!.textContent};
+ });
+ expect(result.local).toEqual(['m','p']);expect(result.twins).toEqual(['Twin [m] · Primary · Anchor · change orbit','Twin [m2] · Primary · Anchor']);
+ expect(result).toMatchObject({siblingAccepted:false,deepId:'subsub',stable:true,unchangedCommit:true,unknownAccepted:true});expect(result.siblingReason).toContain('not supported');expect(result.siblingReason).not.toContain('separate legs');
+ expect(result.deepLabel).toBe('Deep · Small · Twin [m] · Primary · Anchor');expect(result.browsed).toBe(result.deepLabel);expect(result.unknownReason).toContain('does not declare coverage');
+});
+
+test('browsing preserves a running search; destination commits cancel it and detached stale plans stay unusable after a new search',async({page})=>{
+ await setup(page,false,true,true);
+ await page.evaluate(()=>{
+  const f=(window as any).fixture,{world,current,body,root}=f,solver=f.candidate.providedService(f.api.TRANSFERS),search=solver.search(world,{shipId:current().id,destinationId:body.id,periapsisAltitude:768,apoapsisAltitude:768});let option:any;
+  for(let i=0;i<10000;i++){const step=search.next();if(step.done){option=step.value.options[0];break;}}if(!option)throw Error('Fixture needs a validated orbit-change plan');
+  root.innerHTML='<section id="controlled-transfers"></section>';const container=document.getElementById('controlled-transfers')!,requests:any[]=[],installed:any[]=[],state={cancelled:0};
+  const options=[option],service={relationships:solver.relationships,*search(_world:any,request:any){requests.push(request);try{while(true)yield{tested:1,total:2,accepted:1,options};}finally{state.cancelled++;}}};
+  const controls=new f.api.TransferControls(container,'controlled',service,{container:root,flight:()=>({world,ship:current(),body,enabled:true,paused:true,warp:1}),notify(){}},(plan:any)=>installed.push(plan),new AbortController().signal);
+  f.controlled={controls,requests,installed,state};controls.update();
+ });
+ await page.locator('#controlled-find').click();await expect(page.locator('#controlled-use-efficient')).toBeEnabled();
+ await page.evaluate(()=>{(window as any).fixture.controlled.stale=document.getElementById('controlled-use-efficient');});
+ await page.locator('#controlled-browser summary').click();await page.locator('#controlled-results [data-browse="magnus"]').click();await page.locator('#controlled-query').fill('Nix');
+ await expect(page.locator('#controlled-cancel')).toBeVisible();await expect(page.locator('#controlled-use-efficient')).toBeEnabled();await expect(page.locator('#controlled-destination')).toContainText('Primus');
+ expect(await page.evaluate(()=>(window as any).fixture.controlled.state.cancelled)).toBe(0);
+ await page.locator('#controlled-results [data-destination="nix"]').click();await expect(page.locator('#controlled-cancel')).toBeHidden();await expect(page.locator('#controlled-use-efficient')).toHaveCount(0);await expect(page.locator('#controlled-find')).toBeDisabled();
+ await page.locator('#controlled-local [data-destination="moon"]').click();await page.locator('#controlled-find').click();await expect(page.locator('#controlled-use-efficient')).toBeEnabled();
+ const result=await page.evaluate(()=>{const f=(window as any).fixture.controlled;f.stale.click();return{requests:f.requests.map((r:any)=>r.destinationId),cancelled:f.state.cancelled,installed:f.installed.length};});
+ expect(result).toEqual({requests:['planet','moon'],cancelled:1,installed:0});
+ await page.locator('#controlled-cancel').click();await expect(page.locator('#controlled-use-efficient')).toHaveCount(0);
+ expect(await page.evaluate(()=>(window as any).fixture.controlled.state.cancelled)).toBe(2);
+});
+
+test('alarm camera focus defaults off, follows one due ship per batch, and does not replay handled reminders or require a camera port',async({page})=>{
+ await setup(page,false,true,false,true);
+ const result=await page.evaluate(()=>{
+  const f=(window as any).fixture,root=document.createElement('details'),focuses:string[]=[],notices:string[]=[],session={time:0,ship:(id:string)=>({id,name:id})};document.body.append(root);
+  const nodes=[{shipId:'later',id:'node',label:'Later',time:40},{shipId:'early',id:'node',label:'Earlier',time:30},{shipId:'old',id:'node',label:'Old preferences',time:25}] as any[];
+  const factory=f.candidate.providedService(f.api.ORBITAL_ALARMS),options={flight:()=>({world:session,enabled:true,canWarp:true,paused:false,requestedWarp:1}),focusShip:(id:string)=>focuses.push(id),notify:(text:string)=>notices.push(text),setThrottle(){throw Error('No thrust');},releaseControls(){throw Error('No arming');}};
+  const create=(element:HTMLElement,host:any)=>new f.api.NodeAlarms(element,factory,host,(node:any)=>node.time-10,()=>nodes.map(node=>({node,deadline:node.time-10})),()=>{},()=>{},new AbortController().signal);
+  const alarms=create(root,options);alarms.updateUi(nodes[2],false);const checkbox=root.querySelector<HTMLInputElement>('[data-alarm="focus"]')!,defaultOff=!checkbox.checked;
+  session.time=16;alarms.beforeAdvance();const leftAlone=focuses.length===0;
+  for(const node of nodes.slice(0,2)){alarms.updateUi(node,false);checkbox.checked=true;checkbox.dispatchEvent(new Event('change'));}
+  alarms.beforeAdvance();session.time=35;alarms.beforeAdvance();alarms.beforeAdvance();const once=[...focuses],saved=JSON.parse(JSON.stringify(nodes));
+  alarms.dispose();nodes.splice(0,nodes.length,...saved);const restored=create(root,options);restored.beforeAdvance();restored.dispose();
+  const detached=document.createElement('details');document.body.append(detached);const noCamera=create(detached,{...options,focusShip:undefined});noCamera.updateUi(nodes[0],false);const hidden=(detached.querySelector('[data-alarm="focus-label"]') as HTMLElement).hidden;noCamera.dispose();
+  return{defaultOff,leftAlone,once,afterReload:focuses,hidden,notices:notices.length,saved:saved.map((node:any)=>({ship:node.shipId,focus:node.alarm?.focusShip,notified:node.alarm?.notified}))};
+ });
+ expect(result).toMatchObject({defaultOff:true,leftAlone:true,once:['early'],afterReload:['early'],hidden:true,notices:2});
+ expect(result.saved).toEqual([{ship:'later',focus:true,notified:true},{ship:'early',focus:true,notified:true},{ship:'old',focus:undefined,notified:true}]);
 });

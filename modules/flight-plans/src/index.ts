@@ -13,8 +13,8 @@ const text = (raw: unknown, name: string, length = 128): string => typeof raw ==
 const vector = (raw: unknown): Vec => { const value = record(raw); return { x: number(value.x, 'x'), y: number(value.y, 'y') }; };
 function readAlarm(raw:unknown): import('@space-sim/game-api').NodeAlarmSettings {
  const a=record(raw),lead=number(a.leadSeconds,'alarm lead',86400);
- if(lead<0||typeof a.enabled!=='boolean'||typeof a.pause!=='boolean'||(a.notified!==undefined&&typeof a.notified!=='boolean'))fail('invalid node alarm preferences');
- return {enabled:a.enabled as boolean,leadSeconds:lead,pause:a.pause as boolean,...(a.notified===true?{notified:true}:{})};
+ if(lead<0||typeof a.enabled!=='boolean'||typeof a.pause!=='boolean'||(a.notified!==undefined&&typeof a.notified!=='boolean')||(a.focusShip!==undefined&&typeof a.focusShip!=='boolean'))fail('invalid node alarm preferences');
+ return {enabled:a.enabled as boolean,leadSeconds:lead,pause:a.pause as boolean,...(a.focusShip===true?{focusShip:true}:{}),...(a.notified===true?{notified:true}:{})};
 }
 function readTarget(raw:unknown):NonNullable<FlightPlanNode['targetOrbit']> {
  const value=record(raw),low=number(value.periapsisAltitude,'target periapsis'),high=number(value.apoapsisAltitude,'target apoapsis');

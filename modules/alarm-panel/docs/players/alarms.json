@@ -6,7 +6,7 @@
   "blocks": [
     {
       "type": "paragraph",
-      "text": "Select Alarms in the dock (the clock icon) to see pending and delivered reminders for your current session. A reviewed next maneuver appears here even when you will fly it manually. Configure its preparation lead and optional pause in Maneuver \u2192 Burn alarm. Later nodes appear after the earlier burn is resolved and the remaining plan is reviewed. Reminders exit warp and notify by default; alarms never arm or ignite engines."
+      "text": "Select Alarms in the dock (the clock icon) to see pending and delivered reminders for your current session. A reviewed next maneuver appears here even when you will fly it manually. Configure its preparation lead, optional pause and optional Select and follow ship at reminder in Maneuver \u2192 Burn alarm. Camera focus defaults off, is saved per node and changes only your local view. Later nodes appear after the earlier burn is resolved and the remaining plan is reviewed. Reminders exit warp and notify by default; alarms never arm or ignite engines."
     }
   ]
 }

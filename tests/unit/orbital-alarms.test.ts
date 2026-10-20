@@ -32,9 +32,12 @@ it('rejects malformed or unbounded sets atomically, and bounds a full 1024-event
 it('preserves bounded reminder intent and delivery flags in portable plans while old plans omit it',()=>{
  const service=createFlightPlans(),world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),node={id:'departure',label:'Departure',bodyId:ship.bodyId,time:30,prograde:10,radial:0};
  const old=service.capture(world,ship,[node]);expect(old.nodes[0]!.alarm).toBeUndefined();
- const alarm={enabled:true,leadSeconds:15,pause:true,notified:true},plan=service.capture(world,ship,[{...node,alarm}]);
+ const alarm={enabled:true,leadSeconds:15,pause:true,focusShip:true,notified:true},plan=service.capture(world,ship,[{...node,alarm}]);
  expect(service.read(JSON.parse(JSON.stringify({format:'space-sim-flight-plans/1',plans:[plan]}))).plans[0]!.nodes[0]!.alarm).toEqual(alarm);
- for(const alarm of [{enabled:true,leadSeconds:-1,pause:false},{enabled:true,leadSeconds:86401,pause:false},{enabled:'yes',leadSeconds:10,pause:false}])expect(()=>service.capture(world,ship,[{...node,alarm:alarm as any}])).toThrow();world.dispose();
+ const legacy={enabled:true,leadSeconds:10,pause:false};
+ expect(service.capture(world,ship,[{...node,alarm:legacy}]).nodes[0]!.alarm).toEqual(legacy);
+ expect(service.capture(world,ship,[{...node,alarm:{...legacy,focusShip:false}}]).nodes[0]!.alarm?.focusShip).not.toBe(true);
+ for(const alarm of [{enabled:true,leadSeconds:-1,pause:false},{enabled:true,leadSeconds:86401,pause:false},{enabled:'yes',leadSeconds:10,pause:false},{enabled:true,leadSeconds:10,pause:false,focusShip:'yes'}])expect(()=>service.capture(world,ship,[{...node,alarm:alarm as any}])).toThrow();world.dispose();
 });
 it('runs a real packaged alarm service in browser/offline/node without plans, UI, motion or execution modules',async()=>{
  const {cp,mkdtemp,readFile,rm}=await import('node:fs/promises'),{join,resolve}=await import('node:path'),{tmpdir}=await import('node:os');

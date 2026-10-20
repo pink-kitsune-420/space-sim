@@ -47,6 +47,9 @@ export interface ManeuverPlannerOptions {
  /** Optional host pause command; explicitly executing a burn may resume flight.
   * Alarms never use engine/execution commands. */
  setPaused?(paused: boolean): void;
+ /** Optional local alarm action: select this ship and follow it with the camera.
+  * Hosts should apply after their current input/physics step to avoid rerouting held input. */
+ focusShip?(shipId: string): void;
  setThrottle(shipId: string, throttle: number): void;
  releaseControls(shipId: string): void;
  notify(text: string): void;

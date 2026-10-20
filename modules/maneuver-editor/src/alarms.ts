@@ -14,6 +14,7 @@ export class NodeAlarms {
  private readonly enabled:HTMLInputElement;
  private readonly lead:HTMLInputElement;
  private readonly pause:HTMLInputElement;
+ private readonly focus:HTMLInputElement;
  private readonly status:HTMLOutputElement;
  private readonly suspended=new WeakSet<AlarmTarget>();
  private selected?:AlarmTarget;
@@ -22,14 +23,15 @@ export class NodeAlarms {
   private readonly deadline:(node:AlarmTarget)=>number,private readonly candidates:()=>readonly AlarmCandidate[],
   private readonly warpChanged:()=>void,private readonly stopWarp:()=>void,signal:AbortSignal){
   this.clock=factory.create();
-  root.innerHTML='<summary>Burn alarm</summary><label><input type="checkbox" data-alarm="enabled"> Remind me before this burn</label><label>Preparation lead (s)<input type="number" min="0" max="86400" step="any" data-alarm="lead" aria-label="Alarm lead seconds"></label><label data-alarm="pause-label"><input type="checkbox" data-alarm="pause"> Pause at reminder</label><output data-alarm="status"></output><p class="maneuver-help">Notifies before the burn. Manual reminders exit warp; a non-pausing reminder leaves an armed automatic approach in control. Includes half the full-throttle burn and alignment preparation. Later nodes need review after each burn. Reminders never arm or ignite engines.</p>';
-  this.enabled=root.querySelector('[data-alarm="enabled"]')!;this.lead=root.querySelector('[data-alarm="lead"]')!;this.pause=root.querySelector('[data-alarm="pause"]')!;this.status=root.querySelector('[data-alarm="status"]')!;
+  root.innerHTML='<summary>Burn alarm</summary><label><input type="checkbox" data-alarm="enabled"> Remind me before this burn</label><label>Preparation lead (s)<input type="number" min="0" max="86400" step="any" data-alarm="lead" aria-label="Alarm lead seconds"></label><label data-alarm="pause-label"><input type="checkbox" data-alarm="pause"> Pause at reminder</label><label data-alarm="focus-label"><input type="checkbox" data-alarm="focus"> Select and follow ship at reminder</label><output data-alarm="status"></output><p class="maneuver-help">Notifies before the burn. Manual reminders exit warp; a non-pausing reminder leaves an armed automatic approach in control. Includes half the full-throttle burn and alignment preparation. Later nodes need review after each burn. Reminders never arm or ignite engines.</p>';
+  this.enabled=root.querySelector('[data-alarm="enabled"]')!;this.lead=root.querySelector('[data-alarm="lead"]')!;this.pause=root.querySelector('[data-alarm="pause"]')!;this.focus=root.querySelector('[data-alarm="focus"]')!;this.status=root.querySelector('[data-alarm="status"]')!;
   (root.querySelector('[data-alarm="pause-label"]') as HTMLElement).hidden=!options.setPaused;
+  (root.querySelector('[data-alarm="focus-label"]') as HTMLElement).hidden=!options.focusShip;
   const edit=()=>{
    const node=this.selected,value=this.lead.valueAsNumber;if(!node||node.completed||!Number.isFinite(value)||value<0||value>86400)return;
-   node.alarm={...node.alarm,enabled:this.enabled.checked,leadSeconds:value,pause:this.pause.checked};this.touch(node);this.updateUi(node,false);
+   node.alarm={...node.alarm,enabled:this.enabled.checked,leadSeconds:value,pause:this.pause.checked,focusShip:this.focus.checked};this.touch(node);this.updateUi(node,false);
   };
-  for(const input of [this.enabled,this.lead,this.pause])input.addEventListener('change',edit,{signal});
+  for(const input of [this.enabled,this.lead,this.pause,this.focus])input.addEventListener('change',edit,{signal});
  }
  suspend(node:AlarmTarget):void {this.suspended.add(node);}
  touch(node:AlarmTarget):void {
@@ -39,9 +41,9 @@ export class NodeAlarms {
  }
  updateUi(node:AlarmTarget|undefined,executing:boolean):void {
   this.selected=node;const prefs=node?.alarm??DEFAULT_NODE_ALARM;
-  this.enabled.checked=prefs.enabled;this.pause.checked=prefs.pause;
+  this.enabled.checked=prefs.enabled;this.pause.checked=prefs.pause;this.focus.checked=prefs.focusShip===true;
   if(this.lead.ownerDocument.activeElement!==this.lead)this.lead.value=String(prefs.leadSeconds);
-  for(const input of [this.enabled,this.lead,this.pause])input.disabled=!node||!!node.completed||executing;
+  for(const input of [this.enabled,this.lead,this.pause,this.focus])input.disabled=!node||!!node.completed||executing;
   this.status.textContent=!node?'Choose a node.':this.suspended.has(node)?'Reminder suspended by manual warp. Review or edit to re-enable.':!prefs.enabled?'Alarm off.':prefs.notified?'Reminder delivered.':`Reminder includes ${prefs.leadSeconds.toFixed(1)} s preparation, or longer if alignment needs it.`;
  }
  beforeAdvance(automatic?:AlarmTarget|((node:AlarmTarget)=>boolean)):void {
@@ -57,8 +59,17 @@ export class NodeAlarms {
   const notices=this.clock.sync(flight.world,flight.world.time,this.events);
   const isAutomatic=(id:string):boolean=>{const node=this.refs.get(id);return !!node&&(typeof automatic==='function'?automatic(node):node===automatic);};
   if(notices.length){
-   let pause=false,missed=false;
-   for(const notice of notices){const node=this.refs.get(notice.id);if(node)node.alarm={...(node.alarm??DEFAULT_NODE_ALARM),notified:true};pause ||= notice.pause;missed ||= notice.missed;}
+   let pause=false,missed=false,focus:AlarmTarget|undefined,focusDeadline=Infinity;
+   for(const notice of notices){
+    const node=this.refs.get(notice.id);
+    if(node){
+     const prefs=node.alarm??DEFAULT_NODE_ALARM;
+     // One camera move per batch: earliest requested reminder, then stable ship ID.
+     if(prefs.focusShip&&(!focus||notice.deadline<focusDeadline||notice.deadline===focusDeadline&&node.shipId<focus.shipId)){focus=node;focusDeadline=notice.deadline;}
+     node.alarm={...prefs,notified:true};
+    }
+    pause ||= notice.pause;missed ||= notice.missed;
+   }
    // An explicitly armed burn owns its approach timing. Its ordinary reminder
    // still notifies, while pause requests and other nodes retain their stop.
    const stop=notices.some(notice=>notice.pause||!isAutomatic(notice.id));
@@ -67,6 +78,7 @@ export class NodeAlarms {
    this.options.notify(`${missed?'Missed burn alarm':'Burn alarm'}: ${notices.length===1?notices[0]!.label:`${notices.length} nodes`}. ${pause&&this.options.setPaused?'Paused. ':''}${stop?'Review the burn; engine remains under your control.':'Automatic approach continues.'}`);
    this.options.event?.('maneuver-alarm',{count:notices.length,missed,paused:pause&&!!this.options.setPaused});
    this.updateUi(this.selected,false);
+   if(focus)this.options.focusShip?.(focus.shipId);
   }else if(!flight.paused&&flight.requestedWarp>1){
    let remaining=this.clock.secondsUntilNext;
    if(automatic){

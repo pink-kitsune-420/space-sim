@@ -392,7 +392,7 @@ its single-node planning mode, without the multi-node save controls. Loaded plan
 <p>Start in <b>Circular orbit · 128 m altitude</b> around Primus. Cut thrust and pause while comparing plans.</p>
 <ol>
   <li>Choose <b>Transfers</b> in the flight toolbar, or the <b>Transfer window</b> tab in Maneuver. You do not need to place a node first.</li>
-  <li>Keep <b>Destination</b> set to <b>Primus</b>. Leave <b>Circular target</b> checked and enter
+  <li>Keep the selected <b>Destination</b> as <b>Primus</b> (change orbit). Leave <b>Circular target</b> checked and enter
     <b>768</b> for <b>Target low altitude (m)</b>.</li>
   <li>Choose <b>Find transfer windows</b>. Compare the wait before departure, travel time, total Δv and both burn durations.</li>
   <li><b>Faster</b> is offered only when it saves at least 10% of wait plus travel and costs no more than twice the efficient plan’s Δv. Sequences without time to finish departure, turn and start arrival are excluded.</li>
@@ -418,7 +418,13 @@ Direct parent/child and sibling bodies sharing a parent are supported; deeper de
 <p>The search validates actual moving SOI handoffs, contact and a safe target revolution. Generated plans remain inert.
 Review actual flight after departure and after a reference-body change before choosing arrival execution.
 Both starting and target orbits may be elliptical. A long finite burn can change an encounter substantially.</p>
-<p>The list groups the current body, nearby moons, parent exits and farther destinations. Unsupported relationships explain the limit when selected.
+<p><b>Local</b> shortcuts follow the ship’s current orbital body: change its orbit, visit a child or sibling body, or transfer to its parent.
+They show relationships accepted by the selected provider, not whichever body is physically closest. Acceptance does not guarantee a safe trajectory.</p>
+<p>Open <b>Browse or search all destinations</b> for other systems. Choose a body’s name to select it, or its separate <b>Browse</b> button to see bodies orbiting it.
+Search finds bodies even inside collapsed systems; results and the selected destination show their parent context.
+Use Tab to enter a destination list, ↑/↓ or Home/End to move, and Enter or Space to choose. <b>Clear</b> returns from search to browsing.</p>
+<p>Browsing and filtering leave the selected destination and any search running. Choosing a new destination clears old transfer results.
+All bodies remain discoverable; selecting an unsupported relationship explains the limit. Deeper transfers need separately planned legs; the planner does not assemble a route.
 See <a data-page="moon-flight">Reaching Parvus</a> for the manual flight lesson.</p>
 ${deeper('what efficient and faster mean', `
 <p><b>Efficient</b> has the smallest total impulse cost among the validated sampled opportunities.
@@ -440,10 +446,11 @@ It <b>exits warp and notifies you</b>; it never turns the ship or fires the engi
 <ol>
   <li>Select a valid node in Maneuver and expand <b>Burn alarm</b>.</li>
   <li>Keep <b>Remind me before this burn</b> checked. Set <b>Preparation lead (s)</b> to the time you want before preparing the burn.</li>
-  <li>Optionally check <b>Pause at reminder</b>. The default is 10 seconds of preparation, with no pause.</li>
+  <li>Optionally check <b>Pause at reminder</b> or <b>Select and follow ship at reminder</b>. The default is 10 seconds of preparation, with both options off.</li>
   <li>Resume and increase time warp. You can close the Maneuver window. As the reminder approaches, warp slows;
     at the reminder it returns to 1×, notifies you, and pauses if selected.</li>
 </ol>
+<p><b>Select and follow ship at reminder</b> switches your selected ship and camera to the alarm’s ship, even when you are viewing another owned ship. It changes your local view, without arming a burn. If several focus reminders arrive together, the earliest deadline wins (ship ID breaks ties). The choice is saved per node; older plans leave it off.</p>
 <h3>See all active reminders</h3>
 <p>Open <b>Alarms</b> from the dock, or its entry under Instruments, to see pending reminders, countdowns and delivered notices for this session.
 Configure each reminder in <b>Maneuver → Burn alarm</b>. Closing Alarms does not disable reminders.

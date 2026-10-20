@@ -51,9 +51,28 @@
 .maneuver-map button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 .maneuver-map button[data-map-control="node"] { font-size: 24px; width: 30px; height: 30px; }
 
-.maneuver-window [data-alarm="enabled"], .maneuver-window [data-alarm="pause"] { width: auto; margin: 0 6px 0 0; }
+.maneuver-window [data-alarm="enabled"], .maneuver-window [data-alarm="pause"], .maneuver-window [data-alarm="focus"] { width: auto; margin: 0 6px 0 0; }
 .maneuver-window [id$="-alarms"] label { display: block; margin: 8px 0; font-size: 12px; }
 .maneuver-window [data-alarm="lead"] { width: 100px; margin-left: 8px; }
 
 .maneuver-window [id$="-fleet"] label { display: flex; gap: 6px; align-items: center; font-size: 12px; }
 .maneuver-window [id$="-automatic"] { width: auto; margin: 0; }
+
+.transfer-picker { display: grid; gap: 6px; min-width: 0; font: 12px system-ui, sans-serif; }
+.transfer-selected { position: sticky; top: 0; z-index: 1; padding: 6px 8px; border-left: 2px solid #c89d58; background: #101b25; overflow-wrap: anywhere; }
+.transfer-selected > span { font-size: 10px; opacity: .7; }
+.transfer-selected output { color: #f7c775; }
+.transfer-destinations { max-height: 132px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #36566a; border-radius: 5px; padding: 3px; font-size: 11px; }
+.transfer-destination-row { display: flex; gap: 3px; }
+.maneuver-window .transfer-picker button { margin: 0; padding: 5px 6px; min-height: 30px; font-size: 11px; font-family: inherit; color: inherit; border: 1px solid #36566a; border-radius: 4px; background: transparent; }
+.maneuver-window .transfer-destination-row [data-destination] { flex: 1; min-width: 0; text-align: left; overflow-wrap: anywhere; border-color: transparent; }
+.transfer-destination-row [data-browse] { flex: 0 0 auto; align-self: center; }
+.maneuver-window .transfer-destination-row [aria-pressed="true"] { color: #f7c775; border-color: #b08a49; background: #f7c77512; }
+.transfer-picker button:focus-visible, .transfer-picker input:focus-visible, .transfer-picker summary:focus-visible { outline: 2px solid #f7c775; outline-offset: -2px; }
+.transfer-picker details[open] { display: grid; gap: 6px; }
+.transfer-picker nav { display: flex; flex-wrap: wrap; gap: 3px; }
+.transfer-picker nav button + button::before { content: '› '; opacity: .6; }
+.transfer-search { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 4px; }
+.transfer-search label { grid-column: 1 / -1; font-size: 11px; }
+@media (max-height: 600px) { .transfer-destinations { max-height: 100px; } }
+.maneuver-window .transfer-search input { color: inherit; background: #0b1721; border: 1px solid #36566a; border-radius: 4px; font: inherit; padding: 5px; }

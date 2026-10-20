@@ -35,6 +35,10 @@
     {
       "type": "paragraph",
       "text": "Future-body Continue/Execute uses detached bounded encounter forecasts instead of requiring the destination at the old impulse time. Explicitly authorized runs coast through SOI events, then re-review at actual entry. Optional FlightPlanNode.targetOrbit records periapsisAltitude/apoapsisAltitude above the destination reference radius. A feasible single-burn repair preserves that conic proposal; actual finite thrust/contact/SOI checks and a full captured revolution must pass before arming. Missing goals, unreachable target radii, insufficient preparation, changed flight or failed validation stop rather than reuse stale delta-v. Manual component/time edits clear the stored goal. Detached tasks have no clock/engine authority, saved plans remain inert, and manual/host permissions retain priority."
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional ManeuverPlannerOptions.focusShip(shipId) handles a local select-and-follow request from a due node alarm. Hosts apply it after their current input/physics step so held controls cannot transfer to another ship. The per-node NodeAlarmSettings.focusShip flag defaults off and persists with inert intent; no camera or selection dependency is added to the pure orbital clock. The editor hides the checkbox without this host port. One focus request is emitted per delivery batch, using earliest deadline and stable ship ID to resolve ties."
     }
   ]
 }
