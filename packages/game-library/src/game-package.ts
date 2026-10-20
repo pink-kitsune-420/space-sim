@@ -1,3 +1,4 @@
+/** Host-only `.spacegame` codec (`packages/game-library`): `game.json`, an exact `game.lock.json`, embedded `modules/<id>.spacemod` and `data/<id>.spacedata` packages and the legacy runtime profile. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors use `npm run game:build` and `npm run game:validate`. */
 import type { ModuleProfile } from '../../game-api/src/index';
 import type { LabPackage, GamePackage, PackageInfo } from './archive';
 import { canonicalJson } from '../../game-runtime/src/authoritative';
@@ -10,6 +11,7 @@ import { createIntegrity, decodeModulePackage, encodeModuleFiles, inspectModuleF
 import { readZip, writeZip, type PackageFiles, type ZipOptions } from './zip';
 import { attachRuntimeFiles, runtimeReferences, runtimeSelectionFiles, type RuntimeSelection } from './runtime-selection';
 
+/** One embedded module in `game.json`: ID, version range, `required` or `optional` role and path `modules/<id>.spacemod` or `data/<id>.spacedata`. Host-only (`packages/game-library`). */
 export interface GameRequirement { readonly id: string; readonly version: string; readonly role: 'required' | 'optional'; readonly path?: string }
 /** Legacy base profiles and explicit v2 target plans travel together; hosts resolve v2
  * services against their real adapters before executing any selected initializer. */
@@ -21,6 +23,7 @@ export interface PortableGame {
   readonly legacy: { readonly format: 'space-lab-game/1' | 'space-lab-plugin/1'; readonly path: 'legacy/package.json' };
   readonly runtime?: RuntimeSelection;
 }
+/** `game.lock.json`: exact module and legacy digests, per-target selections, settings, legacy resolution order and provider choices, plus the runtime selection. Inspection recomputes it (`Game exact lock mismatch`). Host-only (`packages/game-library`). */
 export interface GamePackageLock {
   readonly format: 'spacelab-game-lock/1'; readonly resolution: 'legacy-v1' | 'mixed-v2';
   readonly modules: readonly { readonly id: string; readonly version: string; readonly digest: string; readonly legacyDigest?: string }[];
@@ -30,6 +33,7 @@ export interface GamePackageLock {
   readonly services: Readonly<Record<string, string>>; readonly bindings: Readonly<Record<string, string>>;
   readonly runtime?: RuntimeSelection;
 }
+/** Result of inspecting a `.spacegame`: manifest, recomputed lock, embedded modules, legacy package and files. Host-only (`packages/game-library`). */
 export interface InspectedGame { readonly manifest: PortableGame; readonly lock: GamePackageLock; readonly modules: readonly InspectedModule[]; readonly legacy: LabPackage; readonly files: PackageFiles }
 const projectLicense = 'Legacy content retained under its declared license; consult the original author for license text.';
 function selected(raw: LabPackage, environment: 'browser' | 'offline' | 'node', includeRuntime = true): string[] {
@@ -76,6 +80,7 @@ function runtimeResolution(raw: LabPackage): { order: GamePackageLock['order']; 
     ...Object.entries(raw.bundle.presentation?.providers ?? {}).map(([slot, id]) => [`presentation.${slot}`, id]),
   ]) };
 }
+/** Builds the files of a `.spacegame` from a validated legacy package, embedding each selected module as an inspected package (authored source when supplied). Host-only (`packages/game-library`). */
 export async function createGameFiles(raw: LabPackage, authored: ReadonlyMap<string, PackageFiles> = new Map(), options: ShippedPackageOptions = {}): Promise<Map<string, Uint8Array<ArrayBuffer>>> {
   const data = raw.format === 'space-lab-game/1' ? raw.bundle.modules : raw.data, code = raw.format === 'space-lab-game/1' ? raw.plugins : raw.code;
   const files = new Map<string, Uint8Array<ArrayBuffer>>(), modules: InspectedModule[] = [];
@@ -169,11 +174,13 @@ export async function inspectGameFiles(files: PackageFiles, validateLegacy: (raw
   if (canonicalJson(lock) !== canonicalJson(expected)) throw new Error('Game exact lock mismatch');
   return { manifest: freezeJson(manifest) as unknown as PortableGame, lock: freezeJson(expected), modules, legacy: raw, files };
 }
+/** Reads a `.spacegame` ZIP, sharing one archive budget with its embedded packages, and inspects it without running code. Host-only (`packages/game-library`). */
 export async function decodeGamePackage(bytes: Uint8Array<ArrayBuffer>, validateLegacy: (raw: unknown) => LabPackage, options: ZipOptions & ShippedPackageOptions = {}): Promise<InspectedGame> {
   const budget = options.budget ?? { bytes: 0, files: 0 };
   const files = await readZip(bytes, { ...options, budget });
   return inspectGameFiles(files, validateLegacy, { ...options, budget });
 }
+/** Validates, builds, re-inspects and writes a `.spacegame` ZIP. Host-only (`packages/game-library`). */
 export async function encodeGamePackage(raw: LabPackage, options: ZipOptions & ShippedPackageOptions = {}, authored?: ReadonlyMap<string, PackageFiles>): Promise<Uint8Array<ArrayBuffer>> {
   const files = await createGameFiles(validatePackage(raw), authored, options);
   const bytes = [...files.values()].reduce((n, value) => n + value.length, 0);

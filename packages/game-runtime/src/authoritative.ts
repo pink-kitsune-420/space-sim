@@ -1,3 +1,4 @@
+/** Host-only (`packages/game-runtime`): canonical JSON, SHA-256 and the authoritative lock and simulation fingerprint. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules read a world's `lock` and `simulationFingerprint` through `WorldRead` and save through `CORE_SAVE`. */
 import type {
   AuthoritativeLock,
   ForceExtension,
@@ -22,6 +23,7 @@ const K = new Uint32Array([
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
+/** SHA-256 of a string's UTF-8 bytes as 64 lowercase hex characters. Host-only (`packages/game-runtime`). */
 export function sha256Hex(text: string): string {
   return sha256Bytes(new TextEncoder().encode(text));
 }
@@ -91,6 +93,7 @@ export function physicalUniverseDigest(universe: UniverseDefinition): string {
   return sha256Hex(canonicalJson(JSON.parse(JSON.stringify(universe, (key, value: unknown) => visual.has(key) ? undefined : value))));
 }
 
+/** Inputs to `computeAuthoritativeLock`: resolved order, manifests, providers and settings, plus optional content digests, physical geometry digests and captured rules and forces. Host-only (`packages/game-runtime`). */
 export interface AuthoritativeLockOptions {
   readonly profileId: string;
   readonly order: readonly string[];
@@ -174,13 +177,16 @@ export function computeSimulationFingerprint(lock: AuthoritativeLock): string {
   return sha256Hex(canonicalJson(lock));
 }
 
+/** Pure migration of a module state value to the next schema version; the result is revalidated. Same shape as the function a module passes to `context.migrateState`. Host-only (`packages/game-runtime`). */
 export type StateMigrationFn = (value: ModuleValue) => ModuleValue;
 const MIGRATIONS = new Map<string, StateMigrationFn>();
 
+/** Registers a process-wide `<moduleId>@<from>-><to>` migration for `migrateModuleState`. Modules register per-candidate migrations with `context.migrateState(fromVersion, migrate)` instead. Host-only (`packages/game-runtime`). */
 export function registerModuleMigration(moduleId: string, fromVersion: number, toVersion: number, migrate: StateMigrationFn): void {
   MIGRATIONS.set(`${moduleId}@${fromVersion}->${toVersion}`, migrate);
 }
 
+/** Removes every migration registered with `registerModuleMigration`. Host-only (`packages/game-runtime`). */
 export function clearModuleMigrations(): void {
   MIGRATIONS.clear();
 }
@@ -204,6 +210,7 @@ export function migrateModuleState(moduleId: string, state: ModuleState, targetV
   return current;
 }
 
+/** Frozen `space-sim-auth-lock/1` of the built-in game: `builtin.content` and `builtin.motion` providing bodies, content, motion, orbits, rails and surfaces. Modules read it as `CORE_SAVE.defaultLock`. Host-only (`packages/game-runtime`). */
 export const DEFAULT_BUILTIN_LOCK: AuthoritativeLock = Object.freeze({
   format: 'space-sim-auth-lock/1',
   profileId: 'builtin.default',

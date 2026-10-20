@@ -1,3 +1,4 @@
+/** Host-only adapter from package inspection to the module runtime (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`). */
 import type { ModuleAssets, RegisteredModuleV2 } from '../../game-api/src/index';
 import { loadCodeModuleV2, loadCodeModules, normalizeLegacyModule } from '../../game-runtime/src/loader';
 import type { LoadPolicy } from '../../game-runtime/src/loader';
@@ -31,6 +32,7 @@ export function runtimePackage(checked: InspectedModule, makeAssets: (files: Rea
       return { module: normalizeLegacyModule(module, assets, Object.keys(code.assets)), assets };
     } });
 }
+/** Inspects package bytes as a playable package and returns its lazy `InspectedRuntimePackage`; nothing runs until a candidate initializes it. Host-only (`packages/game-library`). */
 export async function inspectRuntimePackage(bytes: Uint8Array, options: ShippedPackageOptions = {}): Promise<InspectedRuntimePackage> {
   return runtimePackage(await decodeModulePackage(Uint8Array.from(bytes), options));
 }

@@ -1,3 +1,4 @@
+/** Host-only (`packages/game-runtime`): legacy v1 code artifacts, safe package paths and approved licences. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors build `.spacemod` packages with `npm run module:build` instead. */
 import type { ModuleEnvironment, ModuleInitialization, ModuleManifest, RegisteredModule } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from './authoritative';
 import { freezeJson, keys, object, string, validateManifest } from './validation';
@@ -5,8 +6,11 @@ import { ALLOW_RUNTIME_CODE } from './build-policy';
 
 export { validateManifest } from './validation';
 
+/** Largest legacy code artifact text (4 MiB; `Code artifact must be at most 4 MiB`). Host-only (`packages/game-runtime`). */
 export const MAX_CODE_ARTIFACT_BYTES = 4 * 1024 * 1024;
+/** SPDX licence identifiers accepted for distributed modules and their bundled inputs: `LicenseRef-Project`, `MIT`, `MIT-0`, `ISC`, `BSD-2-Clause`, `BSD-3-Clause`, `0BSD`, `Zlib`, `CC0-1.0` and `Unlicense`. Others fail with `… is not approved for distribution`. Host-only (`packages/game-runtime`). */
 export const MODULE_LICENSES = ['LicenseRef-Project', 'MIT', 'MIT-0', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', '0BSD', 'Zlib', 'CC0-1.0', 'Unlicense'] as const;
+/** Legacy single-file v1 code module (`space-sim-code-module/1`): manifest, bundled source, text assets, licensed inputs, compatibility flags and digest. Current modules ship as `.spacemod` packages. Host-only (`packages/game-runtime`). */
 export interface CodeArtifact {
   readonly format: 'space-sim-code-module/1';
   readonly manifest: ModuleManifest;
@@ -18,6 +22,7 @@ export interface CodeArtifact {
   /** SHA-256 of canonical JSON of every other field; identical on all targets. */
   readonly digest: string;
 }
+/** Returns `value` when it is a safe relative package path: at most 240 characters of letters, digits, `_`, `.`, `-` and `/`, with no empty, `.`, `..` or dot-prefixed segment. Otherwise throws `Unsafe artifact path: <path>`. Applies to every package entry and declared asset. Host-only (`packages/game-runtime`). */
 export function artifactPath(value: unknown): string {
   const path = string(value, 'Artifact path');
   if (path.length > 240 || !/^[A-Za-z0-9_.\-/]+$/.test(path)
@@ -25,6 +30,7 @@ export function artifactPath(value: unknown): string {
     throw new Error(`Unsafe artifact path: ${path}`);
   return path;
 }
+/** SHA-256 of the canonical JSON of an artifact without its `digest`. Host-only (`packages/game-runtime`). */
 export function artifactDigest(raw: Omit<CodeArtifact, 'digest'>): string { return sha256Hex(canonicalJson(raw)); }
 /** Data-only inspection. This function never evaluates source. */
 export function parseCodeArtifact(text: string): CodeArtifact {

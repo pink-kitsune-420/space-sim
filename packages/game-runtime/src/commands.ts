@@ -1,7 +1,10 @@
+/** Host-only (`packages/game-runtime`): pilot command capture and argument/effect validation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules register commands with `contributeCommand` and hosts run them through `CORE_COMMANDS`. */
 import type { CommandEffect, CommandExtension, CommandHook, CommandParameter, Ship } from '../../game-api/src/index';
 import { motionCopy } from './motion';
 
+/** Most `contributeCommand` hooks per module (`32`; `Module <id>: at most 32 commands`). Host-only (`packages/game-runtime`). */
 export const MAX_COMMANDS_PER_MODULE = 32;
+/** Most numeric parameters per command (`8`). Host-only (`packages/game-runtime`). */
 export const MAX_COMMAND_PARAMETERS = 8;
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const KEY = /^(?:Key[A-Z]|Digit[0-9])$/;
@@ -93,7 +96,8 @@ function effect(command: CommandExtension, raw: unknown): CommandEffect {
 }
 
 /** Run one command for the authoritative host. The caller has checked ownership; this
- * validates arguments and the proposed effect before anything is applied. */
+ * validates arguments and the proposed effect before anything is applied. Exposed to hosts and
+ * modules as `CORE_COMMANDS.resolve`. Errors read `Module <id> command <command id> tick <n>: <message>`. */
 export function resolveCommand(command: CommandExtension, ship: Ship, rawArgs: unknown, tick: number, time: number): CommandEffect {
   const args = commandArguments(command, rawArgs);
   try {

@@ -917,7 +917,7 @@ Keep preview jobs cancellable, dispose owned clocks/contexts, and leave executio
   <li><b>Full control:</b> <b>Setup → Export</b> saves the current universe as a file. Edit it, then load it with
     <b>Setup → Import…</b>. Definitions export as <code>.spacedata</code>. Legacy <code>.spaceuniverse</code> definitions, JSON and gzip still import.</li>
 </ul>
-<p>The universes that come with the game, in <code>games/space-sim/universes/</code>, are good examples to copy.</p>
+<p>The universes that come with the game, in <code>games/space-sim/universes/</code>, are good examples to copy. Bundled universes are published as content IDs for game manifests: <code>builtin.content/default-universe</code> (server alias <code>default</code>), <code>builtin.content/dry-terrain-examples</code> (<code>terrain</code>), <code>builtin.content/ocean-example</code> (<code>ocean</code>), <code>builtin.content/solar-system-universe</code> (<code>solar</code>), and <code>builtin.content/full-solar-system</code> (<code>full</code>).</p>
 ${deeper('the main fields', `
 <dl>
   <dt>bodies</dt><dd>The star, planets and moons. Each has an <code>id</code>, a <code>name</code>, a
@@ -1325,14 +1325,15 @@ ${deeper('the API surface', `
 <ul>
   <li><b>Simulation:</b> <code>contributeForce</code> (add an acceleration), replace the motion model, add world
     rules that run every step, and add pilot commands that the host carries out.</li>
-  <li><b>Presentation:</b> <code>contributeLayer</code> (up to 256 shapes per frame, drawn in world or screen
-    space), <code>contributePanel</code> (up to 16 label and value rows, updated up to 4 times a second) and camera hooks.</li>
+  <li><b>Presentation:</b> <code>contributeLayer</code> (up to 256 shapes and 4,096 line points per layer per frame, drawn in world or screen
+    space; invalid or oversized output switches the layer off like an error), <code>contributePanel</code> (up to 16 label and value rows per panel, updated up to 4 times a second) and camera hooks.</li>
   <li><b>Settings:</b> declare numbers in the manifest with a default, minimum and maximum. Players can edit them in the ModMenu.</li>
   <li><b>Dependencies:</b> list other modules with version ranges such as <code>^0.1.0</code>, and use their APIs.</li>
 </ul>
+<p>Resolution completes before any initializer runs: dependencies and providers are sorted into topological lock order, and only the selected capability provider initializes (unselected slot alternatives never initialize). Context contribution and <code>use</code> methods are accepted only while <code>initialize</code> runs; calling them later throws that the candidate is sealed or disposed. A throwing or asynchronous initializer rejects the whole selection, and the previous game keeps running.</p>
 <p>Presentation hooks receive a frozen snapshot of the frame: ship state, orbit elements, ground clearance,
-prediction and camera. If a hook throws an error, only that contribution is switched off and the world keeps running.</p>
-<p>The build only accepts imports from <code>@space-sim/game-api</code> and files inside your module's folder.
+prediction and camera. If a hook throws an error or returns invalid output, only that contribution is switched off and the world keeps running. Input, transport and discovery hooks are isolated the same way: a throwing or rejecting contribution is disabled for that candidate only. Authoritative hooks differ: a force or motion error stops only that ship with a fault event, while a world-rule error pauses the world with a world-fault event, with errors naming the module, hook and tick.</p>
+<p>The build only accepts imports from <code>@space-sim/game-api</code> and files inside your module's folder. Engine packages (<code>game-runtime</code>, <code>game-library</code>, <code>render-2d</code>, <code>net</code>, <code>scenarios</code>, <code>sim-core</code>) are host-only; use their <code>@space-sim/game-api</code> services instead.
 <code>examples/modules/README.md</code> lists every example and how to try it.</p>`)}</details>`,
   },
   {

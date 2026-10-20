@@ -1,14 +1,18 @@
+/** Host- and test-only stress test scenario generator (`packages/scenarios`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); no game-api equivalent exists. Used by server, web host, and tests to populate worlds with high ship and asteroid counts. */
 import { IDLE, dmath, type State, type Vec } from '../sim-core/src/index';
 import type { ResolvedBody } from '../sim-core/src/universe';
 import type { World } from '../sim-core/src/world';
 
-/** Owner of generated asteroids; never a real pilot. */
+/** Owner of generated asteroids; never a real pilot. Host-only (`packages/scenarios`). */
 export const STRESS_OWNER = 'stress';
+/** Ship ID prefix for generated stress asteroids (`rock-`). Host-only (`packages/scenarios`). */
 export const STRESS_ROCK_PREFIX = 'rock-';
 
+/** Orbital family kind for stress-spawned asteroids. Host-only (`packages/scenarios`). */
 export type AsteroidKind = 'belt' | 'crosser' | 'local-bound' | 'local-escape' | 'local-impact' | 'near-parabolic'
   | 'near-radial' | 'moon-crosser';
 
+/** Configuration options for world stress generation. Host-only (`packages/scenarios`). */
 export interface StressOptions {
   /** Ships to launch, spread over every scenario of the system. */
   readonly ships?: number;
@@ -20,13 +24,14 @@ export interface StressOptions {
   readonly burn?: boolean;
 }
 
+/** Result summary of a stress population run. Host-only (`packages/scenarios`). */
 export interface StressResult {
   readonly ships: readonly string[];
   readonly asteroids: number;
   readonly kinds: Readonly<Record<string, number>>;
 }
 
-/** Deterministic xorshift32 in [0, 1). */
+/** Deterministic xorshift32 in [0, 1). Host-only (`packages/scenarios`). */
 export function random32(seed: number): () => number {
   let s = seed >>> 0 || 1;
   return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
@@ -35,7 +40,7 @@ export function random32(seed: number): () => number {
 const unit = (angle: number): Vec => ({ x: dmath.cos(angle), y: dmath.sin(angle) });
 
 /** Position and velocity on the conic with this periapsis and eccentricity (any e >= 0),
- * at a true anomaly, rotated, prograde (counter-clockwise) or retrograde. */
+ * at a true anomaly, rotated, prograde (counter-clockwise) or retrograde. Host-only (`packages/scenarios`). */
 export function conicState(mu: number, periapsis: number, eccentricity: number, trueAnomaly: number,
   rotation: number, retrograde = false): { readonly position: Vec; readonly velocity: Vec } {
   const p = periapsis * (1 + eccentricity);
@@ -53,7 +58,7 @@ const orbitRadius = (b: ResolvedBody): number =>
 /** Fill a world for stress testing: ships on every preset (optionally burning) and asteroids
  * on orbits that exercise the mechanics: heliocentric belts, planet crossers that change
  * sphere of influence, bound/escaping/impacting swarms around planets, near-parabolic and
- * near-radial paths, and moon crossers. Deterministic for a seed. */
+ * near-radial paths, and moon crossers. Deterministic for a seed. Host-only (`packages/scenarios`). */
 export function populateStress(world: World, options: StressOptions = {}): StressResult {
   const random = random32(options.seed ?? 1);
   const between = (a: number, b: number): number => a + (b - a) * random();
@@ -156,7 +161,7 @@ export function populateStress(world: World, options: StressOptions = {}): Stres
   return { ships, asteroids: made, kinds };
 }
 
-/** Remove everything `populateStress` added (asteroids and ships owned by STRESS_OWNER). */
+/** Remove everything `populateStress` added (asteroids and ships owned by STRESS_OWNER). Host-only (`packages/scenarios`). */
 export function clearStress(world: World): number {
   let removed = 0;
   for (const ship of [...world.records()]) {

@@ -1,3 +1,4 @@
+/** Host-only (`packages/game-runtime`): preparation, start and activation of installed games. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); a module sees only its `initialize(context)` call and the resources it owns. */
 import type { Disposable, HostServiceAccess, ManifestV2, ModuleAssets, ModuleEnvironment, ModuleLockV2,
   ModuleProfileV2, RegisteredModuleV2 } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from './authoritative';
@@ -12,22 +13,26 @@ export class GameConfigurationError extends Error {
   constructor(message: string) { super(message); this.name = 'GameConfigurationError'; }
 }
 
+/** A verified installed package: identity, manifest and a lazy `register(policy)`. Registering evaluates nothing; code runs only when its candidate initializes it, after the policy and digest checks. Host-only (`packages/game-runtime`). */
 export interface InspectedRuntimePackage extends PackageIdentity {
   readonly manifest: ManifestV2;
   /** Creating a lazy registration is inert. Initialization is the only execution gate. */
   register(policy: LoadPolicy): { readonly module: RegisteredModuleV2; readonly assets: ModuleAssets };
 }
+/** One target's exact v2 plan: the profile, the exact package digests it pins and the slots the game requires. Host-only (`packages/game-runtime`). */
 export interface InstalledGamePlan {
   readonly profile: ModuleProfileV2;
   readonly packages: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
   readonly requiredSlots: readonly string[];
 }
+/** World, view or network resources a host builds for a prepared candidate before activation. Host-only (`packages/game-runtime`). */
 export interface CandidateResources extends Disposable {
   /** Allocate/connect without publishing to the current game. Honor cancellation. */
   start(signal: AbortSignal): Promise<void>;
   /** Synchronous publication after startup succeeds; throwing must leave the old game intact. */
   activate?(): void;
 }
+/** What a browser, desktop or server host injects into `prepareInstalledGame`: host services, shipped modules, package inspection and candidate construction. Host-only (`packages/game-runtime`). */
 export interface EngineAdapters {
   /** Optional host diagnostics; excluded from locks, fingerprints and simulation state. */
   readonly logs?:import('../../game-api/src/index').ModuleLogService;
@@ -36,6 +41,7 @@ export interface EngineAdapters {
   inspect(bytes: Uint8Array): Promise<InspectedRuntimePackage>;
   construct(modules: ModuleCandidateV2, identity: GameIdentity): CandidateResources;
 }
+/** Identity of a prepared game: exact v2 lock, packages, manifests and content digests, with SHA-256 digests of the whole game and of its authoritative part. Presentation, platform and network modules never change `authoritativeDigest`. Host-only (`packages/game-runtime`). */
 export interface GameIdentity {
   readonly format: 'spacelab-runtime-game/2';
   readonly environment: ModuleEnvironment;
@@ -60,6 +66,7 @@ function identity(lock: ModuleLockV2, manifests: ReadonlyMap<string, ManifestV2>
   return Object.freeze({ ...body, manifests: Object.freeze(lock.order.map(id => manifests.get(id)!)),
     gameLockDigest: sha256Hex(canonicalJson(body)), authoritativeDigest: sha256Hex(canonicalJson(authority)) });
 }
+/** A prepared game that is not yet active. `start` runs its resources under an abort signal and disposes everything on failure; `dispose` closes owned resources, then its resources, then its modules, recording failures in `disposalErrors`. Host-only (`packages/game-runtime`). */
 export class CandidateGame implements Disposable {
   private started = false;
   private starting = false;
@@ -95,7 +102,9 @@ export class CandidateGame implements Disposable {
   }
 }
 /** Browser, desktop and server inject codecs/world/view adapters into this one loader.
- * Replay is verified before resolution, and all resolution precedes any initialization. */
+ * Replay is verified before resolution, and all resolution precedes any initialization.
+ * Every non-shipped module needs an exact stored package (`Install exact package <id>@<version> (<digest>)`,
+ * `Game must pin the exact package digest for <id>`); a package cannot replace a shipped ID. Host-only (`packages/game-runtime`). */
 export async function prepareInstalledGame(plan: InstalledGamePlan, store: PackageStore, policy: LoadPolicy,
   adapters: EngineAdapters, signal: AbortSignal): Promise<CandidateGame> {
   plan = { profile: validateProfileV2(plan.profile), packages: plan.packages.map(ref => ({ ...ref })), requiredSlots: [...plan.requiredSlots] };

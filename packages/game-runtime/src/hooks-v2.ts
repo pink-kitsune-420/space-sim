@@ -1,3 +1,4 @@
+/** Host-only (`packages/game-runtime`): capture of v2 contributions and fault isolation for input, transport and discovery hooks. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeActions`, `contributeWindow`, `contributeGuide`, `contributeInput`, `contributeTransport`, `contributeDiscovery`, `contributeMaterial` and `contributePostEffect`. */
 import type { ActionDefinitionV2, ActionSink, DiscoveryProvider, Disposable, GuidePage, InputFrame, InputSource,
   MaterialDefinition, ModuleContribution, ModuleHookFault, PostEffectDefinition, ServerAdvert, TextConnection,
   TransportProvider, UiControl, WindowDefinition, WindowContentDefinition, PreviewData } from '../../game-api/src/index';
@@ -7,6 +8,7 @@ import { freezeJson, keys, object, string, version } from './validation';
 
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const ACTION = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+\/[a-z][a-z0-9-]{0,63}$/;
+/** Returns `raw` when it is a contribution name (1–32 lowercase letters, digits or hyphens, starting with a letter); otherwise throws `Contribution name must be 1–32 lowercase letters, digits or hyphens`. Host-only (`packages/game-runtime`). */
 export function contributionName(raw: unknown): string {
   if (typeof raw !== 'string' || !NAME.test(raw)) throw new Error('Contribution name must be 1–32 lowercase letters, digits or hyphens');
   return raw;
@@ -15,6 +17,7 @@ function method<T extends object, K extends keyof T>(raw: T, key: K): T[K] {
   if (typeof raw[key] !== 'function') throw new Error(`${String(key)} must be a function`);
   return (raw[key] as Function).bind(raw) as T[K];
 }
+/** Validates and freezes a `contributeActions` list: at most 128 actions, each ID `<module id>/<name>` (`Action must use its module namespace`), category `flight`, `warp`, `view` or `system`, mode `held`, `axis` or `press`, and at most 16 default keys. Host-only (`packages/game-runtime`). */
 export function captureActions(raw: readonly ActionDefinitionV2[], moduleId: string): readonly ActionDefinitionV2[] {
   if (!Array.isArray(raw) || raw.length > 128) throw new Error('At most 128 actions per module');
   return freezeJson(raw.map(value => {
@@ -26,6 +29,7 @@ export function captureActions(raw: readonly ActionDefinitionV2[], moduleId: str
       defaultKeys: a.defaultKeys.map(k => string(k, 'Default key')) } as ActionDefinitionV2;
   }));
 }
+/** Validates and freezes a `contributeWindow` definition: up to 128 controls (text, canvas, button, toggle or slider) with unique names, namespaced actions and finite slider bounds, plus up to 64 content sections (document, instruction, form, inspector, list or log of up to 256 entries, or preview). Control actions must exist when the candidate seals. Host-only (`packages/game-runtime`). */
 export function captureWindow(raw: WindowDefinition): WindowDefinition {
   const w = object(raw, 'Window'); keys(w, ['name', 'title', 'controls', 'content'], 'Window');
   if (!Array.isArray(w.controls) || w.controls.length > 128) throw new Error('At most 128 controls per window');
@@ -76,6 +80,7 @@ function captureContent(value: unknown): WindowContentDefinition {
   }
   throw new Error('Unknown window content kind');
 }
+/** Validates a `contributeGuide` page: audience `players` or `creators` and a declared JSON asset under `docs/<audience>/` (`Guide asset must match its audience`). The document itself is checked by `validateGuideDocument` (at most 64 KiB). Host-only (`packages/game-runtime`). */
 export function captureGuide(raw: GuidePage): GuidePage {
   const p = object(raw, 'Guide'); keys(p, ['id', 'audience', 'title', 'summary', 'asset'], 'Guide');
   if (!['players', 'creators'].includes(p.audience as string)) throw new Error('Guide audience must be players or creators');
@@ -92,6 +97,7 @@ export function validateGuideDocument(text: string, page: GuidePage): void {
   string(raw.title, 'Guide title'); string(raw.summary, 'Guide summary');
   captureDocument(raw);
 }
+/** Validates a `contributeMaterial` or `contributePostEffect` declaration: a contribution name, a declared fragment asset, at most 64 finite uniforms named like GLSL identifiers, at most 256 unique body IDs (materials) or `after` dependencies (post effects), and post-effect `scale` 0.5 or 1. Shader text is limited to 256 KiB when contributed. Nothing is compiled here. Host-only (`packages/game-runtime`). */
 export function captureEffect<T extends MaterialDefinition | PostEffectDefinition>(raw: T, post: boolean): T {
   const e = object(raw, 'Effect'); keys(e, post ? ['name', 'fragmentAsset', 'after', 'scale', 'uniforms'] : ['name', 'bodyIds', 'fragmentAsset', 'uniforms'], 'Effect');
   const uniforms = object(e.uniforms, 'Uniforms');
@@ -102,7 +108,11 @@ export function captureEffect<T extends MaterialDefinition | PostEffectDefinitio
   return freezeJson({ ...e, name: contributionName(e.name), fragmentAsset: artifactPath(e.fragmentAsset) }) as T;
 }
 
-/** Owns callback failures and cancellation, independently of browser/Node adapters. */
+/** Owns callback failures and cancellation, independently of browser/Node adapters. A contributed input source, transport
+ * or discovery provider that throws (or rejects) is disabled for this candidate and its resources closed; other
+ * contributions keep running. Input writes are limited to 256 per sample and clamped to [-1, 1]. Connections are wrapped:
+ * aborting closes the peer with `Connection cancelled`, disposal with `Module disposed`, and `send` after close throws
+ * `Connection closed`. At most 64 faults are kept. Host-only (`packages/game-runtime`). */
 export class DeviceHooks implements Disposable {
   private readonly resources: { readonly id: string; readonly resource: Disposable }[] = [];
   private readonly disabled = new Set<string>();

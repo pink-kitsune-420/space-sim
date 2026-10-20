@@ -1,28 +1,35 @@
+/** Host-only (`packages/game-runtime`): v1 manifest and profile validation and shared field checks. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors check manifests with `npm run module:validate`. */
 import type { ModuleDependency, ModuleManifest, ModuleProfile, ModuleReference, NumberSetting } from '../../game-api/src/index';
 import { validRange } from './semver';
 
+/** Returns `raw` as a record when it is a non-array object, otherwise throws `<label>: expected an object`. Host-only (`packages/game-runtime`). */
 export function object(raw: unknown, label: string): Record<string, unknown> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`${label}: expected an object`);
   return raw as Record<string, unknown>;
 }
+/** Throws `<label>: unknown field <key>` for any own key not in `allowed`. Host-only (`packages/game-runtime`). */
 export function keys(raw: Record<string, unknown>, allowed: readonly string[], label: string): void {
   for (const key of Object.keys(raw)) if (!allowed.includes(key)) throw new Error(`${label}: unknown field ${key}`);
 }
+/** Returns a non-blank string of at most 256 characters, otherwise throws `<label>: expected a nonempty string (at most 256 characters)`. Host-only (`packages/game-runtime`). */
 export function string(raw: unknown, label: string): string {
   if (typeof raw !== 'string' || !raw.trim() || raw.length > 256) throw new Error(`${label}: expected a nonempty string (at most 256 characters)`);
   return raw;
 }
+/** Whether a setting value is finite, within `[minimum, maximum]` and, when `step` is set, on the step grid from `minimum` (within a few units in the last place). Host-only (`packages/game-runtime`). */
 export function settingValue(value: number, schema: NumberSetting): boolean {
   if(!Number.isFinite(value)||value<schema.minimum||value>schema.maximum)return false;
   if(schema.step===undefined)return true;
   const delta=value-schema.minimum,nearest=Math.round(delta/schema.step)*schema.step;
   return Math.abs(delta-nearest)<=8*Number.EPSILON*Math.max(1,Math.abs(value),Math.abs(schema.minimum));
 }
+/** Returns a namespaced module ID (two or more dot-separated lowercase segments, such as `example.my-module`), otherwise throws `<label>: expected a namespaced module ID`. Host-only (`packages/game-runtime`). */
 export function moduleId(raw: unknown, label: string): string {
   const id = string(raw, label);
   if (!/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(id)) throw new Error(`${label}: expected a namespaced module ID`);
   return id;
 }
+/** Returns an exact semantic version such as `1.2.3` or `1.2.3-beta.1`, otherwise throws `<label>: expected an exact semantic version`. Host-only (`packages/game-runtime`). */
 export function version(raw: unknown, label: string): string {
   const value = string(raw, label);
   if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(value)) throw new Error(`${label}: expected an exact semantic version`);
@@ -32,6 +39,7 @@ function list(raw: unknown, label: string): unknown[] {
   if (!Array.isArray(raw) || raw.length > 256) throw new Error(`${label}: expected a list of at most 256 entries`);
   return raw;
 }
+/** Returns up to 256 unique non-blank strings, otherwise throws a `<label>: …` error. Host-only (`packages/game-runtime`). */
 export function strings(raw: unknown, label: string): string[] {
   const values = list(raw, label).map(v => string(v, label));
   if (new Set(values).size !== values.length) throw new Error(`${label}: duplicate entry`);
@@ -58,6 +66,7 @@ export function ranges(raw: unknown, label: string): ModuleDependency[] {
   if (new Set(values.map(v => v.id)).size !== values.length) throw new Error(`${label}: duplicate module ID`);
   return values;
 }
+/** Validates and freezes a v1 manifest (`space-sim-module/1`, `space-sim-game-api/1`): namespaced ID, exact version, kind `provider` or `data`, authority `authoritative` or `presentation`, environments `browser`, `offline` or `node`, dependency and conflict ranges, number settings (`minimum ≤ default ≤ maximum`, optional positive `step` the default follows, description up to 1,024 characters) and lowercase slots. Errors start with `Module <id>`. Host-only (`packages/game-runtime`). */
 export function validateManifest(raw: unknown): ModuleManifest {
   const m = object(raw, 'Manifest'), id = moduleId(m.id, 'Manifest id'), label = `Module ${id}`;
   keys(m, ['format', 'apiVersion', 'id', 'name', 'version', 'kind', 'authority', 'environments', 'dependencies',
@@ -90,6 +99,7 @@ export function validateManifest(raw: unknown): ModuleManifest {
     after: strings(m.after, `${label} after`).map(v => moduleId(v, label)),
   }) as unknown as ModuleManifest;
 }
+/** Validates and freezes a v1 profile (`space-sim-profile/1`): exact module references, slot providers and finite numeric settings. Host-only (`packages/game-runtime`). */
 export function validateProfile(raw: unknown): ModuleProfile {
   const p = object(raw, 'Profile');
   keys(p, ['format', 'id', 'modules', 'providers', 'settings'], 'Profile');

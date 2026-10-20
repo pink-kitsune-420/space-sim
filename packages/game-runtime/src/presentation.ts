@@ -1,11 +1,16 @@
+/** Host-only (`packages/game-runtime`): presentation hook capture, output limits and fault isolation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeLayer`, `contributePanel` and `contributeCamera`. */
 import type {
   CameraExtension, CameraHook, CameraInput, CameraTarget, LayerExtension, LayerHook, OverlayPrimitive, PanelExtension,
   PanelHook, PanelRow, PresentationContribution, PresentationFault, PresentationView, Vec,
 } from '../../game-api/src/index';
 
+/** Most layer, panel or camera hooks per module, for each kind (`8`; `Module <id>: at most 8 <kind> hooks`). Host-only (`packages/game-runtime`). */
 export const MAX_PRESENTATION_HOOKS_PER_MODULE = 8;
+/** Most primitives one layer may return per frame (`256`). Returning more disables that layer like a thrown error (`layers return at most 256 primitives`). Host-only (`packages/game-runtime`). */
 export const MAX_OVERLAY_PRIMITIVES = 256;
+/** Most line points one layer may return per frame, summed over its lines (`4096`). Host-only (`packages/game-runtime`). */
 export const MAX_OVERLAY_POINTS = 4096;
+/** Most rows one panel may return per update (`16`). The browser host reads panels at most every 250 ms. Host-only (`packages/game-runtime`). */
 export const MAX_PANEL_ROWS = 16;
 const MAX_FAULTS = 64;
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
@@ -62,7 +67,10 @@ function color(raw: unknown, label: string): string {
   return raw;
 }
 
-/** One layer's output: a detached, frozen, bounded draw list. */
+/** One layer's output: a detached, frozen, bounded draw list. At most 256 primitives and 4,096 line points;
+ * lines need two points (three when filled), widths are 0.5–8 CSS pixels, colours `#RRGGBB` or `#RRGGBBAA`,
+ * text at most 80 printable characters, world coordinates within 1e18 m and screen coordinates within 1e6 px.
+ * Host-only (`packages/game-runtime`). */
 export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
   if (!Array.isArray(raw) || raw.length > MAX_OVERLAY_PRIMITIVES) throw new Error(`layers return at most ${MAX_OVERLAY_PRIMITIVES} primitives`);
   let points = 0;
@@ -101,6 +109,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
   }));
 }
 
+/** Validates one panel update: at most 16 rows of `label` (1–32 printable characters), `value` (up to 64) and optional `unit` (up to 32); returns a frozen copy. Host-only (`packages/game-runtime`). */
 export function validatePanelRows(raw: unknown): readonly PanelRow[] {
   if (!Array.isArray(raw) || raw.length > MAX_PANEL_ROWS) throw new Error(`panels return at most ${MAX_PANEL_ROWS} rows`);
   return Object.freeze(raw.map((value, i) => {
@@ -110,6 +119,7 @@ export function validatePanelRows(raw: unknown): readonly PanelRow[] {
   }));
 }
 
+/** Validates a camera hook result: a world-space `center` in metres (each coordinate within 1e18) and an optional finite `rotation` in radians. Host-only (`packages/game-runtime`). */
 export function validateCameraTarget(raw: unknown): CameraTarget {
   const target = record(raw, ['center', 'rotation'], 'camera target');
   if (target.rotation !== undefined && (typeof target.rotation !== 'number' || !Number.isFinite(target.rotation))) {
@@ -119,6 +129,7 @@ export function validateCameraTarget(raw: unknown): CameraTarget {
     ...(target.rotation !== undefined ? { rotation: target.rotation as number } : {}) });
 }
 
+/** One validated panel update: the panel contribution and its rows. Host-only (`packages/game-runtime`). */
 export interface PanelOutput { readonly extension: PanelExtension; readonly rows: readonly PanelRow[] }
 
 /** A detached, deep-frozen copy of plain snapshot data in one pass. Built every drawn frame,

@@ -1,3 +1,4 @@
+/** Host-only game and plugin archive codec (`packages/game-library`): `.spacegame` collections and legacy `space-lab-game/1` and `space-lab-plugin/1` JSON. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors use `npm run game:build` and `npm run game:validate`. Inspection never evaluates code. */
 import type { DataModule } from '../../game-api/src/index';
 import { parseCodeArtifact, type CodeArtifact } from '../../game-runtime/src/artifact';
 import { freezeJson, keys, moduleId, object, string } from '../../game-runtime/src/validation';
@@ -13,13 +14,16 @@ import { parsePackageJson, requiredFile } from './portable';
 import { isZip, readZip } from './zip';
 import { runtimeReferences, validateRuntimeSelection, type RuntimeSelection } from './runtime-selection';
 export { MAX_ARCHIVE_BYTES, MAX_EXPANDED_BYTES } from './compression';
+/** Display metadata of a game or plugin package: namespaced ID, name and a description of up to 4,096 characters. Host-only (`packages/game-library`). */
 export interface PackageInfo { readonly id: string; readonly name: string; readonly description: string }
+/** Legacy plugin collection (`space-lab-plugin/1`): data modules and code artifacts. Host-only (`packages/game-library`). */
 export interface PluginPackage {
   readonly format: 'space-lab-plugin/1';
   readonly info: PackageInfo;
   readonly data: readonly DataModule[];
   readonly code: readonly CodeArtifact[];
 }
+/** Legacy game (`space-lab-game/1`): module bundle, exact code plugins and an optional v2 runtime selection. Host-only (`packages/game-library`). */
 export interface GamePackage {
   readonly format: 'space-lab-game/1';
   readonly info: PackageInfo;
@@ -27,6 +31,7 @@ export interface GamePackage {
   readonly plugins: readonly CodeArtifact[];
   readonly runtime?: RuntimeSelection;
 }
+/** Either legacy package kind. Host-only (`packages/game-library`). */
 export type LabPackage = GamePackage | PluginPackage;
 
 function freezePackage<T extends LabPackage>(raw: T): T {
@@ -122,6 +127,7 @@ export async function decodeLabFile(bytes: Uint8Array<ArrayBuffer>, options: Shi
   return { format: 'space-lab-plugin/1', info: { id: module.descriptor.manifest.id, name: module.descriptor.manifest.name, description: '' },
     data: module.content ? [module.content] : [], code: module.code ? [module.code] : [] };
 }
+/** Decodes a game or plugin file (ZIP or legacy JSON) and validates it as a `LabPackage`. Host-only (`packages/game-library`). */
 export async function decodePackage(bytes: Uint8Array<ArrayBuffer>, options: ShippedPackageOptions = {}): Promise<LabPackage> {
   return validatePackage(await decodeLabFile(bytes, options));
 }

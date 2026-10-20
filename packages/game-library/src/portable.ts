@@ -1,3 +1,4 @@
+/** Host-only package codec (`packages/game-library`): inert inspection of `.spacemod` and `.spacedata` packages (allowed entries, size limits, `integrity.json` digests, licences, guides and legacy wrappers). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`) and never receive package bytes; authors build and check packages with the `module:*` and `file:*` npm scripts (Manual → Creators → Code modules). Nothing here evaluates module code. */
 import { parsePackageJson } from './json';
 export { parsePackageJson } from './json';
 import { captureDocument, type DataModule, type ModuleManifest, type ManifestV2 } from '../../game-api/src/index';
@@ -11,13 +12,18 @@ import { fileLimit, readZip, validateFilePaths, writeZip, type PackageFiles, typ
 import type { ShippedPackageOptions } from './shipped-catalogue';
 export { ShippedModuleCatalogue, parseShippedCatalogue, type ShippedModulePin, type ShippedPackageOptions } from './shipped-catalogue';
 
+/** Descriptor format of a module package (`module.json` in a `.spacemod`). Host-only (`packages/game-library`). */
 export const PACKAGE_FORMAT = 'spacelab-module-package/1';
+/** Descriptor format of a data-only package (`data.json` in a `.spacedata`); it cannot contain executable modules. Host-only (`packages/game-library`). */
 export const DATA_PACKAGE_FORMAT = 'spacelab-data-package/1';
+/** Format of `integrity.json`: a sorted inventory of every other entry's byte length and SHA-256, plus the digest of that inventory. Host-only (`packages/game-library`). */
 export const INTEGRITY_FORMAT = 'spacelab-integrity/1';
 const retainedFiles = new WeakMap<object, PackageFiles>();
 /** Inert source sidecars follow validated runtime values without changing v1 serialization. */
 export function rememberPackageFiles(value: object, files: PackageFiles): void { retainedFiles.set(value, files); }
+/** Package files previously attached to a validated runtime value, if any. Host-only (`packages/game-library`). */
 export function packageFiles(value: object): PackageFiles | undefined { return retainedFiles.get(value); }
+/** Attaches `from`'s package files to `to`. Host-only (`packages/game-library`). */
 export function copyPackageFiles(from: object, to: object): void { const files = retainedFiles.get(from); if (files) retainedFiles.set(to, files); }
 const encoder = new TextEncoder(), decoder = new TextDecoder('utf-8', { fatal: true });
 /** Match JSON's omission of optional undefined fields, while rejecting lossy non-finite values. */
@@ -29,9 +35,13 @@ export function jsonBytes(value: unknown): Uint8Array<ArrayBuffer> {
   if (text === undefined) throw new Error('Expected JSON data');
   return encoder.encode(`${canonicalJson(JSON.parse(text))}\n`);
 }
+/** UTF-8 bytes of `value`. Host-only (`packages/game-library`). */
 export const textBytes = (value: string): Uint8Array<ArrayBuffer> => encoder.encode(value);
+/** One inventory entry: package path, byte length and SHA-256. Host-only (`packages/game-library`). */
 export interface FileIdentity { readonly path: string; readonly bytes: number; readonly sha256: string }
+/** Parsed `integrity.json`: inventory of every entry except itself and the SHA-256 `digest` of its canonical JSON, which identifies the package. Host-only (`packages/game-library`). */
 export interface Integrity { readonly format: typeof INTEGRITY_FORMAT; readonly files: readonly FileIdentity[]; readonly digest: string }
+/** Validated `module.json` or `data.json`: manifest (v1 or v2), editable `entry` under `src/`, optional `build` (`dist/module.js`, toolchain and inputs digest), compatibility flags, assets under `assets/`, data payloads, guides under `docs/players/` or `docs/creators/`, licensed inputs, source status and an optional `legacy/` original. Host-only (`packages/game-library`). */
 export interface ModulePackageDescriptor {
   readonly format: typeof PACKAGE_FORMAT | typeof DATA_PACKAGE_FORMAT;
   readonly manifest: ModuleManifest | ManifestV2;
@@ -45,25 +55,30 @@ export interface ModulePackageDescriptor {
   readonly sourceStatus: 'included' | 'legacy-unavailable';
   readonly legacy?: { readonly path: string; readonly format: string; readonly digest?: string };
 }
+/** Result of inspecting a module package: descriptor, verified integrity, files, any legacy code artifact, v2 bundle source or legacy content, and whether it is playable (bundle present and current). Host-only (`packages/game-library`). */
 export interface InspectedModule {
   readonly descriptor: ModulePackageDescriptor; readonly integrity: Integrity; readonly files: PackageFiles;
   /** Legacy runtime identity is deliberately independent from the complete package identity. */
   readonly code?: CodeArtifact; readonly codeV2?: { readonly source: string; readonly digest: string }; readonly content?: DataModule; readonly playable: boolean;
 }
 
+/** Bytes of a required package entry, or throws `Missing package file <path>`. Host-only (`packages/game-library`). */
 export function requiredFile(files: PackageFiles, path: string): Uint8Array<ArrayBuffer> {
   const bytes = files.get(artifactPath(path));
   if (!bytes) throw new Error(`Missing package file ${path}`);
   return bytes;
 }
+/** Sorted `FileIdentity` list of `files`, excluding `integrity.json` by default. Host-only (`packages/game-library`). */
 export function inventory(files: PackageFiles, exclude: readonly string[] = ['integrity.json']): FileIdentity[] {
   return [...files].filter(([path]) => !exclude.includes(path)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([path, bytes]) => ({ path, bytes: bytes.length, sha256: sha256Bytes(bytes) }));
 }
+/** Builds the `integrity.json` value for `files`. Host-only (`packages/game-library`). */
 export function createIntegrity(files: PackageFiles): Integrity {
   const body = { format: INTEGRITY_FORMAT, files: inventory(files) } as const;
   return { ...body, digest: sha256Bytes(encoder.encode(canonicalJson(body))) };
 }
+/** Recomputes the inventory and throws `Package inventory/digest mismatch` unless `integrity.json` matches exactly; returns the frozen integrity. Host-only (`packages/game-library`). */
 export function verifyIntegrity(files: PackageFiles): Integrity {
   const raw = parsePackageJson(requiredFile(files, 'integrity.json'), 'Integrity');
   const actual = createIntegrity(files);
@@ -149,7 +164,12 @@ function validateGuide(bytes: Uint8Array): void {
   // Same bounded block schema the Manual renders, including lists and page links.
   captureDocument(raw);
 }
-/** Validate source packages inertly; playable=false permits missing/stale bundles for inspection. */
+/** Validate source packages inertly; playable=false permits missing/stale bundles for inspection.
+ * At most 1,024 entries and 64 MiB expanded (`Module file count exceeded`, `Module expanded size limit exceeded`),
+ * per-entry limits from `fileLimit`, and only `module.json`, `data.json`, `integrity.json`, `LICENSE`, `NOTICE` and files
+ * under `src/`, `dist/`, `assets/`, `data/`, `docs/`, `tests/` or `legacy/`; nested `.spacemod`, `.spacedata`, `.spacegame`
+ * and `.spaceuniverse` files fail with `Unsupported module entry <path>`. `builtin.*` IDs need an exact shipped catalogue pin.
+ * A playable inspection of a missing or stale bundle fails with `Rebuild this module with module:build, then pack it again.` */
 export function inspectModuleFiles(files: PackageFiles, playable = true, options: ShippedPackageOptions = {}): InspectedModule {
   if (files.size > 1024) throw new Error('Module file count exceeded');
   validateFilePaths([...files.keys()]);
@@ -233,11 +253,13 @@ export function validateShaderPayload(raw: unknown): void {
     for (const source of Object.values(stages)) if (typeof source !== 'string' || !source.trim() || source.length > 256 * 1024) throw new Error('Invalid shader source');
   }
 }
+/** Writes `integrity.json`, inspects the complete package as playable and returns a reproducible ZIP. Host-only (`packages/game-library`). */
 export async function encodeModuleFiles(files: PackageFiles, options: ZipOptions & ShippedPackageOptions & { readonly compression?: 'store' | 'deflate' | 'auto' } = {}): Promise<Uint8Array<ArrayBuffer>> {
   const complete = new Map(files); complete.set('integrity.json', jsonBytes(createIntegrity(complete)));
   inspectModuleFiles(complete, true, options);
   return writeZip(complete, options);
 }
+/** Reads a `.spacemod` or `.spacedata` ZIP within the archive limits and inspects it (playable by default). Never runs code. Host-only (`packages/game-library`). */
 export async function decodeModulePackage(bytes: Uint8Array<ArrayBuffer>, options: ZipOptions & ShippedPackageOptions & { readonly playable?: boolean } = {}): Promise<InspectedModule> {
   return inspectModuleFiles(await readZip(bytes, options), options.playable ?? true, options);
 }
@@ -253,6 +275,7 @@ export function wrapLegacyCode(artifact: CodeArtifact): Map<string, Uint8Array<A
   files.set('integrity.json', jsonBytes(createIntegrity(files)));
   return files;
 }
+/** Wraps a legacy `space-sim-data-module/1` value as `.spacedata` files with its exact content, the supplied licence text and fresh integrity. Host-only (`packages/game-library`). */
 export function wrapLegacyData(raw: DataModule, licenseText: string): Map<string, Uint8Array<ArrayBuffer>> {
   const content = validateDataModule(raw);
   const descriptor: ModulePackageDescriptor = { format: DATA_PACKAGE_FORMAT, manifest: content.manifest, compatibility: { deterministic: true, multiplayer: true },
@@ -275,6 +298,7 @@ export function wrapUniversePackage(raw: unknown, licenseText: string, license =
   files.set('integrity.json', jsonBytes(createIntegrity(files)));
   return files;
 }
+/** Wraps a `space-sim-shaders/1` pack as presentation data package `local.shader-<name>` with licence text and integrity. Host-only (`packages/game-library`). */
 export function wrapShaderPackage(raw: unknown, licenseText: string, license = 'MIT'): Map<string, Uint8Array<ArrayBuffer>> {
   validateShaderPayload(raw);
   const shader = raw as { name: string }, suffix = shader.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '') || 'shader';

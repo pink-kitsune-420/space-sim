@@ -1,4 +1,5 @@
-/** Local CLI bundle entry: reuse the browser/Node codecs, never the execution path. */
+/** Host-only local CLI bundle entry (`packages/game-library`): reuse the browser/Node codecs, never the execution path.
+ * Modules cannot import it; the `module:*`, `game:*` and `file:*` npm scripts use it. */
 export * from './portable';
 export * from './game-package';
 export * from './archive';

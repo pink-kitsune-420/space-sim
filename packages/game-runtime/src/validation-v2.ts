@@ -1,9 +1,12 @@
+/** Host-only (`packages/game-runtime`): v2 manifest and profile validation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors check manifests with `npm run module:validate`. */
 import type { CapabilityNeed, CapabilityRef, ManifestV2, ModuleProfileV2, ModuleTier } from '../../game-api/src/index';
 import { validRange } from './semver';
 import { freezeJson, keys, moduleId, object, ranges, string, strings, validateManifest, validateProfile, version } from './validation';
 
+/** Capability and slot names: dot-separated segments of lowercase letters, digits and hyphens, each starting with a letter (for example `net.websocket`). Host-only (`packages/game-runtime`). */
 export const SERVICE_SLOT = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*$/;
 const TIERS: readonly ModuleTier[] = ['authoritative', 'presentation', 'platform', 'network'];
+/** Returns `raw` when it matches `SERVICE_SLOT`, otherwise throws `Invalid capability name <name>`. Host-only (`packages/game-runtime`). */
 export function capabilityName(raw: unknown): string {
   const name = string(raw, 'Capability name');
   if (!SERVICE_SLOT.test(name)) throw new Error(`Invalid capability name ${name}`);
@@ -22,6 +25,7 @@ function capabilities(raw: unknown, needs: boolean): (CapabilityRef | Capability
   if (new Set(values.map(c => c.name)).size !== values.length) throw new Error('Duplicate capability name');
   return values;
 }
+/** Validates and freezes a `space-sim-module/2` manifest. Requires `apiVersion` `space-sim-game-api/2` (`Unsupported manifest/API version`), tier `authoritative`, `presentation`, `platform` or `network`, and at most 256 capabilities per list with exact provided versions and valid needed ranges. `core.*`, `input.source` and `transport` slots and `core.*` provides are reserved for the engine; data modules declare no slots. Shared fields follow `validateManifest`. Host-only (`packages/game-runtime`). */
 export function validateManifestV2(raw: unknown): ManifestV2 {
   const m = object(raw, 'Manifest v2');
   keys(m, ['format', 'apiVersion', 'id', 'name', 'version', 'kind', 'tier', 'environments', 'dependencies', 'conflicts',
@@ -45,6 +49,7 @@ export function validateManifestV2(raw: unknown): ManifestV2 {
     ...(m.afterIfPresent !== undefined ? { afterIfPresent: strings(m.afterIfPresent, 'afterIfPresent').map(v => moduleId(v, 'afterIfPresent')) } : {}),
   }) as ManifestV2;
 }
+/** Validates and freezes a `space-sim-profile/2` profile: exact module references, slot providers, per-module capability provider choices and numeric settings. Host-only (`packages/game-runtime`). */
 export function validateProfileV2(raw: unknown): ModuleProfileV2 {
   const p = object(raw, 'Profile v2');
   keys(p, ['format', 'id', 'modules', 'providers', 'capabilities', 'settings'], 'Profile v2');

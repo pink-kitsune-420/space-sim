@@ -1,2 +1,2 @@
-/** Compatibility entry; flight pilot identities and tokens belong to the session package. */
+/** Host-only identity and crypto hashing compatibility entry (`packages/net`); flight pilot identities and tokens belong to `modules/session-flight`. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); use `FLIGHT_SESSIONS` (`session.flight@1.0.0`) or `JOIN_PACKS`. */
 export { sha256Hex, randomHex, newWorldId, newPlayerId, newToken } from '../../../modules/session-flight/src/sha256';
