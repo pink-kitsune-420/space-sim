@@ -29,7 +29,7 @@ export function createHudLayout(options:HudLayoutOptions,icon:(name:WindowIcon)=
   const viewport=options.viewport,document=viewport.ownerDocument,window=document.defaultView!;
   const hadRoot=viewport.classList.contains('hud-layout-root');viewport.classList.add('hud-layout-root');
   const controller=new window.AbortController(),signal=controller.signal;let disposed=false,frame:number|undefined;
-  const styleKeys=['--hud-touch-inset','--hud-status-bottom','--hud-dock-inset','--hud-message-top','--hud-notice-top','--chat-telemetry-inset'];
+  const styleKeys=['--hud-touch-inset','--hud-status-bottom','--hud-dock-inset','--hud-dock-top','--hud-message-top','--hud-notice-top','--chat-telemetry-inset'];
   const previousStyles=styleKeys.map(key=>[key,viewport.style.getPropertyValue(key),viewport.style.getPropertyPriority(key)] as const);
   const stacked=viewport.classList.contains('hud-top-stacked'),overlap=viewport.classList.contains('chat-overlaps-telemetry');
   let pending = false, revision = 0;
@@ -61,6 +61,12 @@ export function createHudLayout(options:HudLayoutOptions,icon:(name:WindowIcon)=
     // Keep the touch deck beside the desktop dock, including its compact height variant.
     // offsetLeft uses the home anchor so saved HUD translations remain independent.
     viewport.style.setProperty('--hud-dock-inset', `${bounds.width > 650 ? bounds.width - dock.offsetLeft + 8 : 0}px`);
+    if (bounds.width > 650) {
+      const dockTop = Math.max(64, Math.ceil(right.bottom - bounds.top + 3));
+      viewport.style.setProperty('--hud-dock-top', `${dockTop}px`);
+    } else {
+      viewport.style.removeProperty('--hud-dock-top');
+    }
     const topBottom = Math.max(left.bottom, rightElement.getBoundingClientRect().bottom,
       bounds.width <= 650 ? bounds.top + dock.offsetTop + dock.offsetHeight : bounds.top);
     viewport.style.setProperty('--hud-message-top', `${topBottom - bounds.top + 8}px`);
