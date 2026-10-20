@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 45f6dc2a47dbc3af",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 45f6dc2a47dbc3af"
         },
         {
           "type": "paragraph",
@@ -7803,6 +7803,22 @@
         },
         {
           "type": "heading",
+          "text": "SavedAvatar"
+        },
+        {
+          "type": "paragraph",
+          "text": "Lightweight body-relative avatar snapshot for world saves."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedAvatar {\n  readonly id: string;\n  readonly ownerId: string;\n  readonly parentBodyId: string;\n  readonly position: Pair;\n  readonly velocity: Pair;\n  readonly heading: number;\n  readonly mode: AvatarMode;\n  readonly mountedShipId?: string;\n  readonly revision: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SavedPlayer"
         },
         {
@@ -7843,7 +7859,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
+          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly avatars?: readonly SavedAvatar[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
         },
         {
           "type": "paragraph",
@@ -7859,7 +7875,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldRead {\n  readonly vehicles?: VehicleCatalog;\n  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext;\n  readonly data: ModuleDataRead;\n  readonly dataAdapters: readonly ModuleDataExtension[];\n  readonly configuration?: SavedGameConfiguration;\n  /** Absent on older hosts; planners must not assume optional seed arguments are understood. */\n  readonly predictionFeatures?: { readonly futureSeeds: boolean; readonly endTime?: boolean };\n  readonly id: string; readonly tick: number; readonly time: number;\n  readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;\n  readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;\n  readonly simulationFingerprint: string; readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly rules: readonly WorldRuleExtension[]; readonly forces: readonly ForceExtension[]; readonly commands: readonly CommandExtension[];\n  readonly moduleState: Readonly<Record<string, WorldRuleState>>;\n  readonly soloPreview: boolean; readonly paused: boolean; readonly fault?: string;\n  readonly rails: boolean; readonly nextWakeTick: number; readonly requiresWorldPrediction: boolean;\n  readonly version: number; readonly nextShipNumber: number; readonly saveVersion?: number;\n  readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;\n  readonly surfaces: ReadonlyMap<string, SurfaceProfile>;\n  record(id: string): Ship | undefined; records(): IterableIterator<Ship>;\n  ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;\n  awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;\n  ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;\n  stateAt(id: string, time: number): State | undefined;\n  hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;\n  presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };\n  /** Optional inert future seed is supported by independent analytic flight only;\n   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most\n   * 100 Julian years after the seed), disabling orbit closure; requires predictionFeatures.endTime. */\n  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;\n  cloneForPrediction(): WorldControl;\n}"
+          "text": "export interface WorldRead {\n  readonly vehicles?: VehicleCatalog;\n  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext;\n  readonly data: ModuleDataRead;\n  readonly dataAdapters: readonly ModuleDataExtension[];\n  readonly configuration?: SavedGameConfiguration;\n  /** Absent on older hosts; planners must not assume optional seed arguments are understood. */\n  readonly predictionFeatures?: { readonly futureSeeds: boolean; readonly endTime?: boolean };\n  readonly id: string; readonly tick: number; readonly time: number;\n  readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;\n  readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;\n  readonly simulationFingerprint: string; readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly rules: readonly WorldRuleExtension[]; readonly forces: readonly ForceExtension[]; readonly commands: readonly CommandExtension[];\n  readonly moduleState: Readonly<Record<string, WorldRuleState>>;\n  readonly soloPreview: boolean; readonly paused: boolean; readonly fault?: string;\n  readonly rails: boolean; readonly nextWakeTick: number; readonly requiresWorldPrediction: boolean;\n  readonly version: number; readonly nextShipNumber: number; readonly saveVersion?: number;\n  readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;\n  readonly surfaces: ReadonlyMap<string, SurfaceProfile>;\n  record(id: string): Ship | undefined; records(): IterableIterator<Ship>;\n  ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;\n  avatar(id: string): AvatarState | undefined; avatars(): readonly AvatarState[];\n  awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;\n  ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;\n  stateAt(id: string, time: number): State | undefined;\n  hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;\n  presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };\n  /** Optional inert future seed is supported by independent analytic flight only;\n   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most\n   * 100 Julian years after the seed), disabling orbit closure; requires predictionFeatures.endTime. */\n  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;\n  cloneForPrediction(): WorldControl;\n}"
         },
         {
           "type": "paragraph",
@@ -7891,7 +7907,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldControl extends WorldRead, Disposable {\n  readonly data: ModuleDataControl;\n  setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;\n  queueModuleEvent(shipId: string, event: { readonly type: string; readonly payload: ModuleValue }): void;\n  step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];\n  put(ship: Ship): void; remove(id: string): boolean;\n  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;\n  respawn(id: string, preset?: string, godMode?: boolean): Ship;\n  teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;\n  reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;\n  rename(id: string, name: string): void; clearFault(id: string): void;\n  setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;\n  adopt(record: Ship, ticks: number, before?: (ship: Ship, tick: number) => Ship): WorldEvent[];\n  /** Reconciliation may rewind. No stepping, rounding or epoch conversion occurs here. */\n  restoreClock(tick: number, time: number): void;\n  /** One owned delta consumer per world, released before another session can subscribe. */\n  subscribeChanges(): WorldChanges;\n}"
+          "text": "export interface WorldControl extends WorldRead, Disposable {\n  readonly data: ModuleDataControl;\n  setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;\n  queueModuleEvent(shipId: string, event: { readonly type: string; readonly payload: ModuleValue }): void;\n  step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];\n  put(ship: Ship): void; remove(id: string): boolean;\n  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;\n  respawn(id: string, preset?: string, godMode?: boolean): Ship;\n  teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;\n  spawnAvatar(options: { readonly id?: string; readonly ownerId: string; readonly bodyId: string; readonly position: Vec; readonly velocity?: Vec }): AvatarState;\n  removeAvatar(id: string): boolean;\n  boardShip(avatarId: string, shipId: string): void;\n  disembarkShip(avatarId: string): AvatarState;\n  setAvatarControls?(id: string, controls: AvatarControls): void;\n  reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;\n  rename(id: string, name: string): void; clearFault(id: string): void;\n  setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;\n  adopt(record: Ship, ticks: number, before?: (ship: Ship, tick: number) => Ship): WorldEvent[];\n  /** Reconciliation may rewind. No stepping, rounding or epoch conversion occurs here. */\n  restoreClock(tick: number, time: number): void;\n  /** One owned delta consumer per world, released before another session can subscribe. */\n  subscribeChanges(): WorldChanges;\n}"
         },
         {
           "type": "paragraph",
@@ -7955,7 +7971,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SaveCodec {\n  /** Exact legacy authority identity used for worlds predating explicit locks. */\n  readonly defaultLock: AuthoritativeLock;\n  save(world: WorldRead, extra?: SavedWorldOptions): WorldSave;\n  load(raw: unknown, options?: Pick<WorldCreationOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>): {\n    readonly world: WorldControl; readonly players: readonly SavedPlayer[]; readonly hostId?: string; readonly paused: boolean;\n  };\n  shipToSaved(ship: Ship): SavedShip;\n  shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;\n  playerFromSaved(raw: unknown, context?: string): SavedPlayer;\n}"
+          "text": "export interface SaveCodec {\n  /** Exact legacy authority identity used for worlds predating explicit locks. */\n  readonly defaultLock: AuthoritativeLock;\n  save(world: WorldRead, extra?: SavedWorldOptions): WorldSave;\n  load(raw: unknown, options?: Pick<WorldCreationOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>): {\n    readonly world: WorldControl; readonly players: readonly SavedPlayer[]; readonly hostId?: string; readonly paused: boolean;\n  };\n  shipToSaved(ship: Ship): SavedShip;\n  shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;\n  avatarToSaved?(avatar: AvatarState): SavedAvatar;\n  avatarFromSaved?(raw: unknown, context?: string): AvatarState;\n  playerFromSaved(raw: unknown, context?: string): SavedPlayer;\n}"
         },
         {
           "type": "paragraph",
@@ -13499,15 +13515,63 @@
         },
         {
           "type": "heading",
+          "text": "ViewportRect"
+        },
+        {
+          "type": "paragraph",
+          "text": "Single rectangular viewport descriptor in normalized screen space [0..1]."
+        },
+        {
+          "type": "code",
+          "text": "export interface ViewportRect {\n  /** Left offset [0..1]. */\n  readonly x: number;\n  /** Top offset [0..1]. */\n  readonly y: number;\n  /** Width [0..1]. */\n  readonly width: number;\n  /** Height [0..1]. */\n  readonly height: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SubViewportCameraTarget"
+        },
+        {
+          "type": "paragraph",
+          "text": "Individual viewport camera target in a multi-viewport presentation layout."
+        },
+        {
+          "type": "code",
+          "text": "export interface SubViewportCameraTarget {\n  readonly seatSlot: number;\n  readonly center: Vec;\n  readonly rotation?: number;\n  readonly rect: ViewportRect;\n  /** Optional custom zoom scale (CSS pixels per metre) override. */\n  readonly scale?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "MultiViewportCameraFrame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Multi-viewport presentation layout returned by a CameraHook."
+        },
+        {
+          "type": "code",
+          "text": "export interface MultiViewportCameraFrame {\n  readonly viewports: readonly SubViewportCameraTarget[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "CameraHook"
         },
         {
           "type": "paragraph",
-          "text": "Synchronous presentation camera mode hook computing a `CameraTarget` once per rendered frame from a frozen `CameraInput`."
+          "text": "Synchronous presentation camera mode hook computing a `CameraTarget` or `MultiViewportCameraFrame` once per rendered frame from a frozen `CameraInput`."
         },
         {
           "type": "code",
-          "text": "export interface CameraHook {\n  readonly name: string;\n  /** Camera button text while selected, such as \"Lead camera\". */\n  readonly label: string;\n  /** Once per frame while selected. */\n  frame(input: CameraInput): CameraTarget;\n}"
+          "text": "export interface CameraHook {\n  readonly name: string;\n  /** Camera button text while selected, such as \"Lead camera\". */\n  readonly label: string;\n  /** Once per frame while selected. May return a single camera target or a multi-viewport layout. */\n  frame(input: CameraInput): CameraTarget | MultiViewportCameraFrame;\n}"
         },
         {
           "type": "paragraph",
@@ -17835,6 +17899,54 @@
         },
         {
           "type": "heading",
+          "text": "AvatarMode"
+        },
+        {
+          "type": "paragraph",
+          "text": "Mode of locomotion or containment for an avatar."
+        },
+        {
+          "type": "code",
+          "text": "export type AvatarMode = 'surface' | 'eva' | 'boarded';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "AvatarState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Lightweight physical human/creature entity on foot or EVA. Coordinate frame: Inertial body-centered frame (matching State.position / State.velocity)."
+        },
+        {
+          "type": "code",
+          "text": "export interface AvatarState {\n  readonly id: string;\n  readonly ownerId: string;\n  readonly parentBodyId: string;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  /** Heading angle in radians (counter-clockwise from +x in body-centered frame). */\n  readonly heading: number;\n  readonly mode: AvatarMode;\n  /** If mode === 'boarded', the ship ID holding the avatar. */\n  readonly mountedShipId?: string;\n  readonly revision: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "AvatarControls"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controls input for advancing an avatar."
+        },
+        {
+          "type": "code",
+          "text": "export interface AvatarControls {\n  /** Desired walking or thrust direction [-1..1] along tangent (surface) or forward/reverse (eva). */\n  readonly move: number;\n  /** Vertical thrust / jump [0..1]. */\n  readonly jump: number;\n  /** Turn input [-1..1]. */\n  readonly turn: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "WorldEvent"
         },
         {
@@ -17843,7 +17955,7 @@
         },
         {
           "type": "code",
-          "text": "export type WorldEvent =\n  | { readonly type: 'world-fault'; readonly message: string }\n  | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }\n  | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }\n  | { readonly type: 'fault'; readonly shipId: string; readonly message: string }\n  | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } };"
+          "text": "export type WorldEvent =\n  | { readonly type: 'world-fault'; readonly message: string }\n  | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }\n  | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }\n  | { readonly type: 'fault'; readonly shipId: string; readonly message: string }\n  | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } }\n  | { readonly type: 'avatar-contact'; readonly avatarId: string; readonly bodyId: string; readonly fraction: number }\n  | { readonly type: 'avatar-board'; readonly avatarId: string; readonly shipId: string }\n  | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string };"
         },
         {
           "type": "paragraph",

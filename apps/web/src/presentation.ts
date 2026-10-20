@@ -1,5 +1,5 @@
 import type {
-  AudioProvider, CameraExtension, CameraInput, CameraTarget, ModuleManifest, ModuleProfile, ModuleReference, OverlayPrimitive,
+  AudioProvider, CameraExtension, CameraInput, CameraTarget, ModuleManifest, ModuleProfile, ModuleReference, MultiViewportCameraFrame, OverlayPrimitive,
   RegisteredModule, PresentationFault, PresentationSnapshot, PresentationView, RendererProvider,
 } from '../../../packages/game-api/src/index';
 import { ModuleRuntime, PresentationHooks, frozenSnapshot, type ModuleCandidate } from '../../../packages/game-runtime/src/index';
@@ -263,7 +263,7 @@ export class Presentation {
     this.overlayCount = primitives.length;
     return primitives.length ? primitives : undefined;
   }
-  camera(id: string, input: () => CameraInput): CameraTarget | undefined {
+  camera(id: string, input: () => CameraInput): CameraTarget | MultiViewportCameraFrame | undefined {
     return this.hooks.enabled(id) && this.hooks.cameras.some(c => c.id === id) ? this.hooks.camera(id, input()) : undefined;
   }
   /** Panel rows at most four times a second; text is written only when it changes. */

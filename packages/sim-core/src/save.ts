@@ -1,7 +1,7 @@
 /** Host-only world save/load codec and validation (`packages/sim-core`). Modules access world persistence through `@space-sim/game-api` `CORE_SAVE` (`SaveCodec`: `save`, `load`, `shipToSaved`, `shipFromSaved`, `playerFromSaved`, `defaultLock`). */
 import { captureVehicleCatalog, vehicleId, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
 import { canonicalJson } from '../../game-runtime/src/authoritative';
-import type { AuthoritativeLock, Coast, ModuleLock, ModuleState, State, WorldRuleState, SavedShip, SavedPlayer, WorldSave, WorldRead } from '../../game-api/src/index';
+import type { AuthoritativeLock, AvatarState, Coast, ModuleLock, ModuleState, SavedAvatar, SavedPlayer, SavedShip, State, WorldRead, WorldRuleState, WorldSave } from '../../game-api/src/index';
 import { validateModuleState } from '../../game-runtime/src/motion';
 import { DEFAULT_BUILTIN_LOCK, migrateModuleState } from '../../game-runtime/src/authoritative';
 /** Default built-in authoritative module lock re-exported for `CORE_SAVE` (`SaveCodec.defaultLock`). Host-only (`packages/sim-core`). */
@@ -26,7 +26,7 @@ export const MAX_SAVE_PLAYERS = 512;
 export const MAX_PLAYER_NAME = 24;
 const TOKEN_HASH = /^[0-9a-f]{64}$/;
 
-export type { SavedCoast, SavedShip, SavedPlayer, WorldSave } from '../../game-api/src/index';
+export type { SavedCoast, SavedShip, SavedAvatar, SavedPlayer, WorldSave } from '../../game-api/src/index';
 /** Validated result of `loadWorld`, bundling the reconstructed `World` instance, sanitized `SavedPlayer` records, optional `hostId`, and `paused` state. Host-only (`packages/sim-core`; `CORE_SAVE.load` wraps `world` in `worldFacade(world).control`). */
 export interface LoadedWorld {
   readonly world: World;
@@ -37,6 +37,46 @@ export interface LoadedWorld {
 
 type Pair = readonly [number, number];
 const pair = (v: { readonly x: number; readonly y: number }): Pair => [v.x, v.y];
+
+/** Serializes an AvatarState into a JSON-safe SavedAvatar snapshot. */
+export function avatarToSaved(avatar: AvatarState): SavedAvatar {
+  return {
+    id: avatar.id,
+    ownerId: avatar.ownerId,
+    parentBodyId: avatar.parentBodyId,
+    position: pair(avatar.position),
+    velocity: pair(avatar.velocity),
+    heading: avatar.heading,
+    mode: avatar.mode,
+    ...(avatar.mountedShipId ? { mountedShipId: avatar.mountedShipId } : {}),
+    revision: avatar.revision,
+  };
+}
+
+/** Deserializes and validates a SavedAvatar from raw data. */
+export function avatarFromSaved(raw: unknown, context = 'Avatar'): AvatarState {
+  const a = record(raw, context);
+  const avatarId = id(a.id, `${context} id`);
+  const ownerId = id(a.ownerId, `${context} ownerId`);
+  const parentBodyId = typeof a.parentBodyId === 'string' && a.parentBodyId.length > 0 ? a.parentBodyId : fail(context, 'parentBodyId must be a string');
+  const position = vec(a.position, `${context} position`);
+  const velocity = vec(a.velocity, `${context} velocity`);
+  const heading = finite(a.heading, `${context} heading`);
+  const mode = a.mode === 'surface' || a.mode === 'eva' || a.mode === 'boarded' ? a.mode : fail(context, 'invalid mode');
+  const mountedShipId = a.mountedShipId !== undefined ? id(a.mountedShipId, `${context} mountedShipId`) : undefined;
+  const revision = count(a.revision, `${context} revision`);
+  return Object.freeze({
+    id: avatarId,
+    ownerId,
+    parentBodyId,
+    position,
+    velocity,
+    heading,
+    mode,
+    ...(mountedShipId ? { mountedShipId } : {}),
+    revision,
+  });
+}
 
 /** Serializes a live `Ship` record into a JSON-safe `SavedShip` snapshot in SI units (`position` in `m`, `velocity` in `m/s`, `heading` in `rad`, `epochSeconds` in `s`). Exposed to modules via `CORE_SAVE` (`SaveCodec.shipToSaved`). Host-only (`packages/sim-core`). */
 export function shipToSaved(ship: Ship): SavedShip {
@@ -216,6 +256,7 @@ export function saveWorld(world: WorldRead, extra: {
       const saved = shipToSaved(ship);
       return world.vehicles ? { ...saved, vehicleId: ship.vehicleId ?? TRAINER_VEHICLE_ID } : saved;
     }),
+    ...(world.avatars().length ? { avatars: world.avatars().map(avatarToSaved) } : {}),
     ...(world.vehicles ? { vehicles: world.vehicles } : {}),
     ...(lock ? { lock } : {}),
     ...(simulationFingerprint ? { simulationFingerprint } : {}),
@@ -329,6 +370,14 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
       world.put(ship);
       const n = /^ship-(\d+)$/.exec(ship.id);
       if (n) highest = Math.max(highest, Number(n[1]));
+    }
+    if (save.avatars !== undefined) {
+      if (!Array.isArray(save.avatars)) fail('Save', 'avatars must be a list');
+      for (const [i, rawAvatar] of (save.avatars as unknown[]).entries()) {
+        const avatar = avatarFromSaved(rawAvatar, `Avatar ${i + 1}`);
+        if (world.avatar(avatar.id)) fail('Save', `duplicate avatar id ${avatar.id}`);
+        world.putAvatar(avatar);
+      }
     }
     world.nextShipNumber = Math.max(count(save.nextShipNumber, 'Save nextShipNumber'), highest + 1, 1);
     return { world, players, ...(hostId ? { hostId } : {}), paused: save.paused === true };

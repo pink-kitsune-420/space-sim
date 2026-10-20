@@ -20,6 +20,7 @@ export function readWorld(world: WorldControl): WorldRead {
     get version() { return world.version; }, get nextShipNumber() { return world.nextShipNumber; }, get saveVersion() { return world.saveVersion; },
     get migrateState() { return world.migrateState; }, get surfaces() { return world.surfaces; },
     record: world.record.bind(world), records: world.records.bind(world), ship: world.ship.bind(world), ships: world.ships.bind(world),
+    avatar: world.avatar.bind(world), avatars: world.avatars.bind(world),
     has: world.has.bind(world), awakeShips: world.awakeShips.bind(world), previous: world.previous.bind(world), ownedBy: world.ownedBy.bind(world),
     isAsleep: world.isAsleep.bind(world), settles: world.settles.bind(world), stateAt: world.stateAt.bind(world), hasBody: world.hasBody.bind(world),
     body: world.body.bind(world), surface: world.surface.bind(world), presetId: world.presetId.bind(world), presetState: world.presetState.bind(world),

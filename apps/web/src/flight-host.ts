@@ -4619,7 +4619,7 @@ function handleEvents(events: readonly WorldEvent[]): void {
       if (isSolo()) setPaused(true, event.message);
       continue;
     }
-    if (event.shipId !== selectedShipId) continue;
+    if ('shipId' in event && event.shipId !== selectedShipId) continue;
     if (event.type === 'contact') {
       presentation.audio.terrainContact(event, !session.paused && session.warp === 1);
       lastTerrainContact = event.contact;
@@ -4791,8 +4791,12 @@ function frame(now: number): void {
   const base = (): PresentationSnapshot => snapshot ??= presentationView(elapsed, activeBodyPos);
   const mode = cameraControl.mode;
   const lastFocusTarget = cameraControl.focusTarget;
-  const target = mode !== 'follow' && mode !== 'free'
+  const rawTarget = mode !== 'follow' && mode !== 'free'
     ? presentation.camera(mode, () => Object.freeze({ ...base(), scale: cameraControl.scale(width, height) })) : undefined;
+  const isMultiViewport = Boolean(rawTarget && 'viewports' in rawTarget);
+  const target = rawTarget
+    ? ('viewports' in rawTarget ? (rawTarget.viewports[0] ? { center: rawTarget.viewports[0].center, rotation: rawTarget.viewports[0].rotation } : undefined) : rawTarget)
+    : undefined;
 
   let focusPosition: Vec | undefined;
   const focus = cameraControl.smartTarget ?? cameraControl.focusTarget;
@@ -4913,6 +4917,52 @@ function frame(now: number): void {
     },
     ...(overlays.length ? { overlays } : {}),
   }, profiler);
+
+  if (isMultiViewport && rawTarget && 'viewports' in rawTarget && rawTarget.viewports.length > 1) {
+    for (let i = 1; i < rawTarget.viewports.length; i++) {
+      const sub = rawTarget.viewports[i];
+      if (!sub) continue;
+      const subCamera: Camera = {
+        center: sub.center,
+        rotation: sub.rotation ?? camera.rotation,
+        scale: sub.scale ?? camera.scale,
+      };
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(sub.rect.x * width, sub.rect.y * height, sub.rect.width * width, sub.rect.height * height);
+        ctx.clip();
+        presentation.rendering.renderer!.draw({
+          state: view,
+          path: prediction.path,
+          pathClosed: prediction.pathEnd === 'closed' && (!prediction.pass || prediction.pathKey === prediction.passKey),
+          engine,
+          camera: subCamera,
+          bodies: renderBodies,
+          shipWorldPosition: shipWorld,
+          pathOrigin: activeBodyPos,
+          padPosition: padWorld,
+          padNormal: pad && spinView.point(activeBody, view.time, pad.normal),
+          shipLabel: ship?.name.toUpperCase(),
+          vehicleId: ship?.vehicleId,
+          ships: others,
+          showScale: false,
+          showShipLabels: hudVisibility.visible('labels'),
+          showBodyLabels: hudVisibility.visible('planets'),
+          showBodyOrbits: hudVisibility.visible('orbits'),
+          theme: {
+            ...themeCustomizer.getSettings(),
+            highQuality: graphicsQuality === 'high',
+            worldSeed: (themeCustomizer.getSettings().shaderSeed && themeCustomizer.getSettings().shaderSeed !== 0)
+              ? themeCustomizer.getSettings().shaderSeed!
+              : hashWorldSeed(world.id),
+          },
+        }, profiler);
+        ctx.restore();
+      }
+    }
+  }
 
   if (splitScreen.split) {
     for (const [slot, guest] of splitScreen.guests) {

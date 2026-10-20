@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 45f6dc2a47dbc3af
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -2906,6 +2906,21 @@ Body-relative Float64 state. Derived caches and per-step diagnostics are rebuilt
     }
 Used by: spacelab.session-flight.
 
+## SavedAvatar
+Lightweight body-relative avatar snapshot for world saves.
+    export interface SavedAvatar {
+      readonly id: string;
+      readonly ownerId: string;
+      readonly parentBodyId: string;
+      readonly position: Pair;
+      readonly velocity: Pair;
+      readonly heading: number;
+      readonly mode: AvatarMode;
+      readonly mountedShipId?: string;
+      readonly revision: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SavedPlayer
 A player identity. Only a SHA-256 hash of the secret reconnect token is stored.
     export interface SavedPlayer {
@@ -2955,6 +2970,7 @@ Portable `space-sim-world` save document containing the full `UniverseDefinition
       readonly hostId?: string;
       readonly players: readonly SavedPlayer[];
       readonly ships: readonly SavedShip[];
+      readonly avatars?: readonly SavedAvatar[];
       readonly lock?: AuthoritativeLock | ModuleLock;
       readonly simulationFingerprint?: string;
       readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
@@ -2984,6 +3000,7 @@ Body-relative SI state. Read operations retain the world's established rails sem
       readonly surfaces: ReadonlyMap<string, SurfaceProfile>;
       record(id: string): Ship | undefined; records(): IterableIterator<Ship>;
       ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;
+      avatar(id: string): AvatarState | undefined; avatars(): readonly AvatarState[];
       awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;
       ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;
       stateAt(id: string, time: number): State | undefined;
@@ -3015,6 +3032,11 @@ Authoritative mutable world handle extending `WorldRead` with fixed-step advance
       spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;
       respawn(id: string, preset?: string, godMode?: boolean): Ship;
       teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;
+      spawnAvatar(options: { readonly id?: string; readonly ownerId: string; readonly bodyId: string; readonly position: Vec; readonly velocity?: Vec }): AvatarState;
+      removeAvatar(id: string): boolean;
+      boardShip(avatarId: string, shipId: string): void;
+      disembarkShip(avatarId: string): AvatarState;
+      setAvatarControls?(id: string, controls: AvatarControls): void;
       reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;
       rename(id: string, name: string): void; clearFault(id: string): void;
       setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;
@@ -3064,6 +3086,8 @@ Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `s
       };
       shipToSaved(ship: Ship): SavedShip;
       shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;
+      avatarToSaved?(avatar: AvatarState): SavedAvatar;
+      avatarFromSaved?(raw: unknown, context?: string): AvatarState;
       playerFromSaved(raw: unknown, context?: string): SavedPlayer;
     }
 Used by: spacelab.session-flight, spacelab.universe-saves.
@@ -6602,14 +6626,47 @@ Camera center (system coordinates in metres) and optional counter-clockwise rota
     }
 Used by: spacelab.camera-follow.
 
+## ViewportRect
+Single rectangular viewport descriptor in normalized screen space [0..1].
+    export interface ViewportRect {
+      /** Left offset [0..1]. */
+      readonly x: number;
+      /** Top offset [0..1]. */
+      readonly y: number;
+      /** Width [0..1]. */
+      readonly width: number;
+      /** Height [0..1]. */
+      readonly height: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SubViewportCameraTarget
+Individual viewport camera target in a multi-viewport presentation layout.
+    export interface SubViewportCameraTarget {
+      readonly seatSlot: number;
+      readonly center: Vec;
+      readonly rotation?: number;
+      readonly rect: ViewportRect;
+      /** Optional custom zoom scale (CSS pixels per metre) override. */
+      readonly scale?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## MultiViewportCameraFrame
+Multi-viewport presentation layout returned by a CameraHook.
+    export interface MultiViewportCameraFrame {
+      readonly viewports: readonly SubViewportCameraTarget[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## CameraHook
-Synchronous presentation camera mode hook computing a `CameraTarget` once per rendered frame from a frozen `CameraInput`.
+Synchronous presentation camera mode hook computing a `CameraTarget` or `MultiViewportCameraFrame` once per rendered frame from a frozen `CameraInput`.
     export interface CameraHook {
       readonly name: string;
       /** Camera button text while selected, such as "Lead camera". */
       readonly label: string;
-      /** Once per frame while selected. */
-      frame(input: CameraInput): CameraTarget;
+      /** Once per frame while selected. May return a single camera target or a multi-viewport layout. */
+      frame(input: CameraInput): CameraTarget | MultiViewportCameraFrame;
     }
 Used by: host or creator modules (not imported by shipped modules).
 
@@ -9432,6 +9489,40 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
     }
 Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner.
 
+## AvatarMode
+Mode of locomotion or containment for an avatar.
+    export type AvatarMode = 'surface' | 'eva' | 'boarded';
+Used by: host or creator modules (not imported by shipped modules).
+
+## AvatarState
+Lightweight physical human/creature entity on foot or EVA. Coordinate frame: Inertial body-centered frame (matching State.position / State.velocity).
+    export interface AvatarState {
+      readonly id: string;
+      readonly ownerId: string;
+      readonly parentBodyId: string;
+      readonly position: Vec;
+      readonly velocity: Vec;
+      /** Heading angle in radians (counter-clockwise from +x in body-centered frame). */
+      readonly heading: number;
+      readonly mode: AvatarMode;
+      /** If mode === 'boarded', the ship ID holding the avatar. */
+      readonly mountedShipId?: string;
+      readonly revision: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## AvatarControls
+Controls input for advancing an avatar.
+    export interface AvatarControls {
+      /** Desired walking or thrust direction [-1..1] along tangent (surface) or forward/reverse (eva). */
+      readonly move: number;
+      /** Vertical thrust / jump [0..1]. */
+      readonly jump: number;
+      /** Turn input [-1..1]. */
+      readonly turn: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## WorldEvent
 Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event.
     export type WorldEvent =
@@ -9439,7 +9530,10 @@ Authoritative event emitted during a fixed world step: surface contact, SOI tran
       | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
       | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }
       | { readonly type: 'fault'; readonly shipId: string; readonly message: string }
-      | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } };
+      | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } }
+      | { readonly type: 'avatar-contact'; readonly avatarId: string; readonly bodyId: string; readonly fraction: number }
+      | { readonly type: 'avatar-board'; readonly avatarId: string; readonly shipId: string }
+      | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string };
 Used by: spacelab.audio-controls, spacelab.session-flight.
 -> API reference index [api-reference]
 
