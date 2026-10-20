@@ -7,10 +7,11 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c4fe07cafc86aeff
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2784fe7b981cbcd6
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
+-> Trainer vector appearance (spacelab.trainer-appearance) [api-reference/module/spacelab.trainer-appearance]
 -> Chat console (spacelab.chat-console) [api-reference/module/spacelab.chat-console]
 -> Controller menu (spacelab.controller-menu) [api-reference/module/spacelab.controller-menu]
 -> LAN discovery (spacelab.discovery-lan) [api-reference/module/spacelab.discovery-lan]
@@ -28,8 +29,13 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Manual WebRTC transport (spacelab.net-webrtc) [api-reference/module/spacelab.net-webrtc]
 -> WebSocket transport (spacelab.net-websocket) [api-reference/module/spacelab.net-websocket]
 -> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
+-> Canvas 2D (spacelab.render-canvas) [api-reference/module/spacelab.render-canvas]
+-> WebGL 2 (spacelab.render-webgl) [api-reference/module/spacelab.render-webgl]
 -> Flight sessions (spacelab.session-flight) [api-reference/module/spacelab.session-flight]
 -> Install on join (spacelab.session-join) [api-reference/module/spacelab.session-join]
+-> Vector shader pack (spacelab.vector-shaders) [api-reference/module/spacelab.vector-shaders]
+-> Theme and procedural backdrop (spacelab.theme) [api-reference/module/spacelab.theme]
+-> Theme controls (spacelab.theme-customizer) [api-reference/module/spacelab.theme-customizer]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
 
 ## Game API topics
@@ -50,18 +56,59 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> node-transport.ts [api-reference/game-api/node-transport]
 -> platform.ts [api-reference/game-api/platform]
 -> presentation.ts [api-reference/game-api/presentation]
+-> render-math.ts [api-reference/game-api/render-math]
+-> rendering.ts [api-reference/game-api/rendering]
 -> rules.ts [api-reference/game-api/rules]
 -> session.ts [api-reference/game-api/session]
 -> session-discovery.ts [api-reference/game-api/session-discovery]
+-> shader-format.ts [api-reference/game-api/shader-format]
 -> state.ts [api-reference/game-api/state]
 -> surface.ts [api-reference/game-api/surface]
 -> tab-transport.ts [api-reference/game-api/tab-transport]
+-> theme.ts [api-reference/game-api/theme]
+-> theme-customizer.ts [api-reference/game-api/theme-customizer]
 -> universe.ts [api-reference/game-api/universe]
 -> vehicles.ts [api-reference/game-api/vehicles]
 -> view-hud.ts [api-reference/game-api/view-hud]
 -> webrtc-transport.ts [api-reference/game-api/webrtc-transport]
 -> world.ts [api-reference/game-api/world]
 -> Code modules: manifests, packaging and installation [modules]
+
+=== Trainer vector appearance reference [api-reference/module/spacelab.trainer-appearance]
+Shared optional Canvas/WebGL hull and flame data.
+- ID: spacelab.trainer-appearance
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+Nothing.
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: none
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleAppearance, VehicleArtwork, captureVehicleAppearance, createVehicleArtwork
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api vehicles.ts [api-reference/game-api/vehicles]
+
+## Guide and example
+Example source: examples/modules/appearance-trainer (build with npm run module:build -- examples/modules/appearance-trainer/module.json out.spacemod).
+-> Vehicle vector artwork: how to use, replace and remove it [spacelab.trainer-appearance/usage]
 
 === Chat console reference [api-reference/module/spacelab.chat-console]
 Optional session chat and command UI with owned DOM lifecycle.
@@ -703,6 +750,94 @@ ActionSink, ControlTargetAdapter, ControlTargetBinding, InputFrame, ModuleInitia
 Example source: examples/modules/player-controller (build with npm run module:build -- examples/modules/player-controller/module.json out.spacemod).
 -> Player controller: how to use, replace and remove it [spacelab.player-controller/usage]
 
+=== Canvas 2D reference [api-reference/module/spacelab.render-canvas]
+Public render.canvas@1.0.0 service and lifecycle.
+- ID: spacelab.render-canvas
+- Version: 0.2.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- render.canvas@1.0.0 · CANVAS_DRAWING: ServiceKey<CanvasRendererFactory>
+
+## Requires
+- core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>
+
+## Composition
+- Slots: render.canvas
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
+
+## Game API used
+CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api rendering.ts [api-reference/game-api/rendering]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api surface.ts [api-reference/game-api/surface]
+-> game-api vehicles.ts [api-reference/game-api/vehicles]
+
+## Guide and example
+Example source: examples/modules/render-canvas (build with npm run module:build -- examples/modules/render-canvas/module.json out.spacemod).
+-> Canvas 2D: how to use, replace and remove it [spacelab.render-canvas/usage]
+
+=== WebGL 2 reference [api-reference/module/spacelab.render-webgl]
+Public render.webgl@1.0.0 service and lifecycle.
+- ID: spacelab.render-webgl
+- Version: 0.2.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- render.webgl@1.0.0 · WEBGL_DRAWING: ServiceKey<WebGLRendererFactory>
+
+## Requires
+- core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>
+
+## Composition
+- Slots: render.webgl
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
+
+## Game API used
+AppearanceStyle, BodyPreview, CORE_MOTION, Camera, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api rendering.ts [api-reference/game-api/rendering]
+-> game-api shader-format.ts [api-reference/game-api/shader-format]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api surface.ts [api-reference/game-api/surface]
+-> game-api universe.ts [api-reference/game-api/universe]
+-> game-api vehicles.ts [api-reference/game-api/vehicles]
+
+## Guide and example
+Example source: examples/modules/render-webgl (build with npm run module:build -- examples/modules/render-webgl/module.json out.spacemod).
+-> WebGL 2: how to use, replace and remove it [spacelab.render-webgl/usage]
+
 === Flight sessions reference [api-reference/module/spacelab.session-flight]
 Explicit flight protocol using privileged public engine ports and replaceable transports.
 - ID: spacelab.session-flight
@@ -791,6 +926,121 @@ Disposable, JOIN_PACKS, JoinClientPort, JoinNegotiation, JoinOffer, JoinPackFact
 
 ## Guide and example
 Example source: examples/modules/session-join (build with npm run module:build -- examples/modules/session-join/module.json out.spacemod).
+
+=== Vector shader pack reference [api-reference/module/spacelab.vector-shaders]
+Public render.vector-shaders@1.0.0 service and lifecycle.
+- ID: spacelab.vector-shaders
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- render.vector-shaders@1.0.0 · VECTOR_SHADERS: ServiceKey<ShaderLibrary>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: render.vector-shaders
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleAssets, ModuleInitializationV2, ServiceKey, ShaderLibrary, ShaderPack, ShaderPass, VECTOR_SHADERS, parseShaderDefinition, validateShaderDefinition
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api rendering.ts [api-reference/game-api/rendering]
+-> game-api shader-format.ts [api-reference/game-api/shader-format]
+
+## Guide and example
+Example source: examples/modules/shaders-vector (build with npm run module:build -- examples/modules/shaders-vector/module.json out.spacemod).
+
+=== Theme and procedural backdrop reference [api-reference/module/spacelab.theme]
+Public presentation.themes@1.0.0 service and lifecycle.
+- ID: spacelab.theme
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- presentation.themes@1.0.0 · THEMES: ServiceKey<ThemeFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: presentation.themes
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- windowOpacity: number, default 0.96, from 0.4 to 1, step 0.01. Default window opacity: Opacity for viewers without a saved window preference. Saved viewer choices take precedence. Applies to presentation only.
+- starDensity: number, default 1, from 0.5 to 2, step 0.05. Default star density: Background star-density multiplier for viewers without a saved choice. These decorative stars have no physical bodies or collision.
+- nebulaIntensity: number, default 1, from 0 to 2, step 0.05. Default nebula intensity: Brightness of the procedural nebula background before viewer preferences override it. Does not affect lighting physics.
+- gridOpacity: number, default 0.45, from 0 to 1, step 0.01. Default grid opacity: Opacity of the optional background grid before viewer preferences override it. This does not turn the grid on.
+- gridSpacing: number, default 80, from 8 to 512, step 1. Default grid spacing (px): Screen-space grid spacing in CSS pixels before viewer preferences override it. Does not change world coordinates or scale.
+
+## Game API used
+Camera, Disposable, ModuleInitializationV2, RenderThemeOptions, ServiceKey, THEMES, ThemeBackdropStyle, ThemeController, ThemeCounterStyle, ThemeFactory, ThemeGridStyle, ThemeOptions, ThemePreferences, ThemePreset, ThemeSettings, ThemeWindowStyle
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api theme.ts [api-reference/game-api/theme]
+
+## Guide and example
+Example source: examples/modules/theme (build with npm run module:build -- examples/modules/theme/module.json out.spacemod).
+
+=== Theme controls reference [api-reference/module/spacelab.theme-customizer]
+Public ui.theme-customizer@1.0.0 service and lifecycle.
+- ID: spacelab.theme-customizer
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- ui.theme-customizer@1.0.0 · THEME_CUSTOMIZERS: ServiceKey<ThemeCustomizerFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: ui.theme-customizer
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, ServiceKey, THEMES, THEME_CUSTOMIZERS, ThemeBackdropStyle, ThemeController, ThemeCounterStyle, ThemeCustomizer, ThemeCustomizerFactory, ThemeCustomizerOptions, ThemeFactory, ThemeGridStyle, ThemePreferences, ThemeSettings, ThemeWindowStyle
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api theme.ts [api-reference/game-api/theme]
+-> game-api theme-customizer.ts [api-reference/game-api/theme-customizer]
+
+## Guide and example
+Example source: examples/modules/theme-customizer (build with npm run module:build -- examples/modules/theme-customizer/module.json out.spacemod).
 
 === Throttle HUD reference [api-reference/module/spacelab.throttle-hud]
 A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.
@@ -1102,7 +1352,7 @@ Used by: spacelab.session-flight.
       nextWarpFactor(factor: number, direction: 1 | -1, maxAllowed?: number): number;
       magnitude(value: Vec): number; normalizeAngle(value: number): number;
     }
-Used by: spacelab.session-flight.
+Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight.
 
 ## CoreCommands
     export interface CoreCommands {
@@ -1124,7 +1374,7 @@ Used by: spacelab.session-flight.
 
 ## CORE_MOTION
     export const CORE_MOTION: ServiceKey<CoreMotion> = Object.freeze({ slot: 'core.motion', version: '1.0.0' });
-Used by: spacelab.session-flight.
+Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight.
 
 ## CORE_COMMANDS
     export const CORE_COMMANDS: ServiceKey<CoreCommands> = Object.freeze({ slot: 'core.commands', version: '1.0.0' });
@@ -1872,7 +2122,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join.
+Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer.
 
 ## ModuleInitialization
 Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile.
@@ -1905,7 +2155,7 @@ Initialization is synchronous in Phase 2. Own resources immediately after alloca
       /** The API exposed by one of this module's declared dependencies, which initialize first. */
       dependency<T extends object>(id: string): T;
     }
-Used by: spacelab.chat-console.
+Used by: spacelab.trainer-appearance.
 
 ## RegisteredModule
     export interface RegisteredModule {
@@ -1958,7 +2208,15 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join.
+Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders.
+
+## ModuleAssets
+    export interface ModuleAssets {
+      text(path: string): string;
+      bytes(path: string): Uint8Array;
+      url(path: string): { readonly href: string; dispose(): void };
+    }
+Used by: spacelab.vector-shaders.
 
 ## ModuleInitializationV2
     export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {
@@ -1990,7 +2248,7 @@ Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join, spacelab.throttle-hud.
+Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders.
 -> API reference index [api-reference]
 
 === game-api: motion.ts [api-reference/game-api/motion]
@@ -2437,12 +2695,238 @@ Used by: spacelab.discovery-lan, spacelab.net-tab, spacelab.net-websocket.
 ServiceKey for the WebSocket transport provider (slot `net.websocket`).
     export const WEBSOCKET_TRANSPORT: ServiceKey<TransportProvider> = Object.freeze({ slot: 'net.websocket', version: '1.0.0' });
 Used by: spacelab.net-websocket.
+
+## ThemeService
+    export interface ThemeService {
+      current(): Readonly<RenderThemeOptions>;
+      set(value: Readonly<RenderThemeOptions>): void;
+      subscribe(change: (theme: Readonly<RenderThemeOptions>) => void): Disposable;
+    }
+Used by: spacelab.theme.
+
+## MaterialDefinition
+    export interface MaterialDefinition {
+      readonly name: string;
+      readonly bodyIds: readonly string[];
+      readonly fragmentAsset: string;
+      readonly uniforms: Readonly<Record<string, number>>;
+    }
+Used by: spacelab.render-webgl.
+
+## PostEffectDefinition
+    export interface PostEffectDefinition {
+      readonly name: string;
+      readonly fragmentAsset: string;
+      readonly after: readonly string[];
+      readonly scale: 0.5 | 1;
+      readonly uniforms: Readonly<Record<string, number>>;
+    }
+Used by: spacelab.render-webgl.
+
+## RenderMaterial
+Resolved inert assets; IDs and ordering retain their owning module namespace.
+    export interface RenderMaterial extends Omit<MaterialDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }
+Used by: spacelab.render-webgl.
+
+## RenderPostEffect
+    export interface RenderPostEffect extends Omit<PostEffectDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }
+Used by: spacelab.render-webgl.
+
+## ShaderEffects
+    export interface ShaderEffects {
+      /** Atomic compilation. Sources implement material(vec2) or effect(vec2,vec4), with
+       * fixed uniforms; the renderer owns masks, framebuffers and all graphics objects. */
+      configure(materials: readonly RenderMaterial[], post: readonly RenderPostEffect[]): void;
+    }
+Used by: spacelab.render-webgl.
 -> API reference index [api-reference]
 
 === game-api: presentation.ts [api-reference/game-api/presentation]
 Declarations from presentation.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/presentation.ts.
+
+## Camera
+System world coordinates (metres, +Y up) to CSS pixels: `scale` pixels per metre, `rotation` radians counter-clockwise applied to the world before projection.
+    export interface Camera { readonly center: Vec; readonly rotation: number; readonly scale: number }
+Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.theme.
+
+## RenderBody
+    export interface RenderBody {
+      readonly id: string;
+      readonly name: string;
+      readonly position: Vec;
+      readonly radius: number;
+      /** Shared authoritative terrain geometry. */
+      readonly surface?: SurfaceProfile;
+      readonly color?: string;
+      readonly accentColor?: string;
+      readonly atmosphereColor?: string;
+      readonly horizonColor?: string;
+      readonly skyColor?: string;
+      readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';
+      readonly parentPosition?: Vec;
+      readonly orbitRadius?: number;
+      /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */
+      readonly rotation?: number;
+      /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */
+      readonly sunDirection?: Vec;
+      /** Procedural surface look; absent draws a plain disc (low graphics quality). */
+      readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## RenderShip
+Another vessel in the same world: one of this player's fleet, or someone else's.
+    export interface RenderShip {
+      readonly vehicleId?: string;
+      readonly id: string;
+      /** System world coordinates. */
+      readonly position: Vec;
+      readonly heading: number;
+      readonly status: State['status'];
+      readonly engine: boolean;
+      readonly throttle: number;
+      readonly label: string;
+      /** Owned by another player. */
+      readonly foreign?: boolean;
+      /** Drawn as a small unlabeled rock instead of a vessel (asteroids and debris). */
+      readonly rock?: boolean;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## RenderFrame
+    export interface RenderFrame {
+      readonly vehicleId?: string;
+      /** Presentation snapshot; may be interpolated between fixed physics steps. */
+      readonly state: State;
+      /** Ghost samples with exact velocities. Closed loops are drawn whole; open paths start at the ship. */
+      readonly path: readonly GhostSample[];
+      readonly pathClosed: boolean;
+      readonly camera: Camera;
+      readonly engine: boolean;
+      /** Celestial bodies in the active system (planets and moons). */
+      readonly bodies?: readonly RenderBody[];
+      /** Ship position in system world coordinates (defaults to state.position). */
+      readonly shipWorldPosition?: Vec;
+      /** Reference origin of ghost path (e.g. active body position). */
+      readonly pathOrigin?: Vec;
+      /** World position of launch pad if any. */
+      readonly padPosition?: Vec;
+      /** Outward normal at the pad, for its tangent marker. */
+      readonly padNormal?: Vec;
+      /** Label beside the piloted ship (default VESSEL 01). */
+      readonly shipLabel?: string;
+      /** Viewer-only annotations; omitted preserves the default visible labels and scale bar. */
+      readonly showScale?: boolean;
+      readonly showShip?: boolean;
+      readonly showPad?: boolean;
+      /** Optional explicit viewer animation epoch, seconds. Never advances a simulation. */
+      readonly presentationTime?: number;
+      readonly showShipLabels?: boolean;
+      /** Celestial body names; defaults to visible. Independent of ship labels. */
+      readonly showBodyLabels?: boolean;
+      /** Planet/moon orbit guides; defaults to visible. Does not hide ship trajectories or affect motion. */
+      readonly showBodyOrbits?: boolean;
+      /** Other vessels, drawn beneath the piloted ship. */
+      readonly ships?: readonly RenderShip[];
+      /** Validated presentation layers above the scene, in the overlay section: shapes in order,
+       * then text in order so labels stay readable. */
+      readonly overlays?: readonly OverlayPrimitive[];
+      /** Visual theme settings for universe backdrop, skybox, grids, and timers/counters. */
+      readonly theme?: RenderThemeOptions;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## ThemeBackdropStyle
+    export type ThemeBackdropStyle = 'spacelab' | 'nebula' | 'carina' | 'galactic' | 'aurora' | 'supernova' | 'void' | 'pillars' | 'helix' | 'asteroids';
+Used by: spacelab.render-webgl, spacelab.theme, spacelab.theme-customizer.
+
+## ThemeGridStyle
+    export type ThemeGridStyle = 'cartesian' | 'polar' | 'dots' | 'hex' | 'off';
+Used by: spacelab.render-webgl, spacelab.theme, spacelab.theme-customizer.
+
+## ThemeCounterStyle
+    export type ThemeCounterStyle = 'spacelab' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'custom';
+Used by: spacelab.theme, spacelab.theme-customizer.
+
+## ThemeWindowStyle
+    export type ThemeWindowStyle = 'classic' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'void' | 'crimson';
+Used by: spacelab.theme, spacelab.theme-customizer.
+
+## RenderThemeOptions
+    export interface RenderThemeOptions {
+      readonly backdropStyle?: ThemeBackdropStyle;
+      readonly nebulaVisible?: boolean;
+      readonly nebulaIntensity?: number;
+      readonly starsVisible?: boolean;
+      readonly starDensity?: number;
+      readonly dustVisible?: boolean;
+      readonly galaxiesVisible?: boolean;
+      readonly animatedNebula?: boolean;
+      readonly ringsVisible?: boolean;
+      readonly asteroidBeltVisible?: boolean;
+      readonly gridEnabled?: boolean;
+      readonly gridStyle?: ThemeGridStyle;
+      readonly gridSpacing?: number;
+      readonly gridOpacity?: number;
+      readonly gridLabels?: boolean;
+      readonly gridColor?: string;
+      readonly windowStyle?: ThemeWindowStyle;
+      readonly windowColor?: string;
+      /** Window background alpha, 0.4–1; text and controls remain fully visible. */
+      readonly windowOpacity?: number;
+      readonly counterTheme?: ThemeCounterStyle;
+      readonly hudColor?: string;
+      readonly hudScanlines?: boolean;
+      readonly hudGlow?: boolean;
+      readonly hudChamfer?: boolean;
+      readonly compactHud?: boolean;
+      readonly highQuality?: boolean;
+      readonly worldSeed?: number;
+      readonly shaderSeed?: number;
+    }
+Used by: spacelab.render-canvas, spacelab.theme.
+
+## RenderTimer
+Optional profiler hook, called after each section has been drawn.
+    export interface RenderTimer { lap(section: RenderSection): void }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## ShaderPass
+    export type ShaderPass = 'scene' | 'vector' | 'text';
+Used by: spacelab.render-webgl, spacelab.vector-shaders.
+
+## ShaderSources
+    export interface ShaderSources { readonly vertex: string; readonly fragment: string }
+Used by: spacelab.render-webgl.
+
+## ShaderPack
+`space-sim-shaders/1` data. Packs restyle built-in drawing roles, never module overlays.
+    export interface ShaderPack {
+      readonly format: 'space-sim-shaders/1';
+      readonly name: string;
+      readonly passes: Readonly<Record<ShaderPass, ShaderSources>>;
+    }
+Used by: spacelab.render-webgl, spacelab.vector-shaders.
+
+## RendererFeatures
+Optional features of a renderer instance. Applications discover them here, never by class.
+    export interface RendererFeatures {
+      readonly shaders?: ShaderControl;
+      readonly effects?: ShaderEffects;
+      /** Finish deferred raster work so profiler sections are attributed precisely. */
+      readonly flush?: () => void;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## Renderer
+    export interface Renderer {
+      readonly features?: RendererFeatures;
+      draw(frame: RenderFrame, timer?: RenderTimer): void;
+      dispose?(): void;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## OverlayPrimitive
     export type OverlayPrimitive =
@@ -2454,7 +2938,159 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' };
-Used by: spacelab.throttle-hud.
+Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud.
+-> API reference index [api-reference]
+
+=== game-api: render-math.ts [api-reference/game-api/render-math]
+Declarations from render-math.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-math.ts.
+
+## createProjector
+Cache camera constants once per frame, shared by every body/path/ship vertex.
+    export function createProjector(camera: Camera, width: number, height: number): (p: Vec) => Vec;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## hermiteControls
+Bézier control points of the cubic Hermite curve between two timed states. Exact end positions and velocities keep sparse quantized samples smooth at any zoom; the projection is affine, so world-space control points project directly.
+    export function hermiteControls(a: GhostSample, b: GhostSample): readonly [Vec, Vec];
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## getPathGeometry
+    export function getPathGeometry(path: readonly GhostSample[]): PathGeometry;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## pathFromShip
+The drawn part of a path. Open paths drop samples the ship has passed and begin at the ship; `flown` is the chord length already behind it, which keeps the dashes world-fixed.
+    export function pathFromShip(path: readonly GhostSample[], closed: boolean,
+      ship: GhostSample): { readonly points: readonly GhostSample[]; readonly flown: number };
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## trajectoryMarkers
+Restrained timed SOI markers and future body outlines. All snapshots are in the path's translating reference frame, so apply pathOrigin exactly once. Old providers can omit encounterBody. No renderer-side physics/ephemeris queries.
+    export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[];
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+-> API reference index [api-reference]
+
+=== game-api: rendering.ts [api-reference/game-api/rendering]
+Declarations from rendering.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/rendering.ts.
+
+## VEHICLE_MARKER
+Generic position marker (four-point box) when a craft omits optional appearance artwork.
+    export const VEHICLE_MARKER = Object.freeze([Object.freeze({x: 3, y: -3}), Object.freeze({x: -3, y: -3}), Object.freeze({x: -3, y: 3}), Object.freeze({x: 3, y: 3})]);
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## RenderGeometry
+Read-only physical geometry query interface; render quality must never alter collision geometry.
+    export interface RenderGeometry {
+      /** Query the physical terrain radius and normal at a given angle. */
+      querySurface(profile: SurfaceProfile, angle: number): SurfaceQuery;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## ThemeArtwork
+Presentation service providing theme options and procedural backdrop drawing for renderers.
+    export interface ThemeArtwork {
+      /** Return the currently active presentation theme options. */
+      current(): Readonly<RenderThemeOptions>;
+      /** Draw the procedural starfield, nebulae and backdrop grid into the canvas context. */
+      backdrop(context: CanvasRenderingContext2D, width: number, height: number, camera: Camera,
+        settings: Readonly<RenderThemeOptions>, time: number): void;
+    }
+Used by: spacelab.theme.
+
+## SceneFrame
+Standalone render frame for body, map or designer viewers lacking active flight controls or world scheduler.
+    export interface SceneFrame extends Pick<RenderFrame, 'camera' | 'bodies' | 'overlays' | 'theme' | 'showScale' | 'ships' | 'showShipLabels' | 'showBodyLabels' | 'showBodyOrbits'> {
+      /** Presentation time in seconds for backdrop animation and orbit markers. */
+      readonly time: number;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## SceneRenderer
+Presentation renderer capable of drawing flight and standalone scene frames to an owned canvas.
+    export interface SceneRenderer extends Renderer {
+      /** Release owned GPU programs, textures, canvas context bindings and event listeners. */
+      dispose(): void;
+      /** Draw a standalone celestial scene frame without controlled flight HUD or ship inputs. */
+      drawScene(frame: SceneFrame, timer?: RenderTimer): void;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## BodyPreview
+Lightweight preview renderer for standalone planet or celestial body preview displays.
+    export interface BodyPreview extends Disposable {
+      /** Whether the underlying shader program and GPU textures are linked and ready to draw. */
+      readonly ready: boolean;
+      /** Diagnostic error string if shader compilation or context acquisition failed. */
+      readonly error?: string;
+      /** Draw a preview of the specified body with optional shading fill factor. */
+      draw(body: RenderBody, fill?: number): void;
+    }
+Used by: spacelab.render-webgl.
+
+## Render2DOptions
+Configuration options passed when creating a 2D canvas or WebGL scene renderer.
+    export interface Render2DOptions {
+      /** Optional vehicle appearance catalog; falls back to generic marker when omitted. */
+      readonly vehicles?: VehicleArtwork;
+      /** Presentation resolution cap, 0.5–4; never alters physical simulation or body dimensions. */
+      readonly maxPixelRatio?: number;
+      /** Physical terrain surface query port for procedural body drawing. */
+      readonly geometry?: RenderGeometry;
+      /** Procedural backdrop and styling provider. */
+      readonly theme?: ThemeArtwork;
+      /** Explicit compatibility fallback body when a scene frame contains zero bodies. */
+      readonly fallbackBody?: RenderBody;
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## CanvasRendererFactory
+Factory providing Canvas 2D scene renderer instances. Disposing releases all created renderers.
+    export interface CanvasRendererFactory extends Disposable {
+      /** Create a Canvas 2D scene renderer for the given canvas element and options. */
+      create(canvas: HTMLCanvasElement, options?: Render2DOptions): SceneRenderer;
+    }
+Used by: spacelab.render-canvas.
+
+## WebGLRendererFactory
+Factory providing WebGL 2 scene renderers and body preview instances. Disposing releases all GPU resources.
+    export interface WebGLRendererFactory extends Disposable {
+      /** Create a WebGL 2 scene renderer bound to the canvas element and shader pack. */
+      create(canvas: HTMLCanvasElement, shaders: ShaderPack, options?: Render2DOptions): SceneRenderer;
+      /** Create a standalone body preview renderer for planet designer and celestial inspection. */
+      preview(canvas: HTMLCanvasElement, shaders: ShaderPack): BodyPreview;
+    }
+Used by: spacelab.render-webgl.
+
+## CANVAS_DRAWING
+Service key for the public Canvas 2D renderer factory (`render.canvas@1.0.0`).
+    export const CANVAS_DRAWING: ServiceKey<CanvasRendererFactory> = Object.freeze({ slot: 'render.canvas', version: '1.0.0' });
+Used by: spacelab.render-canvas.
+
+## WEBGL_DRAWING
+Service key for the public WebGL 2 renderer factory (`render.webgl@1.0.0`).
+    export const WEBGL_DRAWING: ServiceKey<WebGLRendererFactory> = Object.freeze({ slot: 'render.webgl', version: '1.0.0' });
+Used by: spacelab.render-webgl.
+
+## ShaderLibrary
+Service interface providing default GLSL shader packs and validation/parsing methods.
+    export interface ShaderLibrary {
+      /** Immutable default three-pass shader pack (scene, vector, text). */
+      readonly defaults: ShaderPack;
+      /** Validate a raw object or partial shader definition against the default pack. */
+      validate(value: unknown): ShaderPack;
+      /** Parse a .frag, .glsl or JSON shader file into a validated shader pack. */
+      parse(text: string, filename: string): ShaderPack;
+    }
+Used by: spacelab.vector-shaders.
+
+## VECTOR_SHADERS
+Service key for the public vector shader pack library (`render.vector-shaders@1.0.0`).
+    export const VECTOR_SHADERS: ServiceKey<ShaderLibrary> = Object.freeze({ slot: 'render.vector-shaders', version: '1.0.0' });
+Used by: spacelab.vector-shaders.
 -> API reference index [api-reference]
 
 === game-api: rules.ts [api-reference/game-api/rules]
@@ -2674,6 +3310,22 @@ ServiceKey for the LAN discovery factory (slot `net.lan-discovery`).
 Used by: spacelab.discovery-lan.
 -> API reference index [api-reference]
 
+=== game-api: shader-format.ts [api-reference/game-api/shader-format]
+Declarations from shader-format.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/shader-format.ts.
+
+## validateShaderDefinition
+Validate, bound and freeze a shader pack definition against baseline defaults. Partial packs inherit built-in stages, never stages from a previously loaded custom pack. @param value Raw object representation of a shader pack. @param defaults Baseline defaults providing fallback stages for omitted passes. @returns Frozen, validated ShaderPack with resolved passes. @throws If format differs from 'space-sim-shaders/1', stages exceed 256 KiB, or fields are invalid.
+    export function validateShaderDefinition(value: unknown, defaults: ShaderPack): ShaderPack;
+Used by: spacelab.render-webgl, spacelab.vector-shaders.
+
+## parseShaderDefinition
+Parse and validate a GLSL fragment file or JSON shader pack string. A .frag/.glsl file replaces just the scene fragment; JSON can replace all six stages. @param text Source file text (UTF-8, up to 1 MiB). @param filename Source filename used for extension detection and naming. @param defaults Baseline defaults providing fallback stages. @returns Frozen, validated ShaderPack with resolved passes. @throws If file exceeds 1 MiB or shader syntax validation fails.
+    export function parseShaderDefinition(text: string, filename: string, defaults: ShaderPack): ShaderPack;
+Used by: spacelab.render-webgl, spacelab.vector-shaders.
+-> API reference index [api-reference]
+
 === game-api: state.ts [api-reference/game-api/state]
 Declarations from state.ts used by documented modules.
 
@@ -2681,7 +3333,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Vec
     export interface Vec { readonly x: number; readonly y: number }
-Used by: spacelab.flight-plans, spacelab.session-flight.
+Used by: spacelab.flight-plans, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight.
 
 ## Body
     export interface Body {
@@ -2714,7 +3366,7 @@ A flying state is in the body-centred inertial frame. On a rotating body a lande
       /** Split drift vertex retained for prediction of a gentle sea entry. */
       readonly waterEntry?: GhostSample;
     }
-Used by: spacelab.flight-plans, spacelab.flight-prediction.
+Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl.
 
 ## Controls
     export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }
@@ -2774,7 +3426,7 @@ Private Float64 storage; reads/copies cannot mutate authoritative geometry. No c
       intervalBounds(index: number): SurfaceBounds;
       copyElevations(): Float64Array;
     }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
 === game-api: tab-transport.ts [api-reference/game-api/tab-transport]
@@ -2878,10 +3530,195 @@ ServiceKey for the scoped tab transport factory (slot `net.tab`).
 Used by: spacelab.net-tab.
 -> API reference index [api-reference]
 
+=== game-api: theme.ts [api-reference/game-api/theme]
+Declarations from theme.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/theme.ts.
+
+## ThemeSettings
+Presentation theme settings specifying backdrop, celestial grid, HUD and window styling.
+    export interface ThemeSettings extends RenderThemeOptions {
+      /** Visual style for the procedural backdrop (e.g. 'spacelab', 'nebula', 'carina', 'void'). */
+      backdropStyle: ThemeBackdropStyle;
+      /** Whether procedural nebulae are rendered in the background. */
+      nebulaVisible: boolean;
+      /** Relative brightness and opacity of procedural nebulae (0.0 to 2.0). */
+      nebulaIntensity: number;
+      /** Whether background star layers are rendered. */
+      starsVisible: boolean;
+      /** Multiplier for procedural background star count (0.5 to 2.0). */
+      starDensity: number;
+      /** Whether interstellar dust clouds are visible. */
+      dustVisible: boolean;
+      /** Whether distant deep-space galaxies are visible. */
+      galaxiesVisible: boolean;
+      /** Whether procedural nebulae animate slowly over presentation time. */
+      animatedNebula: boolean;
+      /** Randomization seed for background generation; 0 uses the universe seed. */
+      shaderSeed: number;
+
+      /** Whether the coordinate / navigation grid is displayed. */
+      gridEnabled: boolean;
+      /** Grid projection style ('cartesian', 'polar', 'dots', 'hex', 'off'). */
+      gridStyle: ThemeGridStyle;
+      /** Grid spacing in CSS pixels (e.g. 80). */
+      gridSpacing: number;
+      /** Visual opacity of grid lines and markers (0.1 to 1.0). */
+      gridOpacity: number;
+      /** Whether coordinate values and distance labels are displayed on grid lines. */
+      gridLabels: boolean;
+      /** Optional custom hex color string for the grid (e.g. '#38bdf8'). */
+      gridColor?: string;
+
+      /** Visual style for digital counters and telemetry ('spacelab', 'cyber', 'apollo', etc.). */
+      counterTheme: ThemeCounterStyle;
+      /** Custom phosphor / telemetry accent color (e.g. '#00f0ff'). */
+      hudColor?: string;
+      /** Window framing style ('classic', 'cyber', 'apollo', 'tactical', etc.). */
+      windowStyle?: ThemeWindowStyle;
+      /** Opacity for translucent UI windows and panels (0.4 to 1.0). */
+      windowOpacity: number;
+      /** Custom window header and border accent color. */
+      windowColor?: string;
+      /** Whether retro CRT scanlines overlay the flight display. */
+      hudScanlines: boolean;
+      /** Whether phosphor HUD elements display a diffuse glow. */
+      hudGlow: boolean;
+      /** Whether HUD instruments and telemetry panels have chamfered corners. */
+      hudChamfer: boolean;
+      /** Whether HUD widgets collapse into a compact layout for small viewports. */
+      compactHud: boolean;
+      /** Whether full-resolution procedural textures and anti-aliasing are enabled. */
+      highQuality: boolean;
+    }
+Used by: spacelab.theme, spacelab.theme-customizer.
+
+## ThemePreset
+Predefined curated theme preset bundling backdrop, HUD and window styling.
+    export interface ThemePreset {
+      /** Unique preset identifier (e.g. 'spacelab', 'cyber', 'apollo'). */
+      id: string;
+      /** Human-readable display label. */
+      name: string;
+      /** Short description explaining the preset's aesthetic. */
+      description: string;
+      /** Representative hex color for preview swatches. */
+      previewColor: string;
+      /** Partial theme settings applied when this preset is selected. */
+      settings: Partial<ThemeSettings>;
+    }
+Used by: spacelab.theme.
+
+## ThemePreferences
+Persistent storage abstraction for theme preferences (e.g. window.localStorage or mock).
+    export interface ThemePreferences {
+      /** Retrieve a stored JSON preference string by key, or null if unset. */
+      getItem(key: string): string | null;
+      /** Store a preference string under the specified key. */
+      setItem(key: string, value: string): void;
+    }
+Used by: spacelab.theme, spacelab.theme-customizer.
+
+## ThemeOptions
+Options for instantiating an isolated theme controller.
+    export interface ThemeOptions {
+      /** Optional persistent storage backend; defaults to in-memory preferences when omitted. */
+      readonly storage?: ThemePreferences;
+      /** Optional DOM element whose CSS custom properties are updated on theme change. */
+      readonly root?: HTMLElement;
+      /** Initial fallback defaults overriding built-in settings. */
+      readonly defaults?: Partial<ThemeSettings>;
+    }
+Used by: spacelab.theme.
+
+## ThemeController
+Controller managing active theme settings, CSS variables, procedural backdrop drawing and observer subscriptions.
+    export interface ThemeController extends ThemeService, ThemeArtwork, Disposable {
+      /** Immutable default settings configured on controller instantiation. */
+      readonly defaults: Readonly<ThemeSettings>;
+      /** Built-in curated presets available for user selection. */
+      readonly presets: readonly ThemePreset[];
+      /** Retrieve the currently active theme settings. */
+      current(): Readonly<ThemeSettings>;
+      /** Reload theme settings from persistent storage and apply styling to the DOM root. */
+      load(): Readonly<ThemeSettings>;
+      /** Apply current styling to newly mounted children without changing settings. */
+      refresh(): void;
+    }
+Used by: spacelab.theme, spacelab.theme-customizer.
+
+## ThemeFactory
+Factory providing isolated ThemeController instances. Disposing cleans up shared stylesheets.
+    export interface ThemeFactory extends Disposable {
+      /** Create a theme controller configured with optional storage and DOM root. */
+      create(options?: ThemeOptions): ThemeController;
+    }
+Used by: spacelab.theme, spacelab.theme-customizer.
+
+## THEMES
+Service key for the presentation theme factory (`presentation.themes@1.0.0`).
+    export const THEMES: ServiceKey<ThemeFactory> = Object.freeze({ slot: 'presentation.themes', version: '1.0.0' });
+Used by: spacelab.theme, spacelab.theme-customizer.
+-> API reference index [api-reference]
+
+=== game-api: theme-customizer.ts [api-reference/game-api/theme-customizer]
+Declarations from theme-customizer.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/theme-customizer.ts.
+
+## ThemeCustomizer
+UI controller for the theme customizer dialog, managing modal state, presets and export controls.
+    export interface ThemeCustomizer extends Disposable {
+      /** Open the theme customization dialog. */
+      open(): void;
+      /** Close the theme customization dialog. */
+      close(): void;
+      /** Toggle the theme customization dialog open or closed. */
+      toggle(): void;
+      /** Toggle celestial grid visibility, returning the new grid enabled state. */
+      toggleGrid(): boolean;
+      /** Retrieve a snapshot of the current theme settings. */
+      getSettings(): ThemeSettings;
+    }
+Used by: spacelab.theme-customizer.
+
+## ThemeCustomizerOptions
+Options for instantiating a ThemeCustomizer dialog attached to a DOM root and theme controller.
+    export interface ThemeCustomizerOptions {
+      /** Host DOM element into which the customizer dialog and controls are mounted. */
+      readonly root: HTMLElement;
+      /** Bound theme controller providing settings mutation and presets. */
+      readonly theme: ThemeController;
+      /** Optional storage backend for saving exported custom presets or choices. */
+      readonly storage?: ThemePreferences;
+      /** Optional predicate indicating whether the customizer's view is currently focused. */
+      readonly active?: () => boolean;
+    }
+Used by: spacelab.theme-customizer.
+
+## ThemeCustomizerFactory
+Factory providing ThemeCustomizer dialog instances. Disposing cleans up all open dialogs.
+    export interface ThemeCustomizerFactory extends Disposable {
+      /** Create a theme customizer instance attached to the specified DOM root and theme controller. */
+      create(options: ThemeCustomizerOptions): ThemeCustomizer;
+    }
+Used by: spacelab.theme-customizer.
+
+## THEME_CUSTOMIZERS
+Service key for the public theme customizer factory (`ui.theme-customizer@1.0.0`).
+    export const THEME_CUSTOMIZERS: ServiceKey<ThemeCustomizerFactory> = Object.freeze({slot: 'ui.theme-customizer', version: '1.0.0'});
+Used by: spacelab.theme-customizer.
+-> API reference index [api-reference]
+
 === game-api: universe.ts [api-reference/game-api/universe]
 Declarations from universe.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe.ts.
+
+## AppearanceStyle
+Procedural look of a body. Presentation only: it never changes the physical outline.
+    export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';
+Used by: spacelab.render-webgl.
 
 ## UniverseDefinition
     export interface UniverseDefinition {
@@ -2927,6 +3764,11 @@ Declarations from vehicles.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/vehicles.ts.
 
+## TRAINER_VEHICLE_ID
+Legacy craft map to this definition without changing state or old save bytes.
+    export const TRAINER_VEHICLE_ID = 'spacelab.trainer/orbit-trainer';
+Used by: spacelab.trainer-appearance.
+
 ## VehicleCatalog
 Explicit opt-in for mixed-vehicle saves/sessions. Definitions come from enabled, approved modules; saved definitions never install or execute missing packages.
     export interface VehicleCatalog {
@@ -2936,6 +3778,26 @@ Explicit opt-in for mixed-vehicle saves/sessions. Definitions come from enabled,
     }
 Used by: spacelab.session-flight.
 
+## VehicleAppearance
+Screen-space vector artwork (+X forward), shared by Canvas and WebGL. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry.
+    export interface VehicleAppearance {
+      /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */
+      readonly vehicleId: string;
+      /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */
+      readonly hull: readonly Vec[];
+      /** Optional thruster exhaust flame dimensions for active acceleration visuals. */
+      readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.trainer-appearance.
+
+## VehicleArtwork
+Lookup table resolving optional vector appearance artwork by namespaced vehicle ID.
+    export interface VehicleArtwork {
+      /** Retrieve artwork for a vehicle ID, or undefined to fall back to generic VEHICLE_MARKER. */
+      get(vehicleId?: string): VehicleAppearance | undefined;
+    }
+Used by: spacelab.trainer-appearance.
+
 ## vehicleId
     export function vehicleId(value: unknown): string;
 Used by: spacelab.session-flight.
@@ -2943,6 +3805,16 @@ Used by: spacelab.session-flight.
 ## captureVehicleCatalog
     export function captureVehicleCatalog(value: unknown): VehicleCatalog;
 Used by: spacelab.session-flight.
+
+## captureVehicleAppearance
+Validate, bound and freeze a vehicle appearance definition. Throws on invalid fields, non-namespaced ID, or out-of-bounds geometry.
+    export function captureVehicleAppearance(value: unknown): VehicleAppearance;
+Used by: spacelab.trainer-appearance.
+
+## createVehicleArtwork
+Capture once at composition, then read without allocating during drawing. Unknown vehicles have no artwork; renderers retain their generic position marker.
+    export function createVehicleArtwork(values: readonly VehicleAppearance[]): VehicleArtwork;
+Used by: spacelab.trainer-appearance.
 -> API reference index [api-reference]
 
 === game-api: view-hud.ts [api-reference/game-api/view-hud]
@@ -3090,6 +3962,44 @@ Used by: spacelab.flight-plans, spacelab.session-flight.
       | { readonly type: 'fault'; readonly shipId: string; readonly message: string };
 Used by: spacelab.session-flight.
 -> API reference index [api-reference]
+
+=== Vehicle vector artwork [spacelab.trainer-appearance/usage]
+Shared optional Canvas/WebGL hull and flame data.
+
+
+## What it does
+This module contributes the standard vector appearance for the orbital trainer ship (spacelab.trainer/orbit-trainer). It defines screen-space hull geometry (+X forward chevron outline with four vertices) and thruster flame geometry for Canvas 2D and WebGL 2 renderers. The artwork is purely cosmetic presentation data and never alters vessel mass, propulsion, collision bounds, flight mechanics or saved games.
+
+## Provides and requires
+- The module provides no service keys, requiring no runtime dependencies.
+- Contributes a VehicleAppearance definition via context.contributeVehicleAppearance for vehicle ID spacelab.trainer/orbit-trainer.
+- Contributes this usage guide for creators and the flight guide for players.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization contributes trainerAppearance to the module context and registers creator and player documentation guides.
+- The module owns no persistent runtime state or active timers.
+- Renderers retrieve vehicle appearance via createVehicleArtwork and draw the chevron hull and throttle flame during frame rendering.
+
+## Remove or replace
+Removing or replacing this module causes renderers to fall back to the generic four-point box marker (VEHICLE_MARKER) when drawing the trainer. Handling and flight characteristics remain unaffected. To provide alternative vehicle artwork, implement a presentation module calling contributeVehicleAppearance with custom geometry.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Vehicle ID is spacelab.trainer/orbit-trainer.
+
+## Example
+examples/modules/appearance-trainer demonstrates contributing custom vehicle vector appearance artwork and assembling a VehicleArtwork catalog. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/appearance-trainer/module.json /tmp/example-trainer-appearance.spacemod
+    npm run module:validate -- /tmp/example-trainer-appearance.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api vehicles.ts: vehicle appearance and artwork contracts [api-reference/game-api/vehicles]
+-> API reference: Trainer vector appearance [api-reference/module/spacelab.trainer-appearance]
+-> Canvas 2D: Canvas scene rendering [spacelab.render-canvas/usage]
+-> WebGL 2: WebGL scene rendering [spacelab.render-webgl/usage]
 
 === Chat console [spacelab.chat-console/usage]
 Optional session chat and command UI with owned DOM lifecycle.
@@ -3747,6 +4657,84 @@ examples/modules/player-controller is a creator example implementing a custom Co
 -> API reference: Player controller [api-reference/module/spacelab.player-controller]
 -> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
 
+=== Canvas 2D [spacelab.render-canvas/usage]
+Public render.canvas@1.0.0 service and lifecycle.
+
+
+## What it does
+This module provides 2D scene and flight rendering using standard HTML5 Canvas 2D contexts. It projects double-precision celestial body positions, orbits, planetary surfaces, day and night lighting, craters, latitude parallels, trajectory lines, ship chevrons and throttle flames to screen coordinates using an independent camera transform. Render quality and pixel ratio caps never modify physical celestial bodies or collision geometry.
+
+## Provides and requires
+- Provides render.canvas@1.0.0 through the CANVAS_DRAWING key: a CanvasRendererFactory that creates SceneRenderer instances.
+- Requires core.motion@^1.0.0 through the CORE_MOTION key: binds surface terrain query ports for procedural elevation sampling.
+- Fills the render.canvas slot in presentation profiles.
+
+## Settings
+- maxPixelRatio (default 3, from 0.5 to 4, step 0.1): Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
+
+## Lifecycle
+- Initialization binds surface queries from CORE_MOTION, captures maxPixelRatio from settings, registers this guide, and provides CANVAS_DRAWING.
+- create(canvas, options) instantiates a CanvasRenderer wrapping the canvas 2D context. The factory registers each active renderer for cleanup.
+- drawScene(frame, timer) and draw(frame, timer) project celestial coordinates, draw procedural backdrops, bodies, orbit rings, overlays, ships and labels.
+- dispose marks the renderer disposed. Disposing the factory releases all tracked renderer instances.
+
+## Remove or replace
+Canvas 2D is the default 2D rendering provider for targets without WebGL support. To replace it, implement a presentation module providing render.canvas@1.0.0 in the render.canvas slot. Alternatively, select render.webgl for GPU-accelerated rendering.
+
+## Stability
+Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: renderer interfaces and scene frame definitions can evolve before API freeze with documented migration paths.
+
+## Example
+examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to create a scene renderer, project celestial frames, and manage renderer disposal. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/render-canvas/module.json /tmp/example-canvas.spacemod
+    npm run module:validate -- /tmp/example-canvas.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api rendering.ts: canvas renderer and scene frame contracts [api-reference/game-api/rendering]
+-> API reference: Canvas 2D [api-reference/module/spacelab.render-canvas]
+-> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
+
+=== WebGL 2 [spacelab.render-webgl/usage]
+Public render.webgl@1.0.0 service and lifecycle.
+
+
+## What it does
+This module provides GPU-accelerated WebGL 2 rendering for flight scenes, celestial bodies and planet designer previews. It compiles multi-pass GLSL shader packs (scene, vector and text stages) and procedural planet materials. Shader u_time follows real presentation seconds even while physics is paused. Presentation options allow independently toggling orbit guides and body labels without altering celestial bodies or trajectory physics.
+
+## Provides and requires
+- Provides render.webgl@1.0.0 through the WEBGL_DRAWING key: a WebGLRendererFactory that creates SceneRenderer and BodyPreview instances.
+- Requires core.motion@^1.0.0 through the CORE_MOTION key: binds surface terrain query ports for procedural elevation sampling.
+- Fills the render.webgl slot in presentation profiles.
+
+## Settings
+- maxPixelRatio (default 2, from 0.5 to 4, step 0.1): Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
+
+## Lifecycle
+- Initialization binds surface queries from CORE_MOTION, captures maxPixelRatio from settings, registers this guide, and provides WEBGL_DRAWING.
+- create(canvas, shaders, options) compiles GLSL shader passes, initializes vertex buffers, noise textures and effect pipelines.
+- preview(canvas, shaders) compiles a background program for standalone planet designer rendering.
+- drawScene(frame, timer) and draw(frame, timer) execute GPU drawing passes across scene, vector and text stages.
+- dispose on a renderer or preview releases GL programs, buffers, textures and framebuffers. Disposing the factory releases all tracked instances.
+
+## Remove or replace
+WebGL 2 is the primary rendering provider for hardware-accelerated games and the planet designer. To replace it, implement a presentation module providing render.webgl@1.0.0 in the render.webgl slot. Targets without WebGL 2 support fall back to render.canvas.
+
+## Stability
+Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: shader interfaces, effect limits and uniform conventions can evolve before API freeze with documented migration notes.
+
+## Example
+examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initialize a WebGL 2 scene renderer with custom shader packs and manage renderer cleanup. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/render-webgl/module.json /tmp/example-webgl.spacemod
+    npm run module:validate -- /tmp/example-webgl.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api rendering.ts: WebGL renderer and shader contracts [api-reference/game-api/rendering]
+-> API reference: WebGL 2 [api-reference/module/spacelab.render-webgl]
+-> Canvas 2D: CPU fallback rendering [spacelab.render-canvas/usage]
+-> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
+
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.
 
@@ -3827,6 +4815,127 @@ examples/modules/session-join demonstrates executing client-side prejoin negotia
 -> Code modules: manifests, packaging and installation [modules]
 -> game-api join-pack.ts: JoinPackFactory and JoinOffer contracts [api-reference/game-api/join-pack]
 -> API reference: Install on join [api-reference/module/spacelab.session-join]
+
+=== Vector shaders [spacelab.vector-shaders/usage]
+Public render.vector-shaders@1.0.0 service and lifecycle.
+
+
+## What it does
+This module provides the baseline GLSL shader assets for the three-pass rendering pipeline: scene (celestial bodies, terrain masks and lighting), vector (orbits, prediction traces, heading chevrons and UI lines), and text (glyph quads). It exposes an immutable default ShaderPack along with validation and parsing utilities for format space-sim-shaders/1.
+
+## Provides and requires
+- Provides render.vector-shaders@1.0.0 through the VECTOR_SHADERS key: a ShaderLibrary offering defaults, validate(value), and parse(text, filename).
+- The module requires no services and loads no external dependencies.
+- Fills the render.vector-shaders slot in presentation profiles.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization reads the six bundled GLSL stage assets from module storage, bundles them into an immutable default ShaderPack, validates the pack, registers this guide, and provides VECTOR_SHADERS.
+- No graphics context or WebGL context is initialized; GPU compilation is deferred to renderer creation.
+- validate and parse return frozen, verified ShaderPack records without allocating persistent caches.
+- The library is stateless and owns no disposable handles.
+
+## Remove or replace
+This module is not loaded by default in standard gameplay targets, but serves as the shader pack provider for WebGL rendering and custom visual mods. To replace default shaders, implement a presentation module providing render.vector-shaders@1.0.0 or pass custom ShaderPack objects to WebGLRendererFactory.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Uses shader pack format space-sim-shaders/1.
+
+## Example
+examples/modules/shaders-vector demonstrates reading default shader stages, parsing custom GLSL fragment replacements, and validating partial shader packs. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/shaders-vector/module.json /tmp/example-shaders.spacemod
+    npm run module:validate -- /tmp/example-shaders.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api shader-format.ts: shader pack validation and parsing [api-reference/game-api/shader-format]
+-> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
+-> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
+
+=== Themes [spacelab.theme/usage]
+Public presentation.themes@1.0.0 service and lifecycle.
+
+
+## What it does
+This module provides presentation theme management, CSS custom properties injection, and procedural starry backdrop rendering. It controls UI styling for window frames, telemetry counters, HUD phosphor glows, CRT scanlines, and coordinate grids. It renders multi-layer starfields and animated nebulae into canvas contexts without modifying celestial physics, body geometry or game state.
+
+## Provides and requires
+- Provides presentation.themes@1.0.0 through the THEMES key: a ThemeFactory that creates isolated ThemeController instances.
+- The module requires no services and loads no external dependencies.
+- Fills the presentation.themes slot in presentation profiles.
+
+## Settings
+- windowOpacity (default 0.96, from 0.4 to 1, step 0.01): Opacity for viewers without a saved window preference. Saved viewer choices take precedence. Applies to presentation only.
+- starDensity (default 1, from 0.5 to 2, step 0.05): Background star-density multiplier for viewers without a saved choice. These decorative stars have no physical bodies or collision.
+- nebulaIntensity (default 1, from 0 to 2, step 0.05): Brightness of the procedural nebula background before viewer preferences override it. Does not affect lighting physics.
+- gridOpacity (default 0.45, from 0 to 1, step 0.01): Opacity of the optional background grid before viewer preferences override it. This does not turn the grid on.
+- gridSpacing (default 80, from 8 to 512, step 1): Screen-space grid spacing in CSS pixels before viewer preferences override it. Does not change world coordinates or scale.
+
+## Lifecycle
+- Initialization bundles theme.css and hud.css stylesheet assets, initializes the ThemeFactory with module settings, registers this guide, and provides THEMES.
+- create(options) instantiates an isolated ThemeController, leasing an injected style tag in the host document head.
+- load() retrieves saved preferences from storage, applies CSS custom properties to the DOM root, and returns active settings.
+- set(value) updates theme options, persists preferences to storage, updates CSS variables, and notifies change listeners.
+- backdrop(...) paints procedural stars and nebulae into canvas contexts.
+- dispose on a controller unbinds listeners and releases its style tag lease. Disposing the factory cleans up all controllers.
+
+## Remove or replace
+Presentation theme styling is optional. Headless servers and testing profiles omit presentation modules entirely. To replace the theme engine, provide presentation.themes@1.0.0 with a custom ThemeFactory implementation.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Uses storage key space-sim:theme:v5 for backward compatibility with existing player preferences.
+
+## Example
+examples/modules/theme demonstrates creating an isolated ThemeController, loading curated presets, mutating theme settings, and subscribing to change events. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/theme/module.json /tmp/example-theme.spacemod
+    npm run module:validate -- /tmp/example-theme.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api theme.ts: theme controller and settings interfaces [api-reference/game-api/theme]
+-> API reference: Themes [api-reference/module/spacelab.theme]
+-> API reference: Theme controls [api-reference/module/spacelab.theme-customizer]
+
+=== Theme controls [spacelab.theme-customizer/usage]
+Public ui.theme-customizer@1.0.0 service and lifecycle.
+
+
+## What it does
+This module provides a modal settings dialog for visual theme customization. It allows players and creators to switch between built-in presets (Spacelab, Cyber, Apollo, Tactical, Aurora, Solar, Void), tune backdrop parameters (star density, nebula intensity, grid spacing, window opacity), toggle scanlines, and import or export custom theme configurations.
+
+## Provides and requires
+- Provides ui.theme-customizer@1.0.0 through the THEME_CUSTOMIZERS key: a ThemeCustomizerFactory that creates ThemeCustomizer dialog instances.
+- The module requires no services at initialization. Each created dialog requires a ThemeController and a host DOM element.
+- Fills the ui.theme-customizer slot in platform profiles.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization bundles the controls.css stylesheet asset, registers this guide, and provides THEME_CUSTOMIZERS.
+- create(options) mounts dialog controls into options.root and registers event listeners for presets, sliders and import/export buttons.
+- open(), close(), and toggle() control dialog visibility.
+- toggleGrid() toggles celestial grid visibility on the bound theme controller.
+- dispose removes dialog elements from the host DOM, unbinds event listeners and cancels active timers.
+
+## Remove or replace
+Theme controls are optional platform tools. Games that provide custom styling dialogs or lock visuals can replace or omit ui.theme-customizer without affecting physics, flight controls or world state.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: dialog markup, events and options may evolve before API freeze with documented migration notes.
+
+## Example
+examples/modules/theme-customizer demonstrates creating a theme customizer dialog bound to a host DOM element and ThemeController, verifying open, toggle and close operations. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/theme-customizer/module.json /tmp/example-theme-customizer.spacemod
+    npm run module:validate -- /tmp/example-theme-customizer.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> game-api theme-customizer.ts: theme dialog interface [api-reference/game-api/theme-customizer]
+-> API reference: Theme controls [api-reference/module/spacelab.theme-customizer]
+-> API reference: Themes [api-reference/module/spacelab.theme]
 
 === Throttle HUD [spacelab.throttle-hud/usage]
 A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.

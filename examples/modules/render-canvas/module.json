@@ -1,0 +1,48 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.canvas-renderer",
+    "name": "Canvas renderer example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "tier": "presentation",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.canvas-renderer",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "render.canvas",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.canvas-renderer"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

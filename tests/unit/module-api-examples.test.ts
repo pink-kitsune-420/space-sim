@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { FLIGHT_HUD_STATE, FLIGHT_PLANS, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
   type FlightHudAdapter, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
   type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type TextConnection,
@@ -128,11 +129,70 @@ import chatConsoleGuide from '../../modules/chat-console/docs/creators/usage.jso
 import chatHelperInitialize, { CHAT_HELPER } from '../../examples/modules/chat-console/src/main';
 import chatHelperDescriptor from '../../examples/modules/chat-console/module.json';
 
+import renderCanvasInitialize from '../../modules/render-canvas/src/index';
+import renderCanvasDescriptor from '../../modules/render-canvas/module.json';
+import renderCanvasGuide from '../../modules/render-canvas/docs/creators/usage.json';
+import canvasViewerInitialize, { CANVAS_VIEWER_HELPER } from '../../examples/modules/render-canvas/src/main';
+import canvasViewerDescriptor from '../../examples/modules/render-canvas/module.json';
+
+import renderWebglInitialize from '../../modules/render-webgl/src/index';
+import renderWebglDescriptor from '../../modules/render-webgl/module.json';
+import renderWebglGuide from '../../modules/render-webgl/docs/creators/usage.json';
+import webglRendererInitialize, { WEBGL_RENDERER_HELPER } from '../../examples/modules/render-webgl/src/main';
+import webglRendererDescriptor from '../../examples/modules/render-webgl/module.json';
+
+import shadersVectorInitialize from '../../modules/shaders-vector/src/index';
+import shadersVectorDescriptor from '../../modules/shaders-vector/module.json';
+import shadersVectorGuide from '../../modules/shaders-vector/docs/creators/usage.json';
+import customShadersInitialize, { CUSTOM_SHADERS_HELPER } from '../../examples/modules/shaders-vector/src/main';
+import customShadersDescriptor from '../../examples/modules/shaders-vector/module.json';
+
+import themeInitialize from '../../modules/theme/src/index';
+import themeDescriptor from '../../modules/theme/module.json';
+import themeGuide from '../../modules/theme/docs/creators/usage.json';
+import themeProviderInitialize, { THEME_MANAGER_HELPER } from '../../examples/modules/theme/src/main';
+import themeProviderDescriptor from '../../examples/modules/theme/module.json';
+
+import themeCustomizerInitialize from '../../modules/theme-customizer/src/index';
+import themeCustomizerDescriptor from '../../modules/theme-customizer/module.json';
+import themeCustomizerGuide from '../../modules/theme-customizer/docs/creators/usage.json';
+import customizerDialogInitialize, { CUSTOMIZER_DIALOG_HELPER } from '../../examples/modules/theme-customizer/src/main';
+import customizerDialogDescriptor from '../../examples/modules/theme-customizer/module.json';
+
+import appearanceTrainerInitialize, { trainerArtwork } from '../../modules/appearance-trainer/src/index';
+import appearanceTrainerDescriptor from '../../modules/appearance-trainer/module.json';
+import appearanceTrainerGuide from '../../modules/appearance-trainer/docs/creators/usage.json';
+import trainerAppearanceExampleInitialize, { VEHICLE_ARTWORK_HELPER, scoutAppearance } from '../../examples/modules/appearance-trainer/src/main';
+import trainerAppearanceExampleDescriptor from '../../examples/modules/appearance-trainer/module.json';
+
+const vectorShaderAssets: Record<string, string> = {
+  'assets/scene.vert': readFileSync('modules/shaders-vector/assets/scene.vert', 'utf8'),
+  'assets/scene.frag': readFileSync('modules/shaders-vector/assets/scene.frag', 'utf8'),
+  'assets/vector.vert': readFileSync('modules/shaders-vector/assets/vector.vert', 'utf8'),
+  'assets/vector.frag': readFileSync('modules/shaders-vector/assets/vector.frag', 'utf8'),
+  'assets/text.vert': readFileSync('modules/shaders-vector/assets/text.vert', 'utf8'),
+  'assets/text.frag': readFileSync('modules/shaders-vector/assets/text.frag', 'utf8'),
+};
+
+const themeAssets: Record<string, string> = {
+  'assets/theme.css': readFileSync('modules/theme/assets/theme.css', 'utf8'),
+  'assets/hud.css': readFileSync('modules/theme/assets/hud.css', 'utf8'),
+};
+
+const themeCustomizerAssets: Record<string, string> = {
+  'assets/controls.css': readFileSync('modules/theme-customizer/assets/controls.css', 'utf8'),
+};
+
 // The Creators guides link these examples; each test exercises the behavior its guide describes.
-function registry(entries: readonly (readonly [unknown, RegisteredModuleV2['initialize'], unknown?])[], hostServices: readonly HostServiceAccess[] = []): ModuleRegistryV2 {
+function registry(entries: readonly (readonly [unknown, RegisteredModuleV2['initialize'], unknown?, Record<string, string>?])[], hostServices: readonly HostServiceAccess[] = []): ModuleRegistryV2 {
   const result = new ModuleRegistryV2(hostServices);
-  for (const [descriptor, initialize, guide] of entries) {
-    const files = new Map(guide ? [['docs/creators/usage.json', new TextEncoder().encode(JSON.stringify(guide))] as const] : []);
+  for (const [descriptor, initialize, guide, extraFiles] of entries) {
+    const files = new Map<string, Uint8Array>(guide ? [['docs/creators/usage.json', new TextEncoder().encode(JSON.stringify(guide))] as const] : []);
+    if (extraFiles) {
+      for (const [path, content] of Object.entries(extraFiles)) {
+        files.set(path, new TextEncoder().encode(content));
+      }
+    }
     result.register({ manifest: (descriptor as { manifest: ManifestV2 }).manifest, initialize }, moduleAssets(files));
   }
   return result;
@@ -754,6 +814,263 @@ it('mounts chat console and logs formatted messages via chat-console example', (
     chat.dispose();
   } finally {
     vi.unstubAllGlobals();
+    candidate.dispose();
+  }
+});
+
+it('renders celestial scene frame to canvas 2D via render-canvas example', () => {
+  vi.stubGlobal('window', { devicePixelRatio: 1 });
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [renderCanvasDescriptor, renderCanvasInitialize, renderCanvasGuide],
+    [canvasViewerDescriptor, canvasViewerInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([renderCanvasDescriptor, canvasViewerDescriptor], {
+    'render.canvas': 'spacelab.render-canvas',
+    'example.canvas-renderer': 'example.canvas-renderer',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(CANVAS_VIEWER_HELPER);
+    const mockCtx = {
+      setTransform: vi.fn(),
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      stroke: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+      translate: vi.fn(),
+      rotate: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      closePath: vi.fn(),
+      fillText: vi.fn(),
+      strokeText: vi.fn(),
+      createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+      createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+      getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
+    };
+    const mockCanvas: any = {
+      clientWidth: 800,
+      clientHeight: 600,
+      width: 800,
+      height: 600,
+      getContext: (type: string) => type === '2d' ? mockCtx : null,
+    };
+    const renderer = helper.renderScene(mockCanvas, {
+      camera: { center: { x: 0, y: 0 }, scale: 1, rotation: 0 },
+      bodies: [],
+      overlays: [],
+      time: 15,
+    });
+    expect(renderer).toBeDefined();
+    expect(mockCtx.setTransform).toHaveBeenCalled();
+    renderer.dispose();
+  } finally {
+    vi.unstubAllGlobals();
+    candidate.dispose();
+  }
+});
+
+it('attempts webgl scene and preview creation handling environment limits via render-webgl example', () => {
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [renderWebglDescriptor, renderWebglInitialize, renderWebglGuide],
+    [webglRendererDescriptor, webglRendererInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([renderWebglDescriptor, webglRendererDescriptor], {
+    'render.webgl': 'spacelab.render-webgl',
+    'example.webgl-renderer': 'example.webgl-renderer',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(WEBGL_RENDERER_HELPER);
+    const mockCanvas: any = {
+      clientWidth: 640,
+      clientHeight: 480,
+      getContext: () => null,
+    };
+    const dummyShaders: any = {
+      format: 'space-sim-shaders/1',
+      name: 'Dummy',
+      passes: {
+        scene: { vertex: 'void main() {}', fragment: 'void main() {}' },
+        vector: { vertex: 'void main() {}', fragment: 'void main() {}' },
+        text: { vertex: 'void main() {}', fragment: 'void main() {}' },
+      },
+    };
+    const rendererResult = helper.tryCreateRenderer(mockCanvas, dummyShaders);
+    expect(rendererResult.success).toBe(false);
+    expect(rendererResult.error).toContain('WebGL 2 is unavailable');
+
+    const previewResult = helper.tryCreatePreview(mockCanvas, dummyShaders);
+    expect(previewResult.success).toBe(false);
+    expect(previewResult.error).toContain('planet preview needs WebGL 2');
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('inspects default shader passes, parses overrides and validates definitions via shaders-vector example', () => {
+  const graph = registry([
+    [shadersVectorDescriptor, shadersVectorInitialize, shadersVectorGuide, vectorShaderAssets],
+    [customShadersDescriptor, customShadersInitialize],
+  ]);
+  const candidate = graph.prepare(profile([shadersVectorDescriptor, customShadersDescriptor], {
+    'render.vector-shaders': 'spacelab.vector-shaders',
+    'example.custom-shaders': 'example.custom-shaders',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(CUSTOM_SHADERS_HELPER);
+    const summary = helper.summarizeDefaults();
+    expect(summary.format).toBe('space-sim-shaders/1');
+    expect(summary.name).toBe('Default');
+    expect(summary.passes).toEqual(['scene', 'vector', 'text']);
+
+    const overridden = helper.loadFragmentOverride('neon.frag', 'void main() { gl_FragColor = vec4(1.0); }');
+    expect(overridden.name).toBe('neon.frag');
+    expect(overridden.passes.scene.fragment).toBe('void main() { gl_FragColor = vec4(1.0); }');
+
+    const validCheck = helper.validatePack({
+      format: 'space-sim-shaders/1',
+      name: 'ValidPack',
+      passes: { scene: { fragment: 'void main() {}' } },
+    });
+    expect(validCheck.valid).toBe(true);
+    expect(validCheck.name).toBe('ValidPack');
+
+    const invalidCheck = helper.validatePack({ format: 'wrong-format' });
+    expect(invalidCheck.valid).toBe(false);
+    expect(invalidCheck.error).toContain('Expected format');
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages theme controller lifecycle, presets and summaries via theme example', () => {
+  const graph = registry([
+    [themeDescriptor, themeInitialize, themeGuide, themeAssets],
+    [themeProviderDescriptor, themeProviderInitialize],
+  ]);
+  const candidate = graph.prepare(profile([themeDescriptor, themeProviderDescriptor], {
+    'presentation.themes': 'spacelab.theme',
+    'example.theme-provider': 'example.theme-provider',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(THEME_MANAGER_HELPER);
+    const storageMap = new Map<string, string>();
+    const mockStorage = {
+      getItem: (key: string) => storageMap.get(key) ?? null,
+      setItem: (key: string, val: string) => { storageMap.set(key, val); },
+    };
+    const controller = helper.createController(mockStorage, { windowOpacity: 0.8 });
+    expect(controller.defaults.windowOpacity).toBe(0.8);
+    expect(controller.presets.length).toBeGreaterThan(0);
+
+    const cyberApplied = helper.applyPreset(controller, 'orion-cyber');
+    expect(cyberApplied).toBe(true);
+    expect(controller.current().counterTheme).toBe('cyber');
+
+    const summary = helper.summarize(controller);
+    expect(summary.backdropStyle).toBeDefined();
+    expect(typeof summary.gridEnabled).toBe('boolean');
+
+    controller.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('mounts and toggles theme customizer dialog via theme-customizer example', () => {
+  const graph = registry([
+    [themeDescriptor, themeInitialize, themeGuide, themeAssets],
+    [themeCustomizerDescriptor, themeCustomizerInitialize, themeCustomizerGuide, themeCustomizerAssets],
+    [customizerDialogDescriptor, customizerDialogInitialize],
+  ]);
+  const candidate = graph.prepare(profile([themeDescriptor, themeCustomizerDescriptor, customizerDialogDescriptor], {
+    'presentation.themes': 'spacelab.theme',
+    'ui.theme-customizer': 'spacelab.theme-customizer',
+    'example.customizer-dialog': 'example.customizer-dialog',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(CUSTOMIZER_DIALOG_HELPER);
+    const createMockEl = (tag = 'div'): any => {
+      const el: any = {
+        tagName: tag.toUpperCase(),
+        childNodes: [],
+        children: [],
+        dataset: {},
+        classList: { add: vi.fn(), remove: vi.fn(), contains: () => false, toggle: vi.fn() },
+        style: { getPropertyValue: () => '', getPropertyPriority: () => '', setProperty: vi.fn(), removeProperty: vi.fn() },
+        append: vi.fn(),
+        appendChild: vi.fn((node: any) => { el.childNodes.push(node); return node; }),
+        remove: vi.fn(),
+        getAttribute: () => null,
+        setAttribute: vi.fn(),
+        removeAttribute: vi.fn(),
+        replaceChildren: vi.fn(),
+        querySelector: (sel: string) => createMockEl(sel.startsWith('#') ? 'div' : 'span'),
+        querySelectorAll: () => [],
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        open: false,
+        showModal: vi.fn(),
+        close: vi.fn(),
+      };
+      return el;
+    };
+    const mockDoc: any = {
+      defaultView: { addEventListener: vi.fn(), removeEventListener: vi.fn() },
+      createElement: (tag: string) => createMockEl(tag),
+      head: { append: vi.fn() },
+    };
+    const mockRoot = createMockEl('div');
+    mockRoot.ownerDocument = mockDoc;
+    const mounted = helper.mount(mockRoot);
+    expect(mounted.customizer).toBeDefined();
+    expect(mounted.theme).toBeDefined();
+
+    const gridToggled = mounted.customizer.toggleGrid();
+    expect(typeof gridToggled).toBe('boolean');
+
+    mounted.customizer.open();
+    mounted.customizer.close();
+    mounted.customizer.dispose();
+    mounted.theme.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('inspects contributed trainer and scout vehicle vector artwork via appearance-trainer example', () => {
+  const flightGuideText = readFileSync('modules/appearance-trainer/docs/players/flight.json', 'utf8');
+  const graph = registry([
+    [appearanceTrainerDescriptor, appearanceTrainerInitialize, appearanceTrainerGuide, { 'docs/players/flight.json': flightGuideText }],
+    [trainerAppearanceExampleDescriptor, trainerAppearanceExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([appearanceTrainerDescriptor, trainerAppearanceExampleDescriptor], {
+    'example.trainer-appearance': 'example.trainer-appearance',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(VEHICLE_ARTWORK_HELPER);
+    const trainerInfo = helper.lookup(trainerArtwork, 'spacelab.trainer/orbit-trainer');
+    expect(trainerInfo.found).toBe(true);
+    expect(trainerInfo.points).toBe(4);
+    expect(trainerInfo.hasFlame).toBe(true);
+
+    const unknownInfo = helper.lookup(trainerArtwork, 'nonexistent');
+    expect(unknownInfo.found).toBe(false);
+
+    const composed = helper.compose([scoutAppearance]);
+    const scoutInfo = helper.lookup(composed, 'example.probe/scout-probe');
+    expect(scoutInfo.found).toBe(true);
+    expect(scoutInfo.points).toBe(4);
+    expect(scoutInfo.hasFlame).toBe(true);
+
+    const contribs = candidate.contributions('vehicleAppearance');
+    expect(contribs.some(c => c.value.vehicleId === 'spacelab.trainer/orbit-trainer')).toBe(true);
+    expect(contribs.some(c => c.value.vehicleId === 'example.probe/scout-probe')).toBe(true);
+  } finally {
     candidate.dispose();
   }
 });

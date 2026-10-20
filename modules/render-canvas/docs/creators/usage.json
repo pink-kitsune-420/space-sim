@@ -5,8 +5,99 @@
   "summary": "Public render.canvas@1.0.0 service and lifecycle.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Draws flight frames or body-only scenes with read-only public geometry. Supply an independent camera and optional theme artwork. No default planet, trainer, HUD or world scheduler is loaded. Geometry queries use the selected surface provider; draw quality never changes collision. The caller owns the borrowed canvas; the provider releases created renderers on disposal. Frame options showBodyOrbits and showBodyLabels independently hide celestial orbit guides and names; omitted options preserve visible defaults. Viewer flags never change motion or ship trajectories."
+      "text": "This module provides 2D scene and flight rendering using standard HTML5 Canvas 2D contexts. It projects double-precision celestial body positions, orbits, planetary surfaces, day and night lighting, craters, latitude parallels, trajectory lines, ship chevrons and throttle flames to screen coordinates using an independent camera transform. Render quality and pixel ratio caps never modify physical celestial bodies or collision geometry."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides render.canvas@1.0.0 through the CANVAS_DRAWING key: a CanvasRendererFactory that creates SceneRenderer instances.",
+        "Requires core.motion@^1.0.0 through the CORE_MOTION key: binds surface terrain query ports for procedural elevation sampling.",
+        "Fills the render.canvas slot in presentation profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "maxPixelRatio (default 3, from 0.5 to 4, step 0.1): Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization binds surface queries from CORE_MOTION, captures maxPixelRatio from settings, registers this guide, and provides CANVAS_DRAWING.",
+        "create(canvas, options) instantiates a CanvasRenderer wrapping the canvas 2D context. The factory registers each active renderer for cleanup.",
+        "drawScene(frame, timer) and draw(frame, timer) project celestial coordinates, draw procedural backdrops, bodies, orbit rings, overlays, ships and labels.",
+        "dispose marks the renderer disposed. Disposing the factory releases all tracked renderer instances."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Canvas 2D is the default 2D rendering provider for targets without WebGL support. To replace it, implement a presentation module providing render.canvas@1.0.0 in the render.canvas slot. Alternatively, select render.webgl for GPU-accelerated rendering."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: renderer interfaces and scene frame definitions can evolve before API freeze with documented migration paths."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to create a scene renderer, project celestial frames, and manage renderer disposal. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/render-canvas/module.json /tmp/example-canvas.spacemod\nnpm run module:validate -- /tmp/example-canvas.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api rendering.ts: canvas renderer and scene frame contracts",
+      "page": "api-reference/game-api/rendering"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Canvas 2D",
+      "page": "api-reference/module/spacelab.render-canvas"
+    },
+    {
+      "type": "link",
+      "text": "WebGL 2: GPU-accelerated rendering and custom shaders",
+      "page": "spacelab.render-webgl/usage"
     }
   ]
 }

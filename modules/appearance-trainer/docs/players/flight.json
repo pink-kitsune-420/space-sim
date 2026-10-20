@@ -2,7 +2,7 @@
   "id": "flight",
   "audience": "players",
   "title": "Trainer appearance",
-  "summary": "Trainer appearance",
+  "summary": "The familiar trainer chevron, independent of physics.",
   "blocks": [
     {
       "type": "paragraph",

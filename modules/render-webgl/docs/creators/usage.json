@@ -5,12 +5,105 @@
   "summary": "Public render.webgl@1.0.0 service and lifecycle.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Draws flight/body scenes and body previews. Supply the selected shader pack, public surface-query port and optional theme artwork. Owns contexts, programs, buffers, textures and optional effect targets. Creation and shader/effect replacement fail atomically; removing the provider releases its instances. Canvas remains a separate shader-free replacement. Shader u_time follows real presentation seconds, even while physics is paused; presentationTime explicitly controls body-only viewer animation. Frame options showBodyOrbits and showBodyLabels independently hide celestial orbit guides and names; omitted options preserve visible defaults. Viewer flags never change motion or ship trajectories."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Effects accept resolved source and exact namespaced IDs. Material fragments define vec4 material(vec2 position); position is body-local, normalized by physical radius with +Y up. Fixed u_resolution is CSS pixels, u_time viewer seconds, u_radiusMetres physical metres; m_* uniforms are finite float32 scalars. The renderer masks smooth discs and the authoritative radial outline. Post fragments define vec4 effect(vec2 uv, vec4 color), with bottom-left UV, sampler2D u_scene, pixel u_resolution/u_sourceResolution and p_* float uniforms. Stable dependency ordering, at most eight materials and four post passes, source at most 256 KiB, scales 1 or 0.5. RGBA8 targets use linear sampling/clamped edges; optional terrain masks use DEPTH24_STENCIL8. Targets are pooled per resolution, absent when effects are unused; candidate programs and targets validate before swapping."
+      "text": "This module provides GPU-accelerated WebGL 2 rendering for flight scenes, celestial bodies and planet designer previews. It compiles multi-pass GLSL shader packs (scene, vector and text stages) and procedural planet materials. Shader u_time follows real presentation seconds even while physics is paused. Presentation options allow independently toggling orbit guides and body labels without altering celestial bodies or trajectory physics."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides render.webgl@1.0.0 through the WEBGL_DRAWING key: a WebGLRendererFactory that creates SceneRenderer and BodyPreview instances.",
+        "Requires core.motion@^1.0.0 through the CORE_MOTION key: binds surface terrain query ports for procedural elevation sampling.",
+        "Fills the render.webgl slot in presentation profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "maxPixelRatio (default 2, from 0.5 to 4, step 0.1): Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization binds surface queries from CORE_MOTION, captures maxPixelRatio from settings, registers this guide, and provides WEBGL_DRAWING.",
+        "create(canvas, shaders, options) compiles GLSL shader passes, initializes vertex buffers, noise textures and effect pipelines.",
+        "preview(canvas, shaders) compiles a background program for standalone planet designer rendering.",
+        "drawScene(frame, timer) and draw(frame, timer) execute GPU drawing passes across scene, vector and text stages.",
+        "dispose on a renderer or preview releases GL programs, buffers, textures and framebuffers. Disposing the factory releases all tracked instances."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "WebGL 2 is the primary rendering provider for hardware-accelerated games and the planet designer. To replace it, implement a presentation module providing render.webgl@1.0.0 in the render.webgl slot. Targets without WebGL 2 support fall back to render.canvas."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: shader interfaces, effect limits and uniform conventions can evolve before API freeze with documented migration notes."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initialize a WebGL 2 scene renderer with custom shader packs and manage renderer cleanup. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/render-webgl/module.json /tmp/example-webgl.spacemod\nnpm run module:validate -- /tmp/example-webgl.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api rendering.ts: WebGL renderer and shader contracts",
+      "page": "api-reference/game-api/rendering"
+    },
+    {
+      "type": "link",
+      "text": "API reference: WebGL 2",
+      "page": "api-reference/module/spacelab.render-webgl"
+    },
+    {
+      "type": "link",
+      "text": "Canvas 2D: CPU fallback rendering",
+      "page": "spacelab.render-canvas/usage"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Vector shader pack",
+      "page": "api-reference/module/spacelab.vector-shaders"
     }
   ]
 }

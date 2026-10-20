@@ -5,8 +5,105 @@
   "summary": "Public presentation.themes@1.0.0 service and lifecycle.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Creates isolated theme controllers with optional borrowed preference storage and DOM roots. Loading and setting apply current styling; refresh styles newly mounted windows. Subscriptions, stylesheets and owned DOM changes are released on disposal, preserving unrelated properties. The legacy browser adapter keeps the existing theme storage key. Theme changes never alter authoritative state."
+      "text": "This module provides presentation theme management, CSS custom properties injection, and procedural starry backdrop rendering. It controls UI styling for window frames, telemetry counters, HUD phosphor glows, CRT scanlines, and coordinate grids. It renders multi-layer starfields and animated nebulae into canvas contexts without modifying celestial physics, body geometry or game state."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides presentation.themes@1.0.0 through the THEMES key: a ThemeFactory that creates isolated ThemeController instances.",
+        "The module requires no services and loads no external dependencies.",
+        "Fills the presentation.themes slot in presentation profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "windowOpacity (default 0.96, from 0.4 to 1, step 0.01): Opacity for viewers without a saved window preference. Saved viewer choices take precedence. Applies to presentation only.",
+        "starDensity (default 1, from 0.5 to 2, step 0.05): Background star-density multiplier for viewers without a saved choice. These decorative stars have no physical bodies or collision.",
+        "nebulaIntensity (default 1, from 0 to 2, step 0.05): Brightness of the procedural nebula background before viewer preferences override it. Does not affect lighting physics.",
+        "gridOpacity (default 0.45, from 0 to 1, step 0.01): Opacity of the optional background grid before viewer preferences override it. This does not turn the grid on.",
+        "gridSpacing (default 80, from 8 to 512, step 1): Screen-space grid spacing in CSS pixels before viewer preferences override it. Does not change world coordinates or scale."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization bundles theme.css and hud.css stylesheet assets, initializes the ThemeFactory with module settings, registers this guide, and provides THEMES.",
+        "create(options) instantiates an isolated ThemeController, leasing an injected style tag in the host document head.",
+        "load() retrieves saved preferences from storage, applies CSS custom properties to the DOM root, and returns active settings.",
+        "set(value) updates theme options, persists preferences to storage, updates CSS variables, and notifies change listeners.",
+        "backdrop(...) paints procedural stars and nebulae into canvas contexts.",
+        "dispose on a controller unbinds listeners and releases its style tag lease. Disposing the factory cleans up all controllers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Presentation theme styling is optional. Headless servers and testing profiles omit presentation modules entirely. To replace the theme engine, provide presentation.themes@1.0.0 with a custom ThemeFactory implementation."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Uses storage key space-sim:theme:v5 for backward compatibility with existing player preferences."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/theme demonstrates creating an isolated ThemeController, loading curated presets, mutating theme settings, and subscribing to change events. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/theme/module.json /tmp/example-theme.spacemod\nnpm run module:validate -- /tmp/example-theme.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api theme.ts: theme controller and settings interfaces",
+      "page": "api-reference/game-api/theme"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Themes",
+      "page": "api-reference/module/spacelab.theme"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Theme controls",
+      "page": "api-reference/module/spacelab.theme-customizer"
     }
   ]
 }

@@ -1,7 +1,8 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c4fe07cafc86aeff",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2784fe7b981cbcd6",
   "modules": [
+    "spacelab.trainer-appearance",
     "spacelab.chat-console",
     "spacelab.controller-menu",
     "spacelab.discovery-lan",
@@ -19,8 +20,13 @@
     "spacelab.net-webrtc",
     "spacelab.net-websocket",
     "spacelab.player-controller",
+    "spacelab.render-canvas",
+    "spacelab.render-webgl",
     "spacelab.session-flight",
     "spacelab.session-join",
+    "spacelab.vector-shaders",
+    "spacelab.theme",
+    "spacelab.theme-customizer",
     "spacelab.throttle-hud"
   ],
   "pages": [
@@ -35,7 +41,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c4fe07cafc86aeff"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2784fe7b981cbcd6"
         },
         {
           "type": "paragraph",
@@ -44,6 +50,11 @@
         {
           "type": "heading",
           "text": "Modules"
+        },
+        {
+          "type": "link",
+          "text": "Trainer vector appearance (spacelab.trainer-appearance)",
+          "page": "api-reference/module/spacelab.trainer-appearance"
         },
         {
           "type": "link",
@@ -132,6 +143,16 @@
         },
         {
           "type": "link",
+          "text": "Canvas 2D (spacelab.render-canvas)",
+          "page": "api-reference/module/spacelab.render-canvas"
+        },
+        {
+          "type": "link",
+          "text": "WebGL 2 (spacelab.render-webgl)",
+          "page": "api-reference/module/spacelab.render-webgl"
+        },
+        {
+          "type": "link",
           "text": "Flight sessions (spacelab.session-flight)",
           "page": "api-reference/module/spacelab.session-flight"
         },
@@ -139,6 +160,21 @@
           "type": "link",
           "text": "Install on join (spacelab.session-join)",
           "page": "api-reference/module/spacelab.session-join"
+        },
+        {
+          "type": "link",
+          "text": "Vector shader pack (spacelab.vector-shaders)",
+          "page": "api-reference/module/spacelab.vector-shaders"
+        },
+        {
+          "type": "link",
+          "text": "Theme and procedural backdrop (spacelab.theme)",
+          "page": "api-reference/module/spacelab.theme"
+        },
+        {
+          "type": "link",
+          "text": "Theme controls (spacelab.theme-customizer)",
+          "page": "api-reference/module/spacelab.theme-customizer"
         },
         {
           "type": "link",
@@ -236,6 +272,16 @@
         },
         {
           "type": "link",
+          "text": "render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "rendering.ts",
+          "page": "api-reference/game-api/rendering"
+        },
+        {
+          "type": "link",
           "text": "rules.ts",
           "page": "api-reference/game-api/rules"
         },
@@ -251,6 +297,11 @@
         },
         {
           "type": "link",
+          "text": "shader-format.ts",
+          "page": "api-reference/game-api/shader-format"
+        },
+        {
+          "type": "link",
           "text": "state.ts",
           "page": "api-reference/game-api/state"
         },
@@ -263,6 +314,16 @@
           "type": "link",
           "text": "tab-transport.ts",
           "page": "api-reference/game-api/tab-transport"
+        },
+        {
+          "type": "link",
+          "text": "theme.ts",
+          "page": "api-reference/game-api/theme"
+        },
+        {
+          "type": "link",
+          "text": "theme-customizer.ts",
+          "page": "api-reference/game-api/theme-customizer"
         },
         {
           "type": "link",
@@ -293,6 +354,99 @@
           "type": "link",
           "text": "Code modules: manifests, packaging and installation",
           "page": "modules"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.trainer-appearance",
+      "title": "Trainer vector appearance reference",
+      "summary": "Shared optional Canvas/WebGL hull and flame data.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Shared optional Canvas/WebGL hull and flame data."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.trainer-appearance",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: none",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleAppearance, VehicleArtwork, captureVehicleAppearance, createVehicleArtwork"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api vehicles.ts",
+          "page": "api-reference/game-api/vehicles"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/appearance-trainer (build with npm run module:build -- examples/modules/appearance-trainer/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Vehicle vector artwork: how to use, replace and remove it",
+          "page": "spacelab.trainer-appearance/usage"
         }
       ]
     },
@@ -2028,6 +2182,284 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.render-canvas",
+      "title": "Canvas 2D reference",
+      "summary": "Public render.canvas@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public render.canvas@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.render-canvas",
+            "Version: 0.2.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "render.canvas@1.0.0 · CANVAS_DRAWING: ServiceKey<CanvasRendererFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: render.canvas",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api rendering.ts",
+          "page": "api-reference/game-api/rendering"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api surface.ts",
+          "page": "api-reference/game-api/surface"
+        },
+        {
+          "type": "link",
+          "text": "game-api vehicles.ts",
+          "page": "api-reference/game-api/vehicles"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/render-canvas (build with npm run module:build -- examples/modules/render-canvas/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Canvas 2D: how to use, replace and remove it",
+          "page": "spacelab.render-canvas/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.render-webgl",
+      "title": "WebGL 2 reference",
+      "summary": "Public render.webgl@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public render.webgl@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.render-webgl",
+            "Version: 0.2.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "render.webgl@1.0.0 · WEBGL_DRAWING: ServiceKey<WebGLRendererFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: render.webgl",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api rendering.ts",
+          "page": "api-reference/game-api/rendering"
+        },
+        {
+          "type": "link",
+          "text": "game-api shader-format.ts",
+          "page": "api-reference/game-api/shader-format"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api surface.ts",
+          "page": "api-reference/game-api/surface"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "link",
+          "text": "game-api vehicles.ts",
+          "page": "api-reference/game-api/vehicles"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/render-webgl (build with npm run module:build -- examples/modules/render-webgl/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "WebGL 2: how to use, replace and remove it",
+          "page": "spacelab.render-webgl/usage"
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.session-flight",
       "title": "Flight sessions reference",
       "summary": "Explicit flight protocol using privileged public engine ports and replaceable transports.",
@@ -2285,6 +2717,312 @@
         {
           "type": "paragraph",
           "text": "Example source: examples/modules/session-join (build with npm run module:build -- examples/modules/session-join/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.vector-shaders",
+      "title": "Vector shader pack reference",
+      "summary": "Public render.vector-shaders@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public render.vector-shaders@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.vector-shaders",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "render.vector-shaders@1.0.0 · VECTOR_SHADERS: ServiceKey<ShaderLibrary>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: render.vector-shaders",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleAssets, ModuleInitializationV2, ServiceKey, ShaderLibrary, ShaderPack, ShaderPass, VECTOR_SHADERS, parseShaderDefinition, validateShaderDefinition"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api rendering.ts",
+          "page": "api-reference/game-api/rendering"
+        },
+        {
+          "type": "link",
+          "text": "game-api shader-format.ts",
+          "page": "api-reference/game-api/shader-format"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/shaders-vector (build with npm run module:build -- examples/modules/shaders-vector/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.theme",
+      "title": "Theme and procedural backdrop reference",
+      "summary": "Public presentation.themes@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public presentation.themes@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.theme",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "presentation.themes@1.0.0 · THEMES: ServiceKey<ThemeFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: presentation.themes",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "windowOpacity: number, default 0.96, from 0.4 to 1, step 0.01. Default window opacity: Opacity for viewers without a saved window preference. Saved viewer choices take precedence. Applies to presentation only.",
+            "starDensity: number, default 1, from 0.5 to 2, step 0.05. Default star density: Background star-density multiplier for viewers without a saved choice. These decorative stars have no physical bodies or collision.",
+            "nebulaIntensity: number, default 1, from 0 to 2, step 0.05. Default nebula intensity: Brightness of the procedural nebula background before viewer preferences override it. Does not affect lighting physics.",
+            "gridOpacity: number, default 0.45, from 0 to 1, step 0.01. Default grid opacity: Opacity of the optional background grid before viewer preferences override it. This does not turn the grid on.",
+            "gridSpacing: number, default 80, from 8 to 512, step 1. Default grid spacing (px): Screen-space grid spacing in CSS pixels before viewer preferences override it. Does not change world coordinates or scale."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Camera, Disposable, ModuleInitializationV2, RenderThemeOptions, ServiceKey, THEMES, ThemeBackdropStyle, ThemeController, ThemeCounterStyle, ThemeFactory, ThemeGridStyle, ThemeOptions, ThemePreferences, ThemePreset, ThemeSettings, ThemeWindowStyle"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api theme.ts",
+          "page": "api-reference/game-api/theme"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/theme (build with npm run module:build -- examples/modules/theme/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.theme-customizer",
+      "title": "Theme controls reference",
+      "summary": "Public ui.theme-customizer@1.0.0 service and lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Public ui.theme-customizer@1.0.0 service and lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.theme-customizer",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.theme-customizer@1.0.0 · THEME_CUSTOMIZERS: ServiceKey<ThemeCustomizerFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.theme-customizer",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, ServiceKey, THEMES, THEME_CUSTOMIZERS, ThemeBackdropStyle, ThemeController, ThemeCounterStyle, ThemeCustomizer, ThemeCustomizerFactory, ThemeCustomizerOptions, ThemeFactory, ThemeGridStyle, ThemePreferences, ThemeSettings, ThemeWindowStyle"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api theme.ts",
+          "page": "api-reference/game-api/theme"
+        },
+        {
+          "type": "link",
+          "text": "game-api theme-customizer.ts",
+          "page": "api-reference/game-api/theme-customizer"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/theme-customizer (build with npm run module:build -- examples/modules/theme-customizer/module.json out.spacemod)."
         }
       ]
     },
@@ -2739,7 +3477,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -2799,7 +3537,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -3819,7 +4557,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join."
+          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer."
         },
         {
           "type": "heading",
@@ -3835,7 +4573,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console."
+          "text": "Used by: spacelab.trainer-appearance."
         },
         {
           "type": "heading",
@@ -3907,7 +4645,19 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join."
+          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleAssets"
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleAssets {\n  text(path: string): string;\n  bytes(path: string): Uint8Array;\n  url(path: string): { readonly href: string; dispose(): void };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.vector-shaders."
         },
         {
           "type": "heading",
@@ -3919,7 +4669,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.session-flight, spacelab.session-join, spacelab.throttle-hud."
+          "text": "Used by: spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders."
         },
         {
           "type": "link",
@@ -4602,6 +5352,82 @@
           "text": "Used by: spacelab.net-websocket."
         },
         {
+          "type": "heading",
+          "text": "ThemeService"
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeService {\n  current(): Readonly<RenderThemeOptions>;\n  set(value: Readonly<RenderThemeOptions>): void;\n  subscribe(change: (theme: Readonly<RenderThemeOptions>) => void): Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "MaterialDefinition"
+        },
+        {
+          "type": "code",
+          "text": "export interface MaterialDefinition {\n  readonly name: string;\n  readonly bodyIds: readonly string[];\n  readonly fragmentAsset: string;\n  readonly uniforms: Readonly<Record<string, number>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "PostEffectDefinition"
+        },
+        {
+          "type": "code",
+          "text": "export interface PostEffectDefinition {\n  readonly name: string;\n  readonly fragmentAsset: string;\n  readonly after: readonly string[];\n  readonly scale: 0.5 | 1;\n  readonly uniforms: Readonly<Record<string, number>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RenderMaterial"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved inert assets; IDs and ordering retain their owning module namespace."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderMaterial extends Omit<MaterialDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RenderPostEffect"
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderPostEffect extends Omit<PostEffectDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "ShaderEffects"
+        },
+        {
+          "type": "code",
+          "text": "export interface ShaderEffects {\n  /** Atomic compilation. Sources implement material(vec2) or effect(vec2,vec4), with\n   * fixed uniforms; the renderer owns masks, framebuffers and all graphics objects. */\n  configure(materials: readonly RenderMaterial[], post: readonly RenderPostEffect[]): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
           "type": "link",
           "text": "API reference index",
           "page": "api-reference"
@@ -4619,6 +5445,206 @@
         },
         {
           "type": "heading",
+          "text": "Camera"
+        },
+        {
+          "type": "paragraph",
+          "text": "System world coordinates (metres, +Y up) to CSS pixels: `scale` pixels per metre, `rotation` radians counter-clockwise applied to the world before projection."
+        },
+        {
+          "type": "code",
+          "text": "export interface Camera { readonly center: Vec; readonly rotation: number; readonly scale: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "RenderBody"
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RenderShip"
+        },
+        {
+          "type": "paragraph",
+          "text": "Another vessel in the same world: one of this player's fleet, or someone else's."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderShip {\n  readonly vehicleId?: string;\n  readonly id: string;\n  /** System world coordinates. */\n  readonly position: Vec;\n  readonly heading: number;\n  readonly status: State['status'];\n  readonly engine: boolean;\n  readonly throttle: number;\n  readonly label: string;\n  /** Owned by another player. */\n  readonly foreign?: boolean;\n  /** Drawn as a small unlabeled rock instead of a vessel (asteroids and debris). */\n  readonly rock?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RenderFrame"
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderFrame {\n  readonly vehicleId?: string;\n  /** Presentation snapshot; may be interpolated between fixed physics steps. */\n  readonly state: State;\n  /** Ghost samples with exact velocities. Closed loops are drawn whole; open paths start at the ship. */\n  readonly path: readonly GhostSample[];\n  readonly pathClosed: boolean;\n  readonly camera: Camera;\n  readonly engine: boolean;\n  /** Celestial bodies in the active system (planets and moons). */\n  readonly bodies?: readonly RenderBody[];\n  /** Ship position in system world coordinates (defaults to state.position). */\n  readonly shipWorldPosition?: Vec;\n  /** Reference origin of ghost path (e.g. active body position). */\n  readonly pathOrigin?: Vec;\n  /** World position of launch pad if any. */\n  readonly padPosition?: Vec;\n  /** Outward normal at the pad, for its tangent marker. */\n  readonly padNormal?: Vec;\n  /** Label beside the piloted ship (default VESSEL 01). */\n  readonly shipLabel?: string;\n  /** Viewer-only annotations; omitted preserves the default visible labels and scale bar. */\n  readonly showScale?: boolean;\n  readonly showShip?: boolean;\n  readonly showPad?: boolean;\n  /** Optional explicit viewer animation epoch, seconds. Never advances a simulation. */\n  readonly presentationTime?: number;\n  readonly showShipLabels?: boolean;\n  /** Celestial body names; defaults to visible. Independent of ship labels. */\n  readonly showBodyLabels?: boolean;\n  /** Planet/moon orbit guides; defaults to visible. Does not hide ship trajectories or affect motion. */\n  readonly showBodyOrbits?: boolean;\n  /** Other vessels, drawn beneath the piloted ship. */\n  readonly ships?: readonly RenderShip[];\n  /** Validated presentation layers above the scene, in the overlay section: shapes in order,\n   * then text in order so labels stay readable. */\n  readonly overlays?: readonly OverlayPrimitive[];\n  /** Visual theme settings for universe backdrop, skybox, grids, and timers/counters. */\n  readonly theme?: RenderThemeOptions;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeBackdropStyle"
+        },
+        {
+          "type": "code",
+          "text": "export type ThemeBackdropStyle = 'spacelab' | 'nebula' | 'carina' | 'galactic' | 'aurora' | 'supernova' | 'void' | 'pillars' | 'helix' | 'asteroids';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl, spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeGridStyle"
+        },
+        {
+          "type": "code",
+          "text": "export type ThemeGridStyle = 'cartesian' | 'polar' | 'dots' | 'hex' | 'off';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl, spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeCounterStyle"
+        },
+        {
+          "type": "code",
+          "text": "export type ThemeCounterStyle = 'spacelab' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'custom';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeWindowStyle"
+        },
+        {
+          "type": "code",
+          "text": "export type ThemeWindowStyle = 'classic' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'void' | 'crimson';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "RenderThemeOptions"
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderThemeOptions {\n  readonly backdropStyle?: ThemeBackdropStyle;\n  readonly nebulaVisible?: boolean;\n  readonly nebulaIntensity?: number;\n  readonly starsVisible?: boolean;\n  readonly starDensity?: number;\n  readonly dustVisible?: boolean;\n  readonly galaxiesVisible?: boolean;\n  readonly animatedNebula?: boolean;\n  readonly ringsVisible?: boolean;\n  readonly asteroidBeltVisible?: boolean;\n  readonly gridEnabled?: boolean;\n  readonly gridStyle?: ThemeGridStyle;\n  readonly gridSpacing?: number;\n  readonly gridOpacity?: number;\n  readonly gridLabels?: boolean;\n  readonly gridColor?: string;\n  readonly windowStyle?: ThemeWindowStyle;\n  readonly windowColor?: string;\n  /** Window background alpha, 0.4–1; text and controls remain fully visible. */\n  readonly windowOpacity?: number;\n  readonly counterTheme?: ThemeCounterStyle;\n  readonly hudColor?: string;\n  readonly hudScanlines?: boolean;\n  readonly hudGlow?: boolean;\n  readonly hudChamfer?: boolean;\n  readonly compactHud?: boolean;\n  readonly highQuality?: boolean;\n  readonly worldSeed?: number;\n  readonly shaderSeed?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "RenderTimer"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional profiler hook, called after each section has been drawn."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderTimer { lap(section: RenderSection): void }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "ShaderPass"
+        },
+        {
+          "type": "code",
+          "text": "export type ShaderPass = 'scene' | 'vector' | 'text';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl, spacelab.vector-shaders."
+        },
+        {
+          "type": "heading",
+          "text": "ShaderSources"
+        },
+        {
+          "type": "code",
+          "text": "export interface ShaderSources { readonly vertex: string; readonly fragment: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "ShaderPack"
+        },
+        {
+          "type": "paragraph",
+          "text": "`space-sim-shaders/1` data. Packs restyle built-in drawing roles, never module overlays."
+        },
+        {
+          "type": "code",
+          "text": "export interface ShaderPack {\n  readonly format: 'space-sim-shaders/1';\n  readonly name: string;\n  readonly passes: Readonly<Record<ShaderPass, ShaderSources>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl, spacelab.vector-shaders."
+        },
+        {
+          "type": "heading",
+          "text": "RendererFeatures"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional features of a renderer instance. Applications discover them here, never by class."
+        },
+        {
+          "type": "code",
+          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "Renderer"
+        },
+        {
+          "type": "code",
+          "text": "export interface Renderer {\n  readonly features?: RendererFeatures;\n  draw(frame: RenderFrame, timer?: RenderTimer): void;\n  dispose?(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
           "text": "OverlayPrimitive"
         },
         {
@@ -4627,7 +5653,323 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.throttle-hud."
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/render-math",
+      "title": "game-api: render-math.ts",
+      "summary": "Declarations from render-math.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-math.ts."
+        },
+        {
+          "type": "heading",
+          "text": "createProjector"
+        },
+        {
+          "type": "paragraph",
+          "text": "Cache camera constants once per frame, shared by every body/path/ship vertex."
+        },
+        {
+          "type": "code",
+          "text": "export function createProjector(camera: Camera, width: number, height: number): (p: Vec) => Vec;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "hermiteControls"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bézier control points of the cubic Hermite curve between two timed states. Exact end positions and velocities keep sparse quantized samples smooth at any zoom; the projection is affine, so world-space control points project directly."
+        },
+        {
+          "type": "code",
+          "text": "export function hermiteControls(a: GhostSample, b: GhostSample): readonly [Vec, Vec];"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "getPathGeometry"
+        },
+        {
+          "type": "code",
+          "text": "export function getPathGeometry(path: readonly GhostSample[]): PathGeometry;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "pathFromShip"
+        },
+        {
+          "type": "paragraph",
+          "text": "The drawn part of a path. Open paths drop samples the ship has passed and begin at the ship; `flown` is the chord length already behind it, which keeps the dashes world-fixed."
+        },
+        {
+          "type": "code",
+          "text": "export function pathFromShip(path: readonly GhostSample[], closed: boolean,\n  ship: GhostSample): { readonly points: readonly GhostSample[]; readonly flown: number };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "trajectoryMarkers"
+        },
+        {
+          "type": "paragraph",
+          "text": "Restrained timed SOI markers and future body outlines. All snapshots are in the path's translating reference frame, so apply pathOrigin exactly once. Old providers can omit encounterBody. No renderer-side physics/ephemeris queries."
+        },
+        {
+          "type": "code",
+          "text": "export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[];"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/rendering",
+      "title": "game-api: rendering.ts",
+      "summary": "Declarations from rendering.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/rendering.ts."
+        },
+        {
+          "type": "heading",
+          "text": "VEHICLE_MARKER"
+        },
+        {
+          "type": "paragraph",
+          "text": "Generic position marker (four-point box) when a craft omits optional appearance artwork."
+        },
+        {
+          "type": "code",
+          "text": "export const VEHICLE_MARKER = Object.freeze([Object.freeze({x: 3, y: -3}), Object.freeze({x: -3, y: -3}), Object.freeze({x: -3, y: 3}), Object.freeze({x: 3, y: 3})]);"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RenderGeometry"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only physical geometry query interface; render quality must never alter collision geometry."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderGeometry {\n  /** Query the physical terrain radius and normal at a given angle. */\n  querySurface(profile: SurfaceProfile, angle: number): SurfaceQuery;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeArtwork"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation service providing theme options and procedural backdrop drawing for renderers."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeArtwork {\n  /** Return the currently active presentation theme options. */\n  current(): Readonly<RenderThemeOptions>;\n  /** Draw the procedural starfield, nebulae and backdrop grid into the canvas context. */\n  backdrop(context: CanvasRenderingContext2D, width: number, height: number, camera: Camera,\n    settings: Readonly<RenderThemeOptions>, time: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "SceneFrame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Standalone render frame for body, map or designer viewers lacking active flight controls or world scheduler."
+        },
+        {
+          "type": "code",
+          "text": "export interface SceneFrame extends Pick<RenderFrame, 'camera' | 'bodies' | 'overlays' | 'theme' | 'showScale' | 'ships' | 'showShipLabels' | 'showBodyLabels' | 'showBodyOrbits'> {\n  /** Presentation time in seconds for backdrop animation and orbit markers. */\n  readonly time: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "SceneRenderer"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation renderer capable of drawing flight and standalone scene frames to an owned canvas."
+        },
+        {
+          "type": "code",
+          "text": "export interface SceneRenderer extends Renderer {\n  /** Release owned GPU programs, textures, canvas context bindings and event listeners. */\n  dispose(): void;\n  /** Draw a standalone celestial scene frame without controlled flight HUD or ship inputs. */\n  drawScene(frame: SceneFrame, timer?: RenderTimer): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "BodyPreview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Lightweight preview renderer for standalone planet or celestial body preview displays."
+        },
+        {
+          "type": "code",
+          "text": "export interface BodyPreview extends Disposable {\n  /** Whether the underlying shader program and GPU textures are linked and ready to draw. */\n  readonly ready: boolean;\n  /** Diagnostic error string if shader compilation or context acquisition failed. */\n  readonly error?: string;\n  /** Draw a preview of the specified body with optional shading fill factor. */\n  draw(body: RenderBody, fill?: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "Render2DOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options passed when creating a 2D canvas or WebGL scene renderer."
+        },
+        {
+          "type": "code",
+          "text": "export interface Render2DOptions {\n  /** Optional vehicle appearance catalog; falls back to generic marker when omitted. */\n  readonly vehicles?: VehicleArtwork;\n  /** Presentation resolution cap, 0.5–4; never alters physical simulation or body dimensions. */\n  readonly maxPixelRatio?: number;\n  /** Physical terrain surface query port for procedural body drawing. */\n  readonly geometry?: RenderGeometry;\n  /** Procedural backdrop and styling provider. */\n  readonly theme?: ThemeArtwork;\n  /** Explicit compatibility fallback body when a scene frame contains zero bodies. */\n  readonly fallbackBody?: RenderBody;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "CanvasRendererFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory providing Canvas 2D scene renderer instances. Disposing releases all created renderers."
+        },
+        {
+          "type": "code",
+          "text": "export interface CanvasRendererFactory extends Disposable {\n  /** Create a Canvas 2D scene renderer for the given canvas element and options. */\n  create(canvas: HTMLCanvasElement, options?: Render2DOptions): SceneRenderer;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas."
+        },
+        {
+          "type": "heading",
+          "text": "WebGLRendererFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory providing WebGL 2 scene renderers and body preview instances. Disposing releases all GPU resources."
+        },
+        {
+          "type": "code",
+          "text": "export interface WebGLRendererFactory extends Disposable {\n  /** Create a WebGL 2 scene renderer bound to the canvas element and shader pack. */\n  create(canvas: HTMLCanvasElement, shaders: ShaderPack, options?: Render2DOptions): SceneRenderer;\n  /** Create a standalone body preview renderer for planet designer and celestial inspection. */\n  preview(canvas: HTMLCanvasElement, shaders: ShaderPack): BodyPreview;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "CANVAS_DRAWING"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the public Canvas 2D renderer factory (`render.canvas@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CANVAS_DRAWING: ServiceKey<CanvasRendererFactory> = Object.freeze({ slot: 'render.canvas', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas."
+        },
+        {
+          "type": "heading",
+          "text": "WEBGL_DRAWING"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the public WebGL 2 renderer factory (`render.webgl@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const WEBGL_DRAWING: ServiceKey<WebGLRendererFactory> = Object.freeze({ slot: 'render.webgl', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "ShaderLibrary"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service interface providing default GLSL shader packs and validation/parsing methods."
+        },
+        {
+          "type": "code",
+          "text": "export interface ShaderLibrary {\n  /** Immutable default three-pass shader pack (scene, vector, text). */\n  readonly defaults: ShaderPack;\n  /** Validate a raw object or partial shader definition against the default pack. */\n  validate(value: unknown): ShaderPack;\n  /** Parse a .frag, .glsl or JSON shader file into a validated shader pack. */\n  parse(text: string, filename: string): ShaderPack;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.vector-shaders."
+        },
+        {
+          "type": "heading",
+          "text": "VECTOR_SHADERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the public vector shader pack library (`render.vector-shaders@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const VECTOR_SHADERS: ServiceKey<ShaderLibrary> = Object.freeze({ slot: 'render.vector-shaders', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.vector-shaders."
         },
         {
           "type": "link",
@@ -4893,6 +6235,54 @@
       ]
     },
     {
+      "id": "api-reference/game-api/shader-format",
+      "title": "game-api: shader-format.ts",
+      "summary": "Declarations from shader-format.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/shader-format.ts."
+        },
+        {
+          "type": "heading",
+          "text": "validateShaderDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate, bound and freeze a shader pack definition against baseline defaults. Partial packs inherit built-in stages, never stages from a previously loaded custom pack. @param value Raw object representation of a shader pack. @param defaults Baseline defaults providing fallback stages for omitted passes. @returns Frozen, validated ShaderPack with resolved passes. @throws If format differs from 'space-sim-shaders/1', stages exceed 256 KiB, or fields are invalid."
+        },
+        {
+          "type": "code",
+          "text": "export function validateShaderDefinition(value: unknown, defaults: ShaderPack): ShaderPack;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl, spacelab.vector-shaders."
+        },
+        {
+          "type": "heading",
+          "text": "parseShaderDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Parse and validate a GLSL fragment file or JSON shader pack string. A .frag/.glsl file replaces just the scene fragment; JSON can replace all six stages. @param text Source file text (UTF-8, up to 1 MiB). @param filename Source filename used for extension detection and naming. @param defaults Baseline defaults providing fallback stages. @returns Frozen, validated ShaderPack with resolved passes. @throws If file exceeds 1 MiB or shader syntax validation fails."
+        },
+        {
+          "type": "code",
+          "text": "export function parseShaderDefinition(text: string, filename: string, defaults: ShaderPack): ShaderPack;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl, spacelab.vector-shaders."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/state",
       "title": "game-api: state.ts",
       "summary": "Declarations from state.ts used by documented modules.",
@@ -4911,7 +6301,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.session-flight."
+          "text": "Used by: spacelab.flight-plans, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -4939,7 +6329,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -5023,7 +6413,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "link",
@@ -5177,6 +6567,214 @@
       ]
     },
     {
+      "id": "api-reference/game-api/theme",
+      "title": "game-api: theme.ts",
+      "summary": "Declarations from theme.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/theme.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeSettings"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation theme settings specifying backdrop, celestial grid, HUD and window styling."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeSettings extends RenderThemeOptions {\n  /** Visual style for the procedural backdrop (e.g. 'spacelab', 'nebula', 'carina', 'void'). */\n  backdropStyle: ThemeBackdropStyle;\n  /** Whether procedural nebulae are rendered in the background. */\n  nebulaVisible: boolean;\n  /** Relative brightness and opacity of procedural nebulae (0.0 to 2.0). */\n  nebulaIntensity: number;\n  /** Whether background star layers are rendered. */\n  starsVisible: boolean;\n  /** Multiplier for procedural background star count (0.5 to 2.0). */\n  starDensity: number;\n  /** Whether interstellar dust clouds are visible. */\n  dustVisible: boolean;\n  /** Whether distant deep-space galaxies are visible. */\n  galaxiesVisible: boolean;\n  /** Whether procedural nebulae animate slowly over presentation time. */\n  animatedNebula: boolean;\n  /** Randomization seed for background generation; 0 uses the universe seed. */\n  shaderSeed: number;\n\n  /** Whether the coordinate / navigation grid is displayed. */\n  gridEnabled: boolean;\n  /** Grid projection style ('cartesian', 'polar', 'dots', 'hex', 'off'). */\n  gridStyle: ThemeGridStyle;\n  /** Grid spacing in CSS pixels (e.g. 80). */\n  gridSpacing: number;\n  /** Visual opacity of grid lines and markers (0.1 to 1.0). */\n  gridOpacity: number;\n  /** Whether coordinate values and distance labels are displayed on grid lines. */\n  gridLabels: boolean;\n  /** Optional custom hex color string for the grid (e.g. '#38bdf8'). */\n  gridColor?: string;\n\n  /** Visual style for digital counters and telemetry ('spacelab', 'cyber', 'apollo', etc.). */\n  counterTheme: ThemeCounterStyle;\n  /** Custom phosphor / telemetry accent color (e.g. '#00f0ff'). */\n  hudColor?: string;\n  /** Window framing style ('classic', 'cyber', 'apollo', 'tactical', etc.). */\n  windowStyle?: ThemeWindowStyle;\n  /** Opacity for translucent UI windows and panels (0.4 to 1.0). */\n  windowOpacity: number;\n  /** Custom window header and border accent color. */\n  windowColor?: string;\n  /** Whether retro CRT scanlines overlay the flight display. */\n  hudScanlines: boolean;\n  /** Whether phosphor HUD elements display a diffuse glow. */\n  hudGlow: boolean;\n  /** Whether HUD instruments and telemetry panels have chamfered corners. */\n  hudChamfer: boolean;\n  /** Whether HUD widgets collapse into a compact layout for small viewports. */\n  compactHud: boolean;\n  /** Whether full-resolution procedural textures and anti-aliasing are enabled. */\n  highQuality: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemePreset"
+        },
+        {
+          "type": "paragraph",
+          "text": "Predefined curated theme preset bundling backdrop, HUD and window styling."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemePreset {\n  /** Unique preset identifier (e.g. 'spacelab', 'cyber', 'apollo'). */\n  id: string;\n  /** Human-readable display label. */\n  name: string;\n  /** Short description explaining the preset's aesthetic. */\n  description: string;\n  /** Representative hex color for preview swatches. */\n  previewColor: string;\n  /** Partial theme settings applied when this preset is selected. */\n  settings: Partial<ThemeSettings>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "ThemePreferences"
+        },
+        {
+          "type": "paragraph",
+          "text": "Persistent storage abstraction for theme preferences (e.g. window.localStorage or mock)."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemePreferences {\n  /** Retrieve a stored JSON preference string by key, or null if unset. */\n  getItem(key: string): string | null;\n  /** Store a preference string under the specified key. */\n  setItem(key: string, value: string): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for instantiating an isolated theme controller."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeOptions {\n  /** Optional persistent storage backend; defaults to in-memory preferences when omitted. */\n  readonly storage?: ThemePreferences;\n  /** Optional DOM element whose CSS custom properties are updated on theme change. */\n  readonly root?: HTMLElement;\n  /** Initial fallback defaults overriding built-in settings. */\n  readonly defaults?: Partial<ThemeSettings>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeController"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controller managing active theme settings, CSS variables, procedural backdrop drawing and observer subscriptions."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeController extends ThemeService, ThemeArtwork, Disposable {\n  /** Immutable default settings configured on controller instantiation. */\n  readonly defaults: Readonly<ThemeSettings>;\n  /** Built-in curated presets available for user selection. */\n  readonly presets: readonly ThemePreset[];\n  /** Retrieve the currently active theme settings. */\n  current(): Readonly<ThemeSettings>;\n  /** Reload theme settings from persistent storage and apply styling to the DOM root. */\n  load(): Readonly<ThemeSettings>;\n  /** Apply current styling to newly mounted children without changing settings. */\n  refresh(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory providing isolated ThemeController instances. Disposing cleans up shared stylesheets."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeFactory extends Disposable {\n  /** Create a theme controller configured with optional storage and DOM root. */\n  create(options?: ThemeOptions): ThemeController;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "THEMES"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the presentation theme factory (`presentation.themes@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const THEMES: ServiceKey<ThemeFactory> = Object.freeze({ slot: 'presentation.themes', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme, spacelab.theme-customizer."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/theme-customizer",
+      "title": "game-api: theme-customizer.ts",
+      "summary": "Declarations from theme-customizer.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/theme-customizer.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeCustomizer"
+        },
+        {
+          "type": "paragraph",
+          "text": "UI controller for the theme customizer dialog, managing modal state, presets and export controls."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeCustomizer extends Disposable {\n  /** Open the theme customization dialog. */\n  open(): void;\n  /** Close the theme customization dialog. */\n  close(): void;\n  /** Toggle the theme customization dialog open or closed. */\n  toggle(): void;\n  /** Toggle celestial grid visibility, returning the new grid enabled state. */\n  toggleGrid(): boolean;\n  /** Retrieve a snapshot of the current theme settings. */\n  getSettings(): ThemeSettings;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeCustomizerOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for instantiating a ThemeCustomizer dialog attached to a DOM root and theme controller."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeCustomizerOptions {\n  /** Host DOM element into which the customizer dialog and controls are mounted. */\n  readonly root: HTMLElement;\n  /** Bound theme controller providing settings mutation and presets. */\n  readonly theme: ThemeController;\n  /** Optional storage backend for saving exported custom presets or choices. */\n  readonly storage?: ThemePreferences;\n  /** Optional predicate indicating whether the customizer's view is currently focused. */\n  readonly active?: () => boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "ThemeCustomizerFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory providing ThemeCustomizer dialog instances. Disposing cleans up all open dialogs."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThemeCustomizerFactory extends Disposable {\n  /** Create a theme customizer instance attached to the specified DOM root and theme controller. */\n  create(options: ThemeCustomizerOptions): ThemeCustomizer;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme-customizer."
+        },
+        {
+          "type": "heading",
+          "text": "THEME_CUSTOMIZERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the public theme customizer factory (`ui.theme-customizer@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const THEME_CUSTOMIZERS: ServiceKey<ThemeCustomizerFactory> = Object.freeze({slot: 'ui.theme-customizer', version: '1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.theme-customizer."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/universe",
       "title": "game-api: universe.ts",
       "summary": "Declarations from universe.ts used by documented modules.",
@@ -5184,6 +6782,22 @@
         {
           "type": "paragraph",
           "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe.ts."
+        },
+        {
+          "type": "heading",
+          "text": "AppearanceStyle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Procedural look of a body. Presentation only: it never changes the physical outline."
+        },
+        {
+          "type": "code",
+          "text": "export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -5227,6 +6841,22 @@
         },
         {
           "type": "heading",
+          "text": "TRAINER_VEHICLE_ID"
+        },
+        {
+          "type": "paragraph",
+          "text": "Legacy craft map to this definition without changing state or old save bytes."
+        },
+        {
+          "type": "code",
+          "text": "export const TRAINER_VEHICLE_ID = 'spacelab.trainer/orbit-trainer';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.trainer-appearance."
+        },
+        {
+          "type": "heading",
           "text": "VehicleCatalog"
         },
         {
@@ -5240,6 +6870,38 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.session-flight."
+        },
+        {
+          "type": "heading",
+          "text": "VehicleAppearance"
+        },
+        {
+          "type": "paragraph",
+          "text": "Screen-space vector artwork (+X forward), shared by Canvas and WebGL. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry."
+        },
+        {
+          "type": "code",
+          "text": "export interface VehicleAppearance {\n  /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */\n  readonly vehicleId: string;\n  /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */\n  readonly hull: readonly Vec[];\n  /** Optional thruster exhaust flame dimensions for active acceleration visuals. */\n  readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.trainer-appearance."
+        },
+        {
+          "type": "heading",
+          "text": "VehicleArtwork"
+        },
+        {
+          "type": "paragraph",
+          "text": "Lookup table resolving optional vector appearance artwork by namespaced vehicle ID."
+        },
+        {
+          "type": "code",
+          "text": "export interface VehicleArtwork {\n  /** Retrieve artwork for a vehicle ID, or undefined to fall back to generic VEHICLE_MARKER. */\n  get(vehicleId?: string): VehicleAppearance | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.trainer-appearance."
         },
         {
           "type": "heading",
@@ -5264,6 +6926,38 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.session-flight."
+        },
+        {
+          "type": "heading",
+          "text": "captureVehicleAppearance"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate, bound and freeze a vehicle appearance definition. Throws on invalid fields, non-namespaced ID, or out-of-bounds geometry."
+        },
+        {
+          "type": "code",
+          "text": "export function captureVehicleAppearance(value: unknown): VehicleAppearance;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.trainer-appearance."
+        },
+        {
+          "type": "heading",
+          "text": "createVehicleArtwork"
+        },
+        {
+          "type": "paragraph",
+          "text": "Capture once at composition, then read without allocating during drawing. Unknown vehicles have no artwork; renderers retain their generic position marker."
+        },
+        {
+          "type": "code",
+          "text": "export function createVehicleArtwork(values: readonly VehicleAppearance[]): VehicleArtwork;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.trainer-appearance."
         },
         {
           "type": "link",

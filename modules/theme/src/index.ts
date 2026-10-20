@@ -48,6 +48,7 @@ export function createTheme(options: ThemeOptions = {}): ThemeController {
   };
   return Object.freeze(controller);
 }
+/** Create a presentation theme factory providing isolated theme controllers with injected theme stylesheets. */
 export function createThemes(css = '', defaults:Partial<ThemeSettings> = {}): ThemeFactory {
   const controllers = new Set<ThemeController>(), styles = new Map<Document, { node: HTMLStyleElement; users: number }>(); let disposed = false;
   return Object.freeze({ create(options?: ThemeOptions) { if (disposed) throw new Error('Theme provider disposed');
@@ -67,6 +68,8 @@ export function createThemes(css = '', defaults:Partial<ThemeSettings> = {}): Th
     for (const controller of controllers) { try { controller.dispose(); } catch (error) { errors.push(error); } }
     controllers.clear(); if (errors.length) throw new AggregateError(errors, 'Theme provider cleanup failed'); } });
 }
+
+/** Initialize the theme module, providing presentation.themes@1.0.0 and registering its usage guide. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({id:'usage',audience:'creators',title:"Themes",summary:"Public presentation.themes@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'});
   context.provide(THEMES, context.own(createThemes(context.assets.text('assets/theme.css') + '\n' + context.assets.text('assets/hud.css'),{windowOpacity:context.settings.windowOpacity??.96,starDensity:context.settings.starDensity??1,nebulaIntensity:context.settings.nebulaIntensity??1,gridOpacity:context.settings.gridOpacity??.45,gridSpacing:context.settings.gridSpacing??80})));

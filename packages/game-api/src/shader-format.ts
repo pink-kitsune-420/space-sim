@@ -20,7 +20,15 @@ function source(value: unknown, fallback: string, label: string): string {
   return value;
 }
 
-/** Partial packs inherit built-in stages, never stages from the previously loaded pack. */
+/**
+ * Validate, bound and freeze a shader pack definition against baseline defaults.
+ * Partial packs inherit built-in stages, never stages from a previously loaded custom pack.
+ *
+ * @param value Raw object representation of a shader pack.
+ * @param defaults Baseline defaults providing fallback stages for omitted passes.
+ * @returns Frozen, validated ShaderPack with resolved passes.
+ * @throws If format differs from 'space-sim-shaders/1', stages exceed 256 KiB, or fields are invalid.
+ */
 export function validateShaderDefinition(value: unknown, defaults: ShaderPack): ShaderPack {
   const pack = record(value, 'Shader pack');
   keys(pack, ['format', 'name', 'passes'], 'shader pack');
@@ -44,7 +52,16 @@ export function validateShaderDefinition(value: unknown, defaults: ShaderPack): 
   return Object.freeze({ format: SHADER_FORMAT, name: pack.name.trim(), passes: Object.freeze(resolved) });
 }
 
-/** A .frag/.glsl file replaces just the scene fragment; JSON can replace all six stages. */
+/**
+ * Parse and validate a GLSL fragment file or JSON shader pack string.
+ * A .frag/.glsl file replaces just the scene fragment; JSON can replace all six stages.
+ *
+ * @param text Source file text (UTF-8, up to 1 MiB).
+ * @param filename Source filename used for extension detection and naming.
+ * @param defaults Baseline defaults providing fallback stages.
+ * @returns Frozen, validated ShaderPack with resolved passes.
+ * @throws If file exceeds 1 MiB or shader syntax validation fails.
+ */
 export function parseShaderDefinition(text: string, filename: string, defaults: ShaderPack): ShaderPack {
   if (new TextEncoder().encode(text).byteLength > MAX_SHADER_FILE_BYTES) throw new Error('Shader files must be at most 1 MiB.');
   if (/\.(frag|glsl)$/i.test(filename)) {
