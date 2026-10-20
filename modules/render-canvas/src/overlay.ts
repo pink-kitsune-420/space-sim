@@ -94,6 +94,7 @@ export function screenOverlays(primitives: readonly OverlayPrimitive[], camera: 
   const corner = Math.hypot(width / 2, height / 2);
   const out: ScreenOverlay[] = [];
   for (const p of primitives) {
+    if (p.kind === 'tile-chunk') continue;
     const at = (v: Vec): Vec => p.space === 'world' ? project(v) : v;
     if (p.kind === 'text') {
       const anchor = at(p.at);

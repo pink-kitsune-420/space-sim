@@ -1,4 +1,5 @@
-import type { ThemeBackdropStyle, ThemeGridStyle } from '@space-sim/game-api';
+import { DEFAULT_TILE_PALETTE_HEX, type ThemeBackdropStyle, type ThemeGridStyle } from '@space-sim/game-api';
+export { DEFAULT_TILE_PALETTE_HEX };
 export function hexToRgb(hex?: string): { r: number; g: number; b: number } {
   if (!hex) return { r: 56, g: 189, b: 248 };
   let h = hex.trim().replace(/^#/, '');
@@ -46,3 +47,37 @@ export function themeGridToShaderIndex(style: ThemeGridStyle): number {
     default: return 0;
   }
 }
+
+
+/** Allocates and populates a 1024x1 RGBA8 texture for O(1) tile palette lookups in WebGL 2 shaders. */
+export function createTilePaletteTexture(gl: WebGL2RenderingContext, hexColors: readonly string[] = DEFAULT_TILE_PALETTE_HEX): WebGLTexture {
+  const tex = gl.createTexture()!;
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  const data = new Uint8Array(1024 * 4);
+  for (let i = 0; i < 1024; i++) {
+    if (i === 0) {
+      data[0] = 0; data[1] = 0; data[2] = 0; data[3] = 0;
+      continue;
+    }
+    const color = hexColors[i];
+    if (color) {
+      const rgb = hexToRgb(color);
+      data[i * 4] = rgb.r;
+      data[i * 4 + 1] = rgb.g;
+      data[i * 4 + 2] = rgb.b;
+      data[i * 4 + 3] = color.length === 9 ? parseInt(color.slice(7, 9), 16) : 255;
+    } else {
+      data[i * 4] = (i * 67) & 0xff;
+      data[i * 4 + 1] = (i * 131) & 0xff;
+      data[i * 4 + 2] = (i * 197) & 0xff;
+      data[i * 4 + 3] = 255;
+    }
+  }
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 1024, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return tex;
+}
+

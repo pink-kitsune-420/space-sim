@@ -157,6 +157,10 @@ export interface ShaderControl {
 export interface RendererFeatures {
   readonly shaders?: ShaderControl;
   readonly effects?: import('./platform').ShaderEffects;
+  /** Custom tile palette registration for instanced tile-chunk primitives. */
+  readonly tilePalettes?: {
+    register(paletteId: string, colors: readonly string[]): void;
+  };
   /** Finish deferred raster work so profiler sections are attributed precisely. */
   readonly flush?: () => void;
 }
@@ -210,7 +214,7 @@ export interface AudioProvider {
  * `screen`: CSS pixels from the viewport's top-left corner (+Y down). Colors are
  * `#RRGGBB` or `#RRGGBBAA`; widths are CSS pixels in both spaces. */
 export type OverlaySpace = 'world' | 'screen';
-/** Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) drawn in `'world'` metres or `'screen'` CSS pixels. */
+/** Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'tile-chunk'`) drawn in `'world'` metres or `'screen'` CSS pixels. */
 export type OverlayPrimitive =
   /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */
   | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;
@@ -219,7 +223,50 @@ export type OverlayPrimitive =
   | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;
       readonly color: string; readonly width?: number; readonly fill?: boolean }
   | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
-      readonly align?: 'left' | 'center' | 'right' };
+      readonly align?: 'left' | 'center' | 'right' }
+  /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */
+  | {
+      readonly kind: 'tile-chunk';
+      readonly space: 'world';
+      readonly origin: Vec;
+      readonly tileMetres: number;
+      readonly size: 32;
+      readonly tiles: Uint16Array;
+      readonly light?: Uint8Array;
+      readonly paletteId?: string;
+      readonly color?: string;
+    };
+
+/** Default 27 first-party Space Sim tile material colors. */
+export const DEFAULT_TILE_PALETTE_HEX: readonly string[] = Object.freeze([
+  '#00000000', // 0: Air (transparent)
+  '#6e737b',   // 1: Stone
+  '#9a8f82',   // 2: Regolith
+  '#484c54',   // 3: Basalt
+  '#a8d8f0',   // 4: Ice
+  '#3c3642',   // 5: DeepIgneous
+  '#2f262e',   // 6: MantleRock
+  '#ff5511',   // 7: CoreMagma
+  '#b87352',   // 8: IronOre
+  '#d9823b',   // 9: CopperOre
+  '#c4d4e0',   // 10: TitaniumOre
+  '#9be0b8',   // 11: LithiumOre
+  '#52e062',   // 12: UraniumOre
+  '#26292e',   // 13: CarbonOre
+  '#e6ded5',   // 14: SiliconOre
+  '#ccd4dd',   // 15: HullBlock
+  '#38b6ff',   // 16: CockpitBlock
+  '#ff9933',   // 17: ThrusterBlock
+  '#8899aa',   // 18: TrussBlock
+  '#2b65ec',   // 19: SolarArrayBlock
+  '#00e5ff',   // 20: DockingPortBlock
+  '#ff4500',   // 21: FuelDepotBlock
+  '#00ff88',   // 22: LifeSupportBlock
+  '#e67e22',   // 23: RefineryBlock
+  '#f1c40f',   // 24: LadderBlock
+  '#a0e6ff',   // 25: GlassDomeBlock
+  '#1abc9c',   // 26: AirLockBlock
+]);
 
 /** Detached presentation snapshot of the piloted vessel, combining body-relative `state` (`m`, `m/s`, `rad`) and system-coordinate `position` (`m`). */
 export interface PresentationShip {

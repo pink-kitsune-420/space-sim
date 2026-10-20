@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c9c9faf50d0a4402",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7de87120581cba42",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c9c9faf50d0a4402"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7de87120581cba42"
         },
         {
           "type": "paragraph",
@@ -5120,7 +5120,7 @@
         },
         {
           "type": "paragraph",
-          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers"
+          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers"
         },
         {
           "type": "link",
@@ -5249,7 +5249,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition"
+          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition"
         },
         {
           "type": "link",
@@ -13171,7 +13171,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Custom tile palette registration for instanced tile-chunk primitives. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
         },
         {
           "type": "paragraph",
@@ -13295,15 +13295,31 @@
         },
         {
           "type": "paragraph",
-          "text": "Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) drawn in `'world'` metres or `'screen'` CSS pixels."
+          "text": "Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'tile-chunk'`) drawn in `'world'` metres or `'screen'` CSS pixels."
         },
         {
           "type": "code",
-          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' };"
+          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
         },
         {
           "type": "paragraph",
           "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "DEFAULT_TILE_PALETTE_HEX"
+        },
+        {
+          "type": "paragraph",
+          "text": "Default 27 first-party Space Sim tile material colors."
+        },
+        {
+          "type": "code",
+          "text": "export const DEFAULT_TILE_PALETTE_HEX: readonly string[] = Object.freeze([\n  '#00000000', // 0: Air (transparent)\n  '#6e737b',   // 1: Stone\n  '#9a8f82',   // 2: Regolith\n  '#484c54',   // 3: Basalt\n  '#a8d8f0',   // 4: Ice\n  '#3c3642',   // 5: DeepIgneous\n  '#2f262e',   // 6: MantleRock\n  '#ff5511',   // 7: CoreMagma\n  '#b87352',   // 8: IronOre\n  '#d9823b',   // 9: CopperOre\n  '#c4d4e0',   // 10: TitaniumOre\n  '#9be0b8',   // 11: LithiumOre\n  '#52e062',   // 12: UraniumOre\n  '#26292e',   // 13: CarbonOre\n  '#e6ded5',   // 14: SiliconOre\n  '#ccd4dd',   // 15: HullBlock\n  '#38b6ff',   // 16: CockpitBlock\n  '#ff9933',   // 17: ThrusterBlock\n  '#8899aa',   // 18: TrussBlock\n  '#2b65ec',   // 19: SolarArrayBlock\n  '#00e5ff',   // 20: DockingPortBlock\n  '#ff4500',   // 21: FuelDepotBlock\n  '#00ff88',   // 22: LifeSupportBlock\n  '#e67e22',   // 23: RefineryBlock\n  '#f1c40f',   // 24: LadderBlock\n  '#a0e6ff',   // 25: GlassDomeBlock\n  '#1abc9c',   // 26: AirLockBlock\n]);"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",

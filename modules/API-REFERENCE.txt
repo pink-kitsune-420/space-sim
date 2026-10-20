@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c9c9faf50d0a4402
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7de87120581cba42
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -1768,7 +1768,7 @@ Public render.canvas@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers
+CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
@@ -1810,7 +1810,7 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AppearanceStyle, BodyPreview, CORE_MOTION, Camera, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition
+AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
@@ -6328,6 +6328,10 @@ Optional features of a renderer instance. Applications discover them here, never
     export interface RendererFeatures {
       readonly shaders?: ShaderControl;
       readonly effects?: ShaderEffects;
+      /** Custom tile palette registration for instanced tile-chunk primitives. */
+      readonly tilePalettes?: {
+        register(paletteId: string, colors: readonly string[]): void;
+      };
       /** Finish deferred raster work so profiler sections are attributed precisely. */
       readonly flush?: () => void;
     }
@@ -6398,7 +6402,7 @@ Used by: builtin.audio, spacelab.audio-controls.
 Used by: host or creator modules (not imported by shipped modules).
 
 ## OverlayPrimitive
-Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) drawn in `'world'` metres or `'screen'` CSS pixels.
+Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'tile-chunk'`) drawn in `'world'` metres or `'screen'` CSS pixels.
     export type OverlayPrimitive =
       /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */
       | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;
@@ -6407,8 +6411,53 @@ Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) draw
       | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
-          readonly align?: 'left' | 'center' | 'right' };
+          readonly align?: 'left' | 'center' | 'right' }
+      /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */
+      | {
+          readonly kind: 'tile-chunk';
+          readonly space: 'world';
+          readonly origin: Vec;
+          readonly tileMetres: number;
+          readonly size: 32;
+          readonly tiles: Uint16Array;
+          readonly light?: Uint8Array;
+          readonly paletteId?: string;
+          readonly color?: string;
+        };
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+
+## DEFAULT_TILE_PALETTE_HEX
+Default 27 first-party Space Sim tile material colors.
+    export const DEFAULT_TILE_PALETTE_HEX: readonly string[] = Object.freeze([
+      '#00000000', // 0: Air (transparent)
+      '#6e737b',   // 1: Stone
+      '#9a8f82',   // 2: Regolith
+      '#484c54',   // 3: Basalt
+      '#a8d8f0',   // 4: Ice
+      '#3c3642',   // 5: DeepIgneous
+      '#2f262e',   // 6: MantleRock
+      '#ff5511',   // 7: CoreMagma
+      '#b87352',   // 8: IronOre
+      '#d9823b',   // 9: CopperOre
+      '#c4d4e0',   // 10: TitaniumOre
+      '#9be0b8',   // 11: LithiumOre
+      '#52e062',   // 12: UraniumOre
+      '#26292e',   // 13: CarbonOre
+      '#e6ded5',   // 14: SiliconOre
+      '#ccd4dd',   // 15: HullBlock
+      '#38b6ff',   // 16: CockpitBlock
+      '#ff9933',   // 17: ThrusterBlock
+      '#8899aa',   // 18: TrussBlock
+      '#2b65ec',   // 19: SolarArrayBlock
+      '#00e5ff',   // 20: DockingPortBlock
+      '#ff4500',   // 21: FuelDepotBlock
+      '#00ff88',   // 22: LifeSupportBlock
+      '#e67e22',   // 23: RefineryBlock
+      '#f1c40f',   // 24: LadderBlock
+      '#a0e6ff',   // 25: GlassDomeBlock
+      '#1abc9c',   // 26: AirLockBlock
+    ]);
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## PresentationShip
 Detached presentation snapshot of the piloted vessel, combining body-relative `state` (`m`, `m/s`, `rad`) and system-coordinate `position` (`m`).

@@ -30,7 +30,7 @@ function fake2d() {
 }
 
 function fakeGl() {
-  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], texts: [] as string[] };
+  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[] };
   let program: unknown, linked = 0;
   const gl = new Proxy({} as Record<string, unknown>, {
     get(_target, key) {
@@ -44,6 +44,7 @@ function fakeGl() {
         case 'useProgram': return (p: unknown) => { program = p; };
         case 'uniform4f': return (_: unknown, ...rgba: number[]) => { stats.colors.push(rgba.map(c => +c.toFixed(2))); };
         case 'drawArrays': return (mode: number, _first: number, count: number) => { stats.draws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}`); };
+        case 'drawArraysInstanced': return (mode: number, _first: number, count: number, primcount: number) => { stats.instancedDraws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}:${primcount}`); };
         case 'getExtension': return () => null;
         case 'getError': return () => 0;
         default: return () => ({});
@@ -151,5 +152,69 @@ describe('renderer features', () => {
     expect(stats.created).toBe(6); // the lite scene, then the full one
     renderer.dispose(); renderer.dispose();
     expect(stats.programs).toBe(0);
+  });
+  it('renders 32x32 tile chunks with instanced draw calls in WebGL 2 and fillRect in Canvas 2D', () => {
+    const tiles1 = new Uint16Array(1024);
+    tiles1[0] = 1; // Stone
+    tiles1[1] = 2; // Regolith
+    tiles1[32] = 15; // HullBlock
+    const light1 = new Uint8Array(1024).fill(15);
+
+    const tiles2 = new Uint16Array(1024);
+    tiles2[500] = 7; // CoreMagma
+
+    const chunk1: OverlayPrimitive = {
+      kind: 'tile-chunk',
+      space: 'world',
+      origin: { x: 0, y: 0 },
+      tileMetres: 0.5,
+      size: 32,
+      tiles: tiles1,
+      light: light1,
+    };
+    const chunk2: OverlayPrimitive = {
+      kind: 'tile-chunk',
+      space: 'world',
+      origin: { x: 16, y: 0 },
+      tileMetres: 0.5,
+      size: 32,
+      tiles: tiles2,
+      paletteId: 'custom-palette',
+    };
+
+    // 1. WebGL 2 rendering
+    const webgl = fakeGl();
+    const webglRenderer = new WebGLRenderer(webgl.canvas);
+    expect(webgl.stats.programs).toBe(4); // Lite scene + vector + text + terrain
+
+    // Register a custom palette
+    webglRenderer.features.tilePalettes?.register('custom-palette', ['#00000000', '#112233', '#445566']);
+
+    // Draw frame containing both chunks
+    webglRenderer.draw(frame([chunk1, chunk2]));
+
+    // tileChunkProgram was compiled on-demand: program count incremented by 1
+    expect(webgl.stats.programs).toBe(5);
+
+    // Exactly 1 instanced draw call per chunk (2 chunks = 2 draw calls)
+    expect(webgl.stats.instancedDraws).toHaveLength(2);
+    for (const draw of webgl.stats.instancedDraws) {
+      const parts = draw.split(':');
+      expect(Number(parts[2])).toBe(4); // 4 vertices (quad strip)
+      expect(Number(parts[3])).toBe(1024); // 1024 tile instances
+    }
+
+    webglRenderer.dispose();
+    expect(webgl.stats.programs).toBe(0);
+
+    // 2. Canvas 2D fallback rendering
+    const canvas = fake2d();
+    const canvasRenderer = new CanvasRenderer(canvas.canvas);
+    canvasRenderer.features.tilePalettes?.register('custom-palette', ['#00000000', '#112233', '#445566']);
+    canvasRenderer.draw(frame([chunk1, chunk2]));
+
+    // Verifies fillRect was called for non-zero tiles
+    expect(canvas.calls.some(c => c.startsWith('fillRect('))).toBe(true);
+    canvasRenderer.dispose();
   });
 });

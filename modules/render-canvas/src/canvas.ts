@@ -1,4 +1,4 @@
-import { trajectoryMarkers, VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
+import { DEFAULT_TILE_PALETTE_HEX, trajectoryMarkers, VEHICLE_MARKER, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -343,6 +343,7 @@ export function drawPlanetHorizon(
 
 export class CanvasRenderer implements Renderer {
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly tilePalettes = new Map<string, readonly string[]>();
   /** No shader packs. Reading one pixel back makes the browser finish deferred drawing. */
   readonly features: RendererFeatures;
   private disposed = false;
@@ -352,7 +353,17 @@ export class CanvasRenderer implements Renderer {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Canvas 2D is unavailable in this browser.');
     this.ctx = ctx;
-    this.features = Object.freeze({ flush: () => { ctx.getImageData(0, 0, 1, 1); } });
+    const renderer = this;
+    this.features = Object.freeze({
+      flush: () => { ctx.getImageData(0, 0, 1, 1); },
+      tilePalettes: Object.freeze({
+        register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
+      }),
+    });
+  }
+  registerTilePalette(paletteId: string, colors: readonly string[]): void {
+    if (this.disposed) throw new Error('Renderer has been disposed.');
+    this.tilePalettes.set(paletteId, colors);
   }
   dispose(): void { this.disposed = true; }
   drawScene(frame: SceneFrame, timer?: RenderTimer): void { this.draw(sceneFrame(frame), timer); }
@@ -570,10 +581,38 @@ export class CanvasRenderer implements Renderer {
       ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#95a9b5'; ctx.textAlign = 'right';
       ctx.fillText(`${metres} m`, width - 24, height - 36);
     }
-    if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
+    if (frame.overlays?.length) {
+      this.drawTileChunks(frame.overlays, camera, width, height);
+      this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
+    }
     const encounters = trajectoryMarkers(frame);
     if (encounters.length) this.drawOverlays(screenOverlays(encounters, camera, width, height));
     timer?.lap('overlay');
+  }
+
+  private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {
+    const toScreen = createProjector(camera, width, height);
+    const { ctx } = this;
+    for (const p of overlays) {
+      if (p.kind !== 'tile-chunk') continue;
+      const { origin, tileMetres, tiles } = p;
+      const stepScreen = tileMetres * camera.scale;
+      const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? DEFAULT_TILE_PALETTE_HEX;
+      for (let y = 0; y < 32; y++) {
+        for (let x = 0; x < 32; x++) {
+          const idx = (y << 5) | x;
+          const tileId = tiles[idx] ?? 0;
+          if (tileId === 0) continue;
+          const worldPos = { x: origin.x + x * tileMetres, y: origin.y + y * tileMetres };
+          const screenPos = toScreen(worldPos);
+          if (screenPos.x < -stepScreen || screenPos.x > width + stepScreen ||
+              screenPos.y < -stepScreen || screenPos.y > height + stepScreen) continue;
+          const hex = palette[tileId] ?? '#888888';
+          ctx.fillStyle = hex;
+          ctx.fillRect(screenPos.x, screenPos.y - stepScreen, Math.ceil(stepScreen), Math.ceil(stepScreen));
+        }
+      }
+    }
   }
 
   /** Presentation layers above the built-in scene: every shape in order, then every label in

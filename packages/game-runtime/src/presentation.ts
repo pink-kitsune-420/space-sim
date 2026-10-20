@@ -79,11 +79,40 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
     const kind = (value as { kind?: unknown } | null)?.kind;
     const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed', 'fill']
       : kind === 'circle' ? ['kind', 'space', 'center', 'radius', 'color', 'width', 'fill']
-      : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align'] : undefined;
-    if (!fields) throw new Error(`${label}: kind must be line, circle or text`);
+      : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align']
+      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'light', 'paletteId', 'color'] : undefined;
+    if (!fields) throw new Error(`${label}: kind must be line, circle, text or tile-chunk`);
     const p = record(value, fields, label);
     if (p.space !== 'world' && p.space !== 'screen') throw new Error(`${label}: space must be world or screen`);
     const space = p.space;
+    if (kind === 'tile-chunk') {
+      if (space !== 'world') throw new Error(`${label}: tile-chunk space must be world`);
+      if (typeof p.tileMetres !== 'number' || !(p.tileMetres > 0 && Number.isFinite(p.tileMetres))) {
+        throw new Error(`${label}: tileMetres must be positive and finite`);
+      }
+      if (p.size !== 32) throw new Error(`${label}: size must be 32`);
+      if (!(p.tiles instanceof Uint16Array) || p.tiles.length !== 1024) {
+        throw new Error(`${label}: tiles must be a Uint16Array of length 1024`);
+      }
+      if (p.light !== undefined && (!(p.light instanceof Uint8Array) || p.light.length !== 1024)) {
+        throw new Error(`${label}: light must be a Uint8Array of length 1024`);
+      }
+      if (p.paletteId !== undefined && (typeof p.paletteId !== 'string' || !p.paletteId.length || p.paletteId.length > 64)) {
+        throw new Error(`${label}: paletteId must be 1–64 characters`);
+      }
+      const c = p.color !== undefined ? color(p.color, label) : undefined;
+      return Object.freeze({
+        kind,
+        space: 'world',
+        origin: point(p.origin, 'world', `${label} origin`),
+        tileMetres: p.tileMetres,
+        size: 32 as const,
+        tiles: p.tiles,
+        ...(p.light !== undefined ? { light: p.light } : {}),
+        ...(p.paletteId !== undefined ? { paletteId: p.paletteId } : {}),
+        ...(c !== undefined ? { color: c } : {}),
+      });
+    }
     const c = color(p.color, label);
     if (kind === 'line') {
       if (!Array.isArray(p.points) || p.points.length < 2) throw new Error(`${label}: lines need at least two points`);

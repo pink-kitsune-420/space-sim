@@ -230,3 +230,55 @@ export function compileOverlayTextProgram(gl: WebGL2RenderingContext): WebGLProg
       out vec4 fragColor;
       void main() { fragColor = vec4(u_color.rgb, u_color.a * texture(u_tex, v_uv).a); }`, 'Overlay text');
 }
+
+/** Private instanced 32x32 tile chunk pass. Bypasses per-primitive overhead for dense terrain. */
+export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgram {
+  return privateProgram(gl, `#version 300 es
+    precision highp float;
+
+    layout(location=0) in vec2 a_quad_pos;
+    layout(location=1) in uint a_tile_id;
+    layout(location=2) in uint a_tile_light;
+
+    uniform vec2 u_resolution;
+    uniform vec2 u_camera_offset;
+    uniform float u_camera_scale;
+    uniform float u_camera_rotation;
+    uniform float u_tile_metres;
+    uniform sampler2D u_palette;
+
+    out vec4 v_color;
+
+    void main() {
+      if (a_tile_id == 0u) {
+        gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
+        v_color = vec4(0.0);
+        return;
+      }
+
+      int instance = gl_InstanceID;
+      float lx = float(instance & 31);
+      float ly = float(instance >> 5);
+
+      vec2 local_pos = u_camera_offset + (vec2(lx, ly) + a_quad_pos) * u_tile_metres;
+      float c = cos(u_camera_rotation);
+      float s = sin(u_camera_rotation);
+      vec2 rotated = vec2(local_pos.x * c - local_pos.y * s, local_pos.x * s + local_pos.y * c);
+
+      vec2 clip = rotated * u_camera_scale * 2.0 / u_resolution;
+      gl_Position = vec4(clip.x, clip.y, 0.0, 1.0);
+
+      vec4 base_color = texelFetch(u_palette, ivec2(int(a_tile_id), 0), 0);
+      float light_val = float(a_tile_light);
+      float light_factor = light_val > 15.0 ? (light_val / 255.0) : (0.2 + 0.8 * (light_val / 15.0));
+      v_color = vec4(base_color.rgb * light_factor, base_color.a);
+    }`, `#version 300 es
+      precision highp float;
+      in vec4 v_color;
+      out vec4 fragColor;
+      void main() {
+        if (v_color.a <= 0.0) discard;
+        fragColor = v_color;
+      }`, 'Tile chunk');
+}
+

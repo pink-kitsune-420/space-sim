@@ -124,6 +124,40 @@ describe('presentation hook output', () => {
     ];
     for (const value of bad) expect(() => validateOverlay(value)).toThrow();
   });
+  it('accepts and validates 32x32 instanced tile-chunk primitives', () => {
+    const tiles = new Uint16Array(1024);
+    tiles[0] = 1; tiles[100] = 15;
+    const light = new Uint8Array(1024).fill(15);
+    const validChunk = {
+      kind: 'tile-chunk' as const,
+      space: 'world' as const,
+      origin: { x: 100, y: 200 },
+      tileMetres: 0.5,
+      size: 32 as const,
+      tiles,
+      light,
+      paletteId: 'spacelab-terrain',
+    };
+    const out = validateOverlay([validChunk]);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toEqual(validChunk);
+    expect(Object.isFrozen(out[0])).toBe(true);
+    expect((out[0] as typeof validChunk).tiles).toBe(tiles);
+
+    const badChunks: unknown[] = [
+      { kind: 'tile-chunk', space: 'screen', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles },
+      { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: -1, size: 32, tiles },
+      { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 16, tiles },
+      { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles: new Uint16Array(512) },
+      { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles, light: new Uint8Array(512) },
+      { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles, paletteId: '' },
+      { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles, paletteId: 'x'.repeat(65) },
+      { kind: 'tile-chunk', space: 'world', origin: { x: NaN, y: 0 }, tileMetres: 0.5, size: 32, tiles },
+    ];
+    for (const chunk of badChunks) {
+      expect(() => validateOverlay([chunk])).toThrow();
+    }
+  });
   it('accepts bounded panel rows and finite camera targets', () => {
     expect(validatePanelRows([{ label: 'Speed', value: '12.0', unit: 'm/s' }, { label: 'Ship', value: '' }])).toHaveLength(2);
     for (const rows of [Array.from({ length: 17 }, () => ({ label: 'A', value: 'B' })), [{ label: '', value: 'x' }],

@@ -1,4 +1,4 @@
-import { trajectoryMarkers, VEHICLE_MARKER, type VehicleAppearance } from '@space-sim/game-api';
+import { trajectoryMarkers, VEHICLE_MARKER, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import { Effects } from './effects';
 import type { State, Vec, SceneFrame, RenderMaterial, RenderPostEffect } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
@@ -7,14 +7,16 @@ import {
   createProjector, hermiteControls, pathFromShip
 } from './frame';
 import { ShaderStyle, validateShaderPack, type ShaderPack } from './shaders';
-import { compileOverlayTextProgram, compileShaderPack, compileTerrainProgram, liteShaderPack, startProgram,
+import { compileOverlayTextProgram, compileShaderPack, compileTerrainProgram, compileTileChunkProgram, liteShaderPack, startProgram,
   type PendingProgram, type ShaderPrograms } from './shader-program';
 import { overlayRgba, screenOverlays, type ScreenOverlay } from './overlay';
 import { terrainGeometry, terrainFaceColor, type TerrainGeometry } from './terrain';
 import { bodyUniformLocations, parseHex, setBodyUniforms, type BodyUniformLocations } from './scene-bodies';
 import { createNoiseTexture } from './noise-texture';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
-import { hexToRgb01, themeBackdropToShaderIndex, themeGridToShaderIndex } from './palette';
+import { createTilePaletteTexture, hexToRgb01, themeBackdropToShaderIndex, themeGridToShaderIndex } from './palette';
+
+const DEFAULT_FULL_LIGHT = new Uint8Array(1024).fill(255);
 
 /** Unit circle vertex tables, built once per segment count. */
 const UNIT_CIRCLES = new Map<number, Float64Array>();
@@ -131,6 +133,22 @@ export class WebGLRenderer implements Renderer {
   /** Private overlay text pass; compiled on the first module label. */
   private overlayText?: { readonly program: WebGLProgram; readonly resolution: WebGLUniformLocation | null;
     readonly color: WebGLUniformLocation | null; readonly texture: WebGLUniformLocation | null };
+  /** Private instanced tile chunk pass; compiled on the first tile-chunk primitive. */
+  private tileChunkState?: {
+    readonly program: WebGLProgram;
+    readonly vao: WebGLVertexArrayObject;
+    readonly quadBuffer: WebGLBuffer;
+    readonly tilesBuffer: WebGLBuffer;
+    readonly lightBuffer: WebGLBuffer;
+    readonly resolutionLoc: WebGLUniformLocation | null;
+    readonly cameraOffsetLoc: WebGLUniformLocation | null;
+    readonly cameraScaleLoc: WebGLUniformLocation | null;
+    readonly cameraRotationLoc: WebGLUniformLocation | null;
+    readonly tileMetresLoc: WebGLUniformLocation | null;
+    readonly paletteLoc: WebGLUniformLocation | null;
+    readonly defaultPalette: WebGLTexture;
+  };
+  private readonly tilePalettes = new Map<string, WebGLTexture>();
   /** Shader packs are this renderer's optional feature; callers never check its class. */
   readonly features: RendererFeatures;
 
@@ -148,10 +166,16 @@ export class WebGLRenderer implements Renderer {
     this.activeShaders = defaults;
     const shaders = defaults;
     const renderer = this;
-    this.features = Object.freeze({ effects: Object.freeze({ configure: (materials: readonly RenderMaterial[], post: readonly RenderPostEffect[]) => renderer.configureEffects(materials, post) }), shaders: Object.freeze({
-      get pack(): ShaderPack { return renderer.activeShaders; },
-      set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
-    }) });
+    this.features = Object.freeze({
+      effects: Object.freeze({ configure: (materials: readonly RenderMaterial[], post: readonly RenderPostEffect[]) => renderer.configureEffects(materials, post) }),
+      shaders: Object.freeze({
+        get pack(): ShaderPack { return renderer.activeShaders; },
+        set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
+      }),
+      tilePalettes: Object.freeze({
+        register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
+      }),
+    });
     const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false });
     if (!gl) throw new Error('WebGL 2 is unavailable in this browser.');
     this.gl = gl;
@@ -332,6 +356,17 @@ export class WebGLRenderer implements Renderer {
     for (const program of Object.values(this.programs)) gl.deleteProgram(program);
     gl.deleteProgram(this.terrainProgram);
     if (this.overlayText) gl.deleteProgram(this.overlayText.program);
+    if (this.tileChunkState) {
+      gl.deleteProgram(this.tileChunkState.program);
+      gl.deleteVertexArray(this.tileChunkState.vao);
+      gl.deleteBuffer(this.tileChunkState.quadBuffer);
+      gl.deleteBuffer(this.tileChunkState.tilesBuffer);
+      gl.deleteBuffer(this.tileChunkState.lightBuffer);
+      gl.deleteTexture(this.tileChunkState.defaultPalette);
+      this.tileChunkState = undefined;
+    }
+    for (const tex of this.tilePalettes.values()) gl.deleteTexture(tex);
+    this.tilePalettes.clear();
     for (const vao of [this.quadVao, this.vectorVao, this.textVao, this.terrainVao, this.colorVao]) gl.deleteVertexArray(vao);
     for (const buffer of [this.quadBuffer, this.vectorBuffer, this.textBuffer, this.terrainBuffer, this.colorBuffer]) gl.deleteBuffer(buffer);
     for (const entry of this.labelCache.values()) gl.deleteTexture(entry.texture);
@@ -549,7 +584,10 @@ export class WebGLRenderer implements Renderer {
       this.drawLabel(`${metres} m`, width - 24, height - 36, ShaderStyle.telemetryLabel, 'right', dpr);
     }
     if (frame.showScale === false) this.beginTextPass(width, height);
-    if (frame.overlays?.length) this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
+    if (frame.overlays?.length) {
+      this.drawTileChunks(frame.overlays, camera, width, height);
+      this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
+    }
     const encounters = trajectoryMarkers(frame);
     if (encounters.length) this.drawOverlays(screenOverlays(encounters, camera, width, height), width, height, dpr);
     timer?.lap('overlay');
@@ -997,6 +1035,125 @@ export class WebGLRenderer implements Renderer {
     const program = compileOverlayTextProgram(gl);
     return { program, resolution: gl.getUniformLocation(program, 'u_resolution'),
       color: gl.getUniformLocation(program, 'u_color'), texture: gl.getUniformLocation(program, 'u_tex') };
+  }
+
+  registerTilePalette(paletteId: string, colors: readonly string[]): void {
+    if (this.disposed) throw new Error('Renderer is disposed.');
+    const state = this.ensureTileChunkResources();
+    const existing = this.tilePalettes.get(paletteId);
+    if (existing && existing !== state.defaultPalette) {
+      this.gl.deleteTexture(existing);
+    }
+    const tex = createTilePaletteTexture(this.gl, colors);
+    this.tilePalettes.set(paletteId, tex);
+  }
+
+  private ensureTileChunkResources(): NonNullable<typeof this.tileChunkState> {
+    if (this.tileChunkState) return this.tileChunkState;
+    const { gl } = this;
+    const program = compileTileChunkProgram(gl);
+    const resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
+    const cameraOffsetLoc = gl.getUniformLocation(program, 'u_camera_offset');
+    const cameraScaleLoc = gl.getUniformLocation(program, 'u_camera_scale');
+    const cameraRotationLoc = gl.getUniformLocation(program, 'u_camera_rotation');
+    const tileMetresLoc = gl.getUniformLocation(program, 'u_tile_metres');
+    const paletteLoc = gl.getUniformLocation(program, 'u_palette');
+
+    const vao = gl.createVertexArray()!;
+    gl.bindVertexArray(vao);
+
+    // Quad geometry (unit quad 0..1 for TRIANGLE_STRIP)
+    const quadBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribDivisor(0, 0);
+
+    // Instance tile IDs buffer (1024 uint16)
+    const tilesBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, tilesBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, 1024 * 2, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(1);
+    gl.vertexAttribIPointer(1, 1, gl.UNSIGNED_SHORT, 0, 0);
+    gl.vertexAttribDivisor(1, 1);
+
+    // Instance tile light buffer (1024 uint8)
+    const lightBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, lightBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, 1024, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(2);
+    gl.vertexAttribIPointer(2, 1, gl.UNSIGNED_BYTE, 0, 0);
+    gl.vertexAttribDivisor(2, 1);
+
+    gl.bindVertexArray(null);
+
+    const defaultPalette = createTilePaletteTexture(gl);
+    this.tilePalettes.set('default', defaultPalette);
+
+    const state = {
+      program,
+      vao,
+      quadBuffer,
+      tilesBuffer,
+      lightBuffer,
+      resolutionLoc,
+      cameraOffsetLoc,
+      cameraScaleLoc,
+      cameraRotationLoc,
+      tileMetresLoc,
+      paletteLoc,
+      defaultPalette,
+    };
+    this.tileChunkState = state;
+    return state;
+  }
+
+  private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {
+    let hasChunks = false;
+    for (const p of overlays) {
+      if (p.kind === 'tile-chunk') { hasChunks = true; break; }
+    }
+    if (!hasChunks) return;
+
+    const state = this.ensureTileChunkResources();
+    const { gl } = this;
+
+    gl.useProgram(state.program);
+    gl.bindVertexArray(state.vao);
+
+    gl.uniform2f(state.resolutionLoc, width, height);
+    gl.uniform1f(state.cameraScaleLoc, camera.scale);
+    gl.uniform1f(state.cameraRotationLoc, camera.rotation);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1i(state.paletteLoc, 0);
+
+    let boundPaletteId = '';
+
+    for (const p of overlays) {
+      if (p.kind !== 'tile-chunk') continue;
+
+      const paletteId = p.paletteId ?? 'default';
+      if (paletteId !== boundPaletteId) {
+        const tex = this.tilePalettes.get(paletteId) ?? state.defaultPalette;
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        boundPaletteId = paletteId;
+      }
+
+      gl.uniform2f(state.cameraOffsetLoc, p.origin.x - camera.center.x, p.origin.y - camera.center.y);
+      gl.uniform1f(state.tileMetresLoc, p.tileMetres);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, state.tilesBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.tiles);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, state.lightBuffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? DEFAULT_FULL_LIGHT);
+
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 1024);
+    }
+
+    gl.bindVertexArray(null);
   }
 
   private ensureCapacity(floatCount: number): Float32Array {
