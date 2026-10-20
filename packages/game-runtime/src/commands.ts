@@ -1,5 +1,5 @@
 /** Host-only (`packages/game-runtime`): pilot command capture and argument/effect validation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules register commands with `contributeCommand` and hosts run them through `CORE_COMMANDS`. */
-import type { CommandEffect, CommandExtension, CommandHook, CommandParameter, ModuleValue, Ship } from '../../game-api/src/index';
+import type { CommandEffect, CommandExtension, CommandHook, CommandModalContext, CommandParameter, ModuleValue, Ship } from '../../game-api/src/index';
 import { motionCopy, validateModuleState } from './motion';
 
 /** Most `contributeCommand` hooks per module (`32`; `Module <id>: at most 32 commands`). Host-only (`packages/game-runtime`). */
@@ -34,9 +34,12 @@ export function captureCommand(moduleId: string, version: string, raw: CommandHo
   if (!hook || typeof hook !== 'object') throw new Error(`Module ${moduleId}: invalid command`);
   if (typeof hook.name !== 'string' || !NAME.test(hook.name)) throw new Error(`Module ${moduleId} command: name must be 1–32 lowercase letters, digits or hyphens`);
   const id = `${moduleId}/${hook.name}`;
-  if (Object.keys(hook).some(k => !['name', 'label', 'key', 'parameters', 'resolve'].includes(k))) throw new Error(`Command ${id}: unknown field`);
+  if (Object.keys(hook).some(k => !['name', 'label', 'key', 'context', 'parameters', 'resolve'].includes(k))) throw new Error(`Command ${id}: unknown field`);
   if (typeof hook.label !== 'string' || !hook.label.trim() || hook.label.length > 32) throw new Error(`Command ${id}: label must contain 1–32 characters`);
   if (hook.key !== undefined && (typeof hook.key !== 'string' || !KEY.test(hook.key))) throw new Error(`Command ${id}: key must be KeyA–KeyZ or Digit0–Digit9`);
+  if (hook.context !== undefined && (typeof hook.context !== 'string' || !['flight', 'eva', 'editor', 'all'].includes(hook.context))) {
+    throw new Error(`Command ${id}: context must be flight, eva, editor or all`);
+  }
   if (typeof hook.resolve !== 'function') throw new Error(`Command ${id}: resolve must be a function`);
   const declared = hook.parameters ?? {};
   if (!declared || typeof declared !== 'object' || Array.isArray(declared)) throw new Error(`Command ${id}: parameters must be an object`);
@@ -45,21 +48,35 @@ export function captureCommand(moduleId: string, version: string, raw: CommandHo
   const parameters: Record<string, CommandParameter> = Object.create(null);
   for (const [key, value] of entries) parameters[key] = parameter(id, key, value);
   return Object.freeze({ moduleId, version, id, hook: Object.freeze({ name: hook.name, label: hook.label.trim(),
-    ...(hook.key ? { key: hook.key as string } : {}), parameters: Object.freeze(parameters),
+    ...(hook.key ? { key: hook.key as string } : {}),
+    ...(hook.context ? { context: hook.context as CommandModalContext } : {}),
+    parameters: Object.freeze(parameters),
     resolve: hook.resolve as CommandHook['resolve'] }) });
 }
 
 /** A world's command table: unique IDs and keys, in resolved module order. */
 export function captureCommands(commands: readonly CommandExtension[]): readonly CommandExtension[] {
   if (commands.length > 1024) throw new Error('Command table exceeds 1024 commands');
-  const ids = new Set<string>(), keys = new Map<string, string>();
+  const ids = new Set<string>(), keys = new Map<string, { id: string; context: string }[]>();
   return Object.freeze(commands.map(c => {
     const command = captureCommand(c.moduleId, c.version, c.hook);
     if (command.id !== c.id || ids.has(command.id)) throw new Error(`Command ${c.id}: invalid or duplicate ID`);
     const key = command.hook.key;
-    if (key && keys.has(key)) throw new Error(`Command ${command.id}: key ${key} is already bound to ${keys.get(key)}`);
+    const ctx = command.hook.context ?? 'flight';
+    if (key) {
+      const existing = keys.get(key);
+      if (existing) {
+        for (const prev of existing) {
+          if (prev.context === 'all' || ctx === 'all' || prev.context === ctx) {
+            throw new Error(`Command ${command.id}: key ${key} is already bound to ${prev.id}`);
+          }
+        }
+        existing.push({ id: command.id, context: ctx });
+      } else {
+        keys.set(key, [{ id: command.id, context: ctx }]);
+      }
+    }
     ids.add(command.id);
-    if (key) keys.set(key, command.id);
     return command;
   }));
 }

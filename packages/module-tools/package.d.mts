@@ -6,6 +6,12 @@ import type { CodeArtifact } from '../game-runtime/src/artifact';
 import type { InspectedModule, ModulePackageDescriptor, ShippedPackageOptions } from '../game-library/src/portable';
 import type { InspectedGame } from '../game-library/src/game-package';
 import type { PackageFiles } from '../game-library/src/zip';
+export const RESERVED_KEYS: ReadonlySet<string>;
+export const EVA_RESERVED_KEYS: ReadonlySet<string>;
+export const EDITOR_RESERVED_KEYS: ReadonlySet<string>;
+export function validateCommandKeyCollisions(moduleId: string, commands: readonly unknown[]): void;
+export function validatePackage<T = unknown>(pkg: T): T;
+
 /**
  * Loads the package contracts (ZIP codec, descriptor, data, save and game inspection, integrity
  * and limits) by bundling `packages/game-library/src/tooling.ts` in memory once per process.

@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6abd79e928d54802
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest aed599e6f419b974
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -2793,6 +2793,23 @@ Applied to the commanded ship between fixed steps, through the same world operat
     }
 Used by: spacelab.session-flight.
 
+## CommandModalContext
+Modal context where a command shortcut is active. Default is 'flight'.
+    export type CommandModalContext = 'flight' | 'eva' | 'editor' | 'all';
+Used by: host or creator modules (not imported by shipped modules).
+
+## CommandDefinition
+Static module command definition declared in a module manifest.
+    export interface CommandDefinition {
+      readonly id: string;
+      readonly label: string;
+      readonly key?: string;
+      /** Modal context in which this shortcut is active. Default is 'flight'. */
+      readonly context?: CommandModalContext;
+      readonly description?: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## CommandHook
 An authoritative request a pilot can issue. Only the authoritative host runs `resolve`: after checking the player owns the ship and the arguments match `parameters`. It is synchronous and pure (no wall clock, IO, randomness or hidden state). A thrown error or invalid effect refuses the command with module/command diagnostics and changes nothing. Clients receive the result through ordinary snapshots; they never run `resolve`.
     export interface CommandHook {
@@ -2803,6 +2820,8 @@ An authoritative request a pilot can issue. Only the authoritative host runs `re
       /** Suggested binding as a KeyboardEvent.code: `KeyA`–`KeyZ` or `Digit0`–`Digit9`.
        * Applications reject bindings that collide with their own controls. */
       readonly key?: string;
+      /** Modal context where a command shortcut is active. Default is 'flight'. */
+      readonly context?: CommandModalContext;
       /** At most eight numeric parameters. Missing arguments take their defaults. */
       readonly parameters?: Readonly<Record<string, CommandParameter>>;
       resolve(input: CommandInput): CommandEffect;
@@ -4893,6 +4912,8 @@ Legacy v1 module manifest (`space-sim-module/1`) targeting `space-sim-game-api/1
       readonly before: readonly string[];
       readonly after: readonly string[];
       readonly settings: Readonly<Record<string, NumberSetting>>;
+      /** Static contributed commands, validated for key collisions at packaging time. */
+      readonly commands?: readonly CommandDefinition[];
       readonly license: string;
     }
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.mod-menu.
@@ -5041,6 +5062,7 @@ New metadata has a separate parser and lock. Legacy manifests/locks keep their i
       readonly afterIfPresent?: readonly string[];
       /** Numeric settings shown in module configuration; values reach `context.settings`. */
       readonly settings: Readonly<Record<string, NumberSetting>>;
+      readonly commands?: readonly CommandDefinition[];
       readonly license: string;
     }
 Used by: spacelab.mod-menu.

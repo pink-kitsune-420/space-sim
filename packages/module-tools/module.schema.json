@@ -217,6 +217,22 @@
             }
           }
         },
+        "commands": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "type": "string", "maxLength": 64 },
+              "label": { "type": "string", "minLength": 1, "maxLength": 32 },
+              "key": { "type": "string" },
+              "context": { "enum": ["flight", "eva", "editor", "all"] },
+              "description": { "type": "string", "maxLength": 256 }
+            }
+          }
+        },
         "license": {
           "type": "string",
           "minLength": 1,

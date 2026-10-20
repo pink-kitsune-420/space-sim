@@ -1,7 +1,7 @@
 import type { PresetDefinition, UniverseDefinition, VehicleDefaults } from './universe';
 import type { WorldRuleHook } from './rules';
 import type { ModuleValue, ForceHook } from './motion';
-import type { CommandHook } from './commands';
+import type { CommandDefinition, CommandHook } from './commands';
 import type { CameraHook, LayerHook, PanelHook } from './presentation';
 
 /** Public module registration and data contracts. */
@@ -46,6 +46,8 @@ export interface ModuleManifest {
   readonly before: readonly string[];
   readonly after: readonly string[];
   readonly settings: Readonly<Record<string, NumberSetting>>;
+  /** Static contributed commands, validated for key collisions at packaging time. */
+  readonly commands?: readonly CommandDefinition[];
   readonly license: string;
 }
 /** Legacy v1 profile (`space-sim-profile/1`) selecting enabled modules, slot providers, and numeric setting overrides. */

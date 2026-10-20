@@ -8,6 +8,76 @@ import { fileURLToPath } from 'node:url';
 import { buildModule } from './author.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+export const RESERVED_KEYS = new Set([
+  'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space',
+  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyX', 'KeyZ', 'KeyR',
+  'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight',
+  'KeyP', 'KeyM', 'KeyC', 'KeyH', 'KeyF', 'KeyT', 'KeyL', 'Equal', 'NumpadAdd', 'Minus', 'NumpadSubtract',
+  'Backquote', 'BracketLeft', 'BracketRight', 'Backslash', 'Backspace', 'Comma', 'Period', 'Slash',
+  'Tab', 'KeyN', 'KeyB', 'Escape'
+]);
+
+export const EVA_RESERVED_KEYS = new Set([
+  'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space'
+]);
+
+export const EDITOR_RESERVED_KEYS = new Set([
+  'KeyZ', 'KeyY'
+]);
+
+export function validateCommandKeyCollisions(moduleId, commands) {
+  if (!commands || !Array.isArray(commands)) return;
+  for (const cmd of commands) {
+    if (!cmd || !cmd.key) continue;
+    const ctx = cmd.context ?? 'flight';
+    if (ctx === 'flight' || ctx === 'all') {
+      if (RESERVED_KEYS.has(cmd.key)) {
+        throw new Error(`Package validation error in module ${moduleId}: command "${cmd.id}" binds reserved key "${cmd.key}". Either change the shortcut or specify a non-flight modal context (e.g. context: 'eva').`);
+      }
+    } else if (ctx === 'eva') {
+      if (EVA_RESERVED_KEYS.has(cmd.key)) {
+        throw new Error(`Package validation error in module ${moduleId}: command "${cmd.id}" binds reserved key "${cmd.key}". Either change the shortcut or specify a non-flight modal context (e.g. context: 'eva').`);
+      }
+    } else if (ctx === 'editor') {
+      if (EDITOR_RESERVED_KEYS.has(cmd.key)) {
+        throw new Error(`Package validation error in module ${moduleId}: command "${cmd.id}" binds reserved key "${cmd.key}". Either change the shortcut or specify a non-flight modal context (e.g. context: 'eva').`);
+      }
+    }
+  }
+}
+
+export function validatePackage(pkg) {
+  if (!pkg || typeof pkg !== 'object') throw new Error('Package must be an object');
+  if (pkg.manifest) {
+    const moduleId = pkg.manifest.id ?? 'unknown';
+    if (pkg.manifest.commands) {
+      validateCommandKeyCollisions(moduleId, pkg.manifest.commands);
+    }
+  }
+  if (Array.isArray(pkg.code)) {
+    for (const plugin of pkg.code) {
+      if (plugin?.manifest?.commands) {
+        validateCommandKeyCollisions(plugin.manifest.id ?? 'unknown', plugin.manifest.commands);
+      }
+    }
+  }
+  if (Array.isArray(pkg.plugins)) {
+    for (const plugin of pkg.plugins) {
+      if (plugin?.manifest?.commands) {
+        validateCommandKeyCollisions(plugin.manifest.id ?? 'unknown', plugin.manifest.commands);
+      }
+    }
+  }
+  if (Array.isArray(pkg.bundle?.modules)) {
+    for (const module of pkg.bundle.modules) {
+      if (module?.manifest?.commands) {
+        validateCommandKeyCollisions(module.manifest.id ?? 'unknown', module.manifest.commands);
+      }
+    }
+  }
+  return pkg;
+}
+
 let contractPromise;
 /** Package contracts, bundled in memory from game-library's tooling entry once per process. */
 export async function packageContracts() {

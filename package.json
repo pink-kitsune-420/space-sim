@@ -35,6 +35,7 @@
     "module:reference": "node packages/module-tools/reference.mjs",
     "module:build": "node packages/module-tools/package.mjs build",
     "module:validate": "node packages/module-tools/package.mjs validate",
+    "bench:module": "node packages/module-tools/benchmark.mjs",
     "measure:code-modules": "node scripts/measure_code_modules.mjs",
     "module:new": "node packages/module-tools/package.mjs new",
     "module:fork": "node packages/module-tools/package.mjs fork",

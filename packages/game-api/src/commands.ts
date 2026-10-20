@@ -28,6 +28,19 @@ export interface CommandEffect {
   readonly throttle?: number;
   readonly moduleEvent?: { readonly type: string; readonly payload: ModuleValue };
 }
+/** Modal context where a command shortcut is active. Default is 'flight'. */
+export type CommandModalContext = 'flight' | 'eva' | 'editor' | 'all';
+
+/** Static module command definition declared in a module manifest. */
+export interface CommandDefinition {
+  readonly id: string;
+  readonly label: string;
+  readonly key?: string;
+  /** Modal context in which this shortcut is active. Default is 'flight'. */
+  readonly context?: CommandModalContext;
+  readonly description?: string;
+}
+
 /** An authoritative request a pilot can issue. Only the authoritative host runs `resolve`:
  * after checking the player owns the ship and the arguments match `parameters`. It is
  * synchronous and pure (no wall clock, IO, randomness or hidden state). A thrown error or
@@ -41,6 +54,8 @@ export interface CommandHook {
   /** Suggested binding as a KeyboardEvent.code: `KeyA`–`KeyZ` or `Digit0`–`Digit9`.
    * Applications reject bindings that collide with their own controls. */
   readonly key?: string;
+  /** Modal context where a command shortcut is active. Default is 'flight'. */
+  readonly context?: CommandModalContext;
   /** At most eight numeric parameters. Missing arguments take their defaults. */
   readonly parameters?: Readonly<Record<string, CommandParameter>>;
   resolve(input: CommandInput): CommandEffect;

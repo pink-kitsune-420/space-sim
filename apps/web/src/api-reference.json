@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6abd79e928d54802",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest aed599e6f419b974",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6abd79e928d54802"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest aed599e6f419b974"
         },
         {
           "type": "paragraph",
@@ -7659,6 +7659,38 @@
         },
         {
           "type": "heading",
+          "text": "CommandModalContext"
+        },
+        {
+          "type": "paragraph",
+          "text": "Modal context where a command shortcut is active. Default is 'flight'."
+        },
+        {
+          "type": "code",
+          "text": "export type CommandModalContext = 'flight' | 'eva' | 'editor' | 'all';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CommandDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Static module command definition declared in a module manifest."
+        },
+        {
+          "type": "code",
+          "text": "export interface CommandDefinition {\n  readonly id: string;\n  readonly label: string;\n  readonly key?: string;\n  /** Modal context in which this shortcut is active. Default is 'flight'. */\n  readonly context?: CommandModalContext;\n  readonly description?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "CommandHook"
         },
         {
@@ -7667,7 +7699,7 @@
         },
         {
           "type": "code",
-          "text": "export interface CommandHook {\n  /** Local name; the command ID is `<module id>/<name>`. */\n  readonly name: string;\n  /** Button text. */\n  readonly label: string;\n  /** Suggested binding as a KeyboardEvent.code: `KeyA`–`KeyZ` or `Digit0`–`Digit9`.\n   * Applications reject bindings that collide with their own controls. */\n  readonly key?: string;\n  /** At most eight numeric parameters. Missing arguments take their defaults. */\n  readonly parameters?: Readonly<Record<string, CommandParameter>>;\n  resolve(input: CommandInput): CommandEffect;\n}"
+          "text": "export interface CommandHook {\n  /** Local name; the command ID is `<module id>/<name>`. */\n  readonly name: string;\n  /** Button text. */\n  readonly label: string;\n  /** Suggested binding as a KeyboardEvent.code: `KeyA`–`KeyZ` or `Digit0`–`Digit9`.\n   * Applications reject bindings that collide with their own controls. */\n  readonly key?: string;\n  /** Modal context where a command shortcut is active. Default is 'flight'. */\n  readonly context?: CommandModalContext;\n  /** At most eight numeric parameters. Missing arguments take their defaults. */\n  readonly parameters?: Readonly<Record<string, CommandParameter>>;\n  resolve(input: CommandInput): CommandEffect;\n}"
         },
         {
           "type": "paragraph",
@@ -10883,7 +10915,7 @@
         },
         {
           "type": "code",
-          "text": "export interface ModuleManifest {\n  readonly format: 'space-sim-module/1';\n  readonly apiVersion: 'space-sim-game-api/1';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly authority: 'authoritative' | 'presentation';\n  readonly environments: readonly ModuleEnvironment[];\n  /** Enabled before this module, which may use their exposed APIs. */\n  readonly dependencies: readonly ModuleDependency[];\n  /** Modules that cannot be enabled together with this one. */\n  readonly conflicts?: readonly ModuleDependency[];\n  readonly provides: readonly string[];\n  readonly requires: readonly string[];\n  readonly slots: readonly string[];\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  readonly license: string;\n}"
+          "text": "export interface ModuleManifest {\n  readonly format: 'space-sim-module/1';\n  readonly apiVersion: 'space-sim-game-api/1';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly authority: 'authoritative' | 'presentation';\n  readonly environments: readonly ModuleEnvironment[];\n  /** Enabled before this module, which may use their exposed APIs. */\n  readonly dependencies: readonly ModuleDependency[];\n  /** Modules that cannot be enabled together with this one. */\n  readonly conflicts?: readonly ModuleDependency[];\n  readonly provides: readonly string[];\n  readonly requires: readonly string[];\n  readonly slots: readonly string[];\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  /** Static contributed commands, validated for key collisions at packaging time. */\n  readonly commands?: readonly CommandDefinition[];\n  readonly license: string;\n}"
         },
         {
           "type": "paragraph",
@@ -11059,7 +11091,7 @@
         },
         {
           "type": "code",
-          "text": "export interface ManifestV2 {\n  readonly format: 'space-sim-module/2';\n  readonly apiVersion: 'space-sim-game-api/2';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly tier: ModuleTier;\n  readonly environments: readonly ModuleEnvironment[];\n  readonly dependencies: readonly ModuleReference[];\n  readonly conflicts: readonly ModuleReference[];\n  readonly provides: readonly CapabilityRef[];\n  readonly requires: readonly CapabilityNeed[];\n  /** Service slots this module can fill. A profile selects one provider per slot. */\n  readonly slots: readonly string[];\n  /** Module IDs this module must initialize before or after; both must be enabled. */\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly beforeIfPresent?: readonly string[];\n  readonly afterIfPresent?: readonly string[];\n  /** Numeric settings shown in module configuration; values reach `context.settings`. */\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  readonly license: string;\n}"
+          "text": "export interface ManifestV2 {\n  readonly format: 'space-sim-module/2';\n  readonly apiVersion: 'space-sim-game-api/2';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly tier: ModuleTier;\n  readonly environments: readonly ModuleEnvironment[];\n  readonly dependencies: readonly ModuleReference[];\n  readonly conflicts: readonly ModuleReference[];\n  readonly provides: readonly CapabilityRef[];\n  readonly requires: readonly CapabilityNeed[];\n  /** Service slots this module can fill. A profile selects one provider per slot. */\n  readonly slots: readonly string[];\n  /** Module IDs this module must initialize before or after; both must be enabled. */\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly beforeIfPresent?: readonly string[];\n  readonly afterIfPresent?: readonly string[];\n  /** Numeric settings shown in module configuration; values reach `context.settings`. */\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  readonly commands?: readonly CommandDefinition[];\n  readonly license: string;\n}"
         },
         {
           "type": "paragraph",

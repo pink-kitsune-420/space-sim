@@ -1,6 +1,7 @@
 import type { ModuleDataAdapter } from './module-data';
 import type { VehicleDefinition, VehicleAppearance } from './vehicles';
 import type { Disposable, ModuleEnvironment, ModuleInitialization, ModuleReference, NumberSetting } from './modules';
+import type { CommandDefinition } from './commands';
 import type { ActionDefinitionV2, DiscoveryProvider, GuidePage, InputSource, MaterialDefinition,
   PostEffectDefinition, TransportProvider, WindowDefinition } from './platform';
 
@@ -38,6 +39,7 @@ export interface ManifestV2 {
   readonly afterIfPresent?: readonly string[];
   /** Numeric settings shown in module configuration; values reach `context.settings`. */
   readonly settings: Readonly<Record<string, NumberSetting>>;
+  readonly commands?: readonly CommandDefinition[];
   readonly license: string;
 }
 /** Dependencies use semver ranges despite sharing the reference record shape. */

@@ -65,9 +65,28 @@ describe('command registration', () => {
     expect(() => registry.prepare(profile('test.look'), 'node')).toThrow('commands require authoritative scope');
   });
   it('rejects command keys that would take over the console before activation', () => {
-    const command = (key: string) => captureCommand('test.module', '1.0.0', { name: 'go', label: 'Go', key, resolve: () => ({ throttle: 1 }) });
+    const command = (key: string, context?: 'flight' | 'eva' | 'editor' | 'all') =>
+      captureCommand('test.module', '1.0.0', { name: 'go', label: 'Go', key, ...(context ? { context } : {}), resolve: () => ({ throttle: 1 }) });
     expect(() => checkCommandKeys([command('KeyP')])).toThrow('Module test.module command test.module/go: key P is reserved by the flight console');
     expect(() => checkCommandKeys([command('KeyV'), command('Digit1')])).not.toThrow();
+
+    // Modal contexts allow KeyX or KeyR in EVA or Editor contexts without flight console collision
+    expect(() => checkCommandKeys([command('KeyX', 'eva'), command('KeyR', 'editor')])).not.toThrow();
+  });
+  it('permits duplicate keys across distinct modal contexts but rejects within overlapping contexts', () => {
+    const hook = (name: string, key: string, context: 'flight' | 'eva' | 'editor' | 'all'): CommandHook =>
+      ({ name, label: name, key, context, resolve: () => ({ throttle: 1 }) });
+    const cFlight = captureCommand('test.flight', '1.0.0', hook('fly', 'KeyU', 'flight'));
+    const cEva = captureCommand('test.eva', '1.0.0', hook('walk', 'KeyU', 'eva'));
+    // Different contexts: succeeds
+    expect(() => captureCommands([cFlight, cEva])).not.toThrow();
+
+    // Same context or 'all' context: throws collision error
+    const cFlight2 = captureCommand('test.other', '1.0.0', hook('fly2', 'KeyU', 'flight'));
+    expect(() => captureCommands([cFlight, cFlight2])).toThrow('Command test.other/fly2: key KeyU is already bound to test.flight/fly');
+
+    const cAll = captureCommand('test.all', '1.0.0', hook('universal', 'KeyU', 'all'));
+    expect(() => captureCommands([cEva, cAll])).toThrow('Command test.all/universal: key KeyU is already bound to test.eva/walk');
   });
 });
 
@@ -339,6 +358,53 @@ describe('CommandBar key resolution', () => {
       expect(bar.byKey('KeyX')).toBe(cmd1);
       expect(bar.byKey('KeyY')).toBe(cmd1);
       expect(bar.byKey('KeyU')).toBeUndefined();
+    } finally {
+      (globalThis as unknown as { document?: unknown }).document = prevDoc;
+    }
+  });
+
+  it('filters active commands based on modal mode in CommandBar', () => {
+    const prevDoc = (globalThis as unknown as { document?: unknown }).document;
+    (globalThis as unknown as { document?: unknown }).document = {
+      createElement: () => ({ append() {}, dataset: {}, title: '', type: '', hidden: false }),
+    };
+    const container = {
+      addEventListener() {},
+      replaceChildren() {},
+      querySelectorAll: () => [],
+      hidden: false,
+    } as unknown as HTMLElement;
+    const bar = new CommandBar(container, () => {});
+    const cmdFlight = captureCommand('test.m', '1.0.0', { name: 'f', label: 'Flight', key: 'KeyF', context: 'flight', resolve: () => ({ throttle: 1 }) });
+    const cmdEva = captureCommand('test.m', '1.0.0', { name: 'e', label: 'EVA', key: 'KeyE', context: 'eva', resolve: () => ({ throttle: 1 }) });
+    const cmdAll = captureCommand('test.m', '1.0.0', { name: 'a', label: 'All', key: 'KeyA', context: 'all', resolve: () => ({ throttle: 1 }) });
+
+    try {
+      bar.sync([cmdFlight, cmdEva, cmdAll]);
+      // Default mode is flight
+      expect(bar.getMode()).toBe('flight');
+      expect(bar.isCommandActive(cmdFlight)).toBe(true);
+      expect(bar.isCommandActive(cmdEva)).toBe(false);
+      expect(bar.isCommandActive(cmdAll)).toBe(true);
+      expect(bar.byKey('KeyF')).toBe(cmdFlight);
+      expect(bar.byKey('KeyE')).toBeUndefined();
+      expect(bar.byKey('KeyA')).toBe(cmdAll);
+
+      // Switch to eva mode
+      bar.setMode('eva');
+      expect(bar.getMode()).toBe('eva');
+      expect(bar.isCommandActive(cmdFlight)).toBe(false);
+      expect(bar.isCommandActive(cmdEva)).toBe(true);
+      expect(bar.isCommandActive(cmdAll)).toBe(true);
+      expect(bar.byKey('KeyF')).toBeUndefined();
+      expect(bar.byKey('KeyE')).toBe(cmdEva);
+      expect(bar.byKey('KeyA')).toBe(cmdAll);
+
+      // Landed or flying player status switches to flight mode
+      bar.setMode('landed');
+      expect(bar.getMode()).toBe('flight');
+      expect(bar.byKey('KeyF')).toBe(cmdFlight);
+      expect(bar.byKey('KeyE')).toBeUndefined();
     } finally {
       (globalThis as unknown as { document?: unknown }).document = prevDoc;
     }

@@ -1,5 +1,5 @@
 /** Host-only (`packages/game-runtime`): v1 manifest and profile validation and shared field checks. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors check manifests with `npm run module:validate`. */
-import type { ModuleDependency, ModuleManifest, ModuleProfile, ModuleReference, NumberSetting } from '../../game-api/src/index';
+import type { CommandDefinition, CommandModalContext, ModuleDependency, ModuleManifest, ModuleProfile, ModuleReference, NumberSetting } from '../../game-api/src/index';
 import { validRange } from './semver';
 
 /** Returns `raw` as a record when it is a non-array object, otherwise throws `<label>: expected an object`. Host-only (`packages/game-runtime`). */
@@ -70,7 +70,7 @@ export function ranges(raw: unknown, label: string): ModuleDependency[] {
 export function validateManifest(raw: unknown): ModuleManifest {
   const m = object(raw, 'Manifest'), id = moduleId(m.id, 'Manifest id'), label = `Module ${id}`;
   keys(m, ['format', 'apiVersion', 'id', 'name', 'version', 'kind', 'authority', 'environments', 'dependencies',
-    'conflicts', 'provides', 'requires', 'slots', 'before', 'after', 'settings', 'license'], label);
+    'conflicts', 'provides', 'requires', 'slots', 'before', 'after', 'settings', 'commands', 'license'], label);
   if (m.format !== 'space-sim-module/1' || m.apiVersion !== 'space-sim-game-api/1') throw new Error(`${label}: unsupported manifest/API version`);
   if (m.kind !== 'provider' && m.kind !== 'data') throw new Error(`${label}: unsupported kind`);
   if (m.authority !== 'authoritative' && m.authority !== 'presentation') throw new Error(`${label}: invalid authority`);
@@ -88,12 +88,38 @@ export function validateManifest(raw: unknown): ModuleManifest {
     if(s.step!==undefined&&(typeof s.step!=='number'||!Number.isFinite(s.step)||s.step<=0||!settingValue(s.default as number,s as unknown as NumberSetting)))throw new Error(`${label} setting ${key}: invalid setting increment/default`);
     settings[key] = s as unknown as NumberSetting;
   }
+  let commands: readonly CommandDefinition[] | undefined;
+  if (m.commands !== undefined) {
+    if (!Array.isArray(m.commands)) throw new Error(`${label}: commands must be an array`);
+    if (m.commands.length > 32) throw new Error(`${label}: at most 32 commands`);
+    commands = m.commands.map((rawCmd, index) => {
+      const c = object(rawCmd, `${label} command[${index}]`);
+      keys(c, ['id', 'label', 'key', 'context', 'description'], `${label} command[${index}]`);
+      const cmdId = string(c.id, `${label} command[${index}] id`);
+      const cmdLabel = string(c.label, `${label} command[${index}] label`);
+      if (!cmdLabel.trim() || cmdLabel.length > 32) throw new Error(`${label} command ${cmdId}: label must contain 1–32 characters`);
+      const key = c.key !== undefined ? string(c.key, `${label} command ${cmdId} key`) : undefined;
+      const context = c.context !== undefined ? string(c.context, `${label} command ${cmdId} context`) : undefined;
+      if (context !== undefined && !['flight', 'eva', 'editor', 'all'].includes(context)) {
+        throw new Error(`${label} command ${cmdId}: context must be flight, eva, editor or all`);
+      }
+      const description = c.description !== undefined ? string(c.description, `${label} command ${cmdId} description`) : undefined;
+      return Object.freeze({
+        id: cmdId,
+        label: cmdLabel.trim(),
+        ...(key !== undefined ? { key } : {}),
+        ...(context !== undefined ? { context: context as CommandModalContext } : {}),
+        ...(description !== undefined ? { description } : {}),
+      });
+    });
+  }
   const slots = strings(m.slots, `${label} slots`);
   if (slots.some(s => !/^[a-z][a-z0-9-]*$/.test(s)) || (m.kind === 'data' && slots.length)) throw new Error(`${label}: invalid provider slots`);
   return freezeJson({ ...m, id, name: string(m.name, `${label} name`), version: version(m.version, label),
     license: string(m.license, `${label} license`), settings, slots,
     environments, dependencies: ranges(m.dependencies, `${label} dependencies`),
     ...(m.conflicts !== undefined ? { conflicts: ranges(m.conflicts, `${label} conflicts`) } : {}),
+    ...(commands !== undefined ? { commands: Object.freeze(commands) } : {}),
     provides: strings(m.provides, `${label} provides`), requires: strings(m.requires, `${label} requires`),
     before: strings(m.before, `${label} before`).map(v => moduleId(v, label)),
     after: strings(m.after, `${label} after`).map(v => moduleId(v, label)),
