@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   DEFAULT_THEME_SETTINGS,
   THEME_PRESETS,
@@ -26,6 +26,10 @@ describe('theme system', () => {
       removeItem: (key: string) => { delete storage[key]; },
       clear: () => { Object.keys(storage).forEach(k => delete storage[k]); },
     });
+  });
+
+  afterEach(() => {
+    saveThemeSettings(DEFAULT_THEME_SETTINGS);
   });
 
   describe('defaults and presets', () => {

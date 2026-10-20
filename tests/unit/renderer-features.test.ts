@@ -141,13 +141,13 @@ describe('renderer features', () => {
     renderer.draw({ ...frame(OVERLAYS.slice(0, 2)), theme: { highQuality: false } });
     expect(stats.programs).toBe(4);
     expect(stats.created).toBe(4);
-    renderer.draw(frame(OVERLAYS.slice(0, 2)));
+    renderer.draw({ ...frame(OVERLAYS.slice(0, 2)), theme: { highQuality: true } });
     expect(stats.programs).toBe(4); // the full scene replaced the lite one
-    renderer.draw(frame(OVERLAYS));
+    renderer.draw({ ...frame(OVERLAYS), theme: { highQuality: true } });
     expect(stats.programs).toBe(5);
     // Exact module color whatever the shader pack: #3366ff as linear RGBA.
     expect(stats.colors).toContainEqual([.2, .4, 1, 1]);
-    renderer.draw(frame(OVERLAYS));
+    renderer.draw({ ...frame(OVERLAYS), theme: { highQuality: true } });
     expect(stats.created).toBe(6); // the lite scene, then the full one
     renderer.dispose(); renderer.dispose();
     expect(stats.programs).toBe(0);
