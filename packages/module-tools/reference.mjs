@@ -161,7 +161,7 @@ function collect() {
 
 /** Everything published: reference pages for templated modules and the game-api topics they use. */
 export function generate(state = collect()) {
-  const { api, modules } = state, documented = modules.filter(module => module.documented);
+  const { api, modules, targets } = state, documented = modules.filter(module => module.documented);
   const used = new Map(), usedBy = new Map();
   const include = (name, owner) => {
     const item = api.declarations.get(name);
@@ -241,7 +241,7 @@ export function generate(state = collect()) {
       ...[...new Set(used.filter(name => api.declarations.has(name)).map(name => api.declarations.get(name).stem))].sort().map(stem => ({ type: 'link', text: `game-api ${stem}.ts`, page: `api-reference/game-api/${stem}` })),
       { type: 'heading', text: 'Guide and example' },
       { type: 'paragraph', text: `Example source: ${example} (build with npm run module:build -- ${example}/module.json out.spacemod).` },
-      { type: 'link', text: `${module.usage.title}: how to use, replace and remove it`, page: `${m.id}/usage` },
+      ...(targets.has(m.id) ? [{ type: 'link', text: `${module.usage.title}: how to use, replace and remove it`, page: `${m.id}/usage` }] : []),
     ] });
   }
   for (const stem of topics) {

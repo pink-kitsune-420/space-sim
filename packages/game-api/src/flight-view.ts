@@ -131,21 +131,45 @@ export interface FlightSplitScreen extends Disposable {
 }
 export interface FlightSplitFactory { create(viewport: HTMLElement, host: FlightSplitScreenHost): FlightSplitScreen }
 export const FLIGHT_SPLIT: ServiceKey<FlightSplitFactory> = Object.freeze({ slot: 'view.flight-split', version: '1.0.0' });
-export interface ControllerMenu extends Disposable { open(): void; renderPlayers(): void; renderPad(): void }
+/** Interactive UI controller managing the Players and Controllers tabs of the flight controls dialog. */
+export interface ControllerMenu extends Disposable {
+  /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */
+  open(): void;
+  /** Re-renders the Players tab (splitscreen seat list and device assignments). */
+  renderPlayers(): void;
+  /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */
+  renderPad(): void;
+}
+
+/** Options configuring a ControllerMenu instance. */
 export interface ControllerMenuOptions {
+  /** DOM element container where the menu is mounted. */
   readonly root: HTMLElement;
+  /** Handle to the active splitscreen configuration. */
   readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;
+  /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */
   readonly gamepads?: FlightGamepad;
+  /** Returns the pilot name for player 1. */
   pilotName(): string;
+  /** Returns true when the controls dialog window is currently visible. */
   isOpen(): boolean;
 }
+
+/** Injected services required by the controller menu UI. */
 export interface ControllerMenuServices {
   readonly preferences: LocalPlayerPreferences;
   readonly profiles: FlightControllerProfiles;
   readonly actions: Pick<FlightActionBindings, 'label'>;
   formatButton(index: number, family: import('./flight-input').ControllerFamily): string;
 }
-export interface ControllerMenuFactory { create(options: ControllerMenuOptions): ControllerMenu }
+
+/** Factory creating interactive controller configuration menus. */
+export interface ControllerMenuFactory {
+  /** Creates a ControllerMenu bound to the given options and host services. */
+  create(options: ControllerMenuOptions): ControllerMenu;
+}
+
+/** Service key for the controller menu UI provider. */
 export const CONTROLLER_MENUS: ServiceKey<ControllerMenuFactory> = Object.freeze({ slot: 'input.controller-menu', version: '1.0.0' });
 
 /** Viewer-only anti-strobe orientation over the fixed prescribed rotation contract. */

@@ -89,6 +89,7 @@ export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'asse
    * with no binding; invalid access and a bound provider's failures still throw. */
   tryUse<T>(key: ServiceKey<T>): T | undefined;
   contributeInput(source: InputSource): void;
+  /** Contributes namespaced action definitions to the active candidate (platform tier only). */
   contributeActions(actions: readonly ActionDefinitionV2[]): void;
   contributeTransport(provider: TransportProvider): void;
   contributeDiscovery(provider: DiscoveryProvider): void;

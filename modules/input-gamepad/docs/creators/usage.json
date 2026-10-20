@@ -5,28 +5,92 @@
   "summary": "Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Capabilities: input.gamepad@1.0.0; no required or optional services. Constructors receive active actions, mappings and per-seat pad assignment."
+      "text": "This module samples standard W3C Gamepad API controllers into namespaced actions for active local player seats (pilots 0–3). It provides the input.gamepad service, which creates generic InputSource instances for custom action bindings and provides createFlight to instantiate a FlightGamepad manager for flight HUDs and controls. It also formats physical button indices into platform-appropriate labels (such as A, Cross, or B) across Xbox, PlayStation, Steam Deck, Nintendo and generic controller families. It does not step physics worlds or manage network session identity."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides input.gamepad@1.0.0 through the GAMEPAD_INPUT key: generic gamepad input source factory, flight gamepad manager, and family-aware button label formatting.",
+        "Requires input.flight-profiles@^1.0.0 (optional) for flight gamepad mappings; generic gamepad sources work without it."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers the GAMEPAD_INPUT service and tracks created sources and managers for automatic disposal. The module allocates no background polling loops until requested.",
+        "create returns an InputSource with validated deadzone in [0, 0.5], pilot index in [0, 3], and at most 256 axis or button bindings.",
+        "sample reads navigator.getGamepads synchronously. Disconnecting or reassigning a pad clears held values and inhibits input until axes and buttons return within 0.25 of neutral. Press actions fire when crossing 0.25; continuous actions emit deadzone-filtered values.",
+        "createFlight requires an input.flight-profiles provider and throws if none is bound.",
+        "Provider disposal releases all active sources and flight managers, throwing an AggregateError if cleanup fails."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Generic sources have no persistence. Flight compatibility reads space-sim:gamepad:v1 and migrates existing profiles. Disconnect/reassignment suppress held input until neutral. Factory disposal releases sources/managers and disconnect listeners."
+      "text": "Games without controller support can omit this module. The flight controls menu adapts gracefully when input.gamepad is absent: keyboard-controlled seats and profile customization remain functional while live hardware diagnostics are disabled. To replace it, build a platform-tier module providing input.gamepad@1.0.0."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: controller contracts and diagnostic telemetry may change before API freeze. Flight profiles migrate from storage key space-sim:gamepad:v1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/input-gamepad is a consumer module that uses input.gamepad@1.0.0 to configure and sample a custom gamepad input source with custom deadzone and action bindings. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "npm run module:build -- modules/input-gamepad/module.json /tmp/input-gamepad.spacemod"
+      "text": "npm run module:build -- examples/modules/input-gamepad/module.json /tmp/input-gamepad-example.spacemod\nnpm run module:validate -- /tmp/input-gamepad-example.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Gamepad input",
+      "page": "api-reference/module/spacelab.input-gamepad"
+    },
+    {
+      "type": "link",
+      "text": "game-api platform.ts: input frames, sources and action bindings",
+      "page": "api-reference/game-api/platform"
     }
   ]
 }

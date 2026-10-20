@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
-import { FLIGHT_HUD_STATE, FLIGHT_PLANS, THROTTLE_HUD, type FlightHudAdapter, type ManifestV2, type ModuleProfileV2,
+import { expect, it, vi } from 'vitest';
+import { FLIGHT_HUD_STATE, FLIGHT_PLANS, LOCAL_PILOTS, THROTTLE_HUD, type FlightHudAdapter, type ManifestV2, type ModuleProfileV2,
   type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type ThrottleLeverState } from '../../packages/game-api/src/index';
 import { ModuleRegistryV2, moduleAssets } from '../../packages/game-runtime/src/modules-v2';
 import { World } from '../../packages/sim-core/src/world';
@@ -21,6 +21,54 @@ import probeInitialize, { PREDICTION_PROBE, createProbe } from '../../examples/m
 import probeDescriptor from '../../examples/modules/flight-prediction/module.json';
 import summaryInitialize, { PLAN_SUMMARY } from '../../examples/modules/flight-plans/src/main';
 import summaryDescriptor from '../../examples/modules/flight-plans/module.json';
+
+import actionsInitialize from '../../modules/input-actions/src/index';
+import actionsDescriptor from '../../modules/input-actions/module.json';
+import actionsGuide from '../../modules/input-actions/docs/creators/usage.json';
+import inspectorInitialize, { ACTION_INSPECTOR } from '../../examples/modules/input-actions/src/main';
+import inspectorDescriptor from '../../examples/modules/input-actions/module.json';
+
+import gamepadInitialize from '../../modules/input-gamepad/src/index';
+import gamepadDescriptor from '../../modules/input-gamepad/module.json';
+import gamepadGuide from '../../modules/input-gamepad/docs/creators/usage.json';
+import customGamepadInitialize, { CUSTOM_GAMEPAD } from '../../examples/modules/input-gamepad/src/main';
+import customGamepadDescriptor from '../../examples/modules/input-gamepad/module.json';
+
+import keyboardInitialize from '../../modules/input-keyboard/src/index';
+import keyboardDescriptor from '../../modules/input-keyboard/module.json';
+import keyboardGuide from '../../modules/input-keyboard/docs/creators/usage.json';
+import customKeyboardInitialize, { CUSTOM_KEYBOARD } from '../../examples/modules/input-keyboard/src/main';
+import customKeyboardDescriptor from '../../examples/modules/input-keyboard/module.json';
+
+import profilesInitialize from '../../modules/input-profiles/src/index';
+import profilesDescriptor from '../../modules/input-profiles/module.json';
+import profilesGuide from '../../modules/input-profiles/docs/creators/usage.json';
+import normalizerInitialize, { PROFILE_VALIDATOR } from '../../examples/modules/input-profiles/src/main';
+import normalizerDescriptor from '../../examples/modules/input-profiles/module.json';
+
+import touchInitialize from '../../modules/input-touch/src/index';
+import touchDescriptor from '../../modules/input-touch/module.json';
+import touchGuide from '../../modules/input-touch/docs/creators/usage.json';
+import virtualPadInitialize, { TOUCH_VIRTUAL_PAD } from '../../examples/modules/input-touch/src/main';
+import virtualPadDescriptor from '../../examples/modules/input-touch/module.json';
+
+import controllerInitialize from '../../modules/player-controller/src/index';
+import controllerDescriptor from '../../modules/player-controller/module.json';
+import controllerGuide from '../../modules/player-controller/docs/creators/usage.json';
+import turretInitialize, { TURRET_CONTROLLER } from '../../examples/modules/player-controller/src/main';
+import turretDescriptor from '../../examples/modules/player-controller/module.json';
+
+import pilotsInitialize from '../../modules/local-pilots/src/index';
+import pilotsDescriptor from '../../modules/local-pilots/module.json';
+import pilotsGuide from '../../modules/local-pilots/docs/creators/usage.json';
+import pilotHostInitialize, { PILOT_HOST_HELPER } from '../../examples/modules/local-pilots/src/main';
+import pilotHostDescriptor from '../../examples/modules/local-pilots/module.json';
+
+import menuInitialize from '../../modules/controller-menu/src/index';
+import menuDescriptor from '../../modules/controller-menu/module.json';
+import menuGuide from '../../modules/controller-menu/docs/creators/usage.json';
+import minimalMenuInitialize, { MINIMAL_MENU } from '../../examples/modules/controller-menu/src/main';
+import minimalMenuDescriptor from '../../examples/modules/controller-menu/module.json';
 
 // The Creators guides link these examples; each test exercises the behavior its guide describes.
 function registry(entries: readonly (readonly [unknown, RegisteredModuleV2['initialize'], unknown?])[]): ModuleRegistryV2 {
@@ -110,3 +158,276 @@ it('summarizes plans through the optional flight.plans service, reports rejected
     expect(without.providedService(PLAN_SUMMARY).describe(archive)).toEqual(['Flight plans are not available in this game.']);
   } finally { withPlans.dispose(); without.dispose(); world.dispose(); }
 });
+
+it('inspects flight action definitions and formats active bindings via input-actions example', () => {
+  const graph = registry([[actionsDescriptor, actionsInitialize, actionsGuide], [inspectorDescriptor, inspectorInitialize]]);
+  const candidate = graph.prepare(profile([actionsDescriptor, inspectorDescriptor], {
+    'input.flight-actions': 'spacelab.input-actions',
+    'example.flight-actions-inspector': 'example.flight-actions-inspector',
+  }), 'browser');
+  try {
+    const inspector = candidate.providedService(ACTION_INSPECTOR);
+    const summary = inspector.summarize();
+    expect(summary.total).toBeGreaterThan(20);
+    expect(summary.categories.flight).toBeGreaterThan(0);
+    expect(summary.categories.warp).toBeGreaterThan(0);
+    const engineDesc = inspector.describeBinding('spacelab.input-actions/engine');
+    expect(engineDesc).toContain('Fire Main Engine');
+    expect(engineDesc).toContain('held');
+    expect(engineDesc).toContain('Space');
+    expect(inspector.describeBinding('unknown')).toBe('Unknown action: unknown');
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('samples custom gamepad inputs and formats button labels via input-gamepad example', () => {
+  const graph = registry([[gamepadDescriptor, gamepadInitialize, gamepadGuide], [customGamepadDescriptor, customGamepadInitialize]]);
+  const candidate = graph.prepare(profile([gamepadDescriptor, customGamepadDescriptor], {
+    'input.gamepad': 'spacelab.input-gamepad',
+    'example.gamepad-custom-source': 'example.gamepad-custom-source',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(CUSTOM_GAMEPAD);
+    expect(helper.format(0, 'xbox')).toBe('A');
+    expect(helper.format(0, 'playstation')).toBe('Cross (✕)');
+    expect(helper.format(0, 'nintendo')).toBe('Trigger / Btn 0');
+    expect(helper.format(0, 'steam-deck')).toBe('A');
+
+    const source = helper.createSource(0, 0, 1);
+    const sinkValues = new Map<string, number>();
+    const sink = { set: (action: string, value: number) => { sinkValues.set(action, value); } };
+    const frame = { elapsed: 1 / 60, pilot: 0, flightAllowed: true, shortcutsAllowed: true };
+
+    const mockPad = {
+      connected: true,
+      axes: [0],
+      buttons: [{ value: 0 }, { value: 0 }],
+    };
+    vi.stubGlobal('navigator', { getGamepads: () => [mockPad] });
+    try {
+      source.sample(frame, sink);
+      expect(sinkValues.size).toBe(0);
+
+      mockPad.axes[0] = 0.8;
+      mockPad.buttons[1] = { value: 1 };
+      source.sample(frame, sink);
+      expect(sinkValues.get('example.vehicle/steer')).toBeCloseTo(0.764, 2);
+      expect(sinkValues.get('example.vehicle/boost')).toBe(1);
+
+      source.release(0);
+      sinkValues.clear();
+      source.dispose();
+      expect(() => source.sample(frame, sink)).toThrow('Gamepad source is disposed');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('samples keyboard shortcuts and respects reserved keys via input-keyboard example', () => {
+  const graph = registry([[keyboardDescriptor, keyboardInitialize, keyboardGuide], [customKeyboardDescriptor, customKeyboardInitialize]]);
+  const candidate = graph.prepare(profile([keyboardDescriptor, customKeyboardDescriptor], {
+    'input.keyboard': 'spacelab.input-keyboard',
+    'example.keyboard-custom-source': 'example.keyboard-custom-source',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(CUSTOM_KEYBOARD);
+    expect(helper.reserved.has('Space')).toBe(true);
+    expect(helper.reserved.has('KeyP')).toBe(true);
+
+    const listeners = new Map<string, (e: unknown) => void>();
+    const fakeWindow = {
+      addEventListener: (type: string, fn: (e: unknown) => void) => { listeners.set(type, fn); },
+      removeEventListener: (type: string) => { listeners.delete(type); },
+    };
+    const fakeDoc = {
+      hidden: false,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    };
+    const prevWin = globalThis.window, prevDoc = globalThis.document;
+    try {
+      (globalThis as unknown as { window: unknown }).window = fakeWindow;
+      (globalThis as unknown as { document: unknown }).document = fakeDoc;
+
+      const source = helper.createSource(0);
+      const sinkValues = new Map<string, number>();
+      const sink = { set: (action: string, value: number) => { sinkValues.set(action, value); } };
+      const frame = { elapsed: 1 / 60, pilot: 0, flightAllowed: true, shortcutsAllowed: true };
+
+      listeners.get('keydown')?.({ code: 'Enter', altKey: false, preventDefault: () => {} });
+      source.sample(frame, sink);
+      expect(sinkValues.get('example.menu/select')).toBe(1);
+
+      sinkValues.clear();
+      source.sample(frame, sink);
+      expect(sinkValues.get('example.menu/select')).toBeUndefined();
+
+      source.dispose();
+    } finally {
+      (globalThis as unknown as { window: unknown }).window = prevWin;
+      (globalThis as unknown as { document: unknown }).document = prevDoc;
+    }
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('normalizes controller profiles and enforces deadzone bounds via input-profiles example', () => {
+  const graph = registry([[profilesDescriptor, profilesInitialize, profilesGuide], [normalizerDescriptor, normalizerInitialize]]);
+  const candidate = graph.prepare(profile([profilesDescriptor, normalizerDescriptor], {
+    'input.flight-profiles': 'spacelab.input-profiles',
+    'example.profile-normalizer': 'example.profile-normalizer',
+  }), 'browser');
+  try {
+    const validator = candidate.providedService(PROFILE_VALIDATOR);
+    const defaults = validator.getDefaults();
+    expect(defaults.deadzone).toBe(0.15);
+    expect(defaults.turnAxis).toBe(0);
+
+    const normalized = validator.validateAndNormalize({
+      deadzone: 0.85,
+      buttons: { engine: [7, 7, 999] },
+    });
+    expect(normalized.deadzone).toBe(0.5);
+    expect(normalized.buttons.engine).toEqual([7]);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('tracks pointer gestures across touch controls via input-touch example', () => {
+  const graph = registry([[touchDescriptor, touchInitialize, touchGuide], [virtualPadDescriptor, virtualPadInitialize]]);
+  const candidate = graph.prepare(profile([touchDescriptor, virtualPadDescriptor], {
+    'input.touch': 'spacelab.input-touch',
+    'example.touch-virtual-pad': 'example.touch-virtual-pad',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(TOUCH_VIRTUAL_PAD);
+    const createMockElement = () => {
+      const handlers = new Map<string, (e: unknown) => void>();
+      return {
+        addEventListener: (type: string, fn: (e: unknown) => void) => { handlers.set(type, fn); },
+        removeEventListener: (type: string) => { handlers.delete(type); },
+        setPointerCapture: () => {},
+        releasePointerCapture: () => {},
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        _fire: (type: string, e: unknown) => { handlers.get(type)?.(e); },
+      };
+    };
+    const button = createMockElement(), slider = createMockElement();
+    const fakeWin = { addEventListener: () => {}, removeEventListener: () => {} };
+    const fakeDoc = { hidden: false, addEventListener: () => {}, removeEventListener: () => {} };
+    const prevWin = globalThis.window, prevDoc = globalThis.document;
+    try {
+      (globalThis as unknown as { window: unknown }).window = fakeWin;
+      (globalThis as unknown as { document: unknown }).document = fakeDoc;
+
+      const source = helper.bindControls(0, button as unknown as HTMLElement, slider as unknown as HTMLElement);
+      const sinkValues = new Map<string, number>();
+      const sink = { set: (action: string, value: number) => { sinkValues.set(action, value); } };
+      const frame = { elapsed: 1 / 60, pilot: 0, flightAllowed: true, shortcutsAllowed: true };
+
+      button._fire('pointerdown', { pointerId: 1, pointerType: 'touch', preventDefault: () => {} });
+      source.sample(frame, sink);
+      expect(sinkValues.get('example.touch/fire')).toBe(1);
+
+      slider._fire('pointerdown', { pointerId: 2, pointerType: 'touch', clientY: 10, clientX: 50, preventDefault: () => {} });
+      sinkValues.clear();
+      source.sample(frame, sink);
+      expect(sinkValues.get('example.touch/pitch')).toBeCloseTo(-0.8, 2);
+
+      source.dispose();
+    } finally {
+      (globalThis as unknown as { window: unknown }).window = prevWin;
+      (globalThis as unknown as { document: unknown }).document = prevDoc;
+    }
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('routes namespaced intent to a custom control target adapter via player-controller example', () => {
+  const graph = registry([[controllerDescriptor, controllerInitialize, controllerGuide], [turretDescriptor, turretInitialize]]);
+  const candidate = graph.prepare(profile([controllerDescriptor, turretDescriptor], {
+    'input.controller': 'spacelab.player-controller',
+    'example.custom-control-target': 'example.custom-control-target',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(TURRET_CONTROLLER);
+    const { state, controller, target } = helper.createTurretSession('player-pilot');
+    expect(controller.target).toEqual(target);
+
+    controller.set('example.turret/yaw', 0.5);
+    expect(state.yaw).toBe(0.5);
+
+    controller.release();
+    expect(state.released).toBe(true);
+    expect(state.yaw).toBe(0);
+
+    controller.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages local seat device assignments and release passes via local-pilots example', () => {
+  const graph = registry([[pilotsDescriptor, pilotsInitialize, pilotsGuide], [pilotHostDescriptor, pilotHostInitialize]]);
+  const candidate = graph.prepare(profile([pilotsDescriptor, pilotHostDescriptor], {
+    'input.local-pilots': 'spacelab.local-pilots',
+    'example.headless-pilot-host': 'example.headless-pilot-host',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(PILOT_HOST_HELPER);
+    const { registry: reg, devices, releases } = helper.createRegistry(['player-1', 'player-2']);
+    expect(reg.count).toBe(2);
+    expect(reg.playerId(0)).toBe('player-1');
+    expect(reg.playerId(1)).toBe('player-2');
+
+    reg.assign(0, 'keyboard');
+    expect(devices.get(0)).toBe('keyboard');
+    expect(releases.length).toBeGreaterThan(0);
+
+    reg.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('configures player counts and device assignments headlessly via controller-menu example', () => {
+  const graph = registry([
+    [actionsDescriptor, actionsInitialize, actionsGuide],
+    [pilotsDescriptor, pilotsInitialize, pilotsGuide],
+    [profilesDescriptor, profilesInitialize, profilesGuide],
+    [menuDescriptor, menuInitialize, menuGuide],
+    [minimalMenuDescriptor, minimalMenuInitialize],
+  ]);
+  const candidate = graph.prepare(profile(
+    [actionsDescriptor, pilotsDescriptor, profilesDescriptor, menuDescriptor, minimalMenuDescriptor],
+    {
+      'input.flight-actions': 'spacelab.input-actions',
+      'input.local-pilots': 'spacelab.local-pilots',
+      'input.flight-profiles': 'spacelab.input-profiles',
+      'input.controller-menu': 'spacelab.controller-menu',
+      'example.minimal-controller-menu': 'example.minimal-controller-menu',
+    },
+  ), 'browser');
+  try {
+    const prefs = candidate.providedService(LOCAL_PILOTS).preferences();
+    const config = prefs.defaultLocalPlayers();
+    expect(config.count).toBe(1);
+
+    const menu = candidate.providedService(MINIMAL_MENU);
+    const updated = menu.setPlayerCount(config, 3);
+    expect(updated.count).toBe(3);
+
+    const assigned = menu.assignDevice(updated, 1, 'keyboard');
+    expect(assigned.slots[1]?.device).toBe('keyboard');
+  } finally {
+    candidate.dispose();
+  }
+});
+

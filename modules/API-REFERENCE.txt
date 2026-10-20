@@ -7,22 +7,32 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c51f600b62f9bde2
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f777b342b590265d
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
+-> Controller menu (spacelab.controller-menu) [api-reference/module/spacelab.controller-menu]
 -> Shared flight plans (spacelab.flight-plans) [api-reference/module/spacelab.flight-plans]
 -> Progressive flight prediction (spacelab.flight-prediction) [api-reference/module/spacelab.flight-prediction]
+-> Flight actions (spacelab.input-actions) [api-reference/module/spacelab.input-actions]
+-> Gamepad (spacelab.input-gamepad) [api-reference/module/spacelab.input-gamepad]
+-> Keyboard (spacelab.input-keyboard) [api-reference/module/spacelab.input-keyboard]
+-> Flight controller profiles (spacelab.input-profiles) [api-reference/module/spacelab.input-profiles]
+-> Touch (spacelab.input-touch) [api-reference/module/spacelab.input-touch]
+-> Local pilots (spacelab.local-pilots) [api-reference/module/spacelab.local-pilots]
+-> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
 
 ## Game API topics
 -> context.ts [api-reference/game-api/context]
 -> engine.ts [api-reference/game-api/engine]
+-> flight-input.ts [api-reference/game-api/flight-input]
 -> flight-plans.ts [api-reference/game-api/flight-plans]
 -> flight-view.ts [api-reference/game-api/flight-view]
 -> maneuver.ts [api-reference/game-api/maneuver]
 -> modules.ts [api-reference/game-api/modules]
 -> modules-v2.ts [api-reference/game-api/modules-v2]
+-> platform.ts [api-reference/game-api/platform]
 -> presentation.ts [api-reference/game-api/presentation]
 -> state.ts [api-reference/game-api/state]
 -> surface.ts [api-reference/game-api/surface]
@@ -30,6 +40,46 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> view-hud.ts [api-reference/game-api/view-hud]
 -> world.ts [api-reference/game-api/world]
 -> Code modules: manifests, packaging and installation [modules]
+
+=== Controller menu reference [api-reference/module/spacelab.controller-menu]
+Editable local-player and controller settings UI.
+- ID: spacelab.controller-menu
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.controller-menu@1.0.0 · CONTROLLER_MENUS: ServiceKey<ControllerMenuFactory>
+
+## Requires
+- input.local-pilots@^1.0.0 · LOCAL_PILOTS: ServiceKey<LocalPilotFactory>
+- input.flight-profiles@^1.0.0 · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>
+- input.flight-actions@^1.0.0 · FLIGHT_ACTIONS: ServiceKey<FlightActionBindings>
+- input.gamepad@^1.0.0 (optional) · GAMEPAD_INPUT: ServiceKey<GamepadInputFactory>
+
+## Composition
+- Slots: input.controller-menu
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+CONTROLLER_MENUS, ControllerFamily, ControllerMenuOptions, ControllerMenuServices, ControllerProfile, FLIGHT_ACTIONS, FLIGHT_PROFILES, FlightActionId, FlightGamepad, GAMEPAD_INPUT, GamepadDiagnostic, InputDevice, LOCAL_PILOTS, LocalPlayerPreferences, LocalPlayersConfig, ModuleInitializationV2, NavballAnchor, ScreenMode, ServiceKey, TwoPlayerLayout
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/controller-menu (build with npm run module:build -- examples/modules/controller-menu/module.json out.spacemod).
 
 === Shared flight plans reference [api-reference/module/spacelab.flight-plans]
 A shared service that stores maneuver plans as portable intent and checks them against the selected physics.
@@ -113,6 +163,263 @@ Controls, FlightPrediction, GhostEnd, GhostSample, ModuleInitializationV2, PREDI
 ## Guide and example
 Example source: examples/modules/flight-prediction (build with npm run module:build -- examples/modules/flight-prediction/module.json out.spacemod).
 -> Progressive flight prediction: how to use, replace and remove it [spacelab.flight-prediction/usage]
+
+=== Flight actions reference [api-reference/module/spacelab.input-actions]
+Namespaced flight actions and persistent keyboard bindings.
+- ID: spacelab.input-actions
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.flight-actions@1.0.0 · FLIGHT_ACTIONS: ServiceKey<FlightActionBindings>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: input.flight-actions
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ActionDefinitionV2, FLIGHT_ACTIONS, FlightActionBindings, FlightActionId, ModuleInitializationV2, ServiceKey
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/input-actions (build with npm run module:build -- examples/modules/input-actions/module.json out.spacemod).
+
+=== Gamepad reference [api-reference/module/spacelab.input-gamepad]
+Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics.
+- ID: spacelab.input-gamepad
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.gamepad@1.0.0 · GAMEPAD_INPUT: ServiceKey<GamepadInputFactory>
+
+## Requires
+- input.flight-profiles@^1.0.0 (optional) · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>
+
+## Composition
+- Slots: input.gamepad
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ActionDefinitionV2, ControllerFamily, ControllerProfile, FLIGHT_PROFILES, FlightActionId, FlightControllerProfiles, GAMEPAD_INPUT, GamepadDiagnostic, GamepadFlightInput, GamepadInputFactory, GamepadInputOptions, GamepadSettings, InputSource, ModuleInitializationV2, ServiceKey
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/input-gamepad (build with npm run module:build -- examples/modules/input-gamepad/module.json out.spacemod).
+
+=== Keyboard reference [api-reference/module/spacelab.input-keyboard]
+Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter.
+- ID: spacelab.input-keyboard
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.keyboard@1.0.0 · KEYBOARD_INPUT: ServiceKey<KeyboardInputFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: input.keyboard
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ActionDefinitionV2, Disposable, FlightKeyboardOptions, InputSource, KEYBOARD_INPUT, KeyboardInputFactory, KeyboardInputOptions, ModuleInitializationV2, ServiceKey
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/input-keyboard (build with npm run module:build -- examples/modules/input-keyboard/module.json out.spacemod).
+-> Keyboard input: how to use, replace and remove it [spacelab.input-keyboard/usage]
+
+=== Flight controller profiles reference [api-reference/module/spacelab.input-profiles]
+Editable flight mappings and legacy controller preference migration.
+- ID: spacelab.input-profiles
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.flight-profiles@1.0.0 · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: input.flight-profiles
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- defaultDeadzone: number, default 0.15, from 0 to 0.5, step 0.01. Default controller deadzone: Ignore stick movement within this radius when a controller profile has no explicit deadzone. Saved per-player profiles override this default.
+
+## Game API used
+ControllerProfile, FLIGHT_PROFILES, FlightActionId, FlightControllerProfiles, GamepadSettings, ModuleInitializationV2, ServiceKey
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/input-profiles (build with npm run module:build -- examples/modules/input-profiles/module.json out.spacemod).
+-> Flight controller profiles: how to use, replace and remove it [spacelab.input-profiles/usage]
+
+=== Touch reference [api-reference/module/spacelab.input-touch]
+Samples caller-supplied pointer controls and namespaced actions; retains the editable flight overlay and its styles.
+- ID: spacelab.input-touch
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.touch@1.0.0 · TOUCH_INPUT: ServiceKey<TouchInputFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: input.touch
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ActionDefinitionV2, FlightActionId, InputSource, ModuleInitializationV2, ServiceKey, TOUCH_INPUT, TouchFlightState, TouchInputFactory, TouchInputOptions, TouchMode
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/input-touch (build with npm run module:build -- examples/modules/input-touch/module.json out.spacemod).
+
+=== Local pilots reference [api-reference/module/spacelab.local-pilots]
+Adapts one to four active local seats to borrowed session identities and device preferences.
+- ID: spacelab.local-pilots
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.local-pilots@1.0.0 · LOCAL_PILOTS: ServiceKey<LocalPilotFactory>
+
+## Requires
+- input.flight-profiles@^1.0.0 (optional) · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>
+
+## Composition
+- Slots: input.local-pilots
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ControllerProfile, Disposable, FLIGHT_PROFILES, FlightControllerProfiles, InputDevice, LOCAL_PILOTS, LocalPilotFactory, LocalPilotHost, LocalPlayerPreferences, LocalPlayersConfig, ModuleInitializationV2, NavballAnchor, NavballPlacement, PilotRegistry, PlayerCount, PlayerSlot, ScreenMode, ServiceKey
+-> game-api flight-input.ts [api-reference/game-api/flight-input]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/local-pilots (build with npm run module:build -- examples/modules/local-pilots/module.json out.spacemod).
+-> Local pilot registry: how to use, replace and remove it [spacelab.local-pilots/usage]
+
+=== Player controller reference [api-reference/module/spacelab.player-controller]
+Routes namespaced intent to a compatible entity/session adapter without advancing a world.
+- ID: spacelab.player-controller
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- input.controller@1.0.0 · PLAYER_CONTROLLERS: ServiceKey<PlayerControllerFactory>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: input.controller
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ActionSink, ControlTargetAdapter, ControlTargetBinding, InputFrame, ModuleInitializationV2, PLAYER_CONTROLLERS, PlayerController, PlayerControllerFactory, PlayerInputBinding, ServiceKey
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api platform.ts [api-reference/game-api/platform]
+
+## Guide and example
+Example source: examples/modules/player-controller (build with npm run module:build -- examples/modules/player-controller/module.json out.spacemod).
+-> Player controller: how to use, replace and remove it [spacelab.player-controller/usage]
 
 === Throttle HUD reference [api-reference/module/spacelab.throttle-hud]
 A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.
@@ -221,6 +528,250 @@ Body-relative SI state. Read operations retain the world's established rails sem
       cloneForPrediction(): WorldControl;
     }
 Used by: spacelab.flight-plans, spacelab.flight-prediction.
+-> API reference index [api-reference]
+
+=== game-api: flight-input.ts [api-reference/game-api/flight-input]
+Declarations from flight-input.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-input.ts.
+
+## FlightActionId
+Legacy Space Sim flight identifiers, retained only by compatible flight adapters.
+    export type FlightActionId =
+      | 'engine'
+      | 'turnLeft'
+      | 'turnRight'
+      | 'throttleUp'
+      | 'throttleDown'
+      | 'throttleFine'
+      | 'throttleCut'
+      | 'throttleRecall'
+      | 'throttleRemember'
+      | 'warpUp'
+      | 'warpDown'
+      | 'warpReset'
+      | 'pause'
+      | 'reset'
+      | 'camera'
+      | 'cameraRotateLeft'
+      | 'cameraRotateRight'
+      | 'orientation'
+      | 'fullscreen'
+      | 'profiler'
+      | 'zoomIn'
+      | 'zoomOut'
+      | 'cycleShip'
+      | 'cycleShipPrev'
+      | 'cyclePlanet'
+      | 'cyclePlanetPrev'
+      | 'throwShip';
+Used by: spacelab.controller-menu, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-profiles, spacelab.input-touch.
+
+## ControllerFamily
+Hardware controller family used for formatting button labels (e.g. A vs Cross vs B).
+    export type ControllerFamily = 'xbox' | 'playstation' | 'steam-deck' | 'nintendo' | 'generic';
+Used by: spacelab.controller-menu, spacelab.input-gamepad.
+
+## ControllerProfile
+    export interface ControllerProfile {
+      /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */
+      readonly turnAxis: number;
+      readonly invertTurn: boolean;
+      /** Axis index for throttle adjustment [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */
+      readonly throttleAxis: number;
+      readonly invertThrottle: boolean;
+      /** Axis index for analog zoom, or -1 for none. Default: 3 (Right Stick Y). */
+      readonly zoomAxis: number;
+      readonly invertZoom: boolean;
+      /** Radial deadzone fraction [0..0.5]. Default: 0.15. */
+      readonly deadzone: number;
+      /** Standard-mapping button indices per action. Held actions (engine, throttle, turn) act
+       * while pressed; the rest fire once per press. */
+      readonly buttons: Readonly<Record<FlightActionId, readonly number[]>>;
+    }
+Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
+
+## GamepadSettings
+Legacy flat controller settings format stored in `space-sim:gamepad:v1`.
+    export interface GamepadSettings {
+      readonly enabled: boolean;
+      readonly turnAxis: number;
+      readonly invertTurn: boolean;
+      readonly throttleAxis: number;
+      readonly invertThrottle: boolean;
+      readonly deadzone: number;
+      readonly engineButton: number;
+      readonly secondaryEngineButton: number;
+    }
+Used by: spacelab.input-gamepad, spacelab.input-profiles.
+
+## GamepadFlightInput
+    export interface GamepadFlightInput {
+      /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */
+      readonly turn: number;
+      /** Signed throttle adjustment intent: ±1 normal, ±0.2 fine, 0 neutral. */
+      readonly throttle: number;
+      /** Engine burn state (held). */
+      readonly engine: boolean;
+      /** Analog zoom rate in [-1, 1]: positive zooms in. */
+      readonly zoom: number;
+    }
+Used by: spacelab.input-gamepad.
+
+## GamepadDiagnostic
+Diagnostic telemetry for a connected physical gamepad device.
+    export interface GamepadDiagnostic {
+      readonly index: number;
+      readonly id: string;
+      readonly family: ControllerFamily;
+      readonly familyName: string;
+      readonly connected: boolean;
+      readonly axes: readonly number[];
+      readonly buttons: readonly { readonly pressed: boolean; readonly value: number; readonly label: string }[];
+    }
+Used by: spacelab.controller-menu, spacelab.input-gamepad.
+
+## TouchFlightState
+Flight control state produced by the touch overlay.
+    export interface TouchFlightState {
+      readonly turn: number;
+      readonly throttle: number;
+      readonly engine: boolean;
+    }
+Used by: spacelab.input-touch.
+
+## TouchMode
+Touch controls overlay activation mode.
+    export type TouchMode = 'auto' | 'always' | 'never';
+Used by: spacelab.input-touch.
+
+## FlightGamepad
+Explicit compatibility adapter for Space Sim's existing flight mappings.
+    export interface FlightGamepad extends Disposable {
+      readonly enabled: boolean;
+      readonly activity: ReadonlyMap<number, number>;
+      readonly capturing: boolean;
+      setEnabled(enabled: boolean): void;
+      connected(): number[];
+      update(profileFor: (pad: number) => ControllerProfile | undefined,
+        onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void): void;
+      flight(pad: number): GamepadFlightInput;
+      captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void;
+      getDiagnostics(): GamepadDiagnostic[];
+      getSettings(): GamepadSettings;
+      onShortcut(handler: (action: FlightActionId) => void): void;
+      pollFlight(): GamepadFlightInput;
+      release(pad?: number): void;
+    }
+Used by: spacelab.controller-menu.
+
+## FlightControllerProfiles
+Flight mapping defaults and migration remain reusable without a gamepad device.
+    export interface FlightControllerProfiles {
+      readonly defaultProfile: ControllerProfile;
+      normalize(raw: unknown): ControllerProfile;
+      legacy(): ControllerProfile | undefined;
+    }
+Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
+
+## FlightKeyboardOptions
+Options configuring the legacy Space Sim flight keyboard adapter.
+    export interface FlightKeyboardOptions {
+      readonly keys: Set<string>;
+      /** Resolve explicitly bound shortcut chords before falling back to a bare key. */
+      readonly binding?: (event: KeyboardEvent) => string;
+      readonly pointers: Map<number, string>;
+      readonly paused: () => boolean;
+      readonly shortcut: (code: string) => void;
+      /** Initial held-action press, including taps shorter than one rendered frame. */
+      readonly flightPress?: (code: string) => void;
+      /** A module command key; true when one is bound to `code`. */
+      readonly command: (code: string) => boolean;
+      readonly autoPause: (reason: string) => void;
+      readonly autoResume?: (reason: string) => void;
+      readonly visibility: () => void;
+      readonly isFlightKey?: (code: string) => boolean;
+      readonly isShortcutKey?: (code: string) => boolean;
+      /** Optional safe shortcuts while a button, checkbox, radio, summary or link has focus. Text/edit
+       * controls still suppress flight shortcuts. Receives the resolved binding code. */
+      readonly controlShortcut?: (code: string) => boolean;
+    }
+Used by: spacelab.input-keyboard.
+
+## PlayerCount
+Supported local player seat count: 1 to 4 players.
+    export type PlayerCount = 1 | 2 | 3 | 4;
+Used by: spacelab.local-pilots.
+
+## InputDevice
+Device assigned to fly a local player seat.
+    export type InputDevice = 'auto' | 'keyboard' | `pad:${number}` | 'none';
+Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## NavballAnchor
+Preset screen anchor location for a player's HUD navball.
+    export type NavballAnchor = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center-bottom' | 'custom';
+Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## NavballPlacement
+    export interface NavballPlacement {
+      /** Anchor preset or 'custom' */
+      readonly anchor: NavballAnchor;
+      /** Normalized fraction [0..1] within the pane or shared viewport. */
+      readonly x: number;
+      /** Normalized fraction [0..1] within the pane or shared viewport. */
+      readonly y: number;
+      /** Whether the navball is pinned in place (cannot be dragged). */
+      readonly pinned: boolean;
+    }
+Used by: spacelab.local-pilots.
+
+## PlayerSlot
+Per-seat local player preference slot.
+    export interface PlayerSlot {
+      /** Player 1's name is the pilot name; the others are named here. */
+      readonly name: string;
+      readonly device: InputDevice;
+      readonly profile: ControllerProfile;
+      /** Seat secret, so a returning player gets their own ships back in a saved world. */
+      readonly token: string;
+      readonly navball: NavballPlacement;
+    }
+Used by: spacelab.local-pilots.
+
+## LocalPlayersConfig
+Full local multiplayer and splitscreen preference configuration.
+    export interface LocalPlayersConfig {
+      readonly count: PlayerCount;
+      readonly twoPlayerLayout: TwoPlayerLayout;
+      readonly screenMode: ScreenMode;
+      readonly slots: readonly PlayerSlot[];
+    }
+Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## LocalPlayerPreferences
+Persisted flight seat preferences; separate from the session's authority and identity.
+    export interface LocalPlayerPreferences {
+      readonly colors: readonly string[];
+      readonly maximumPlayers: number;
+      defaultNavballPlacement(slot: number): NavballPlacement;
+      normalizeNavballPlacement(raw: unknown, fallback: NavballPlacement): NavballPlacement;
+      padDevice(index: number): InputDevice;
+      deviceIndex(device: InputDevice): number | undefined;
+      defaultLocalPlayers(player1Profile?: ControllerProfile): LocalPlayersConfig;
+      normalizeLocalPlayers(raw: unknown, player1Profile?: ControllerProfile): LocalPlayersConfig;
+      loadLocalPlayers(player1Profile?: ControllerProfile): LocalPlayersConfig;
+      saveLocalPlayers(config: LocalPlayersConfig): void;
+      assignDevice(config: LocalPlayersConfig, slot: number, device: InputDevice): LocalPlayersConfig;
+      updateSlot(config: LocalPlayersConfig, slot: number, change: Partial<Omit<PlayerSlot, 'token' | 'device'>>): LocalPlayersConfig;
+      setPlayerCount(config: LocalPlayersConfig, count: number): LocalPlayersConfig;
+      padOwner(config: LocalPlayersConfig, index: number, connected: readonly number[]): number | undefined;
+      keyboardOwner(config: LocalPlayersConfig): number | undefined;
+      computeNavballCenter(placement: NavballPlacement, width: number, height: number, scale?: number): { x: number; y: number };
+      setSlotNavball(config: LocalPlayersConfig, slot: number, placement: Partial<NavballPlacement>): LocalPlayersConfig;
+      setAllNavballsPinned(config: LocalPlayersConfig, pinned: boolean): LocalPlayersConfig;
+    }
+Used by: spacelab.controller-menu, spacelab.local-pilots.
 -> API reference index [api-reference]
 
 === game-api: flight-plans.ts [api-reference/game-api/flight-plans]
@@ -357,6 +908,45 @@ Used by: spacelab.flight-prediction.
 Progressive flight prediction, provided by `spacelab.flight-prediction` in Space Sim.
     export const PREDICTIONS: ServiceKey<PredictionFactory> = Object.freeze({ slot: 'view.prediction', version: '1.0.0' });
 Used by: spacelab.flight-prediction.
+
+## ControllerMenuOptions
+Options configuring a ControllerMenu instance.
+    export interface ControllerMenuOptions {
+      /** DOM element container where the menu is mounted. */
+      readonly root: HTMLElement;
+      /** Handle to the active splitscreen configuration. */
+      readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;
+      /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */
+      readonly gamepads?: FlightGamepad;
+      /** Returns the pilot name for player 1. */
+      pilotName(): string;
+      /** Returns true when the controls dialog window is currently visible. */
+      isOpen(): boolean;
+    }
+Used by: spacelab.controller-menu.
+
+## ControllerMenuServices
+Injected services required by the controller menu UI.
+    export interface ControllerMenuServices {
+      readonly preferences: LocalPlayerPreferences;
+      readonly profiles: FlightControllerProfiles;
+      readonly actions: Pick<FlightActionBindings, 'label'>;
+      formatButton(index: number, family: ControllerFamily): string;
+    }
+Used by: spacelab.controller-menu.
+
+## ControllerMenuFactory
+Factory creating interactive controller configuration menus.
+    export interface ControllerMenuFactory {
+      /** Creates a ControllerMenu bound to the given options and host services. */
+      create(options: ControllerMenuOptions): ControllerMenu;
+    }
+Used by: spacelab.controller-menu.
+
+## CONTROLLER_MENUS
+Service key for the controller menu UI provider.
+    export const CONTROLLER_MENUS: ServiceKey<ControllerMenuFactory> = Object.freeze({ slot: 'input.controller-menu', version: '1.0.0' });
+Used by: spacelab.controller-menu.
 -> API reference index [api-reference]
 
 === game-api: maneuver.ts [api-reference/game-api/maneuver]
@@ -381,7 +971,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: spacelab.flight-prediction.
+Used by: spacelab.controller-menu, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.local-pilots, spacelab.player-controller.
 
 ## ModuleInitialization
 Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile.
@@ -414,7 +1004,7 @@ Initialization is synchronous in Phase 2. Own resources immediately after alloca
       /** The API exposed by one of this module's declared dependencies, which initialize first. */
       dependency<T extends object>(id: string): T;
     }
-Used by: spacelab.flight-plans.
+Used by: spacelab.controller-menu.
 
 ## RegisteredModule
     export interface RegisteredModule {
@@ -440,7 +1030,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: spacelab.flight-plans, spacelab.flight-prediction.
+Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.player-controller.
 
 ## ModuleInitializationV2
     export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {
@@ -458,6 +1048,7 @@ Used by: spacelab.flight-plans, spacelab.flight-prediction.
        * with no binding; invalid access and a bound provider's failures still throw. */
       tryUse<T>(key: ServiceKey<T>): T | undefined;
       contributeInput(source: InputSource): void;
+      /** Contributes namespaced action definitions to the active candidate (platform tier only). */
       contributeActions(actions: readonly ActionDefinitionV2[]): void;
       contributeTransport(provider: TransportProvider): void;
       contributeDiscovery(provider: DiscoveryProvider): void;
@@ -471,7 +1062,304 @@ Used by: spacelab.flight-plans, spacelab.flight-prediction.
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.throttle-hud.
+Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.player-controller, spacelab.throttle-hud.
+-> API reference index [api-reference]
+
+=== game-api: platform.ts [api-reference/game-api/platform]
+Declarations from platform.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/platform.ts.
+
+## InputFrame
+Device-local input frame delivered to input sources. `elapsed` is wall-clock seconds (never a simulation step dt). `pilot` is the local seat index (0–3).
+    export interface InputFrame {
+      /** Wall-clock seconds since the prior frame. Units: seconds. */
+      readonly elapsed: number;
+      /** Local seat index in [0, 3]. */
+      readonly pilot: number;
+      /** True when continuous flight control inputs should be sampled. */
+      readonly flightAllowed: boolean;
+      /** True when global UI and view shortcut actions should be sampled. */
+      readonly shortcutsAllowed: boolean;
+    }
+Used by: spacelab.player-controller.
+
+## ActionSink
+Synchronous receiver for action values written by an InputSource during sample().
+    export interface ActionSink {
+      /** Writes an analog or digital action value. Clamped by consumers to [-1, 1]. */
+      set(action: string, value: number): void;
+    }
+Used by: spacelab.player-controller.
+
+## ActionDefinitionV2
+Namespaced action definition contributed by platform-tier input modules.
+    export interface ActionDefinitionV2 {
+      /** Namespaced action identifier (e.g. `spacelab.input-actions/engine`). */
+      readonly id: string;
+      /** Friendly human-readable label shown in control configuration menus. */
+      readonly label: string;
+      /** Action category grouping for UI filtering and suppression. */
+      readonly category: 'flight' | 'warp' | 'view' | 'system';
+      /** Action trigger mode: continuous hold, bipolar axis, or discrete press. */
+      readonly mode: 'held' | 'axis' | 'press';
+      /** Default KeyboardEvent.code bindings or modifier chords. */
+      readonly defaultKeys: readonly string[];
+    }
+Used by: spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-touch.
+
+## InputSource
+Device sampler that translates hardware events or DOM interactions into namespaced actions.
+    export interface InputSource extends Disposable {
+      /** Human-readable name identifying the hardware source type (e.g. 'keyboard', 'gamepad', 'touch'). */
+      readonly name: string;
+      /** Synchronous sampling pass writing at most 256 action entries into the sink. */
+      sample(frame: InputFrame, into: ActionSink): void;
+      /** Releases held inputs for the specified local pilot seat, or all seats if omitted. */
+      release(pilot?: number): void;
+    }
+Used by: spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-touch.
+
+## PilotRegistry
+Registry managing active local player seats and input device assignments.
+    export interface PilotRegistry {
+      /** Number of active local player seats in [1, 4]. */
+      readonly count: number;
+      /** Returns the session player ID for the specified local seat index. */
+      playerId(pilot: number): string | undefined;
+      /** Assigns an input device ('auto', 'keyboard', 'none', or 'pad:N') to a seat. */
+      assign(pilot: number, device: string): void;
+      /** Releases held inputs for a seat or all seats. */
+      release(pilot?: number): void;
+    }
+Used by: spacelab.local-pilots.
+
+## LocalPilotHost
+Host callbacks that read active session identities and device assignments. Assigning a device must never create a network player or grant session ownership.
+    export interface LocalPilotHost {
+      /** Returns active local player seat count in [1, 4]. */
+      count(): number;
+      /** Returns session player ID for a local seat index, if assigned. */
+      playerId(pilot: number): string | undefined;
+      /** Assigns an input device ('auto', 'keyboard', 'none', or 'pad:N') to a seat index. */
+      assign(pilot: number, device: string): void;
+      /** Releases held inputs across host-managed controllers. */
+      release(pilot?: number): void;
+    }
+Used by: spacelab.local-pilots.
+
+## LocalPilotFactory
+Factory creating local pilot seat registries and flight player preference codecs.
+    export interface LocalPilotFactory {
+      /** Creates an active local pilot registry wrapping the given host callbacks. */
+      create(host: LocalPilotHost): PilotRegistry & Disposable;
+      /** Returns the local player preferences codec backed by flight controller profiles. */
+      preferences(): LocalPlayerPreferences;
+    }
+Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## LOCAL_PILOTS
+Service key for the local pilot seats provider.
+    export const LOCAL_PILOTS: ServiceKey<LocalPilotFactory> = Object.freeze({ slot: 'input.local-pilots', version: '1.0.0' });
+Used by: spacelab.controller-menu, spacelab.local-pilots.
+
+## ControlTargetBinding
+Local routing identity connecting a seat and viewport to a session player and target entity.
+    export interface ControlTargetBinding {
+      /** Local seat identifier. */
+      readonly seatId: string;
+      /** Session player identifier. */
+      readonly playerId: string;
+      /** Target vessel or world entity identifier. */
+      readonly entityId: string;
+      /** Optional viewport identifier for multi-view split screen. */
+      readonly viewportId?: string;
+    }
+Used by: spacelab.player-controller.
+
+## ControlTargetAdapter
+Explicit entity or session adapter for routing intent. Implementations validate ownership and execute actions without advancing simulation state. Schema must be 'spacelab-control-target/1'.
+    export interface ControlTargetAdapter {
+      /** Explicit adapter contract schema identifier. */
+      readonly schema: 'spacelab-control-target/1';
+      /** Returns true if the session player currently owns and can command the target entity. */
+      canControl(binding: ControlTargetBinding): boolean;
+      /** Returns the bounded list of namespaced action IDs accepted by this target (max 256). */
+      actions(binding: ControlTargetBinding): readonly string[];
+      /** Sends an updated action value in [-1, 1] to the controlled entity. */
+      setAction(binding: ControlTargetBinding, action: string, value: number): void;
+      /** Clears active intent associated with the specified binding. */
+      release(binding: ControlTargetBinding): void;
+    }
+Used by: spacelab.player-controller.
+
+## PlayerInputBinding
+Input source binding for a single local player seat.
+    export interface PlayerInputBinding {
+      /** Local device seat index in [0, 3]. */
+      readonly pilot: number;
+      /** Borrowed, ordered input sources (at most 16). Last write wins; provider retains ownership. */
+      readonly sources: readonly InputSource[];
+    }
+Used by: spacelab.player-controller.
+
+## PlayerController
+Routes namespaced intent from input sources to a compatible control target adapter.
+    export interface PlayerController extends Disposable {
+      /** Active target binding, or undefined if no target is selected. */
+      readonly target: ControlTargetBinding | undefined;
+      /** Selects a target entity. Releasing or changing target clears prior intent. */
+      select(target: ControlTargetBinding | undefined): void;
+      /** Binds input sources for this seat. Reassignment clears held device state. */
+      bindInput(input: PlayerInputBinding | undefined): void;
+      /** Synchronously samples bound sources and dispatches changed actions to the adapter. */
+      sample(frame: Omit<InputFrame, 'pilot'>): void;
+      /** Manually sets an action value in [-1, 1] on the active target. */
+      set(action: string, value: number): void;
+      /** Releases all held actions and informs the adapter. */
+      release(): void;
+    }
+Used by: spacelab.player-controller.
+
+## PlayerControllerFactory
+Factory creating player controllers over a control target adapter.
+    export interface PlayerControllerFactory {
+      /** Creates a player controller bound to the specified adapter and optional initial input. */
+      create(adapter: ControlTargetAdapter, input?: PlayerInputBinding): PlayerController;
+    }
+Used by: spacelab.player-controller.
+
+## PLAYER_CONTROLLERS
+Service key for the player controller factory.
+    export const PLAYER_CONTROLLERS: ServiceKey<PlayerControllerFactory> = Object.freeze({ slot: 'input.controller', version: '1.0.0' });
+Used by: spacelab.player-controller.
+
+## KeyboardInputOptions
+Configuration options for a keyboard input source.
+    export interface KeyboardInputOptions {
+      /** Action definitions to sample. */
+      readonly actions: readonly ActionDefinitionV2[];
+      /** Custom keybindings mapping action IDs to keyboard codes or chords. */
+      readonly bindings?: Readonly<Record<string, readonly string[]>>;
+      /** Returns the active local seat index in [0, 3], or undefined if unassigned. */
+      pilot(): number | undefined;
+      /** Optional callback returning false when modal UI captures keyboard input. */
+      capture?(): boolean;
+    }
+Used by: spacelab.input-keyboard.
+
+## KeyboardInputFactory
+Factory creating keyboard input sources and legacy flight adapters.
+    export interface KeyboardInputFactory {
+      /** Creates an InputSource listening to window keyboard events. */
+      create(options: KeyboardInputOptions): InputSource;
+      /** Read-only set of reserved browser/system keys. */
+      readonly reservedKeys: ReadonlySet<string>;
+      /** Binds the legacy Space Sim flight keyboard adapter. */
+      bindFlight(options: FlightKeyboardOptions): Disposable;
+    }
+Used by: spacelab.input-keyboard.
+
+## KEYBOARD_INPUT
+Service key for the keyboard input provider.
+    export const KEYBOARD_INPUT: ServiceKey<KeyboardInputFactory> = Object.freeze({ slot: 'input.keyboard', version: '1.0.0' });
+Used by: spacelab.input-keyboard.
+
+## FlightActionBindings
+Keybinding storage, display and action definition registry.
+    export interface FlightActionBindings {
+      /** All registered flight action definitions. */
+      readonly definitions: readonly ActionDefinitionV2[];
+      /** Loads current keybindings from localStorage (`space-sim:keybindings:v1`) or defaults. */
+      load(): Readonly<Record<string, readonly string[]>>;
+      /** Persists updated keybindings to storage. */
+      save(bindings: Readonly<Record<string, readonly string[]>>): void;
+      /** Resets keybindings in storage and returns defaults. */
+      reset(): Readonly<Record<string, readonly string[]>>;
+      /** Returns a human-friendly display label for a flight action. */
+      label(action: FlightActionId): string;
+    }
+Used by: spacelab.controller-menu, spacelab.input-actions.
+
+## FLIGHT_ACTIONS
+Service key for the flight action bindings service.
+    export const FLIGHT_ACTIONS: ServiceKey<FlightActionBindings> = Object.freeze({ slot: 'input.flight-actions', version: '1.0.0' });
+Used by: spacelab.controller-menu, spacelab.input-actions.
+
+## GamepadInputOptions
+Options configuring a generic gamepad input source.
+    export interface GamepadInputOptions {
+      /** Action definitions to sample. */
+      readonly actions: readonly ActionDefinitionV2[];
+      /** List of up to 256 gamepad axis/button bindings. */
+      readonly bindings: readonly GamepadActionBinding[];
+      /** Radial deadzone fraction in [0, 0.5]. */
+      readonly deadzone: number;
+      /** Returns the physical gamepad device index (0–31) assigned to this seat. */
+      pad(pilot: number): number | undefined;
+      /** Optional callback returning false when input capture is suppressed. */
+      capture?(): boolean;
+    }
+Used by: spacelab.input-gamepad.
+
+## GamepadInputFactory
+Factory creating generic gamepad input sources and flight gamepad managers.
+    export interface GamepadInputFactory {
+      /** Creates an InputSource sampling standard W3C Gamepad API devices. */
+      create(options: GamepadInputOptions): InputSource;
+      /** Creates a legacy FlightGamepad manager for flight HUD and controls. */
+      createFlight(): FlightGamepad;
+      /** Formats a physical button index into a family-specific label (e.g. 'A', 'Cross'). */
+      formatButton(index: number, family: ControllerFamily): string;
+    }
+Used by: spacelab.controller-menu, spacelab.input-gamepad.
+
+## GAMEPAD_INPUT
+Service key for the gamepad input provider.
+    export const GAMEPAD_INPUT: ServiceKey<GamepadInputFactory> = Object.freeze({ slot: 'input.gamepad', version: '1.0.0' });
+Used by: spacelab.controller-menu, spacelab.input-gamepad.
+
+## FLIGHT_PROFILES
+Service key for flight controller profile codecs and defaults.
+    export const FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles> = Object.freeze({ slot: 'input.flight-profiles', version: '1.0.0' });
+Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
+
+## TouchInputOptions
+Options configuring a touch input source.
+    export interface TouchInputOptions {
+      /** Action definitions to sample. */
+      readonly actions: readonly ActionDefinitionV2[];
+      /** List of up to 256 element gesture bindings. */
+      readonly bindings: readonly TouchActionBinding[];
+      /** Returns active local seat index in [0, 3], or undefined if unassigned. */
+      pilot(): number | undefined;
+      /** Optional callback returning false when modal UI suppresses touch controls. */
+      capture?(): boolean;
+    }
+Used by: spacelab.input-touch.
+
+## TouchInputFactory
+Factory creating touch input sources and flight touch overlays.
+    export interface TouchInputFactory {
+      /** Creates an InputSource tracking pointer gestures across caller elements. */
+      create(options: TouchInputOptions): InputSource;
+      /** Creates a legacy FlightTouch overlay manager. */
+      createFlight(): FlightTouch;
+    }
+Used by: spacelab.input-touch.
+
+## TOUCH_INPUT
+Service key for the touch input provider.
+    export const TOUCH_INPUT: ServiceKey<TouchInputFactory> = Object.freeze({ slot: 'input.touch', version: '1.0.0' });
+Used by: spacelab.input-touch.
+
+## TwoPlayerLayout
+    export type TwoPlayerLayout = 'auto' | 'side' | 'stacked';
+Used by: spacelab.controller-menu.
+
+## ScreenMode
+    export type ScreenMode = 'dynamic' | 'split';
+Used by: spacelab.controller-menu, spacelab.local-pilots.
 -> API reference index [api-reference]
 
 === game-api: presentation.ts [api-reference/game-api/presentation]
@@ -712,6 +1600,46 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
 Used by: spacelab.flight-plans.
 -> API reference index [api-reference]
 
+=== Controller menu [spacelab.controller-menu/usage]
+Editable local-player and controller settings UI.
+
+
+## What it does
+This module renders the Players and Controllers tabs in the flight controls dialog. It provides the input.controller-menu service through the CONTROLLER_MENUS key. The Players tab configures local splitscreen multiplayer (1 to 4 seats), player names, input device assignments, and per-seat HUD navball locations. The Controllers tab configures stick deadzones, axis assignments and inversions, button mappings, and live hardware diagnostic meters. It operates gracefully without gamepad hardware, disabling live button capture while keeping layout editing fully functional. It does not advance simulation time or step physics worlds.
+
+## Provides and requires
+- Provides input.controller-menu@1.0.0 through the CONTROLLER_MENUS key: factory creating controller and local-player settings menus.
+- Requires input.local-pilots@^1.0.0 for player seat preference codecs and device assignments.
+- Requires input.flight-profiles@^1.0.0 for default controller layouts and profile normalization.
+- Requires input.flight-actions@^1.0.0 for action display labels.
+- Requires input.gamepad@^1.0.0 (optional) for live axis and button diagnostics and button capture; button names fall back to numbers when absent.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization resolves local pilot, flight profile, and flight action services, then provides the CONTROLLER_MENUS factory.
+- create mounts into a caller-provided root element and injects scoped CSS styles. If no gamepads manager is supplied, it creates and owns an internal FlightGamepad when input.gamepad is present.
+- open initializes tab views, synchronizes player selection, and starts a requestAnimationFrame loop to update live axis meters and button activity indicators.
+- Closing the dialog or pressing Escape cancels active button captures and halts the animation loop.
+- dispose detaches DOM markup, removes injected style elements, unbinds window listeners, and disposes any owned gamepad manager. Provider disposal closes all open menus with an AggregateError if cleanup fails.
+
+## Remove or replace
+Games without local multiplayer or customizable controller layouts can omit this module. To replace it, implement a platform-tier module providing input.controller-menu@1.0.0 with your custom controls UI.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: menu options, services, and markup conventions may change before API freeze.
+
+## Example
+examples/modules/controller-menu is a creator example implementing a minimal replacement provider for input.controller-menu@1.0.0 that manipulates local player preferences headlessly. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/controller-menu/module.json /tmp/controller-menu-example.spacemod
+    npm run module:validate -- /tmp/controller-menu-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Controller menu [api-reference/module/spacelab.controller-menu]
+-> game-api flight-view.ts: controller menu and splitscreen view contracts [api-reference/game-api/flight-view]
+
 === Shared flight plans [spacelab.flight-plans/usage]
 A shared service that stores maneuver plans as portable intent and checks them against the selected physics.
 
@@ -798,6 +1726,265 @@ examples/modules/flight-prediction consumes view.prediction: it creates a previe
 -> game-api flight-view.ts: PredictionFactory and FlightPrediction [api-reference/game-api/flight-view]
 -> Determinism: why previews never change the live world [determinism]
 -> API reference: Progressive flight prediction [api-reference/module/spacelab.flight-prediction]
+
+=== Flight actions [spacelab.input-actions/usage]
+Namespaced flight actions and persistent keyboard bindings.
+
+
+## What it does
+This module contributes the standard Space Sim flight action definitions (identified as spacelab.input-actions/<action>) to the module candidate and provides the input.flight-actions service. It defines whether each action is continuous (held controls like engine thrust, steering turns, throttle ramping and zoom) or discrete (press triggers like camera switching, time warp and pause). It also manages persistent keyboard bindings in browser localStorage, maps between namespaced and legacy action identifiers, and supplies localized action labels for configuration menus. It does not sample hardware devices, track player seats or advance simulation worlds.
+
+## Provides and requires
+- Provides input.flight-actions@1.0.0 through the FLIGHT_ACTIONS key: action definitions, human-readable labels, and load/save/reset keybinding operations.
+- The module itself requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization contributes FLIGHT_ACTION_DEFINITIONS to the candidate registry and registers the FLIGHT_ACTIONS service object. The module allocates no running background tasks.
+- load reads active bindings from localStorage key space-sim:keybindings:v1, migrating former default throttle bindings while preserving customized keys and unknown action identifiers.
+- save serializes current bindings back to localStorage, translating namespaced action identifiers back into legacy keys.
+- reset clears stored keybindings and restores factory default key assignments.
+- Disposal requires no resource cleanup because the provider holds no DOM nodes, hardware listeners or timers.
+
+## Remove or replace
+Games without flight simulation or using entirely custom control schemes can omit this module. Games providing flight control menus require an input.flight-actions provider. To replace it, create a platform-tier module providing input.flight-actions@1.0.0 and register it under "providers": { "input.flight-actions": "your.module-id" }.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: action contracts and keybinding representations may change before API freeze. Stored keyboard preferences use key space-sim:keybindings:v1.
+
+## Example
+examples/modules/input-actions is a consumer module that uses input.flight-actions@1.0.0 to inspect flight action definitions, query friendly action labels and summarize active keyboard assignments. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/input-actions/module.json /tmp/input-actions-example.spacemod
+    npm run module:validate -- /tmp/input-actions-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Flight actions [api-reference/module/spacelab.input-actions]
+-> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Gamepad input [spacelab.input-gamepad/usage]
+Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics.
+
+
+## What it does
+This module samples standard W3C Gamepad API controllers into namespaced actions for active local player seats (pilots 0–3). It provides the input.gamepad service, which creates generic InputSource instances for custom action bindings and provides createFlight to instantiate a FlightGamepad manager for flight HUDs and controls. It also formats physical button indices into platform-appropriate labels (such as A, Cross, or B) across Xbox, PlayStation, Steam Deck, Nintendo and generic controller families. It does not step physics worlds or manage network session identity.
+
+## Provides and requires
+- Provides input.gamepad@1.0.0 through the GAMEPAD_INPUT key: generic gamepad input source factory, flight gamepad manager, and family-aware button label formatting.
+- Requires input.flight-profiles@^1.0.0 (optional) for flight gamepad mappings; generic gamepad sources work without it.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers the GAMEPAD_INPUT service and tracks created sources and managers for automatic disposal. The module allocates no background polling loops until requested.
+- create returns an InputSource with validated deadzone in [0, 0.5], pilot index in [0, 3], and at most 256 axis or button bindings.
+- sample reads navigator.getGamepads synchronously. Disconnecting or reassigning a pad clears held values and inhibits input until axes and buttons return within 0.25 of neutral. Press actions fire when crossing 0.25; continuous actions emit deadzone-filtered values.
+- createFlight requires an input.flight-profiles provider and throws if none is bound.
+- Provider disposal releases all active sources and flight managers, throwing an AggregateError if cleanup fails.
+
+## Remove or replace
+Games without controller support can omit this module. The flight controls menu adapts gracefully when input.gamepad is absent: keyboard-controlled seats and profile customization remain functional while live hardware diagnostics are disabled. To replace it, build a platform-tier module providing input.gamepad@1.0.0.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: controller contracts and diagnostic telemetry may change before API freeze. Flight profiles migrate from storage key space-sim:gamepad:v1.
+
+## Example
+examples/modules/input-gamepad is a consumer module that uses input.gamepad@1.0.0 to configure and sample a custom gamepad input source with custom deadzone and action bindings. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/input-gamepad/module.json /tmp/input-gamepad-example.spacemod
+    npm run module:validate -- /tmp/input-gamepad-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Gamepad input [api-reference/module/spacelab.input-gamepad]
+-> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Keyboard input [spacelab.input-keyboard/usage]
+Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter.
+
+
+## What it does
+This module translates DOM keyboard events into namespaced actions for active local player seats (pilots 0–3). It provides the input.keyboard service through the KEYBOARD_INPUT key. It attaches window and document event listeners, automatically ignores keystrokes originating inside form controls or links, and evaluates modifier chords (Ctrl, Meta, Shift) before bare keys. It also clears active keys when the browser window loses focus or hides, and provides the legacy bindFlight adapter for existing flight games alongside the reserved browser keys list.
+
+## Provides and requires
+- Provides input.keyboard@1.0.0 through the KEYBOARD_INPUT key: keyboard input source factory, legacy flight keyboard adapter, and reserved keys set.
+- The module itself requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization provides KEYBOARD_INPUT and registers a cleanup lease that tracks created sources and flight adapters.
+- create attaches keydown, keyup, blur, and pagehide listeners to window, plus visibilitychange on document.
+- sample checks frame eligibility, evaluates active keys for the assigned pilot, and writes triggered actions to the sink. Press actions fire on initial press and clear after the frame; held actions persist until key release.
+- Window blur, document hiding, pilot seat changes, or capture returning false immediately clears all held keys.
+- dispose removes all attached window and document listeners. Provider disposal disposes all tracked sources, throwing an AggregateError if any cleanup throws.
+
+## Remove or replace
+Included in planet-viewer and survey-fixture game targets. Games requiring virtual on-screen keyboards or specialized accessibility inputs can replace this module with another provider of input.keyboard@1.0.0 in their game profile.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: options and legacy chord bindings may be revised before API freeze.
+
+## Example
+examples/modules/input-keyboard is a consumer module that uses input.keyboard@1.0.0 to create an InputSource for custom action shortcuts and sample them synchronously. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/input-keyboard/module.json /tmp/input-keyboard-example.spacemod
+    npm run module:validate -- /tmp/input-keyboard-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Keyboard input [api-reference/module/spacelab.input-keyboard]
+-> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Flight controller profiles [spacelab.input-profiles/usage]
+Editable flight mappings and legacy controller preference migration.
+
+
+## What it does
+This module provides the input.flight-profiles service through the FLIGHT_PROFILES key. It owns standard controller mappings for flight actions across standard controller layouts (turn, throttle, and zoom axes, plus button bindings for flight and view actions). It validates, sanitizes, and normalizes per-player controller profiles, ensuring axis indices and button bindings stay within valid bounds, and provides migration from legacy storage key space-sim:gamepad:v1. It does not interact with hardware devices, attach event listeners, or step physics worlds.
+
+## Provides and requires
+- Provides input.flight-profiles@1.0.0 through the FLIGHT_PROFILES key: default controller profile, profile normalizer, and legacy migration codec.
+- The module itself requires no services.
+
+## Settings
+- defaultDeadzone (default 0.15, from 0 to 0.5, step 0.01): radial stick deadzone fraction used when an imported or stored profile omits an explicit deadzone setting.
+
+## Lifecycle
+- Initialization reads context.settings.defaultDeadzone, constructs the profile codec, and registers the FLIGHT_PROFILES service object. The module holds no running tasks.
+- normalize validates and clamps deadzones into [0, 0.5], keeps at most 4 valid button indices (0–31) per action, drops unrecognized actions, and resolves former default binding collisions.
+- legacy inspects localStorage key space-sim:gamepad:v1 to migrate older version 1 player controller settings into a normalized profile.
+- Disposal requires no resource cleanup because the codec owns no event listeners, DOM elements or hardware timers.
+
+## Remove or replace
+Space Sim and Flight starter list input.flight-profiles as a required slot. To replace it, build a platform-tier module providing input.flight-profiles@1.0.0 with custom profile defaults or migration rules, and select it in the game profile with "providers": { "input.flight-profiles": "your.module-id" }.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: profile structures and codec interfaces may evolve before API freeze. Stored controller preferences migrate from key space-sim:gamepad:v1.
+
+## Example
+examples/modules/input-profiles is a consumer module that uses input.flight-profiles@1.0.0 to validate and sanitize imported controller profile JSON. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/input-profiles/module.json /tmp/input-profiles-example.spacemod
+    npm run module:validate -- /tmp/input-profiles-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Flight controller profiles [api-reference/module/spacelab.input-profiles]
+-> game-api flight-input.ts: flight controller profile and preference types [api-reference/game-api/flight-input]
+
+=== Touch input [spacelab.input-touch/usage]
+Samples caller-supplied pointer controls and namespaced actions; retains the editable flight overlay and its styles.
+
+
+## What it does
+This module translates pointer gestures on caller-supplied HTML elements into namespaced action values for active local player seats (pilots 0–3). It provides the input.touch service through the TOUCH_INPUT key. It tracks hold buttons, horizontal axes (axis-x), and vertical axes (axis-y) using Pointer Events and pointer capture, clamping axis values to [-1, 1]. It also provides createFlight to instantiate the legacy TouchControlsManager flight overlay, with visibility preferences saved under storage key space-sim:touch-controls:v1. It does not advance simulation time or step physics worlds.
+
+## Provides and requires
+- Provides input.touch@1.0.0 through the TOUCH_INPUT key: pointer gesture input source factory and flight touch overlay manager.
+- The module itself requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers the TOUCH_INPUT service and tracks all active sources and managers for automatic disposal. The module creates no DOM elements until requested.
+- create attaches pointerdown, pointermove, pointerup, pointercancel, and lostpointercapture listeners across up to 256 caller-supplied elements.
+- sample evaluates active gestures for the assigned pilot, writing active values in [-1, 1] into the action sink. Continuous gestures emit updated fractions; press gestures pulse once on initial contact.
+- Window blur, pagehide, document hiding, or pilot seat changes immediately release active pointer captures and reset gesture values to zero.
+- dispose removes all element and window event listeners. Provider disposal releases all created sources and overlay managers, throwing an AggregateError if cleanup fails.
+
+## Remove or replace
+Games without touch devices or pointer-based on-screen controls can omit this module. To replace it, build a platform-tier module providing input.touch@1.0.0.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: pointer gesture definitions and overlay manager contracts may change before API freeze. Flight touch settings persist under storage key space-sim:touch-controls:v1.
+
+## Example
+examples/modules/input-touch is a consumer module that uses input.touch@1.0.0 to configure custom touch controls over mock elements and sample pointer gestures. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/input-touch/module.json /tmp/input-touch-example.spacemod
+    npm run module:validate -- /tmp/input-touch-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Touch input [api-reference/module/spacelab.input-touch]
+-> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Local pilot registry [spacelab.local-pilots/usage]
+Adapts one to four active local seats to borrowed session identities and device preferences.
+
+
+## What it does
+This module adapts 1 to 4 active local player seats (pilots 0–3) to host session identities and device assignments. It provides the input.local-pilots service through the LOCAL_PILOTS key. It offers create to wrap a LocalPilotHost into a PilotRegistry managing device assignments ('auto', 'keyboard', 'none', or 'pad:N') and seat release callbacks. When a compatible input.flight-profiles provider is present, its preferences method returns a LocalPlayerPreferences codec that normalizes, loads, and saves per-player names, device choices, and navball screen anchors. It does not advance simulation worlds or grant network session authority.
+
+## Provides and requires
+- Provides input.local-pilots@1.0.0 through the LOCAL_PILOTS key: local pilot registry factory and local player preferences codec.
+- Requires input.flight-profiles@^1.0.0 (optional) for flight player preference defaults; generic local seat registries work without it.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers LOCAL_PILOTS and creates an internal tracking set to dispose all active registries when the module is torn down.
+- create wraps a caller-provided LocalPilotHost into a LocalPilotRegistry, ensuring active seat counts stay within [1, 4].
+- assign validates device identifiers and releases held inputs across the host before assigning the device to prevent stuck input across hot-swapped controllers.
+- preferences constructs a LocalPlayerPreferences codec backed by input.flight-profiles, throwing an error if that optional provider is absent.
+- dispose calls host.release and marks the registry as disposed. Provider disposal tears down all active registries, throwing an AggregateError if cleanup fails.
+
+## Remove or replace
+Space Sim and Flight starter specify input.local-pilots as a required slot. To replace it, build a platform-tier module providing input.local-pilots@1.0.0 with custom seat rules (such as fixed arcade seat bindings or single-pilot limits) and select it with "providers": { "input.local-pilots": "your.module-id" }.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: pilot registry contracts and preference structures may change before API freeze.
+
+## Example
+examples/modules/local-pilots is a consumer module that implements a headless LocalPilotHost to manage seat device assignments through LOCAL_PILOTS. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/local-pilots/module.json /tmp/local-pilots-example.spacemod
+    npm run module:validate -- /tmp/local-pilots-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Local pilot registry [api-reference/module/spacelab.local-pilots]
+-> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
+
+=== Player controller [spacelab.player-controller/usage]
+Routes namespaced intent to a compatible entity/session adapter without advancing a world.
+
+
+## What it does
+This module routes player intent from borrowed input sources to a compatible control target adapter. It provides the input.controller service through the PLAYER_CONTROLLERS key. Adapters must conform to the spacelab-control-target/1 schema. It separates local device seats (pilots 0–3) from session player, seat, entity, and viewport identities. Action values are clamped to [-1, 1] and forwarded to adapter.setAction only when values change between frames. If session ownership is lost, the controller clears active intent and throws an ownership error. It does not advance simulation time or step physics worlds.
+
+## Provides and requires
+- Provides input.controller@1.0.0 through the PLAYER_CONTROLLERS key: factory creating player controllers over a spacelab-control-target/1 adapter.
+- The module itself requires no services.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers the PLAYER_CONTROLLERS service and sets up cleanup tracking for created controllers.
+- create validates adapter.schema === 'spacelab-control-target/1' and binds optional initial input sources.
+- select verifies session ownership via adapter.canControl and caches up to 256 namespaced action identifiers matching namespace.name/action. Switching target clears all held intent.
+- bindInput accepts at most 16 distinct sources for pilot 0–3, clearing prior device state.
+- sample runs synchronously across bound sources, enforcing a limit of 256 writes per source with last-write-wins semantics, and forwards changed values to adapter.setAction.
+- dispose releases target and device state. Provider disposal releases all created controllers, throwing an AggregateError if cleanup fails.
+
+## Remove or replace
+Included in survey-fixture target plans. Games implementing custom input routing pipelines or networked client prediction can replace this module with another provider of input.controller@1.0.0.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: control target schema spacelab-control-target/1 and controller contracts may change before API freeze.
+
+## Example
+examples/modules/player-controller is a creator example implementing a custom ControlTargetAdapter under schema spacelab-control-target/1 to command an entity through PLAYER_CONTROLLERS. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/player-controller/module.json /tmp/player-controller-example.spacemod
+    npm run module:validate -- /tmp/player-controller-example.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Player controller [api-reference/module/spacelab.player-controller]
+-> game-api platform.ts: input frames, sources and action bindings [api-reference/game-api/platform]
 
 === Throttle HUD [spacelab.throttle-hud/usage]
 A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.

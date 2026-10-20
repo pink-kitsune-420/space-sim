@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ManifestV2, ModuleProfileV2 } from '../../packages/game-api/src/index';
 import { ModuleRegistryV2, moduleAssets } from '../../packages/game-runtime/src/modules-v2';
-import guide from '../../modules/input-actions/docs/creators/actions.json';
+import guide from '../../modules/input-actions/docs/creators/usage.json';
 import descriptor from '../../modules/input-actions/module.json';
 import initialize, { FLIGHT_ACTION_DEFINITIONS, flightActionId } from '../../modules/input-actions/src/index';
 import { loadKeybindings, saveKeybindings } from '../../modules/input-actions/src/bindings';
@@ -14,7 +14,7 @@ function profile(enabled: boolean): ModuleProfileV2 {
 afterEach(() => vi.unstubAllGlobals());
 describe('extracted action ownership', () => {
   it('uses the public contribution registry and can be omitted without world/device services', () => {
-    const registry = new ModuleRegistryV2(); registry.register({ manifest, initialize }, moduleAssets(new Map([['docs/creators/actions.json', new TextEncoder().encode(JSON.stringify(guide))]])));
+    const registry = new ModuleRegistryV2(); registry.register({ manifest, initialize }, moduleAssets(new Map([['docs/creators/usage.json', new TextEncoder().encode(JSON.stringify(guide))]])));
     const active = registry.prepare(profile(true), 'offline');
     expect(active.actionDefinitions).toEqual(FLIGHT_ACTION_DEFINITIONS);
     expect(active.actionIds.has(flightActionId('throttleRemember'))).toBe(true);
@@ -23,7 +23,7 @@ describe('extracted action ownership', () => {
     expect(absent.actionDefinitions).toEqual([]); absent.dispose();
   });
   it('coexists with an unrelated non-flight namespaced action', () => {
-    const registry = new ModuleRegistryV2(); registry.register({ manifest, initialize }, moduleAssets(new Map([['docs/creators/actions.json', new TextEncoder().encode(JSON.stringify(guide))]])));
+    const registry = new ModuleRegistryV2(); registry.register({ manifest, initialize }, moduleAssets(new Map([['docs/creators/usage.json', new TextEncoder().encode(JSON.stringify(guide))]])));
     registry.register({ manifest: { ...manifest, id: 'fixture.survey', slots: [], provides: [] }, initialize(c) {
       c.contributeActions([{ id: 'fixture.survey/record', label: 'Record observation', category: 'system', mode: 'press', defaultKeys: ['KeyO'] }]);
     } });

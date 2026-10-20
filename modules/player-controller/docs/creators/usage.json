@@ -5,32 +5,93 @@
   "summary": "Routes namespaced intent to a compatible entity/session adapter without advancing a world.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Routes namespaced intent to a compatible entity/session adapter without advancing a world."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Capabilities: input.controller@1.0.0; no required or optional services. Constructors receive a spacelab-control-target/1 adapter."
+      "text": "This module routes player intent from borrowed input sources to a compatible control target adapter. It provides the input.controller service through the PLAYER_CONTROLLERS key. Adapters must conform to the spacelab-control-target/1 schema. It separates local device seats (pilots 0–3) from session player, seat, entity, and viewport identities. Action values are clamped to [-1, 1] and forwarded to adapter.setAction only when values change between frames. If session ownership is lost, the controller clears active intent and throws an ownership error. It does not advance simulation time or step physics worlds."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides input.controller@1.0.0 through the PLAYER_CONTROLLERS key: factory creating player controllers over a spacelab-control-target/1 adapter.",
+        "The module itself requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers the PLAYER_CONTROLLERS service and sets up cleanup tracking for created controllers.",
+        "create validates adapter.schema === 'spacelab-control-target/1' and binds optional initial input sources.",
+        "select verifies session ownership via adapter.canControl and caches up to 256 namespaced action identifiers matching namespace.name/action. Switching target clears all held intent.",
+        "bindInput accepts at most 16 distinct sources for pilot 0–3, clearing prior device state.",
+        "sample runs synchronously across bound sources, enforcing a limit of 256 writes per source with last-write-wins semantics, and forwards changed values to adapter.setAction.",
+        "dispose releases target and device state. Provider disposal releases all created controllers, throwing an AggregateError if cleanup fails."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "No stored authoritative state. The adapter owns session identity and validates ownership and supported actions. Separate seat/player/entity/viewport IDs. Select, release, ownership change and disposal clear held intent. Every instance is independent."
+      "text": "Included in survey-fixture target plans. Games implementing custom input routing pipelines or networked client prediction can replace this module with another provider of input.controller@1.0.0."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "The factory optionally borrows a local pilot number and ordered input sources. bindInput replaces that binding after releasing old intent; sample uses fixed buffers and routes only target-declared namespaced actions. The last source write wins, missing values release prior intent, and suppression/target changes/disposal release device state. Sources remain owned by their device providers. Existing flight precedence belongs to its explicit adapter."
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: control target schema spacelab-control-target/1 and controller contracts may change before API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/player-controller is a creator example implementing a custom ControlTargetAdapter under schema spacelab-control-target/1 to command an entity through PLAYER_CONTROLLERS. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "npm run module:build -- modules/player-controller/module.json /tmp/player-controller.spacemod"
+      "text": "npm run module:build -- examples/modules/player-controller/module.json /tmp/player-controller-example.spacemod\nnpm run module:validate -- /tmp/player-controller-example.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Player controller",
+      "page": "api-reference/module/spacelab.player-controller"
+    },
+    {
+      "type": "link",
+      "text": "game-api platform.ts: input frames, sources and action bindings",
+      "page": "api-reference/game-api/platform"
     }
   ]
 }

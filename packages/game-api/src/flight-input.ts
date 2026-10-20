@@ -31,6 +31,7 @@ export type FlightActionId =
   | 'cyclePlanetPrev'
   | 'throwShip';
 
+/** Hardware controller family used for formatting button labels (e.g. A vs Cross vs B). */
 export type ControllerFamily = 'xbox' | 'playstation' | 'steam-deck' | 'nintendo' | 'generic';
 
 export interface ControllerProfile {
@@ -50,6 +51,7 @@ export interface ControllerProfile {
   readonly buttons: Readonly<Record<FlightActionId, readonly number[]>>;
 }
 
+/** Legacy flat controller settings format stored in `space-sim:gamepad:v1`. */
 export interface GamepadSettings {
   readonly enabled: boolean;
   readonly turnAxis: number;
@@ -72,6 +74,7 @@ export interface GamepadFlightInput {
   readonly zoom: number;
 }
 
+/** Diagnostic telemetry for a connected physical gamepad device. */
 export interface GamepadDiagnostic {
   readonly index: number;
   readonly id: string;
@@ -82,11 +85,14 @@ export interface GamepadDiagnostic {
   readonly buttons: readonly { readonly pressed: boolean; readonly value: number; readonly label: string }[];
 }
 
+/** Flight control state produced by the touch overlay. */
 export interface TouchFlightState {
   readonly turn: number;
   readonly throttle: number;
   readonly engine: boolean;
 }
+
+/** Touch controls overlay activation mode. */
 export type TouchMode = 'auto' | 'always' | 'never';
 
 /** Explicit compatibility adapter for Space Sim's existing flight mappings. */
@@ -130,6 +136,7 @@ export interface FlightTouch extends Disposable {
   release(): void;
 }
 
+/** Options configuring the legacy Space Sim flight keyboard adapter. */
 export interface FlightKeyboardOptions {
   readonly keys: Set<string>;
   /** Resolve explicitly bound shortcut chords before falling back to a bare key. */
@@ -151,10 +158,13 @@ export interface FlightKeyboardOptions {
   readonly controlShortcut?: (code: string) => boolean;
 }
 
+/** Supported local player seat count: 1 to 4 players. */
 export type PlayerCount = 1 | 2 | 3 | 4;
 
+/** Device assigned to fly a local player seat. */
 export type InputDevice = 'auto' | 'keyboard' | `pad:${number}` | 'none';
 
+/** Preset screen anchor location for a player's HUD navball. */
 export type NavballAnchor = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center-bottom' | 'custom';
 
 export interface NavballPlacement {
@@ -162,11 +172,13 @@ export interface NavballPlacement {
   readonly anchor: NavballAnchor;
   /** Normalized fraction [0..1] within the pane or shared viewport. */
   readonly x: number;
+  /** Normalized fraction [0..1] within the pane or shared viewport. */
   readonly y: number;
   /** Whether the navball is pinned in place (cannot be dragged). */
   readonly pinned: boolean;
 }
 
+/** Per-seat local player preference slot. */
 export interface PlayerSlot {
   /** Player 1's name is the pilot name; the others are named here. */
   readonly name: string;
@@ -177,6 +189,7 @@ export interface PlayerSlot {
   readonly navball: NavballPlacement;
 }
 
+/** Full local multiplayer and splitscreen preference configuration. */
 export interface LocalPlayersConfig {
   readonly count: PlayerCount;
   readonly twoPlayerLayout: TwoPlayerLayout;

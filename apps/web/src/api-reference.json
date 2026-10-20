@@ -1,9 +1,17 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c51f600b62f9bde2",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f777b342b590265d",
   "modules": [
+    "spacelab.controller-menu",
     "spacelab.flight-plans",
     "spacelab.flight-prediction",
+    "spacelab.input-actions",
+    "spacelab.input-gamepad",
+    "spacelab.input-keyboard",
+    "spacelab.input-profiles",
+    "spacelab.input-touch",
+    "spacelab.local-pilots",
+    "spacelab.player-controller",
     "spacelab.throttle-hud"
   ],
   "pages": [
@@ -18,7 +26,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c51f600b62f9bde2"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f777b342b590265d"
         },
         {
           "type": "paragraph",
@@ -30,6 +38,11 @@
         },
         {
           "type": "link",
+          "text": "Controller menu (spacelab.controller-menu)",
+          "page": "api-reference/module/spacelab.controller-menu"
+        },
+        {
+          "type": "link",
           "text": "Shared flight plans (spacelab.flight-plans)",
           "page": "api-reference/module/spacelab.flight-plans"
         },
@@ -37,6 +50,41 @@
           "type": "link",
           "text": "Progressive flight prediction (spacelab.flight-prediction)",
           "page": "api-reference/module/spacelab.flight-prediction"
+        },
+        {
+          "type": "link",
+          "text": "Flight actions (spacelab.input-actions)",
+          "page": "api-reference/module/spacelab.input-actions"
+        },
+        {
+          "type": "link",
+          "text": "Gamepad (spacelab.input-gamepad)",
+          "page": "api-reference/module/spacelab.input-gamepad"
+        },
+        {
+          "type": "link",
+          "text": "Keyboard (spacelab.input-keyboard)",
+          "page": "api-reference/module/spacelab.input-keyboard"
+        },
+        {
+          "type": "link",
+          "text": "Flight controller profiles (spacelab.input-profiles)",
+          "page": "api-reference/module/spacelab.input-profiles"
+        },
+        {
+          "type": "link",
+          "text": "Touch (spacelab.input-touch)",
+          "page": "api-reference/module/spacelab.input-touch"
+        },
+        {
+          "type": "link",
+          "text": "Local pilots (spacelab.local-pilots)",
+          "page": "api-reference/module/spacelab.local-pilots"
+        },
+        {
+          "type": "link",
+          "text": "Player controller (spacelab.player-controller)",
+          "page": "api-reference/module/spacelab.player-controller"
         },
         {
           "type": "link",
@@ -56,6 +104,11 @@
           "type": "link",
           "text": "engine.ts",
           "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
         },
         {
           "type": "link",
@@ -81,6 +134,11 @@
           "type": "link",
           "text": "modules-v2.ts",
           "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "platform.ts",
+          "page": "api-reference/game-api/platform"
         },
         {
           "type": "link",
@@ -116,6 +174,111 @@
           "type": "link",
           "text": "Code modules: manifests, packaging and installation",
           "page": "modules"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.controller-menu",
+      "title": "Controller menu reference",
+      "summary": "Editable local-player and controller settings UI.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Editable local-player and controller settings UI."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.controller-menu",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.controller-menu@1.0.0 · CONTROLLER_MENUS: ServiceKey<ControllerMenuFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.local-pilots@^1.0.0 · LOCAL_PILOTS: ServiceKey<LocalPilotFactory>",
+            "input.flight-profiles@^1.0.0 · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>",
+            "input.flight-actions@^1.0.0 · FLIGHT_ACTIONS: ServiceKey<FlightActionBindings>",
+            "input.gamepad@^1.0.0 (optional) · GAMEPAD_INPUT: ServiceKey<GamepadInputFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.controller-menu",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "CONTROLLER_MENUS, ControllerFamily, ControllerMenuOptions, ControllerMenuServices, ControllerProfile, FLIGHT_ACTIONS, FLIGHT_PROFILES, FlightActionId, FlightGamepad, GAMEPAD_INPUT, GamepadDiagnostic, InputDevice, LOCAL_PILOTS, LocalPlayerPreferences, LocalPlayersConfig, ModuleInitializationV2, NavballAnchor, ScreenMode, ServiceKey, TwoPlayerLayout"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/controller-menu (build with npm run module:build -- examples/modules/controller-menu/module.json out.spacemod)."
         }
       ]
     },
@@ -359,6 +522,702 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.input-actions",
+      "title": "Flight actions reference",
+      "summary": "Namespaced flight actions and persistent keyboard bindings.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Namespaced flight actions and persistent keyboard bindings."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.input-actions",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.flight-actions@1.0.0 · FLIGHT_ACTIONS: ServiceKey<FlightActionBindings>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.flight-actions",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ActionDefinitionV2, FLIGHT_ACTIONS, FlightActionBindings, FlightActionId, ModuleInitializationV2, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/input-actions (build with npm run module:build -- examples/modules/input-actions/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.input-gamepad",
+      "title": "Gamepad reference",
+      "summary": "Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.input-gamepad",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.gamepad@1.0.0 · GAMEPAD_INPUT: ServiceKey<GamepadInputFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.flight-profiles@^1.0.0 (optional) · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.gamepad",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ActionDefinitionV2, ControllerFamily, ControllerProfile, FLIGHT_PROFILES, FlightActionId, FlightControllerProfiles, GAMEPAD_INPUT, GamepadDiagnostic, GamepadFlightInput, GamepadInputFactory, GamepadInputOptions, GamepadSettings, InputSource, ModuleInitializationV2, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/input-gamepad (build with npm run module:build -- examples/modules/input-gamepad/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.input-keyboard",
+      "title": "Keyboard reference",
+      "summary": "Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.input-keyboard",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.keyboard@1.0.0 · KEYBOARD_INPUT: ServiceKey<KeyboardInputFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.keyboard",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ActionDefinitionV2, Disposable, FlightKeyboardOptions, InputSource, KEYBOARD_INPUT, KeyboardInputFactory, KeyboardInputOptions, ModuleInitializationV2, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/input-keyboard (build with npm run module:build -- examples/modules/input-keyboard/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Keyboard input: how to use, replace and remove it",
+          "page": "spacelab.input-keyboard/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.input-profiles",
+      "title": "Flight controller profiles reference",
+      "summary": "Editable flight mappings and legacy controller preference migration.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Editable flight mappings and legacy controller preference migration."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.input-profiles",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.flight-profiles@1.0.0 · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.flight-profiles",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "defaultDeadzone: number, default 0.15, from 0 to 0.5, step 0.01. Default controller deadzone: Ignore stick movement within this radius when a controller profile has no explicit deadzone. Saved per-player profiles override this default."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ControllerProfile, FLIGHT_PROFILES, FlightActionId, FlightControllerProfiles, GamepadSettings, ModuleInitializationV2, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/input-profiles (build with npm run module:build -- examples/modules/input-profiles/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Flight controller profiles: how to use, replace and remove it",
+          "page": "spacelab.input-profiles/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.input-touch",
+      "title": "Touch reference",
+      "summary": "Samples caller-supplied pointer controls and namespaced actions; retains the editable flight overlay and its styles.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Samples caller-supplied pointer controls and namespaced actions; retains the editable flight overlay and its styles."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.input-touch",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.touch@1.0.0 · TOUCH_INPUT: ServiceKey<TouchInputFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.touch",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ActionDefinitionV2, FlightActionId, InputSource, ModuleInitializationV2, ServiceKey, TOUCH_INPUT, TouchFlightState, TouchInputFactory, TouchInputOptions, TouchMode"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/input-touch (build with npm run module:build -- examples/modules/input-touch/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.local-pilots",
+      "title": "Local pilots reference",
+      "summary": "Adapts one to four active local seats to borrowed session identities and device preferences.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Adapts one to four active local seats to borrowed session identities and device preferences."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.local-pilots",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.local-pilots@1.0.0 · LOCAL_PILOTS: ServiceKey<LocalPilotFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.flight-profiles@^1.0.0 (optional) · FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.local-pilots",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ControllerProfile, Disposable, FLIGHT_PROFILES, FlightControllerProfiles, InputDevice, LOCAL_PILOTS, LocalPilotFactory, LocalPilotHost, LocalPlayerPreferences, LocalPlayersConfig, ModuleInitializationV2, NavballAnchor, NavballPlacement, PilotRegistry, PlayerCount, PlayerSlot, ScreenMode, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-input.ts",
+          "page": "api-reference/game-api/flight-input"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/local-pilots (build with npm run module:build -- examples/modules/local-pilots/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Local pilot registry: how to use, replace and remove it",
+          "page": "spacelab.local-pilots/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.player-controller",
+      "title": "Player controller reference",
+      "summary": "Routes namespaced intent to a compatible entity/session adapter without advancing a world.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Routes namespaced intent to a compatible entity/session adapter without advancing a world."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.player-controller",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "input.controller@1.0.0 · PLAYER_CONTROLLERS: ServiceKey<PlayerControllerFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: input.controller",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ActionSink, ControlTargetAdapter, ControlTargetBinding, InputFrame, ModuleInitializationV2, PLAYER_CONTROLLERS, PlayerController, PlayerControllerFactory, PlayerInputBinding, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/player-controller (build with npm run module:build -- examples/modules/player-controller/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Player controller: how to use, replace and remove it",
+          "page": "spacelab.player-controller/usage"
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.throttle-hud",
       "title": "Throttle HUD reference",
       "summary": "A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.",
@@ -522,6 +1381,298 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/flight-input",
+      "title": "game-api: flight-input.ts",
+      "summary": "Declarations from flight-input.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-input.ts."
+        },
+        {
+          "type": "heading",
+          "text": "FlightActionId"
+        },
+        {
+          "type": "paragraph",
+          "text": "Legacy Space Sim flight identifiers, retained only by compatible flight adapters."
+        },
+        {
+          "type": "code",
+          "text": "export type FlightActionId =\n  | 'engine'\n  | 'turnLeft'\n  | 'turnRight'\n  | 'throttleUp'\n  | 'throttleDown'\n  | 'throttleFine'\n  | 'throttleCut'\n  | 'throttleRecall'\n  | 'throttleRemember'\n  | 'warpUp'\n  | 'warpDown'\n  | 'warpReset'\n  | 'pause'\n  | 'reset'\n  | 'camera'\n  | 'cameraRotateLeft'\n  | 'cameraRotateRight'\n  | 'orientation'\n  | 'fullscreen'\n  | 'profiler'\n  | 'zoomIn'\n  | 'zoomOut'\n  | 'cycleShip'\n  | 'cycleShipPrev'\n  | 'cyclePlanet'\n  | 'cyclePlanetPrev'\n  | 'throwShip';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-profiles, spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "ControllerFamily"
+        },
+        {
+          "type": "paragraph",
+          "text": "Hardware controller family used for formatting button labels (e.g. A vs Cross vs B)."
+        },
+        {
+          "type": "code",
+          "text": "export type ControllerFamily = 'xbox' | 'playstation' | 'steam-deck' | 'nintendo' | 'generic';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad."
+        },
+        {
+          "type": "heading",
+          "text": "ControllerProfile"
+        },
+        {
+          "type": "code",
+          "text": "export interface ControllerProfile {\n  /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */\n  readonly turnAxis: number;\n  readonly invertTurn: boolean;\n  /** Axis index for throttle adjustment [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */\n  readonly throttleAxis: number;\n  readonly invertThrottle: boolean;\n  /** Axis index for analog zoom, or -1 for none. Default: 3 (Right Stick Y). */\n  readonly zoomAxis: number;\n  readonly invertZoom: boolean;\n  /** Radial deadzone fraction [0..0.5]. Default: 0.15. */\n  readonly deadzone: number;\n  /** Standard-mapping button indices per action. Held actions (engine, throttle, turn) act\n   * while pressed; the rest fire once per press. */\n  readonly buttons: Readonly<Record<FlightActionId, readonly number[]>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "GamepadSettings"
+        },
+        {
+          "type": "paragraph",
+          "text": "Legacy flat controller settings format stored in `space-sim:gamepad:v1`."
+        },
+        {
+          "type": "code",
+          "text": "export interface GamepadSettings {\n  readonly enabled: boolean;\n  readonly turnAxis: number;\n  readonly invertTurn: boolean;\n  readonly throttleAxis: number;\n  readonly invertThrottle: boolean;\n  readonly deadzone: number;\n  readonly engineButton: number;\n  readonly secondaryEngineButton: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-gamepad, spacelab.input-profiles."
+        },
+        {
+          "type": "heading",
+          "text": "GamepadFlightInput"
+        },
+        {
+          "type": "code",
+          "text": "export interface GamepadFlightInput {\n  /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */\n  readonly turn: number;\n  /** Signed throttle adjustment intent: ±1 normal, ±0.2 fine, 0 neutral. */\n  readonly throttle: number;\n  /** Engine burn state (held). */\n  readonly engine: boolean;\n  /** Analog zoom rate in [-1, 1]: positive zooms in. */\n  readonly zoom: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-gamepad."
+        },
+        {
+          "type": "heading",
+          "text": "GamepadDiagnostic"
+        },
+        {
+          "type": "paragraph",
+          "text": "Diagnostic telemetry for a connected physical gamepad device."
+        },
+        {
+          "type": "code",
+          "text": "export interface GamepadDiagnostic {\n  readonly index: number;\n  readonly id: string;\n  readonly family: ControllerFamily;\n  readonly familyName: string;\n  readonly connected: boolean;\n  readonly axes: readonly number[];\n  readonly buttons: readonly { readonly pressed: boolean; readonly value: number; readonly label: string }[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad."
+        },
+        {
+          "type": "heading",
+          "text": "TouchFlightState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Flight control state produced by the touch overlay."
+        },
+        {
+          "type": "code",
+          "text": "export interface TouchFlightState {\n  readonly turn: number;\n  readonly throttle: number;\n  readonly engine: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "TouchMode"
+        },
+        {
+          "type": "paragraph",
+          "text": "Touch controls overlay activation mode."
+        },
+        {
+          "type": "code",
+          "text": "export type TouchMode = 'auto' | 'always' | 'never';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "FlightGamepad"
+        },
+        {
+          "type": "paragraph",
+          "text": "Explicit compatibility adapter for Space Sim's existing flight mappings."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightGamepad extends Disposable {\n  readonly enabled: boolean;\n  readonly activity: ReadonlyMap<number, number>;\n  readonly capturing: boolean;\n  setEnabled(enabled: boolean): void;\n  connected(): number[];\n  update(profileFor: (pad: number) => ControllerProfile | undefined,\n    onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void): void;\n  flight(pad: number): GamepadFlightInput;\n  captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void;\n  getDiagnostics(): GamepadDiagnostic[];\n  getSettings(): GamepadSettings;\n  onShortcut(handler: (action: FlightActionId) => void): void;\n  pollFlight(): GamepadFlightInput;\n  release(pad?: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu."
+        },
+        {
+          "type": "heading",
+          "text": "FlightControllerProfiles"
+        },
+        {
+          "type": "paragraph",
+          "text": "Flight mapping defaults and migration remain reusable without a gamepad device."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightControllerProfiles {\n  readonly defaultProfile: ControllerProfile;\n  normalize(raw: unknown): ControllerProfile;\n  legacy(): ControllerProfile | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "FlightKeyboardOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring the legacy Space Sim flight keyboard adapter."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightKeyboardOptions {\n  readonly keys: Set<string>;\n  /** Resolve explicitly bound shortcut chords before falling back to a bare key. */\n  readonly binding?: (event: KeyboardEvent) => string;\n  readonly pointers: Map<number, string>;\n  readonly paused: () => boolean;\n  readonly shortcut: (code: string) => void;\n  /** Initial held-action press, including taps shorter than one rendered frame. */\n  readonly flightPress?: (code: string) => void;\n  /** A module command key; true when one is bound to `code`. */\n  readonly command: (code: string) => boolean;\n  readonly autoPause: (reason: string) => void;\n  readonly autoResume?: (reason: string) => void;\n  readonly visibility: () => void;\n  readonly isFlightKey?: (code: string) => boolean;\n  readonly isShortcutKey?: (code: string) => boolean;\n  /** Optional safe shortcuts while a button, checkbox, radio, summary or link has focus. Text/edit\n   * controls still suppress flight shortcuts. Receives the resolved binding code. */\n  readonly controlShortcut?: (code: string) => boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-keyboard."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerCount"
+        },
+        {
+          "type": "paragraph",
+          "text": "Supported local player seat count: 1 to 4 players."
+        },
+        {
+          "type": "code",
+          "text": "export type PlayerCount = 1 | 2 | 3 | 4;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "InputDevice"
+        },
+        {
+          "type": "paragraph",
+          "text": "Device assigned to fly a local player seat."
+        },
+        {
+          "type": "code",
+          "text": "export type InputDevice = 'auto' | 'keyboard' | `pad:${number}` | 'none';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "NavballAnchor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Preset screen anchor location for a player's HUD navball."
+        },
+        {
+          "type": "code",
+          "text": "export type NavballAnchor = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center-bottom' | 'custom';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "NavballPlacement"
+        },
+        {
+          "type": "code",
+          "text": "export interface NavballPlacement {\n  /** Anchor preset or 'custom' */\n  readonly anchor: NavballAnchor;\n  /** Normalized fraction [0..1] within the pane or shared viewport. */\n  readonly x: number;\n  /** Normalized fraction [0..1] within the pane or shared viewport. */\n  readonly y: number;\n  /** Whether the navball is pinned in place (cannot be dragged). */\n  readonly pinned: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerSlot"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-seat local player preference slot."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerSlot {\n  /** Player 1's name is the pilot name; the others are named here. */\n  readonly name: string;\n  readonly device: InputDevice;\n  readonly profile: ControllerProfile;\n  /** Seat secret, so a returning player gets their own ships back in a saved world. */\n  readonly token: string;\n  readonly navball: NavballPlacement;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "LocalPlayersConfig"
+        },
+        {
+          "type": "paragraph",
+          "text": "Full local multiplayer and splitscreen preference configuration."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalPlayersConfig {\n  readonly count: PlayerCount;\n  readonly twoPlayerLayout: TwoPlayerLayout;\n  readonly screenMode: ScreenMode;\n  readonly slots: readonly PlayerSlot[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "LocalPlayerPreferences"
+        },
+        {
+          "type": "paragraph",
+          "text": "Persisted flight seat preferences; separate from the session's authority and identity."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalPlayerPreferences {\n  readonly colors: readonly string[];\n  readonly maximumPlayers: number;\n  defaultNavballPlacement(slot: number): NavballPlacement;\n  normalizeNavballPlacement(raw: unknown, fallback: NavballPlacement): NavballPlacement;\n  padDevice(index: number): InputDevice;\n  deviceIndex(device: InputDevice): number | undefined;\n  defaultLocalPlayers(player1Profile?: ControllerProfile): LocalPlayersConfig;\n  normalizeLocalPlayers(raw: unknown, player1Profile?: ControllerProfile): LocalPlayersConfig;\n  loadLocalPlayers(player1Profile?: ControllerProfile): LocalPlayersConfig;\n  saveLocalPlayers(config: LocalPlayersConfig): void;\n  assignDevice(config: LocalPlayersConfig, slot: number, device: InputDevice): LocalPlayersConfig;\n  updateSlot(config: LocalPlayersConfig, slot: number, change: Partial<Omit<PlayerSlot, 'token' | 'device'>>): LocalPlayersConfig;\n  setPlayerCount(config: LocalPlayersConfig, count: number): LocalPlayersConfig;\n  padOwner(config: LocalPlayersConfig, index: number, connected: readonly number[]): number | undefined;\n  keyboardOwner(config: LocalPlayersConfig): number | undefined;\n  computeNavballCenter(placement: NavballPlacement, width: number, height: number, scale?: number): { x: number; y: number };\n  setSlotNavball(config: LocalPlayersConfig, slot: number, placement: Partial<NavballPlacement>): LocalPlayersConfig;\n  setAllNavballsPinned(config: LocalPlayersConfig, pinned: boolean): LocalPlayersConfig;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
         },
         {
           "type": "link",
@@ -784,6 +1935,70 @@
           "text": "Used by: spacelab.flight-prediction."
         },
         {
+          "type": "heading",
+          "text": "ControllerMenuOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring a ControllerMenu instance."
+        },
+        {
+          "type": "code",
+          "text": "export interface ControllerMenuOptions {\n  /** DOM element container where the menu is mounted. */\n  readonly root: HTMLElement;\n  /** Handle to the active splitscreen configuration. */\n  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;\n  /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */\n  readonly gamepads?: FlightGamepad;\n  /** Returns the pilot name for player 1. */\n  pilotName(): string;\n  /** Returns true when the controls dialog window is currently visible. */\n  isOpen(): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ControllerMenuServices"
+        },
+        {
+          "type": "paragraph",
+          "text": "Injected services required by the controller menu UI."
+        },
+        {
+          "type": "code",
+          "text": "export interface ControllerMenuServices {\n  readonly preferences: LocalPlayerPreferences;\n  readonly profiles: FlightControllerProfiles;\n  readonly actions: Pick<FlightActionBindings, 'label'>;\n  formatButton(index: number, family: ControllerFamily): string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ControllerMenuFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating interactive controller configuration menus."
+        },
+        {
+          "type": "code",
+          "text": "export interface ControllerMenuFactory {\n  /** Creates a ControllerMenu bound to the given options and host services. */\n  create(options: ControllerMenuOptions): ControllerMenu;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu."
+        },
+        {
+          "type": "heading",
+          "text": "CONTROLLER_MENUS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the controller menu UI provider."
+        },
+        {
+          "type": "code",
+          "text": "export const CONTROLLER_MENUS: ServiceKey<ControllerMenuFactory> = Object.freeze({ slot: 'input.controller-menu', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu."
+        },
+        {
           "type": "link",
           "text": "API reference index",
           "page": "api-reference"
@@ -853,7 +2068,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-prediction, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.local-pilots, spacelab.player-controller."
         },
         {
           "type": "heading",
@@ -869,7 +2084,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.controller-menu."
         },
         {
           "type": "heading",
@@ -913,7 +2128,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.player-controller."
         },
         {
           "type": "heading",
@@ -921,11 +2136,467 @@
         },
         {
           "type": "code",
-          "text": "export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {\n  /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */\n  readonly module?: ModuleReference;\n  readonly assets: ModuleAssets;\n  /** Initialization only. Publishes this module's implementation of a declared `provides`\n   * entry; throws unless the resolved profile selected this module for the slot. */\n  provide<T>(key: ServiceKey<T>, service: T): void;\n  /** Initialization only. Returns the bound provider for a declared `requires` entry, which\n   * initialized first. Throws for an undeclared, unbound or version-incompatible key.\n   * Keep the returned service; it remains valid until this candidate is disposed. */\n  use<T>(key: ServiceKey<T>): T;\n  /** Initialization only. Absence is allowed only for a declared optional capability\n   * with no binding; invalid access and a bound provider's failures still throw. */\n  tryUse<T>(key: ServiceKey<T>): T | undefined;\n  contributeInput(source: InputSource): void;\n  contributeActions(actions: readonly ActionDefinitionV2[]): void;\n  contributeTransport(provider: TransportProvider): void;\n  contributeDiscovery(provider: DiscoveryProvider): void;\n  /** Authoritative records shared by saves and compatible session replication. */\n  contributeData(adapter: ModuleDataAdapter): void;\n  contributeVehicle(vehicle: VehicleDefinition): void;\n  contributeVehicleAppearance(appearance: VehicleAppearance): void;\n  contributeWindow(window: WindowDefinition): void;\n  /** Bounded structured Manual data, available in every tier without a UI dependency. */\n  contributeGuide(page: GuidePage): void;\n  contributeMaterial(material: MaterialDefinition): void;\n  contributePostEffect(effect: PostEffectDefinition): void;\n}"
+          "text": "export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {\n  /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */\n  readonly module?: ModuleReference;\n  readonly assets: ModuleAssets;\n  /** Initialization only. Publishes this module's implementation of a declared `provides`\n   * entry; throws unless the resolved profile selected this module for the slot. */\n  provide<T>(key: ServiceKey<T>, service: T): void;\n  /** Initialization only. Returns the bound provider for a declared `requires` entry, which\n   * initialized first. Throws for an undeclared, unbound or version-incompatible key.\n   * Keep the returned service; it remains valid until this candidate is disposed. */\n  use<T>(key: ServiceKey<T>): T;\n  /** Initialization only. Absence is allowed only for a declared optional capability\n   * with no binding; invalid access and a bound provider's failures still throw. */\n  tryUse<T>(key: ServiceKey<T>): T | undefined;\n  contributeInput(source: InputSource): void;\n  /** Contributes namespaced action definitions to the active candidate (platform tier only). */\n  contributeActions(actions: readonly ActionDefinitionV2[]): void;\n  contributeTransport(provider: TransportProvider): void;\n  contributeDiscovery(provider: DiscoveryProvider): void;\n  /** Authoritative records shared by saves and compatible session replication. */\n  contributeData(adapter: ModuleDataAdapter): void;\n  contributeVehicle(vehicle: VehicleDefinition): void;\n  contributeVehicleAppearance(appearance: VehicleAppearance): void;\n  contributeWindow(window: WindowDefinition): void;\n  /** Bounded structured Manual data, available in every tier without a UI dependency. */\n  contributeGuide(page: GuidePage): void;\n  contributeMaterial(material: MaterialDefinition): void;\n  contributePostEffect(effect: PostEffectDefinition): void;\n}"
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.throttle-hud."
+          "text": "Used by: spacelab.controller-menu, spacelab.flight-plans, spacelab.flight-prediction, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.player-controller, spacelab.throttle-hud."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/platform",
+      "title": "game-api: platform.ts",
+      "summary": "Declarations from platform.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/platform.ts."
+        },
+        {
+          "type": "heading",
+          "text": "InputFrame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Device-local input frame delivered to input sources. `elapsed` is wall-clock seconds (never a simulation step dt). `pilot` is the local seat index (0–3)."
+        },
+        {
+          "type": "code",
+          "text": "export interface InputFrame {\n  /** Wall-clock seconds since the prior frame. Units: seconds. */\n  readonly elapsed: number;\n  /** Local seat index in [0, 3]. */\n  readonly pilot: number;\n  /** True when continuous flight control inputs should be sampled. */\n  readonly flightAllowed: boolean;\n  /** True when global UI and view shortcut actions should be sampled. */\n  readonly shortcutsAllowed: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "ActionSink"
+        },
+        {
+          "type": "paragraph",
+          "text": "Synchronous receiver for action values written by an InputSource during sample()."
+        },
+        {
+          "type": "code",
+          "text": "export interface ActionSink {\n  /** Writes an analog or digital action value. Clamped by consumers to [-1, 1]. */\n  set(action: string, value: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "ActionDefinitionV2"
+        },
+        {
+          "type": "paragraph",
+          "text": "Namespaced action definition contributed by platform-tier input modules."
+        },
+        {
+          "type": "code",
+          "text": "export interface ActionDefinitionV2 {\n  /** Namespaced action identifier (e.g. `spacelab.input-actions/engine`). */\n  readonly id: string;\n  /** Friendly human-readable label shown in control configuration menus. */\n  readonly label: string;\n  /** Action category grouping for UI filtering and suppression. */\n  readonly category: 'flight' | 'warp' | 'view' | 'system';\n  /** Action trigger mode: continuous hold, bipolar axis, or discrete press. */\n  readonly mode: 'held' | 'axis' | 'press';\n  /** Default KeyboardEvent.code bindings or modifier chords. */\n  readonly defaultKeys: readonly string[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "InputSource"
+        },
+        {
+          "type": "paragraph",
+          "text": "Device sampler that translates hardware events or DOM interactions into namespaced actions."
+        },
+        {
+          "type": "code",
+          "text": "export interface InputSource extends Disposable {\n  /** Human-readable name identifying the hardware source type (e.g. 'keyboard', 'gamepad', 'touch'). */\n  readonly name: string;\n  /** Synchronous sampling pass writing at most 256 action entries into the sink. */\n  sample(frame: InputFrame, into: ActionSink): void;\n  /** Releases held inputs for the specified local pilot seat, or all seats if omitted. */\n  release(pilot?: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "PilotRegistry"
+        },
+        {
+          "type": "paragraph",
+          "text": "Registry managing active local player seats and input device assignments."
+        },
+        {
+          "type": "code",
+          "text": "export interface PilotRegistry {\n  /** Number of active local player seats in [1, 4]. */\n  readonly count: number;\n  /** Returns the session player ID for the specified local seat index. */\n  playerId(pilot: number): string | undefined;\n  /** Assigns an input device ('auto', 'keyboard', 'none', or 'pad:N') to a seat. */\n  assign(pilot: number, device: string): void;\n  /** Releases held inputs for a seat or all seats. */\n  release(pilot?: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "LocalPilotHost"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host callbacks that read active session identities and device assignments. Assigning a device must never create a network player or grant session ownership."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalPilotHost {\n  /** Returns active local player seat count in [1, 4]. */\n  count(): number;\n  /** Returns session player ID for a local seat index, if assigned. */\n  playerId(pilot: number): string | undefined;\n  /** Assigns an input device ('auto', 'keyboard', 'none', or 'pad:N') to a seat index. */\n  assign(pilot: number, device: string): void;\n  /** Releases held inputs across host-managed controllers. */\n  release(pilot?: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "LocalPilotFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating local pilot seat registries and flight player preference codecs."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalPilotFactory {\n  /** Creates an active local pilot registry wrapping the given host callbacks. */\n  create(host: LocalPilotHost): PilotRegistry & Disposable;\n  /** Returns the local player preferences codec backed by flight controller profiles. */\n  preferences(): LocalPlayerPreferences;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "LOCAL_PILOTS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the local pilot seats provider."
+        },
+        {
+          "type": "code",
+          "text": "export const LOCAL_PILOTS: ServiceKey<LocalPilotFactory> = Object.freeze({ slot: 'input.local-pilots', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "ControlTargetBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Local routing identity connecting a seat and viewport to a session player and target entity."
+        },
+        {
+          "type": "code",
+          "text": "export interface ControlTargetBinding {\n  /** Local seat identifier. */\n  readonly seatId: string;\n  /** Session player identifier. */\n  readonly playerId: string;\n  /** Target vessel or world entity identifier. */\n  readonly entityId: string;\n  /** Optional viewport identifier for multi-view split screen. */\n  readonly viewportId?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "ControlTargetAdapter"
+        },
+        {
+          "type": "paragraph",
+          "text": "Explicit entity or session adapter for routing intent. Implementations validate ownership and execute actions without advancing simulation state. Schema must be 'spacelab-control-target/1'."
+        },
+        {
+          "type": "code",
+          "text": "export interface ControlTargetAdapter {\n  /** Explicit adapter contract schema identifier. */\n  readonly schema: 'spacelab-control-target/1';\n  /** Returns true if the session player currently owns and can command the target entity. */\n  canControl(binding: ControlTargetBinding): boolean;\n  /** Returns the bounded list of namespaced action IDs accepted by this target (max 256). */\n  actions(binding: ControlTargetBinding): readonly string[];\n  /** Sends an updated action value in [-1, 1] to the controlled entity. */\n  setAction(binding: ControlTargetBinding, action: string, value: number): void;\n  /** Clears active intent associated with the specified binding. */\n  release(binding: ControlTargetBinding): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerInputBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Input source binding for a single local player seat."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerInputBinding {\n  /** Local device seat index in [0, 3]. */\n  readonly pilot: number;\n  /** Borrowed, ordered input sources (at most 16). Last write wins; provider retains ownership. */\n  readonly sources: readonly InputSource[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerController"
+        },
+        {
+          "type": "paragraph",
+          "text": "Routes namespaced intent from input sources to a compatible control target adapter."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerController extends Disposable {\n  /** Active target binding, or undefined if no target is selected. */\n  readonly target: ControlTargetBinding | undefined;\n  /** Selects a target entity. Releasing or changing target clears prior intent. */\n  select(target: ControlTargetBinding | undefined): void;\n  /** Binds input sources for this seat. Reassignment clears held device state. */\n  bindInput(input: PlayerInputBinding | undefined): void;\n  /** Synchronously samples bound sources and dispatches changed actions to the adapter. */\n  sample(frame: Omit<InputFrame, 'pilot'>): void;\n  /** Manually sets an action value in [-1, 1] on the active target. */\n  set(action: string, value: number): void;\n  /** Releases all held actions and informs the adapter. */\n  release(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerControllerFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating player controllers over a control target adapter."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlayerControllerFactory {\n  /** Creates a player controller bound to the specified adapter and optional initial input. */\n  create(adapter: ControlTargetAdapter, input?: PlayerInputBinding): PlayerController;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "PLAYER_CONTROLLERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the player controller factory."
+        },
+        {
+          "type": "code",
+          "text": "export const PLAYER_CONTROLLERS: ServiceKey<PlayerControllerFactory> = Object.freeze({ slot: 'input.controller', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.player-controller."
+        },
+        {
+          "type": "heading",
+          "text": "KeyboardInputOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for a keyboard input source."
+        },
+        {
+          "type": "code",
+          "text": "export interface KeyboardInputOptions {\n  /** Action definitions to sample. */\n  readonly actions: readonly ActionDefinitionV2[];\n  /** Custom keybindings mapping action IDs to keyboard codes or chords. */\n  readonly bindings?: Readonly<Record<string, readonly string[]>>;\n  /** Returns the active local seat index in [0, 3], or undefined if unassigned. */\n  pilot(): number | undefined;\n  /** Optional callback returning false when modal UI captures keyboard input. */\n  capture?(): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-keyboard."
+        },
+        {
+          "type": "heading",
+          "text": "KeyboardInputFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating keyboard input sources and legacy flight adapters."
+        },
+        {
+          "type": "code",
+          "text": "export interface KeyboardInputFactory {\n  /** Creates an InputSource listening to window keyboard events. */\n  create(options: KeyboardInputOptions): InputSource;\n  /** Read-only set of reserved browser/system keys. */\n  readonly reservedKeys: ReadonlySet<string>;\n  /** Binds the legacy Space Sim flight keyboard adapter. */\n  bindFlight(options: FlightKeyboardOptions): Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-keyboard."
+        },
+        {
+          "type": "heading",
+          "text": "KEYBOARD_INPUT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the keyboard input provider."
+        },
+        {
+          "type": "code",
+          "text": "export const KEYBOARD_INPUT: ServiceKey<KeyboardInputFactory> = Object.freeze({ slot: 'input.keyboard', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-keyboard."
+        },
+        {
+          "type": "heading",
+          "text": "FlightActionBindings"
+        },
+        {
+          "type": "paragraph",
+          "text": "Keybinding storage, display and action definition registry."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightActionBindings {\n  /** All registered flight action definitions. */\n  readonly definitions: readonly ActionDefinitionV2[];\n  /** Loads current keybindings from localStorage (`space-sim:keybindings:v1`) or defaults. */\n  load(): Readonly<Record<string, readonly string[]>>;\n  /** Persists updated keybindings to storage. */\n  save(bindings: Readonly<Record<string, readonly string[]>>): void;\n  /** Resets keybindings in storage and returns defaults. */\n  reset(): Readonly<Record<string, readonly string[]>>;\n  /** Returns a human-friendly display label for a flight action. */\n  label(action: FlightActionId): string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-actions."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_ACTIONS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the flight action bindings service."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_ACTIONS: ServiceKey<FlightActionBindings> = Object.freeze({ slot: 'input.flight-actions', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-actions."
+        },
+        {
+          "type": "heading",
+          "text": "GamepadInputOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring a generic gamepad input source."
+        },
+        {
+          "type": "code",
+          "text": "export interface GamepadInputOptions {\n  /** Action definitions to sample. */\n  readonly actions: readonly ActionDefinitionV2[];\n  /** List of up to 256 gamepad axis/button bindings. */\n  readonly bindings: readonly GamepadActionBinding[];\n  /** Radial deadzone fraction in [0, 0.5]. */\n  readonly deadzone: number;\n  /** Returns the physical gamepad device index (0–31) assigned to this seat. */\n  pad(pilot: number): number | undefined;\n  /** Optional callback returning false when input capture is suppressed. */\n  capture?(): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-gamepad."
+        },
+        {
+          "type": "heading",
+          "text": "GamepadInputFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating generic gamepad input sources and flight gamepad managers."
+        },
+        {
+          "type": "code",
+          "text": "export interface GamepadInputFactory {\n  /** Creates an InputSource sampling standard W3C Gamepad API devices. */\n  create(options: GamepadInputOptions): InputSource;\n  /** Creates a legacy FlightGamepad manager for flight HUD and controls. */\n  createFlight(): FlightGamepad;\n  /** Formats a physical button index into a family-specific label (e.g. 'A', 'Cross'). */\n  formatButton(index: number, family: ControllerFamily): string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad."
+        },
+        {
+          "type": "heading",
+          "text": "GAMEPAD_INPUT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the gamepad input provider."
+        },
+        {
+          "type": "code",
+          "text": "export const GAMEPAD_INPUT: ServiceKey<GamepadInputFactory> = Object.freeze({ slot: 'input.gamepad', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_PROFILES"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for flight controller profile codecs and defaults."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles> = Object.freeze({ slot: 'input.flight-profiles', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "TouchInputOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options configuring a touch input source."
+        },
+        {
+          "type": "code",
+          "text": "export interface TouchInputOptions {\n  /** Action definitions to sample. */\n  readonly actions: readonly ActionDefinitionV2[];\n  /** List of up to 256 element gesture bindings. */\n  readonly bindings: readonly TouchActionBinding[];\n  /** Returns active local seat index in [0, 3], or undefined if unassigned. */\n  pilot(): number | undefined;\n  /** Optional callback returning false when modal UI suppresses touch controls. */\n  capture?(): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "TouchInputFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating touch input sources and flight touch overlays."
+        },
+        {
+          "type": "code",
+          "text": "export interface TouchInputFactory {\n  /** Creates an InputSource tracking pointer gestures across caller elements. */\n  create(options: TouchInputOptions): InputSource;\n  /** Creates a legacy FlightTouch overlay manager. */\n  createFlight(): FlightTouch;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "TOUCH_INPUT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the touch input provider."
+        },
+        {
+          "type": "code",
+          "text": "export const TOUCH_INPUT: ServiceKey<TouchInputFactory> = Object.freeze({ slot: 'input.touch', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "TwoPlayerLayout"
+        },
+        {
+          "type": "code",
+          "text": "export type TwoPlayerLayout = 'auto' | 'side' | 'stacked';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ScreenMode"
+        },
+        {
+          "type": "code",
+          "text": "export type ScreenMode = 'dynamic' | 'split';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.controller-menu, spacelab.local-pilots."
         },
         {
           "type": "link",
