@@ -491,6 +491,8 @@ for(const kind of ['efficient','faster'])test(`Auto warp adopts the ${kind} tran
  await expect(page.locator('#maneuver-nodes option').first()).toContainText('flown',{timeout:60000});
  await expect(page.locator('#maneuver-nodes option').last()).toContainText('flown',{timeout:90000});
  await expect(page.locator('#maneuver-automatic')).not.toBeChecked();await expect(page.locator('#warp-factor')).toHaveText('1×');
+ // #debug refreshes at 4 Hz, so wait for the snapshot to show the cut-off rather than sampling a stale one.
+ await expect.poll(async()=>(await debug(page)).engine).toBe(false);
  const done=await debug(page);expect(done.engine).toBe(false);expect(done.maneuver.completed).toBe(true);
  expect(Math.abs(done.orbit.periapsis-2048)).toBeLessThan(20);expect(Math.abs(done.orbit.apoapsis-2048)).toBeLessThan(20);
 });

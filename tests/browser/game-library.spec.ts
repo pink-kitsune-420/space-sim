@@ -64,6 +64,8 @@ for (const target of ['hosted', 'offline'] as const) {
     await openPanel(page, 'data');
     await page.locator('#instruments').getByRole('button', { name: 'Navball', exact: true }).click();
     await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.throttle']);
+    // Reload only once the viewer preference is actually stored.
+    await expect.poll(() => page.evaluate(() => Object.entries(localStorage).some(([key, value]) => key.startsWith('space-sim.presentation/1') && value.includes('builtin.navball')))).toBe(true);
     await page.reload();
     await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.throttle']);
     expect((await debug(page)).renderer).toBe('builtin.canvas');
