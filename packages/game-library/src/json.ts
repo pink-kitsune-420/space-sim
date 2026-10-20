@@ -1,3 +1,4 @@
+/** Host-only bounded JSON parsing for package entries (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`). */
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
 /** Check nesting before JSON.parse (including malicious trees), and bound object/array counts. */

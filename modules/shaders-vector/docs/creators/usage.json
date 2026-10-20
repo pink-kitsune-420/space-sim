@@ -5,8 +5,97 @@
   "summary": "Public render.vector-shaders@1.0.0 service and lifecycle.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Owns the six editable GLSL assets for the three-pass scene/vector/text ABI. Provides immutable defaults and bounded file/partial-pack parsing. No graphics context is created at module initialization. The renderer validates GPU interfaces and retains prior programs when a replacement fails. Shader packs are presentation data and do not alter physical geometry or authority."
+      "text": "This module provides the baseline GLSL shader assets for the three-pass rendering pipeline: scene (celestial bodies, terrain masks and lighting), vector (orbits, prediction traces, heading chevrons and UI lines), and text (glyph quads). It exposes an immutable default ShaderPack along with validation and parsing utilities for format space-sim-shaders/1."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides render.vector-shaders@1.0.0 through the VECTOR_SHADERS key: a ShaderLibrary offering defaults, validate(value), and parse(text, filename).",
+        "The module requires no services and loads no external dependencies.",
+        "Fills the render.vector-shaders slot in presentation profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization reads the six bundled GLSL stage assets from module storage, bundles them into an immutable default ShaderPack, validates the pack, registers this guide, and provides VECTOR_SHADERS.",
+        "No graphics context or WebGL context is initialized; GPU compilation is deferred to renderer creation.",
+        "validate and parse return frozen, verified ShaderPack records without allocating persistent caches.",
+        "The library is stateless and owns no disposable handles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module is not loaded by default in standard gameplay targets, but serves as the shader pack provider for WebGL rendering and custom visual mods. To replace default shaders, implement a presentation module providing render.vector-shaders@1.0.0 or pass custom ShaderPack objects to WebGLRendererFactory."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Uses shader pack format space-sim-shaders/1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/shaders-vector demonstrates reading default shader stages, parsing custom GLSL fragment replacements, and validating partial shader packs. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/shaders-vector/module.json /tmp/example-shaders.spacemod\nnpm run module:validate -- /tmp/example-shaders.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api shader-format.ts: shader pack validation and parsing",
+      "page": "api-reference/game-api/shader-format"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Vector shader pack",
+      "page": "api-reference/module/spacelab.vector-shaders"
+    },
+    {
+      "type": "link",
+      "text": "WebGL 2: GPU-accelerated rendering and custom shaders",
+      "page": "spacelab.render-webgl/usage"
     }
   ]
 }

@@ -1,4 +1,6 @@
 // Local filesystem/bundler adapter. Archive inspection never evaluates package JavaScript.
+// Host-side Node tooling behind the module:*, game:* and file:* npm scripts; modules cannot
+// import packages/module-tools. Full contracts and thrown messages: package.d.mts.
 import { rolldown } from 'rolldown';
 import { readFile, writeFile, lstat, readdir, mkdir, realpath } from 'node:fs/promises';
 import { resolve, dirname, relative, sep, parse } from 'node:path';
@@ -7,6 +9,7 @@ import { buildModule } from './author.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 let contractPromise;
+/** Package contracts, bundled in memory from game-library's tooling entry once per process. */
 export async function packageContracts() {
   return contractPromise ??= (async () => {
     const bundle = await rolldown({ input: resolve(project, 'packages/game-library/src/tooling.ts') });
@@ -27,6 +30,8 @@ async function safeParents(path) {
   }
   return target;
 }
+/** Read a package folder into portable path → bytes. Read-only; refuses symlinks, special or
+ * executable files and folders over the package limits. */
 export async function readModuleFolder(directory) {
   const kit = await packageContracts(), root = await realpath(await safeParents(directory)), files = new Map();
   let total = 0;
@@ -92,6 +97,8 @@ export async function buildPortableModule(configPath, outputPath, options = {}) 
   }
   return inspected;
 }
+/** Pack a folder into a ZIP outside it, after inspecting its contents. Never compiles; the
+ * folder is not changed (integrity.json is recomputed for the archive only). */
 export async function packModule(directory, outputPath, { compression = 'auto', shipped } = {}) {
   const kit = await packageContracts(), root = resolve(directory), output = resolve(outputPath);
   if (output.startsWith(root + sep)) throw new Error('Write the archive outside its source folder');
@@ -158,6 +165,7 @@ export async function forkModule(input, id, directory = id) {
   }
   return { id, originalDigest: original.digest, rebuildRequired: true };
 }
+/** Scaffold an API v1 editable package in a folder that must not exist yet. */
 export async function newModule(id, directory = id) {
   const kit = await packageContracts();
   if (!/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/.test(id) || id.startsWith('builtin.')) throw new Error('Choose a creator namespace such as local.my-module');
@@ -220,6 +228,8 @@ export async function convertModule(configPath, directory, options = {}) {
   await writeFile(resolve(directory, 'NOTICE'), artifact.inputs.map(i => `${i.path}\n${i.license}\n${i.attribution}`).join('\n\n') + '\n');
   return buildPortableModule(resolve(directory, 'module.json'), undefined, options);
 }
+/** Build and re-inspect a .spacegame from a game descriptor, a profile or an unpacked game's
+ * game.json. Writes only outputPath; never compiles or runs code. */
 export async function buildGame(inputPath, outputPath, options = {}) {
   const kit = await packageContracts(), bytes = new Uint8Array(await readFile(inputPath));
   const input = await kit.readJsonFile(bytes), authored = new Map();
@@ -278,6 +288,8 @@ export async function buildGame(inputPath, outputPath, options = {}) {
   return checked;
 }
 
+/** CLI dispatcher for package.json scripts. Prints one result line; on error prints the message
+ * to stderr and sets process.exitCode = 1 instead of rejecting. */
 export async function run(args) {
   try {
     const [command, input, rawOutput] = args;

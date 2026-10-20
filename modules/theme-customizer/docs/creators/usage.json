@@ -5,8 +5,98 @@
   "summary": "Public ui.theme-customizer@1.0.0 service and lifecycle.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Creates the reusable settings dialog, presets, import/export controls and optional toolbar buttons over an injected theme controller and borrowed root. The host can scope shortcuts to the active view. Disposal removes created DOM, cancels timers and subscriptions, and aborts every listener. No game, physics or renderer implementation is imported."
+      "text": "This module provides a modal settings dialog for visual theme customization. It allows players and creators to switch between built-in presets (Spacelab, Cyber, Apollo, Tactical, Aurora, Solar, Void), tune backdrop parameters (star density, nebula intensity, grid spacing, window opacity), toggle scanlines, and import or export custom theme configurations."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.theme-customizer@1.0.0 through the THEME_CUSTOMIZERS key: a ThemeCustomizerFactory that creates ThemeCustomizer dialog instances.",
+        "The module requires no services at initialization. Each created dialog requires a ThemeController and a host DOM element.",
+        "Fills the ui.theme-customizer slot in platform profiles."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization bundles the controls.css stylesheet asset, registers this guide, and provides THEME_CUSTOMIZERS.",
+        "create(options) mounts dialog controls into options.root and registers event listeners for presets, sliders and import/export buttons.",
+        "open(), close(), and toggle() control dialog visibility.",
+        "toggleGrid() toggles celestial grid visibility on the bound theme controller.",
+        "dispose removes dialog elements from the host DOM, unbinds event listeners and cancels active timers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Theme controls are optional platform tools. Games that provide custom styling dialogs or lock visuals can replace or omit ui.theme-customizer without affecting physics, flight controls or world state."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: dialog markup, events and options may evolve before API freeze with documented migration notes."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/theme-customizer demonstrates creating a theme customizer dialog bound to a host DOM element and ThemeController, verifying open, toggle and close operations. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/theme-customizer/module.json /tmp/example-theme-customizer.spacemod\nnpm run module:validate -- /tmp/example-theme-customizer.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api theme-customizer.ts: theme dialog interface",
+      "page": "api-reference/game-api/theme-customizer"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Theme controls",
+      "page": "api-reference/module/spacelab.theme-customizer"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Themes",
+      "page": "api-reference/module/spacelab.theme"
     }
   ]
 }

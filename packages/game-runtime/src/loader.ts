@@ -1,9 +1,11 @@
+/** Host-only (`packages/game-runtime`): the gate before imported module code runs. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); approving code is a player or server-owner decision with no module-facing equivalent. */
 import type { ManifestV2, ModuleAssets, ModuleEnvironment, ModuleInitializationV2, RegisteredModule, RegisteredModuleV2 } from '../../game-api/src/index';
 import { enableCodeArtifact, parseCodeArtifact, type CodeArtifact } from './artifact';
 import { validateManifestV2 } from './validation-v2';
 import { validateManifest } from './validation';
 import { ALLOW_RUNTIME_CODE } from './build-policy';
 
+/** Policy checked immediately before imported code runs: target environment, whether runtime code is allowed, and the exact approved package digests. Host-only (`packages/game-runtime`). */
 export interface LoadPolicy {
   readonly environment: ModuleEnvironment;
   readonly allowRuntimeCode: boolean;
@@ -32,6 +34,7 @@ export function artifactModules(artifacts: readonly CodeArtifact[], environment:
   return loadCodeModules(artifacts, { environment, allowRuntimeCode: true, approvedDigests: new Set(artifacts.map(a => a.digest)) });
 }
 
+/** A verified v2 code package: manifest, package digest, bundled `dist/module.js` source and multiplayer flag. Host-only (`packages/game-runtime`). */
 export interface ExecutablePackageV2 {
   readonly manifest: ManifestV2;
   readonly digest: string;
@@ -39,7 +42,9 @@ export interface ExecutablePackageV2 {
   readonly supportsMultiplayer: boolean;
 }
 /** Only verified package inspection may construct this record. The orchestrator reinspects
- * persisted bytes before registration; code evaluation remains deferred to preparation. */
+ * persisted bytes before registration; code evaluation remains deferred to preparation.
+ * Initialization fails with `Module <id>: this build does not allow imported code` or
+ * `Module <id>: approve this exact code digest before enabling it` before any code runs. Host-only (`packages/game-runtime`). */
 export function loadCodeModuleV2(module: ExecutablePackageV2, policy: LoadPolicy): RegisteredModuleV2 {
   const manifest = validateManifestV2(module.manifest), { digest, source, supportsMultiplayer } = module;
   if (!/^[0-9a-f]{64}$/.test(digest) || !source.trim() || new TextEncoder().encode(source).length > 4 * 1024 * 1024) throw new Error('Invalid v2 executable package');

@@ -1,8 +1,10 @@
+/** Host-only (`packages/game-runtime`): registrations of modules linked into this build. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); it has no module-facing equivalent. */
 import type { HostServiceAccess, ModuleAssets, ModuleEnvironment, RegisteredModuleV2 } from '../../game-api/src/index';
 import type { InstalledGamePlan } from './game-loader';
 import { ModuleRegistryV2, moduleAssets } from './modules-v2';
 import { validateManifestV2 } from './validation-v2';
 
+/** A shipped module's validated v2 registration and its guide assets. Host-only (`packages/game-runtime`). */
 export interface BundledRegistration { readonly module: RegisteredModuleV2; readonly assets: ModuleAssets }
 /** Statically linked source is trusted by the build, never by an imported archive's claims.
  * The same initializer, metadata and guide assets are used by editable package builds. */

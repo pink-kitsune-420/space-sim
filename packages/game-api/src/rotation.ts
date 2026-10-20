@@ -9,4 +9,5 @@ export interface RotationMath {
  groundVelocity(omega: number, position: Vec): Vec;
  bodyFixed(state: State, body: Body): boolean;
 }
+/** Service key for the prescribed sidereal rotation math kernel (`core.rotation@1.0.0`). */
 export const CORE_ROTATION: ServiceKey<RotationMath> = Object.freeze({ slot: 'core.rotation', version: '1.0.0' });

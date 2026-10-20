@@ -1,6 +1,10 @@
+/** Host-only archive size limits and gzip JSON helpers (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`). */
 import { parsePackageJson } from './json';
+/** Largest compressed file or ZIP archive (32 MiB; `Archive exceeds compressed size limit (32 MiB)`). Host-only (`packages/game-library`). */
 export const MAX_ARCHIVE_BYTES = 32 * 1024 * 1024;
+/** Largest expanded size of one archive, shared by a game and its embedded packages (64 MiB; `Archive exceeds expanded size limit (64 MiB)`). Host-only (`packages/game-library`). */
 export const MAX_EXPANDED_BYTES = 64 * 1024 * 1024;
+/** Whether `bytes` start with the gzip signature. Host-only (`packages/game-library`). */
 export const isCompressed = (bytes: Uint8Array): boolean => bytes[0] === 0x1f && bytes[1] === 0x8b;
 
 async function bounded(stream: ReadableStream<Uint8Array>, maximum: number): Promise<Uint8Array<ArrayBuffer>> {

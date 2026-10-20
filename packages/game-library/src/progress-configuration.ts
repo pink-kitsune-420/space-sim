@@ -1,3 +1,4 @@
+/** Host-only saved-progress configuration (`packages/game-library`): the exact profile, runtime plans and package digests needed to resume a save. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules save through `CORE_SAVE` and `CORE_UNIVERSE_FORMAT`. */
 import type { CodeArtifact } from '../../game-runtime/src/artifact';
 import { decodeModulePackage } from './portable';
 import { loadCodeModules } from '../../game-runtime/src/loader';
@@ -12,6 +13,7 @@ import { inspectRuntimePackage } from './runtime-package';
 /** Exact configuration only. Content definitions and executable bytes belong in the inert
  * installed library; progress retains its existing universe snapshot and physical identity. */
 export type ProgressConfiguration = import('../../game-api/src/index').SavedGameConfiguration;
+/** Validates a `spacelab-progress-configuration/2` value: v1 profile, runtime selection and exact data and code package references selected by that profile. Host-only (`packages/game-library`). */
 export function validateProgressConfiguration(raw: unknown): ProgressConfiguration {
   const value = object(raw, 'Progress configuration');
   keys(value, ['format', 'profile', 'runtime', 'data', 'code'], 'Progress configuration');
@@ -30,16 +32,19 @@ export function validateProgressConfiguration(raw: unknown): ProgressConfigurati
   };
   return freezeJson({ format: value.format, profile, runtime: validateRuntimeSelection(value.runtime), data: references(value.data), code: references(value.code) });
 }
+/** Builds the progress configuration of a profile, its selected data and code modules and its runtime selection. Host-only (`packages/game-library`). */
 export function progressConfiguration(profile: ModuleProfile, data: readonly DataModule[], code: readonly RegisteredModule[], runtime: RuntimeSelection): ProgressConfiguration {
   const selected = new Set(profile.modules.map(ref => ref.id));
   return validateProgressConfiguration({ format: 'spacelab-progress-configuration/2', profile, runtime,
     data: data.filter(m => selected.has(m.manifest.id)).map(m => ({ id: m.manifest.id, version: m.manifest.version, digest: sha256Hex(canonicalJson(m)) })),
     code: code.filter(m => selected.has(m.manifest.id) && m.contentDigest).map(m => ({ id: m.manifest.id, version: m.manifest.version, digest: m.contentDigest })) });
 }
+/** The validated `configuration` of a save, or `undefined` when it has none. Host-only (`packages/game-library`). */
 export function savedProgressConfiguration(raw: unknown): ProgressConfiguration | undefined {
   if (!raw || typeof raw !== 'object' || !('configuration' in raw)) return undefined;
   return validateProgressConfiguration(raw.configuration);
 }
+/** Returns `save` with a validated `configuration`, or unchanged when none is given. Host-only (`packages/game-library`). */
 export function withProgressConfiguration(save: WorldSave, configuration: ProgressConfiguration | undefined): WorldSave & { readonly configuration?: ProgressConfiguration } {
   return configuration ? { ...save, configuration: validateProgressConfiguration(configuration) } : save;
 }

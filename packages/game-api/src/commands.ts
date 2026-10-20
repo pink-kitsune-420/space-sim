@@ -1,6 +1,7 @@
 import type { Controls } from './state';
 import type { Ship } from './world';
 
+/** Bounded numeric parameter schema for an authoritative module command (`[minimum, maximum]`). */
 export interface CommandParameter {
   readonly type: 'number';
   readonly default: number;
@@ -8,6 +9,7 @@ export interface CommandParameter {
   readonly maximum: number;
   readonly integer?: boolean;
 }
+/** Detached, read-only input passed to `CommandHook.resolve` at a fixed-step control boundary (`time` in simulation seconds). */
 export interface CommandInput {
   /** Committed tick and simulation time when the host applies the command. */
   readonly tick: number;
@@ -40,6 +42,7 @@ export interface CommandHook {
   readonly parameters?: Readonly<Record<string, CommandParameter>>;
   resolve(input: CommandInput): CommandEffect;
 }
+/** Resolved authoritative command contribution bound to its owning module identity and version. */
 export interface CommandExtension {
   readonly moduleId: string;
   readonly version: string;

@@ -11,7 +11,9 @@ export interface ManeuverBurnControl extends Disposable {
  readonly remaining: number;
  next(state: State): { readonly controls: Controls; readonly throttle?: number };
 }
+/** Factory for creating finite maneuver burn controllers given planned burn time, delta-v in m/s, and vehicle handling. */
 export interface ManeuverBurnFactory { create(time: number, delta: Vec, vehicle: VehicleDefaults): ManeuverBurnControl }
+/** Service key for the finite maneuver burn factory (`flight.maneuver-burn@1.0.0`). */
 export const MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory> = Object.freeze({ slot: 'flight.maneuver-burn', version: '1.0.0' });
 
 /** Velocity-relative prograde plus body-relative radial intent, in metres/second. */
@@ -20,12 +22,14 @@ export function maneuverDelta(sample: GhostSample, prograde: number, radial: num
  return { x: (v > 0 ? sample.velocity.x / v * prograde : 0) + (r > 0 ? sample.position.x / r * radial : 0),
   y: (v > 0 ? sample.velocity.y / v * prograde : 0) + (r > 0 ? sample.position.y / r * radial : 0) };
 }
+/** Flight context and host authority state supplied to maneuver planners in SI units and simulation seconds. */
 export interface ManeuverFlight {
  readonly world: import('./engine').WorldRead; readonly ship?: import('./world').Ship;
  readonly body: import('./universe').ResolvedBody;
  readonly enabled: boolean; readonly canWarp: boolean; readonly paused: boolean; readonly inputBlocked: boolean;
  readonly warp: number; readonly requestedWarp: number; readonly warpReason?: string;
 }
+/** Configuration and host authority callbacks for creating an interactive maneuver planner window and editor. */
 export interface ManeuverPlannerOptions {
  readonly container: HTMLElement; readonly id?: string;
  readonly shell?: Pick<import('./window-shell').WindowShell, 'addInstrument'>;
@@ -55,6 +59,7 @@ export interface ManeuverPlannerOptions {
  notify(text: string): void;
  event?(kind: string, detail: Record<string, unknown>): void;
 }
+/** Interactive maneuver planner controller managing candidate nodes, previews, execution steps, and plan persistence. */
 export interface ManeuverPlannerControl extends Disposable {
  readonly executing: boolean;
  /** Open the transfer search directly without placing or arming a burn. */
@@ -77,5 +82,7 @@ export interface ManeuverPlannerControl extends Disposable {
  snapshot(): import('./presentation').ManeuverPreview | undefined;
  diagnostics(): Record<string, unknown> | null;
 }
+/** Factory for creating independent maneuver planner controllers (`view.maneuver-planner@1.0.0`). */
 export interface ManeuverPlannerFactory { create(options: ManeuverPlannerOptions): ManeuverPlannerControl }
+/** Service key for the maneuver planner factory (`view.maneuver-planner@1.0.0`). */
 export const MANEUVER_PLANNERS: ServiceKey<ManeuverPlannerFactory> = Object.freeze({ slot: 'view.maneuver-planner', version: '1.0.0' });

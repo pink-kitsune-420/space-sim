@@ -1,4 +1,5 @@
 // Local authoring only. None of this bundler/tooling code ships in the game.
+// Host-side Node tooling: modules cannot import packages/module-tools. Contracts: author.d.mts.
 import { rolldown } from 'rolldown';
 import { parseSync } from 'rolldown/utils';
 import { readFile, writeFile, realpath, stat, mkdir } from 'node:fs/promises';
@@ -11,6 +12,8 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const api = resolve(project, 'packages/game-api/src');
 const digest = text => createHash('sha256').update(text).digest('hex');
 let contracts;
+/** Runtime artifact contracts, bundled in memory from game-runtime's loader once per process.
+ * Writes nothing and evaluates no module code. */
 export async function authorContracts() {
   if (!contracts) contracts = (async () => {
     const bundle = await rolldown({ input: resolve(project, 'packages/game-runtime/src/loader.ts') });
@@ -27,6 +30,8 @@ async function locate(path) {
   }
   throw new Error(`Missing module input ${path}`);
 }
+/** Static import/re-export specifiers of one source, in order. Parses only; throws on parse
+ * errors, computed specifiers, require, import assignments and dynamic imports. */
 export function inspectAuthorSource(source, path) {
   const parsed = parseSync(path, source);
   if (parsed.errors.length) throw new Error(`${path}: ${parsed.errors[0].message}`);

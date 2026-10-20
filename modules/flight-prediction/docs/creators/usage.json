@@ -2,23 +2,119 @@
   "id": "usage",
   "audience": "creators",
   "title": "Progressive flight prediction",
-  "summary": "Isolated, bounded and removable preview state.",
+  "summary": "Cancellable trajectory previews that a view can trace a little at a time without touching live flight.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "view.prediction@1.0.0 creates an independent cancellable preview per view. Pass WorldRead for SOI-aware flight; omit it for a body-only preview from a detached seed. Selected public motion, rails, surfaces and moving-body frames determine the forecast. Live authority is never advanced. No camera, split-screen, planner, audio or theme module is required."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Ship, body, surface, motion identity and relevant command epochs invalidate a preview. While tracing, only the new path prefix is shown. Invalidation, completion, generator failure and provider removal close both the generator and isolated context, even if one cleanup fails. A disposed instance rejects updates. Independent views retain separate budgets/jobs."
+      "text": "A prediction (also called a ghost path) is the future trajectory drawn ahead of a ship. This module creates one preview per view and traces it progressively: each rendered frame does a small, bounded amount of work, so long paths appear over several frames instead of stalling one. Tracing runs on an isolated copy of the motion model, or through the world's own read-only predictor, and never advances the live simulation."
     },
     {
       "type": "paragraph",
-      "text": "Each update earns an immediate bounded prefix (128 samples), with at most 256 yields and maxMs wall milliseconds; sample-rate settings add work credit. Compatible analytic intervals leap between adaptive timed states; numerical terrain/contact and shared-world rules retain 10-ms steps. Ordinary flight does not restart passive jobs; changed burns invalidate before drawing. Two bounded sample buffers are reused. Normal unimpeded bound paths close a complete revolution, at any size. Multi-body paths cover two initial orbital periods (minimum one hour, maximum a Julian year), up to 16 SOI transitions, 16,384 main samples and 8,192 contact/event approach steps. horizon identifies the configured time bound; open means a work limit, never a physical endpoint. Escape in body-only mode is a distance horizon. A generic game may omit prediction entirely."
+      "text": "All values are body-relative SI: positions in metres, velocities in m/s and times in seconds of simulation time. Each sample may name its active body (bodyId) and the frame it is expressed in (frameId), a translating, nonrotating frame centred on the starting body. Transform both position and velocity through the system's ephemerides before comparing samples from different frames."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.prediction@1.0.0 through the PREDICTIONS key: a PredictionFactory whose create(onComplete) returns a FlightPrediction.",
+        "Requires no services. Callers pass the SimulationContext, ship state, body and optional surface on every update, and optionally a WorldRead.",
+        "Consumers in this checkout: the flight host (Player 1's preview), spacelab.flight-split (guest seats) and spacelab.maneuver-editor, which both require view.prediction@^1.0.0."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "maxMs (default 3, from 0.1 to 16, step 0.1): wall-clock milliseconds of tracing work allowed in one update of one preview. A consumer may lower FlightPrediction.maxMs for a single preview, for example a split-screen guest. Results do not change, only how quickly they appear.",
+        "traceSamplesPerSecond (default 1000, from 1 to 1000, step 1): samples of work earned per second of elapsed wall time for analytic coast previews.",
+        "numericalSamplesPerSecond (default 12000, from 120 to 24000, step 1): samples of work earned per second for previews that need step-by-step integration, such as terrain contact or shared-world rules.",
+        "Each update allows between 128 and 256 samples of work and stops early when maxMs is used up."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides the factory and registers it with context.own, so disposing the candidate disposes every preview it created.",
+        "create(onComplete) returns an independent preview with its own job, budget and two reusable sample buffers. onComplete runs once for each finished pass.",
+        "update starts a new pass when the ship, its status, the body, the surface, the motion model or a relevant command changes; otherwise it continues the current pass. While a replacement is tracing, path shows only the new partial path, never the stale one.",
+        "Pass world to trace through sphere-of-influence (SOI) changes with the host's world.predictShip; omit it for a body-only preview of the given state. In body-only mode, escape means the preview's distance limit was reached.",
+        "Read path and pathEnd. pathEnd is closed (a full orbit), impact, floating, escape, horizon (the predictor's time limit), open (a work limit, never a physical end), failed or grounded. A pass that reaches 32,768 samples ends as open.",
+        "invalidate cancels the pass and clears the path. Cancelling, finishing, a predictor error and dispose all close the job and its cloned context, even if one cleanup step fails. A disposed preview throws on update."
+      ]
     },
     {
       "type": "paragraph",
-      "text": "Optional GhostSample bodyId/encounter metadata identifies the active conic. Positions and velocities remain in frameId (the starting body), translated at each sample time; transform both vectors through the selected ephemerides. Optional encounterBody captures the destination reference radius, name and centre at the handoff time in the same frame. Canvas/WebGL mark SOI handoffs with a restrained amber leg and ETA, and faint future body outlines; present bodies stay at the current display time. At most four distinct non-anchor body previews and sixteen crossing markers are drawn. Older providers without snapshots retain crossing markers. Consumers that only support the initial conic must reject node placement after its first encounter."
+      "text": "The path array is reused by a later pass. Copy samples you need to keep beyond the next update."
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Space Sim and Flight starter list view.prediction as a required slot, and split screen and the maneuver editor require it, so those games need a provider. A game that requires none of them can leave prediction out: flight, saves and multiplayer do not depend on it."
+    },
+    {
+      "type": "paragraph",
+      "text": "A replacement provides view.prediction@1.0.0 with its own PredictionFactory, lists view.prediction in slots, and is selected with \"providers\": { \"view.prediction\": \"your.module-id\" }. It must keep the same rules: no writes to the world, a bounded amount of work per update, and closing every job on invalidate and dispose."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. FlightPrediction still exposes diagnostic fields such as passKey and lastPass that existing consumers read; treat them as diagnostics that may change before the API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/flight-prediction consumes view.prediction: it creates a preview, updates it until the pass finishes or a frame limit is reached, copies the result and disposes the preview. Build and check it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/flight-prediction/module.json /tmp/prediction-probe.spacemod\nnpm run module:validate -- /tmp/prediction-probe.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-view.ts: PredictionFactory and FlightPrediction",
+      "page": "api-reference/game-api/flight-view"
+    },
+    {
+      "type": "link",
+      "text": "Determinism: why previews never change the live world",
+      "page": "determinism"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Progressive flight prediction",
+      "page": "api-reference/module/spacelab.flight-prediction"
     }
   ]
 }

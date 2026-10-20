@@ -1,6 +1,6 @@
-/** Semantic versions and dependency ranges. A registry installs one version per module ID,
+/** Host-only (`packages/game-runtime`) semantic versions and dependency ranges. A registry installs one version per module ID,
  * so a range is a satisfaction check against that version, never a solver. Profiles and
- * locks keep exact versions. */
+ * locks keep exact versions. Modules cannot import this package; they declare ranges in their manifests. */
 
 export interface Version {
   readonly major: number;
@@ -15,6 +15,7 @@ const IDENTIFIER = '(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)';
 const VERSION = new RegExp(`^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(${IDENTIFIER}(?:\\.${IDENTIFIER})*))?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$`);
 const MAX_RANGE = 128;
 
+/** Parses an exact semantic version (`1.2.3`, optional prerelease and build metadata), or returns `undefined`. Host-only (`packages/game-runtime`). */
 export function parseVersion(text: string): Version | undefined {
   const m = VERSION.exec(text);
   if (!m) return undefined;
@@ -68,6 +69,7 @@ export function parseRange(range: string): readonly (readonly Comparator[])[] | 
   }
   return sets;
 }
+/** Whether `range` is a supported dependency range (see `parseRange`). Host-only (`packages/game-runtime`). */
 export const validRange = (range: string): boolean => parseRange(range) !== undefined;
 
 function test(c: Comparator, v: Version): boolean {

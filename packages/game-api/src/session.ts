@@ -12,7 +12,9 @@ import type { TextConnection } from './platform';
 import type { ServiceKey } from './modules-v2';
 import type { UniverseDefinition } from './universe';
 
+/** Connected or saved player roster entry in a flight session (`host` is true for the world authority). */
 export interface SessionPlayer { readonly id: string; readonly name: string; readonly connected: boolean; readonly host?: boolean }
+/** Chat message delivered across a flight session (`from` is the sender's player ID when known). */
 export type ChatLine = { readonly from?: string; readonly name: string; readonly text: string };
 
 /** What the flight loop needs from a game, whether this browser owns the world or follows
@@ -62,10 +64,13 @@ export interface SessionRead {
 }
 
 
+/** Disposable session handle combining `SessionRead` flight loop operations with deterministic cleanup. */
 export interface SessionHandle extends SessionRead, Disposable {}
+/** Options for starting an authoritative local session over a `WorldControl` instance. */
 export interface LocalSessionOptions {
   readonly name: string; readonly token?: string; readonly hostId?: string; readonly players?: readonly SavedPlayer[];
 }
+/** Options for joining a remote flight session over a `TextConnection`, including authority lock/fingerprint verification and reconnect token callbacks. */
 export interface JoinOptions {
   readonly vehicles?: VehicleCatalog;
   readonly dataAdapters?: readonly ModuleDataExtension[];
@@ -84,6 +89,7 @@ export interface JoinOptions {
     lock?: AuthoritativeLock | ModuleLock; fingerprint?: string; universe: UniverseDefinition; systemId: string;
   }) => { ok: boolean; reason?: string; simulationFingerprint?: string } | boolean;
 }
+/** Host-side control surface for an authoritative local session: splitscreen guest seats, peer acceptance, pause/catch-up, and snapshots. */
 export interface LocalSessionControl {
   readonly token: string; readonly hosting: boolean;
   seatGuest(name: string, token: string): string; unseatGuest(id: string): void;
@@ -96,10 +102,13 @@ export interface LocalSessionControl {
   catchUp(seconds: number, ship: string | undefined): WorldEvent[];
   service(): void; snapshot(): string; roster(): readonly SavedPlayer[]; close(reason?: string): void;
 }
+/** Disposable session handle for an authoritative local world, exposing `local` host controls alongside `SessionRead`. */
 export interface LocalSessionHandle extends SessionHandle { readonly local: LocalSessionControl }
+/** Factory creating local authoritative sessions and joining remote peer sessions (`core.session@1.0.0`). */
 export interface SessionFactory {
   readonly protocol: string; readonly entitySchema: string;
   local(world: WorldControl, options: LocalSessionOptions): LocalSessionHandle;
   join(peer: TextConnection, options: JoinOptions, signal: AbortSignal): Promise<SessionHandle>;
 }
+/** Service key for the core local and remote session factory (`core.session@1.0.0`). */
 export const CORE_SESSION: ServiceKey<SessionFactory> = Object.freeze({ slot: 'core.session', version: '1.0.0' });

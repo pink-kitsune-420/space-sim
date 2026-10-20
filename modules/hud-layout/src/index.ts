@@ -13,6 +13,10 @@ export function createHudLayouts(windows:Pick<WindowSystem,'icon'>,css='',defaul
   visibility:options=>own(options.viewport.ownerDocument,()=>new HudVisibility(options)),
   dispose(){if(disposed)return;disposed=true;const errors:unknown[]=[];for(const resource of resources){try{resource.dispose();}catch(error){errors.push(error);}}for(const style of styles.values())style.remove();styles.clear();if(errors.length)throw new AggregateError(errors,'HUD layout cleanup failed');}});
 }
+/**
+ * Contributes HUD positioning, drag/keyboard layout editing, and component visibility management.
+ * Provides ui.hud-layout@1.0.0 in the ui.hud-layout slot; requires ui.windows@^1.0.0.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'HUD layout and visibility',summary:'Optional viewer layout, movement and visibility with complete cleanup.',asset:'docs/creators/usage.json'});
  context.provide(HUD_LAYOUT,context.own(createHudLayouts(context.use(WINDOWS),context.assets.text('assets/layout.css'),{moveStepPx:context.settings.moveStepPx,fastMoveStepPx:context.settings.fastMoveStepPx})));

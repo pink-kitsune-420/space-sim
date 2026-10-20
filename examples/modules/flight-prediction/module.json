@@ -1,0 +1,58 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.prediction-probe",
+    "name": "Prediction probe example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.prediction-probe",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "view.prediction",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.prediction-probe"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {
+      "frames": {
+        "type": "number",
+        "default": 240,
+        "minimum": 1,
+        "maximum": 10000,
+        "step": 1,
+        "label": "Update limit (frames)",
+        "description": "Most preview updates one trace may run before it reports an unfinished path."
+      }
+    },
+    "license": "MIT",
+    "tier": "presentation"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

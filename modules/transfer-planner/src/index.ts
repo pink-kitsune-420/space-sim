@@ -105,6 +105,10 @@ export function createTransferPlanner(plans:FlightPlanService,burns?:ManeuverBur
   finally{context.dispose();}
  }});
 }
+/**
+ * Contributes bounded same-body and interbody orbital transfer window search.
+ * Provides flight.transfers@1.0.0 in slot flight.transfers; requires flight.plans@^1.0.0.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'flight',audience:'players',title:'Transfer window planning',summary:'Compare and review circular or elliptical orbit changes and moon/planet transfers.',asset:'docs/players/flight.json'});
  context.provide(TRANSFERS,createTransferPlanner(context.use(FLIGHT_PLANS)));

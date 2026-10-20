@@ -1,6 +1,9 @@
+/** Host-only (`packages/game-runtime`): module state validation and per-step force transactions. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeForce`, `migrateState` and `CORE_MOTION`. */
 import type { ForceExtension, ModuleState, MotionContextOptions, MotionServices, MotionStep, State, Vec } from '../../game-api/src/index';
 
+/** Largest serialized `ModuleState` (16,384 bytes of UTF-8 JSON, also its node-count bound) for force, rule, migration and module-data values (`module state exceeds 16 KiB`). Host-only (`packages/game-runtime`). */
 export const MAX_MODULE_STATE_BYTES = 16_384;
+/** Largest acceleration per component, in m/s² (`10000`), that one force hook or the combined force schedule may return (`acceleration must be finite and bounded to 10000 m/s² per component`); a violation faults that ship. Host-only (`packages/game-runtime`). */
 export const MAX_FORCE_ACCELERATION = 10_000;
 
 function freeze<T>(value: T): T {
@@ -13,6 +16,7 @@ function freeze<T>(value: T): T {
 /** Used only on custom motion paths; built-in ship/force loops keep their fast path. */
 export function motionCopy<T>(value: T): T { return freeze(structuredClone(value)); }
 
+/** Returns a detached, deep-frozen copy of `{ version, value }` when `version` is a safe integer ≥ 1 and `value` is finite JSON (plain objects and dense arrays, at most 32 levels and 16 KiB). Throws `invalid module state schema version`, `module state must contain finite JSON values`, `module state arrays must be dense JSON arrays`, `module state exceeds structural limits` or `module state exceeds 16 KiB`. Host-only (`packages/game-runtime`). */
 export function validateModuleState(raw: ModuleState): ModuleState {
   let nodes = 0;
   const visit = (value: unknown, depth: number): void => {
@@ -159,4 +163,5 @@ export class ForceTransaction {
   }
 }
 
+/** Runs one `dynamics.step` call and prefixes any error as `Module <id> dynamics.step tick <n>: <message>`; the world then stops only that ship with a fault. Host-only (`packages/game-runtime`). */
 export function runDynamics<T>(id: string, tick: number, work: () => T): T { return hookCall(id, 'dynamics.step', tick, work); }

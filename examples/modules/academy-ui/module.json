@@ -1,0 +1,47 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.academy-ui",
+    "name": "Orbital Academy interface example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline"
+    ],
+    "tier": "platform",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.academy-ui",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "learning.academy",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.academy-ui"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

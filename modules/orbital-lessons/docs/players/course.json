@@ -1,8 +1,8 @@
 {
   "id": "academy",
   "audience": "players",
-  "title": "Orbital Academy",
-  "summary": "Orbital Academy",
+  "title": "Orbital Academy course",
+  "summary": "Beginner flights, advanced orbital experiments and explicit practice setups.",
   "blocks": [
     {
       "type": "heading",

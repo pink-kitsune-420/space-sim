@@ -55,6 +55,7 @@ export function createManualSignaling(): ManualSignalingProvider & Disposable {
     },
   };
 }
+/** Initialize the manual WebRTC signaling transport module, providing net.webrtc-signaling@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Manual WebRTC transport',
     summary: 'Manual invite/reply signaling over reliable ordered text, independent of session state.', asset: 'docs/creators/usage.json' });

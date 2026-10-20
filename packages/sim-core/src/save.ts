@@ -1,8 +1,10 @@
+/** Host-only world save/load codec and validation (`packages/sim-core`). Modules access world persistence through `@space-sim/game-api` `CORE_SAVE` (`SaveCodec`: `save`, `load`, `shipToSaved`, `shipFromSaved`, `playerFromSaved`, `defaultLock`). */
 import { captureVehicleCatalog, vehicleId, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
 import { canonicalJson } from '../../game-runtime/src/authoritative';
 import type { AuthoritativeLock, Coast, ModuleLock, ModuleState, State, WorldRuleState, SavedShip, SavedPlayer, WorldSave, WorldRead } from '../../game-api/src/index';
 import { validateModuleState } from '../../game-runtime/src/motion';
 import { DEFAULT_BUILTIN_LOCK, migrateModuleState } from '../../game-runtime/src/authoritative';
+/** Default built-in authoritative module lock re-exported for `CORE_SAVE` (`SaveCodec.defaultLock`). Host-only (`packages/sim-core`). */
 export { DEFAULT_BUILTIN_LOCK };
 import { IDLE, MODEL, READABLE_MODELS, STEP } from './constants';
 import { magnitude } from './context';
@@ -10,17 +12,22 @@ import { surfaceIdentity } from './surface';
 import { validateUniverse } from './universe';
 import { MAX_SHIP_NAME, SHIP_ID_PATTERN, World, cleanName, type Ship, type WorldOptions } from './world';
 
-/** Complete-world save: every ship at one shared simulation epoch. */
+/** Complete-world save format discriminator (`'space-sim-world'`): every ship at one shared simulation epoch. Host-only (`packages/sim-core`). */
 export const SAVE_FORMAT = 'space-sim-world';
+/** Baseline authoritative world save schema version (`2`; versions `3` and `4` add module-data records and vehicle catalogues). Host-only (`packages/sim-core`). */
 export const SAVE_VERSION = 2;
+/** Frozen canonical SI unit descriptor (`length: 'metre'`, `time: 'second'`, `angle: 'radian'`) stored and verified in every `WorldSave`. Host-only (`packages/sim-core`). */
 export const SAVE_UNITS = Object.freeze({ length: 'metre', time: 'second', angle: 'radian' });
-/** Ships plus passive objects (asteroids): idle ones cost almost nothing to simulate. */
+/** Maximum number of vessels plus passive objects (`65,536`) permitted in a saved world; idle ones on rails cost almost nothing to simulate. Host-only (`packages/sim-core`). */
 export const MAX_SAVE_SHIPS = 65_536;
+/** Maximum number of pilot records (`512`) permitted in a validated `WorldSave`. Host-only (`packages/sim-core`). */
 export const MAX_SAVE_PLAYERS = 512;
+/** Maximum printable character length (`24`) for a sanitized pilot display name in saved worlds. Host-only (`packages/sim-core`). */
 export const MAX_PLAYER_NAME = 24;
 const TOKEN_HASH = /^[0-9a-f]{64}$/;
 
 export type { SavedCoast, SavedShip, SavedPlayer, WorldSave } from '../../game-api/src/index';
+/** Validated result of `loadWorld`, bundling the reconstructed `World` instance, sanitized `SavedPlayer` records, optional `hostId`, and `paused` state. Host-only (`packages/sim-core`; `CORE_SAVE.load` wraps `world` in `worldFacade(world).control`). */
 export interface LoadedWorld {
   readonly world: World;
   readonly players: readonly SavedPlayer[];
@@ -31,6 +38,7 @@ export interface LoadedWorld {
 type Pair = readonly [number, number];
 const pair = (v: { readonly x: number; readonly y: number }): Pair => [v.x, v.y];
 
+/** Serializes a live `Ship` record into a JSON-safe `SavedShip` snapshot in SI units (`position` in `m`, `velocity` in `m/s`, `heading` in `rad`, `epochSeconds` in `s`). Exposed to modules via `CORE_SAVE` (`SaveCodec.shipToSaved`). Host-only (`packages/sim-core`). */
 export function shipToSaved(ship: Ship): SavedShip {
   const { state } = ship;
   return {
@@ -72,8 +80,8 @@ function id(value: unknown, context: string): string {
 }
 
 /** Rebuild and validate one ship against `world`'s bodies and terrain, at the world's clock
- * or at an earlier `time` (a snapshot's). A coast epoch must reproduce the stored position;
- * a trial step must accept the state. */
+ * or at an earlier `time` (a snapshot's, in `s`). A coast epoch must reproduce the stored position;
+ * a trial `0.01` s step must accept the state. Exposed to modules via `CORE_SAVE` (`SaveCodec.shipFromSaved`). Host-only (`packages/sim-core`). */
 export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', time = world.time): Ship {
   const s = record(raw, context);
   const shipId = id(s.id, `${context} id`);
@@ -148,6 +156,7 @@ export function shipFromSaved(world: WorldRead, raw: unknown, context = 'Ship', 
   return ship;
 }
 
+/** Validates and sanitizes an untrusted saved pilot record (`id`, `name` up to `MAX_PLAYER_NAME`, optional 64-character lowercase hex `tokenHash`). Exposed to modules via `CORE_SAVE` (`SaveCodec.playerFromSaved`). Host-only (`packages/sim-core`). */
 export function playerFromSaved(raw: unknown, context = 'Player'): SavedPlayer {
   const p = record(raw, context);
   const playerId = id(p.id, `${context} id`);
@@ -158,6 +167,7 @@ export function playerFromSaved(raw: unknown, context = 'Player'): SavedPlayer {
   return { id: playerId, name, ...(p.tokenHash ? { tokenHash: p.tokenHash as string } : {}) };
 }
 
+/** Serializes a `WorldRead` state at its shared simulation epoch (`tick`, `time` in `s`) into a complete `WorldSave` archive (`space-sim-world` versions 1–4) in SI units. Rejects solo-preview custom authoritative worlds. Exposed to modules via `CORE_SAVE` (`SaveCodec.save`). Host-only (`packages/sim-core`). */
 export function saveWorld(world: WorldRead, extra: {
   readonly flightPlans?: import('../../game-api/src/index').FlightPlanArchive;
   readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;

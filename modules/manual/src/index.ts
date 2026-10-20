@@ -79,6 +79,12 @@ function createReader(options:ManualReaderOptions,content:WindowContentService,g
   search.addEventListener('input',renderTopics,{signal});subscription=subscribe(render);render();return reader;
  }catch(error){try{reader.dispose();}catch{/* Preserve creation failure. */}throw error;}
 }
+/**
+ * Contributes the Manual reader and removable guide catalog.
+ * Provides ui.manual@1.0.0 in slot ui.manual.
+ * Requires ui.window-content@^1.0.0.
+ * This module has no settings.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'Manual reader and guide catalog',summary:'Optional Players/Creators navigation over shared documents with explicit live-content adapters.',asset:'docs/creators/usage.json'});
  context.provide(MANUAL_READER,context.own(createManuals(context.use(WINDOW_CONTENT),context.assets.text('assets/manual.css'))));

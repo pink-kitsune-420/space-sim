@@ -16,6 +16,30 @@ for both authoring routes and compatibility requirements.
 | [commands.ts](commands.ts) | Authoritative pilot commands run by the host | `?example=commands`, then U / J / V |
 | [lead-camera.ts](lead-camera.ts) | Presentation add-on depending on `builtin.flight-data` | **ModMenu → Instruments & display → Lead camera (example)** |
 
+## API v2 module examples
+
+These folders are editable `space-sim-game-api/2` packages. Each one is linked from the
+Creators guide of the module it works with (**Manual → Creators**, or the API reference page).
+Unlike the API v1 samples above, they declare services in a v2 manifest and read them with
+typed keys such as `THROTTLE_HUD`.
+
+| Example | Works with | Shows |
+|---|---|---|
+| [throttle-hud](throttle-hud) | `hud.throttle@1.0.0` | Replacing a provider: a read-only throttle readout instrument and its lifecycle |
+| [flight-prediction](flight-prediction) | `view.prediction@^1.0.0` | Consuming a required service: create, update, copy and dispose a preview |
+| [flight-plans](flight-plans) | `flight.plans@^1.0.0`, optional | Consuming an optional service with `tryUse`, including rejected input and absence |
+
+Build and validate one from the repository root, writing the archive outside the folder:
+
+```sh
+npm run module:build -- examples/modules/flight-plans/module.json /tmp/plan-summary.spacemod
+npm run module:validate -- /tmp/plan-summary.spacemod
+```
+
+A replacement provider only runs when a game profile selects it for the slot, for example
+`"providers": { "hud.throttle": "example.throttle-readout" }`. `tests/unit/module-api-examples.test.ts`
+runs all three against the real providers.
+
 ## Gentle Flight
 
 Open **ModMenu → Advanced · data & profiles → Load module/profile…** and choose

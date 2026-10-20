@@ -5,20 +5,91 @@
   "summary": "Editable WebSocket protocol over a borrowed HTTP upgrade and native byte codecs.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides net.node-ws@1.0.0. Requires core.websocket-codecs@1.0.0, restricted to the Node environment and network tier. The engine adapter supplies native SHA-1 and bounded raw DEFLATE primitives; the module owns handshake, framing, text validation, message limits, compression negotiation, heartbeat and close-handshake policy. No ship, renderer, UI or private server imports."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The host supplies a borrowed HTTP upgrade request, byte stream, initial bytes and connection limits. The module does not start an HTTP listener. Accepted links are owned until TCP closes; disposing/replacing the provider closes them with the existing bounded two-second handshake grace period. The host retains responsibility for listener shutdown."
+      "text": "This module provides server-side WebSocket protocol termination for Node.js dedicated servers. It accepts incoming HTTP upgrade requests over borrowed byte streams, handles Sec-WebSocket-Key cryptographic handshakes, manages RFC 6455 data framing and unmasking, maintains keep-alive ping/pong heartbeats, and negotiates permessage-deflate compression using native engine codecs. The HTTP port listener remains host-owned."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides net.node-ws@1.0.0 through the NODE_WEBSOCKET_TRANSPORT key: a NodeWebSocketProvider instance.",
+        "Requires core.websocket-codecs@^1.0.0 through the NODE_WEBSOCKET_CODECS key: engine-supplied native SHA-1 and DEFLATE codecs."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "No authoritative persistence or migrations. Text connections carry bytes only; sessions must independently match commands, snapshots, saves, replay and locks. Missing or incompatible codecs reject preparation; a game must supply a compatible Node host adapter. Optional removal retains local play when the game permits it."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization resolves the required WebSocketCodecs service and provides the NodeWebSocketProvider, registering it for owned disposal.",
+        "accept(request, stream, head, options) inspects upgrade headers, completes the HTTP switching-protocols handshake, and returns a ServerTextConnection, or undefined if the request is invalid.",
+        "ServerTextConnection extends TextConnection with a closed promise that resolves once TCP termination and handshake grace periods conclude.",
+        "Disposing the provider cleanly closes all active server connections with reason 'Module disposed'."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Build, export, unpack, edit and rebuild this source as a .spacemod. Imported code requires explicit consent. The browser graph never imports native Node codec implementations; the portable protocol uses public byte-stream and typed service contracts."
+      "text": "This module is restricted to the Node environment. Browser clients and offline single-player modes do not load or require it. Dedicated server hosts running multiplayer sessions need a provider for net.node-ws. To replace it, author a network-tier module that provides net.node-ws@1.0.0 implementing NodeWebSocketProvider."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: server transport interfaces may be revised prior to API stabilization."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/net-node-ws demonstrates upgrading HTTP requests into ServerTextConnection instances with configured message limits. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/net-node-ws/module.json /tmp/node-ws-example.spacemod\nnpm run module:validate -- /tmp/node-ws-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api node-transport.ts: NodeWebSocketProvider and WebSocketCodecs contracts",
+      "page": "api-reference/game-api/node-transport"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Node WebSocket server transport",
+      "page": "api-reference/module/spacelab.net-node-ws"
     }
   ]
 }

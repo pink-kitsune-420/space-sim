@@ -2,19 +2,98 @@
   "id": "usage",
   "audience": "creators",
   "title": "Chat console",
-  "summary": "Optional chat and command UI independent of flight state.",
+  "summary": "Optional session chat and command UI with owned DOM lifecycle.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides ui.chat@1.0.0 for browser/offline. Create with explicit root and viewport DOM, a submit callback and optional visibility/window interaction ports. Session adapters echo chat in shared order; game command modules interpret slash commands. The console does not own simulation or network state."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The module owns its template, styles, input handlers, window layout, observers and minimized/layout preferences. Disposing a console/provider removes handlers, observers, resize controls and DOM. Removing chat does not remove session gameplay. No mandatory flight actions, HUD, renderer or theme dependencies."
+      "text": "This module renders the in-game text chat overlay and command entry console. It mounts an interactive UI into a caller-supplied container element, manages message history pruning up to a configured line count, supports keyboard shortcuts (Enter to focus, Slash to begin commands, Escape to minimize), displays message categories (system, error, success, player chat), and saves minimize state to local browser storage."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.chat@1.0.0 through the CHAT_CONSOLES key: a ChatConsoleFactory instance.",
+        "Requires no services at module initialization."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "historyLines (default 60, from 1 to 1000, step 1): Maximum messages retained in this local chat window. This does not change server chat history, permissions or message limits."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides the ChatConsoleFactory and registers it for owned disposal.",
+        "create(options) mounts the chat HTML template and stylesheet into options.root, wiring keyboard listeners via AbortController.",
+        "log(kind, text, sender) and show(line, playerId) format and append message rows, auto-scrolling to the bottom and pruning old lines.",
+        "minimize(minimized, focusInput) toggles between full overlay and minimized pill views, persisting preference to space-sim:chat:minimized.",
+        "clear() empties all current message lines from the log.",
+        "Disposing the console aborts all DOM event listeners, removes injected stylesheets, and clears the container element."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Use the same editable .spacemod build/import consent and compatible replacement flow as other modules. Layout preferences are local and are not in authoritative saves or identity."
+      "text": "Removing this module disables in-game chat and command console rendering. Dedicated servers and non-chat games operate normally without it. To replace it, author a presentation-tier module providing ui.chat@1.0.0 implementing ChatConsoleFactory."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.1 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Visual styling adopts standard Spacelab UI theme CSS custom properties."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/chat-console demonstrates mounting a chat console, submitting text lines, and formatting message kinds. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/chat-console/module.json /tmp/chat-example.spacemod\nnpm run module:validate -- /tmp/chat-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api chat.ts: ChatConsole and ChatConsoleFactory contracts",
+      "page": "api-reference/game-api/chat"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Chat console",
+      "page": "api-reference/module/spacelab.chat-console"
     }
   ]
 }

@@ -5,8 +5,99 @@
   "summary": "Public audio.procedural@1.0.0 service and lifecycle.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Retains the builtin.audio identity and the original sample-free recipes. Creating the provider/output is silent; a browser gesture resumes the AudioContext. Engine voices are reused, contact/notification voices are bounded. Removal releases voices and contexts. The host sound-control adapter handles activation, visibility and preferences independently of renderer lifetime. No music or MIDI is required."
+      "text": "Provides the sample-free Web Audio procedural synthesizer (builtin.audio) for engine thrust rumble and one-shot flight cues (confirm, pause, resume, warp, land, crash and splash). Synthesis is viewer-local and never feeds simulation state. Creating the provider or an AudioOutput is completely silent and allocates no AudioContext until resume() is called after a browser gesture. Engine noise and oscillator nodes are created once per output and reused; transient contact and notification voices are rate-limited to 0.06 s and capped at 8 concurrent voices."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides audio.procedural@1.0.0 through the PROCEDURAL_SOUND service key: exposes the disposable AudioSynth provider.",
+        "Fills the audio.procedural slot in presentation profiles.",
+        "Requires nothing. Host sound controls (such as spacelab.audio-controls) receive the provider when enabled and remain functional without audio when it is absent."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers a candidate-owned AudioSynth under PROCEDURAL_SOUND and contributes this guide without creating an AudioContext.",
+        "create() returns an isolated AudioOutput whose initial volume (default 0.4) and thrust (default 0) are stored in memory until audio starts; throws if the provider is disposed.",
+        "resume() lazily constructs the Web Audio graph (deterministic 2-second xorshift noise buffer, highpass/lowpass filters and sine sub-rumble oscillator) on first call and resumes the AudioContext.",
+        "setVolume(level) and setThrust(level) clamp non-finite or out-of-range inputs to [0, 1] and smoothly ramp Web Audio gain and filter targets; play(cue) schedules a short filtered noise or sine envelope when the context is running.",
+        "suspend() zeroes thrust, stops active transient voices and suspends the AudioContext.",
+        "Disposing an output stops and disconnects all continuous and transient nodes and closes its AudioContext; disposing the provider disposes every tracked output."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Provide another audio.procedural@1.0.0 implementation in the audio.procedural slot to replace the synthesizer with custom procedural recipes or sample playback. Removing or disabling builtin.audio in ModMenu immediately disposes active outputs and leaves the simulation and renderer unaffected."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2, retaining the builtin.audio module ID for profile compatibility. Both are pre-freeze: synthesis parameters and voice limits may be tuned before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/audio-procedural wraps audio.procedural to create a managed sound output, clamp telemetry levels and trigger flight cues safely in headless or browser environments. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/audio-procedural/module.json /tmp/example-audio-procedural.spacemod\nnpm run module:validate -- /tmp/example-audio-procedural.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Procedural sound",
+      "page": "api-reference/module/builtin.audio"
+    },
+    {
+      "type": "link",
+      "text": "game-api: audio.ts",
+      "page": "api-reference/game-api/audio"
+    },
+    {
+      "type": "link",
+      "text": "game-api: presentation.ts",
+      "page": "api-reference/game-api/presentation"
     }
   ]
 }

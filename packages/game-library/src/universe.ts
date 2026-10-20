@@ -1,3 +1,4 @@
+/** Host-only universe definition files (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`). */
 import type { UniverseDefinition } from '../../game-api/src/index';
 import { validateUniverse } from '../../sim-core/src/universe';
 import { encodeDataFile, decodeDataFile } from './data-file';

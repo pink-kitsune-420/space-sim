@@ -5,32 +5,92 @@
   "summary": "Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Samples generic namespaced actions from a keyboard; preserves the existing flight keyboard/hold-button adapter."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Capabilities: input.keyboard@1.0.0; no required or optional services. Constructors receive active actions and seat assignment."
+      "text": "This module translates DOM keyboard events into namespaced actions for active local player seats (pilots 0–3). It provides the input.keyboard service through the KEYBOARD_INPUT key. It attaches window and document event listeners, automatically ignores keystrokes originating inside form controls or links, and evaluates modifier chords (Ctrl, Meta, Shift) before bare keys. It also clears active keys when the browser window loses focus or hides, and provides the legacy bindFlight adapter for existing flight games alongside the reserved browser keys list."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides input.keyboard@1.0.0 through the KEYBOARD_INPUT key: keyboard input source factory, legacy flight keyboard adapter, and reserved keys set.",
+        "The module itself requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides KEYBOARD_INPUT and registers a cleanup lease that tracks created sources and flight adapters.",
+        "create attaches keydown, keyup, blur, and pagehide listeners to window, plus visibilitychange on document.",
+        "sample checks frame eligibility, evaluates active keys for the assigned pilot, and writes triggered actions to the sink. Press actions fire on initial press and clear after the frame; held actions persist until key release.",
+        "Window blur, document hiding, pilot seat changes, or capture returning false immediately clears all held keys.",
+        "dispose removes all attached window and document listeners. Provider disposal disposes all tracked sources, throwing an AggregateError if any cleanup throws."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Generic sources have no persistence. The flight adapter receives bindings from its caller. All DOM listeners and held input are released on disposal; blur, hidden/pagehide, capture suppression and reassignment clear held generic input."
+      "text": "Included in planet-viewer and survey-fixture game targets. Games requiring virtual on-screen keyboards or specialized accessibility inputs can replace this module with another provider of input.keyboard@1.0.0 in their game profile."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: options and legacy chord bindings may be revised before API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/input-keyboard is a consumer module that uses input.keyboard@1.0.0 to create an InputSource for custom action shortcuts and sample them synchronously. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "npm run module:build -- modules/input-keyboard/module.json /tmp/input-keyboard.spacemod"
+      "text": "npm run module:build -- examples/modules/input-keyboard/module.json /tmp/input-keyboard-example.spacemod\nnpm run module:validate -- /tmp/input-keyboard-example.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+      "type": "heading",
+      "text": "Related"
     },
     {
-      "type": "paragraph",
-      "text": "The optional legacy adapter controlShortcut(code) port allows selected resolved shortcuts while a button, summary or link has focus. Text fields, selects and editable content keep suppressing gameplay shortcuts. The flight host uses this for explicit warp commands so pilot time control can cancel a conflicting automatic approach."
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Keyboard input",
+      "page": "api-reference/module/spacelab.input-keyboard"
+    },
+    {
+      "type": "link",
+      "text": "game-api platform.ts: input frames, sources and action bindings",
+      "page": "api-reference/game-api/platform"
     }
   ]
 }

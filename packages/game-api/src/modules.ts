@@ -6,6 +6,7 @@ import type { CameraHook, LayerHook, PanelHook } from './presentation';
 
 /** Public module registration and data contracts. */
 export type ModuleEnvironment = 'browser' | 'offline' | 'node';
+/** Resource cleanup handle with an idempotent `dispose()` method. Register module-owned handles with `context.own(...)`. */
 export interface Disposable { dispose(): void }
 /** An exact module version, as profiles and locks record it. */
 export interface ModuleReference { readonly id: string; readonly version: string }
@@ -13,6 +14,7 @@ export interface ModuleReference { readonly id: string; readonly version: string
  * `>=1.2.0 <2.0.0`, `*`, or alternatives joined by `||`. Prereleases match only ranges that
  * name a prerelease of the same version. Resolution records the exact enabled version. */
 export interface ModuleDependency { readonly id: string; readonly version: string }
+/** Bounded numeric configuration parameter schema declared in a module manifest (`[minimum, maximum]`). */
 export interface NumberSetting {
   readonly type: 'number';
   readonly label?: string;
@@ -24,6 +26,7 @@ export interface NumberSetting {
   readonly minimum: number;
   readonly maximum: number;
 }
+/** Legacy v1 module manifest (`space-sim-module/1`) targeting `space-sim-game-api/1`. */
 export interface ModuleManifest {
   readonly format: 'space-sim-module/1';
   readonly apiVersion: 'space-sim-game-api/1';
@@ -45,6 +48,7 @@ export interface ModuleManifest {
   readonly settings: Readonly<Record<string, NumberSetting>>;
   readonly license: string;
 }
+/** Legacy v1 profile (`space-sim-profile/1`) selecting enabled modules, slot providers, and numeric setting overrides. */
 export interface ModuleProfile {
   readonly format: 'space-sim-profile/1';
   readonly id: string;
@@ -55,12 +59,17 @@ export interface ModuleProfile {
 /** Initialization is synchronous in Phase 2. Own resources immediately after allocation.
  * provide() only accepts slots selected for this module by the resolved profile. */
 export interface ModuleInitialization {
+  /** Resolved values for the manifest's declared settings, after profile overrides and
+   * range validation. Read them during initialization; a change prepares a new candidate. */
   readonly settings: Readonly<Record<string, number>>;
   /** Text assets embedded in an imported code artifact; empty for static modules. */
   readonly assets: Readonly<Record<string, string>>;
   /** Own a sequential state migration in this candidate, without global registration. */
   migrateState(fromVersion: number, migrate: (value: ModuleValue) => ModuleValue): void;
+  /** Register a resource for disposal with this candidate, in reverse acquisition order.
+   * Disposal runs when the candidate is replaced or removed, including after a failed start. */
   own<T extends Disposable>(resource: T): T;
+  /** True when the resolved profile selected this module as the provider of `slot`. */
   selected(slot: string): boolean;
   provide(slot: string, service: unknown): void;
   /** Authoritative static modules only; uses the resolved module identity and order. */
@@ -78,6 +87,7 @@ export interface ModuleInitialization {
   /** The API exposed by one of this module's declared dependencies, which initialize first. */
   dependency<T extends object>(id: string): T;
 }
+/** Legacy v1 registered code module descriptor combining a `ModuleManifest` and synchronous `initialize` entry point. */
 export interface RegisteredModule {
   readonly manifest: ModuleManifest;
   /** Canonical imported package identity, independent of the execution environment. */
@@ -86,6 +96,7 @@ export interface RegisteredModule {
   readonly supportsMultiplayer?: boolean;
   initialize(context: ModuleInitialization): void;
 }
+/** Legacy v1 resolved module lock (`space-sim-lock/1`) recording initialization order, selected slot providers, and settings. */
 export interface ModuleLock {
   readonly format: 'space-sim-lock/1';
   readonly profileId: string;
@@ -109,6 +120,7 @@ export interface AuthoritativeLock {
   readonly forces: readonly { readonly moduleId: string; readonly version: string; readonly modelIdentity: string }[];
 }
 
+/** Declarative `space-sim-data-module/1` package supplying vehicle handling overrides, universes, presets, or body appearances without executable code. */
 export interface DataModule {
   readonly format: 'space-sim-data-module/1';
   readonly manifest: ModuleManifest;

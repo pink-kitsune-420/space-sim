@@ -1,3 +1,4 @@
+/** Host-only (`packages/game-runtime`): the per-world module-data store. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules register adapters with `contributeData` and sessions use `CORE_MODULE_DATA`. */
 import type { ModuleDataAdapter, ModuleDataActor, ModuleDataCommand, ModuleDataControl, ModuleDataDelta,
   ModuleDataExtension, ModuleDataRecord, ModuleDataSchema, ModuleDataSnapshot, ModuleDataTarget, ModuleValue } from '../../game-api/src/index';
 import { validateModuleState } from './motion';
@@ -11,6 +12,7 @@ const integer = (raw: unknown): number => {
   if (!Number.isSafeInteger(raw) || (raw as number) < 0) throw new Error('Invalid module-data revision/version');
   return raw as number;
 };
+/** Validates and freezes a `contributeData` adapter as `<module id>/<name>`: scope `world`, `player` or `entity`, version ≥ 1, `validate`, `authorize` and `reduce` functions and one-step migrations below `version`. Its initial value must pass its own `validate` (`Module <id>: invalid initial data`). Host-only (`packages/game-runtime`). */
 export function captureDataAdapter(moduleId: string, raw: ModuleDataAdapter): ModuleDataExtension {
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(moduleId) || !raw || typeof raw.name !== 'string' || !NAME.test(raw.name) || !['world', 'player', 'entity'].includes(raw.scope) || integer(raw.version) < 1
     || typeof raw.validate !== 'function' || typeof raw.authorize !== 'function' || typeof raw.reduce !== 'function') throw new Error('Invalid module-data adapter');
@@ -26,7 +28,9 @@ export function captureDataAdapter(moduleId: string, raw: ModuleDataAdapter): Mo
   return Object.freeze({ id: `${moduleId}/${raw.name}`, version: raw.version, scope: raw.scope, adapter });
 }
 /** One store per world. Nothing runs on physics ticks; work occurs only on writes or IO.
- * Every operation stages all validation before publishing state. */
+ * Every operation stages all validation before publishing state. Limits: 128 adapters, 4,096 records
+ * and 4 MiB of JSON per world, 16 KiB per value (`Module-data store exceeds record/byte limits`).
+ * Host-only (`packages/game-runtime`); modules reach it through `CORE_MODULE_DATA`. */
 export class ModuleDataStore implements ModuleDataControl {
   readonly schemas: readonly ModuleDataSchema[];
   readonly extensions: readonly ModuleDataExtension[];

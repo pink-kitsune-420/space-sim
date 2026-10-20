@@ -14,6 +14,10 @@ export function createUniverseFiles(): UniverseFiles {
     urls.set(url,setTimeout(()=>{URL.revokeObjectURL(url);urls.delete(url);},10000));
   },dispose(){if(disposed)return;disposed=true;for(const[url,timer]of urls){clearTimeout(timer);URL.revokeObjectURL(url);}urls.clear();}});
 }
+/**
+ * Contributes bounded browser file input reading and download writing services.
+ * Provides universe.files@1.0.0 in slot universe.files.
+ */
 export default function initialize(context:ModuleInitializationV2):void{
   context.provide(UNIVERSE_FILES,context.own(createUniverseFiles()));
   context.contributeGuide({id:'usage',audience:'creators',title:'Universe file storage',summary:'Bounded browser files and owned downloads, independent of save validation.',asset:'docs/creators/usage.json'});

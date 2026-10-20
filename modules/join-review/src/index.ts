@@ -1,5 +1,6 @@
 import { JOIN_REVIEW, type Disposable, type JoinOffer, type JoinReviewService, type ModuleInitializationV2 } from '@space-sim/game-api';
 const STYLE = '.join-pack-review{width:min(720px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;background:var(--ui-win-bg,#101d29);color:var(--ui-win-text,#dce9eb);border:1px solid var(--ui-win-border,#456);border-radius:10px;padding:18px}.join-pack-review table{width:100%;border-collapse:collapse}.join-pack-review th,.join-pack-review td{padding:8px;text-align:left;border-bottom:1px solid var(--ui-win-border,#456);vertical-align:top}.join-pack-review code{overflow-wrap:anywhere;font-size:11px}.join-pack-review footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.join-pack-review::backdrop{background:#0009}';
+/** Construct a join review UI service displaying package consent dialogs. */
 export function createJoinReview(): JoinReviewService & Disposable {
   const pending = new Set<() => void>(); let disposed = false;
   return {
@@ -44,6 +45,7 @@ export function createJoinReview(): JoinReviewService & Disposable {
     dispose() { if (disposed) return; disposed = true; for (const cancel of pending) cancel(); pending.clear(); },
   };
 }
+/** Initialize the server pack review UI module, providing ui.join-review@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Server pack review', summary: 'Exact package review and explicit consent with Cancel focused by default.', asset: 'docs/creators/usage.json' });
   context.provide(JOIN_REVIEW, context.own(createJoinReview()));

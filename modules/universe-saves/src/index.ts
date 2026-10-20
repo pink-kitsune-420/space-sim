@@ -40,6 +40,11 @@ export function createUniverseSaves(codec: Pick<SaveCodec,'save'>, format: Unive
     controllers.add(commands); return commands;
   },dispose(){if(disposed)return;disposed=true;for(const controller of controllers)controller.dispose();controllers.clear();} });
 }
+/**
+ * Contributes single-operation universe save and load command controllers.
+ * Provides universe.saves@1.0.0 in slot universe.saves.
+ * Requires core.save@^1.0.0 and core.universe-save-format@^1.0.0.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.provide(UNIVERSE_SAVES,context.own(createUniverseSaves(context.use(CORE_SAVE),context.use(CORE_UNIVERSE_FORMAT))));
   context.contributeGuide({id:'usage',audience:'creators',title:'Universe save commands',summary:'Cancellable save/load over engine validation and independently selected storage.',asset:'docs/creators/usage.json'});

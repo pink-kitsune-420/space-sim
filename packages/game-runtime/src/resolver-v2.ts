@@ -1,8 +1,10 @@
+/** Host-only (`packages/game-runtime`): v2 dependency, capability and provider resolution. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules declare `dependencies`, `requires`, `provides`, `slots` and ordering in their `ManifestV2`. */
 import type { CapabilityBinding, CapabilityNeed, HostServiceAccess, ManifestV2, ModuleEnvironment, ModuleLockV2, ModuleTier } from '../../game-api/src/index';
 import { satisfies } from './semver';
 import { freezeJson, settingValue } from './validation';
 import { validateProfileV2 } from './validation-v2';
 
+/** Structured resolution failure: `code` (`missing`, `version`, `environment`, `tier`, `provider`, `capability`, `conflict`, `cycle`, `settings` or `ordering`), requester, need, candidate modules, suggested actions and, for a cycle, its edge chain. Host-only (`packages/game-runtime`). */
 export interface ResolutionDiagnostic {
   readonly code: 'missing' | 'version' | 'environment' | 'tier' | 'provider' | 'capability' | 'conflict' | 'cycle' | 'settings' | 'ordering';
   readonly requester: string;
@@ -18,11 +20,16 @@ export class ModuleResolutionError extends Error {
     super(message); this.name = 'ModuleResolutionError'; this.diagnostic = freezeJson(diagnostic);
   }
 }
+/** Tier rule for dependencies, capability bindings and ordering: authoritative modules may rely only on authoritative ones, presentation modules on presentation or authoritative ones, and platform and network modules on any tier. Host-only (`packages/game-runtime`). */
 export function permitsDependency(from: ModuleTier, to: ModuleTier): boolean {
   return from === 'authoritative' ? to === 'authoritative'
     : from === 'presentation' ? to === 'presentation' || to === 'authoritative' : true;
 }
-/** Pure metadata resolution: never enables installed suggestions or evaluates module code. */
+/** Pure metadata resolution: never enables installed suggestions or evaluates module code. The lock lists every
+ * selected module, including unselected alternatives for a slot; only selected providers are active and initialize.
+ * `order` is topological over dependencies, capability bindings and before/after hints, with ties in ID order.
+ * A `core.*` need binds to a matching host service as `builtin.engine` unless the profile chooses a module.
+ * Failures throw `ModuleResolutionError`. Host-only (`packages/game-runtime`). */
 export function resolveModulesV2(installed: ReadonlyMap<string, ManifestV2>, raw: unknown,
   environment: ModuleEnvironment, requiredSlots: readonly string[] = [], hostServices: readonly HostServiceAccess[] = []): ModuleLockV2 {
   const profile = validateProfileV2(raw);

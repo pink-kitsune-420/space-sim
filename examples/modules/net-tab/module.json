@@ -1,0 +1,48 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.tab-channel-bridge",
+    "name": "Tab channel bridge example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "tier": "network",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.tab-channel-bridge",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "net.tab",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.tab-channel-bridge"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

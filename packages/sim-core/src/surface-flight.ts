@@ -1,15 +1,19 @@
+/** Host-only surface support and landing safety rules (`packages/sim-core`). Modules access surface support and validation through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.services.surfaces.support` / `validate`) and `SURFACE_GEOMETRY` (`SurfaceProvider`). */
 import { querySurface, surfaceIdentity, type SurfaceDefinition, type SurfaceProfile } from './surface';
 import { surfaceContactTolerance, type SurfaceSweep } from './surface-contact';
 import * as dm from './dmath';
 
+/** Maximum survivable terrain touchdown speed (`5` `m/s`) relative to the rotating ground; water entry uses `WATER_CRASH_SPEED`. Host-only (`packages/sim-core`). */
 export const MAX_LANDING_SPEED = 5;
+/** Maximum safe touchdown angle (`π / 9` `rad`, `20°`) between the ship's body-fixed heading and every incident terrain support normal. Host-only (`packages/sim-core`). */
 export const MAX_LANDING_ATTITUDE = Math.PI / 9;
+/** Maximum safe terrain slope angle (`π / 6` `rad`, `30°`) from the local radial direction for a survivable dry touchdown. Host-only (`packages/sim-core`). */
 export const MAX_LANDING_SLOPE = Math.PI / 6;
 
 import type { SurfaceSupport } from '../../game-api/src/index';
 export type { SurfaceSupport } from '../../game-api/src/index';
 
-/** A contact failure must leave the caller's snapshot/time unadvanced. */
+/** A contact failure must leave the caller's snapshot/time unadvanced. Host-only (`packages/sim-core`). */
 export class SurfaceContactError extends Error {
   constructor(readonly result: Extract<SurfaceSweep, { status: 'failed' }>) {
     super(`Terrain contact failed: ${result.reason}; verified drift fraction ${result.verifiedFraction}`);
@@ -18,7 +22,8 @@ export class SurfaceContactError extends Error {
 }
 
 /** Configured bodies must use their exact generated identity; fixtures may be
- * paired with an unconfigured headless body of the same reference radius. */
+ * paired with an unconfigured headless body of the same reference radius (in `m`).
+ * Exposed via `CORE_MOTION.services.surfaces.validate` and `SURFACE_GEOMETRY`. Host-only (`packages/sim-core`). */
 export function validateMotionSurface(body: { readonly radius: number; readonly surface?: SurfaceDefinition },
   profile: SurfaceProfile): void {
   if (profile.referenceRadius !== body.radius || (body.surface && profile.identity !== surfaceIdentity(body))) {
@@ -26,8 +31,9 @@ export function validateMotionSurface(body: { readonly radius: number; readonly 
   }
 }
 
-/** Static point support with friction: no sliding model. Corners cannot hide an
- * unsafe adjacent face behind the outgoing-normal query convention. */
+/** Static point support with friction at body-fixed polar `angle` (in `rad`): no sliding model. Corners cannot hide an
+ * unsafe adjacent face behind the outgoing-normal query convention.
+ * Exposed via `CORE_MOTION.services.surfaces.support` and `SURFACE_GEOMETRY`. Host-only (`packages/sim-core`). */
 export function surfaceSupport(profile: SurfaceProfile, angle: number): SurfaceSupport {
   const query = querySurface(profile, angle);
   // This function supports solid ground, including submerged seabed.
@@ -58,6 +64,7 @@ export function surfaceSupport(profile: SurfaceProfile, angle: number): SurfaceS
   return { surface, normals, maxSlopeRadians };
 }
 
+/** Returns true when a touchdown at body-fixed `heading` (`rad`) and ground-relative `speed` (`m/s`) is within `MAX_LANDING_SPEED`, `MAX_LANDING_SLOPE`, and `MAX_LANDING_ATTITUDE` for all incident normals in `support`. Host-only (`packages/sim-core`). */
 export function safeSurfaceLanding(support: SurfaceSupport, heading: number, speed: number): boolean {
   const direction = { x: dm.cos(heading), y: dm.sin(heading) };
   return speed <= MAX_LANDING_SPEED && support.maxSlopeRadians <= MAX_LANDING_SLOPE

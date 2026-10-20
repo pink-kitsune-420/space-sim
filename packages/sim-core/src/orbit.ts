@@ -1,3 +1,5 @@
+/** Host-only two-body Keplerian solver (`packages/sim-core`). Modules access orbital mechanics through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.services.orbits`) and `ORBITAL_MOTION` (`OrbitalProvider`).
+ * Operates in the primary-body-centred inertial frame with SI units (`position` in `m`, `velocity` in `m/s`, gravitational parameter `mu = GM` in `m³/s²`, specific energy in `m²/s²`, specific angular momentum in `m²/s`, angles in `rad`, durations in `s`) and deterministic IEEE-754 float64 math. */
 import type { OrbitalState, Elements, SolverDiagnostics, Propagation, SolverOptions } from '../../game-api/src/index';
 export type { OrbitalState, Elements, SolverDiagnostics, Propagation, SolverOptions } from '../../game-api/src/index';
 import type { Vec } from '../../game-api/src/index';
@@ -64,7 +66,7 @@ function computeElements(s: OrbitalState, mu: number, r: number): Elements {
   return result;
 }
 
-/** Signed 2D elements. Undefined circular/radial orientation is explicitly absent. */
+/** Signed 2D osculating orbital elements in the primary-body-centred inertial frame (`mu` in `m³/s²`). Undefined circular/radial orientation (`periapsisAngle`) is explicitly `null`. Cached by WeakMap when `s` and its vectors are frozen. Exposed via `CORE_MOTION.services.orbits.elements` and `ORBITAL_MOTION`. Host-only (`packages/sim-core`). */
 export function elements(s: OrbitalState, mu: number): Elements {
   const cached = EPOCH_CONSTANTS.get(s);
   if (cached?.mu === mu) return cached.orbit;
@@ -88,10 +90,10 @@ function periapsisTime(radius: number, mu: number, e: Elements, sign: number): n
   return (e.periapsis * chi + e.eccentricity * chi * chi * chi * stumpff(alpha * chi * chi).s) / Math.sqrt(mu);
 }
 
-/** Earliest nonnegative directed radius crossing. Null means unreachable on the future branch.
+/** Earliest nonnegative directed radius crossing (in `s`, for `radius` in `m` and `mu` in `m³/s²`). Null means unreachable on the future branch.
  * Radial states are supported up to the central singularity. This is a two-body primitive,
  * not a moving-body encounter detector. `orbit` may pass `elements(s, mu)` when the caller
- * already has them (several radii of one state). */
+ * already has them (several radii of one state). Exposed via `CORE_MOTION.services.orbits.timeToRadius` and `ORBITAL_MOTION`. Host-only (`packages/sim-core`). */
 export function timeToRadius(s: OrbitalState, mu: number, radius: number,
   direction: 'inbound' | 'outbound' = 'inbound', orbit?: Elements): number | null {
   const e = orbit ?? elements(s, mu);
@@ -108,6 +110,7 @@ export function timeToRadius(s: OrbitalState, mu: number, radius: number,
   return dt >= 0 ? dt : null;
 }
 
+/** Earliest nonnegative time in `s` until the next `periapsis` or `apoapsis` passage under gravitational parameter `mu` (`m³/s²`), or `null` when the apsis is undefined or unreachable (near-circular `e < 1e-8`, radial trajectory, or unbound `apoapsis`). Host-only (`packages/sim-core`). */
 export function timeToApsis(s: OrbitalState, mu: number, apsis: 'periapsis' | 'apoapsis'): number | null {
   const e = elements(s, mu);
   if (e.eccentricity < 1e-8 || e.radial || (apsis === 'apoapsis' && e.apoapsis === null)) return null;

@@ -18,6 +18,12 @@ export function createPlanetDesigners(services: PlanetDesignerServices, css = ''
   if (errors.length) throw new AggregateError(errors, 'Planet designer cleanup failed');
  } });
 }
+/**
+ * Contributes independent planet appearance designer controls and previews.
+ * Provides ui.planet-designer@1.0.0 in slot ui.planet-designer.
+ * Requires core.rotation@^1.0.0; optionally consumes render.webgl@^1.0.0 and render.vector-shaders@^1.0.0.
+ * Settings: previewSpinSeconds, sunDegrees, importMaxBytes.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
  context.contributeGuide({ id:'usage', audience:'creators', title:'Independent planet appearance designer', summary:'Read-only body previews and viewer-scoped designs with explicit storage/export ports.', asset:'docs/creators/usage.json' });
  const rotation = context.use(CORE_ROTATION), drawing = context.tryUse(WEBGL_DRAWING), shaders = context.tryUse(VECTOR_SHADERS);

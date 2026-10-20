@@ -2,6 +2,7 @@ import { LAN_DISCOVERY, type Disposable, type FoundSession, type LanDiscovery, t
 import { lanCandidates } from './candidates';
 export { lanCandidates, COMMON_SUBNETS } from './candidates';
 
+/** Construct a LAN discovery instance bound to a specific protocol and greeting decoder. */
 export function createLanDiscovery(options: LanDiscoveryOptions): LanDiscovery {
   if (!options.protocolId || typeof options.greeting !== 'function') throw new Error('Discovery requires an explicit session protocol and greeting adapter');
   if(options.timeoutMs!==undefined&&(!Number.isFinite(options.timeoutMs)||options.timeoutMs<1||options.timeoutMs>60000)||options.concurrency!==undefined&&(!Number.isInteger(options.concurrency)||options.concurrency<1||options.concurrency>64)||options.maxGreetingLength!==undefined&&(!Number.isInteger(options.maxGreetingLength)||options.maxGreetingLength<1||options.maxGreetingLength>65536))throw new Error('Invalid discovery configuration');
@@ -60,6 +61,7 @@ export function createLanDiscovery(options: LanDiscoveryOptions): LanDiscovery {
   };
   return discovery;
 }
+/** Construct a LAN discovery factory managing discovery instances and subnet address expansion. */
 export function createLanDiscoveryFactory(defaults:Pick<LanDiscoveryOptions,'timeoutMs'|'concurrency'|'maxGreetingLength'> = {}): LanDiscoveryFactory & Disposable {
   const instances = new Set<LanDiscovery>(); let disposed = false;
   return { candidates: lanCandidates,
@@ -73,6 +75,7 @@ export function createLanDiscoveryFactory(defaults:Pick<LanDiscoveryOptions,'tim
       instances.clear(); if (errors.length) throw new AggregateError(errors, 'Discovery provider cleanup failed'); },
   };
 }
+/** Initialize the LAN discovery module, providing net.lan-discovery@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'LAN discovery', summary: 'Borrowed text transports and explicit greeting codecs; no world dependencies.', asset: 'docs/creators/usage.json' });
   context.provide(LAN_DISCOVERY, context.own(createLanDiscoveryFactory({timeoutMs:context.settings.timeoutMs,concurrency:context.settings.concurrency,maxGreetingLength:context.settings.maxGreetingLength})));

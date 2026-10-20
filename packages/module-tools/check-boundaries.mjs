@@ -1,4 +1,5 @@
 // Static authoring boundary check. Not a trusted-code security sandbox.
+// Host-side Node tooling: modules cannot import packages/module-tools.
 import { parseSync } from 'rolldown/utils';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { dirname, relative, resolve } from 'node:path';
@@ -30,6 +31,8 @@ const bridges = {
 };
 /** Folders whose modules are written exactly like player modules: public API and siblings only. */
 const publicRoots = ['examples/modules/', 'packages/modules/src/base/toolset/'];
+/** Boundary violations in one source (checkout-relative `path`), one message each; empty when
+ * it imports only the public game-api entry point, its own folder or an exact bridge path. */
 export function checkSource(source, path) {
   const errors = [];
   const parsed = parseSync(path, source);
@@ -70,6 +73,8 @@ async function collect(path) {
   }
   return files;
 }
+/** Checks every module-facing source tree; returns the file count or throws all violations.
+ * First half of `npm run check:modules`. Reads files only. */
 export async function checkBoundaries() {
   const files = (await Promise.all(['packages/game-api/src', 'packages/game-runtime/src', 'packages/modules/src', 'examples/modules', 'examples/packages', 'modules'].map(collect))).flat();
   const errors = (await Promise.all(files.map(async path => checkSource(await readFile(resolve(root, path), 'utf8'), path)))).flat();

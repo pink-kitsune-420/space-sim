@@ -1,3 +1,4 @@
+/** Host-only per-target v2 runtime selections carried by games and progress (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`). */
 import type { ModuleEnvironment } from '../../game-api/src/index';
 import type { InstalledGamePlan } from '../../game-runtime/src/game-loader';
 import { packageDigest } from '../../game-runtime/src/package-store';
@@ -15,6 +16,7 @@ export interface RuntimeSelection {
   readonly format: 'spacelab-runtime-selection/2';
   readonly plans: Readonly<Partial<Record<ModuleEnvironment, InstalledGamePlan>>>;
 }
+/** Validates a `spacelab-runtime-selection/2` value: one or more of the `browser`, `offline` and `node` plans, each with a v2 profile, up to 256 exact package pins selected by that profile and up to 256 required slots. Host-only (`packages/game-library`). */
 export function validateRuntimeSelection(raw: unknown): RuntimeSelection {
   const value = object(raw, 'Runtime selection');
   keys(value, ['format', 'plans'], 'Runtime selection');
@@ -45,6 +47,7 @@ export function validateRuntimeSelection(raw: unknown): RuntimeSelection {
   copyPackageFiles(value, result);
   return result;
 }
+/** Every exact package pinned by any target; targets must agree (`Runtime targets disagree on exact package <id>`). Host-only (`packages/game-library`). */
 export function runtimeReferences(selection: RuntimeSelection): InstalledGamePlan['packages'] {
   const refs = new Map<string, InstalledGamePlan['packages'][number]>();
   for (const plan of Object.values(selection.plans)) for (const ref of plan.packages) {
@@ -54,9 +57,11 @@ export function runtimeReferences(selection: RuntimeSelection): InstalledGamePla
   }
   return [...refs.values()];
 }
+/** Package archives attached to a runtime selection, keyed `modules/<id>.spacemod`. Host-only (`packages/game-library`). */
 export function runtimeSelectionFiles(selection: RuntimeSelection): PackageFiles {
   return packageFiles(selection) ?? new Map();
 }
+/** Attaches package archives to `selection` and returns it. Host-only (`packages/game-library`). */
 export function attachRuntimeFiles(selection: RuntimeSelection, files: PackageFiles): RuntimeSelection {
   rememberPackageFiles(selection, files); return selection;
 }
@@ -73,6 +78,7 @@ export async function installRuntimeSelection(selection: RuntimeSelection, store
   }
   return plan;
 }
+/** Whether any pinned runtime package is a code (provider) module. Host-only (`packages/game-library`). */
 export async function runtimeContainsCode(selection: RuntimeSelection): Promise<boolean> {
   for (const ref of runtimeReferences(selection)) {
     const bytes = runtimeSelectionFiles(selection).get(`modules/${ref.id}.spacemod`);

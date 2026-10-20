@@ -5,8 +5,102 @@
   "summary": "Public audio.flight-controls@1.0.0 service and lifecycle.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Create controls over borrowed nodes or mount the reusable settings content with a scoped ID prefix. Supply an optional sound provider and local preference storage. Confirmed terrain contacts and smooth-body status transitions produce one landing/crash/splash cue; reset establishes a new load/reconnect baseline. Thrust is silent during pause, warp, inactive views or faults. Disposal releases listeners, pending activation and output, and restores mounted content."
+      "text": "Bridges browser sound settings UI, user-gesture activation, document visibility and local preference storage to an optional AudioProvider. Flight code supplies read-only observations (thrust, pause, time warp, faults and terrain or smooth-body contacts); this module never mutates simulation state. Confirmed terrain contacts and smooth-body status transitions play at most one land, crash or splash cue per increasing simulation timestamp, and continuous thrust is silenced during pause, time warp above 1x, faults, hidden tabs or inactive views."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides audio.flight-controls@1.0.0 through the FLIGHT_SOUND service key: creates or mounts FlightAudioControl instances.",
+        "Fills the audio.flight-controls slot in platform profiles.",
+        "Requires nothing. An AudioProvider (such as audio.procedural@1.0.0) is attached dynamically via control.setProvider(provider); when no provider is set, controls remain usable and display instructions to enable Procedural sound."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "volume (default 0.4, from 0 to 1, step 0.01): initial linear gain for viewers without saved audio preferences, where 0 is silent and 1 is full gain; browser gesture activation is still required.",
+        "enabled (default 1, from 0 to 1, step 1): 0 starts sound disabled and 1 enables sound after a permitted browser gesture; a saved viewer preference in storage takes precedence."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization reads volume and enabled settings, registers a candidate-owned FLIGHT_SOUND factory and contributes this guide.",
+        "create(options) binds to borrowed toggle, slider and status elements in a browser document (throwing if defaultVolume is outside [0, 1] or ownerDocument.defaultView is absent) and loads saved preferences from storage key space-sim.audio/1.",
+        "mount(options) validates prefix against /^[a-z][a-z0-9-]{0,63}$/, replaces options.root children with the scoped sound settings template, and restores the original child nodes when the returned control is disposed or if creation throws.",
+        "Trusted pointerdown or keydown gestures, toggle clicks and slider inputs activate and resume the bound AudioOutput; visibilitychange and pagehide suspend output when hidden.",
+        "reset(contactTime) zeroes thrust and sets the simulation-time contact watermark so world loads or session reconnects do not replay old contacts.",
+        "Disposing a control aborts DOM listeners, disposes its AudioOutput and restores any mounted root children; disposing the provider disposes all active controls."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Provide another audio.flight-controls@1.0.0 implementation in the audio.flight-controls slot to customize sound settings UI or cue routing. If this module is removed, the host hides the sound settings section and substitutes a silent no-op controller while gameplay and rendering continue normally."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: control options and status messages may change before final freeze. Viewer preferences persist under storage key space-sim.audio/1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/audio-controls mounts flight sound controls into a container, attaches a custom AudioProvider and routes thrust and contact cues. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/audio-controls/module.json /tmp/example-audio-controls.spacemod\nnpm run module:validate -- /tmp/example-audio-controls.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Flight sound controls",
+      "page": "api-reference/module/spacelab.audio-controls"
+    },
+    {
+      "type": "link",
+      "text": "game-api: audio.ts",
+      "page": "api-reference/game-api/audio"
+    },
+    {
+      "type": "link",
+      "text": "game-api: presentation.ts",
+      "page": "api-reference/game-api/presentation"
     }
   ]
 }

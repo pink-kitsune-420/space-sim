@@ -21,6 +21,6 @@ export default function initialize(context: ModuleInitializationV2): void {
     save(bindings: Readonly<Record<string, readonly string[]>>) {
       saveKeybindings(Object.fromEntries(Object.entries(bindings).map(([id, keys]) => [legacy.get(id) ?? id, [...keys]])) as KeyBindings);
     } }));
-  context.contributeGuide({ id: 'actions', audience: 'creators', title: 'Portable flight actions',
-    summary: 'Namespaced actions and legacy keyboard bindings.', asset: 'docs/creators/actions.json' });
+  context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Flight actions',
+    summary: 'Namespaced flight actions and persistent keyboard bindings.', asset: 'docs/creators/usage.json' });
 }

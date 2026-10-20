@@ -106,6 +106,10 @@ export function createSpinViews(rotation: RotationMath, options: SpinViewTuning 
   views.clear(); if (errors.length) throw new AggregateError(errors, 'Spin view provider cleanup failed');
  } });
 }
+/**
+ * Contributes anti-strobe body rotation smoothing for high-warp presentation.
+ * Provides view.spin@1.0.0 in the view.spin slot; requires core.rotation@^1.0.0.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
  context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Body spin presentation', summary: 'Optional anti-strobe display over pure prescribed sidereal rotation.', asset: 'docs/creators/usage.json' });
  context.provide(SPIN_VIEWS, context.own(createSpinViews(context.use(CORE_ROTATION), context.settings)));

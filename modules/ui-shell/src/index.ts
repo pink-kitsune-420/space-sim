@@ -212,6 +212,12 @@ export function createWindowShells(windows: Pick<WindowSystem,'create' | 'icon'>
     dispose() {if(disposed)return;disposed=true;const errors:unknown[]=[];for(const shell of shells){try{shell.dispose();}catch(error){errors.push(error);}}for(const style of styles.values())style.remove();styles.clear();if(errors.length)throw new AggregateError(errors,'Shell provider cleanup failed');}
   });
 }
+/**
+ * Contributes the optional grouped window shell and dock.
+ * Provides ui.shell@1.0.0 in slot ui.shell.
+ * Requires ui.windows@^1.0.0.
+ * Setting escapeToggleMs (default 300 ms) is the minimum wall time between Escape/fullscreen toggles.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'Window shell and dock',summary:'Optional grouped dock and window lifecycle.',asset:'docs/creators/usage.json'});
  context.provide(WINDOW_SHELL,context.own(createWindowShells(context.use(WINDOWS),context.assets.text('assets/shell.css'),{escapeToggleMs:context.settings.escapeToggleMs??300})));

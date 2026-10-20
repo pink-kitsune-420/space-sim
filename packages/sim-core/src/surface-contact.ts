@@ -1,13 +1,16 @@
+/** Host-only body-fixed polar terrain contact sweeps (`packages/sim-core`). Modules access surface contact sweeps through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.services.surfaces.sweep` / `sweepGround`) and `SURFACE_GEOMETRY` (`SurfaceProvider`).
+ * Endpoints `start` and `end` are body-fixed Cartesian coordinates in `m`; tolerances and clearances are in `m`. */
 import type { SurfaceSweepOptions, SurfaceSweepDiagnostics, SurfaceSweep } from '../../game-api/src/index';
 export type { SurfaceSweepOptions, SurfaceSweepDiagnostics, SurfaceSweep } from '../../game-api/src/index';
 import { createSurfaceProfile, querySurface, type SurfaceProfile } from './surface';
 import * as dm from './dmath';
 
 interface Point { readonly x: number; readonly y: number }
+/** Maximum combined interval-traversal and polar-query work budget (`262,144`) permitted in a single surface contact sweep before returning `status: 'failed'` with `reason: 'work-limit'`. Host-only (`packages/sim-core`). */
 export const SURFACE_SWEEP_MAX_WORK = 262_144;
 const TAU = 2 * Math.PI;
 
-/** Shared roundoff floor for drift contact, state validation and support. */
+/** Shared roundoff floor (in `m`) for drift contact, state validation and support. Host-only (`packages/sim-core`). */
 export function surfaceContactTolerance(profile: SurfaceProfile): number {
   return Math.max(1e-7, 128 * Number.EPSILON
     * Math.max(profile.bounds.maxRadius, profile.bounds.maxAbsDerivative) * TAU);

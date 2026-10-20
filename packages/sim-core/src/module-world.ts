@@ -1,3 +1,4 @@
+/** Host-only adapter constructing a `World` from an activated API v2 `ModuleCandidateV2` (`packages/sim-core`). Modules never import this file; they contribute vehicles, data schemas, forces, world rules, commands, and motion services (`motion`, `dynamics`, `orbits`, `bodies`, `surfaces`, `rails`, `content`) through `@space-sim/game-api`. */
 import { TRAINER_VEHICLE_ID } from '../../game-api/src/index';
 import type { DynamicsProvider, ModuleManifest, MotionServices, SimulationContextFactory, UniverseDefinition } from '../../game-api/src/index';
 import type { GameIdentity } from '../../game-runtime/src/game-loader';
@@ -9,6 +10,7 @@ import { createSimulationContext } from './context';
 import { DEFAULT_UNIVERSE, validateUniverse } from './universe';
 import { World, type WorldOptions } from './world';
 
+/** Options for constructing or configuring a `World` from an activated v2 module candidate (`id`, `universeKey`, `systemId`, explicit `universe`, or `resolveContent` content-map transform). Host-only (`packages/sim-core`). */
 export interface ModuleWorldOptions {
   readonly id?: string; readonly universeKey?: string; readonly systemId?: string;
   readonly universe?: UniverseDefinition;
@@ -18,12 +20,12 @@ export interface ModuleWorldOptions {
 }
 /** Concrete world construction for the injected shared loader, usable by browser and
  * server. It preserves existing physics and binds the v2 module schedule into the world's
- * authoritative content identity. Legacy worlds continue through their unchanged serializer. */
+ * authoritative content identity. Legacy worlds continue through their unchanged serializer. Host-only (`packages/sim-core`). */
 export function createModuleWorld(candidate: ModuleCandidateV2, identity: GameIdentity, options: ModuleWorldOptions = {}): World {
   const configuration = moduleWorldConfiguration(candidate, identity, options);
   return new World(configuration.universe, configuration.options);
 }
-/** The same verified configuration restores state without constructing a second simulation. */
+/** Builds the verified `{ universe, options }` configuration for `World` construction or state restoration without constructing a second simulation. Host-only (`packages/sim-core`). */
 export function moduleWorldConfiguration(candidate: ModuleCandidateV2, identity: GameIdentity, options: ModuleWorldOptions = {}): {
   readonly universe: UniverseDefinition; readonly options: WorldOptions;
 } {

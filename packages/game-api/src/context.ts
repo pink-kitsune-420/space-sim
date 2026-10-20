@@ -28,6 +28,7 @@ export interface SimulationContext {
   /** Release derived caches. Idempotent; the context can rebuild them if reused. */
   dispose(): void;
 }
+/** Read-only diagnostic counters for a simulation context's derived Kepler coast sample cache. */
 export interface CoastCacheStats {
   readonly samples: number;
   readonly hits: number;

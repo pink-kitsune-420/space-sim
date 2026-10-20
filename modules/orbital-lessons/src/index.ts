@@ -166,6 +166,11 @@ export const course: OrbitalCourse = {
   ],
 };
 
+/**
+ * Contributes the 24-lesson Orbital Academy curriculum, practice setups and Players/Creators guides.
+ * Provides learning.orbital-course@1.0.0 in slot learning.orbital-course.
+ * Requires no external services and declares no settings.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.provide(ORBITAL_COURSE, course);
   context.contributeGuide({ id: 'academy', audience: 'players', title: 'Orbital Academy course', summary: 'Beginner flights, advanced orbital experiments and explicit practice setups.', asset: 'docs/players/course.json' });

@@ -2,6 +2,8 @@
 
 Consumes simulation snapshots, trajectory samples and camera transforms to draw the world. Renderer code does not mutate simulation state.
 
+> **Host-only package (`packages/render-2d`):** Modules cannot import this package directly (`packages/module-tools/check-boundaries.mjs`). Only the browser bridge (`packages/modules/src/browser.ts`) imports `render-2d/src/index`. Module code uses the public rendering services and contracts in `@space-sim/game-api`: `CANVAS_DRAWING` (`render.canvas@1.0.0`), `WEBGL_DRAWING` (`render.webgl@1.0.0`, including `preview(canvas, shaders)`), `VECTOR_SHADERS`, `THEMES` (`presentation.themes@1.0.0`), `CORE_THEME`, `Render2DOptions.geometry` (`RenderGeometry.querySurface`), `validateShaderDefinition`, `parseShaderDefinition` (a `.frag`/`.glsl` shader replaces only the scene fragment; files ≤ 1 MiB), and `createVehicleArtwork`.
+
 The reusable implementations live in [modules/render-canvas](../../modules/render-canvas/) and [modules/render-webgl](../../modules/render-webgl/). This package supplies compatibility constructors and engine ports for the existing flight application. New module code uses the public rendering contracts in [packages/game-api](../game-api/src/index.ts).
 
 - [src/index.ts](src/index.ts) exposes the compatibility renderers, projection helpers, appearance preview and theme support.

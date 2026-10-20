@@ -2,6 +2,7 @@ import type { SolverDiagnostics } from './orbit';
 import type { SurfaceDefinition, SurfaceSweepDiagnostics } from './surface';
 import type { ModuleState } from './motion';
 
+/** Immutable 2D Cartesian vector (SI metres, `m/s`, or `m/s²` in world/body frames with `+Y` up, or CSS pixels in screen space with `+Y` down). */
 export interface Vec { readonly x: number; readonly y: number }
 /** Sidereal spin of a body: its terrain, oceans and anything resting on them turn with it. */
 export interface BodyRotation {
@@ -12,6 +13,7 @@ export interface BodyRotation {
   /** Angle of the body-fixed frame at time 0, radians. */
   readonly phase: number;
 }
+/** Minimal authoritative celestial body parameters for motion and surface contact: reference `radius` in `m` and gravitational parameter `mu` (`GM`) in `m³/s²`. */
 export interface Body {
   readonly id: string;
   readonly radius: number;
@@ -40,6 +42,7 @@ export interface State {
   /** Split drift vertex retained for prediction of a gentle sea entry. */
   readonly waterEntry?: GhostSample;
 }
+/** Terrain or sea contact event recorded during a step, with simulation `time` in `s`, step `fraction` in `[0, 1]`, and body-relative `impactVelocity` in `m/s`. */
 export interface SurfaceContactEvent {
   readonly material?: 'rock' | 'water';
   readonly time: number;
@@ -48,6 +51,7 @@ export interface SurfaceContactEvent {
   readonly impactVelocity: Vec;
   readonly diagnostics: SurfaceSweepDiagnostics;
 }
+/** Exact Keplerian coasting epoch (`epochSeconds` in `s`, body-centered inertial `position` in `m` and `velocity` in `m/s`, `mu` in `m³/s²`) from which unpowered motion is evaluated without drift. */
 export interface Coast {
   readonly modelIdentity?: string;
   readonly bodyId: string;
@@ -62,11 +66,15 @@ export interface Coast {
   readonly contactSurfaceIdentity?: string;
 }
 
+/** Held pilot flight control inputs: `turn` rate in `[-1, 1]` (positive turns counter-clockwise), `throttle` rate in `[-1, 1]`, and `engine` ignition boolean. */
 export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }
+/** Built-in starting spawn preset identifier (`'pad'`, `'planet-orbit'`, or `'moon-orbit'`). */
 export type Preset = 'pad' | 'planet-orbit' | 'moon-orbit';
 
+/** Timed 2D position sample with simulation `time` in seconds and `position` in metres. */
 export interface Sample { readonly time: number; readonly position: Vec }
 
+/** Trajectory forecast sample with simulation `time` (`s`), `position` (`m`), and `velocity` (`m/s`) in the translating non-rotating frame of `frameId ?? bodyId`. */
 export interface GhostSample extends Sample {
   readonly velocity: Vec;
   /** Segment ending here is a verified numerical drift, not a conic/Hermite arc. */

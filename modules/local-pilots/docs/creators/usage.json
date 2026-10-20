@@ -5,28 +5,92 @@
   "summary": "Adapts one to four active local seats to borrowed session identities and device preferences.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Adapts one to four active local seats to borrowed session identities and device preferences."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Provides input.local-pilots@1.0.0. Optional input.flight-profiles@1.0.0 supplies flight preference defaults/migration; the generic seat registry works without it. Constructors receive identity, assignment and release callbacks."
+      "text": "This module adapts 1 to 4 active local player seats (pilots 0–3) to host session identities and device assignments. It provides the input.local-pilots service through the LOCAL_PILOTS key. It offers create to wrap a LocalPilotHost into a PilotRegistry managing device assignments ('auto', 'keyboard', 'none', or 'pad:N') and seat release callbacks. When a compatible input.flight-profiles provider is present, its preferences method returns a LocalPlayerPreferences codec that normalizes, loads, and saves per-player names, device choices, and navball screen anchors. It does not advance simulation worlds or grant network session authority."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides input.local-pilots@1.0.0 through the LOCAL_PILOTS key: local pilot registry factory and local player preferences codec.",
+        "Requires input.flight-profiles@^1.0.0 (optional) for flight player preference defaults; generic local seat registries work without it."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Environment: browser and offline. Platform authority; excluded from authoritative simulation identity. Public API and local source only."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers LOCAL_PILOTS and creates an internal tracking set to dispose all active registries when the module is torn down.",
+        "create wraps a caller-provided LocalPilotHost into a LocalPilotRegistry, ensuring active seat counts stay within [1, 4].",
+        "assign validates device identifiers and releases held inputs across the host before assigning the device to prevent stuck input across hot-swapped controllers.",
+        "preferences constructs a LocalPlayerPreferences codec backed by input.flight-profiles, throwing an error if that optional provider is absent.",
+        "dispose calls host.release and marks the registry as disposed. Provider disposal tears down all active registries, throwing an AggregateError if cleanup fails."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Owns the existing local-player preference codec and migration, including independent names, device assignments and navball placements. Session credentials remain session-owned. This registry never grants network ownership. Device changes release held input first; disposal releases the registry."
+      "text": "Space Sim and Flight starter specify input.local-pilots as a required slot. To replace it, build a platform-tier module providing input.local-pilots@1.0.0 with custom seat rules (such as fixed arcade seat bindings or single-pilot limits) and select it with \"providers\": { \"input.local-pilots\": \"your.module-id\" }."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: pilot registry contracts and preference structures may change before API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/local-pilots is a consumer module that implements a headless LocalPilotHost to manage seat device assignments through LOCAL_PILOTS. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "npm run module:build -- modules/local-pilots/module.json /tmp/local-pilots.spacemod"
+      "text": "npm run module:build -- examples/modules/local-pilots/module.json /tmp/local-pilots-example.spacemod\nnpm run module:validate -- /tmp/local-pilots-example.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Unpack, edit source, rebuild and repack. Explicitly enable trusted code in a compatible game; imported code has full application privileges. Package-building success alone does not establish game/runtime portability."
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Local pilot registry",
+      "page": "api-reference/module/spacelab.local-pilots"
+    },
+    {
+      "type": "link",
+      "text": "game-api platform.ts: input frames, sources and action bindings",
+      "page": "api-reference/game-api/platform"
     }
   ]
 }

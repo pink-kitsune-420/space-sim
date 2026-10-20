@@ -1,3 +1,5 @@
+/** Host-only single-ship KDK/Kepler simulation context (`packages/sim-core`). Modules create and use simulation contexts through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.createContext`), `MOTION_CONTEXTS` (`SimulationContextFactory`), and `WorldRead.context` / `WorldRead.contextFor`.
+ * Operates on fixed `0.01` s (`STEP`) boundaries with IEEE-754 float64 deterministic math (`dmath`), SI units (`position` in `m`, `velocity` in `m/s`, `acceleration` in `m/s²`, `heading` in `rad`, `turnRate` in `rad/s`, `mu` in `m³/s²`, `time` in `s`), and zero-allocation inner loops. */
 import type { Body, Coast, Controls, GhostEnd, GhostSample, MotionContextOptions, MotionStep, Preset, SimulationContext, State, Vec, VehicleDefaults } from '../../game-api/src/index';
 import { captureMotionOptions, ForceTransaction, motionCopy, runDynamics } from '../../game-runtime/src/motion';
 import { IDLE, MODEL, STEP, contactMargin } from './constants';
@@ -10,35 +12,42 @@ import { dampedKick, WATER_CRASH_SPEED, waterFloatRadius, waterForces } from './
 import * as dm from './dmath';
 import { bodyFixed, groundVelocity, inertialState, rotate, spinAngle, spinRate } from './spin';
 
+/** Maximum number of cached timestamp evaluations (`8,192`) retained per frozen `Coast` epoch inside one `SimulationContext`. Host-only (`packages/sim-core`). */
 export const COAST_CACHE_CAPACITY = 8192;
-/** Timestamp results kept across every coast together (each is a few hundred bytes).
+/** Timestamp results kept across every coast together (`32,768`; each is a few hundred bytes).
  * Without a shared bound, every coasting ship of a large fleet fills its own 8,192 entries
- * within 82 s: about 3 MB per ship. */
+ * within 82 s: about 3 MB per ship. Host-only (`packages/sim-core`). */
 export const COAST_CACHE_BUDGET = 32_768;
 
+/** Maximum number of quantized conic samples (`256`) yielded by a single-body `ghost` trajectory prediction pass. Host-only (`packages/sim-core`). */
 export const GHOST_MAX_SAMPLES = 256;
-/** Near terrain, at most 81.92 s of shared 10-ms motion per pass. */
+/** Near terrain, at most 81.92 s (`8,192` steps) of shared 10-ms motion per pass. Host-only (`packages/sim-core`). */
 export const GHOST_TERRAIN_MAX_STEPS = 8192;
-/** Quantized steps span astronomical orbits; geometric error, not a fixed dt, limits sampling. */
+/** Quantized steps (`STEP * 2^k`, `k <= 50`) span astronomical orbits; geometric error, not a fixed dt, limits sampling. Host-only (`packages/sim-core`). */
 export const GHOST_MAX_K = 50;
-/** A pass beyond this many surface radii is reported as escaping the planet. */
+/** A pass beyond this many surface radii (`32`) is reported as escaping the planet. Host-only (`packages/sim-core`). */
 export const GHOST_ESCAPE_RADII = 32;
 
 const DEFAULT_PLANET: Body = Object.freeze({ id: 'planet', radius: 512, mu: 13107200 });
 const DEFAULT_MOON: Body = Object.freeze({ id: 'moon', radius: 128, mu: 204800 });
 const MOTION_STATE_FIELDS = new Set(['time', 'position', 'velocity', 'heading', 'throttle', 'status', 'revision',
   'godMode', 'coast', 'dynamics', 'solver', 'contact', 'water', 'waterEntry', 'moduleState']);
+/** Default headless reference planet (`id: 'planet'`, `radius: 512` `m`, `mu: 13,107,200` `m³/s²`). Host-only (`packages/sim-core`). */
 export const planet: Body = DEFAULT_PLANET;
+/** Frozen default vehicle handling parameters (`acceleration: 125` `m/s²`, `turnRate: 25π/64 ≈ 1.2272` `rad/s`, `initialThrottle: 0.5`). Host-only (`packages/sim-core`). */
 export const DEFAULT_VEHICLE: Readonly<VehicleDefaults> = Object.freeze({
   acceleration: 125,
   turnRate: 1.227184630308513,
   initialThrottle: 0.5,
 });
+/** Euclidean 2D vector norm $\sqrt{x^2 + y^2}$ using deterministic IEEE-754 float64 `dmath.hypot` (preserves input SI unit: `m`, `m/s`, or `m/s²`). Exposed to modules via `CORE_MOTION.magnitude`. Host-only (`packages/sim-core`). */
 export const magnitude = (v: Vec): number => dm.hypot(v.x, v.y);
-/** Wrap into (-π, π] exactly (see dmath); an angle already in range is unchanged. */
+/** Wrap an angle in `rad` into $(-\pi, \pi]$ exactly (see `dmath`); an angle already in range is unchanged. Exposed to modules via `CORE_MOTION.normalizeAngle` and `deterministicMath.normalizeAngle`. Host-only (`packages/sim-core`). */
 export const normalizeAngle = dm.normalizeAngle;
+/** Converts a legacy 8-bit compass heading byte (`0..255`, clockwise from north) into a standard counter-clockwise angle in `rad` from $+x$. Host-only (`packages/sim-core`). */
 export const legacyHeading = (byte: number): number => Math.PI / 2 - 2 * Math.PI * byte / 256;
 
+/** Returns a fresh `State` at `time = 0` `s` for a built-in headless `preset` (`'pad'`, `'planet-orbit'`, or `'moon-orbit'`) in SI units (`position` in `m`, `velocity` in `m/s`, `heading` in `rad`). Host-only (`packages/sim-core`). */
 export function initialState(preset: Preset | string = 'pad'): State {
   if (preset === 'moon-orbit') {
     return {
@@ -67,6 +76,7 @@ export function initialState(preset: Preset | string = 'pad'): State {
   };
 }
 
+/** Returns a new `State` with `godMode` set to `enabled` and `revision` incremented by `1`, recovering a `'crashed'` state when enabled: to `'landed'` on ground, or to `'flying'` with `water: 'submerged'` in water. Host-only (`packages/sim-core`; worlds expose `WorldControl.setGodMode`). */
 export function setGodMode(state: State, enabled: boolean): State {
   return { ...state, godMode: enabled, revision: state.revision + 1,
     status: enabled && state.status === 'crashed' ? state.water ? 'flying' : 'landed' : state.status,
@@ -79,7 +89,7 @@ function gravity(p: Vec, body: Body): Vec {
   return { x: p.x * scale, y: p.y * scale };
 }
 
-/** First intersection of the drift chord with the surface, including an interior fly-through. */
+/** First intersection fraction (`[0, 1]`) of the straight drift chord from `p` to `end` (in `m`) with a circular surface of `radius` (`m`), including an interior fly-through. Host-only (`packages/sim-core`). */
 export function contactFraction(p: Vec, end: Vec, radius: number): number | undefined {
   const dx = end.x - p.x, dy = end.y - p.y;
   const a = dx * dx + dy * dy;
@@ -93,8 +103,8 @@ export function contactFraction(p: Vec, end: Vec, radius: number): number | unde
   return t >= 0 && t <= 1 ? t : undefined;
 }
 
-/** The prediction sample for a state after one step, in the inertial frame: a contact is drawn
- * where and as fast as it struck, a resting state where the turning ground carries it. */
+/** The prediction sample for a state after one step, in the primary-body-centred inertial frame (`time` in `s`, `position` in `m`, `velocity` in `m/s`): a contact is drawn
+ * where and as fast as it struck, a resting state where the turning ground carries it. Host-only (`packages/sim-core`). */
 export function ghostSample(state: State, body: Body): GhostSample {
   const time = state.contact?.time ?? state.time;
   let position = state.position, velocity = state.contact?.impactVelocity ?? state.velocity;
@@ -114,8 +124,9 @@ function relativeKick(velocity: number, acceleration: number, drag: number, seco
     : dampedKick(velocity - medium, acceleration, drag, seconds) + medium;
 }
 
-/** The built-in motion bundle. Settings are detached; all model-dependent caches and
- * timestamp accounting belong to this context. Disposal drops derived data only. */
+/** The built-in motion bundle (`SimulationContextFactory`). Settings are detached; all model-dependent caches (`COAST_CACHE_CAPACITY` per coast, `COAST_CACHE_BUDGET` total) and
+ * timestamp accounting belong to this context. Disposal drops derived data only.
+ * Exposed to modules via `CORE_MOTION.createContext` and `MOTION_CONTEXTS`. Host-only (`packages/sim-core`). */
 export function createSimulationContext(settings: Partial<VehicleDefaults> = {}, motion: MotionContextOptions = {}): SimulationContext {
   const options = captureMotionOptions(motion);
   const forces = options.forces!;

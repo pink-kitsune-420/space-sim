@@ -2,19 +2,101 @@
   "id": "usage",
   "audience": "creators",
   "title": "Finite maneuver burns",
-  "summary": "Host-validated finite-burn intent, independent of UI/rendering and world stepping.",
+  "summary": "Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "flight.maneuver-burn@1.0.0 requires core.clock@^1.0.0 and creates bounded finite-burn intent over the compatible 0.01-second clock. Supply a finite center time in world seconds, nonzero inertial delta velocity in metres/second and the selected vehicle handling. Each instance owns alignment phase and compensated commanded engine impulse, excluding gravity."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Call next(state) once before each actual fixed tick. Observe the next advanced state before requesting another intent; a changed clock or inadequate alignment rejects the plan. The last burn tick can request fractional throttle. The host owns ownership checks, setThrottle, normal controls, warp policy and world stepping. This service never steps or mutates a world and cannot authorize a command by itself."
+      "text": "This module provides finite maneuver burn intent calculation in the body's inertial reference frame. It computes burn start epochs centered on the scheduled impulse time, guides ship attitude alignment prior to ignition, requests fractional throttle on boundary ticks, and accumulates delivered velocity changes with compensated summation to prevent drift during prolonged thrust."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides flight.maneuver-burn@1.0.0 through the MANEUVER_BURNS service key: creates ManeuverBurnControl controllers.",
+        "Fills the flight.maneuver-burn slot in platform profiles.",
+        "Requires core.clock@^1.0.0: operates over a compatible fixed 0.01-second physics clock."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "The owner must validate ship/body/session/trajectory continuity and cancel on manual input, pause, provider replacement or other changes. Dispose makes pending intent inert; it does not issue a world command, so the host must separately release held controls. Provider removal disposes unfinished burns; completed instances retain only idle intent. This extracts existing behavior without new handling, physics models or numerical tolerances."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures the core.clock service and registers the MANEUVER_BURNS provider.",
+        "create(time, delta, vehicle) calculates the burn start epoch half the total burn duration before the target impulse time.",
+        "next(state) is called once before each fixed physics tick at 1x time warp, commanding alignment turns, waiting until start, or commanding engine thrust.",
+        "The controller transitions through aligning, waiting, burning, and complete phases, releasing pending controls upon completion.",
+        "dispose marks pending intent inert without mutating authoritative world state."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize finite burn integration or attitude steering heuristics, contribute an alternative flight.maneuver-burn@1.0.0 provider to the flight.maneuver-burn slot. Removing this module leaves flight planning without finite burn execution capability."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: steering error thresholds and compensated impulse accounting may evolve prior to final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/maneuver-burn demonstrates instantiating a finite burn controller, stepping through alignment phases, and verifying delivered delta-v. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/maneuver-burn/module.json /tmp/example-maneuver-burn.spacemod\nnpm run module:validate -- /tmp/example-maneuver-burn.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Finite maneuver burns",
+      "page": "api-reference/module/spacelab.maneuver-burn"
+    },
+    {
+      "type": "link",
+      "text": "game-api: maneuver.ts",
+      "page": "api-reference/game-api/maneuver"
+    },
+    {
+      "type": "link",
+      "text": "game-api: engine.ts",
+      "page": "api-reference/game-api/engine"
     }
   ]
 }

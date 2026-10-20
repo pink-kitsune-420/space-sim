@@ -2,11 +2,102 @@
   "id": "usage",
   "audience": "creators",
   "title": "Simulation-time orbital alarms",
-  "summary": "Simulation-time orbital alarms",
+  "summary": "Bounded isolated clocks with no engine or host commands.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "flight.alarms@1.0.0 creates isolated pure clocks without world, UI, engine, audio or execution dependencies. Sync a complete bounded event set against simulation seconds and a stable session object. Due events are delivered once, including high-warp crossings and missed events. Persist handled state with the owning feature. A changed deadline/time/kind defines a new event; deletion removes it, session changes or rewind clear memory. Results use a borrowed buffer valid until the next sync. The host chooses warp/pause/notification policy. Dispose clocks you create. The same module also provides flight.alarm-catalogue@1.0.0, a read-only detached view of current reminders scoped by the same opaque session identity. Up to64 clocks and1024 returned catalogue events are supported. Viewing never syncs or delivers alarms. The optional separate alarm-panel module adds the Alarms dock instrument. Removing that UI does not remove clocks."
+      "text": "This module provides simulation-time orbital reminder clocks and a detached read-only event catalogue. It tracks declared reminder deadlines and physical impulse event epochs against elapsed simulation seconds, delivering notices when deadlines pass without issuing engine commands, altering warp factors, or stepping the physics simulation."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides flight.alarms@1.0.0 through the ORBITAL_ALARMS service key: creates independent OrbitalAlarmClock instances.",
+        "Provides flight.alarm-catalogue@1.0.0 through the ALARM_CATALOGUE service key: inspects registered alarms across sessions.",
+        "Fills the flight.alarms and flight.alarm-catalogue slots in presentation profiles.",
+        "Requires no external services in its module manifest."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides ORBITAL_ALARMS and ALARM_CATALOGUE implementations.",
+        "create() allocates an independent clock supporting up to 1024 concurrent events across up to 64 active clocks.",
+        "sync(session, now, events) synchronizes declared events against simulation time, returning due notices and tracking missed status.",
+        "ALARM_CATALOGUE.read(session) yields detached snapshots of active reminders for UI display.",
+        "dispose clears registered events and unbinds clock references."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize alarm scheduling or reminder delivery policy, contribute alternative providers for flight.alarms@1.0.0 and flight.alarm-catalogue@1.0.0. Removing this module disables orbital event notifications while leaving maneuver planning functional."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: clock limit constants and event delivery structures may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/orbital-alarms demonstrates creating an orbital alarm clock, synchronizing events, and reading the catalogue. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/orbital-alarms/module.json /tmp/example-orbital-alarms.spacemod\nnpm run module:validate -- /tmp/example-orbital-alarms.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Orbital alarm clock",
+      "page": "api-reference/module/spacelab.orbital-alarms"
+    },
+    {
+      "type": "link",
+      "text": "game-api: alarms.ts",
+      "page": "api-reference/game-api/alarms"
+    },
+    {
+      "type": "link",
+      "text": "Alarms dock instrument: how to use, replace and remove it",
+      "page": "spacelab.alarm-panel/usage"
     }
   ]
 }

@@ -1,5 +1,7 @@
+/** Host-only connection interfaces and loopback helper (`packages/net`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); use `TextConnection`, `TransportProvider`, `WEBSOCKET_TRANSPORT`, `TAB_TRANSPORT`, or `WEBRTC_SIGNALING` from `@space-sim/game-api`. */
+
 /** An ordered, reliable text channel: a WebSocket, a WebRTC data channel or an in-memory
- * pair. Sessions never see the transport. */
+ * pair. Sessions never see the transport. Modules use `TextConnection` from `@space-sim/game-api`. Host-only (`packages/net`). */
 export interface Connection {
   /** For logs only, e.g. a remote address. */
   readonly label: string;
@@ -12,11 +14,11 @@ export interface Connection {
   onclose: ((reason: string) => void) | null;
 }
 
-/** Schedules one delivery. The default delivers on a microtask, in order. */
+/** Schedules one delivery. The default delivers on a microtask, in order. Host-only (`packages/net`). */
 export type Scheduler = (deliver: () => void) => void;
 
 /** Two connected in-memory ends, for tests and same-process clients. One scheduler serves
- * both directions, or pass one per direction (first: messages sent by the first end). */
+ * both directions, or pass one per direction (first: messages sent by the first end). Delivers in order and before close. Modules use `TextConnection` and `TAB_TRANSPORT`. Host-only (`packages/net`). */
 export function loopback(schedule: Scheduler | readonly [Scheduler, Scheduler] = queueMicrotask,
   labels: readonly [string, string] = ['loopback-a', 'loopback-b']): [Connection, Connection] {
   const schedulers = typeof schedule === 'function' ? [schedule, schedule] : schedule;

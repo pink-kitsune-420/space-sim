@@ -1,5 +1,7 @@
+/** Host-only shipped module catalogue (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); authors pass a catalogue file to `npm run module:validate` with `--catalogue=`. */
 import { keys, moduleId, object, version } from '../../game-runtime/src/validation';
 
+/** One shipped module pin: `builtin.*` ID, exact version and package integrity digest. Host-only (`packages/game-library`). */
 export interface ShippedModulePin {
   readonly id: string;
   readonly version: string;
@@ -26,10 +28,12 @@ export class ShippedModuleCatalogue {
   recognizes(id: string, exact: string, digest: string): boolean { return this.#pins.has(`${id}@${exact}:${digest}`); }
 }
 
+/** Parses a `spacelab-shipped-modules/1` catalogue of at most 4,096 pins. Host-only (`packages/game-library`). */
 export function parseShippedCatalogue(raw: unknown): ShippedModuleCatalogue {
   const inventory = object(raw, 'Shipped catalogue'); keys(inventory, ['format', 'modules'], 'Shipped catalogue');
   if (inventory.format !== 'spacelab-shipped-modules/1') throw new Error('Unsupported shipped catalogue format');
   return new ShippedModuleCatalogue(inventory.modules as readonly ShippedModulePin[]);
 }
 
+/** Inspection option: the catalogue that may recognise `builtin.*` package identities. Without a matching pin, inspection fails with `Imported builtin identities require an exact shipped catalogue pin; fork under a creator namespace`. Host-only (`packages/game-library`). */
 export interface ShippedPackageOptions { readonly shipped?: ShippedModuleCatalogue }

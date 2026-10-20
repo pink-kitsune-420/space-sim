@@ -2,19 +2,105 @@
   "id": "usage",
   "audience": "creators",
   "title": "Rails and shared motion services",
-  "summary": "Headless fixed kernel with independently replaceable providers.",
+  "summary": "Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "builtin.motion requires core.motion@^1.0.0 and supplies motion, orbits, bodies, surfaces and rails at version 1.0.0. Each singleton can be selected independently. The editable provider selects the existing fixed shared kernel: numerical thrust/contact, analytic two-body coasting, body frames/SOI, surface/water queries and conservative rails wake scheduling. There is no copied physics kernel, per-view step or new numerical model."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "World composition passes selected providers into context creation. Context model identities and supported capabilities govern analytic diagnostics, prediction and safe rails sleep. A replacement without a verified compatible rails binding retains ordinary numerical flight and cannot claim analytic sleep. Missing required core.motion is an error; unsupported provider failures are not optional absence."
+      "text": "This authoritative module connects the core simulation motion engine to standard module slots. It provides context creation for simulation stepping, Keplerian orbit and conic trajectory solvers, celestial body reference frame transformations, surface elevation and water contact detection, and conservative rails sleep scheduling for coasting craft."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides builtin.motion@1.0.0 as the unified authoritative motion provider capability.",
+        "Provides motion@1.0.0 through the MOTION_CONTEXTS service key: creates per-ship simulation contexts.",
+        "Provides orbits@1.0.0 through the ORBITAL_MOTION service key: evaluates orbital elements and Keplerian propagation.",
+        "Provides bodies@1.0.0 through the BODY_FRAMES service key: resolves celestial body frames and SOI boundaries.",
+        "Provides surfaces@1.0.0 through the SURFACE_GEOMETRY service key: queries surface heights, bounds, and normal vectors.",
+        "Provides rails@1.0.0 through the RAILS_POLICY service key: computes wake horizons for inactive ships.",
+        "Fills the motion, orbits, bodies, surfaces, and rails slots in authoritative profiles.",
+        "Requires core.motion@^1.0.0: operates over the authoritative simulation kernel."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "The explicit legacy adapter preserves builtin.motion 0.1.0 v1 manifest, locks, service references and existing saves. The v2 archive is recognized as builtin only through the shipped catalogue exact digest; recognition does not grant execution consent. Fork edited source into a creator namespace and rebuild. New package graph/save identity is explicit; do not silently replace an old save lock. Dynamic celestial state, N-body solver policies and model selection remain separate gates."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization queries context.use(CORE_MOTION) to access authoritative kernel services.",
+        "For each selected slot (motion, orbits, bodies, surfaces, rails), context.provide registers the corresponding service.",
+        "World simulation contexts invoke these services during physics ticks, trajectory predictions, and rails sleep evaluation.",
+        "Services remain stateless singletons bound for the lifetime of the running world session."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Each motion slot can be replaced independently by custom modules providing motion@1.0.0, orbits@1.0.0, bodies@1.0.0, surfaces@1.0.0, or rails@1.0.0. Removing this module requires alternative providers for all motion capabilities required by the authoritative game profile."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: numerical tolerance limits and rails horizon wake heuristics may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/physics-rails demonstrates accessing motion services, creating a simulation context, and evaluating orbital elements. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/physics-rails/module.json /tmp/example-physics-rails.spacemod\nnpm run module:validate -- /tmp/example-physics-rails.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Shared rails motion",
+      "page": "api-reference/module/builtin.motion"
+    },
+    {
+      "type": "link",
+      "text": "game-api: services.ts",
+      "page": "api-reference/game-api/services"
+    },
+    {
+      "type": "link",
+      "text": "game-api: motion.ts",
+      "page": "api-reference/game-api/motion"
     }
   ]
 }

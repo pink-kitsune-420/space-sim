@@ -1,16 +1,99 @@
 {
   "id": "academy-ui",
   "audience": "creators",
-  "title": "Academy adapter",
-  "summary": "Academy adapter",
+  "title": "Academy flight adapter",
+  "summary": "Explicit practice actions and read-only orbital guidance.",
   "blocks": [
     {
       "type": "heading",
-      "text": "Academy adapter"
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The optional learning.academy factory needs explicit windows/shell/read/practice/bindings adapters from a compatible Spacelab flight host. read returns detached committed state and an opaque continuity identity. practice is called only from an explicit button; the host validates local ownership, disables armed maneuvers, cuts thrust and pauses. UI removal disposes its dock entry, panel and runner. The interface has no private app imports, timers, thrust control or simulation stepping. Progress is local by course/version and learner key. Archives require the Spacelab host version containing this adapter."
+      "text": "Provides the Orbital Academy flight window, dock instrument, HUD objective reopen button, SVG orbit comparison diagram and world-space target orbit overlay. The interface is a read-only observer during flight: it polls detached committed flight state through host-supplied callbacks, evaluates lesson steps through the tutorial runner, and never imports private host modules, runs timers, steers the ship or steps the simulation. Practice setups are invoked only when the learner explicitly clicks Load practice setup or Restart practice, where the host validates local ship ownership, cancels armed maneuvers, cuts thrust and pauses."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides learning.academy@1.0.0 through the ACADEMY_PANELS service key: creates mounted AcademyPanel instances.",
+        "Fills the learning.academy slot in platform profiles.",
+        "Requires learning.runner@^1.0.0 through the TUTORIAL_RUNNERS service key: creates the TutorialRunner state machine that checks step conditions, holds and questions. Profile resolution fails if no learning.runner provider is enabled.",
+        "Requires learning.orbital-course@^1.0.0 through the ORBITAL_COURSE service key: supplies the lesson catalogue, practice setups and target orbit ratios. Profile resolution fails if no learning.orbital-course provider is enabled."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization resolves TUTORIAL_RUNNERS and ORBITAL_COURSE, reads assets/academy.css, registers a candidate-owned ACADEMY_PANELS factory and contributes this guide.",
+        "create(options) creates a TutorialRunner scoped to <course.id>/v<course.version>/<learnerKey>, builds the Academy DOM, opens a pinned window (id: 'academy'), appends the HUD button to options.container and registers the Academy dock instrument on options.shell. If dock registration throws, the HUD button, runner and window are cleaned up before rethrowing.",
+        "Starting a lesson checks that an owned ship is selected and analytic two-body orbital elements are active; practice buttons call options.practice(selected.practice) before capturing the initial observation and continuity identity.",
+        "update(seconds) throttles DOM and runner updates to 0.1 s wall-clock intervals while the window is open or a lesson is active, stops guidance if no owned ship is selected, and clears the target preview if the flight identity changes or the runner is interrupted.",
+        "draw(view) transforms the 97-point geometric target ellipse into world-space line segments around view.body.position without per-frame allocation when a target orbit is active and checked.",
+        "dispose() removes the HUD button and disposes the runner, dock entry and window; disposing the provider disposes all active panels."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize the Academy layout, diagram or overlay styling while keeping the same curriculum and runner, provide another learning.academy@1.0.0 implementation in the learning.academy slot. Removing this module from a profile that does not require learning.academy removes the Academy window, dock button and target orbit overlays while leaving flight simulation and the Manual untouched."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: panel adapter callbacks and preview helpers may evolve before final freeze. Progress keys are namespaced as <course.id>/v<course.version>/<learnerKey>."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/academy-ui mounts an Academy panel against minimal window, shell and flight adapters, starts guidance and draws the target orbit overlay. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/academy-ui/module.json /tmp/example-academy-ui.spacemod\nnpm run module:validate -- /tmp/example-academy-ui.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Orbital Academy interface",
+      "page": "api-reference/module/spacelab.academy-ui"
+    },
+    {
+      "type": "link",
+      "text": "game-api: tutorials.ts",
+      "page": "api-reference/game-api/tutorials"
     }
   ]
 }

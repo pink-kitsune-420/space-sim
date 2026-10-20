@@ -1,3 +1,4 @@
+/** Host-only (`packages/game-runtime`): the v2 registry, candidate and runtime. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules see the candidate only as their `ModuleInitializationV2` context. */
 import { captureVehicleDefinition, captureVehicleAppearance, type VehicleDefinition, type VehicleAppearance, type RenderMaterial, type RenderPostEffect } from '../../game-api/src/index';
 import type { ModuleDataExtension } from '../../game-api/src/index';
 import { captureDataAdapter } from './module-data';
@@ -51,6 +52,7 @@ export class ModuleRegistryV2 {
   get contentDigests(): Readonly<Record<string, string>> {
     return Object.fromEntries([...this.modules].filter(([, m]) => m.contentDigest !== undefined).map(([id, m]) => [id, m.contentDigest!]));
   }
+  /** Validates and stores one v2 module and its declared assets without running code. Throws `Duplicate or reserved module <id>` (including `builtin.engine`), `Module <id>: initializer must be a function` or `Module <id>: invalid content digest`. */
   register(module: RegisteredModuleV2, assets: ModuleAssets = moduleAssets()): void {
     const manifest = validateManifestV2(module.manifest);
     if (manifest.id === 'builtin.engine' || this.modules.has(manifest.id)) throw new Error(`Duplicate or reserved module ${manifest.id}`);
@@ -59,12 +61,14 @@ export class ModuleRegistryV2 {
     this.modules.set(manifest.id, { manifest, initialize: module.initialize, contentDigest: module.contentDigest, supportsMultiplayer: module.supportsMultiplayer });
     this.assets.set(manifest.id, assets);
   }
+  /** Metadata-only resolution through `resolveModulesV2` against this registry's host services; writes optional `graph.resolved`/`graph.rejected` diagnostics. */
   resolve(profile: unknown, environment: ModuleEnvironment, slots: readonly string[] = []): ModuleLockV2 {
     const log=diagnosticLogger(this.logs,{id:'builtin.engine',version:'1.0.0'});
     try{const lock=resolveModulesV2(this.manifests, profile, environment, slots, this.host);diagnostic(log,'debug','graph.resolved',`Resolved ${lock.modules.length} modules for ${environment}`);return lock;}
     catch(error){diagnostic(log,'error','graph.rejected',error instanceof Error?error.message:'Module resolution failed');throw error;}
     finally{try{log?.dispose();}catch{/* Optional diagnostics. */}}
   }
+  /** Resolves the profile, then initializes each active module once in lock order; unselected slot alternatives and data modules are skipped. Each receives a frozen `ModuleInitializationV2` whose methods work only during its synchronous `initialize` (afterwards `Module candidate is sealed or disposed`) and enforce tiers (`Module <id>: <hook> is unavailable to <tier> modules`). `use(key)` needs a resolved binding at the exact key version (`Module <id>: undeclared or incompatible service <slot>@<version>`); `tryUse(key)` returns `undefined` only when a declared optional need has no binding. A throw or returned Promise rejects the whole candidate as `Module <id> initialization: <message>` and disposes everything it owned. Sealing then requires each selected slot's service (`Module <id> did not provide service <slot>`), known window actions, one material per body and an acyclic post-effect order. The candidate is a `soloPreview` when it initializes a non-builtin authoritative module without multiplayer support. */
   prepare(profile: ModuleProfileV2, environment: ModuleEnvironment, slots: readonly string[] = []): ModuleCandidateV2 {
     const lock = this.resolve(profile, environment, slots);
     const soloPreview = lock.order.some(id => {
@@ -186,6 +190,7 @@ interface Contributions {
   data: ModuleDataExtension; input: InputSource; transport: TransportProvider; discovery: DiscoveryProvider; window: WindowDefinition;
   guide: GuidePage; material: MaterialDefinition; post: PostEffectDefinition;
 }
+/** One prepared v2 selection: lock, services, contributions, actions, guide documents and effect sources, plus the v1 hook store (`core`) and device hook isolation (`hooks`). Per-module limits: 16 input sources, transports, discovery providers or windows; 16 data adapters, vehicles or vehicle appearances (128 of each in total); 256 guides; 128 actions; 8 materials and 4 post effects in total; plus the v1 command and presentation limits. Exceeding one throws `Too many <kind> contributions`; a reused ID throws `Duplicate contribution <id>`. Host-only (`packages/game-runtime`). */
 export class ModuleCandidateV2 implements Disposable {
   /** Reuses validated deterministic/presentation hook capture; its private v1-shaped lock
    * is never serialized or used to derive an authoritative identity. */
@@ -285,6 +290,7 @@ export class ModuleCandidateV2 implements Disposable {
     diagnostic(this.log,'info','candidate.disposed','Candidate disposed');try{this.log?.dispose();}catch{/* Optional diagnostics. */}
   }
 }
+/** Holds the active v2 candidate for one environment. `activate` accepts only a live candidate prepared by the same registry for this environment (`Cannot activate an unprepared, foreign or disposed candidate`), publishes it, then disposes the previous one; a failed preparation leaves the active candidate untouched. Host-only (`packages/game-runtime`). */
 export class ModuleRuntimeV2 implements Disposable {
   active: ModuleCandidateV2 | undefined;
   constructor(readonly registry: ModuleRegistryV2, readonly environment: ModuleEnvironment) {}

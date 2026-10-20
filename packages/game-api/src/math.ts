@@ -64,6 +64,7 @@ function reduce(x: number): { readonly n: number; readonly r: number } {
   return { n, r: ((x - n * PIO2_1) - n * PIO2_2) - n * PIO2_3 };
 }
 
+/** Deterministic sine of `x` in radians using Cody-Waite range reduction and IEEE 754 polynomial evaluation. */
 export function sin(x: number): number {
   if (Math.abs(x) <= QUARTER_PI) return sinKernel(x);
   const { n, r } = reduce(x);
@@ -75,6 +76,7 @@ export function sin(x: number): number {
   }
 }
 
+/** Deterministic cosine of `x` in radians using Cody-Waite range reduction and IEEE 754 polynomial evaluation. */
 export function cos(x: number): number {
   if (Math.abs(x) <= QUARTER_PI) return cosKernel(x);
   const { n, r } = reduce(x);
@@ -154,6 +156,7 @@ export function expm1(x: number): number {
   return exp(x) - 1;
 }
 
+/** Deterministic base-e exponential `e^x` using split-ln(2) range reduction and exact power-of-two scaling. */
 export function exp(x: number): number {
   if (Number.isNaN(x)) return NaN;
   if (x > 709.8) return Infinity;

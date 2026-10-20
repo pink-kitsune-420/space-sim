@@ -1,6 +1,8 @@
+/** Host-only (`packages/game-runtime`): world rule capture and staging. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeWorldRule`. */
 import type { DeterministicMath, Ship, WorldEvent, WorldRuleExtension, WorldRuleState } from '../../game-api/src/index';
 import { motionCopy, validateModuleState } from './motion';
 
+/** Validates the world-rule schedule at world construction: at most 256 modules, one rule each, a non-empty `modelIdentity`, an `evaluate` function, an RNG seed from 1 to 4,294,967,295 and a valid initial `ModuleState`. Host-only (`packages/game-runtime`). */
 export function captureWorldRules(rules: readonly WorldRuleExtension[]): readonly WorldRuleExtension[] {
   if (rules.length > 256) throw new Error('Rule schedule exceeds 256 modules');
   const ids = new Set<string>();
@@ -13,10 +15,13 @@ export function captureWorldRules(rules: readonly WorldRuleExtension[]): readonl
       initialState: validateModuleState(hook.initialState), seed: hook.seed, evaluate: hook.evaluate }) });
   }));
 }
+/** Initial rule state and xorshift32 RNG state of a new world, keyed by module ID. Host-only (`packages/game-runtime`). */
 export function initialRuleState(rules: readonly WorldRuleExtension[]): Readonly<Record<string, WorldRuleState>> {
   return motionCopy(Object.fromEntries(rules.map(r => [r.moduleId, { state: r.hook.initialState, randomState: r.hook.seed }])));
 }
-/** Entire proposal is detached and validated before publishing ships, state or RNG. */
+/** Entire proposal is detached and validated before publishing ships, state or RNG. Each rule may draw its RNG
+ * at most 4,096 times per evaluation. Errors read `Module <id> worldRule.evaluate tick <n>: <message>`; the
+ * world then pauses with a `world-fault` event. Host-only (`packages/game-runtime`). */
 export function stageWorldRules(rules: readonly WorldRuleExtension[], prior: Readonly<Record<string, WorldRuleState>>,
   ships: readonly Ship[], events: readonly WorldEvent[], tick: number, time: number, seconds: number, math: DeterministicMath) {
   const inputShips = motionCopy(ships), inputEvents = motionCopy(events);

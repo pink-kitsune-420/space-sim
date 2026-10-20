@@ -2,11 +2,100 @@
   "id": "usage",
   "audience": "creators",
   "title": "Portable trainer",
-  "summary": "Portable trainer",
+  "summary": "Per-craft handling over shared physics, with explicit save/session identity.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Contribute namespaced vehicle definitions with contributeVehicle. World creation receives a space-sim-vehicles/1 catalog built from enabled authoritative contributions. The trainer inherits the selected system vehicleDefaults; fixed-handling craft can coexist. contextFor(ship) selects the craft handling for simulation, prediction and observations. Exact packages are required for version 4 saves and vehicle-aware sessions; legacy craft map to spacelab.trainer/orbit-trainer without altering their state."
+      "text": "This authoritative module contributes the Orbit Trainer vehicle definition and accompanying flight guides. It registers spacelab.trainer/orbit-trainer into the world's vehicle catalog, inheriting system vehicle defaults for mass, thrust acceleration, and turn rate without modifying simulation mechanics."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides no module capabilities directly; contributes the Orbit Trainer vehicle definition via contributeVehicle.",
+        "Declares no module slots.",
+        "Requires core.motion@^1.0.0: operates within simulation motion contexts."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization calls context.contributeVehicle(trainer) to register the Orbit Trainer vehicle definition.",
+        "Registers player and creator usage guides with the manual.",
+        "World creation incorporates the registered vehicle definition into the authoritative vehicle catalog.",
+        "The vehicle definition remains active for the duration of the simulation session."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To add or customize vehicle handling, contribute alternative vehicle definitions using context.contributeVehicle. Removing this module omits the default orbit trainer craft; another module must provide at least one valid vehicle definition."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: vehicle definition fields and catalog registry contracts may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/vehicle-trainer demonstrates registering a vehicle definition and querying the vehicle catalog. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/vehicle-trainer/module.json /tmp/example-vehicle-trainer.spacemod\nnpm run module:validate -- /tmp/example-vehicle-trainer.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Orbit trainer",
+      "page": "api-reference/module/spacelab.trainer"
+    },
+    {
+      "type": "link",
+      "text": "game-api: vehicles.ts",
+      "page": "api-reference/game-api/vehicles"
+    },
+    {
+      "type": "link",
+      "text": "game-api: engine.ts",
+      "page": "api-reference/game-api/engine"
     }
   ]
 }

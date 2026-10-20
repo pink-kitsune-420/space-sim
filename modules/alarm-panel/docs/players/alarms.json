@@ -2,7 +2,7 @@
   "id": "alarms",
   "audience": "players",
   "title": "Alarms in the dock",
-  "summary": "Alarms in the dock",
+  "summary": "View pending and delivered burn reminders.",
   "blocks": [
     {
       "type": "paragraph",

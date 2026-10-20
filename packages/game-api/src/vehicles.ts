@@ -24,13 +24,22 @@ export interface VehicleCatalog {
  * a triangle fan and a closed outline. The flame tip extends with normalized throttle.
  * This optional presentation data never changes authority or physical geometry. */
 export interface VehicleAppearance {
+  /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */
   readonly vehicleId: string;
+  /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */
   readonly hull: readonly Vec[];
+  /** Optional thruster exhaust flame dimensions for active acceleration visuals. */
   readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };
 }
-export interface VehicleArtwork { get(vehicleId?: string): VehicleAppearance | undefined }
+
+/** Lookup table resolving optional vector appearance artwork by namespaced vehicle ID. */
+export interface VehicleArtwork {
+  /** Retrieve artwork for a vehicle ID, or undefined to fall back to generic VEHICLE_MARKER. */
+  get(vehicleId?: string): VehicleAppearance | undefined;
+}
 
 const VEHICLE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+\/[a-z][a-z0-9-]{0,31}$/;
+/** Validate and return a namespaced vehicle identifier (`<module-id>/<local-name>`, max 160 chars). Throws if malformed. */
 export function vehicleId(value: unknown): string {
   if (typeof value !== 'string' || value.length > 160 || !VEHICLE_ID.test(value)) throw new Error('Vehicle requires a namespaced ID');
   return value;
@@ -44,6 +53,7 @@ function bounded(value: unknown, min: number, max: number): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) throw new Error('Invalid vehicle numeric value');
   return value;
 }
+/** Validate, bound SI handling parameters (`acceleration` in `m/s²`, `turnRate` in `rad/s`, `initialThrottle` in `[0, 1]`), and freeze a `VehicleDefinition`. */
 export function captureVehicleDefinition(value: unknown): VehicleDefinition {
   const raw = object(value, ['id', 'name', 'handling']);
   const id = vehicleId(raw.id);
@@ -55,6 +65,7 @@ export function captureVehicleDefinition(value: unknown): VehicleDefinition {
   }
   return Object.freeze({ id, name: raw.name, ...(handling ? { handling } : {}) });
 }
+/** Validate, sort by ID, and freeze a `space-sim-vehicles/1` catalog (1–128 unique vehicle definitions). Throws on duplicate or missing `defaultId`. */
 export function captureVehicleCatalog(value: unknown): VehicleCatalog {
   const raw = object(value, ['format', 'defaultId', 'definitions']);
   if (raw.format !== 'space-sim-vehicles/1' || !Array.isArray(raw.definitions) || !raw.definitions.length || raw.definitions.length > 128) throw new Error('Invalid vehicle catalog');
@@ -63,6 +74,7 @@ export function captureVehicleCatalog(value: unknown): VehicleCatalog {
   if (ids.size !== definitions.length || !ids.has(vehicleId(raw.defaultId))) throw new Error('Duplicate or missing default vehicle');
   return Object.freeze({ format: 'space-sim-vehicles/1', defaultId: raw.defaultId as string, definitions: Object.freeze(definitions) });
 }
+/** Validate, bound and freeze a vehicle appearance definition. Throws on invalid fields, non-namespaced ID, or out-of-bounds geometry. */
 export function captureVehicleAppearance(value: unknown): VehicleAppearance {
   const raw = object(value, ['vehicleId', 'hull', 'flame']);
   const id = vehicleId(raw.vehicleId);

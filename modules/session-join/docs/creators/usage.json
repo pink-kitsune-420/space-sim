@@ -2,23 +2,97 @@
   "id": "usage",
   "audience": "creators",
   "title": "Install on join",
-  "summary": "Explicit exact-offer consent and bounded prejoin game-pack transfers.",
+  "summary": "Bounded, versioned negotiation before session construction and exact package approval.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides session.join-pack@1.0.0 in browser, offline and Node. The separate spacelab-prejoin/1 route negotiates before the selected authenticated session constructs a mirror. Explicit legacy flight info messages pass unchanged to space-sim-net/5. Other session/state schemas must declare compatibility explicitly."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The host adapter exports only its enabled distributable game and exact authority. Offers identify protocol, model, entity schema, lock/fingerprint, package inventory, code/data, source, licenses and total bytes. Client build policy can reject code before download. Approval is separate from cached bytes and scoped to the source/session and exact offer; changed data requires review too."
+      "text": "This module coordinates pre-join game pack distribution between multiplayer hosts and connecting clients before the flight session starts. It transmits structured package offers listing required modules, licenses, and digests. When the client requires missing assets, it transfers chunked archive data, validates SHA-256 digests, requests user approval via review hooks, and stages modules in isolation without affecting global configuration."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides session.join-pack@1.0.0 through the JOIN_PACKS key: a JoinPackFactory instance.",
+        "Requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Only one game pack is transferred at a time. Stop-and-wait text chunks carry at most 48 KiB decoded data, with 96 KiB prejoin message and 32 MiB pack limits. Sequence, size and whole-pack SHA-256 are verified before staging. Human review expires after ten minutes and transfer after two minutes. Existing gameplay command limits remain unchanged."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides the JoinPackFactory and registers it for owned disposal.",
+        "client(peer, port, signal) reads the initial wire message; legacy servers sending 'info' pass through immediately, while prejoin servers negotiate offers.",
+        "The client validates code permissions against port.allowRuntimeCode, checks local caches, and prompts the user via port.review.",
+        "port.stage prepares the verified modules in a temporary staging container (JoinStage).",
+        "Upon successful authentication, calling stage.activate() publishes the newly acquired modules into active runtime use.",
+        "host(peer, source, accept, signal) serves package offers and chunks, completing with accept(peer) once the client signals readiness.",
+        "Provider disposal aborts all pending negotiations with an error."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Public host ports must independently inspect every package/code flag and prepare/recompute exact authoritative identity before evaluation or publication. The host rechecks its offered configuration before verified installation. Cancellation, tamper, changed offers or failed preparation discard the candidate and retain the current game. The authenticated session still checks passwords and ownership. Provider disposal owns pending negotiations; the accepting session owns links after handoff."
+      "text": "Removing this module disables automatic server package downloads when joining custom multiplayer worlds. Connecting to vanilla servers without custom packs remains operational. To replace it, author a network-tier module providing session.join-pack@1.0.0 implementing JoinPackFactory."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Negotiation follows protocol spacelab-prejoin/1 and offer format spacelab-join-offer/1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/session-join demonstrates executing client-side prejoin negotiation with mock package verification. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/session-join/module.json /tmp/session-join-example.spacemod\nnpm run module:validate -- /tmp/session-join-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api join-pack.ts: JoinPackFactory and JoinOffer contracts",
+      "page": "api-reference/game-api/join-pack"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Install on join",
+      "page": "api-reference/module/spacelab.session-join"
     }
   ]
 }

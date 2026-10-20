@@ -38,6 +38,11 @@ export function createServerUniverseStorage(io:UniverseDisk):ServerUniverseStora
     });stores.add(store);return store;
   },dispose(){if(disposed)return;disposed=true;for(const store of stores)store.dispose();stores.clear();}});
 }
+/**
+ * Contributes serialized atomic universe persistence and backup storage for Node environments.
+ * Provides universe.server-storage@1.0.0 in slot universe.server-storage.
+ * Requires core.universe-disk@^1.0.0.
+ */
 export default function initialize(context:ModuleInitializationV2):void{
   context.provide(SERVER_UNIVERSE_STORAGE,context.own(createServerUniverseStorage(context.use(CORE_UNIVERSE_DISK))));
   context.contributeGuide({id:'usage',audience:'creators',title:'Server universe storage',summary:'Serialized atomic saves, backups and validated recovery over borrowed native disk IO.',asset:'docs/creators/usage.json'});

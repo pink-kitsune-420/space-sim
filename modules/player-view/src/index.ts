@@ -104,6 +104,10 @@ export function createPlayerViews(): PlayerViewFactory {
     },
   };
 }
+/**
+ * Contributes player view composition adapters coordinating input, camera, HUD, and appearance.
+ * Provides ui.player-view@1.0.0 in the ui.player-view slot.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Customizable player views', summary: 'Independent input, camera, HUD and appearance adapters with shared identity and cleanup.', asset: 'docs/creators/usage.json' });
   context.provide(PLAYER_VIEWS, context.own(createPlayerViews()));

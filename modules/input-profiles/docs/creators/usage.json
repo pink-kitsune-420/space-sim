@@ -5,24 +5,93 @@
   "summary": "Editable flight mappings and legacy controller preference migration.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides input.flight-profiles@1.0.0 without loading any gamepad device code. No required services. Browser and offline environments; platform authority only."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Owns the original standard button/axis defaults, validated per-player profiles and migration from space-sim:gamepad:v1. Device sampling remains a separate optional package. Local preferences do not change authoritative simulation identity."
+      "text": "This module provides the input.flight-profiles service through the FLIGHT_PROFILES key. It owns standard controller mappings for flight actions across standard controller layouts (turn, throttle, and zoom axes, plus button bindings for flight and view actions). It validates, sanitizes, and normalizes per-player controller profiles, ensuring axis indices and button bindings stay within valid bounds, and provides migration from legacy storage key space-sim:gamepad:v1. It does not interact with hardware devices, attach event listeners, or step physics worlds."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides input.flight-profiles@1.0.0 through the FLIGHT_PROFILES key: default controller profile, profile normalizer, and legacy migration codec.",
+        "The module itself requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "defaultDeadzone (default 0.15, from 0 to 0.5, step 0.01): radial stick deadzone fraction used when an imported or stored profile omits an explicit deadzone setting."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization reads context.settings.defaultDeadzone, constructs the profile codec, and registers the FLIGHT_PROFILES service object. The module holds no running tasks.",
+        "normalize validates and clamps deadzones into [0, 0.5], keeps at most 4 valid button indices (0–31) per action, drops unrecognized actions, and resolves former default binding collisions.",
+        "legacy inspects localStorage key space-sim:gamepad:v1 to migrate older version 1 player controller settings into a normalized profile.",
+        "Disposal requires no resource cleanup because the codec owns no event listeners, DOM elements or hardware timers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "The codec owns no listeners or devices. Consumers retain their independent profile state; disabling this provider is rejected while a required consumer remains selected. Replace with a compatible codec through prepare/activate/dispose."
+      "text": "Space Sim and Flight starter list input.flight-profiles as a required slot. To replace it, build a platform-tier module providing input.flight-profiles@1.0.0 with custom profile defaults or migration rules, and select it in the game profile with \"providers\": { \"input.flight-profiles\": \"your.module-id\" }."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: profile structures and codec interfaces may evolve before API freeze. Stored controller preferences migrate from key space-sim:gamepad:v1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/input-profiles is a consumer module that uses input.flight-profiles@1.0.0 to validate and sanitize imported controller profile JSON. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "npm run module:build -- modules/input-profiles/module.json /tmp/input-profiles.spacemod"
+      "text": "npm run module:build -- examples/modules/input-profiles/module.json /tmp/input-profiles-example.spacemod\nnpm run module:validate -- /tmp/input-profiles-example.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Unpack, edit source, rebuild/repack and import into a compatible game. Downloaded code requires explicit consent and has full application privileges. Building a package does not establish runtime acceptance."
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Flight controller profiles",
+      "page": "api-reference/module/spacelab.input-profiles"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-input.ts: flight controller profile and preference types",
+      "page": "api-reference/game-api/flight-input"
     }
   ]
 }

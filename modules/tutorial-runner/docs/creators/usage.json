@@ -2,15 +2,97 @@
   "id": "runner",
   "audience": "creators",
   "title": "Reusable tutorial runner",
-  "summary": "Reusable tutorial runner",
+  "summary": "Read-only objectives, versioned local progress and explicit knowledge checks.",
   "blocks": [
     {
       "type": "heading",
-      "text": "Reusable tutorial runner"
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The runner consumes scalar observations and never writes a world. Each step has either checked conditions or a knowledge question. Holds use consecutive simulation time, invalid flight identity or rewinds interrupt attempts, and progress keys include lesson versions. Provide a game/course/version/learner-specific storage key; storage failure falls back to memory."
+      "text": "Provides a bounded, read-only tutorial state machine that evaluates scalar flight observations and multiple-choice knowledge checks without touching simulation state, DOM elements, timers or session storage directly. Each lesson step requires either simulation-checked conditions or an explicit knowledge question. Timed holds accrue only across consecutive unpaused simulation seconds, and any change in flight continuity identity or simulation time rewind interrupts the active attempt."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides learning.runner@1.0.0 through the TUTORIAL_RUNNERS service key: creates independent TutorialRunner instances.",
+        "Fills the learning.runner slot in presentation and platform profiles.",
+        "Requires nothing. Consumers such as spacelab.academy-ui declare learning.runner@^1.0.0; if no provider fills learning.runner, dependent modules fail profile resolution."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers TUTORIAL_RUNNERS and contributes this guide.",
+        "create({ storage, storageKey }) loads up to 256 completed lesson strings (each at most 160 characters) from storageKey; unavailable or corrupt storage falls back silently to an in-memory Set.",
+        "start(lesson, observation) validates that lesson has 1 to 64 steps, each step has either 1 to 32 conditions or a valid question (never both), holdSeconds is finite and non-negative, and allowPaused steps have holdSeconds === 0; it then records observation.values as the baseline and observation.identity as the continuity token.",
+        "update(observation) interrupts the attempt if observation.identity changed, observation.time is non-finite or observation.time decreased; otherwise it checks every condition against current and baseline values and advances once held for holdSeconds consecutive unpaused simulation seconds (or immediately when allowPaused is true).",
+        "answer(choice) checks the 0-based choice index against the current step's question, sets explanation feedback and advances on a correct answer; when the final step completes, <lesson.id>@<lesson.version> is added to completed and persisted.",
+        "stop() clears the active lesson and hold state; dispose() stops the runner and causes subsequent start() calls to throw."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Provide another learning.runner@1.0.0 implementation in the learning.runner slot to customize condition evaluation or progress persistence. Removing this module is supported when no enabled module requires learning.runner; if spacelab.academy-ui is enabled, removing learning.runner prevents profile resolution."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: condition operators and runner diagnostics may be refined before final freeze. Completion entries use the versioned <lesson.id>@<lesson.version> format."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/tutorial-runner creates a runner, evaluates a timed scalar hold objective and answers a knowledge check through learning.runner. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/tutorial-runner/module.json /tmp/example-tutorial-runner.spacemod\nnpm run module:validate -- /tmp/example-tutorial-runner.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Tutorial runner",
+      "page": "api-reference/module/spacelab.tutorial-runner"
+    },
+    {
+      "type": "link",
+      "text": "game-api: tutorials.ts",
+      "page": "api-reference/game-api/tutorials"
     }
   ]
 }

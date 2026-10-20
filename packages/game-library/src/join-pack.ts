@@ -1,3 +1,4 @@
+/** Host-only server pack codec (`packages/game-library`) behind joining a multiplayer game. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); session modules use `JOIN_PACKS` (`session.join-pack@1.0.0`) and `JOIN_REVIEW` from `@space-sim/game-api`. */
 import type { JoinOffer, JoinPackageRequirement, ManifestV2, ModuleEnvironment, WorldRead, UniverseDefinition } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex, sha256Bytes } from '../../game-runtime/src/authoritative';
 import { moduleAssets } from '../../game-runtime/src/modules-v2';
@@ -67,6 +68,7 @@ export async function requiredJoinGame(game: GamePackage): Promise<GamePackage> 
   }
   return { ...game, bundle: { ...bundle, modules, ...(bundle.code ? { code: bundle.code.filter(ref => selected.has(ref.id)) } : {}) }, plugins, ...(runtime ? { runtime } : {}) };
 }
+/** Sorted inventory offered to joining players: exact ID, version, digest, size, licence, code and source flags and tier of each embedded package. Runtime packages must declare multiplayer compatibility (`<id> does not declare multiplayer compatibility`). Host-only (`packages/game-library`). */
 export async function joinInventory(game: GamePackage, archives: ReadonlyMap<string, Uint8Array>): Promise<readonly JoinPackageRequirement[]> {
   const entries: JoinPackageRequirement[] = [];
   for (const module of [...game.bundle.modules, ...game.plugins]) {
@@ -90,6 +92,7 @@ export async function joinInventory(game: GamePackage, archives: ReadonlyMap<str
   if (new Set(entries.map(item => item.id)).size !== entries.length) throw new Error('Duplicate join-pack module');
   return entries.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
+/** Verified server pack contents: game, physical universe, system ID and package inventory. Host-only (`packages/game-library`). */
 export interface InspectedJoinPack { readonly game: GamePackage; readonly universe: UniverseDefinition; readonly systemId: string; readonly inventory: readonly JoinPackageRequirement[] }
 const json = (value: unknown) => new TextEncoder().encode(JSON.stringify(value));
 /** Ephemeral server wire container: ordinary editable game plus physical content, never progress. */

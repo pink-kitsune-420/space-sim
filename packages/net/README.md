@@ -2,6 +2,8 @@
 
 This package connects the existing Space Sim application to module-owned sessions, transports and discovery. Transport interfaces and session contracts live in [packages/game-api](../game-api/src/index.ts).
 
+> **Host-only package (`packages/net`):** Modules cannot import this package directly (`packages/module-tools/check-boundaries.mjs`); net has no bridge in `packages/modules/src/`. Module code uses the public transport, discovery, and session contracts in `@space-sim/game-api`: `TextConnection`, `TransportProvider`, `DiscoveryProvider`, `WEBSOCKET_TRANSPORT` (`net.websocket@1.0.0`, `DEFAULT_MAX_TEXT_LENGTH` = 64 MiB), `TAB_TRANSPORT`, `WEBRTC_SIGNALING`, `NODE_WEBSOCKET_TRANSPORT`, `LAN_DISCOVERY` (`net.lan-discovery@1.0.0`), `FLIGHT_SESSIONS` (`session.flight@1.0.0`), `FlightSessionServices`, `JOIN_PACKS`, and `CORE_WORLD`/`CORE_SAVE`/`CORE_CLOCK`/`CORE_MOTION`/`CORE_COMMANDS`.
+
 - [modules/session-flight](../../modules/session-flight/) owns the flight protocol (`space-sim-net/5`), authoritative host, predicted client, input replay and correction. Its portable implementation uses injected engine services. The local `src/host.ts` and `src/client.ts` adapt those services for the existing flight application.
 - [modules/net-websocket](../../modules/net-websocket/) owns the WebSocket client and address handling. The dedicated server's first-party listener is in [apps/server/src/websocket.ts](../../apps/server/src/websocket.ts).
 - [modules/net-tab](../../modules/net-tab/) owns same-browser transport and hosting discovery. `src/broadcast.ts` exposes its explicit flight compatibility adapter.

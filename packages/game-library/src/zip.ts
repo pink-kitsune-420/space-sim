@@ -1,24 +1,32 @@
+/** Host-only bounded ZIP reader and reproducible writer (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`). */
 import { artifactPath } from '../../game-runtime/src/artifact';
 import { MAX_ARCHIVE_BYTES, MAX_EXPANDED_BYTES } from './compression';
 
+/** Package entries by path. Host-only (`packages/game-library`). */
 export type PackageFiles = ReadonlyMap<string, Uint8Array<ArrayBuffer>>;
 /** Shared by an outer game and its embedded modules. Counts actual expanded bytes, not claims. */
 export interface ArchiveBudget { bytes: number; files: number }
+/** ZIP options: abort signal, shared expanded-byte budget and file-count limit (default `MAX_PACKAGE_FILES`). Host-only (`packages/game-library`). */
 export interface ZipOptions { readonly signal?: AbortSignal; readonly budget?: ArchiveBudget; readonly maxFiles?: number }
 const encoder = new TextEncoder(), decoder = new TextDecoder('utf-8', { fatal: true });
+/** Most entries in one package archive (`1024`; `ZIP file count limit exceeded`). Host-only (`packages/game-library`). */
 export const MAX_PACKAGE_FILES = 1024;
+/** Most entries across a game and all its embedded packages (`263168`; `Aggregate ZIP file count exceeded`). Host-only (`packages/game-library`). */
 export const MAX_GAME_FILES = 256 * MAX_PACKAGE_FILES + 1024;
 const crcTable = Uint32Array.from({ length: 256 }, (_, i) => {
   let c = i;
   for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
   return c >>> 0;
 });
+/** Standard ZIP CRC-32 of `bytes`. Host-only (`packages/game-library`). */
 export function crc32(bytes: Uint8Array): number {
   let c = 0xffffffff;
   for (const b of bytes) c = crcTable[(c ^ b) & 255]! ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
+/** Whether `bytes` start with the ZIP `PK` signature. Host-only (`packages/game-library`). */
 export const isZip = (bytes: Uint8Array): boolean => bytes[0] === 0x50 && bytes[1] === 0x4b;
+/** Largest expanded size of one entry: 1 MiB for descriptors, locks, `integrity.json` and JSON under `docs/`, `assets/`, `data/` or `state/`; 4 MiB for `dist/module.js` and `legacy/` files; 32 MiB for embedded `.spacemod` or `.spacedata` packages and a join pack's `game.spacegame`; 8 MiB for other entries. Host-only (`packages/game-library`). */
 export function fileLimit(path: string): number {
   if (path === 'game.spacegame') return MAX_ARCHIVE_BYTES; // bounded prejoin wire container member
   return path === 'module.json' || path === 'data.json' || path === 'save.json' || path === 'game.json' || path === 'game.lock.json' || path === 'integrity.json'

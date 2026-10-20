@@ -17,6 +17,10 @@ export function createSmartCameras(): SmartCameraFactory & { dispose(): void } {
     dispose() { if (disposed) return; disposed = true; for (const camera of cameras) camera.dispose(); },
   });
 }
+/**
+ * Contributes smart camera target searching, guided arrival, and focus tracking.
+ * Provides view.smart-camera@1.0.0 in the view.smart-camera slot.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.provide(SMART_CAMERAS, context.own(createSmartCameras()));
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Smart camera add-on', summary: 'Optional target search, guided arrival and focus tracking for compatible cameras.', asset: 'docs/creators/usage.json' });

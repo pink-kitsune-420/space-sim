@@ -18,6 +18,14 @@ export function createManeuverPlanners(services: ManeuverEditorServices, css = '
   if (errors.length) throw new AggregateError(errors, 'Maneuver planner provider cleanup failed');
  } });
 }
+/**
+ * Contributes independent maneuver planner editors and candidate node controllers.
+ * Provides view.maneuver-planner@1.0.0 in slot view.maneuver-planner.
+ * Requires core.motion@^1.0.0, core.clock@^1.0.0, ui.windows@^1.0.0, view.prediction@^1.0.0,
+ * flight.maneuver-burn@^1.0.0, view.maneuver-display@^1.0.0; optionally consumes flight.plans@^1.0.0,
+ * flight.transfers@^1.0.0, flight.alarms@^1.0.0.
+ * Settings: previewMaxMs, uiRefreshMs, alignmentWarp.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
  context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Independent maneuver editors', summary: 'Read-only candidate previews and validated host commands over shared floating windows.', asset: 'docs/creators/usage.json' });
  const services = { alarms: context.tryUse(ORBITAL_ALARMS), transfers: context.tryUse(TRANSFERS), plans: context.tryUse(FLIGHT_PLANS), windows: context.use(WINDOWS), predictions: context.use(PREDICTIONS), burns: context.use(MANEUVER_BURNS), clock: context.use(CORE_CLOCK), motion: context.use(CORE_MOTION) };

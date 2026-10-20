@@ -2,11 +2,101 @@
   "id": "usage",
   "audience": "creators",
   "title": "Alarms dock instrument",
-  "summary": "Alarms dock instrument",
+  "summary": "Optional read-only window over independent orbital clocks.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "view.alarms@1.0.0 is a separate optional UI module requiring flight.alarm-catalogue@1. It optionally connects ui.windows@1; otherwise the host must supply an explicit WindowSystem-compatible chrome adapter. This preserves existing host stacking during the current platform phase. Hosts supply the current session identity and may supply a shell to register its Alarms dock button. The panel reads the same clocks used by maneuver reminders and never schedules, arms, ignites or changes warp. No planner, predictor, renderer, camera or audio module is required. Removing the panel releases the window and dock lease; pure clocks continue independently."
+      "text": "This module contributes a dock instrument button and floating inspection window for viewing pending and delivered orbital alarms. It reads active simulation-time events from the flight alarm catalogue, formats relative countdowns and event descriptions, and presents polite live-region updates without scheduling, modifying, or executing flight commands."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.alarms@1.0.0 through the ALARM_PANELS service key: creates AlarmPanel UI controller instances.",
+        "Fills the view.alarms slot in platform profiles.",
+        "Requires flight.alarm-catalogue@^1.0.0: queries active reminders and delivered status.",
+        "Requires ui.windows@^1.0.0 (optional): creates floating chrome windows in supported window managers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization resolves the alarm catalogue and optional window manager, registering ALARM_PANELS.",
+        "create(options) mounts an Alarms window, adds the clock instrument to the dock shell, and binds change listeners.",
+        "update() queries the catalogue at a throttled rate (minimum 200 ms between UI passes) to update countdowns and status text.",
+        "dispose unregisters the dock instrument and closes the window chrome."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize alarm listing presentation or integrate with an alternative windowing framework, contribute an alternative provider for view.alarms@1.0.0 to the view.alarms slot. Removing this module removes the dock button and panel while underlying alarm clocks continue operating."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: DOM container structures and throttle interval timings may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/alarm-panel demonstrates instantiating an alarm panel controller with a mock container and verifying rendered countdowns. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/alarm-panel/module.json /tmp/example-alarm-panel.spacemod\nnpm run module:validate -- /tmp/example-alarm-panel.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Alarms dock instrument",
+      "page": "api-reference/module/spacelab.alarm-panel"
+    },
+    {
+      "type": "link",
+      "text": "game-api: alarms.ts",
+      "page": "api-reference/game-api/alarms"
+    },
+    {
+      "type": "link",
+      "text": "Simulation-time orbital alarms: how to use, replace and remove it",
+      "page": "spacelab.orbital-alarms/usage"
     }
   ]
 }

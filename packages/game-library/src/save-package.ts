@@ -1,3 +1,4 @@
+/** Host-only `.spaceuniverse` saved-progress codec (`packages/game-library`). Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `CORE_UNIVERSE_FORMAT` (`UniverseSaveFormat.encode` and `decode`) and `CORE_SAVE`. */
 import { savedProgressConfiguration } from './progress-configuration';
 import type { WorldSave } from '../../sim-core/src/save';
 import { keys, object } from '../../game-runtime/src/validation';
@@ -5,6 +6,7 @@ import { createIntegrity, jsonBytes, parsePackageJson, requiredFile, verifyInteg
 import { isCompressed, MAX_EXPANDED_BYTES, readJsonFile } from './compression';
 import { isZip, readZip, writeZip, type PackageFiles, type ZipOptions } from './zip';
 
+/** `save.json` format of a universe save; `spacelab-universe-save/2` adds module-data record chunks. Saves never contain executable modules. Host-only (`packages/game-library`). */
 export const UNIVERSE_SAVE_FORMAT = 'spacelab-universe-save/1';
 const JSON_LIMIT = 1024 * 1024;
 interface SaveDescriptor {
@@ -87,6 +89,7 @@ export function inspectSaveFiles(files: PackageFiles): WorldSave {
   // The engine receives precisely the same save value as before container migration.
   return { ...state, universe, players, ships, ...modules, ...(data ? { data } : {}) } as unknown as WorldSave;
 }
+/** Writes a world save as a `.spaceuniverse` ZIP: at most 1 MiB per JSON entry, ship and module-data records in chunks of up to 1 MiB, at most 1,000 entries and 64 MiB expanded. Host-only (`packages/game-library`). */
 export async function encodeUniverseSave(save: WorldSave, options: ZipOptions = {}): Promise<Uint8Array<ArrayBuffer>> {
   return writeZip(createSaveFiles(save), options);
 }

@@ -1,3 +1,4 @@
+/** Host-only module runtime (`packages/game-runtime`): manifest and profile validation, dependency and provider resolution, candidate preparation, contribution capture and fault isolation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); only the exact bridge files in `packages/modules/src/` may. Modules observe this behavior through `@space-sim/game-api`: the synchronous `initialize(context)` contract (`ModuleInitializationV2`), `ServiceKey`s such as `CORE_WORLD`, `CORE_COMMANDS` and `CORE_MODULE_DATA`, and the hook types (`ForceHook`, `WorldRuleHook`, `CommandHook`, `LayerHook`, `PanelHook`, `CameraHook`). */
 import type { CameraExtension, CameraHook, CommandExtension, CommandHook, Disposable, ForceExtension, ForceHook, LayerExtension, LayerHook,
   PanelExtension, PanelHook, PresentationContribution, WorldRuleExtension, WorldRuleHook, ModuleEnvironment, ModuleLock, ModuleManifest,
   ModuleProfile, ModuleReference, RegisteredModule } from '../../game-api/src/index';
@@ -47,6 +48,7 @@ export class ModuleRegistry {
   }
   /** Installation registry only; dispose active candidates before removing their modules. */
   unregister(id: string): void { this.modules.delete(id); }
+  /** Resolves a v1 profile into a frozen `space-sim-lock/1` without running module code: exact installed versions, environments, dependency ranges, conflicts, before/after targets, setting bounds and steps, one provider per slot and required capabilities, then a topological order with ties in ID order. Throws messages such as `Module <id>: not installed`, `Module <id>: missing dependency <id>@<range>`, `Provider <slot>: select one of …` and `Profile <id>: dependency/ordering cycle`. Unselected slot alternatives stay in `order`. */
   resolve(raw: unknown, environment: ModuleEnvironment, requiredSlots: readonly string[] = []): ModuleLock {
     const profile = validateProfile(raw);
     const selected = new Map(profile.modules.map(ref => {
@@ -119,6 +121,7 @@ export class ModuleRegistry {
     return freezeJson({ format: 'space-sim-lock/1', profileId: profile.id,
       modules: order.map(id => ({ id, version: selected.get(id)!.manifest.version })), order, providers, settings });
   }
+  /** Resolves, then calls each initializer once in lock order, skipping unselected slot alternatives. Hook scope is enforced (`Module <id>: world rules require authoritative scope`, `Module <id>: layer hooks require presentation scope`). A throw or returned Promise rejects the whole candidate as `Module <id> initialization: <message>` and disposes it; each selected slot must have provided its service (`Provider <slot>: unavailable`). */
   prepare(profile: ModuleProfile, environment: ModuleEnvironment, requiredSlots: readonly string[] = []): ModuleCandidate {
     const candidate = new ModuleCandidate(this.resolve(profile, environment, requiredSlots));
     try {
@@ -171,6 +174,7 @@ export class ModuleRegistry {
   }
   preparedFor(candidate: ModuleCandidate, environment: ModuleEnvironment): boolean { return this.prepared.get(candidate) === environment; }
 }
+/** One prepared v1 module selection: its resolved lock, owned resources, provided services, exposed APIs and captured hooks (forces, world rules, commands, layers, panels, cameras and state migrations). Registration is accepted only until `seal()`; later calls throw `Module <id>: late <kind> registration` or `… duplicate or late … registration`. Limits: 32 commands and 8 hooks per presentation kind per module, one force and one world rule per module, 256 migrations. `dispose()` closes owned resources in reverse order and records failures in `disposalErrors`. Also the hook store behind `ModuleCandidateV2.core`. Host-only (`packages/game-runtime`). */
 export class ModuleCandidate implements Disposable {
   private readonly resources: Disposable[] = [];
   private readonly services = new Map<string, unknown>();

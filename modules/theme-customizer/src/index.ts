@@ -1,6 +1,7 @@
 import type { ModuleInitializationV2, ThemeCustomizer, ThemeCustomizerFactory } from '@space-sim/game-api';
 import { THEME_CUSTOMIZERS } from '@space-sim/game-api';
 import { createThemeCustomizer } from './customizer';
+/** Create a theme controls factory instantiating modal customizer dialogs bound to theme controllers. */
 export function createThemeCustomizers(css = ''): ThemeCustomizerFactory {
   const instances = new Set<ThemeCustomizer>(); let disposed = false;
   return Object.freeze<ThemeCustomizerFactory>({ create(options) {
@@ -11,5 +12,9 @@ export function createThemeCustomizers(css = ''): ThemeCustomizerFactory {
     for (const instance of instances) { try { instance.dispose(); } catch (error) { errors.push(error); } }
     instances.clear(); if (errors.length) throw new AggregateError(errors, 'Theme controls provider cleanup failed'); } });
 }
+
+/** Initialize the theme controls module, providing ui.theme-customizer@1.0.0 and registering its usage guide. */
 export default function initialize(context: ModuleInitializationV2): void {
-  context.contributeGuide({id:'usage',audience:'creators',title:"Theme controls",summary:"Public ui.theme-customizer@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'}); context.provide(THEME_CUSTOMIZERS, context.own(createThemeCustomizers(context.assets.text('assets/controls.css')))); }
+  context.contributeGuide({id:'usage',audience:'creators',title:"Theme controls",summary:"Public ui.theme-customizer@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'});
+  context.provide(THEME_CUSTOMIZERS, context.own(createThemeCustomizers(context.assets.text('assets/controls.css'))));
+}

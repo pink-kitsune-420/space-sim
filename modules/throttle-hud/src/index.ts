@@ -18,7 +18,9 @@ export function createThrottleInstrument(options:ThrottleLeverOptions = {}):HudI
  }
 });}
 export const throttleInstrument=createThrottleInstrument();
+/** Provides THROTTLE_HUD (hud.throttle@1.0.0). Settings convert percentage-point key steps
+ * to fractions of full thrust. Owns no resources; each seat's lever is owned by its ViewHud. */
 export default function initialize(context:ModuleInitializationV2):void {
- context.contributeGuide({id:'usage',audience:'creators',title:'Per-view throttle',summary:'Optional owned thrust control through a validated flight adapter.',asset:'docs/creators/usage.json'});
+ context.contributeGuide({id:'usage',audience:'creators',title:'Throttle HUD',summary:'A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.',asset:'docs/creators/usage.json'});
  context.provide(THROTTLE_HUD,createThrottleInstrument({keyboardStep:(context.settings.keyboardStepPercent??1)/100,pageStep:(context.settings.pageStepPercent??10)/100}));
 }

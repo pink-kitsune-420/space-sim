@@ -2,23 +2,96 @@
   "id": "usage",
   "audience": "creators",
   "title": "Manual WebRTC transport",
-  "summary": "Reliable ordered text using a manual invite and reply exchange.",
+  "summary": "Manual invite/reply signaling over reliable ordered text, independent of session state.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Provides net.webrtc-signaling@1.0.0 in browser and offline environments. No required services, session, planet, renderer or flight imports. Initialization performs no network IO. The public manual signaling service preserves SSO1/SSA1 codes, explicit STUN selection, candidate counts and error diagnostics without exposing addresses."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Create an invite with an explicit STUN choice and share its code. Answer returns a reply code before its connection Promise resolves. Send that reply to the host and call accept. Replies expire after ten minutes. Google STUN is contacted only when the host requests it; it is not a relay. Session compatibility, authentication and ownership remain the responsibility of the selected session adapter."
+      "text": "This module enables serverless peer-to-peer multiplayer by exchanging manual copy-paste invite and reply text codes between players. It encapsulates WebRTC RTCPeerConnection management, gathers ICE candidates with optional STUN server assistance, compresses SDP negotiation data into compact base64url strings, and establishes an ordered, reliable RTCDataChannel exposed as a standard TextConnection."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides net.webrtc-signaling@1.0.0 through the WEBRTC_SIGNALING key: a ManualSignalingProvider instance.",
+        "Requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "AbortSignal owns gathering, pending connection and the established text link. Dispose handles or replace/remove the provider to close peers, channels and timers. There is no authoritative state or save migration. Reliable ordered text is chunked with Unicode boundaries preserved; malformed framing or oversized messages close the link."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides the ManualSignalingProvider and registers it for owned disposal.",
+        "The host calls create(stun, signal), returning a ManualInvite with a compact offer code and an accept(reply) function.",
+        "The joining guest calls answer(offer, signal), returning a ManualReply with an answer code and a connection Promise.",
+        "The host feeds the guest's reply code into accept(reply), establishing the bidirectional TextConnection.",
+        "Aborting the signal cancels pending candidate gathering and closes any in-flight peer connection.",
+        "Provider disposal closes all active peer connections and terminates gathering."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Use normal .spacemod build/unpack/edit/rebuild/import consent and choose a compatible replacement service. Removing an optional direct transport leaves other transports available; required consumers must select a replacement."
+      "text": "Removing this module disables manual invite-code peer-to-peer multiplayer. Dedicated server connections via WebSocket and same-origin tab sessions remain fully functional. To replace it, author a network-tier module that provides net.webrtc-signaling@1.0.0 implementing ManualSignalingProvider."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Invitation and reply codes use compact format prefixes SSO1 (Space Sim Offer v1) and SSA1 (Space Sim Answer v1) with compressed SDP payloads."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/net-webrtc demonstrates generating invitation codes, validating format strings, and checking connection diagnostics. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/net-webrtc/module.json /tmp/webrtc-example.spacemod\nnpm run module:validate -- /tmp/webrtc-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api webrtc-transport.ts: ManualSignalingProvider and connection diagnostics",
+      "page": "api-reference/game-api/webrtc-transport"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Manual WebRTC transport",
+      "page": "api-reference/module/spacelab.net-webrtc"
     }
   ]
 }

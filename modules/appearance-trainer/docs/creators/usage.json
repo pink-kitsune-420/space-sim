@@ -2,11 +2,104 @@
   "id": "usage",
   "audience": "creators",
   "title": "Vehicle vector artwork",
-  "summary": "Vehicle vector artwork",
+  "summary": "Shared optional Canvas/WebGL hull and flame data.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "Contribute read-only artwork with contributeVehicleAppearance. Compose createVehicleArtwork from presentation contributions and pass it as Render2DOptions.vehicles to Canvas or WebGL. Both use the same screen-space triangle-fan hull and throttle flame. Omitting artwork leaves a generic position marker; headless worlds need no appearance, camera, controls or DOM. Artwork never changes handling, save identity or collision."
+      "text": "This module contributes the standard vector appearance for the orbital trainer ship (spacelab.trainer/orbit-trainer). It defines screen-space hull geometry (+X forward chevron outline with four vertices) and thruster flame geometry for Canvas 2D and WebGL 2 renderers. The artwork is purely cosmetic presentation data and never alters vessel mass, propulsion, collision bounds, flight mechanics or saved games."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "The module provides no service keys, requiring no runtime dependencies.",
+        "Contributes a VehicleAppearance definition via context.contributeVehicleAppearance for vehicle ID spacelab.trainer/orbit-trainer.",
+        "Contributes this usage guide for creators and the flight guide for players."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization contributes trainerAppearance to the module context and registers creator and player documentation guides.",
+        "The module owns no persistent runtime state or active timers.",
+        "Renderers retrieve vehicle appearance via createVehicleArtwork and draw the chevron hull and throttle flame during frame rendering."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Removing or replacing this module causes renderers to fall back to the generic four-point box marker (VEHICLE_MARKER) when drawing the trainer. Handling and flight characteristics remain unaffected. To provide alternative vehicle artwork, implement a presentation module calling contributeVehicleAppearance with custom geometry."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Vehicle ID is spacelab.trainer/orbit-trainer."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/appearance-trainer demonstrates contributing custom vehicle vector appearance artwork and assembling a VehicleArtwork catalog. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/appearance-trainer/module.json /tmp/example-trainer-appearance.spacemod\nnpm run module:validate -- /tmp/example-trainer-appearance.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api vehicles.ts: vehicle appearance and artwork contracts",
+      "page": "api-reference/game-api/vehicles"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Trainer vector appearance",
+      "page": "api-reference/module/spacelab.trainer-appearance"
+    },
+    {
+      "type": "link",
+      "text": "Canvas 2D: Canvas scene rendering",
+      "page": "spacelab.render-canvas/usage"
+    },
+    {
+      "type": "link",
+      "text": "WebGL 2: WebGL scene rendering",
+      "page": "spacelab.render-webgl/usage"
     }
   ]
 }

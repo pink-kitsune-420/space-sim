@@ -1,0 +1,96 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Flight actions",
+  "summary": "Namespaced flight actions and persistent keyboard bindings.",
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module contributes the standard Space Sim flight action definitions (identified as spacelab.input-actions/<action>) to the module candidate and provides the input.flight-actions service. It defines whether each action is continuous (held controls like engine thrust, steering turns, throttle ramping and zoom) or discrete (press triggers like camera switching, time warp and pause). It also manages persistent keyboard bindings in browser localStorage, maps between namespaced and legacy action identifiers, and supplies localized action labels for configuration menus. It does not sample hardware devices, track player seats or advance simulation worlds."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides input.flight-actions@1.0.0 through the FLIGHT_ACTIONS key: action definitions, human-readable labels, and load/save/reset keybinding operations.",
+        "The module itself requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization contributes FLIGHT_ACTION_DEFINITIONS to the candidate registry and registers the FLIGHT_ACTIONS service object. The module allocates no running background tasks.",
+        "load reads active bindings from localStorage key space-sim:keybindings:v1, migrating former default throttle bindings while preserving customized keys and unknown action identifiers.",
+        "save serializes current bindings back to localStorage, translating namespaced action identifiers back into legacy keys.",
+        "reset clears stored keybindings and restores factory default key assignments.",
+        "Disposal requires no resource cleanup because the provider holds no DOM nodes, hardware listeners or timers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Games without flight simulation or using entirely custom control schemes can omit this module. Games providing flight control menus require an input.flight-actions provider. To replace it, create a platform-tier module providing input.flight-actions@1.0.0 and register it under \"providers\": { \"input.flight-actions\": \"your.module-id\" }."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: action contracts and keybinding representations may change before API freeze. Stored keyboard preferences use key space-sim:keybindings:v1."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/input-actions is a consumer module that uses input.flight-actions@1.0.0 to inspect flight action definitions, query friendly action labels and summarize active keyboard assignments. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/input-actions/module.json /tmp/input-actions-example.spacemod\nnpm run module:validate -- /tmp/input-actions-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Flight actions",
+      "page": "api-reference/module/spacelab.input-actions"
+    },
+    {
+      "type": "link",
+      "text": "game-api platform.ts: input frames, sources and action bindings",
+      "page": "api-reference/game-api/platform"
+    }
+  ]
+}

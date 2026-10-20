@@ -1,7 +1,9 @@
+/** Host-only body-rotation and coordinate-frame transforms (`packages/sim-core`). Modules access these primitives through `@space-sim/game-api` `CORE_ROTATION` (`RotationMath`).
+ * Converts between the primary-body-centred inertial frame (used by flying `State` records) and the body-fixed rotating frame (used by `landed`/`crashed` `State` records and polar terrain queries) using IEEE-754 float64 `dmath` transcendentals. */
 import type { Body, State, Vec } from '../../game-api/src/index';
 import * as dm from './dmath';
 
-/** Signed spin rate of a body in rad/s (0 when it does not rotate). */
+/** Signed spin rate of a body in `rad/s` (`0` when it does not rotate; `period` in `s`). Exposed via `CORE_ROTATION.spinRate`. Host-only (`packages/sim-core`). */
 export function spinRate(body: Body): number {
   const rotation = body.rotation;
   return rotation ? rotation.direction * 2 * Math.PI / rotation.period : 0;

@@ -34,6 +34,7 @@ export function createWebSocketTransport(timeoutMs = 10000, maxTextLength = DEFA
     },
   };
 }
+/** Initialize the WebSocket transport module, providing net.websocket@1.0.0 and contributing the transport. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'WebSocket transport',
     summary: 'An ordered reliable text transport without flight or session implementation imports.', asset: 'docs/creators/usage.json' });

@@ -2,6 +2,7 @@ import type { Disposable, ModuleInitializationV2, RenderGeometry, Render2DOption
 import { CORE_MOTION, WEBGL_DRAWING } from '@space-sim/game-api';
 import { WebGLRenderer } from './webgl';
 import { PlanetPreview } from './planet-preview';
+/** Create a WebGL 2 renderer factory providing scene renderers and body preview instances. */
 export function createWebGLDrawing(geometry: RenderGeometry, defaults: Pick<Render2DOptions,'maxPixelRatio'> = {}): WebGLRendererFactory {
   const resources = new Set<Disposable>(); let disposed = false;
   const own = <T extends Disposable>(create: () => T): T => {
@@ -18,6 +19,8 @@ export function createWebGLDrawing(geometry: RenderGeometry, defaults: Pick<Rend
     },
   });
 }
+
+/** Initialize the WebGL 2 rendering module, providing render.webgl@1.0.0 and registering its usage guide. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({id:'usage',audience:'creators',title:"WebGL 2",summary:"Public render.webgl@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'});
   const surfaces = context.use(CORE_MOTION).services.surfaces;

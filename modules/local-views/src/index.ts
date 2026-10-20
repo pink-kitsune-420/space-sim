@@ -59,6 +59,10 @@ export function createLocalViews(cameras: LocalCameraFactory, options: LocalView
     }, dispose,
   };
 }
+/**
+ * Contributes independent local viewport allocation and pane layout calculations.
+ * Provides view.local@1.0.0 in the view.local slot; requires view.camera@^1.0.0.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: "Independent local views", summary: "Allocates independent camera/surface lifetimes and the existing split/dynamic pane layouts.", asset: 'docs/creators/usage.json' });
   const cameras = context.use(VIEW_CAMERAS), views = new Set<LocalViews>(); let disposed = false;

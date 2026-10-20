@@ -4,9 +4,99 @@
   "title": "Scoped tab transport",
   "summary": "Same-origin text links and discovery scoped by game and session protocol.",
   "blocks": [
-    { "type": "paragraph", "text": "Provides net.tab@1.0.0 as a factory requiring an explicit scope and session protocol ID. Channels and Web Locks use the same versioned scoped name. No required services or flight, renderer, UI or planet imports. Browser/offline/Node environments with native BroadcastChannel when opening links; no IO occurs during package initialization." },
-    { "type": "paragraph", "text": "Create a scoped network, then host a session advertisement, connect to a tab address or watch discovery. Advertisements describe opaque session IDs and player counts; they do not prove compatible commands, saves or snapshots. Shared text transport and discovery never replace a compatible session adapter." },
-    { "type": "paragraph", "text": "Signals cancel connections, hosts and watchers. Disposing a network or provider removes channels, timers and pending work and releases locks. Web Locks are optional; bounded heartbeats detect loss when locks are unavailable. Network state has no authoritative persistence or migration; session restore/reconnect belongs to the session adapter." },
-    { "type": "paragraph", "text": "The explicit flight adapter retains Space Sim's original space-sim-local channel and wire format. New compatible games use their own declared scope/protocol. Build, unpack, edit, rebuild and replace this package through the normal .spacemod tools and explicit imported-code consent." }
+    {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module enables multiplayer sessions across multiple browser tabs within the same origin without sending network packets outside the machine. It uses the browser BroadcastChannel API for message passing and Web Locks for host leader election and connection coordination. Each network is strictly scoped by namespace and protocol ID to avoid cross-game interference."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides net.tab@1.0.0 through the TAB_TRANSPORT key: a TabNetworkFactory creating scoped TabNetwork instances.",
+        "Requires no services."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "beatMs (default 2000, from 1 to 300000, step 1): Heartbeat spacing for same-browser peers when Web Locks are unavailable in milliseconds. No network traffic leaves this browser.",
+        "idleTimeoutMs (default 30000, from 1 to 300000, step 1): Wait this long without peer liveness before closing a same-browser connection in milliseconds. Keep it comfortably longer than the heartbeat interval.",
+        "connectTimeoutMs (default 5000, from 1 to 300000, step 1): Maximum wait for a hosting tab to answer a new connection request in milliseconds. Independent of established-peer liveness.",
+        "maxTextLength (default 67108864, from 1 to 67108864, step 1): Maximum UTF-16 characters in an application message and queued backlog. Lowering it can reject large game snapshots or join packages."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization verifies that idleTimeoutMs exceeds beatMs and provides the TabNetworkFactory.",
+        "create(options) builds a TabNetwork managing channel multiplexing for a specific game scope and protocol ID.",
+        "network.host(describe, accept, signal) registers a tab session, broadcasts advertisements, and receives connections.",
+        "network.watch(change, signal) listens for active tab hosts, providing reactive updates to discovery menus.",
+        "network.connect(address, signal) opens a TextConnection to a tab:// URL using an AbortSignal.",
+        "Disposing the network closes all channels, releases locks, and disconnects all open connections."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Removing this module disables local same-browser multi-tab sessions. Single-player modes, split-screen play, and remote WebSocket multiplayer are unaffected. To replace it, author a module providing net.tab@1.0.0 with a compatible TabNetworkFactory."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Tab connection URLs use the tab:// URI scheme with a 32-character hexadecimal host identifier."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/net-tab demonstrates creating a scoped tab network, publishing a session advert, and discovering peers. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/net-tab/module.json /tmp/tab-example.spacemod\nnpm run module:validate -- /tmp/tab-example.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api tab-transport.ts: TabNetwork and TabNetworkFactory contracts",
+      "page": "api-reference/game-api/tab-transport"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Scoped tab transport",
+      "page": "api-reference/module/spacelab.net-tab"
+    }
   ]
 }

@@ -85,6 +85,7 @@ export function createTabNetwork(config: TabNetworkOptions, stopped: () => void 
   };
   return network;
 }
+/** Initialize the scoped tab transport module, providing net.tab@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Scoped tab transport',
     summary: 'Same-origin text links and discovery scoped by game and session protocol.', asset: 'docs/creators/usage.json' });

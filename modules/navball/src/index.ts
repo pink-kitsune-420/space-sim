@@ -21,6 +21,10 @@ export function createNavballInstrument(settings: {readonly frame?:number;readon
   },
 }); }
 export const navballInstrument=createNavballInstrument();
+/**
+ * Contributes the navball attitude instrument definition using the shared HUD lifecycle.
+ * Provides hud.navball@1.0.0 in the hud.navball slot.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
   context.contributeGuide({id:'usage',audience:'creators',title:'Per-view navball',summary:'Optional attitude instrument using the shared HUD lifecycle.',asset:'docs/creators/usage.json'});
   context.provide(NAVBALL_HUD,createNavballInstrument({frame:context.settings.frame??0,orientation:(context.settings.orientation??0)>=1?'camera':'horizon',minimumSpeed:context.settings.minimumSpeed??.05}));

@@ -917,7 +917,7 @@ Keep preview jobs cancellable, dispose owned clocks/contexts, and leave executio
   <li><b>Full control:</b> <b>Setup → Export</b> saves the current universe as a file. Edit it, then load it with
     <b>Setup → Import…</b>. Definitions export as <code>.spacedata</code>. Legacy <code>.spaceuniverse</code> definitions, JSON and gzip still import.</li>
 </ul>
-<p>The universes that come with the game, in <code>games/space-sim/universes/</code>, are good examples to copy.</p>
+<p>The universes that come with the game, in <code>games/space-sim/universes/</code>, are good examples to copy. Bundled universes are published as content IDs for game manifests: <code>builtin.content/default-universe</code> (server alias <code>default</code>), <code>builtin.content/dry-terrain-examples</code> (<code>terrain</code>), <code>builtin.content/ocean-example</code> (<code>ocean</code>), <code>builtin.content/solar-system-universe</code> (<code>solar</code>), and <code>builtin.content/full-solar-system</code> (<code>full</code>).</p>
 ${deeper('the main fields', `
 <dl>
   <dt>bodies</dt><dd>The star, planets and moons. Each has an <code>id</code>, a <code>name</code>, a
@@ -1007,7 +1007,9 @@ and required providers before sharing it.</p>`)}`,
     title: 'Code modules',
     summary: 'Forces, rules, commands, instruments, cameras, sound',
     html: `
-<p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. Open a section below for the details and examples.</p>
+<p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. Open a section below for the details and examples.
+The <a data-page="api-reference">API reference</a> lists each documented module's services, settings and the exact
+game-api declarations it uses, with links to its guide.</p>
 <details class="manual-deeper"><summary>Module kinds</summary>
 <dl>
   <dt>Data</dt><dd>Only JSON, for example vehicle settings. Try <code>examples/modules/gentle-flight.json</code> with
@@ -1022,24 +1024,85 @@ and required providers before sharing it.</p>`)}`,
 </details><details class="manual-deeper"><summary>Responsibilities and optional connections</summary>
 <p>Compose modules by their job: <code>camera-follow</code> owns basic camera control, <code>camera-smart</code> adds optional targeting and guided focus, <code>local-views</code> owns viewport layout, and input modules sample devices or define actions. The smart policy accepts arbitrary named targets and keeps separate state per camera. <code>ui-shell</code> owns the dock and workspace navigation, using shared window chrome from <code>ui-windows</code>.</p>
 </details><details class="manual-deeper"><summary>Build and share an editable package</summary>
+<p>The package tools run in Node from the root of a source checkout. Put <code>--</code> between the
+script name and its arguments. Relative paths are read from the checkout root, even when you start
+npm in a subfolder; use absolute paths to work elsewhere. The tools check and bundle files but never
+run module code.</p>
 <ol>
-  <li>For API v1, run <code>npm run module:new -- local.my-module my-module</code>, or copy a starter from
-    <code>examples/packages/</code>: <code>force</code>, <code>numerical</code>, <code>telemetry</code> or <code>state</code>.
-    This command currently generates v1 contracts. For API v2, start with the compatible
-    <code>inventory</code> example or an appropriate editable package in <code>modules/</code>;
-    v2 requires its matching manifest, initializer and services, beyond changing a format string.</li>
-  <li>Set your namespaced <code>id</code>, name and licence in <code>module.json</code>. Edit <code>src/main.ts</code>,
-    and include the licence texts and credits in <code>LICENSE</code> and <code>NOTICE</code>.</li>
-  <li>Run <code>npm run module:build -- my-module/module.json my-module.spacemod</code>. This checks types,
-    bundles the code and includes your editable source. Write the archive outside the source folder.</li>
-  <li>Choose <b>ModMenu → Import game, plugin or universe…</b> and select the <code>.spacemod</code>.
+  <li><b>Start.</b> Run <code>npm run module:new -- local.my-module my-module</code>. The folder must not
+    exist yet; it receives <code>module.json</code>, <code>src/main.ts</code>, <code>LICENSE</code> and <code>NOTICE</code>.
+    This command currently generates v1 contracts (<code>space-sim-module/1</code>, <code>space-sim-game-api/1</code>).
+    You can instead copy a v1 starter from <code>examples/packages/</code>: <code>force</code>, <code>numerical</code>,
+    <code>telemetry</code> or <code>state</code>. For API v2, copy the <code>inventory</code> example or an editable
+    package in <code>modules/</code>; v2 needs its matching manifest, initializer and services, not just a new format string.</li>
+  <li><b>Edit.</b> Set your namespaced <code>id</code>, name and licence in <code>module.json</code>. Edit <code>src/main.ts</code>,
+    and put the licence texts and credits in <code>LICENSE</code> and <code>NOTICE</code>. Import only
+    <code>@space-sim/game-api</code> and relative files inside the folder.</li>
+  <li><b>Build.</b> Run <code>npm run module:build -- my-module/module.json my-module.spacemod</code>. This checks
+    types, bundles the code, updates <code>module.json</code>, <code>dist/module.js</code> and <code>integrity.json</code>
+    in the folder, then writes the archive with your editable source. Without an output path it only updates the folder.
+    Write the archive outside the source folder.</li>
+  <li><b>Validate.</b> Run <code>npm run module:validate -- my-module.spacemod</code>. It also accepts a built folder.</li>
+  <li><b>Import.</b> Choose <b>ModMenu → Import game, plugin or universe…</b> and select the <code>.spacemod</code>.
     Installation only inspects it. Select the module in Plugins and apply to enable it.</li>
 </ol>
-<p>A <code>.spacemod</code> is a standard ZIP file. To edit a received package, run
-<code>npm run module:unpack -- received.spacemod my-copy</code> with a new or empty destination.
-After editing, run <code>npm run module:build -- my-copy/module.json</code>, then
-<code>npm run module:pack -- my-copy edited.spacemod</code>.
-Validate a file with <code>npm run module:validate -- edited.spacemod</code>.</p>
+<p>A <code>.spacemod</code> is a standard ZIP file. To change a received package:</p>
+<ol>
+  <li><code>npm run module:unpack -- received.spacemod my-copy</code>. The destination must be new or empty.</li>
+  <li>Edit the files in <code>my-copy</code>.</li>
+  <li><code>npm run module:build -- my-copy/module.json</code> recompiles the bundle.</li>
+  <li><code>npm run module:pack -- my-copy edited.spacemod</code> writes the archive. Packing checks the folder
+    and refuses source changed since the last build.</li>
+  <li><code>npm run module:validate -- edited.spacemod</code>.</li>
+</ol>
+<p>To publish your own version of someone else's module, fork it (see <b>Forking and package compatibility</b> below):
+<code>npm run module:fork -- received.spacemod local.my-version my-fork</code>, then
+<code>npm run module:build -- my-fork/module.json my-fork.spacemod</code>.
+To turn an older source folder into a package, run <code>npm run module:convert -- old/module.json new-folder</code>;
+the result is already built. Review its <code>LICENSE</code> and <code>NOTICE</code>. For whole games, see <b>Build a game collection</b>.</p>
+</details><details class="manual-deeper"><summary>Package tool errors</summary>
+<p>Each failed command prints one message and exits with status 1. Common messages and their fixes:</p>
+<dl>
+  <dt>Usage: module:new id [folder] | …</dt><dd>A required argument is missing or the command is unknown.
+    Check the <code>--</code> separator and the argument order.</dd>
+  <dt>Legacy source descriptor: choose output.module.json, or migrate with module:convert before packing</dt>
+    <dd><code>module.json</code> is an older source descriptor without a package <code>format</code>.
+    Run <code>module:convert</code> to make a package, or name an output ending in <code>.module.json</code>
+    to build an older single-file artifact.</dd>
+  <dt>Shipped builtin source requires an explicit shipped build; fork under a creator namespace</dt>
+    <dd>The ID starts with <code>builtin.</code>, which is reserved. Fork it to your own ID.
+    <code>--shipped-build</code> is for the game's own distribution builds.</dd>
+  <dt>Imported builtin identities require an exact shipped catalogue pin; fork under a creator namespace</dt>
+    <dd>You validated or unpacked an original <code>builtin.*</code> package. Pass
+    <code>--catalogue=shipped-modules.json</code> with its exact pin, or fork it.</dd>
+  <dt>Choose a creator namespace such as local.my-module</dt><dd>IDs are lowercase, dotted, with at least two
+    parts, and cannot start with <code>builtin.</code>.</dd>
+  <dt>Scaffold destination already exists · Conversion destination already exists · Unpack destination must be a new or empty directory · Fork destination must be a new or empty directory</dt>
+    <dd>Choose a new folder. Converting code into an existing folder reports the first message.</dd>
+  <dt>Rebuild this module with module:build, then pack it again</dt><dd>Source changed after the last build.</dd>
+  <dt>Module type check failed: …</dt><dd>Fix the listed TypeScript errors, then build again.</dd>
+  <dt>Unsupported import <i>name</i>; vendor licensed inputs or use @space-sim/game-api</dt><dd>Package names
+    other than <code>@space-sim/game-api</code> are not bundled. Copy licensed source into the folder and import it relatively.</dd>
+  <dt>Write the archive outside its source folder · Unsupported module entry <i>path</i></dt><dd>A package root may hold only
+    <code>module.json</code>, <code>data.json</code>, <code>integrity.json</code>, <code>LICENSE</code>, <code>NOTICE</code>
+    and the <code>src/</code>, <code>dist/</code>, <code>assets/</code>, <code>data/</code>, <code>docs/</code>,
+    <code>tests/</code> and <code>legacy/</code> folders, and no nested archives. Move stray files out, including an
+    archive that <code>module:build</code> wrote inside the folder.</dd>
+  <dt>Symlink path forbidden · Regular files only · Executable file permissions forbidden</dt><dd>Use plain files and
+    folders, not links, and clear execute permissions (<code>chmod -x</code>).</dd>
+  <dt>Folder exceeds package limits · Archive exceeds 32 MiB</dt><dd>A package holds at most 1,024 files and 64 MiB unpacked,
+    with smaller limits per file; an archive at most 32 MiB.</dd>
+  <dt>Package inventory/digest mismatch</dt><dd>Files changed after <code>integrity.json</code> was written. Run <code>module:build</code>
+    on the folder's <code>module.json</code> or <code>data.json</code>, or validate the packed archive instead.</dd>
+  <dt>Original editable source is unavailable; supply source in a new creator package to rebuild · Fork requires an editable code module</dt>
+    <dd>The package is data, or wraps an older compiled artifact without its source. Convert the original source folder instead.</dd>
+  <dt>Data conversion requires --license-file … · Specify the original author license with --license</dt><dd>Shader and
+    universe conversion need both <code>--license</code> (an SPDX name) and <code>--license-file</code> (the licence text).</dd>
+  <dt>Expected a .spacegame collection</dt><dd><code>game:validate</code> was given a module or data archive; use
+    <code>module:validate</code> or <code>file:validate</code>.</dd>
+  <dt>Provider motion: missing required provider</dt><dd>The game has no portable export yet, such as
+    Planet viewer and Survey fixture.</dd>
+</dl>
 </details><details class="manual-deeper"><summary>Module configuration</summary>
 <p>A module can declare numeric <code>settings</code> in its manifest, with a default, minimum,
 maximum and optional increment (<code>step</code>). Add a readable <code>label</code> and plain-text
@@ -1070,7 +1133,9 @@ namespaces, and removes the compiled bundle. Review the source, edit it and rebu
 The fork keeps compatible service names so a game can select it as a replacement provider.</p>
 <p><code>builtin.*</code> identities are reserved. Original shipped packages are recognized only through
 an exact host catalogue pin; edited packages use a creator namespace. Local tools can inspect a recognized
-original with <code>--catalogue=shipped-modules.json</code>. Recognition does not approve downloaded code
+original with <code>--catalogue=shipped-modules.json</code>, a file you write in the form
+<code>{"format": "spacelab-shipped-modules/1", "modules": [{"id": …, "version": …, "digest": …}]}</code>
+using the exact version and the digest that <code>module:build</code> prints. Recognition does not approve downloaded code
 or override a build that disallows imported code.</p>
 <p>The browser cannot compile TypeScript. Missing or stale bundles need a local rebuild. Binary assets
 are preserved; API v1 exposes text assets only. Structured guides belong in <code>docs/players/</code>
@@ -1224,7 +1289,8 @@ reported before code runs. Exact settings and provider choices survive save/expo
 keep renderer layers, panels and cameras in the legacy presentation profile for now.</p>
 <p>Legacy <code>.module.json</code> and <code>.spaceplugin</code> files still import. A legacy code artifact
 contains bundled JavaScript and source hashes, so its ZIP wrapper is labelled “original source unavailable”.
-Use <code>module:convert old/module.json new-folder</code> with the original source folder to make a fully editable package.
+Run <code>npm run module:convert -- old/module.json new-folder</code> on the original source descriptor, beside its
+source files, to make a fully editable package. The original folder is not changed.
 Package hashes cover every file, including code, docs and licences. Recompressing a ZIP preserves the hash;
 editing a file changes it. A matching hash identifies bytes; it does not establish that code is safe.</p>
 </details><details class="manual-deeper"><summary>Keep setup, data and progress separate</summary>
@@ -1243,25 +1309,31 @@ editing a file changes it. A matching hash identifies bytes; it does not establi
 <p><b>Export game</b> writes a ZIP <code>.spacegame</code> containing <code>game.json</code>, an exact
 <code>game.lock.json</code> and its selected custom modules. Built-in v1 providers remain supplied by the engine.
 The exact package identities are separate from legacy simulation identities, so old saves keep their locks.</p>
-<p>For local tooling, use <code>npm run game:build -- game.json my-game.spacegame</code> and
-<code>npm run game:validate -- my-game.spacegame</code>. The builder accepts existing game descriptors,
-legacy plugin collections and profiles whose exact code is supplied. Unpack a game with
-<code>module:unpack</code>, rebuild its embedded modules, then run <code>game:build</code> on its
-<code>game.json</code> to refresh the exact lock. No import runs tests, compiles code or fetches dependencies.</p>
+<p>For local tooling, build from a game descriptor such as <code>games/flight-starter/game.json</code>:
+<code>npm run game:build -- games/flight-starter/game.json my-game.spacegame</code>, then
+<code>npm run game:validate -- my-game.spacegame</code>. The builder also accepts a module profile
+(<code>space-sim-profile/1</code>) and the <code>game.json</code> of an unpacked game. Planet viewer and Survey fixture
+have no portable export yet, so building them fails.</p>
+<p>To edit a game file, run <code>npm run module:unpack -- my-game.spacegame my-game</code>, edit
+<code>my-game/game.json</code> (for example <code>info.name</code>) and rebuild any embedded modules in
+<code>my-game/modules/</code>, then run <code>npm run game:build -- my-game/game.json edited.spacegame</code> to refresh
+the exact lock. Changing <code>targets</code> also needs a matching <code>legacy/package.json</code>; to change a game's
+module selection, it is simpler to use the ModMenu and export again. No tool runs tests, compiles game code or fetches dependencies.</p>
 <p class="manual-warn">A code module can do anything the page or server can. Only install code from people you trust.</p>
 ${deeper('the API surface', `
 <p>A module exports one synchronous <code>initialize(context)</code> function. From the context it can:</p>
 <ul>
   <li><b>Simulation:</b> <code>contributeForce</code> (add an acceleration), replace the motion model, add world
     rules that run every step, and add pilot commands that the host carries out.</li>
-  <li><b>Presentation:</b> <code>contributeLayer</code> (up to 256 shapes per frame, drawn in world or screen
-    space), <code>contributePanel</code> (up to 16 label and value rows, updated up to 4 times a second) and camera hooks.</li>
+  <li><b>Presentation:</b> <code>contributeLayer</code> (up to 256 shapes and 4,096 line points per layer per frame, drawn in world or screen
+    space; invalid or oversized output switches the layer off like an error), <code>contributePanel</code> (up to 16 label and value rows per panel, updated up to 4 times a second) and camera hooks.</li>
   <li><b>Settings:</b> declare numbers in the manifest with a default, minimum and maximum. Players can edit them in the ModMenu.</li>
   <li><b>Dependencies:</b> list other modules with version ranges such as <code>^0.1.0</code>, and use their APIs.</li>
 </ul>
+<p>Resolution completes before any initializer runs: dependencies and providers are sorted into topological lock order, and only the selected capability provider initializes (unselected slot alternatives never initialize). Context contribution and <code>use</code> methods are accepted only while <code>initialize</code> runs; calling them later throws that the candidate is sealed or disposed. A throwing or asynchronous initializer rejects the whole selection, and the previous game keeps running.</p>
 <p>Presentation hooks receive a frozen snapshot of the frame: ship state, orbit elements, ground clearance,
-prediction and camera. If a hook throws an error, only that contribution is switched off and the world keeps running.</p>
-<p>The build only accepts imports from <code>@space-sim/game-api</code> and files inside your module's folder.
+prediction and camera. If a hook throws an error or returns invalid output, only that contribution is switched off and the world keeps running. Input, transport and discovery hooks are isolated the same way: a throwing or rejecting contribution is disabled for that candidate only. Authoritative hooks differ: a force or motion error stops only that ship with a fault event, while a world-rule error pauses the world with a world-fault event, with errors naming the module, hook and tick.</p>
+<p>The build only accepts imports from <code>@space-sim/game-api</code> and files inside your module's folder. Engine packages (<code>game-runtime</code>, <code>game-library</code>, <code>render-2d</code>, <code>net</code>, <code>scenarios</code>, <code>sim-core</code>) are host-only; use their <code>@space-sim/game-api</code> services instead.
 <code>examples/modules/README.md</code> lists every example and how to try it.</p>`)}</details>`,
   },
   {
@@ -1273,9 +1345,10 @@ prediction and camera. If a hook throws an error, only that contribution is swit
 The host or server advances the authoritative multiplayer world; clients receive snapshots. Replays, prediction and compatible hosts still need reproducible results. Simulation
 modules have to follow a few rules:</p>
 <ul>
-  <li>Use the maths functions from the API (<code>sin</code>, <code>cos</code>, <code>atan2</code>, <code>exp</code> and so on) instead of <code>Math.sin</code> and friends.</li>
-  <li>Use the seeded random number generator from the context. Never use <code>Math.random()</code>.</li>
+  <li>Use the IEEE-754 float64 maths functions from <code>@space-sim/game-api</code> (<code>deterministicMath</code> or the hook’s <code>math</code> table: <code>sin</code>, <code>cos</code>, <code>atan2</code>, <code>hypot</code>, <code>exp</code> and friends) instead of <code>Math.sin</code> and friends.</li>
+  <li>Use the seeded random number generator from the context. Never use <code>Math.random()</code> or wall-clock time.</li>
   <li>Keep state in the per-ship or shared-world module state that the context provides, so it saves, loads and syncs.</li>
+  <li>Use SI units everywhere and keep per-step force, motion and rule hooks allocation-light on the fixed <code>0.01</code> s step grid.</li>
 </ul>
 ${deeper('why these rules exist', `
 <p>Browsers may compute <code>Math.sin</code> and similar functions slightly differently. Over thousands of steps,
@@ -1285,7 +1358,30 @@ bit-identical results everywhere.</p>
 Module state is part of the save and of every snapshot sent to players.</p>
 <p>Each world has a fingerprint built from its modules' code, settings and model identities. Put every
 parameter that affects physics into your model identity, so two different setups can never be mistaken for
-the same one.</p>`)}`,
+the same one.</p>`)}
+${deeper('units, coordinate frames, hot paths and host services', `
+<p>All simulation contracts use <b>SI units</b> in IEEE-754 double precision: position and radii in metres (<code>m</code>),
+velocity in metres per second (<code>m/s</code>), acceleration in <code>m/s²</code>, angles in radians (<code>rad</code>),
+angular rates in <code>rad/s</code>, mass in kilograms (<code>kg</code>), gravitational parameter <code>μ = GM</code> in
+<code>m³/s²</code>, and time on the fixed <code>0.01</code> s (<code>10</code> ms) simulation step grid (<code>s</code>).</p>
+<p>Check the <b>coordinate frame</b> before combining vectors:</p>
+<ul>
+  <li><b>Primary-body-centred inertial:</b> a <code>flying</code> ship’s <code>State.position</code> and <code>velocity</code>,
+    force-hook kinematics, and two-body orbital elements (<code>ORBITAL_MOTION</code>) are measured relative to the current reference body’s centre without rotating with its ground.</li>
+  <li><b>Body-fixed rotating:</b> on a rotating body, a resting (<code>landed</code> or <code>crashed</code>) ship’s <code>State</code> and
+    polar terrain queries/sweeps (<code>SURFACE_GEOMETRY</code>) turn with the surface. Use <code>CORE_ROTATION</code> (<code>spinRate</code>,
+    <code>spinAngle</code>, <code>rotate</code>, <code>groundVelocity</code>, <code>bodyFixed</code>) to convert between body-fixed and inertial coordinates.</li>
+  <li><b>System / world inertial:</b> <code>LoadedSystem.getBodyPosition</code> and <code>getBodyVelocity</code> (<code>BODY_FRAMES</code>)
+    are measured relative to the system’s root body; multi-body trajectory predictions convert samples into the chosen reference body’s inertial frame.</li>
+</ul>
+<p><b>Zero-allocation hot paths:</b> force hooks (evaluated at both ends of every <code>0.01</code> s KDK step, plus once at any contact point),
+custom dynamics steps, surface sweeps and world rules run inside tight simulation and prediction loops. Avoid per-step array spreads,
+temporary closures or unbounded caches, and never mutate frozen input records.</p>
+<p><b>Host-only engine boundary:</b> <code>packages/sim-core</code> is host-only and cannot be imported by modules.
+Modules reach engine behavior exclusively through <code>@space-sim/game-api</code> service keys—<code>CORE_MOTION</code>,
+<code>CORE_ROTATION</code>, <code>CORE_WORLD</code>, <code>CORE_CLOCK</code>, <code>CORE_SAVE</code>, <code>CORE_COMMANDS</code>
+and <code>CORE_MODULE_DATA</code>—and the replaceable motion service slots (<code>MOTION_CONTEXTS</code>, <code>ORBITAL_MOTION</code>,
+<code>BODY_FRAMES</code>, <code>SURFACE_GEOMETRY</code>, <code>RAILS_POLICY</code>). See the <a data-page="api-reference">API reference</a> for each contract.</p>`)}`,
   },
   {
     id: 'sharing',

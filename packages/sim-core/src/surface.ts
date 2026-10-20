@@ -1,6 +1,9 @@
+/** Host-only radial terrain generation and body-fixed polar surface queries (`packages/sim-core`). Modules access surface geometry through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.services.surfaces`) and `SURFACE_GEOMETRY` (`SurfaceProvider`).
+ * All lengths/radii/elevations are in `m` and body-fixed polar angles are in `rad` (`[0, 2π)`). Uses deterministic Mulberry32 PRNG and IEEE-754 float64 `dmath`. */
 import type { SurfacePadDefinition, SurfaceDefinition, SurfaceQuery, SurfaceFeature, SurfaceProfile } from '../../game-api/src/index';
 export type { SurfacePadDefinition, SurfaceDefinition, SurfaceBounds, SurfaceQuery, SurfaceFeature, SurfaceProfile } from '../../game-api/src/index';
 import * as dm from './dmath';
+/** Frozen validation bounds on radial terrain sample counts, mountain ranges, craters, landing pads, and universe-wide terrain budgets. Host-only (`packages/sim-core`). */
 export const SURFACE_LIMITS = Object.freeze({
   minSamples: 32,
   maxSamples: 65_536,
@@ -11,7 +14,7 @@ export const SURFACE_LIMITS = Object.freeze({
   maxUniverseFeatures: 16_384,
 });
 
-/** Strict, detached and immutable: unknown fields cannot silently alter identity. */
+/** Strict, detached and immutable: unknown fields cannot silently alter identity (`referenceRadius` in `m`). Host-only (`packages/sim-core`). */
 export function validateSurfaceDefinition(raw: unknown, referenceRadius: number, context = 'Surface'): SurfaceDefinition {
   const fail = (message: string): never => { throw new Error(`${context}: ${message}`); };
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('must be an object');

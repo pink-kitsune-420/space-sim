@@ -10,6 +10,7 @@ import type { WorldRuleState } from './rules';
 /** System world coordinates (metres, +Y up) to CSS pixels: `scale` pixels per metre,
  * `rotation` radians counter-clockwise applied to the world before projection. */
 export interface Camera { readonly center: Vec; readonly rotation: number; readonly scale: number }
+/** Celestial body descriptor for a rendered frame in system world coordinates (`position` and `radius` in `m`, `rotation` in `rad`), plus optional terrain and shader appearance. */
 export interface RenderBody {
   readonly id: string;
   readonly name: string;
@@ -48,6 +49,7 @@ export interface RenderShip {
   /** Drawn as a small unlabeled rock instead of a vessel (asteroids and debris). */
   readonly rock?: boolean;
 }
+/** Complete scene description passed to `Renderer.draw` once per animation frame: interpolated `state`, `path` samples, `camera`, `bodies`, `ships`, `overlays`, and `theme`. */
 export interface RenderFrame {
   readonly vehicleId?: string;
   /** Presentation snapshot; may be interpolated between fixed physics steps. */
@@ -89,11 +91,16 @@ export interface RenderFrame {
   readonly theme?: RenderThemeOptions;
 }
 
+/** Named deep-space backdrop preset for scene rendering. */
 export type ThemeBackdropStyle = 'spacelab' | 'nebula' | 'carina' | 'galactic' | 'aurora' | 'supernova' | 'void' | 'pillars' | 'helix' | 'asteroids';
+/** Coordinate reference grid style drawn behind the scene (`'off'` disables grid rendering). */
 export type ThemeGridStyle = 'cartesian' | 'polar' | 'dots' | 'hex' | 'off';
+/** Numeric readout and telemetry counter typography/color preset. */
 export type ThemeCounterStyle = 'spacelab' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'custom';
+/** Floating window frame and surface styling preset. */
 export type ThemeWindowStyle = 'classic' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'void' | 'crimson';
 
+/** Presentation-only visual theme options controlling backdrop, stars, coordinate grids, window chrome, HUD effects, and shader seeds. */
 export interface RenderThemeOptions {
   readonly backdropStyle?: ThemeBackdropStyle;
   readonly nebulaVisible?: boolean;
@@ -125,11 +132,14 @@ export interface RenderThemeOptions {
   readonly worldSeed?: number;
   readonly shaderSeed?: number;
 }
+/** Ordered drawing pass section reported to a `RenderTimer` during `Renderer.draw`. */
 export type RenderSection = 'background' | 'planet' | 'path' | 'ship' | 'overlay';
 /** Optional profiler hook, called after each section has been drawn. */
 export interface RenderTimer { lap(section: RenderSection): void }
 
+/** Built-in WebGL shader program pass identifier (`'scene'`, `'vector'`, or `'text'`). */
 export type ShaderPass = 'scene' | 'vector' | 'text';
+/** Vertex and fragment GLSL shader source strings for a single `ShaderPass`. */
 export interface ShaderSources { readonly vertex: string; readonly fragment: string }
 /** `space-sim-shaders/1` data. Packs restyle built-in drawing roles, never module overlays. */
 export interface ShaderPack {
@@ -137,6 +147,7 @@ export interface ShaderPack {
   readonly name: string;
   readonly passes: Readonly<Record<ShaderPass, ShaderSources>>;
 }
+/** Live shader pack controller exposed on `RendererFeatures.shaders` for atomic runtime shader replacement. */
 export interface ShaderControl {
   readonly pack: ShaderPack;
   /** Validates and compiles atomically; on failure it throws and the previous pack keeps drawing. */
@@ -149,6 +160,7 @@ export interface RendererFeatures {
   /** Finish deferred raster work so profiler sections are attributed precisely. */
   readonly flush?: () => void;
 }
+/** Viewport scene renderer instance bound to a single `HTMLCanvasElement`; frees all GPU/canvas resources in `dispose()`. */
 export interface Renderer {
   readonly features?: RendererFeatures;
   draw(frame: RenderFrame, timer?: RenderTimer): void;
@@ -198,6 +210,7 @@ export interface AudioProvider {
  * `screen`: CSS pixels from the viewport's top-left corner (+Y down). Colors are
  * `#RRGGBB` or `#RRGGBBAA`; widths are CSS pixels in both spaces. */
 export type OverlaySpace = 'world' | 'screen';
+/** Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) drawn in `'world'` metres or `'screen'` CSS pixels. */
 export type OverlayPrimitive =
   /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */
   | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;
@@ -208,6 +221,7 @@ export type OverlayPrimitive =
   | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
       readonly align?: 'left' | 'center' | 'right' };
 
+/** Detached presentation snapshot of the piloted vessel, combining body-relative `state` (`m`, `m/s`, `rad`) and system-coordinate `position` (`m`). */
 export interface PresentationShip {
   readonly id: string;
   readonly name: string;
@@ -219,6 +233,7 @@ export interface PresentationShip {
   readonly position: Vec;
   readonly fault?: string;
 }
+/** Detached presentation snapshot of the active celestial body in system coordinates (`radius` and `position` in `m`, `mu` in `m³/s²`, optional `spin` in `rad/s`). */
 export interface PresentationBody {
   readonly id: string;
   readonly name: string;
@@ -254,6 +269,7 @@ export interface PresentationSnapshot {
   /** Shared-world rule namespaces at the last committed tick. */
   readonly moduleState: Readonly<Record<string, WorldRuleState>>;
 }
+/** Read-only body-relative SI preview of the active maneuver node and planned trajectory (`time` and `burnSeconds` in `s`, `position` in `m`, `deltaVelocity` in `m/s`). */
 export interface ManeuverPreview {
   /** Completed nodes remain in the editor journal but no longer draw burn targets. */
   readonly completed?: boolean;
@@ -269,10 +285,12 @@ export interface ManeuverPreview {
   readonly valid: boolean;
   readonly path: readonly GhostSample[];
 }
+/** Frozen per-frame presentation snapshot extended with the active viewport `Camera`, passed to `LayerHook` and `PanelHook`. */
 export interface PresentationView extends PresentationSnapshot {
   /** The camera this frame is drawn with. */
   readonly camera: Camera;
 }
+/** Frozen per-frame presentation snapshot extended with the pilot's zoom `scale` (CSS pixels per metre), passed to `CameraHook.frame`. */
 export interface CameraInput extends PresentationSnapshot {
   /** The pilot's zoom in CSS pixels per metre. */
   readonly scale: number;
@@ -288,13 +306,16 @@ export interface LayerHook {
   /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */
   draw(view: PresentationView): readonly OverlayPrimitive[];
 }
+/** Single telemetry row (`label`, `value`, and optional `unit`) returned by a `PanelHook`. */
 export interface PanelRow { readonly label: string; readonly value: string; readonly unit?: string }
+/** Synchronous presentation telemetry panel hook returning up to 16 `PanelRow` entries from a frozen `PresentationView`. */
 export interface PanelHook {
   readonly name: string;
   readonly title: string;
   /** At most four times per second. At most 16 rows; label/unit ≤ 32 and value ≤ 64 characters. */
   update(view: PresentationView): readonly PanelRow[];
 }
+/** Camera center (system coordinates in metres) and optional counter-clockwise rotation (radians) returned by a `CameraHook`. */
 export interface CameraTarget {
   /** System coordinates (metres). */
   readonly center: Vec;
@@ -302,6 +323,7 @@ export interface CameraTarget {
    * The host blends rotation changes and keeps the pilot's zoom. */
   readonly rotation?: number;
 }
+/** Synchronous presentation camera mode hook computing a `CameraTarget` once per rendered frame from a frozen `CameraInput`. */
 export interface CameraHook {
   readonly name: string;
   /** Camera button text while selected, such as "Lead camera". */
@@ -309,6 +331,7 @@ export interface CameraHook {
   /** Once per frame while selected. */
   frame(input: CameraInput): CameraTarget;
 }
+/** Resolved presentation hook contribution (`<moduleId>/<hook.name>`) bound to its owning module identity and version. */
 export interface PresentationContribution<T> {
   readonly moduleId: string;
   readonly version: string;
@@ -316,9 +339,13 @@ export interface PresentationContribution<T> {
   readonly id: string;
   readonly hook: T;
 }
+/** Resolved overlay `LayerHook` presentation contribution. */
 export type LayerExtension = PresentationContribution<LayerHook>;
+/** Resolved telemetry `PanelHook` presentation contribution. */
 export type PanelExtension = PresentationContribution<PanelHook>;
+/** Resolved `CameraHook` presentation contribution. */
 export type CameraExtension = PresentationContribution<CameraHook>;
+/** Diagnostic fault record emitted when a presentation `layer`, `panel`, or `camera` hook throws or returns invalid data. */
 export interface PresentationFault {
   readonly moduleId: string;
   /** Contribution ID, such as `builtin.flight-vectors/velocity`. */

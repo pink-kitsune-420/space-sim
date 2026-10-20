@@ -2,19 +2,104 @@
   "id": "usage",
   "audience": "creators",
   "title": "Throttle HUD",
-  "summary": "Optional flight instrument using the shared HUD lifecycle.",
+  "summary": "A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Use this optional instrument definition through ui.view-hud@1.0.0 with view.flight-hud-state@1.0.0. Every seat follows the same create/rebind/resize/update/dispose path. The read-only flight adapter supplies detached quantities, cached geometry and local preferences. Commands recheck current target ownership and suppression through the adapter. Removing the definition releases gestures, controls and subscriptions; physics, vehicles, split screen and cameras remain independent."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "In Space Sim and Flight starter, Instruments \u2192 Throttle switches the lever independently of Navball for every active local view. Settings \u2192 HUD visibility offers the same switch. The choice is stored with the current game\u2019s presentation preferences and travels with exported game presentation selections. The source module provides hud.throttle@1.0.0; the legacy presentation selector is builtin.throttle. Other per-player instruments should use the same owned HUD lifecycle rather than attaching controls to the navball."
+      "text": "This module draws the vertical THR lever beside each local player's view. A player drags it, or focuses it and uses the arrow, Page and Home/End keys, to set engine thrust from 0 to 100%. It is an instrument: a small piece of HUD that a HUD owner creates once per seat (one local player) and viewport, then updates every rendered frame. The module reads flight data and sends throttle requests only through an adapter that the game supplies, so it never touches the world, physics or saves."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides hud.throttle@1.0.0 through the THROTTLE_HUD key: a HudInstrumentDefinition with ID spacelab.throttle-hud.",
+        "The module itself requires no services. Each lever it creates needs the view.flight-hud-state@1.0.0 adapter (FLIGHT_HUD_STATE), which the game passes to the HUD owner for every seat. A HUD without that adapter skips the lever instead of failing.",
+        "The HUD owner is ui.view-hud@1.0.0 (VIEW_HUD, from spacelab.view-hud). Space Sim and Flight starter select THROTTLE_HUD into every seat's view HUD."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "keyboardStepPercent (default 1, from 0.1 to 100, step 0.1): percentage points added or removed by one Up or Down arrow press on a focused lever.",
+        "pageStepPercent (default 10, from 0.1 to 100, step 0.1): percentage points added or removed by one Page Up or Page Down press. Home always selects 0% and End 100%.",
+        "Both settings only change keyboard steps. Session ownership and input locks still decide whether a request is applied."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides one shared, stateless instrument definition and this guide. The module owns no resources of its own.",
+        "create runs once per seat. It builds the lever element and its listeners; the first update attaches it to the HUD surface root.",
+        "rebind (a new target, player or session) and cancel stop any drag in progress. A drag also stops when the target ship changes or the adapter reports the lever as locked.",
+        "update runs every frame with wall-clock seconds. It reads the adapter's throttle state and positions the lever; the game may move it with placeThrottle, for example to follow a saved HUD layout. draw adds no overlay shapes.",
+        "dispose removes the element and its window listener. The HUD owner disposes a lever when its seat is removed, when the instrument is deselected, or when one of its methods throws."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Settings \u2192 Edit HUD layout gives each local throttle its own grip. Its normalized position is saved within the current view canvas, independently of navball placement. Moving the navball does not move the lever. Reset HUD layout clears both placements. Removing the instrument releases its gestures and HUD grip; enabling it restores the saved position."
+      "text": "Space Sim and Flight starter list hud.throttle as a required slot, so their targets need a provider. Players hide the levers with Settings → HUD visibility → Throttle levers, which keeps the module loaded. Physics, saves, the navball, cameras and split screen do not depend on the lever."
+    },
+    {
+      "type": "paragraph",
+      "text": "To replace it, write a presentation module that lists hud.throttle in slots and provides hud.throttle@1.0.0 with its own HudInstrumentDefinition, then select it in the game profile with \"providers\": { \"hud.throttle\": \"your.module-id\" }. Send thrust only through FlightHudAdapter.setThrottle so that ownership checks still apply."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: the HUD contracts can still change before the API is frozen, and a breaking change will come with a migration note. The legacy presentation ID builtin.throttle is a compatibility record that keeps the on/off choice in older presentation profiles; new code uses THROTTLE_HUD."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/throttle-hud is a minimal replacement provider: a text readout with − and + buttons that fills hud.throttle@1.0.0. It shows the full instrument lifecycle and reads its step from a setting. Build and check it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/throttle-hud/module.json /tmp/throttle-readout.spacemod\nnpm run module:validate -- /tmp/throttle-readout.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api view-hud.ts: the instrument lifecycle and flight adapter contracts",
+      "page": "api-reference/game-api/view-hud"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Throttle HUD",
+      "page": "api-reference/module/spacelab.throttle-hud"
     }
   ]
 }

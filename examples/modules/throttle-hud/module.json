@@ -1,0 +1,52 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.throttle-readout",
+    "name": "Throttle readout example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline"
+    ],
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "hud.throttle",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [],
+    "slots": [
+      "hud.throttle"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {
+      "barWidth": {
+        "type": "number",
+        "default": 80,
+        "minimum": 20,
+        "maximum": 200,
+        "step": 1,
+        "label": "Readout bar width (px)",
+        "description": "Length in CSS pixels of the bar drawn under the readout at full thrust."
+      }
+    },
+    "license": "MIT",
+    "tier": "presentation"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

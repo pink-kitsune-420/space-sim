@@ -1,2 +1,2 @@
-/** Compatibility entry; implementation belongs to the editable transport package. */
+/** Host-only WebSocket transport compatibility entry (`packages/net`); implementation belongs to `modules/net-websocket`. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); use `WEBSOCKET_TRANSPORT` (`net.websocket@1.0.0`) from `@space-sim/game-api`. */
 export { DEFAULT_PORT, SOCKET_PATH, DEFAULT_MAX_TEXT_LENGTH, serverUrl, connectWebSocket } from '../../../modules/net-websocket/src/connection';

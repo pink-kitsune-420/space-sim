@@ -2,23 +2,101 @@
   "id": "usage",
   "audience": "creators",
   "title": "Manual reader and guide catalog",
-  "summary": "Shared Players/Creators navigation over documents and explicit trusted live-content adapters.",
+  "summary": "Optional Players/Creators navigation over shared documents with explicit live-content adapters.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "ui.manual@1.0.0 depends on ui.window-content@^1.0.0. It owns a removable guide catalog and independent reader instances. Each instance receives its book, root, optional preference storage and unique DOM ID prefix. It has no simulation, pilot, input or tutorial dependency."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Register structured document pages with stable IDs, title, summary and Players/Creators audience. Search includes contributed body text. Registration returns a lease; removing it refreshes readers and falls back to an available page. For staged replacement, register(pages, {replace: true}) temporarily shadows matching guide IDs: releasing the candidate restores the prior guides, while releasing the prior lease keeps the new guides. Duplicate IDs within one registration always fail. guides(audience) keeps contributed data discoverable by recovery/library UI without mounting a reader. Candidate guide assets remain owned by their host; no raw imported HTML is accepted as a document."
+      "text": "Provides the Manual reader and a removable catalog of guide pages. Readers navigate Players and Creators books over structured documents, search contributed body text and can mount trusted live content through host adapters. It has no simulation, pilot, input or tutorial dependency, and accepts no raw imported HTML."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.manual@1.0.0 through the MANUAL_READER service key: guide registration, guides(audience) and reader creation.",
+        "Fills the ui.manual slot in platform profiles.",
+        "Requires ui.window-content@^1.0.0 through the WINDOW_CONTENT service key: renders structured documents."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "For trusted live content, the host can provide a mount callback and a revision string. The game adapter owns input interpretation and template expansion; refresh updates the body only when the page or revision changes, preserving scroll and expanded explanations during chrome changes. The default Space Sim book is editable in modules/manual/src/content.ts and composed through apps/web/src/manual-content.ts; the app expands live keybindings when mounting it. The reader does not run tutorials."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures WINDOW_CONTENT, registers MANUAL_READER with the shared styles and contributes this guide.",
+        "register(pages, options) adds pages with a stable ID, title, summary and audience and returns a lease. Disposing it refreshes readers and falls back to an available page. register(pages, {replace: true}) shadows matching IDs: releasing the candidate restores earlier guides, releasing the earlier lease keeps the new ones. Duplicate IDs within one registration always fail.",
+        "guides(audience) lists contributed pages without mounting a reader, so recovery and library UIs can use them.",
+        "create(options) builds a reader from a book, root, optional preference storage and a unique idPrefix. A host-supplied mount callback and revision string enable trusted live content; refresh updates the body only when the page or revision changes. Storage failures leave navigation usable for the session.",
+        "Disposing a reader aborts its handlers and restores borrowed root children and classes. Disposing the provider disposes readers and styles and rejects new creation. Use separate idPrefix and storageKey values for independent readers."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "The provider owns reader instances and injected styles; each reader owns listeners, document mounts and navigation state. Dispose aborts handlers, removes reading resources and restores borrowed root children/classes. Factories reject creation after disposal. Storage failures leave navigation usable for the session. Use a separate idPrefix and storageKey for independent readers; live controls can be omitted."
+      "text": "Provide another ui.manual@1.0.0 implementation in the ui.manual slot to change how guides are presented. Removing the module removes the reader and guide catalog; other modules keep working, but contributed guides are no longer shown in game. The default Space Sim book lives in modules/manual/src/content.ts and is composed by the app."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.2 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: details may change before the final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/manual publishes and withdraws a Creators guide page through the public ui.manual service. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/manual/module.json /tmp/example-manual.spacemod\nnpm run module:validate -- /tmp/example-manual.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Manual reader and guide catalog",
+      "page": "api-reference/module/spacelab.manual"
+    },
+    {
+      "type": "link",
+      "text": "game-api: manual.ts",
+      "page": "api-reference/game-api/manual"
+    },
+    {
+      "type": "link",
+      "text": "game-api: window-content.ts",
+      "page": "api-reference/game-api/window-content"
     }
   ]
 }

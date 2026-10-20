@@ -2,7 +2,7 @@
   "id": "flight",
   "audience": "players",
   "title": "Orbit trainer flight",
-  "summary": "Orbit trainer flight",
+  "summary": "Simple turn, throttle and engine controls.",
   "blocks": [
     {
       "type": "paragraph",

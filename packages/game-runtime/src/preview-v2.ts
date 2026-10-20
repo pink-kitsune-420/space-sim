@@ -1,9 +1,11 @@
+/** Host-only (`packages/game-runtime`): ModMenu previews of module selection changes. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); it has no module-facing equivalent. */
 import type { HostServiceAccess, ManifestV2, ModuleEnvironment, ModuleLockV2, ModuleProfileV2 } from '../../game-api/src/index';
 import { permitsDependency, resolveModulesV2 } from './resolver-v2';
 import { satisfies } from './semver';
 import { freezeJson } from './validation';
 import { validateProfileV2 } from './validation-v2';
 
+/** Result of `previewModulesV2`: checked profile and lock, added, removed and replaced modules, changed provider slots, dependency reasons and whether applying it restarts the world (any change beyond presentation modules does). Host-only (`packages/game-runtime`). */
 export interface ModuleChangePreview {
   readonly profile: ModuleProfileV2;
   readonly lock: ModuleLockV2;

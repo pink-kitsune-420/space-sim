@@ -59,6 +59,10 @@ export function createOrbitalAlarms():OrbitalAlarmFactory & OrbitalAlarmCatalogu
   dispose(){if(disposed)return;disposed=true;for(const clock of clocks.keys())clock.dispose();clocks.clear();},
  });
 }
+/**
+ * Contributes isolated simulation-time orbital alarm clocks and read-only event catalogue.
+ * Provides flight.alarms@1.0.0 and flight.alarm-catalogue@1.0.0 in their respective slots.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  const alarms=context.own(createOrbitalAlarms());
  context.provide(ORBITAL_ALARMS,alarms);context.provide(ALARM_CATALOGUE,alarms);

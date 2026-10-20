@@ -2,11 +2,96 @@
   "id": "usage",
   "audience": "creators",
   "title": "Universe save controls",
-  "summary": "Universe save controls",
+  "summary": "Independent Save universe / Load universe UI over explicit commands and file storage.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "ui.universe-saves@1.0.0 requires universe.files. Mount over caller-owned universe save commands, borrowing explicit buttons/file input or creating independent controls. Save universe and Load universe use .spaceuniverse files. Disposal aborts pending operations, removes listeners, restores generated DOM and suppresses stale notifications. Hosts retain availability and permission checks. No module enables code from a save."
+      "text": "This module provides mounting for Save universe and Load universe buttons and a file selection picker into a DOM container element. It connects user click and file selection events to caller-owned universe save commands and browser file reader and download services. It tracks busy state to disallow concurrent operations, invokes caller callbacks on success or failure, and cleanly restores original DOM children upon disposal."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.universe-saves@1.0.0 through the UNIVERSE_SAVE_CONTROLS service key: mounts Save and Load universe UI controls.",
+        "Fills the ui.universe-saves slot in platform profiles.",
+        "Requires universe.files@^1.0.0 through the UNIVERSE_FILES service key: performs browser file reading and download triggering."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures UNIVERSE_FILES, registers UNIVERSE_SAVE_CONTROLS, and contributes this guide.",
+        "mount(options) borrows caller-provided buttons or creates default Save universe and Load universe DOM buttons and a hidden file input inside options.root.",
+        "Save button click triggers commands.save using files.write, notifying options.saved upon successful completion.",
+        "Load button click triggers file input picker, and file selection invokes commands.load using files.read, notifying options.loaded.",
+        "dispose detaches event listeners, aborts in-flight control operations, restores original DOM children, and clears control references."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize save dialog styling or replace default buttons with a custom menu widget, provide an alternative ui.universe-saves@1.0.0 implementation in the ui.universe-saves slot. Removing this module omits the default Save and Load DOM controls from pause menus and navigation shells."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: button identifiers, prefixes, and event handling semantics may evolve before final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/universe-save-controls demonstrates mounting Save and Load controls and handling operation callbacks. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/universe-save-controls/module.json /tmp/example-universe-save-controls.spacemod\nnpm run module:validate -- /tmp/example-universe-save-controls.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Universe save controls",
+      "page": "api-reference/module/spacelab.universe-save-controls"
+    },
+    {
+      "type": "link",
+      "text": "game-api: universe-saving.ts",
+      "page": "api-reference/game-api/universe-saving"
     }
   ]
 }

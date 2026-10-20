@@ -3,6 +3,7 @@ import { CHAT_STYLE } from './style';
 import { CHAT_TEMPLATE } from './template';
 import { initChatWindow } from './layout';
 
+/** Construct a chat console UI instance mounted inside options.root. */
 export function createChatConsole(options: ChatConsoleOptions): ChatConsole {
   const historyLines=options.historyLines??60;
   if(!Number.isInteger(historyLines)||historyLines<1||historyLines>1000)throw new Error('Chat history must retain 1–1000 lines');
@@ -146,6 +147,7 @@ export function createChatConsole(options: ChatConsoleOptions): ChatConsole {
     }
   };
 }
+/** Initialize the chat console UI module, providing ui.chat@1.0.0. */
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Chat console', summary: 'Optional session chat and command UI with owned DOM lifecycle.', asset: 'docs/creators/usage.json' });
   const consoles = new Set<ChatConsole>(); let disposed = false;

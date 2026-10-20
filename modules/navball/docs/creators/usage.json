@@ -1,16 +1,105 @@
 {
   "id": "usage",
   "audience": "creators",
-  "title": "Navball HUD",
-  "summary": "Optional flight instrument using the shared HUD lifecycle.",
+  "title": "Per-view navball",
+  "summary": "Optional attitude instrument using the shared HUD lifecycle.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Use this optional instrument definition through ui.view-hud@1.0.0 with view.flight-hud-state@1.0.0. Every seat follows the same create/rebind/resize/update/dispose path. The read-only flight adapter supplies detached quantities, cached geometry and local preferences. Commands recheck current target ownership and suppression through the adapter. Removing the definition releases gestures, controls and subscriptions; physics, vehicles, split screen and cameras remain independent."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Configuration: frame is 0 automatic, 1 orbital or 2 surface; orientation is 0 horizon-up or 1 camera-relative. Defaults preserve current instruments. These settings apply to this contribution; per-view placement and player preferences stay local."
+      "text": "This module provides a flight attitude and velocity vector navball instrument rendered as vector overlay primitives. It displays ship pitch, heading, roll, prograde, retrograde, normal, anti-normal, radial, anti-radial, and maneuver target vectors across orbital and rotating surface reference frames without modifying flight mechanics."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides hud.navball@1.0.0 through the NAVBALL_HUD service key: provides the navball HudInstrumentDefinition for ViewHud hosting.",
+        "Fills the hud.navball slot in presentation profiles.",
+        "Requires no external services in its module manifest."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "frame (default 0, from 0 to 2, step 1): Velocity reference frame mode: 0 automatically selects surface or orbital frame, 1 forces orbital frame, and 2 forces rotating surface frame.",
+        "orientation (default 0, from 0 to 1, step 1): Attitude dial orientation: 0 keeps local horizon upright, 1 rotates dial with camera orientation.",
+        "minimumSpeed (default 0.05, from 0 to 10, step 0.01): Direction marker noise floor in metres per second. Hides prograde/retrograde markers below this speed without modifying physics."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures frame, orientation, and minimumSpeed settings, contributes this guide, and provides NAVBALL_HUD.",
+        "The instrument creates per-view instances using FLIGHT_HUD_STATE adapters supplied by the HUD context.",
+        "draw(into) samples ship attitude, velocity vectors, and maneuver nodes, pushing vector overlay circles, crosshairs, and markers into the overlay buffer.",
+        "dispose clears cached frame references and releases gesture bindings."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To replace attitude indicator styling, implement hud.navball@1.0.0 in the hud.navball slot. Removing this module omits the spherical navball dial from HUD views while leaving other telemetry instruments active."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: attitude projection algorithms and marker drawing contracts may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/navball demonstrates creating a navball instrument instance and rendering attitude vector overlays. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/navball/module.json /tmp/example-navball.spacemod\nnpm run module:validate -- /tmp/example-navball.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Per-view navball",
+      "page": "api-reference/module/builtin.navball"
+    },
+    {
+      "type": "link",
+      "text": "Shared view HUD lifecycle: instrument management and surfaces",
+      "page": "spacelab.view-hud/usage"
+    },
+    {
+      "type": "link",
+      "text": "game-api view-hud.ts: HUD instruments and surface interfaces",
+      "page": "api-reference/game-api/view-hud"
     }
   ]
 }
