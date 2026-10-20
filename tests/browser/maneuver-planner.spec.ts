@@ -332,7 +332,7 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await page.locator('#maneuver-transfers-tab').click();
  await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
  await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
- await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-results [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
+ await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
  await expect(page.locator('#maneuver-transfer-support')).toContainText('not supported');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
@@ -667,6 +667,7 @@ test('the production Transfer picker searches collapsed Solar System moons and k
  await page.getByRole('button',{name:'Transfers',exact:true}).click();
  await expect(page.locator('#maneuver-transfer-context')).toContainText('Current body: Earth · parent: Sun');
  await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();
+ await expect(page.locator('#maneuver-transfer-picker details > summary')).toHaveText(['Local maneuvers','Interplanetary','Star']);
  await page.screenshot({path:info.outputPath('destination-local-earth.png')});
  await page.locator('#maneuver-transfer-browser summary').click();
  await page.locator('#maneuver-transfer-results [data-browse="jupiter"]').click();
@@ -675,7 +676,7 @@ test('the production Transfer picker searches collapsed Solar System moons and k
  await page.screenshot({path:info.outputPath('destination-system-browser.png')});
  await page.setViewportSize({width:390,height:560});
  await page.locator('#maneuver-transfer-query').fill('titan');
- await page.locator('#maneuver-transfer-results [data-destination="titan"]').click();
+ await page.locator('#maneuver-transfer-matches [data-destination="titan"]').click();
  await expect(page.locator('#maneuver-transfer-destination')).toHaveText('Titan · Saturn · Sun');
  const geometry=await page.locator('#maneuver-window').evaluate(el=>{const panel=el.getBoundingClientRect(),body=el.querySelector('.flight-window-body')!.getBoundingClientRect(),selected=el.querySelector('#maneuver-transfer-destination')!.getBoundingClientRect();return{width:panel.width,overflow:el.scrollWidth-el.clientWidth,selectedTop:selected.top,bodyTop:body.top,selectedBottom:selected.bottom,bodyBottom:body.bottom};});
  expect(geometry.width).toBeLessThanOrEqual(390);expect(geometry.overflow).toBeLessThanOrEqual(1);expect(geometry.selectedTop).toBeGreaterThanOrEqual(geometry.bodyTop);expect(geometry.selectedBottom).toBeLessThanOrEqual(geometry.bodyBottom);

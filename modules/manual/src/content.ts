@@ -418,11 +418,12 @@ Direct parent/child and sibling bodies sharing a parent are supported; deeper de
 <p>The search validates actual moving SOI handoffs, contact and a safe target revolution. Generated plans remain inert.
 Review actual flight after departure and after a reference-body change before choosing arrival execution.
 Both starting and target orbits may be elliptical. A long finite burn can change an encounter substantially.</p>
-<p><b>Local</b> shortcuts follow the ship’s current orbital body: change its orbit, visit a child or sibling body, or transfer to its parent.
-They show relationships accepted by the selected provider, not whichever body is physically closest. Acceptance does not guarantee a safe trajectory.</p>
-<p>Open <b>Browse or search all destinations</b> for other systems. Choose a body’s name to select it, or its separate <b>Browse</b> button to see bodies orbiting it.
-Search finds bodies even inside collapsed systems; results and the selected destination show their parent context.
-Use Tab to enter a destination list, ↑/↓ or Home/End to move, and Enter or Space to choose. <b>Clear</b> returns from search to browsing.</p>
+<p><b>Local maneuvers</b> comes first: change your current orbit, visit a moon, return from a moon to its planet, or transfer between sibling moons.
+These are orbital relationships, not whichever body is physically closest. Local shortcuts show relationships accepted by the selected provider; acceptance does not guarantee a safe trajectory.</p>
+<p>Next, open <b>Interplanetary</b> to choose another planet. Its separate <b>Moons</b> button lets you choose a moon as your destination instead.
+You can browse deeper hierarchies through <b>Orbiting bodies</b>. <b>Star</b> comes last, so the central star does not interrupt local moon choices.</p>
+<p><b>Find any destination</b> searches every group, even when collapsed. Search results identify the parent body, and the selected destination shows its full parent context.
+Use Tab to enter a destination list, ↑/↓ or Home/End to move, and Enter or Space to choose. <b>Clear</b> restores the three sections and your previous browsing level.</p>
 <p>Browsing and filtering leave the selected destination and any search running. Choosing a new destination clears old transfer results.
 All bodies remain discoverable; selecting an unsupported relationship explains the limit. Deeper transfers need separately planned legs; the planner does not assemble a route.
 See <a data-page="moon-flight">Reaching Parvus</a> for the manual flight lesson.</p>

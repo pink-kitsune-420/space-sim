@@ -76,3 +76,6 @@
 .transfer-search label { grid-column: 1 / -1; font-size: 11px; }
 @media (max-height: 600px) { .transfer-destinations { max-height: 100px; } }
 .maneuver-window .transfer-search input { color: inherit; background: #0b1721; border: 1px solid #36566a; border-radius: 4px; font: inherit; padding: 5px; }
+.transfer-picker summary { color: #e3ecee; font-size: 12px !important; opacity: 1 !important; }
+.transfer-picker details > .transfer-destinations, .transfer-picker details > nav { margin-top: 5px; }
+.transfer-picker [data-destination] small { display: block; margin-top: 2px; color: #9fb3ba; font-size: 10px; }
