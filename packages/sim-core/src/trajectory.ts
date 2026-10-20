@@ -1,4 +1,5 @@
 import type { GhostEnd, GhostSample, LoadedSystem, ResolvedBody, SimulationContext, State, SurfaceProfile } from '../../game-api/src/index';
+import { MAX_FLIGHT_PLAN_SECONDS } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import * as dm from './dmath';
 import { contactFraction, ghostSample } from './context';
@@ -33,7 +34,7 @@ export function frameSample(sample: GhostSample, bodyId: string, frameId: string
 export function* predictTrajectory(context: SimulationContext, initial: State, initialBody: ResolvedBody,
   system: LoadedSystem, surfaces: ReadonlyMap<string, SurfaceProfile>, coarse = false, endTime?: number): Generator<GhostSample, GhostEnd> {
   if (initial.status !== 'flying') return 'grounded';
-  if (endTime !== undefined && (!Number.isFinite(endTime) || endTime < initial.time || endTime > initial.time + TRAJECTORY_MAX_SECONDS)) return 'failed';
+  if (endTime !== undefined && (!Number.isFinite(endTime) || endTime < initial.time || endTime > initial.time + MAX_FLIGHT_PLAN_SECONDS)) return 'failed';
   let state = initial, body = initialBody, transitions = 0;
   const frameId = initialBody.id, orbits = context.services.orbits;
   const initialOrbit = orbits.elements(initial, body.mu);

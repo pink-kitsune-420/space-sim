@@ -377,7 +377,7 @@ Loaded plans need review before use. A plan file alone does not move your ship o
 <p>Plans store intent and reminder preferences. Loading, reviewing or generating a plan never arms a burn. Automatic execution permission is never saved or imported.
 The current editor saves its plans locally or with your universe file; it does not broadcast them to other pilots.</p>
 ${deeper('compatibility and limits', `
-<p>The shared plan service supports up to 16 time-ordered nodes per ship, within one year of the plan epoch.
+<p>The shared plan service supports up to 16 time-ordered nodes per ship, within 100 Julian years of the plan epoch.
 It checks the ship, universe, system, physics identity, motion model and safe coast intervals.
 Each node names its body. Supported moving SOI handoffs are evaluated at the planned time with position and velocity frame changes. Contact or prediction limits can invalidate a leg; actual flight still needs review before later execution.</p>
 <p>The default game supplies the optional shared plan service. If a custom game omits it, the editor can retain
@@ -414,7 +414,7 @@ Both must clear the highest terrain; low must not exceed high. Heights are measu
 <h3>Moon and planet transfers</h3>
 <p>From a safe orbit around Primus, choose <b>Parvus</b> and a circular altitude of <b>100 m</b> for a moon transfer.
 Compare the sampled windows, then adopt the editable departure and arrival nodes. Planet transfers work between sibling planets around the same star.
-Direct parent/child and sibling bodies sharing a parent are supported; deeper destinations need separate legs.</p>
+Choose a final moon even in another planetary system. The default provider compares direct trips with routes that park around intermediate bodies, then presents the complete route and every burn.</p>
 <p>The search validates actual moving SOI handoffs, contact and a safe target revolution. Generated plans remain inert.
 Review actual flight after departure and after a reference-body change before choosing arrival execution.
 Both starting and target orbits may be elliptical. A long finite burn can change an encounter substantially.</p>
@@ -425,15 +425,15 @@ You can browse deeper hierarchies through <b>Orbiting bodies</b>. <b>Star</b> co
 <p><b>Find any destination</b> searches every group, even when collapsed. Search results identify the parent body, and the selected destination shows its full parent context.
 Use Tab to enter a destination list, ↑/↓ or Home/End to move, and Enter or Space to choose. <b>Clear</b> restores the three sections and your previous browsing level.</p>
 <p>Browsing and filtering leave the selected destination and any search running. Choosing a new destination clears old transfer results.
-All bodies remain discoverable; selecting an unsupported relationship explains the limit. Deeper transfers need separately planned legs; the planner does not assemble a route.
+All bodies remain discoverable; selecting an unsupported relationship explains the selected provider’s limit. Set <b>Maximum mission time</b> to include waiting and all legs, up to 100 Julian years. Results show the route, parking stops, burn count and total Δv before adoption.
 See <a data-page="moon-flight">Reaching Parvus</a> for the manual flight lesson.</p>
 ${deeper('what efficient and faster mean', `
 <p><b>Efficient</b> has the smallest total impulse cost among the validated sampled opportunities.
 <b>Faster</b>, when available, arrives earlier after including both wait and travel time.
 Neither label promises a global optimum. There may be no meaningfully faster validated result.</p>
 <p>The search is bounded and uses the selected motion and prediction services to reject unsafe or unsupported candidates.
-The result is still an <b>impulsive estimate</b>. Long finite burns can materially change the arrival;
-review after departure and read any warning beside the option.</p>
+Interbody routes are checked with the selected finite-burn controller, moving SOI transitions and a full safe revolution at each capture. Same-body orbit changes remain labelled <b>impulsive estimates</b>.
+Review actual encounters and remaining burns during flight; a changed trajectory may still require replanning.</p>
 <p>Thrust or changed flight conditions invalidate search results. Changing the destination or target heights requires a new search.
 An expired preparation window also needs a new search. Use <b>Cancel search</b> to stop a search.</p>`)}`,
   },
@@ -591,7 +591,7 @@ and their current-throttle duration. Execute each burn separately and review act
 </ol>
 <p><b>Check:</b> entering the SOI is an encounter. Capture means you now have a bound, terrain-clearing moon orbit
 that stays within its SOI; otherwise you may fly past and return to Primus.</p>
-<p class="manual-note">Generated windows are bounded impulsive estimates. A finite burn can change the encounter;
+<p class="manual-note">Generated windows are bounded sampled plans. Interbody routes include finite-burn checks; actual flight still needs encounter review;
 check the forecast and review or adjust the moon-centred arrival node before capture.
 See <a data-page="transfers">Transfer windows</a> for supported destinations and search limits.</p>
 ${deeper('a first estimate for the departure window', `

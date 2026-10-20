@@ -30,7 +30,7 @@ it('chains circular and elliptical incoming states through both impulses without
 it('rejects malformed archives, unsupported future/body conditions, and keeps unknown arming data out of decoded intent',()=>{
  const service=createFlightPlans(),world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),plan=service.capture(world,ship,nodes);
  const read=(value:unknown)=>service.read({format:'space-sim-flight-plans/1',plans:[value]});
- for(const edited of [{...plan,nodes:[nodes[0],nodes[0]]},{...plan,nodes:[{...nodes[0]!,time:Infinity}]},{...plan,nodes:[{...nodes[0]!,time:4e7}]},{...plan,nodes:new Array(17).fill(nodes[0])}])expect(()=>read(edited)).toThrow('Flight plan:');
+ for(const edited of [{...plan,nodes:[nodes[0],nodes[0]]},{...plan,nodes:[{...nodes[0]!,time:Infinity}]},{...plan,nodes:[{...nodes[0]!,time:4e9}]},{...plan,nodes:new Array(17).fill(nodes[0])}])expect(()=>read(edited)).toThrow('Flight plan:');
  const decoded=read({...plan,armed:true,nodes:plan.nodes.map(node=>({...node,engine:true,execute:true}))});
  expect(JSON.stringify(decoded)).not.toMatch(/armed|engine|execute/);
  expect(service.evaluate({...plan,nodes:[{...nodes[0]!,bodyId:'moon'}]},world)[0]!.reason).toContain('Later-body');

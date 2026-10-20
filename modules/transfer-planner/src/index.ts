@@ -1,5 +1,5 @@
-import { FLIGHT_PLANS, TRANSFERS, maneuverDelta,
- type FlightPlanNode, type FlightPlanService, type ModuleInitializationV2, type State, type TransferOption,
+import { MAX_FLIGHT_PLAN_SECONDS, FLIGHT_PLANS, TRANSFERS, maneuverDelta,
+ type ManeuverBurnFactory, type FlightPlanNode, type FlightPlanService, type ModuleInitializationV2, type State, type TransferOption,
  type TransferPlanner, type TransferResult } from '@space-sim/game-api';
 
 const MAX_SECONDS=365.25*86400;
@@ -7,12 +7,19 @@ const FACTORS=[1,1.25,1.6,2,4,8,.9,.75,.5,.25] as const;
 import {burnsFit,deltaComponents,radius,tolerance,transferOptions} from './math';
 export {deltaComponents} from './math';
 import {searchInterbody} from './interbody';
+import {searchRoutes} from './routes';
 const unsupported=(reason:string):TransferResult=>({options:[],reason});
-export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
- return Object.freeze<TransferPlanner>({relationships:Object.freeze(['same-body','child','parent','sibling'] as const),*search(world,request){
+export function createTransferPlanner(plans:FlightPlanService,burns?:ManeuverBurnFactory):TransferPlanner {
+ if(burns){
+  const qualified=plans.withBurns?.(burns);
+  if(qualified?.simulateBurn&&qualified.refineCapture&&qualified.evaluateAsync)plans=qualified;else burns=undefined;
+ }
+ return Object.freeze<TransferPlanner>({withBurns:controller=>createTransferPlanner(plans,controller),maxFlightSeconds:burns?MAX_FLIGHT_PLAN_SECONDS:undefined,defaultFlightSeconds:burns?50*365.25*86400:undefined,relationships:Object.freeze(burns?['same-body','child','parent','sibling','other'] as const:['same-body','child','parent','sibling'] as const),*search(world,request){
   const ship=world.ship(request.shipId);
   if(!ship||ship.state.status!=='flying')return unsupported('Choose a flying ship in a bound orbit.');
-  if(request.destinationId!==ship.bodyId)return yield* searchInterbody(plans,world,request);
+  if(request.destinationId!==ship.bodyId)return yield* (burns?searchRoutes(plans,world,request,burns):searchInterbody(plans,world,request));
+  const maxSeconds=request.maxFlightSeconds??(burns?50*MAX_SECONDS:MAX_SECONDS);
+  if(!(Number.isFinite(maxSeconds)&&maxSeconds>30&&maxSeconds<=MAX_FLIGHT_PLAN_SECONDS))return unsupported('Choose a mission duration between 30 seconds and 100 Julian years.');
   if(ship.controls.engine)return unsupported('Stop thrust before searching for a transfer.');
   const context=world.contextFor(ship).cloneForPrediction(),body=world.body(ship.bodyId),surface=world.surface(body.id),orbits=context.services.orbits;
   try {
@@ -54,7 +61,7 @@ export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
     if(direct)travel=Math.abs(rp-ra)<=tolerance(ra)? .01 : Math.PI*Math.sqrt(((rp+ra)/2)**3/body.mu);
     else if(factor===1)travel=Math.PI*Math.sqrt(((r1+target)/2)**3/body.mu);
     else travel=orbits.timeToRadius(transfer,body.mu,target,r1<target?'outbound':'inbound');
-    if(!(travel!==null&&travel>0&&Number.isFinite(travel))||departure+travel>start.time+MAX_SECONDS)continue;
+    if(!(travel!==null&&travel>0&&Number.isFinite(travel))||departure+travel>start.time+maxSeconds)continue;
     const solved=orbits.propagate(transfer,body.mu,travel);if(!solved.ok)continue;
     const r2=radius(solved.state.position),expected=direct&&Math.abs(rp-ra)>tolerance(ra)?other:target;
     if(Math.abs(r2-expected)>tolerance(expected))continue;
@@ -70,7 +77,8 @@ export function createTransferPlanner(plans:FlightPlanService):TransferPlanner {
     if(final.apoapsis===null||Math.abs(final.periapsis-rp)>tolerance(rp)||Math.abs(final.apoapsis-ra)>tolerance(ra))continue;
     // Validate the actual selected world predictor through arrival, preserving terrain
     // and SOI checks. No candidate is accepted from formulas alone.
-    const forecast=world.predictShip(ship.id,false,{state:evaluated[0]!.after!,bodyId:body.id});let reached=false;
+    if(travel>MAX_SECONDS&&!world.predictionFeatures.endTime)return unsupported('Multi-year orbit changes need exact-end-time prediction support.');
+    const forecast=world.predictShip(ship.id,false,{state:evaluated[0]!.after!,bodyId:body.id,...(world.predictionFeatures.endTime?{until:arrival.time}:{})});let reached=false;
     try {
      for(let count=0;count<16384;count++) {
       const step=forecast.next();if(step.done){lastReason=`Prediction ended before arrival (${step.value}).`;break;}

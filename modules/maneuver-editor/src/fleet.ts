@@ -1,3 +1,4 @@
+import { flightSampleInFrame, flightTimeTolerance } from '@space-sim/game-api';
 import { deterministicMath as dm, maneuverDelta, type Controls, type EvaluatedFlightNode, type FlightPlan, type FlightPlanNode, type FlightPlanProgress, type FlightPlanService, type ManeuverBurnControl, type ManeuverBurnFactory, type ManeuverPlannerOptions, type State, type WorldRead, type Ship,type ClockService, type CoreMotion } from '@space-sim/game-api';
 import {findEncounter,prepareArrival,type EncounterResult,type ArrivalResult} from './encounter';
 
@@ -17,6 +18,8 @@ interface Run {
  arrivalJob?:Generator<void,ArrivalResult>;
  proposal?:{correction:FlightPlanNode;arrival:FlightPlanNode};
  encounter?:{time:number;bodyId:string};
+ futureArrival?:boolean;
+ preparedArrival?:string;
  awaitingBody?:string;
  enteredBody?:string;
  node?: EvaluatedFlightNode;
@@ -95,9 +98,9 @@ export class FleetPlansRunner {
    run.awaitingBody=next.bodyId;run.encounterJob=findEncounter(run.world,ship.id,next.bodyId,next.time);
    run.status=`Checking the actual coast to ${run.world.body(next.bodyId).name}…`;return;
   }
-  if(!arrivalPrepared&&next&&(run.awaitingBody===ship.bodyId||next.targetOrbit&&(next.time<=ship.state.time||this.store.nodes(ship.id).some(node=>node.completed&&node.bodyId!==next.bodyId)))){
+  if(!arrivalPrepared&&next&&run.preparedArrival!==next.id&&(run.awaitingBody===ship.bodyId||next.targetOrbit&&(next.time<=ship.state.time||this.store.nodes(ship.id).some(node=>node.completed&&node.bodyId!==next.bodyId)))){
    run.enteredBody=ship.bodyId;
-   if(next.targetOrbit){run.arrivalJob=prepareArrival(run.world,ship.id,next,this.burns);run.status='Reviewing capture against the actual encounter…';return;}
+   if(next.targetOrbit){run.arrivalJob=prepareArrival(run.world,ship.id,next,this.burns,undefined,this.plans);run.status='Reviewing capture against the actual encounter…';return;}
    run.awaitingBody=undefined;
    if(next.time<=ship.state.time){this.fail(run,'Encounter reached. This older node has no target orbit; choose an arrival orbit and replan before burning.');return;}
   }
@@ -142,6 +145,12 @@ export class FleetPlansRunner {
     run.encounterJob=undefined;
     if(!result.value.entry){this.fail(run,result.value.reason);break;}
     run.encounter={time:result.value.entry.time,bodyId:run.awaitingBody!};run.prepareAt=result.value.entry.time;
+    const next=this.store.nodes(run.shipId).find(node=>!node.completed);
+    if(next?.finite&&next.targetOrbit){
+     const local=flightSampleInFrame(result.value.entry,run.awaitingBody!,run.world.system),actual=run.world.ship(run.shipId)!;
+     run.futureArrival=true;run.arrivalJob=prepareArrival(run.world,run.shipId,next,this.burns,{...actual.state,time:local.time,position:local.position,velocity:local.velocity,coast:undefined},this.plans);
+     run.status='Checking finite capture before the encounter…';continue;
+    }
     run.status=`Coasting to ${run.world.body(run.encounter.bodyId).name} · capture review at SOI entry`;break;
    }
    if(run.arrivalJob){
@@ -155,7 +164,9 @@ export class FleetPlansRunner {
      run.status=run.once?'Correction prepared · stopping warp for review':'Validated correction prepared · continuing automatic plan';break;
     }
     if(!this.store.retargeted){this.fail(run,'Encounter reached. This host cannot update the arrival; review and replan before burning.');break;}
-    this.store.retargeted(run.shipId,result.value.node);run.awaitingBody=undefined;this.review(run,true);continue;
+    this.store.retargeted(run.shipId,result.value.node);
+    if(run.futureArrival){run.futureArrival=false;run.preparedArrival=result.value.node.id;run.status=`Coasting to ${run.world.body(result.value.node.bodyId).name} · finite capture checked`;break;}
+    run.awaitingBody=undefined;this.review(run,true);continue;
    }
    const result=run.job!.next();if(result.done){this.reviewed(run,result.value);break;}
   }
@@ -281,7 +292,7 @@ export class FleetPlansRunner {
   this.store.completed(run.shipId, node.intent.id);
   this.options.notify(`${run.world.ship(run.shipId)?.name ?? 'Ship'}: ${node.intent.label} complete. Engine off.`);
   run.plan = undefined; run.node = undefined;run.prepareAt=undefined;run.preparing=false;
-  run.awaitingBody=undefined;run.enteredBody=undefined;run.encounter=undefined;
+  run.awaitingBody=undefined;run.enteredBody=undefined;run.encounter=undefined;run.preparedArrival=undefined;run.futureArrival=false;
   if (run.once || !this.store.nodes(run.shipId).some(value => !value.completed)) this.stop(run.shipId);
  }
  /** Called before every compatible fixed tick, including for unselected ships. */
@@ -299,7 +310,7 @@ export class FleetPlansRunner {
     || this.options.flight().requestedWarp !== 1 && !(this.alignmentWarp>1&&flight.requestedWarp===this.alignmentWarp&&burn.phase==='aligning') || !this.options.fleet?.owns(run.shipId) || !ship || ship.bodyId !== run.bodyId || ship.state.status !== 'flying' || ship.fault) {
     this.fail(run, 'Burn conditions changed.'); continue;
    }
-   if (expected && (Math.abs(ship.state.time - expected.time) > 1e-7 || Math.hypot(ship.state.position.x - expected.position.x, ship.state.position.y - expected.position.y) > .001
+   if (expected && (Math.abs(ship.state.time - expected.time) > flightTimeTolerance(ship.state.time) || Math.hypot(ship.state.position.x - expected.position.x, ship.state.position.y - expected.position.y) > .001
     || Math.hypot(ship.state.velocity.x - expected.velocity.x, ship.state.velocity.y - expected.velocity.y) > 1e-5 || ship.state.heading !== expected.heading || ship.state.throttle !== expected.throttle)) {
     this.fail(run, 'Trajectory or throttle changed during burn.'); continue;
    }

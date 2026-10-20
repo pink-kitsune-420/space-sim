@@ -11,6 +11,10 @@
     {
       "type": "paragraph",
       "text": "Optional node.targetOrbit stores ordered finite nonnegative periapsisAltitude/apoapsisAltitude in metres above the node body reference radius. It is portable inert intent, with no execution/arming permission. An explicitly authorized arrival reviewer may use it to propose a capture from actual flight; ordinary evaluate/evaluateAsync never retime nodes or execute controls. Older nodes without this goal remain readable."
+    },
+    {
+      "type": "paragraph",
+      "text": "Explicit plans allow at most100 Julian years after their epoch, while default display prediction retains its shorter cap. Optional boolean node.finite requests selected finite-controller evaluation through evaluateAsync; synchronous evaluate returns a progressive-evaluation diagnostic for these nodes. The host binds its selected flight.maneuver-burn controller through withBurns; presentation providers do not import platform services. Absence never silently treats finite intent as an impulse. simulateBurn and refineCapture are detached cancellable generators using the supplied selected controller, terrain/SOI safety, bounded work and max(.01m,radius*1e-7) capture-apsis tolerance. No live authority or execution permission is modified. Absolute-time comparisons account for double-precision spacing at multi-year epochs."
     }
   ]
 }

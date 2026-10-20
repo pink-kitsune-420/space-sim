@@ -98,3 +98,9 @@ it('limits faster alternatives to twice the cost and at least ten percent earlie
   }
  }finally{world.dispose();}
 });
+
+it('honors the total mission limit for same-body orbit changes too',()=>{
+ const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),plans=createFlightPlans(),solver=createTransferPlanner(plans),job=solver.search(world,{shipId:ship.id,destinationId:ship.bodyId,periapsisAltitude:1536,apoapsisAltitude:1536,maxFlightSeconds:31});
+ try{let result;for(let i=0;i<10000;i++){const step=job.next();if(step.done){result=step.value;break;}}expect(result?.options).toEqual([]);}
+ finally{job.return({options:[],reason:'cancelled'});world.dispose();}
+});

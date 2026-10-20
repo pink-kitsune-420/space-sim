@@ -1,7 +1,7 @@
-import {deterministicMath as dm,flightSampleInFrame,type FlightPlanNode,type GhostSample,type ManeuverBurnFactory,type State,type WorldRead} from '@space-sim/game-api';
+import {MAX_FLIGHT_PLAN_SECONDS,flightTimeTolerance,deterministicMath as dm,flightSampleInFrame,type FlightPlanService,type FlightPlanNode,type GhostSample,type ManeuverBurnFactory,type State,type WorldRead} from '@space-sim/game-api';
 
 export interface EncounterResult { readonly entry?: GhostSample; readonly reason: string }
-const YEAR_SECONDS=365.25*86400;
+const YEAR_SECONDS=MAX_FLIGHT_PLAN_SECONDS;
 /** Detached encounter search. An outdated burn time is a lookahead hint, never an
  * instruction to thrust, teleport, skip an SOI, or keep warping indefinitely. */
 export function* findEncounter(world:WorldRead,shipId:string,bodyId:string,plannedTime:number):Generator<void,EncounterResult> {
@@ -29,17 +29,21 @@ export interface ArrivalResult {readonly node?:FlightPlanNode;readonly correctio
 /** Rebuild a single capture at a reachable radius of the original target conic.
  * Formulae only propose; shared coast, finite thrust and a full capture revolution
  * must all validate before this detached job returns executable intent. */
-export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory,seed?:State):Generator<void,ArrivalResult>{
- const actual=world.ship(shipId),ship=actual&&seed?{...actual,state:seed}:actual,goal=node.targetOrbit;
+export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory,seed?:State,plans?:FlightPlanService):Generator<void,ArrivalResult>{
+ const actual=world.ship(shipId),ship=actual&&seed?{...actual,bodyId:node.bodyId,state:seed}:actual,goal=node.targetOrbit;
  if(!ship||ship.bodyId!==node.bodyId)return {reason:'Wait for the verified destination encounter before reviewing capture.'};
  if(!goal)return {reason:'Encounter reached. This older node has no target orbit; choose an arrival orbit and replan before burning.'};
  const context=world.contextFor(ship).cloneForPrediction(),body=world.body(ship.bodyId),surface=world.surface(body.id),top=surface?.bounds.maxRadius??body.radius;
  try{
   const rp=body.radius+goal.periapsisAltitude,ra=body.radius+goal.apoapsisAltitude;
   if(!(rp>top+.01&&ra>=rp&&(!body.parentId||ra<body.soi.exitMetres)))return {reason:'The target orbit does not clear the terrain and destination SOI.'};
+  if(node.finite&&plans?.refineCapture&&node.time>ship.state.time){
+   const result=yield* plans.refineCapture(world,ship,node,burns);
+   if(result.node)return {node:result.node,reason:''};
+  }
   const incoming=context.services.orbits.elements(ship.state,body.mu),atRadius=Math.max(rp,incoming.periapsis),slack=Math.max(.001,rp*1e-9);
   if(incoming.radial||atRadius>ra+slack||incoming.apoapsis!==null&&incoming.apoapsis<rp-slack){
-   if(!seed&&!incoming.radial&&atRadius>ra+slack)return yield* prepareCorrection(world,shipId,node,burns);
+   if(!seed&&!incoming.radial&&atRadius>ra+slack)return yield* prepareCorrection(world,shipId,node,burns,plans);
    return {reason:'The actual approach cannot reach the chosen orbit with one arrival burn. A correction maneuver is needed.'};
   }
   const radius=Math.min(ra,atRadius),coast=context.keplerCoast(ship.state,body,surface);
@@ -58,13 +62,17 @@ export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNod
    if(!(speed>0&&Math.abs(det)>1e-8&&Number.isFinite(half)&&dt>half+turn+1))continue;
    const prograde=(delta.x*p.y/r-delta.y*p.x/r)/det,radialDelta=(v.x/speed*delta.y-v.y/speed*delta.x)/det;
    if(!Number.isFinite(prograde+radialDelta)||Math.max(Math.abs(prograde),Math.abs(radialDelta))>1e6)continue;
-   // Match the live controller's first 10-ms ignition tick, not a fractional
+   if(node.finite&&plans?.refineCapture){
+    const result=yield* plans.refineCapture(world,ship,{...node,time,prograde,radial:radialDelta},burns);
+    if(result.node)return {node:result.node,reason:''};lastReason=result.reason;continue;
+   }
+   // Match the live controller's first 10-ms ignition tick, including fractional
    // numerical step or an impulse at the middle of the finite burn.
-   const ignition=Math.ceil((time-half-.005)/.01-1e-8)*.01,forecast=world.predictShip(shipId,false,{state:ship.state,bodyId:body.id,until:ignition});
+   const ignition=Math.floor((time-half)/.01+1e-8)*.01,forecast=world.predictShip(shipId,false,{state:ship.state,bodyId:body.id,until:ignition});
    let last:GhostSample|undefined,ready=false;
    try{
     for(let i=0;i<16384;i++){
-     const step=forecast.next();if(step.done){ready=step.value==='horizon'&&!!last&&Math.abs(last.time-ignition)<1e-7;break;}
+     const step=forecast.next();if(step.done){ready=step.value==='horizon'&&!!last&&Math.abs(last.time-ignition)<flightTimeTolerance(ignition);break;}
      last=step.value;if(last.bodyId!==body.id)break;yield;
     }
    }finally{forecast.return('open');}
@@ -101,7 +109,7 @@ export function* prepareArrival(world:WorldRead,shipId:string,node:FlightPlanNod
 /** Propose an extra inbound maneuver, never permission to execute it. Lower the
  * incoming periapsis into the target conic, then qualify the actual finite burn
  * and the resulting capture through the same detached arrival validator. */
-function* prepareCorrection(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory):Generator<void,ArrivalResult>{
+function* prepareCorrection(world:WorldRead,shipId:string,node:FlightPlanNode,burns:ManeuverBurnFactory,plans?:FlightPlanService):Generator<void,ArrivalResult>{
  const ship=world.ship(shipId)!,body=world.body(ship.bodyId),surface=world.surface(body.id),context=world.contextFor(ship).cloneForPrediction(),
   top=surface?.bounds.maxRadius??body.radius,rp=body.radius+node.targetOrbit!.periapsisAltitude,
   reason='The actual approach needs a correction, but no safe correction and capture were found. Replan the arrival.';
@@ -125,13 +133,13 @@ function* prepareCorrection(world:WorldRead,shipId:string,node:FlightPlanNode,bu
     turn=angle<1e-7?0:angle/context.vehicle.turnRate,det=(v.x*p.y-v.y*p.x)/(speed*r);
    if(!(magnitude>1e-8&&Number.isFinite(half)&&lead>turn+half+1&&Math.abs(det)>1e-8))continue;
    const prograde=(delta.x*p.y/r-delta.y*p.x/r)/det,radial=(v.x/speed*delta.y-v.y/speed*delta.x)/det,
-    ignition=Math.ceil((time-half-.005)/.01-1e-8)*.01;
+    ignition=Math.floor((time-half)/.01+1e-8)*.01;
    if(!Number.isFinite(prograde+radial)||Math.max(Math.abs(prograde),Math.abs(radial))>1e6)continue;
    const forecast=world.predictShip(shipId,false,{state:ship.state,bodyId:body.id,until:ignition});
    let last:GhostSample|undefined,ready=false;
    try{
     for(let i=0;i<16384;i++){
-     const step=forecast.next();if(step.done){ready=step.value==='horizon'&&!!last&&Math.abs(last.time-ignition)<1e-7;break;}
+     const step=forecast.next();if(step.done){ready=step.value==='horizon'&&!!last&&Math.abs(last.time-ignition)<flightTimeTolerance(ignition);break;}
      last=step.value;if(last.bodyId!==body.id)break;yield;
     }
    }finally{forecast.return('open');}
@@ -148,7 +156,7 @@ function* prepareCorrection(world:WorldRead,shipId:string,node:FlightPlanNode,bu
     }
    }finally{burn.dispose();}
    if(!safe||!finished)continue;
-   const capture=yield* prepareArrival(world,shipId,node,burns,state);
+   const capture=yield* prepareArrival(world,shipId,node,burns,state,plans);
    if(capture.node)return {...capture,correction:{id:'arrival-correction',label:`Correction · ${body.name}`,bodyId:body.id,time,prograde,radial}};
   }
   return {reason};

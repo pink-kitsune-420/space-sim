@@ -1,4 +1,4 @@
-import { deterministicMath as dm, type Controls, type State, type Vec, type VehicleDefaults } from '@space-sim/game-api';
+import { flightTimeTolerance, deterministicMath as dm, type Controls, type State, type Vec, type VehicleDefaults } from '@space-sim/game-api';
 import { CORE_CLOCK, MANEUVER_BURNS, type ClockService, type ManeuverBurnControl, type ManeuverBurnFactory, type ModuleInitializationV2 } from '@space-sim/game-api';
 
 /** Finite burn in the body's inertial frame. Called once before each fixed physics tick
@@ -29,7 +29,7 @@ export class ManeuverBurn implements ManeuverBurnControl {
   next(state: State): { controls: Controls; throttle?: number } {
     if (this.disposed) throw new Error('Maneuver burn disposed');
     if (this.pending) {
-      if (Math.abs(state.time - this.pending.time - this.clock.stepSeconds) > 1e-7) throw new Error('Burn clock changed. Replan the maneuver.');
+      if (Math.abs(state.time - this.pending.time - this.clock.stepSeconds) > flightTimeTolerance(state.time)) throw new Error('Burn clock changed. Replan the maneuver.');
       // Compensated sums keep small remaining vectors reliable even after hours of thrust.
       const x = this.pending.x - this.compensationX, y = this.pending.y - this.compensationY;
       const sumX = this.deliveredX + x, sumY = this.deliveredY + y;
@@ -42,13 +42,16 @@ export class ManeuverBurn implements ManeuverBurnControl {
     const turn = this.vehicle.turnRate > 0 ? Math.max(-1, Math.min(1, error / (this.vehicle.turnRate * this.clock.stepSeconds))) : 0;
     const aligned = Math.abs(error) < 1e-7;
     if (!aligned && this.vehicle.turnRate <= 0) throw new Error('No steering available. Align manually and replan.');
-    if (state.time < this.start - this.clock.stepSeconds / 2) {
+    if (state.time + this.clock.stepSeconds <= this.start + flightTimeTolerance(state.time)) {
       this.phase = aligned ? 'waiting' : 'aligning';
       return { controls: { turn, throttle: 0, engine: false } };
     }
     if (!aligned) throw new Error('Could not align before burn start. Replan with more lead time.');
     this.phase = 'burning';
-    const throttle = Math.min(1, remaining / (this.vehicle.acceleration * this.clock.stepSeconds));
+    // Integrate the overlap with the first tick as well as the last. This makes
+    // centred finite burns continuous as their planned time crosses a tick boundary.
+    const active = Math.min(this.clock.stepSeconds, Math.max(0, state.time + this.clock.stepSeconds - this.start));
+    const throttle = Math.min(active / this.clock.stepSeconds, remaining / (this.vehicle.acceleration * this.clock.stepSeconds));
     const impulse = this.vehicle.acceleration * throttle * this.clock.stepSeconds;
     this.pending = { time: state.time, x: dm.cos(state.heading) * impulse, y: dm.sin(state.heading) * impulse };
     return { controls: { turn: 0, throttle: 0, engine: true }, throttle };

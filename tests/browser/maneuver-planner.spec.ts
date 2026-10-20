@@ -318,7 +318,7 @@ test('shared plans export inert nodes and survive portable universe saves with r
   await expect.poll(async () => (await debug(page)).maneuver).toBeNull();
 });
 
-test('transfer window compares efficient/faster options, creates editable nodes and explains unsupported deeper relationships',async({page},info)=>{
+test('transfer window compares efficient/faster options, creates editable nodes and accepts deeper relationships',async({page},info)=>{
  await setup(page);await place(page);const before=await debug(page);
  await page.locator('#maneuver-transfers-tab').click();
  await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
@@ -332,8 +332,8 @@ test('transfer window compares efficient/faster options, creates editable nodes 
  await page.locator('#maneuver-transfers-tab').click();
  await page.locator('#maneuver-transfer-circular').uncheck();await page.locator('#maneuver-transfer-low').fill('256');await page.locator('#maneuver-transfer-high').fill('1024');
  await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);await page.locator('#maneuver-transfer-find').click();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();
- await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
- await expect(page.locator('#maneuver-transfer-support')).toContainText('not supported');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
+ await page.locator('#maneuver-transfer-browser summary').click();await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').click();await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();
+ await expect(page.locator('#maneuver-transfer-support')).toContainText('accepts this relationship');await expect(page.locator('#maneuver-transfer-use-efficient')).toHaveCount(0);
  expect((await debug(page)).position).toEqual(before.position);
 });
 
@@ -681,8 +681,8 @@ test('the production Transfer picker searches collapsed Solar System moons and k
  const geometry=await page.locator('#maneuver-window').evaluate(el=>{const panel=el.getBoundingClientRect(),body=el.querySelector('.flight-window-body')!.getBoundingClientRect(),selected=el.querySelector('#maneuver-transfer-destination')!.getBoundingClientRect();return{width:panel.width,overflow:el.scrollWidth-el.clientWidth,selectedTop:selected.top,bodyTop:body.top,selectedBottom:selected.bottom,bodyBottom:body.bottom};});
  expect(geometry.width).toBeLessThanOrEqual(390);expect(geometry.overflow).toBeLessThanOrEqual(1);expect(geometry.selectedTop).toBeGreaterThanOrEqual(geometry.bodyTop);expect(geometry.selectedBottom).toBeLessThanOrEqual(geometry.bodyBottom);
  await page.screenshot({path:info.outputPath('destination-search-narrow.png')});
- await page.locator('#maneuver-transfer-find').scrollIntoViewIfNeeded();await expect(page.locator('#maneuver-transfer-find')).toBeDisabled();
- await expect(page.locator('#maneuver-transfer-support')).toContainText('separate legs');
+ await page.locator('#maneuver-transfer-find').scrollIntoViewIfNeeded();await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();
+ await expect(page.locator('#maneuver-transfer-support')).toContainText('accepts this relationship');
 });
 
 for(const follow of [false,true])test(`a background ship alarm ${follow?'selects and follows its ship when enabled':'leaves selection and camera alone by default'}`,async({page},info)=>{
@@ -704,4 +704,24 @@ for(const follow of [false,true])test(`a background ship alarm ${follow?'selects
   await expect(page.locator('#maneuver-alarms [data-alarm="focus"]')).toBeChecked();
   await page.screenshot({path:info.outputPath('alarm-select-follow.png')});
  }
+});
+
+
+test('a distant moon route exposes every stop and burn; mission-time edits discard adoptable results in a narrow panel',async({page},info)=>{
+ test.setTimeout(180000);await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').focus();await page.keyboard.press('Enter');
+ await page.locator('#maneuver-transfer-low').fill('100');await page.locator('#maneuver-transfer-find').click();
+ const use=page.locator('#maneuver-transfer-use-efficient');await expect(use).toBeEnabled({timeout:120000});
+ const before=await debug(page),stale=await use.elementHandle();
+ await expect(page.locator('.transfer-route').first()).toContainText('Nix');await expect(page.locator('.transfer-option').first()).toContainText(/burns/);
+ await page.setViewportSize({width:390,height:560});
+ await page.locator('.transfer-option').first().evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:info.outputPath('end-to-end-route-narrow.png')});
+ await page.locator('.transfer-option details summary').first().click();await expect(page.locator('.transfer-option details').first()).toContainText('Capture · Nix');
+ await page.locator('.transfer-option').first().evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:info.outputPath('end-to-end-burns-narrow.png')});
+ await page.locator('#maneuver-transfer-years').fill('20');await expect(use).toHaveCount(0);
+ await stale!.evaluate(el=>(el as HTMLButtonElement).click());expect((await debug(page)).maneuver).toBeNull();expect((await debug(page)).tick).toBe(before.tick);
+ await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});await use.click();
+ await expect.poll(async()=>(await debug(page)).maneuver?.valid,{timeout:30000}).toBe(true);
+ await expect(page.locator('#maneuver-nodes option').last()).toContainText('Capture · Nix');expect((await debug(page)).engine).toBe(false);
+ await page.screenshot({path:info.outputPath('end-to-end-adopted.png')});
 });

@@ -46,7 +46,7 @@ it('rejects wrong-body, contact, invalid endpoint limits and missing exact-time 
  expect(evaluate(plan,world)[0]!.reason).toContain('does not reach');
  const old=Object.create(world);Object.defineProperty(old,'predictionFeatures',{value:{futureSeeds:true}});
  expect(evaluate(plan,old)[0]!.reason).toContain('exact-end-time');
- for(const until of [-1,Infinity,4e7])expect(trace(world.predictShip(ship.id,false,{state:ship.state,bodyId:'planet',until})).end).toBe('failed');
+ for(const until of [-1,Infinity,4e9])expect(trace(world.predictShip(ship.id,false,{state:ship.state,bodyId:'planet',until})).end).toBe('failed');
  const falling=world.spawn({ownerId:'fall',presetId:'planet-orbit'});world.put({...falling,state:{...falling.state,velocity:{x:0,y:0}}});
  const hit=service.capture(world,world.ship(falling.id)!,[{id:'hit',label:'Too late',bodyId:'planet',time:100,prograde:0,radial:0}]);
  expect(evaluate(hit,world)[0]!.reason).toContain('impact');world.dispose();

@@ -14,12 +14,12 @@ test.beforeAll(async()=>{
  }
  const host=await rolldown({input:resolve('tests/fixtures/maneuver-host.ts'),plugins:[{name:'public-api',resolveId(raw){if(raw==='@space-sim/game-api')return resolve('packages/game-api/src/index.ts');}}]});
  try{hostSource=(await host.generate({format:'iife',name:'ManeuverHost'})).output[0]!.code;}finally{await host.close();}
- const api=new Function(`${hostSource};return ManeuverHost;`)(),registry=new api.ModuleRegistryV2(api.engineModuleServices()),selected=bundles.filter(bundle=>['spacelab.flight-plans','spacelab.transfer-planner'].includes((bundle.manifest as any).id));
+ const api=new Function(`${hostSource};return ManeuverHost;`)(),registry=new api.ModuleRegistryV2(api.engineModuleServices()),selected=bundles.filter(bundle=>['spacelab.flight-plans','spacelab.transfer-planner','spacelab.maneuver-burn'].includes((bundle.manifest as any).id));
  for(const bundle of selected){const initialize=new Function(`"use strict";${bundle.source};return SpaceSimModule.default;`)();registry.register({manifest:bundle.manifest,initialize},api.moduleAssets(new Map(bundle.assets.map(([path,text])=>[path,new TextEncoder().encode(text)]))));}
  const manifests=selected.map(bundle=>bundle.manifest as any),candidate=registry.prepare({format:'space-sim-profile/2',id:'fixture.node-reference',modules:manifests.map(m=>({id:m.id,version:m.version})),providers:Object.fromEntries(manifests.flatMap(m=>m.slots.map((slot:string)=>[slot,m.id]))),capabilities:{},settings:{}},'node');
  const world=new api.World(api.DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'});world.step();
- const search=candidate.providedService(api.TRANSFERS).search(world,{shipId:ship.id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
- for(let i=0;i<100000;i++){const step=search.next();if(step.done){if(!step.value.options[0])throw Error('Node reference needs a validated moon transfer');nodeReference=JSON.stringify(step.value.options[0].plan.nodes);break;}}
+ const search=candidate.providedService(api.TRANSFERS).withBurns(candidate.providedService(api.MANEUVER_BURNS)).search(world,{shipId:ship.id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
+ for(let i=0;i<2000000;i++){const step=search.next();if(step.done){if(!step.value.options[0])throw Error('Node reference needs a validated moon transfer');nodeReference=JSON.stringify(step.value.options[0].plan.nodes);break;}}
  candidate.dispose();world.dispose();
 });
 test.afterAll(async()=>{await rm(directory,{recursive:true,force:true});});
@@ -306,16 +306,18 @@ test('cross-body transfer plans remain editable, frame-correct, inert and review
   document.getElementById('interbody-transfer-use-efficient')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
   const saved=planner.savePlans(),select=document.getElementById('interbody-nodes') as HTMLSelectElement;
   select.value='arrival';select.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);
+  const evaluation=f.candidate.providedService(f.api.FLIGHT_PLANS).withBurns(f.candidate.providedService(f.api.MANEUVER_BURNS)).evaluateAsync(saved.plans[0],world);let reference:any;for(let i=0;i<2000000;i++){const step=evaluation.next();if(step.done){reference=step.value;break;}}
+  const expectedRadius=Math.hypot(reference[1].before.position.x,reference[1].before.position.y);
   const snapshot=planner.snapshot(),arrival=saved.plans[0].nodes[1],moon=world.system.getBodyPosition('moon',arrival.time),planet=world.system.getBodyPosition('planet',arrival.time),localRadius=Math.hypot(snapshot.position.x-moon.x+planet.x,snapshot.position.y-moon.y+planet.y);
   const input=document.getElementById('interbody-radial') as HTMLInputElement;input.value=String(Number(input.value)+1);input.dispatchEvent(new Event('input'));
   for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
   const edited=planner.savePlans(),valid=planner.snapshot()?.valid,blocked=(document.getElementById('interbody-execute') as HTMLButtonElement).disabled;
   planner.loadPlans(saved);const needsReview=!planner.snapshot()?.valid;document.getElementById('interbody-review')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
   const reviewed=planner.snapshot()?.valid,preserved=JSON.stringify(f.api.saveWorld(world))===before,executing=planner.executing;
-  planner.dispose();f.candidate.dispose();world.dispose();return{nodes:JSON.stringify(saved.plans[0].nodes),frames,comparison,bodies:saved.plans[0].nodes.map((n:any)=>n.bodyId),localRadius,valid,blocked,needsReview,reviewed,preserved,executing,commands,changed:edited.plans[0].nodes[1].radial!==saved.plans[0].nodes[1].radial};
+  planner.dispose();f.candidate.dispose();world.dispose();return{nodes:JSON.stringify(saved.plans[0].nodes),frames,comparison,bodies:saved.plans[0].nodes.map((n:any)=>n.bodyId),localRadius,expectedRadius,valid,blocked,needsReview,reviewed,preserved,executing,commands,changed:edited.plans[0].nodes[1].radial!==saved.plans[0].nodes[1].radial};
  });
  expect(result).toMatchObject({bodies:['planet','moon'],valid:true,blocked:true,needsReview:true,reviewed:true,preserved:true,executing:false,commands:[],changed:true});
- expect(result.nodes).toBe(nodeReference);expect(result.localRadius).toBeCloseTo(228,2);expect(result.frames).toBeGreaterThan(1);expect(result.comparison).toContain('At 50% throttle');
+ expect(result.nodes).toBe(nodeReference);expect(result.localRadius).toBeCloseTo(result.expectedRadius,6);expect(result.frames).toBeGreaterThan(1);expect(result.comparison).toContain('At 50% throttle');
 });
 
 test('burn duration responds to current throttle without ignition or changing the full-throttle executor estimate',async({page})=>{
@@ -338,8 +340,8 @@ test('arrival waits for actual-flight review after departure and a moving SOI ha
  const result=await page.evaluate(()=>{
   const f=(window as any).fixture,{factory,prediction,world,current,root}=f,commands:string[]=[];
   const service=f.candidate.providedService(f.api.FLIGHT_PLANS),solver=f.candidate.providedService(f.api.TRANSFERS),search=solver.search(world,{shipId:current().id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100});
-  let plan:any;for(let i=0;i<100000;i++){const step=search.next();if(step.done){plan=step.value.options[0]?.plan;break;}}if(!plan)throw Error('Fixture needs a validated moon plan');
-  let evaluated:any;const job=service.evaluateAsync(plan,world);for(let i=0;i<100000;i++){const step=job.next();if(step.done){evaluated=step.value;break;}}
+  let plan:any;for(let i=0;i<2000000;i++){const step=search.next();if(step.done){plan=step.value.options[0]?.plan;break;}}if(!plan)throw Error('Fixture needs a validated moon plan');
+  let evaluated:any;const job=service.evaluateAsync(plan,world);for(let i=0;i<2000000;i++){const step=job.next();if(step.done){evaluated=step.value;break;}}
   const planner=factory.create({container:root,id:'arrival-review',flight:()=>({world,ship:current(),body:world.body(current().bodyId),enabled:true,canWarp:true,paused:true,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
   planner.update(0,prediction,false);planner.loadPlans({format:'space-sim-flight-plans/1',plans:[plan]});
   document.getElementById('arrival-review-review')!.click();for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
@@ -396,8 +398,8 @@ test('full Solar System destinations support local Earth/Moon and sibling choice
  expect(await results.locator('[data-destination]').count()).toBeLessThan(25);await expect(results.locator('[data-destination="sun"]')).toHaveCount(0);await expect(results.locator('[data-destination="europa"]')).toHaveCount(0);
  await expect(results.locator('[data-browse="jupiter"]')).toHaveText(/Moons/);await results.locator('[data-browse="jupiter"]').click();await expect(destination).toHaveText('Mars · Sun');
  await expect(results.locator('[data-destination="jupiter"]')).toHaveText('Choose Jupiter');await expect(results.locator('[data-destination="europa"]')).toHaveText('Choose Europa');
- await results.locator('[data-destination="europa"]').click();await expect(destination).toHaveText('Europa · Jupiter · Sun');await expect(page.locator('#solar-transfer-find')).toBeDisabled();
- await expect(page.locator('#solar-transfer-support')).toContainText('separate legs');await expect(page.locator('#solar-transfer-support')).toContainText('does not build an end-to-end route');
+ await results.locator('[data-destination="europa"]').click();await expect(destination).toHaveText('Europa · Jupiter · Sun');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
+ await expect(page.locator('#solar-transfer-support')).toContainText('accepts this relationship');
  await page.screenshot({path:info.outputPath('destination-browse-narrow.png')});
  await query.fill('Titan');await expect(matches.locator('[data-destination="titan"]')).toContainText('Orbits Saturn');await expect(page.locator('#solar-transfer-browser')).toBeHidden();
  await matches.locator('[data-destination="titan"]').click();await expect(destination).toHaveText('Titan · Saturn · Sun');
@@ -452,7 +454,7 @@ test('browsing preserves a running search; destination commits cancel it and det
   const f=(window as any).fixture,{world,current,body,root}=f,solver=f.candidate.providedService(f.api.TRANSFERS),search=solver.search(world,{shipId:current().id,destinationId:body.id,periapsisAltitude:768,apoapsisAltitude:768});let option:any;
   for(let i=0;i<10000;i++){const step=search.next();if(step.done){option=step.value.options[0];break;}}if(!option)throw Error('Fixture needs a validated orbit-change plan');
   root.innerHTML='<section id="controlled-transfers"></section>';const container=document.getElementById('controlled-transfers')!,requests:any[]=[],installed:any[]=[],state={cancelled:0};
-  const options=[option],service={relationships:solver.relationships,*search(_world:any,request:any){requests.push(request);try{while(true)yield{tested:1,total:2,accepted:1,options};}finally{state.cancelled++;}}};
+  const options=[option],service={relationships:['same-body','child','parent','sibling'],*search(_world:any,request:any){requests.push(request);try{while(true)yield{tested:1,total:2,accepted:1,options};}finally{state.cancelled++;}}};
   const controls=new f.api.TransferControls(container,'controlled',service,{container:root,flight:()=>({world,ship:current(),body,enabled:true,paused:true,warp:1}),notify(){}},(plan:any)=>installed.push(plan),new AbortController().signal);
   f.controlled={controls,requests,installed,state};controls.update();
  });

@@ -1,8 +1,9 @@
-import { FLIGHT_PLANS, flightSampleInFrame, maneuverDelta, type EvaluatedFlightNode, type FlightPlan,
- type FlightPlanNode, type FlightPlanService, type ModuleInitializationV2, type State, type Vec } from '@space-sim/game-api';
+import { MAX_FLIGHT_PLAN_SECONDS, flightTimeTolerance, FLIGHT_PLANS, flightSampleInFrame, maneuverDelta, type EvaluatedFlightNode, type FlightPlan,
+ type FlightPlanNode, type FlightPlanService, type ModuleInitializationV2, type State, type ManeuverBurnFactory, type Vec } from '@space-sim/game-api';
 
+import {simulateBurn,refineCapture} from './finite';
 export const MAX_PLAN_NODES = 16;
-export const MAX_PLAN_SECONDS = 365.25 * 86400;
+export const MAX_PLAN_SECONDS = MAX_FLIGHT_PLAN_SECONDS;
 const fail = (message: string): never => { throw new Error(`Flight plan: ${message}`); };
 const record = (raw: unknown): Record<string, unknown> => raw && typeof raw === 'object' && !Array.isArray(raw)
  ? raw as Record<string, unknown> : fail('expected an object');
@@ -28,16 +29,18 @@ function readPlan(raw: unknown): FlightPlan {
  for (const raw of p.nodes as unknown[]) {
   const n=record(raw), id=text(n.id,'node id',64), at=number(n.time,'node time',1e12);
   if(ids.has(id))fail('duplicate node id'); ids.add(id);
-  if((at < time && n.completed!==true) || at > time + MAX_PLAN_SECONDS || at <= previous)fail('nodes need increasing times within one year of their epoch'); previous=at;
+  if(n.finite!==undefined&&typeof n.finite!=='boolean')fail('finite burn intent must be boolean');
+  if((at < time && n.completed!==true) || at > time + MAX_PLAN_SECONDS || at <= previous)fail('nodes need increasing times within 100 Julian years of their epoch'); previous=at;
   nodes.push({id,label:text(n.label,'node label',80),bodyId:text(n.bodyId,'body id'),time:at,
-   prograde:number(n.prograde,'prograde delta-v',1e6),radial:number(n.radial,'radial delta-v',1e6),...(n.completed===true?{completed:true}:{}),...(n.alarm!==undefined?{alarm:readAlarm(n.alarm)}:{}),...(n.targetOrbit!==undefined?{targetOrbit:readTarget(n.targetOrbit)}:{})});
+   prograde:number(n.prograde,'prograde delta-v',1e6),radial:number(n.radial,'radial delta-v',1e6),...(n.completed===true?{completed:true}:{}),...(n.finite===true?{finite:true}:{}),...(n.alarm!==undefined?{alarm:readAlarm(n.alarm)}:{}),...(n.targetOrbit!==undefined?{targetOrbit:readTarget(n.targetOrbit)}:{})});
  }
  return {shipId:text(p.shipId,'ship id'),universeId:text(p.universeId,'universe id'),systemId:text(p.systemId,'system id'),
   fingerprint:text(p.fingerprint,'physics fingerprint',1024),motionIdentity:text(p.motionIdentity,'motion identity',16384),bodyId:text(p.bodyId,'body id'),
   epoch:{time,position:vector(e.position),velocity:vector(e.velocity),heading:number(e.heading,'heading',Math.PI*2)},nodes};
 }
-export function createFlightPlans(): FlightPlanService {
+export function createFlightPlans(burns?:ManeuverBurnFactory): FlightPlanService {
  const service: FlightPlanService = {
+  withBurns:createFlightPlans,simulateBurn,refineCapture,
   capture(world,ship,nodes) {
    const s=ship.state;
    return readPlan({shipId:ship.id,universeId:world.universe.id,systemId:world.systemId,fingerprint:world.simulationFingerprint,
@@ -91,13 +94,20 @@ export function createFlightPlans(): FlightPlanService {
          yield{node:index,sample:step.value};
         }
        }finally{forecast.return('open');}
-       if(end!=='horizon'||!last||Math.abs(last.time-intent.time)>1e-7)throw Error(`Coast ended before the node (${end}); contact or prediction budget requires review.`);
+       if(end!=='horizon'||!last||Math.abs(last.time-intent.time)>flightTimeTolerance(intent.time))throw Error(`Coast ended before the node (${end}); contact or prediction budget requires review.`);
        if((last.bodyId??bodyId)!==intent.bodyId)throw Error('The coast does not reach the planned body at this time.');
        const local=flightSampleInFrame({...last,bodyId:last.bodyId??bodyId},intent.bodyId,world.system);
        before={...seed,time:intent.time,position:local.position,velocity:local.velocity,coast:undefined};
       }
-      const delta=maneuverDelta(before,intent.prograde,intent.radial),
-       after:State={...before,coast:undefined,velocity:{x:before.velocity.x+delta.x,y:before.velocity.y+delta.y},revision:seed.revision+1};
+      const delta=maneuverDelta(before,intent.prograde,intent.radial);
+      let after:State={...before,coast:undefined,velocity:{x:before.velocity.x+delta.x,y:before.velocity.y+delta.y},revision:seed.revision+1};
+      if(intent.finite){
+       if(!burns)throw Error('Finite plan evaluation needs a compatible maneuver burn provider.');
+       const job=simulateBurn(world,{...ship!,bodyId:intent.bodyId,state:localSeed},intent,burns);
+       let finite:import('@space-sim/game-api').FiniteBurnResult;
+       try{for(;;){const step=job.next();if(step.done){finite=step.value;break;}yield{node:index};}}finally{job.return({reason:'cancelled'});}
+       if(!finite.after)throw Error(finite.reason);after=finite.after;
+      }
       result={intent,valid:true,reason:'',seed:localSeed,before,after,delta};seed=after;bodyId=intent.bodyId;
      }catch(error){reason=error instanceof Error?error.message:'Plan evaluation failed.';result={intent,valid:false,reason};}
      results.push(result);
@@ -142,6 +152,7 @@ export function createFlightPlans(): FlightPlanService {
      if(intent.completed){results.push({intent,valid:false,reason:'Completed. Later nodes require review against actual flight.'});continue;}
      let result:EvaluatedFlightNode={intent,valid:false,reason};
      if(!reason&&context)try {
+      if(intent.finite)throw Error('Finite-burn plans require progressive evaluation.');
       if(intent.bodyId!==plan.bodyId||!world.hasBody(intent.bodyId))throw Error('Later-body planning requires progressive evaluation.');
       if(intent.time<seed.time)throw Error('The node was missed. Delete it or mark it flown before reviewing later nodes.');
       const body=world.body(intent.bodyId),surface=world.surface(body.id),coast=context.keplerCoast(seed,body,surface);

@@ -117,7 +117,7 @@ export interface WorldRead {
   presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };
   /** Optional inert future seed is supported by independent analytic flight only;
    * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most
-   * one year after the seed), disabling orbit closure; requires predictionFeatures.endTime. */
+   * 100 Julian years after the seed), disabling orbit closure; requires predictionFeatures.endTime. */
   predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
   cloneForPrediction(): WorldControl;
 }

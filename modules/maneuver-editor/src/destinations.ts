@@ -3,7 +3,7 @@ import type { TransferPlanner, TransferRelationship, WorldRead } from '@space-si
 type Destination = ReturnType<WorldRead['system']['getAllBodies']>[number];
 const compare=(a:string,b:string)=>a<b?-1:a>b?1:0;
 const relationshipNames:Record<TransferRelationship,string>={
- 'same-body':'Orbit change around the current body',child:'Direct child transfer',parent:'Direct parent transfer',sibling:'Sibling transfer through a shared parent',other:'Deeper or unrelated transfer',
+ 'same-body':'Orbit change around the current body',child:'Direct child transfer',parent:'Direct parent transfer',sibling:'Sibling transfer through a shared parent',other:'End-to-end transfer',
 };
 
 /** UI-only hierarchy index. Rebuilt on source changes, never during simulation stepping. */

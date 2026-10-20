@@ -79,3 +79,7 @@
 .transfer-picker summary { color: #e3ecee; font-size: 12px !important; opacity: 1 !important; }
 .transfer-picker details > .transfer-destinations, .transfer-picker details > nav { margin-top: 5px; }
 .transfer-picker [data-destination] small { display: block; margin-top: 2px; color: #9fb3ba; font-size: 10px; }
+
+.transfer-route { margin: 0; font-size: 12px; color: #e3ecee; overflow-wrap: anywhere; }
+.transfer-option details .maneuver-help { white-space: pre-line; overflow-wrap: anywhere; }
+.maneuver-window input:focus-visible, .transfer-option button:focus-visible { outline: 2px solid #f7c775; outline-offset: -2px; }

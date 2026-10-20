@@ -3,12 +3,19 @@ import type { WorldRead } from './engine';
 import type { Ship } from './world';
 import type { GhostEnd, GhostSample, State, Vec } from './state';
 
+/** Maximum explicit planning horizon; default display forecasts retain their shorter cap. */
+export const MAX_FLIGHT_PLAN_SECONDS = 100 * 365.25 * 86400;
+/** Absolute-time comparisons remain below a fixed tick, including multi-year epochs. */
+export const flightTimeTolerance = (time:number):number => Math.max(1e-7,Math.abs(time)*Number.EPSILON*4);
+
 /** Portable SI intent only. No engine, warp, controls or execution state is persisted. */
 export interface FlightPlanNode {
  readonly id: string; readonly label: string; readonly bodyId: string;
  readonly time: number; readonly prograde: number; readonly radial: number;
  readonly completed?: boolean;
  readonly alarm?: import('./alarms').NodeAlarmSettings;
+ /** Use the selected finite-burn controller for progressive evaluation. */
+ readonly finite?: boolean;
  /** Optional arrival goal, in SI metres above the destination's reference radius.
   * Intent only: never grants permission to coast, change a node, or ignite. */
  readonly targetOrbit?: { readonly periapsisAltitude:number; readonly apoapsisAltitude:number };
@@ -26,13 +33,20 @@ export interface EvaluatedFlightNode {
  readonly seed?: State; readonly before?: State; readonly after?: State; readonly delta?: Vec;
 }
 export interface FlightPlanProgress { readonly node: number; readonly sample?: GhostSample }
+export interface FiniteBurnResult {readonly after?:State;readonly delta?:Vec;readonly reason:string}
+export interface FiniteCaptureResult {readonly node?:FlightPlanNode;readonly after?:State;readonly reason:string}
 /** Bounded inert intent/codec and selected-provider orbital evaluation, without UI or execution. */
 export interface FlightPlanService {
+ /** Bind the host-selected controller for detached finite evaluation; no execution permission. */
+ withBurns?(burns:import('./maneuver').ManeuverBurnFactory):FlightPlanService;
+ /** Detached selected-controller validation; caller owns and cancels the generator. */
+ simulateBurn?(world:WorldRead,ship:Ship,node:FlightPlanNode,burns:import('./maneuver').ManeuverBurnFactory):Generator<void,FiniteBurnResult>;
+ refineCapture?(world:WorldRead,ship:Ship,node:FlightPlanNode,burns:import('./maneuver').ManeuverBurnFactory):Generator<void,FiniteCaptureResult>;
  capture(world: WorldRead, ship: Ship, nodes: readonly FlightPlanNode[]): FlightPlan;
  read(raw: unknown): FlightPlanArchive;
  /** Fast same-body compatibility evaluation; cross-body legs request progressive evaluation. */
  evaluate(plan: FlightPlan, world: WorldRead): readonly EvaluatedFlightNode[];
- /** Full bounded coast/contact/SOI evaluation, one shared forecast yield per step. */
+ /** Full bounded coast/contact/SOI and optional finite-burn evaluation; yields detached work. */
  evaluateAsync?(plan: FlightPlan, world: WorldRead, traceCoasts?: boolean): Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>;
  /** Progressive chained preview through the shared world predictor; cancellation closes its child job. */
  predict(plan: FlightPlan, world: WorldRead): Generator<GhostSample, GhostEnd>;

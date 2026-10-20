@@ -1,22 +1,27 @@
-import {flightSampleInFrame,maneuverDelta,deterministicMath as dm,
- type FlightPlanService,type GhostEnd,type GhostSample,type State,type TransferOption,type TransferProgress,type TransferRequest,type TransferResult,type Vec,type WorldRead} from '@space-sim/game-api';
+import {MAX_FLIGHT_PLAN_SECONDS,flightTimeTolerance,flightSampleInFrame,maneuverDelta,deterministicMath as dm,
+ type FlightPlanService,type ManeuverBurnFactory,type FlightPlan,type GhostEnd,type GhostSample,type State,type TransferOption,type TransferProgress,type TransferRequest,type TransferResult,type Vec,type WorldRead} from '@space-sim/game-api';
 import {lambert,ejection} from './lambert';
 import {burnsFit,deltaComponents,radius,tolerance,transferOptions} from './math';
 const YEAR=365.25*86400;
 const add=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y});
 const subtract=(a:Vec,b:Vec):Vec=>({x:a.x-b.x,y:a.y-b.y});
 const scale=(v:Vec,f:number):Vec=>({x:v.x*f,y:v.y*f});
-interface Probe { sample:GhostSample; safe:boolean; end:GhostEnd }
+export const finiteArrivals=new WeakMap<FlightPlan,State>();
+interface Probe { sample:GhostSample; safe:boolean; end:GhostEnd; entry?:State }
 /** Shared-predictor differential correction. Analytic contact continuations guide
  * proposals only; every accepted path independently passes all contact checks. */
-export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request:TransferRequest):Generator<TransferProgress,TransferResult> {
+export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request:TransferRequest,burns?:ManeuverBurnFactory):Generator<TransferProgress,TransferResult> {
  const none=(reason:string):TransferResult=>({options:[],reason}),ship=world.ship(request.shipId);
  if(!ship||ship.state.status!=='flying')return none('Choose a flying ship in a bound orbit.');
  if(!world.hasBody(request.destinationId))return none('The destination body is unavailable.');
  const origin=world.body(ship.bodyId),destination=world.body(request.destinationId);
  const relationship=destination.parentId===origin.id?'child':origin.parentId===destination.id?'parent':origin.parentId&&origin.parentId===destination.parentId?'sibling':'other';
- if(relationship==='other')return none('Only direct parent/child and sibling bodies sharing a parent are supported. Deeper or unrelated systems need separate legs.');
- const common=relationship==='child'?origin:relationship==='parent'?destination:world.body(origin.parentId!);
+ if(relationship==='other'&&!burns)return none('Only direct parent/child and sibling bodies sharing a parent are supported. Deeper or unrelated systems need separate legs.');
+ const ancestors=new Set<string>();for(let body:typeof origin|undefined=origin;body;body=body.parentId?world.body(body.parentId):undefined)ancestors.add(body.id);
+ let ancestor:typeof origin|undefined=destination;while(ancestor&&!ancestors.has(ancestor.id))ancestor=ancestor.parentId?world.body(ancestor.parentId):undefined;
+ if(!ancestor)return none('These bodies have no shared gravitational hierarchy.');
+ const common=ancestor,limit=request.maxFlightSeconds??(burns?50*YEAR:YEAR);
+ if(!(Number.isFinite(limit)&&limit>30&&limit<=MAX_FLIGHT_PLAN_SECONDS))return none('Choose a mission duration between 30 seconds and 100 Julian years.');
  const context=world.contextFor(ship).cloneForPrediction(),orbits=context.services.orbits;
  let tested=0,accepted=0,total=0,lastReason='No sampled transfer converged safely. Try a different parking orbit or target altitude.';
  let options:readonly TransferOption[]=[];
@@ -41,8 +46,8 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
    destinationRadius=destination.id===common.id?(rp+ra)/2:radius(relative(destination.id,start.time)),
    semimajor=(sourceRadius+destinationRadius)/2,baseTravel=Math.PI*Math.sqrt(semimajor*semimajor*semimajor/common.mu),
    omega1=Math.sqrt(common.mu/(sourceRadius*sourceRadius*sourceRadius)),omega2=Math.sqrt(common.mu/(destinationRadius*destinationRadius*destinationRadius)),
-   synodic=2*Math.PI/Math.max(1e-12,Math.abs(omega1-omega2)),waitHorizon=Math.min(YEAR-baseTravel*.6,Math.max(2*orbit.period,2*synodic));
-  if(!(baseTravel>0&&waitHorizon>=30&&Number.isFinite(baseTravel)))return none('This transfer lies beyond the one-year search limit.');
+   synodic=2*Math.PI/Math.max(1e-12,Math.abs(omega1-omega2)),waitHorizon=Math.min(limit-baseTravel*.6,Math.max(2*orbit.period,2*synodic));
+  if(!(baseTravel>0&&waitHorizon>=30&&Number.isFinite(baseTravel)))return none('This transfer lies beyond the chosen mission duration. Increase the limit or choose a closer destination.');
   const departures:number[]=[];
   for(let i=0;i<40;i++)departures.push(start.time+30+(waitHorizon-30)*i/39);
   const prepared=context.coastAt(coast,start.time+30,origin,world.surface(origin.id),{cache:false});
@@ -55,15 +60,22 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
   const factors=[.6,.85,1,1.25];total=departures.length*factors.length*directions.length;
   const candidates:Omit<TransferOption,'kind'>[]=[];
   const trials:{before:State;endpoint:Vec;velocity:Vec;departure:number;travel:number;arrival:number;score:number}[]=[];
-  function* probe(seed:State,until:number):Generator<TransferProgress,Probe|undefined> {
-   const job=world.predictShip(ship!.id,false,{state:seed,bodyId:origin.id,until});let last:GhostSample|undefined,end:GhostEnd='open';
+  function* probe(seed:State,until:number,finite=false):Generator<TransferProgress,Probe|undefined> {
+   if(burns&&finite){
+    const parts=deltaComponents(seed.position,beforeProbe.velocity,subtract(seed.velocity,beforeProbe.velocity));if(!parts||!plans.simulateBurn)return;
+    const intent={id:'departure',label:'Departure',bodyId:origin.id,time:seed.time,...parts,finite:true};
+    const job=plans.simulateBurn(world,ship!,intent,burns);let result:import('@space-sim/game-api').FiniteBurnResult;
+    try{for(;;){const step=job.next();if(step.done){result=step.value;break;}yield progress();}}finally{job.return({reason:'cancelled'});}
+    if(!result.after){lastReason=result.reason;return;}seed=result.after;
+   }
+   const job=world.predictShip(ship!.id,false,{state:seed,bodyId:origin.id,until});let last:GhostSample|undefined,end:GhostEnd='open',entry:State|undefined;
    try {
     for(let count=0;count<=16384;count++){
-     const step=job.next();if(step.done){end=step.value;break;}last=step.value;if(count%8===0)yield progress();
+     const step=job.next();if(step.done){end=step.value;break;}last=step.value;if(last.bodyId===destination.id&&last.encounter?.to===destination.id){const local=flightSampleInFrame(last,destination.id,world.system);entry={...seed,time:local.time,position:local.position,velocity:local.velocity,coast:undefined};}if(count%8===0)yield progress();
     }
    }finally{job.return('open');}
    if(!last)return;
-   if(end==='horizon'&&Math.abs(last.time-until)<=1e-7)return{sample:flightSampleInFrame({...last,frameId:last.frameId??origin.id,bodyId:last.bodyId??origin.id},common.id,world.system),safe:true,end};
+   if(end==='horizon'&&Math.abs(last.time-until)<=flightTimeTolerance(until))return{sample:flightSampleInFrame({...last,frameId:last.frameId??origin.id,bodyId:last.bodyId??origin.id},common.id,world.system),safe:true,end,entry};
    if(end==='impact'&&until>last.time){
     const id=last.bodyId??origin.id,local=flightSampleInFrame({...last,frameId:last.frameId??origin.id},id,world.system),solved=orbits.propagate(local,world.body(id).mu,until-last.time);
     if(solved.ok)return{sample:flightSampleInFrame({time:until,...solved.state,bodyId:id,frameId:id},common.id,world.system),safe:false,end};
@@ -71,7 +83,7 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
   }
   for(const departure of departures)for(const factor of factors)for(const transferDirection of directions){
    tested++;yield progress();
-   const travel=baseTravel*factor,arrival=departure+travel;if(arrival>start.time+YEAR)continue;
+   const travel=baseTravel*factor,arrival=departure+travel;if(arrival>start.time+limit)continue;
    const at=context.coastAt(coast,departure,origin,world.surface(origin.id),{cache:false});if(!at.ok)continue;
    const before:State={...start,...at.state,time:departure,coast:undefined},r1=add(at.state.position,relative(origin.id,departure)),centre=relative(destination.id,arrival);
    let endpoint:Vec,seedVelocity:Vec;
@@ -95,30 +107,38 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
   }
   const selected=[...new Set([...trials.slice().sort((a,b)=>a.score-b.score||a.arrival-b.arrival).slice(0,16),...trials.slice().sort((a,b)=>a.arrival-b.arrival||a.score-b.score).slice(0,8)])];
   tested=0;total=selected.length;
+  let beforeProbe=start;
   for(const trial of selected){
    tested++;yield progress();
-   const {before,endpoint,departure,travel,arrival}=trial,at={state:before};
+   const {before,endpoint,departure,travel,arrival}=trial,at={state:before};beforeProbe=before;
+   // Short burns can use inexpensive impulsive derivatives as guidance. Every
+   // accepted trial uses finite thrust; failed improvement switches to a finite Jacobian.
+   let approximate=travel>1e5*radius(subtract(trial.velocity,before.velocity))/context.vehicle.acceleration;
    let velocity=trial.velocity,best=yield* probe({...before,velocity},arrival);if(!best)continue;
    let error=subtract(best.sample.position,endpoint),norm=radius(error);
+   for(const finite of (burns?[false,true]:[false])){
+   if(finite){const actual=yield* probe({...before,velocity},arrival,true);if(!actual){best.safe=false;break;}best=actual;error=subtract(best.sample.position,endpoint);norm=radius(error);}
    for(let iteration=0;iteration<18&&norm>Math.max(.001,rp*1e-9);iteration++){
     yield progress();
-    const h=Math.max(1e-5,radius(velocity)*1e-6,norm/travel*.001),
-     x=yield* probe({...before,velocity:{x:velocity.x+h,y:velocity.y}},arrival),
-     y=yield* probe({...before,velocity:{x:velocity.x,y:velocity.y+h}},arrival);
+    const guide=finite&&approximate?yield* probe({...before,velocity},arrival):best;if(!guide)break;
+    const h=finite?Math.max(1e-7,radius(velocity)*1e-9,Math.min(radius(velocity)*1e-6,norm/travel*.01)):Math.max(1e-5,radius(velocity)*1e-6,norm/travel*.001),
+     x=yield* probe({...before,velocity:{x:velocity.x+h,y:velocity.y}},arrival,finite&&!approximate),
+     y=yield* probe({...before,velocity:{x:velocity.x,y:velocity.y+h}},arrival,finite&&!approximate);
     if(!x||!y)break;
-    const a=(x.sample.position.x-best.sample.position.x)/h,b=(y.sample.position.x-best.sample.position.x)/h,
-     c=(x.sample.position.y-best.sample.position.y)/h,d=(y.sample.position.y-best.sample.position.y)/h,det=a*d-b*c;
+    const a=(x.sample.position.x-guide.sample.position.x)/h,b=(y.sample.position.x-guide.sample.position.x)/h,
+     c=(x.sample.position.y-guide.sample.position.y)/h,d=(y.sample.position.y-guide.sample.position.y)/h,det=a*d-b*c;
     if(!Number.isFinite(det)||Math.abs(det)<1e-12)break;
     let delta={x:(-error.x*d+b*error.y)/det,y:(c*error.x-a*error.y)/det};
     const bound=Math.max(50,radius(velocity)*.5),size=radius(delta);if(size>bound)delta=scale(delta,bound/size);
     let improved=false;
-    for(let retry=0;retry<4;retry++){
-     const nextVelocity=add(velocity,scale(delta,1/(2**retry))),next=yield* probe({...before,velocity:nextVelocity},arrival);
+    for(let retry=0;retry<(finite?8:4);retry++){
+     const nextVelocity=add(velocity,scale(delta,1/(2**retry))),next=yield* probe({...before,velocity:nextVelocity},arrival,finite);
      if(!next)continue;
      const residual=subtract(next.sample.position,endpoint),size=radius(residual);
      if(size<norm){velocity=nextVelocity;best=next;error=residual;norm=size;improved=true;break;}
     }
-    if(!improved)break;
+    if(!improved){if(finite&&approximate){approximate=false;continue;}break;}
+   }
    }
    if(!best.safe||best.sample.bodyId!==destination.id||norm>Math.max(.001,rp*1e-9)){lastReason=`No safe convergence in this bounded search (last forecast: ${best.end}). Try a different orbit or target.`;continue;}
    const local=flightSampleInFrame(best.sample,destination.id,world.system),r=radius(local.position),
@@ -128,9 +148,25 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
     departureComponents=deltaComponents(at.state.position,at.state.velocity,subtract(velocity,at.state.velocity)),
     arrivalComponents=deltaComponents(local.position,local.velocity,subtract(desired,local.velocity));
    if(!departureComponents||!arrivalComponents)continue;
-   const plan=plans.capture(world,ship,[{id:'departure',label:`Departure · ${origin.name}`,bodyId:origin.id,time:departure,...departureComponents},
-    {id:'arrival',label:`Arrival · ${destination.name}`,bodyId:destination.id,time:arrival,...arrivalComponents,
+   let plan=plans.capture(world,ship,[{...(burns?{finite:true}:{}),id:'departure',label:`Departure · ${origin.name}`,bodyId:origin.id,time:departure,...departureComponents},
+    {...(burns?{finite:true}:{}),id:'arrival',label:`Arrival · ${destination.name}`,bodyId:destination.id,time:arrival,...arrivalComponents,
       targetOrbit:{periapsisAltitude:request.periapsisAltitude,apoapsisAltitude:request.apoapsisAltitude}}]);
+   if(burns){
+    if(!best.entry||!plans.refineCapture){lastReason='No destination entry available for finite capture validation.';continue;}
+    const capture=plans.refineCapture(world,{...ship,bodyId:destination.id,state:best.entry},plan.nodes[1]!,burns);
+    let result:import('@space-sim/game-api').FiniteCaptureResult;
+    try{for(;;){const step=capture.next();if(step.done){result=step.value;break;}yield progress();}}finally{capture.return({reason:'cancelled'});}
+    if(!result.node||!result.after){lastReason=result.reason;continue;}
+    plan=plans.capture(world,ship,[plan.nodes[0]!,result.node]);finiteArrivals.set(plan,result.after);
+    const departureDeltaV=radius(subtract(velocity,before.velocity)),centre=context.services.orbits.propagate(best.entry,destination.mu,result.node.time-best.entry.time);
+    if(!centre.ok)continue;
+    const arrivalDeltaV=radius(maneuverDelta({time:result.node.time,...centre.state},result.node.prograde,result.node.radial));
+    candidates.push({plan,waitSeconds:departure-start.time,travelSeconds:result.after.time-departure,deltaV:departureDeltaV+arrivalDeltaV,departureDeltaV,arrivalDeltaV,
+     departureBurnSeconds:departureDeltaV/context.vehicle.acceleration,arrivalBurnSeconds:arrivalDeltaV/context.vehicle.acceleration,
+     route:{bodyIds:[origin.id,destination.id],stops:[],maxFlightSeconds:limit,finiteValidated:true},
+     warning:'Finite burns, actual SOI transitions and one full target orbit verified. Bounded sampled search; review actual flight after each burn and encounter.'});accepted++;
+    options=transferOptions(candidates,world.time);yield progress();continue;
+   }
    const evaluation=plans.evaluateAsync!(plan,world);let evaluated:readonly import('@space-sim/game-api').EvaluatedFlightNode[]=[];
    try{for(let count=0;count<65536;count++){const step=evaluation.next();if(step.done){evaluated=step.value;break;}yield progress();}}finally{evaluation.return([]);}
    if(evaluated.length!==2||evaluated.some(n=>!n.valid)){lastReason=evaluated.find(n=>!n.valid)?.reason??'Plan evaluation exceeded its budget.';continue;}

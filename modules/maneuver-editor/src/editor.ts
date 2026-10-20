@@ -75,6 +75,7 @@ interface Node {
   radial: number;
   valid: boolean;
   reason: string;
+  finite?:boolean;
   targetOrbit?:FlightPlanNode['targetOrbit'];
 }
 /** Local plans and opt-in host burn execution through normal session controls.
@@ -133,6 +134,10 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
   cancel(): void { if (this.disposed) return; this.continueShip=undefined; this.cancelFleetReview(); this.fleet?.clear(); this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.transferControls?.cancel(); }
 
   constructor(private readonly services: ManeuverEditorServices, private readonly options: ManeuverPlannerOptions, private readonly tuning: ManeuverEditorTuning = {}) {
+    // Bind the host-selected controller without giving presentation providers
+    // platform/clock access. Covers both portable factories and direct host adapters.
+    services={...services,plans:services.plans?.withBurns?.(services.burns)??services.plans,transfers:services.transfers?.withBurns?.(services.burns)??services.transfers};
+    this.services=services;
     this.id = options.id ?? 'maneuver';
     if (!/^[a-z][a-z0-9-]{0,63}$/.test(this.id)) throw new Error('Invalid maneuver window identity');
     const previewMaxMs = tuning.previewMaxMs ?? 1, uiRefreshMs = tuning.uiRefreshMs ?? 100;
@@ -182,7 +187,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       },
       retargeted:(shipId,intent)=>{
         const node=this.plans.get(shipId)?.find(value=>value.id===intent.id);if(!node)throw Error('The arrival node was removed.');
-        node.time=intent.time;node.prograde=intent.prograde;node.radial=intent.radial;node.targetOrbit=intent.targetOrbit;node.alarm=intent.alarm;
+        node.time=intent.time;node.prograde=intent.prograde;node.radial=intent.radial;node.targetOrbit=intent.targetOrbit;node.finite=intent.finite;node.alarm=intent.alarm;
         node.valid=false;node.reason='Arrival updated for the actual encounter. Validating the new capture…';
         this.invalidateLater(node);this.preview.invalidate();this.alarmControls?.touch(node);this.refreshInputs();this.lastUi=-Infinity;
       },
@@ -501,7 +506,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     }
   }
   private intent(node: Node): FlightPlanNode {
-    return { id: node.id, label: node.label, bodyId: node.bodyId, time: node.time, prograde: node.prograde, radial: node.radial, ...(node.completed ? { completed: true } : {}), ...(node.alarm ? { alarm:node.alarm } : {}),...(node.targetOrbit?{targetOrbit:node.targetOrbit}:{}) };
+    return { id: node.id, label: node.label, bodyId: node.bodyId, time: node.time, prograde: node.prograde, radial: node.radial, ...(node.completed ? { completed: true } : {}), ...(node.alarm ? { alarm:node.alarm } : {}),...(node.finite?{finite:true}:{}),...(node.targetOrbit?{targetOrbit:node.targetOrbit}:{}) };
   }
   private waiting(node: Node): boolean {
     return (this.plans.get(node.shipId) ?? []).some(value => value !== node && !value.completed && value.time < node.time);
