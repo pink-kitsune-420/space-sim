@@ -15,6 +15,7 @@ import type { MotionServices } from './services';
 import type { ServiceKey } from './modules-v2';
 
 type Pair = readonly [number, number];
+/** Serialized Keplerian coast epoch (`epochSeconds` in `s`, body-centered inertial `position` in `m` and `velocity` in `m/s`) stored in a `SavedShip`. */
 export interface SavedCoast {
   /** Present for selected custom services; checked against the installed context on load. */
   readonly modelIdentity?: string;
@@ -49,6 +50,7 @@ export interface SavedPlayer {
   readonly name: string;
   readonly tokenHash?: string;
 }
+/** Saved module profile and per-environment v2 runtime package selections (`spacelab-progress-configuration/2`) embedded in a world save. */
 export interface SavedGameConfiguration {
   readonly format: 'spacelab-progress-configuration/2';
   readonly profile: ModuleProfile;
@@ -60,6 +62,7 @@ export interface SavedGameConfiguration {
   readonly data: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
   readonly code: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
 }
+/** Portable `space-sim-world` save document containing the full `UniverseDefinition`, SI state (`m`, `s`, `rad`) at `tick`/`time`, ships, players, and optional locks/plans. */
 export interface WorldSave {
   readonly vehicles?: VehicleCatalog;
   readonly data?: ModuleDataSnapshot;
@@ -121,9 +124,11 @@ export interface WorldRead {
   predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
   cloneForPrediction(): WorldControl;
 }
+/** Disposable change-tracking subscription reporting ship IDs modified or removed since the previous `take()`. */
 export interface WorldChanges extends Disposable {
   take(): { readonly changed: readonly string[]; readonly removed: readonly string[] };
 }
+/** Authoritative mutable world handle extending `WorldRead` with fixed-step advancement (`0.01 s`), ship spawning/teleportation, and control mutations. */
 export interface WorldControl extends WorldRead, Disposable {
   readonly data: ModuleDataControl;
   setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;
@@ -141,6 +146,7 @@ export interface WorldControl extends WorldRead, Disposable {
   /** One owned delta consumer per world, released before another session can subscribe. */
   subscribeChanges(): WorldChanges;
 }
+/** Options for constructing an authoritative `WorldControl` instance: vehicle catalog, module extensions, lock/fingerprint, and context factory. */
 export interface WorldCreationOptions {
   readonly vehicles?: VehicleCatalog;
   readonly dataAdapters?: readonly ModuleDataExtension[];
@@ -149,13 +155,16 @@ export interface WorldCreationOptions {
   readonly createContext?: SimulationContextFactory; readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[];
   readonly commands?: readonly CommandExtension[]; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string; readonly saveVersion?: number;
 }
+/** Factory service creating authoritative `WorldControl` simulation instances (`core.world@1.0.0`). */
 export interface WorldFactory { create(universe: UniverseDefinition, options?: WorldCreationOptions): WorldControl }
+/** Optional metadata and session state included when serializing a `WorldRead` into a `WorldSave`. */
 export interface SavedWorldOptions {
   readonly flightPlans?: import('./flight-plans').FlightPlanArchive;
   readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;
   readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
 }
+/** Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `space-sim-world` JSON archives. */
 export interface SaveCodec {
   /** Exact legacy authority identity used for worlds predating explicit locks. */
   readonly defaultLock: AuthoritativeLock;
@@ -167,11 +176,14 @@ export interface SaveCodec {
   shipFromSaved(world: WorldRead, raw: unknown, context?: string, time?: number): Ship;
   playerFromSaved(raw: unknown, context?: string): SavedPlayer;
 }
+/** Fixed-timestep accumulator converting elapsed wall-clock seconds into discrete `0.01 s` simulation ticks and an interpolation fraction `alpha` in `[0, 1)`. */
 export interface FixedClock {
   readonly alpha: number; readonly lastSteps: number; readonly droppedSeconds: number;
   reset(): void; advance(seconds: number, tick: () => void, warp?: number, maxSteps?: number): void;
 }
+/** Service providing the fixed simulation timestep (`0.01 s`), neutral `idle` controls, physics model ID, and `FixedClock` instances (`core.clock@1.0.0`). */
 export interface ClockService { readonly stepSeconds: 0.01; readonly idle: Controls; readonly model: string; create(): FixedClock }
+/** Warp safety evaluation for a world: maximum granted time-warp factor, optional limiting reason, and analytic rails eligibility. */
 export interface WarpSafety { readonly maxGranted: number; readonly reason?: string; readonly railsEligible: boolean }
 /** Authoritative simulation kernel providing context creation, motion services, warp limits, and vector utilities. */
 export interface CoreMotion {
@@ -183,12 +195,17 @@ export interface CoreMotion {
   nextWarpFactor(factor: number, direction: 1 | -1, maxAllowed?: number): number;
   magnitude(value: Vec): number; normalizeAngle(value: number): number;
 }
+/** Service validating and resolving an authoritative `CommandExtension` against a detached ship snapshot at `(tick, time)` (`core.commands@1.0.0`). */
 export interface CoreCommands {
   resolve(command: CommandExtension, ship: Ship, args: unknown, tick: number, time: number): CommandEffect;
 }
+/** Service key for the authoritative world factory (`core.world@1.0.0`). */
 export const CORE_WORLD: ServiceKey<WorldFactory> = Object.freeze({ slot: 'core.world', version: '1.0.0' });
+/** Service key for the authoritative world save/load codec (`core.save@1.0.0`). */
 export const CORE_SAVE: ServiceKey<SaveCodec> = Object.freeze({ slot: 'core.save', version: '1.0.0' });
+/** Service key for the fixed-timestep simulation clock service (`core.clock@1.0.0`). */
 export const CORE_CLOCK: ServiceKey<ClockService> = Object.freeze({ slot: 'core.clock', version: '1.0.0' });
 /** Service key for the core motion kernel (`core.motion@1.0.0`). */
 export const CORE_MOTION: ServiceKey<CoreMotion> = Object.freeze({ slot: 'core.motion', version: '1.0.0' });
+/** Service key for the authoritative module command resolver (`core.commands@1.0.0`). */
 export const CORE_COMMANDS: ServiceKey<CoreCommands> = Object.freeze({ slot: 'core.commands', version: '1.0.0' });

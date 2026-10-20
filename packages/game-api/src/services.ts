@@ -5,6 +5,7 @@ import type { Elements, OrbitalState, Propagation, SolverOptions } from './orbit
 import type { LoadedSystem, ResolvedBody, UniverseDefinition } from './universe';
 import type { SurfaceProfile, SurfaceQuery, SurfaceSweep, SurfaceSweepOptions } from './surface';
 
+/** Canonical identity and behavioral `modelIdentity` fingerprint of an authoritative motion service provider. */
 export interface ProviderIdentity {
   readonly id: string;
   readonly version: string;
@@ -19,6 +20,7 @@ export interface OrbitalProvider extends ProviderIdentity {
   propagate(state: OrbitalState, mu: number, seconds: number, options?: SolverOptions): Propagation;
   timeToRadius(state: OrbitalState, mu: number, radius: number, direction: 'inbound' | 'outbound', elements?: Elements): number | null;
 }
+/** Local terrain contact support at a polar angle (radians): query sample, outward support normals, and maximum slope angle in radians. */
 export interface SurfaceSupport {
   readonly surface: SurfaceQuery;
   readonly normals: readonly Vec[];
@@ -40,6 +42,7 @@ export interface SurfaceProvider extends ProviderIdentity {
 export interface BodyFrameProvider extends ProviderIdentity {
   load(universe: UniverseDefinition, systemId: string, surfaces: SurfaceProvider): LoadedSystem;
 }
+/** Tuple of `modelIdentity` strings (`dynamics`, `orbits`, `bodies`, `surfaces`) that a `RailsProvider` certifies for analytic sleep. */
 export interface RailsBinding {
   readonly dynamics: string;
   readonly orbits: string;

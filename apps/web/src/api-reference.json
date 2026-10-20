@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d4921c477d766c67",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 103ee740b08ee2d1",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d4921c477d766c67"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 103ee740b08ee2d1"
         },
         {
           "type": "paragraph",
@@ -463,6 +463,11 @@
           "type": "link",
           "text": "manual.ts",
           "page": "api-reference/game-api/manual"
+        },
+        {
+          "type": "link",
+          "text": "math.ts",
+          "page": "api-reference/game-api/math"
         },
         {
           "type": "link",
@@ -1916,6 +1921,11 @@
         },
         {
           "type": "link",
+          "text": "game-api math.ts",
+          "page": "api-reference/game-api/math"
+        },
+        {
+          "type": "link",
           "text": "game-api modules-v2.ts",
           "page": "api-reference/game-api/modules-v2"
         },
@@ -3298,6 +3308,11 @@
         },
         {
           "type": "link",
+          "text": "game-api math.ts",
+          "page": "api-reference/game-api/math"
+        },
+        {
+          "type": "link",
           "text": "game-api modules-v2.ts",
           "page": "api-reference/game-api/modules-v2"
         },
@@ -3395,6 +3410,11 @@
           "type": "link",
           "text": "game-api maneuver.ts",
           "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api math.ts",
+          "page": "api-reference/game-api/math"
         },
         {
           "type": "link",
@@ -3544,6 +3564,11 @@
           "type": "link",
           "text": "game-api maneuver.ts",
           "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api math.ts",
+          "page": "api-reference/game-api/math"
         },
         {
           "type": "link",
@@ -5745,6 +5770,11 @@
         },
         {
           "type": "link",
+          "text": "game-api math.ts",
+          "page": "api-reference/game-api/math"
+        },
+        {
+          "type": "link",
           "text": "game-api modules-v2.ts",
           "page": "api-reference/game-api/modules-v2"
         },
@@ -6173,6 +6203,11 @@
           "type": "link",
           "text": "game-api maneuver.ts",
           "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api math.ts",
+          "page": "api-reference/game-api/math"
         },
         {
           "type": "link",
@@ -7163,6 +7198,10 @@
           "text": "OrbitalAlarmClock"
         },
         {
+          "type": "paragraph",
+          "text": "Simulation-time alarm evaluator tracking per-session deadlines and due notices. Disposing unregisters the clock from the shared catalogue."
+        },
+        {
           "type": "code",
           "text": "export interface OrbitalAlarmClock extends Disposable {\n /** Borrowed result buffer, valid until next sync. Each due event fires once, even\n  * after a time jump. Session identity or time rewind clears prior in-memory state.\n  * Call with the complete current set (max 1024); omitted events are deleted. */\n sync(session: object, now: number, events: readonly OrbitalAlarmEvent[]): readonly OrbitalAlarmNotice[];\n readonly secondsUntilNext: number;\n clear(): void;\n}"
         },
@@ -7221,6 +7260,10 @@
         {
           "type": "heading",
           "text": "OrbitalAlarmCatalogue"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only service publishing detached simulation-time alarm status snapshots per session (`flight.alarm-catalogue@1.0.0`)."
         },
         {
           "type": "code",
@@ -7568,6 +7611,38 @@
         },
         {
           "type": "heading",
+          "text": "CommandParameter"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded numeric parameter schema for an authoritative module command (`[minimum, maximum]`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface CommandParameter {\n  readonly type: 'number';\n  readonly default: number;\n  readonly minimum: number;\n  readonly maximum: number;\n  readonly integer?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CommandInput"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached, read-only input passed to `CommandHook.resolve` at a fixed-step control boundary (`time` in simulation seconds)."
+        },
+        {
+          "type": "code",
+          "text": "export interface CommandInput {\n  /** Committed tick and simulation time when the host applies the command. */\n  readonly tick: number;\n  readonly time: number;\n  /** Detached, read-only copy of the commanded ship, owned by the requesting player. */\n  readonly ship: Ship;\n  /** Validated arguments with declared defaults applied. */\n  readonly args: Readonly<Record<string, number>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "CommandEffect"
         },
         {
@@ -7584,7 +7659,27 @@
         },
         {
           "type": "heading",
+          "text": "CommandHook"
+        },
+        {
+          "type": "paragraph",
+          "text": "An authoritative request a pilot can issue. Only the authoritative host runs `resolve`: after checking the player owns the ship and the arguments match `parameters`. It is synchronous and pure (no wall clock, IO, randomness or hidden state). A thrown error or invalid effect refuses the command with module/command diagnostics and changes nothing. Clients receive the result through ordinary snapshots; they never run `resolve`."
+        },
+        {
+          "type": "code",
+          "text": "export interface CommandHook {\n  /** Local name; the command ID is `<module id>/<name>`. */\n  readonly name: string;\n  /** Button text. */\n  readonly label: string;\n  /** Suggested binding as a KeyboardEvent.code: `KeyA`–`KeyZ` or `Digit0`–`Digit9`.\n   * Applications reject bindings that collide with their own controls. */\n  readonly key?: string;\n  /** At most eight numeric parameters. Missing arguments take their defaults. */\n  readonly parameters?: Readonly<Record<string, CommandParameter>>;\n  resolve(input: CommandInput): CommandEffect;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "CommandExtension"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved authoritative command contribution bound to its owning module identity and version."
         },
         {
           "type": "code",
@@ -7628,6 +7723,22 @@
         },
         {
           "type": "heading",
+          "text": "CoastCacheStats"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only diagnostic counters for a simulation context's derived Kepler coast sample cache."
+        },
+        {
+          "type": "code",
+          "text": "export interface CoastCacheStats {\n  readonly samples: number;\n  readonly hits: number;\n  readonly misses: number;\n  readonly capacity: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SimulationContextFactory"
         },
         {
@@ -7657,6 +7768,22 @@
         {
           "type": "paragraph",
           "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/engine.ts."
+        },
+        {
+          "type": "heading",
+          "text": "SavedCoast"
+        },
+        {
+          "type": "paragraph",
+          "text": "Serialized Keplerian coast epoch (`epochSeconds` in `s`, body-centered inertial `position` in `m` and `velocity` in `m/s`) stored in a `SavedShip`."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedCoast {\n  /** Present for selected custom services; checked against the installed context on load. */\n  readonly modelIdentity?: string;\n  readonly epochSeconds: number;\n  readonly position: Pair;\n  readonly velocity: Pair;\n  readonly revision: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -7692,7 +7819,27 @@
         },
         {
           "type": "heading",
+          "text": "SavedGameConfiguration"
+        },
+        {
+          "type": "paragraph",
+          "text": "Saved module profile and per-environment v2 runtime package selections (`spacelab-progress-configuration/2`) embedded in a world save."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedGameConfiguration {\n  readonly format: 'spacelab-progress-configuration/2';\n  readonly profile: ModuleProfile;\n  readonly runtime: { readonly format: 'spacelab-runtime-selection/2'; readonly plans: Readonly<Partial<Record<ModuleEnvironment, {\n    readonly profile: ModuleProfileV2;\n    readonly packages: readonly { readonly id: string; readonly version: string; readonly digest: string }[];\n    readonly requiredSlots: readonly string[];\n  }>>> };\n  readonly data: readonly { readonly id: string; readonly version: string; readonly digest: string }[];\n  readonly code: readonly { readonly id: string; readonly version: string; readonly digest: string }[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "WorldSave"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portable `space-sim-world` save document containing the full `UniverseDefinition`, SI state (`m`, `s`, `rad`) at `tick`/`time`, ships, players, and optional locks/plans."
         },
         {
           "type": "code",
@@ -7723,6 +7870,10 @@
           "text": "WorldChanges"
         },
         {
+          "type": "paragraph",
+          "text": "Disposable change-tracking subscription reporting ship IDs modified or removed since the previous `take()`."
+        },
+        {
           "type": "code",
           "text": "export interface WorldChanges extends Disposable {\n  take(): { readonly changed: readonly string[]; readonly removed: readonly string[] };\n}"
         },
@@ -7735,6 +7886,10 @@
           "text": "WorldControl"
         },
         {
+          "type": "paragraph",
+          "text": "Authoritative mutable world handle extending `WorldRead` with fixed-step advancement (`0.01 s`), ship spawning/teleportation, and control mutations."
+        },
+        {
           "type": "code",
           "text": "export interface WorldControl extends WorldRead, Disposable {\n  readonly data: ModuleDataControl;\n  setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;\n  step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];\n  put(ship: Ship): void; remove(id: string): boolean;\n  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;\n  respawn(id: string, preset?: string, godMode?: boolean): Ship;\n  teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;\n  reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;\n  rename(id: string, name: string): void; clearFault(id: string): void;\n  setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;\n  adopt(record: Ship, ticks: number, before?: (ship: Ship, tick: number) => Ship): WorldEvent[];\n  /** Reconciliation may rewind. No stepping, rounding or epoch conversion occurs here. */\n  restoreClock(tick: number, time: number): void;\n  /** One owned delta consumer per world, released before another session can subscribe. */\n  subscribeChanges(): WorldChanges;\n}"
         },
@@ -7744,7 +7899,27 @@
         },
         {
           "type": "heading",
+          "text": "WorldCreationOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for constructing an authoritative `WorldControl` instance: vehicle catalog, module extensions, lock/fingerprint, and context factory."
+        },
+        {
+          "type": "code",
+          "text": "export interface WorldCreationOptions {\n  readonly vehicles?: VehicleCatalog;\n  readonly dataAdapters?: readonly ModuleDataExtension[];\n  readonly configuration?: SavedGameConfiguration;\n  readonly soloPreview?: boolean; readonly migrateState?: WorldRead['migrateState']; readonly systemId?: string; readonly id?: string;\n  readonly createContext?: SimulationContextFactory; readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[];\n  readonly commands?: readonly CommandExtension[]; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string; readonly saveVersion?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "WorldFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory service creating authoritative `WorldControl` simulation instances (`core.world@1.0.0`)."
         },
         {
           "type": "code",
@@ -7756,7 +7931,27 @@
         },
         {
           "type": "heading",
+          "text": "SavedWorldOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional metadata and session state included when serializing a `WorldRead` into a `WorldSave`."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedWorldOptions {\n  readonly flightPlans?: FlightPlanArchive;\n  readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;\n  readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SaveCodec"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `space-sim-world` JSON archives."
         },
         {
           "type": "code",
@@ -7771,6 +7966,10 @@
           "text": "FixedClock"
         },
         {
+          "type": "paragraph",
+          "text": "Fixed-timestep accumulator converting elapsed wall-clock seconds into discrete `0.01 s` simulation ticks and an interpolation fraction `alpha` in `[0, 1)`."
+        },
+        {
           "type": "code",
           "text": "export interface FixedClock {\n  readonly alpha: number; readonly lastSteps: number; readonly droppedSeconds: number;\n  reset(): void; advance(seconds: number, tick: () => void, warp?: number, maxSteps?: number): void;\n}"
         },
@@ -7783,12 +7982,32 @@
           "text": "ClockService"
         },
         {
+          "type": "paragraph",
+          "text": "Service providing the fixed simulation timestep (`0.01 s`), neutral `idle` controls, physics model ID, and `FixedClock` instances (`core.clock@1.0.0`)."
+        },
+        {
           "type": "code",
           "text": "export interface ClockService { readonly stepSeconds: 0.01; readonly idle: Controls; readonly model: string; create(): FixedClock }"
         },
         {
           "type": "paragraph",
           "text": "Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight."
+        },
+        {
+          "type": "heading",
+          "text": "WarpSafety"
+        },
+        {
+          "type": "paragraph",
+          "text": "Warp safety evaluation for a world: maximum granted time-warp factor, optional limiting reason, and analytic rails eligibility."
+        },
+        {
+          "type": "code",
+          "text": "export interface WarpSafety { readonly maxGranted: number; readonly reason?: string; readonly railsEligible: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -7811,6 +8030,10 @@
           "text": "CoreCommands"
         },
         {
+          "type": "paragraph",
+          "text": "Service validating and resolving an authoritative `CommandExtension` against a detached ship snapshot at `(tick, time)` (`core.commands@1.0.0`)."
+        },
+        {
           "type": "code",
           "text": "export interface CoreCommands {\n  resolve(command: CommandExtension, ship: Ship, args: unknown, tick: number, time: number): CommandEffect;\n}"
         },
@@ -7821,6 +8044,10 @@
         {
           "type": "heading",
           "text": "CORE_WORLD"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the authoritative world factory (`core.world@1.0.0`)."
         },
         {
           "type": "code",
@@ -7835,6 +8062,10 @@
           "text": "CORE_SAVE"
         },
         {
+          "type": "paragraph",
+          "text": "Service key for the authoritative world save/load codec (`core.save@1.0.0`)."
+        },
+        {
           "type": "code",
           "text": "export const CORE_SAVE: ServiceKey<SaveCodec> = Object.freeze({ slot: 'core.save', version: '1.0.0' });"
         },
@@ -7845,6 +8076,10 @@
         {
           "type": "heading",
           "text": "CORE_CLOCK"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the fixed-timestep simulation clock service (`core.clock@1.0.0`)."
         },
         {
           "type": "code",
@@ -7873,6 +8108,10 @@
         {
           "type": "heading",
           "text": "CORE_COMMANDS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the authoritative module command resolver (`core.commands@1.0.0`)."
         },
         {
           "type": "code",
@@ -7935,6 +8174,10 @@
           "text": "ControllerProfile"
         },
         {
+          "type": "paragraph",
+          "text": "Per-seat gamepad axis, inversion, radial deadzone, and action button mapping profile."
+        },
+        {
           "type": "code",
           "text": "export interface ControllerProfile {\n  /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */\n  readonly turnAxis: number;\n  readonly invertTurn: boolean;\n  /** Axis index for throttle adjustment [-1..1]. Default: 1 (Left Stick Y / Joystick Pitch). */\n  readonly throttleAxis: number;\n  readonly invertThrottle: boolean;\n  /** Axis index for analog zoom, or -1 for none. Default: 3 (Right Stick Y). */\n  readonly zoomAxis: number;\n  readonly invertZoom: boolean;\n  /** Radial deadzone fraction [0..0.5]. Default: 0.15. */\n  readonly deadzone: number;\n  /** Standard-mapping button indices per action. Held actions (engine, throttle, turn) act\n   * while pressed; the rest fire once per press. */\n  readonly buttons: Readonly<Record<FlightActionId, readonly number[]>>;\n}"
         },
@@ -7961,6 +8204,10 @@
         {
           "type": "heading",
           "text": "GamepadFlightInput"
+        },
+        {
+          "type": "paragraph",
+          "text": "Normalized per-frame flight control intent sampled from a physical gamepad (`[-1, 1]` axes)."
         },
         {
           "type": "code",
@@ -8052,6 +8299,22 @@
         },
         {
           "type": "heading",
+          "text": "FlightTouch"
+        },
+        {
+          "type": "paragraph",
+          "text": "Editable flight overlay; generic touch sources can use other controls/actions."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightTouch extends Disposable {\n  loadSettings(): TouchMode;\n  saveMode(mode: TouchMode): void;\n  getMode(): TouchMode;\n  onShortcut(handler: (action: FlightActionId) => void): void;\n  onZoom(handler: (factor: number) => void): void;\n  onSlingHold(handler: (holding: boolean) => void): void;\n  setSlingVisible(visible: boolean): void;\n  setSlingActive(active: boolean): void;\n  isTouchDevice(): boolean;\n  attach(container: HTMLElement): void;\n  updateVisibility(): void;\n  pollFlight(): TouchFlightState;\n  isVisible(): boolean;\n  release(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "FlightKeyboardOptions"
         },
         {
@@ -8117,6 +8380,10 @@
         {
           "type": "heading",
           "text": "NavballPlacement"
+        },
+        {
+          "type": "paragraph",
+          "text": "Normalized viewport position (`[0, 1]`), anchor preset, and drag-lock flag for a seat's HUD navball."
         },
         {
           "type": "code",
@@ -8259,6 +8526,10 @@
           "text": "FlightPlanArchive"
         },
         {
+          "type": "paragraph",
+          "text": "Portable `space-sim-flight-plans/1` archive containing up to 64 inert per-ship flight plans."
+        },
+        {
           "type": "code",
           "text": "export interface FlightPlanArchive { readonly format: 'space-sim-flight-plans/1'; readonly plans: readonly FlightPlan[] }"
         },
@@ -8287,6 +8558,10 @@
           "text": "FlightPlanProgress"
         },
         {
+          "type": "paragraph",
+          "text": "Progressive step yielded by `FlightPlanService.evaluateAsync` with the active node index and optional traced coast sample."
+        },
+        {
           "type": "code",
           "text": "export interface FlightPlanProgress { readonly node: number; readonly sample?: GhostSample }"
         },
@@ -8299,6 +8574,10 @@
           "text": "FiniteBurnResult"
         },
         {
+          "type": "paragraph",
+          "text": "Result of a detached finite-burn simulation in body-relative SI units (`after` state and `delta` velocity in `m/s`)."
+        },
+        {
           "type": "code",
           "text": "export interface FiniteBurnResult {readonly after?:State;readonly delta?:Vec;readonly reason:string}"
         },
@@ -8309,6 +8588,10 @@
         {
           "type": "heading",
           "text": "FiniteCaptureResult"
+        },
+        {
+          "type": "paragraph",
+          "text": "Result of refining an arrival capture node under a finite-burn controller in body-relative SI units."
         },
         {
           "type": "code",
@@ -8416,6 +8699,22 @@
         },
         {
           "type": "heading",
+          "text": "FlightHostOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional parameters passed when constructing a FlightHost."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightHostOptions {\n  /** Roster of players to restore into the session from a saved world. */\n  readonly players?: readonly SavedPlayer[];\n  /** Optional monotonic clock source for server timekeeping. */\n  readonly now?: () => number;\n  /** Optional diagnostic logging callback. */\n  readonly log?: (message: string) => void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "FlightHost"
         },
         {
@@ -8477,6 +8776,22 @@
         {
           "type": "paragraph",
           "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-view.ts."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCandidate"
+        },
+        {
+          "type": "paragraph",
+          "text": "Candidate target with world-space position and piloting metadata for smart camera selection."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCandidate { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly position: Vec; readonly isPilotedShip?: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -8573,6 +8888,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "PredictionPass"
+        },
+        {
+          "type": "paragraph",
+          "text": "Active in-flight trajectory tracing pass accumulating body-relative SI samples and wall-clock work in milliseconds."
+        },
+        {
+          "type": "code",
+          "text": "export interface PredictionPass { readonly samples: readonly GhostSample[]; readonly coarse: boolean; readonly workMs: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -8752,6 +9083,22 @@
         },
         {
           "type": "heading",
+          "text": "FlightSplitTuning"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration thresholds for splitscreen gamepad joining, dynamic separation, and merging."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightSplitTuning {\n  readonly joinButton?: number; readonly guestPredictionMs?: number; readonly wheelZoom?: number;\n  readonly separateScreenRatio?: number; readonly mergeScreenRatio?: number;\n  readonly separateDistance?: number; readonly mergeDistance?: number; readonly mergeDelayMs?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "FlightSplitServices"
         },
         {
@@ -8813,6 +9160,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-split."
+        },
+        {
+          "type": "heading",
+          "text": "ControllerMenu"
+        },
+        {
+          "type": "paragraph",
+          "text": "Interactive UI controller managing the Players and Controllers tabs of the flight controls dialog."
+        },
+        {
+          "type": "code",
+          "text": "export interface ControllerMenu extends Disposable {\n  /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */\n  open(): void;\n  /** Re-renders the Players tab (splitscreen seat list and device assignments). */\n  renderPlayers(): void;\n  /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */\n  renderPad(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -8960,6 +9323,22 @@
         },
         {
           "type": "heading",
+          "text": "HudEditorItem"
+        },
+        {
+          "type": "paragraph",
+          "text": "Metadata describing an editable HUD instrument position."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudEditorItem {\n readonly id:string;readonly selector:string;readonly label:string;\n /** Optional selector under the item's parent defining its placement bounds, e.g. its view canvas.\n  * Saved normalized coordinates then follow that view as split-screen panes resize. */\n readonly bounds?:string;\n /** False for independently placed controls that should not push automatically fitted instruments. */\n readonly obstacle?:boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "HudEditorOptions"
         },
         {
@@ -9021,6 +9400,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.hud-layout."
+        },
+        {
+          "type": "heading",
+          "text": "HudVisibilityItem"
+        },
+        {
+          "type": "paragraph",
+          "text": "Descriptor for a toggleable HUD element in the visibility panel."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudVisibilityItem {readonly id:string;readonly label:string;readonly selector?:string;readonly containerClass?:string;readonly default?:boolean}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -9133,6 +9528,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.join-review, spacelab.session-join."
+        },
+        {
+          "type": "heading",
+          "text": "JoinPackSource"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host adapter exporting the active distributable game pack; never an arbitrary file lookup."
+        },
+        {
+          "type": "code",
+          "text": "export interface JoinPackSource {\n  /** Retrieve the current join offer and game pack archive bytes. */\n  current(signal: AbortSignal): Promise<{ readonly offer: JoinOffer; readonly bytes: Uint8Array }>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -9325,6 +9736,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogQuery"
+        },
+        {
+          "type": "paragraph",
+          "text": "Filter for {@link ModuleLogService.entries}. Every field is optional and they combine with AND."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleLogQuery {\n /** Only entries written by this module ID. */\n readonly moduleId?:string;\n /** Lowest severity to include. Default `debug`. */\n readonly minimum?:ModuleLogLevel;\n /** Only entries with a `sequence` greater than this. Default 0. */\n readonly after?:number;\n /** Keep at most this many of the newest matches, a non-negative integer. Default and maximum: the retained history size. */\n readonly limit?:number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -9600,6 +10027,22 @@
         },
         {
           "type": "heading",
+          "text": "ManualSection"
+        },
+        {
+          "type": "paragraph",
+          "text": "Section definition containing an audience label, introductory text, and an array of pages."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualSection {\n  readonly label: string;\n  readonly intro: string;\n  readonly pages: readonly ManualTopic[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ManualReaderOptions"
         },
         {
@@ -9661,6 +10104,150 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/math",
+      "title": "game-api: math.ts",
+      "summary": "Declarations from math.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import deterministicMath from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/math.ts."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.sin"
+        },
+        {
+          "type": "paragraph",
+          "text": "Deterministic sine of `x` in radians using Cody-Waite range reduction and IEEE 754 polynomial evaluation."
+        },
+        {
+          "type": "code",
+          "text": "export function sin(x: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.cos"
+        },
+        {
+          "type": "paragraph",
+          "text": "Deterministic cosine of `x` in radians using Cody-Waite range reduction and IEEE 754 polynomial evaluation."
+        },
+        {
+          "type": "code",
+          "text": "export function cos(x: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.atan2"
+        },
+        {
+          "type": "paragraph",
+          "text": "Two-argument arctangent with Math.atan2's quadrants and signed zeros."
+        },
+        {
+          "type": "code",
+          "text": "export function atan2(y: number, x: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.hypot"
+        },
+        {
+          "type": "paragraph",
+          "text": "Hypotenuse from one square root (correctly rounded everywhere), scaled away from overflow and underflow."
+        },
+        {
+          "type": "code",
+          "text": "export function hypot(x: number, y: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.expm1"
+        },
+        {
+          "type": "paragraph",
+          "text": "e^x - 1, accurate near zero."
+        },
+        {
+          "type": "code",
+          "text": "export function expm1(x: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.exp"
+        },
+        {
+          "type": "paragraph",
+          "text": "Deterministic base-e exponential `e^x` using split-ln(2) range reduction and exact power-of-two scaling."
+        },
+        {
+          "type": "code",
+          "text": "export function exp(x: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.twoFifths"
+        },
+        {
+          "type": "paragraph",
+          "text": "x^(2/5) for x >= 0 (the Laplace sphere-of-influence exponent). With x = b·2^(5q), b in [1, 32): x^(2/5) = b^(2/5)·4^q, and b^(2/5) is Newton's root of y^5 = b^2."
+        },
+        {
+          "type": "code",
+          "text": "export function twoFifths(x: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "deterministicMath.normalizeAngle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Wrap an angle into (-π, π] using exact remainders: no trigonometry, so a normalized angle is returned unchanged."
+        },
+        {
+          "type": "code",
+          "text": "export function normalizeAngle(a: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner."
         },
         {
           "type": "link",
@@ -9744,6 +10331,38 @@
         },
         {
           "type": "heading",
+          "text": "ModMenuModuleRelease"
+        },
+        {
+          "type": "paragraph",
+          "text": "Installed module release entry with its v2 manifest and integrity digest."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuModuleRelease {\n  readonly manifest: ManifestV2;\n  readonly digest: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuModuleState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Complete state snapshot for v2 module selection, capabilities, and provider slot assignments."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuModuleState {\n  readonly installed: readonly ModMenuModuleRelease[];\n  readonly selected: Readonly<Record<string, string>>;\n  readonly providers: Readonly<Record<string, string>>;\n  readonly capabilities: Readonly<Record<string, Readonly<Record<string, string>>>>;\n  readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;\n  readonly activeDigests: readonly string[];\n  readonly editable: boolean;\n  readonly busy: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ModMenuModulePort"
         },
         {
@@ -9789,6 +10408,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuInstalledModule"
+        },
+        {
+          "type": "paragraph",
+          "text": "Installed module descriptor used in legacy v1 profile editing."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuInstalledModule {\n  readonly manifest: ModuleManifest;\n  readonly active: boolean;\n  readonly digest?: string;\n  readonly inputs?: readonly { readonly path: string; readonly license: string; readonly attribution: string }[];\n  /** Defined only when compatible live presentation settings can be edited. */\n  readonly values?: Readonly<Record<string, number>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -9904,7 +10539,27 @@
         },
         {
           "type": "heading",
+          "text": "ModuleDataScope"
+        },
+        {
+          "type": "paragraph",
+          "text": "Storage granularity for an authoritative module data schema: singleton `'world'`, per-`'player'`, or per-`'entity'`."
+        },
+        {
+          "type": "code",
+          "text": "export type ModuleDataScope = 'world' | 'player' | 'entity';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ModuleDataSchema"
+        },
+        {
+          "type": "paragraph",
+          "text": "Namespaced identifier, integer schema version, and scope of a replicated module data store."
         },
         {
           "type": "code",
@@ -9919,6 +10574,10 @@
           "text": "ModuleDataTarget"
         },
         {
+          "type": "paragraph",
+          "text": "Address of a single module data record combining the namespaced `adapter` ID and record key `id`."
+        },
+        {
           "type": "code",
           "text": "export interface ModuleDataTarget { readonly adapter: string; readonly id: string }"
         },
@@ -9931,6 +10590,10 @@
           "text": "ModuleDataCommand"
         },
         {
+          "type": "paragraph",
+          "text": "Authoritative mutation request targeting a module data record with a named `command` and JSON-compatible `args`."
+        },
+        {
           "type": "code",
           "text": "export interface ModuleDataCommand extends ModuleDataTarget { readonly command: string; readonly args: ModuleValue }"
         },
@@ -9940,7 +10603,43 @@
         },
         {
           "type": "heading",
+          "text": "ModuleDataActor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authenticated caller context (`playerId`, optional target `ownerId`, and committed simulation `tick`) passed to `ModuleDataAdapter.authorize`."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataActor { readonly playerId: string; readonly ownerId?: string; readonly tick: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataAdapter"
+        },
+        {
+          "type": "paragraph",
+          "text": "Deterministic, synchronous, bounded callbacks. Values are detached and frozen. No IO, clocks or hidden mutable state. A reducer returns its entire next record atomically. All records are replicated to every peer: never put secrets/tokens in this store."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataAdapter {\n  readonly name: string;\n  readonly version: number;\n  readonly scope: ModuleDataScope;\n  readonly initial: ModuleValue;\n  validate(value: ModuleValue): boolean;\n  /** One migration per schema version, from N to N+1. Used only when loading saves. */\n  readonly migrations?: Readonly<Record<number, (value: ModuleValue) => ModuleValue>>;\n  authorize(input: Readonly<ModuleDataActor & { target: ModuleDataTarget; command: string; args: ModuleValue; state: ModuleValue }>): boolean;\n  reduce(input: Readonly<{ target: ModuleDataTarget; command: string; args: ModuleValue; state: ModuleValue; tick: number }>): ModuleValue;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ModuleDataExtension"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved module data adapter contribution pairing a `ModuleDataSchema` with its deterministic `ModuleDataAdapter`."
         },
         {
           "type": "code",
@@ -9949,6 +10648,118 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.session-flight."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataRecord"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached, frozen record entry (`adapter`, `id`, and validated `value`) inside a module data snapshot or delta."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataRecord extends ModuleDataTarget { readonly value: ModuleValue }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataSnapshot"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portable `space-sim-module-data/1` snapshot of all registered schemas and non-default records at a monotonic `revision`."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataSnapshot {\n  readonly format: 'space-sim-module-data/1';\n  readonly revision: number;\n  readonly schemas: readonly ModuleDataSchema[];\n  readonly records: readonly ModuleDataRecord[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataDelta"
+        },
+        {
+          "type": "paragraph",
+          "text": "Incremental or full `space-sim-module-data/1` replication payload; `since` names the base revision when sending deltas."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataDelta extends ModuleDataSnapshot {\n  /** Absent means complete replacement; present means apply only these changed records. */\n  readonly since?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataRead"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only view of authoritative module data records, schemas, snapshots, and revision deltas."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataRead {\n  readonly schemas: readonly ModuleDataSchema[];\n  readonly revision: number;\n  get(adapter: string, id: string): ModuleValue | undefined;\n  snapshot(): ModuleDataSnapshot;\n  delta(since: number): ModuleDataDelta;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Mutable authoritative module data store supporting direct host writes, authorized commands, network snapshot application, and migrated save restores."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataControl extends ModuleDataRead {\n  /** Trusted host initialization/update; remote callers use commands, never arbitrary writes. */\n  set(target: ModuleDataTarget, value: ModuleValue): void;\n  remove(target: ModuleDataTarget): void;\n  command(request: ModuleDataCommand, actor: ModuleDataActor): void;\n  /** Validate every record before committing. Network replication requires exact versions. */\n  apply(snapshot: unknown): void;\n  /** Save loads may use registered one-version migrations. Missing adapters are errors. */\n  restore(snapshot: unknown): void;\n  clear(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDataFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Headless storage for a session adapter's own world. The session supplies authenticated actor/ownership context; this factory grants no access to another live world."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDataFactory { create(adapters: readonly ModuleDataExtension[]): ModuleDataControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_MODULE_DATA"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the authoritative module data store factory (`core.module-data@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_MODULE_DATA: ServiceKey<ModuleDataFactory> = Object.freeze({slot:'core.module-data',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -9968,7 +10779,27 @@
         },
         {
           "type": "heading",
+          "text": "ModuleEnvironment"
+        },
+        {
+          "type": "paragraph",
+          "text": "Public module registration and data contracts."
+        },
+        {
+          "type": "code",
+          "text": "export type ModuleEnvironment = 'browser' | 'offline' | 'node';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "Disposable"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resource cleanup handle with an idempotent `dispose()` method. Register module-owned handles with `context.own(...)`."
         },
         {
           "type": "code",
@@ -9980,7 +10811,43 @@
         },
         {
           "type": "heading",
+          "text": "ModuleReference"
+        },
+        {
+          "type": "paragraph",
+          "text": "An exact module version, as profiles and locks record it."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleReference { readonly id: string; readonly version: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleDependency"
+        },
+        {
+          "type": "paragraph",
+          "text": "A dependency or conflict: an exact version or a range such as `^1.2.0`, `~1.2.0`, `>=1.2.0 <2.0.0`, `*`, or alternatives joined by `||`. Prereleases match only ranges that name a prerelease of the same version. Resolution records the exact enabled version."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleDependency { readonly id: string; readonly version: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "NumberSetting"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded numeric configuration parameter schema declared in a module manifest (`[minimum, maximum]`)."
         },
         {
           "type": "code",
@@ -9995,12 +10862,32 @@
           "text": "ModuleManifest"
         },
         {
+          "type": "paragraph",
+          "text": "Legacy v1 module manifest (`space-sim-module/1`) targeting `space-sim-game-api/1`."
+        },
+        {
           "type": "code",
           "text": "export interface ModuleManifest {\n  readonly format: 'space-sim-module/1';\n  readonly apiVersion: 'space-sim-game-api/1';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly authority: 'authoritative' | 'presentation';\n  readonly environments: readonly ModuleEnvironment[];\n  /** Enabled before this module, which may use their exposed APIs. */\n  readonly dependencies: readonly ModuleDependency[];\n  /** Modules that cannot be enabled together with this one. */\n  readonly conflicts?: readonly ModuleDependency[];\n  readonly provides: readonly string[];\n  readonly requires: readonly string[];\n  readonly slots: readonly string[];\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  readonly license: string;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleProfile"
+        },
+        {
+          "type": "paragraph",
+          "text": "Legacy v1 profile (`space-sim-profile/1`) selecting enabled modules, slot providers, and numeric setting overrides."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleProfile {\n  readonly format: 'space-sim-profile/1';\n  readonly id: string;\n  readonly modules: readonly ModuleReference[];\n  readonly providers: Readonly<Record<string, string>>;\n  readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -10023,6 +10910,10 @@
           "text": "RegisteredModule"
         },
         {
+          "type": "paragraph",
+          "text": "Legacy v1 registered code module descriptor combining a `ModuleManifest` and synchronous `initialize` entry point."
+        },
+        {
           "type": "code",
           "text": "export interface RegisteredModule {\n  readonly manifest: ModuleManifest;\n  /** Canonical imported package identity, independent of the execution environment. */\n  readonly contentDigest?: string;\n  /** Author declaration; numerical/replay conformance remains the author’s responsibility. */\n  readonly supportsMultiplayer?: boolean;\n  initialize(context: ModuleInitialization): void;\n}"
         },
@@ -10033,6 +10924,10 @@
         {
           "type": "heading",
           "text": "ModuleLock"
+        },
+        {
+          "type": "paragraph",
+          "text": "Legacy v1 resolved module lock (`space-sim-lock/1`) recording initialization order, selected slot providers, and settings."
         },
         {
           "type": "code",
@@ -10059,6 +10954,22 @@
           "text": "Used by: spacelab.session-flight."
         },
         {
+          "type": "heading",
+          "text": "DataModule"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declarative `space-sim-data-module/1` package supplying vehicle handling overrides, universes, presets, or body appearances without executable code."
+        },
+        {
+          "type": "code",
+          "text": "export interface DataModule {\n  readonly format: 'space-sim-data-module/1';\n  readonly manifest: ModuleManifest;\n  readonly data: {\n    readonly vehicle?: { readonly override: true; readonly settings: Partial<VehicleDefaults> };\n    readonly universes?: readonly { readonly definition: UniverseDefinition; readonly target?: string; readonly override?: true }[];\n    readonly presets?: readonly { readonly universe: string; readonly system: string; readonly preset: PresetDefinition; readonly override?: true }[];\n    readonly appearance?: readonly { readonly universe: string; readonly system: string; readonly body: string;\n      readonly override: true; readonly colors: Readonly<Record<string, string>> }[];\n  };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
           "type": "link",
           "text": "API reference index",
           "page": "api-reference"
@@ -10076,6 +10987,54 @@
         },
         {
           "type": "heading",
+          "text": "ModuleTier"
+        },
+        {
+          "type": "paragraph",
+          "text": "Where a module runs and what it may touch. `authoritative` code is deterministic simulation shared by saves and multiplayer; `presentation` code draws or plays per viewer; `platform` code owns devices, windows and files; `network` code owns transports and sessions. Authoritative modules may require only authoritative providers; presentation modules may require presentation or authoritative providers; platform and network modules may require any."
+        },
+        {
+          "type": "code",
+          "text": "export type ModuleTier = 'authoritative' | 'presentation' | 'platform' | 'network';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CapabilityRef"
+        },
+        {
+          "type": "paragraph",
+          "text": "A provided service: its slot name and exact semver version, such as `hud.throttle` `1.0.0`."
+        },
+        {
+          "type": "code",
+          "text": "export interface CapabilityRef { readonly name: string; readonly version: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CapabilityNeed"
+        },
+        {
+          "type": "paragraph",
+          "text": "A required service. `version` is a semver range such as `^1.0.0`. An optional need may resolve without a provider; read it with `tryUse`. A required need fails resolution instead."
+        },
+        {
+          "type": "code",
+          "text": "export interface CapabilityNeed extends CapabilityRef { readonly optional?: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ManifestV2"
         },
         {
@@ -10089,6 +11048,54 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleProfileV2"
+        },
+        {
+          "type": "paragraph",
+          "text": "Dependencies use semver ranges despite sharing the reference record shape."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleProfileV2 {\n  readonly format: 'space-sim-profile/2';\n  readonly id: string;\n  readonly modules: readonly ModuleReference[];\n  readonly providers: Readonly<Record<string, string>>;\n  /** Requester ID -> capability name -> explicitly chosen provider ID. */\n  readonly capabilities: Readonly<Record<string, Readonly<Record<string, string>>>>;\n  readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CapabilityBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved capability binding pairing a required service slot and exact version with the selected provider module reference."
+        },
+        {
+          "type": "code",
+          "text": "export interface CapabilityBinding extends CapabilityRef { readonly provider: ModuleReference }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLockV2"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved v2 module lock (`space-sim-lock/2`) recording enabled modules, topological initialization order, slot providers, capability bindings, and numeric settings."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleLockV2 {\n  readonly format: 'space-sim-lock/2';\n  readonly profileId: string;\n  readonly modules: readonly ModuleReference[];\n  readonly order: readonly string[];\n  readonly providers: Readonly<Record<string, string>>;\n  readonly capabilities: Readonly<Record<string, Readonly<Record<string, CapabilityBinding>>>>;\n  readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -10111,6 +11118,10 @@
           "text": "ModuleAssets"
         },
         {
+          "type": "paragraph",
+          "text": "Read-only package asset accessor for embedded UTF-8 text, raw bytes, or revocable blob URLs."
+        },
+        {
           "type": "code",
           "text": "export interface ModuleAssets {\n  text(path: string): string;\n  bytes(path: string): Uint8Array;\n  url(path: string): { readonly href: string; dispose(): void };\n}"
         },
@@ -10123,12 +11134,112 @@
           "text": "ModuleInitializationV2"
         },
         {
+          "type": "paragraph",
+          "text": "Synchronous v2 module initialization context (`space-sim-game-api/2`) providing typed service lookup (`use`/`tryUse`), publication (`provide`), resource ownership (`own`), and host contributions."
+        },
+        {
           "type": "code",
           "text": "export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {\n  /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */\n  readonly module?: ModuleReference;\n  readonly assets: ModuleAssets;\n  /** Initialization only. Publishes this module's implementation of a declared `provides`\n   * entry; throws unless the resolved profile selected this module for the slot. */\n  provide<T>(key: ServiceKey<T>, service: T): void;\n  /** Initialization only. Returns the bound provider for a declared `requires` entry, which\n   * initialized first. Throws for an undeclared, unbound or version-incompatible key.\n   * Keep the returned service; it remains valid until this candidate is disposed. */\n  use<T>(key: ServiceKey<T>): T;\n  /** Initialization only. Absence is allowed only for a declared optional capability\n   * with no binding; invalid access and a bound provider's failures still throw. */\n  tryUse<T>(key: ServiceKey<T>): T | undefined;\n  contributeInput(source: InputSource): void;\n  /** Contributes namespaced action definitions to the active candidate (platform tier only). */\n  contributeActions(actions: readonly ActionDefinitionV2[]): void;\n  contributeTransport(provider: TransportProvider): void;\n  contributeDiscovery(provider: DiscoveryProvider): void;\n  /** Authoritative records shared by saves and compatible session replication. */\n  contributeData(adapter: ModuleDataAdapter): void;\n  contributeVehicle(vehicle: VehicleDefinition): void;\n  contributeVehicleAppearance(appearance: VehicleAppearance): void;\n  contributeWindow(window: WindowDefinition): void;\n  /** Bounded structured Manual data, available in every tier without a UI dependency. */\n  contributeGuide(page: GuidePage): void;\n  contributeMaterial(material: MaterialDefinition): void;\n  contributePostEffect(effect: PostEffectDefinition): void;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "RegisteredModuleV2"
+        },
+        {
+          "type": "paragraph",
+          "text": "Default export of a v2 module entry: `export default function initialize(context)`. Initialization is synchronous and runs once per candidate in resolved dependency order."
+        },
+        {
+          "type": "code",
+          "text": "export interface RegisteredModuleV2 {\n  readonly manifest: ManifestV2;\n  readonly contentDigest?: string;\n  readonly supportsMultiplayer?: boolean;\n  initialize(context: ModuleInitializationV2): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleContribution"
+        },
+        {
+          "type": "paragraph",
+          "text": "Namespaced contribution record (`<moduleId>/<localName>`) registered by a v2 module during candidate initialization."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleContribution<T> {\n  readonly moduleId: string;\n  readonly id: string;\n  readonly value: T;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleHookFault"
+        },
+        {
+          "type": "paragraph",
+          "text": "Diagnostic fault record when a contributed input, transport, or discovery hook throws or violates its contract."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleHookFault {\n  readonly moduleId: string;\n  readonly hook: string;\n  readonly kind: 'input' | 'transport' | 'discovery';\n  readonly message: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "HostServiceAccess"
+        },
+        {
+          "type": "paragraph",
+          "text": "Untyped host-supplied service descriptor restricting access to specified `tiers` and `environments`."
+        },
+        {
+          "type": "code",
+          "text": "export interface HostServiceAccess {\n  readonly key: Pick<ServiceKey<unknown>, 'slot' | 'version'>;\n  readonly service: unknown;\n  /** Only these tiers receive the façade. Authoritative contracts must be deterministic. */\n  readonly tiers: readonly ModuleTier[];\n  readonly environments: readonly ModuleEnvironment[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "HostService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Strongly typed host-supplied service descriptor binding a `ServiceKey<T>` to its implementation and tier/environment rules."
+        },
+        {
+          "type": "code",
+          "text": "export interface HostService<T = unknown> extends HostServiceAccess {\n  readonly key: ServiceKey<T>;\n  readonly service: T;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleCandidateV2Handle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable lifecycle handle for a prepared v2 module candidate and its resolved `ModuleLockV2`."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleCandidateV2Handle extends Disposable {\n  readonly lock: ModuleLockV2;\n  readonly available: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -10148,6 +11259,86 @@
         },
         {
           "type": "heading",
+          "text": "ModuleValue"
+        },
+        {
+          "type": "paragraph",
+          "text": "JSON-serializable value primitive or tree stored in module state."
+        },
+        {
+          "type": "code",
+          "text": "export type ModuleValue = null | boolean | number | string | readonly ModuleValue[] | { readonly [key: string]: ModuleValue };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-ship authoritative state. Each namespace is limited to 16 KiB of JSON."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleState { readonly version: number; readonly value: ModuleValue }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "MotionStep"
+        },
+        {
+          "type": "paragraph",
+          "text": "State and control input for advancing one ship by a fixed simulation time step in SI units."
+        },
+        {
+          "type": "code",
+          "text": "export interface MotionStep {\n  readonly state: State;\n  readonly controls: Controls;\n  readonly seconds: number;\n  readonly body: Body;\n  readonly surface?: SurfaceProfile;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ForceEvaluation"
+        },
+        {
+          "type": "paragraph",
+          "text": "Staged kinematic state and controls evaluated at integration kick stages in body-local coordinates."
+        },
+        {
+          "type": "code",
+          "text": "export interface ForceEvaluation {\n  /** Scheduler boundary tick; time is the actual integrator stage epoch in seconds. */\n  readonly tick: number;\n  readonly time: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  readonly body: Body;\n  readonly controls: Controls;\n  readonly state: ModuleState;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ForceHook"
+        },
+        {
+          "type": "paragraph",
+          "text": "Synchronous, pure callbacks: no hidden mutable authority, wall clock or random IO. Acceleration is body-local m/s², evaluated at KDK kicks (also fractional contacts). Each component is finite and at most 10,000 m/s² in magnitude. All evaluations in one outer step read the same state; commit runs once after verified motion. Inputs are detached/read-only. Exceptions or invalid outputs abort this ship's step. Work must be bounded by the author; synchronous JS cannot be preempted."
+        },
+        {
+          "type": "code",
+          "text": "export interface ForceHook {\n  /** Include every force parameter in this local cache identity. */\n  readonly modelIdentity: string;\n  readonly initialState: ModuleState;\n  evaluate(input: ForceEvaluation): Vec;\n  commit?(input: Readonly<MotionStep & { readonly next: State; readonly moduleState: ModuleState }>): ModuleState;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ForceExtension"
         },
         {
@@ -10161,6 +11352,86 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.session-flight."
+        },
+        {
+          "type": "heading",
+          "text": "NumericalKernel"
+        },
+        {
+          "type": "paragraph",
+          "text": "The default numerical/contact kernel, with the active force schedule. A replacement may call it for verified terrain/water behavior, or supply its own bounded motion. Calling it does not commit hook state; the outer motion boundary owns that commit."
+        },
+        {
+          "type": "code",
+          "text": "export type NumericalKernel = (input: MotionStep) => State;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "DynamicsServices"
+        },
+        {
+          "type": "paragraph",
+          "text": "Services provided to replacement integrators, including the base numerical kernel and acceleration query."
+        },
+        {
+          "type": "code",
+          "text": "export interface DynamicsServices {\n  readonly numerical: NumericalKernel;\n  /** For replacement integrators that accept force contributions. Same staged state\n   * and validation as the built-in kernel; position/velocity are stage values. */\n  acceleration(time: number, position: Vec, velocity: Vec): Vec;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "DynamicsProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "Integrator extension providing custom numerical or analytic flight stepping."
+        },
+        {
+          "type": "code",
+          "text": "export interface DynamicsProvider {\n  readonly id: string;\n  readonly version: string;\n  readonly modelIdentity: string;\n  readonly supportsForces: boolean;\n  step(input: MotionStep, services: DynamicsServices): State;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "MotionContextOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options supplied when creating a per-ship or headless simulation motion context."
+        },
+        {
+          "type": "code",
+          "text": "export interface MotionContextOptions {\n  readonly services?: Partial<MotionServices>;\n  /** Shared-world hooks require ordinary stepping even for stationary ships. */\n  readonly worldRules?: boolean;\n  readonly worldRuleIdentity?: string;\n  readonly dynamics?: DynamicsProvider;\n  /** Already resolved dependency/before/after order, captured at construction. */\n  readonly forces?: readonly ForceExtension[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "MotionCapabilities"
+        },
+        {
+          "type": "paragraph",
+          "text": "Capabilities reported by a simulation context describing available analytic coasting, rails, and diagnostics."
+        },
+        {
+          "type": "code",
+          "text": "export interface MotionCapabilities {\n  readonly analyticCoast: boolean;\n  readonly rails: boolean;\n  readonly orbitalDiagnostics: boolean;\n  readonly legacyCompatible: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -10327,6 +11598,10 @@
           "text": "OrbitalState"
         },
         {
+          "type": "paragraph",
+          "text": "Body-relative 2D inertial position (`m`) and velocity (`m/s`) vector pair (+Y up)."
+        },
+        {
           "type": "code",
           "text": "export interface OrbitalState { readonly position: Vec; readonly velocity: Vec }"
         },
@@ -10339,12 +11614,64 @@
           "text": "Elements"
         },
         {
+          "type": "paragraph",
+          "text": "Two-body Keplerian orbital elements in SI units (`m`, `m²/s`, `m²/s²`, `s`, `rad`) around a central body. `null` fields indicate unbound parabolic or hyperbolic trajectories."
+        },
+        {
           "type": "code",
           "text": "export interface Elements {\n  readonly energy: number;\n  readonly angularMomentum: number;\n  readonly eccentricityVector: Vec;\n  readonly eccentricity: number;\n  readonly semilatusRectum: number;\n  readonly periapsis: number;\n  readonly apoapsis: number | null;\n  readonly semiMajorAxis: number | null;\n  readonly period: number | null;\n  readonly periapsisAngle: number | null;\n  readonly kind: 'elliptic' | 'parabolic' | 'hyperbolic';\n  readonly radial: boolean;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "SolverDiagnostics"
+        },
+        {
+          "type": "paragraph",
+          "text": "Convergence and iteration diagnostics from universal-variable or Kepler anomaly root finding (`residualSeconds` in `s`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface SolverDiagnostics {\n  readonly converged: boolean;\n  readonly iterations: number;\n  readonly bracketIterations: number;\n  readonly residualSeconds: number | null;\n  readonly usedBisection: boolean;\n  readonly reason: string | null;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "Propagation"
+        },
+        {
+          "type": "paragraph",
+          "text": "Result of propagating a two-body `OrbitalState` forward or backward in simulation seconds."
+        },
+        {
+          "type": "code",
+          "text": "export type Propagation = { readonly ok: true; readonly state: OrbitalState; readonly diagnostics: SolverDiagnostics }\n  | { readonly ok: false; readonly diagnostics: SolverDiagnostics };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SolverOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Iteration caps controlling Kepler/universal-variable orbital propagation root solvers."
+        },
+        {
+          "type": "code",
+          "text": "export interface SolverOptions {\n  readonly maxIterations?: number;\n  readonly maxBracketIterations?: number;\n  readonly maxNewtonIterations?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -10521,6 +11848,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.local-pilots."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_PILOTS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host service key providing core local pilot registration."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_PILOTS: ServiceKey<PilotRegistry> = Object.freeze({ slot: 'core.pilots', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -10748,6 +12091,22 @@
         },
         {
           "type": "heading",
+          "text": "GamepadActionBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Binding mapping a physical gamepad axis or button to a namespaced action."
+        },
+        {
+          "type": "code",
+          "text": "export type GamepadActionBinding = { readonly action: string; readonly invert?: boolean } &\n  ({ readonly axis: number; readonly button?: never } | { readonly button: number; readonly axis?: never });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "GamepadInputOptions"
         },
         {
@@ -10812,6 +12171,22 @@
         },
         {
           "type": "heading",
+          "text": "TouchActionBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Binding mapping a DOM element pointer gesture to a namespaced action."
+        },
+        {
+          "type": "code",
+          "text": "export interface TouchActionBinding {\n  /** Namespaced action ID to trigger. */\n  readonly action: string;\n  /** HTML element capturing pointer events. */\n  readonly element: HTMLElement;\n  /** Gesture type: continuous hold button, horizontal axis or vertical axis. */\n  readonly gesture: 'hold' | 'axis-x' | 'axis-y';\n  /** Inverts the evaluated axis direction if true. */\n  readonly invert?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "TouchInputOptions"
         },
         {
@@ -10857,6 +12232,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.input-touch."
+        },
+        {
+          "type": "heading",
+          "text": "ViewTargetTransform"
+        },
+        {
+          "type": "paragraph",
+          "text": "System coordinates in metres, orientation in radians; a read must never step a world."
+        },
+        {
+          "type": "code",
+          "text": "export interface ViewTargetTransform { readonly position: Vec; readonly orientation: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -10988,6 +12379,22 @@
         },
         {
           "type": "heading",
+          "text": "LocalViewSurface"
+        },
+        {
+          "type": "paragraph",
+          "text": "A surface borrows read-only world state from its renderer adapter."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalViewSurface extends Disposable {\n  resize(rect: PaneRect, width: number, height: number, visible: boolean): void;\n  draw(camera: Camera): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "LocalViewOptions"
         },
         {
@@ -11100,7 +12507,59 @@
         },
         {
           "type": "heading",
+          "text": "ServerAdvert"
+        },
+        {
+          "type": "paragraph",
+          "text": "Advertised server information discovered over LAN, tab broadcast, or directory service."
+        },
+        {
+          "type": "code",
+          "text": "export interface ServerAdvert {\n  /** Unique server session identifier. */\n  readonly id: string;\n  /** Human-readable session or world name. */\n  readonly name: string;\n  /** Address URL used by a TransportProvider to connect (e.g. `ws://...` or `tab://...`). */\n  readonly address: string;\n  /** Current count of connected players. */\n  readonly players: number;\n  /** Maximum supported players for this session. */\n  readonly maxPlayers: number;\n  /** Protocol identifier expected by the session host (e.g. `space-sim-flight/1`). */\n  readonly protocol: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "DiscoveryProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service for scanning local or tab networks to discover advertised sessions."
+        },
+        {
+          "type": "code",
+          "text": "export interface DiscoveryProvider {\n  /** Name of the discovery mechanism (e.g. 'lan' or 'tab'). */\n  readonly name: string;\n  /** Scan for active server adverts until signal is aborted, invoking emit for each found server. */\n  scan(emit: (advert: ServerAdvert) => void, signal: AbortSignal): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "InviteProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "@deprecated Use ManualSignalingProvider: reply codes must precede connection."
+        },
+        {
+          "type": "code",
+          "text": "export interface InviteProvider {\n  /** Generate an invitation offer. */\n  create(signal: AbortSignal): Promise<{\n    readonly offer: string;\n    accept(reply: string): Promise<TextConnection>;\n    dispose(): void;\n  }>;\n  /** Answer an invitation offer with a reply. */\n  answer(offer: string, signal: AbortSignal): Promise<{\n    readonly reply: string;\n    readonly connection: TextConnection;\n  }>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "UiControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declarative, headless-safe UI control descriptor (`'text'`, `'button'`, `'toggle'`, `'slider'`, or `'canvas'`) for module windows and inspectors."
         },
         {
           "type": "code",
@@ -11112,7 +12571,59 @@
         },
         {
           "type": "heading",
+          "text": "WindowDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declarative window contribution (`name`, `title`, `controls`, and optional structured `content` sections) registered via `contributeWindow`."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowDefinition {\n  readonly name: string;\n  readonly title: string;\n  readonly controls: readonly UiControl[];\n  readonly content?: readonly WindowContentDefinition[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "UiShell"
+        },
+        {
+          "type": "paragraph",
+          "text": "The browser adapter supplies raw DOM separately; this contract stays headless-safe."
+        },
+        {
+          "type": "code",
+          "text": "export interface UiShell {\n  open(windowId: string): void;\n  close(windowId: string): void;\n  set(id: string, value: string | number | boolean): void;\n  onAction(id: string, callback: (value: string | number | boolean) => void): Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "TrustedDomShell"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host DOM mounting service (`core.dom@1.0.0`) allowing trusted browser/platform modules to mount custom DOM into a named window container."
+        },
+        {
+          "type": "code",
+          "text": "export interface TrustedDomShell {\n  mountTrusted(windowId: string, mount: (root: HTMLElement) => Disposable): Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ThemeService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Reactive presentation theme service (`core.theme@1.0.0`) providing the current `RenderThemeOptions`, updates, and change subscriptions."
         },
         {
           "type": "code",
@@ -11124,7 +12635,75 @@
         },
         {
           "type": "heading",
+          "text": "CORE_UI"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the headless-safe declarative UI shell (`core.ui@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_UI: ServiceKey<UiShell> = Object.freeze({ slot: 'core.ui', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_DOM"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the trusted browser DOM mounting shell (`core.dom@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_DOM: ServiceKey<TrustedDomShell> = Object.freeze({ slot: 'core.dom', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_THEME"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the reactive presentation theme service (`core.theme@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_THEME: ServiceKey<ThemeService> = Object.freeze({ slot: 'core.theme', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "GuidePage"
+        },
+        {
+          "type": "paragraph",
+          "text": "Metadata descriptor registering a packaged structured Manual page (`asset` path to a JSON `WindowDocument`) under the `'players'` or `'creators'` audience."
+        },
+        {
+          "type": "code",
+          "text": "export interface GuidePage {\n  readonly id: string;\n  readonly audience: 'players' | 'creators';\n  readonly title: string;\n  readonly summary: string;\n  readonly asset: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "MaterialDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Custom GLSL body material contribution binding a packaged `fragmentAsset` shader and numeric `uniforms` to target celestial `bodyIds`."
         },
         {
           "type": "code",
@@ -11137,6 +12716,10 @@
         {
           "type": "heading",
           "text": "PostEffectDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Custom GLSL screen-space post-processing pass contribution with resolution `scale` (`0.5` or `1`), ordering `after`, and numeric `uniforms`."
         },
         {
           "type": "code",
@@ -11167,6 +12750,10 @@
           "text": "RenderPostEffect"
         },
         {
+          "type": "paragraph",
+          "text": "Resolved post-processing shader pass with its namespaced `id` and loaded GLSL `fragment` source text."
+        },
+        {
           "type": "code",
           "text": "export interface RenderPostEffect extends Omit<PostEffectDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }"
         },
@@ -11177,6 +12764,10 @@
         {
           "type": "heading",
           "text": "ShaderEffects"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional renderer capability that atomically compiles and configures custom body materials and screen-space post-processing effects."
         },
         {
           "type": "code",
@@ -11201,6 +12792,22 @@
         {
           "type": "paragraph",
           "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/player-view.ts."
+        },
+        {
+          "type": "heading",
+          "text": "PlayerViewRole"
+        },
+        {
+          "type": "paragraph",
+          "text": "Role identifier for a player view component adapter."
+        },
+        {
+          "type": "code",
+          "text": "export type PlayerViewRole = 'input' | 'camera' | 'hud' | 'appearance';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -11239,6 +12846,10 @@
           "text": "PlayerView"
         },
         {
+          "type": "paragraph",
+          "text": "Per-seat view composition coordinating input, camera, HUD, and appearance adapters with atomic rebind and release."
+        },
+        {
           "type": "code",
           "text": "export interface PlayerView extends Disposable {\n  readonly binding: HudBinding;\n  readonly adapters: PlayerViewAdapters;\n  /** Release all old intent before rebinding. A failed rebind removes every adapter,\n   * leaving a neutral view that can be configured again. Seat/view identity is fixed. */\n  bind(binding: HudBinding): void;\n  /** Replace only this player's parts. Failed preparation retains the old parts,\n   * with their intent released; no game world is created or advanced. */\n  configure(adapters: PlayerViewAdapters): void;\n  release(): void;\n}"
         },
@@ -11248,7 +12859,27 @@
         },
         {
           "type": "heading",
+          "text": "PlayerAdapterOwnership"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resource lifecycle ownership policy for wrapped player view components."
+        },
+        {
+          "type": "code",
+          "text": "export type PlayerAdapterOwnership = 'borrowed' | 'owned';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "PlayerViewFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating per-seat `PlayerView` instances and role adapters (`ui.player-view@1.0.0`)."
         },
         {
           "type": "code",
@@ -11311,6 +12942,10 @@
           "text": "RenderBody"
         },
         {
+          "type": "paragraph",
+          "text": "Celestial body descriptor for a rendered frame in system world coordinates (`position` and `radius` in `m`, `rotation` in `rad`), plus optional terrain and shader appearance."
+        },
+        {
           "type": "code",
           "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
         },
@@ -11339,6 +12974,10 @@
           "text": "RenderFrame"
         },
         {
+          "type": "paragraph",
+          "text": "Complete scene description passed to `Renderer.draw` once per animation frame: interpolated `state`, `path` samples, `camera`, `bodies`, `ships`, `overlays`, and `theme`."
+        },
+        {
           "type": "code",
           "text": "export interface RenderFrame {\n  readonly vehicleId?: string;\n  /** Presentation snapshot; may be interpolated between fixed physics steps. */\n  readonly state: State;\n  /** Ghost samples with exact velocities. Closed loops are drawn whole; open paths start at the ship. */\n  readonly path: readonly GhostSample[];\n  readonly pathClosed: boolean;\n  readonly camera: Camera;\n  readonly engine: boolean;\n  /** Celestial bodies in the active system (planets and moons). */\n  readonly bodies?: readonly RenderBody[];\n  /** Ship position in system world coordinates (defaults to state.position). */\n  readonly shipWorldPosition?: Vec;\n  /** Reference origin of ghost path (e.g. active body position). */\n  readonly pathOrigin?: Vec;\n  /** World position of launch pad if any. */\n  readonly padPosition?: Vec;\n  /** Outward normal at the pad, for its tangent marker. */\n  readonly padNormal?: Vec;\n  /** Label beside the piloted ship (default VESSEL 01). */\n  readonly shipLabel?: string;\n  /** Viewer-only annotations; omitted preserves the default visible labels and scale bar. */\n  readonly showScale?: boolean;\n  readonly showShip?: boolean;\n  readonly showPad?: boolean;\n  /** Optional explicit viewer animation epoch, seconds. Never advances a simulation. */\n  readonly presentationTime?: number;\n  readonly showShipLabels?: boolean;\n  /** Celestial body names; defaults to visible. Independent of ship labels. */\n  readonly showBodyLabels?: boolean;\n  /** Planet/moon orbit guides; defaults to visible. Does not hide ship trajectories or affect motion. */\n  readonly showBodyOrbits?: boolean;\n  /** Other vessels, drawn beneath the piloted ship. */\n  readonly ships?: readonly RenderShip[];\n  /** Validated presentation layers above the scene, in the overlay section: shapes in order,\n   * then text in order so labels stay readable. */\n  readonly overlays?: readonly OverlayPrimitive[];\n  /** Visual theme settings for universe backdrop, skybox, grids, and timers/counters. */\n  readonly theme?: RenderThemeOptions;\n}"
         },
@@ -11349,6 +12988,10 @@
         {
           "type": "heading",
           "text": "ThemeBackdropStyle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Named deep-space backdrop preset for scene rendering."
         },
         {
           "type": "code",
@@ -11363,6 +13006,10 @@
           "text": "ThemeGridStyle"
         },
         {
+          "type": "paragraph",
+          "text": "Coordinate reference grid style drawn behind the scene (`'off'` disables grid rendering)."
+        },
+        {
           "type": "code",
           "text": "export type ThemeGridStyle = 'cartesian' | 'polar' | 'dots' | 'hex' | 'off';"
         },
@@ -11373,6 +13020,10 @@
         {
           "type": "heading",
           "text": "ThemeCounterStyle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Numeric readout and telemetry counter typography/color preset."
         },
         {
           "type": "code",
@@ -11387,6 +13038,10 @@
           "text": "ThemeWindowStyle"
         },
         {
+          "type": "paragraph",
+          "text": "Floating window frame and surface styling preset."
+        },
+        {
           "type": "code",
           "text": "export type ThemeWindowStyle = 'classic' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'void' | 'crimson';"
         },
@@ -11399,12 +13054,32 @@
           "text": "RenderThemeOptions"
         },
         {
+          "type": "paragraph",
+          "text": "Presentation-only visual theme options controlling backdrop, stars, coordinate grids, window chrome, HUD effects, and shader seeds."
+        },
+        {
           "type": "code",
           "text": "export interface RenderThemeOptions {\n  readonly backdropStyle?: ThemeBackdropStyle;\n  readonly nebulaVisible?: boolean;\n  readonly nebulaIntensity?: number;\n  readonly starsVisible?: boolean;\n  readonly starDensity?: number;\n  readonly dustVisible?: boolean;\n  readonly galaxiesVisible?: boolean;\n  readonly animatedNebula?: boolean;\n  readonly ringsVisible?: boolean;\n  readonly asteroidBeltVisible?: boolean;\n  readonly gridEnabled?: boolean;\n  readonly gridStyle?: ThemeGridStyle;\n  readonly gridSpacing?: number;\n  readonly gridOpacity?: number;\n  readonly gridLabels?: boolean;\n  readonly gridColor?: string;\n  readonly windowStyle?: ThemeWindowStyle;\n  readonly windowColor?: string;\n  /** Window background alpha, 0.4–1; text and controls remain fully visible. */\n  readonly windowOpacity?: number;\n  readonly counterTheme?: ThemeCounterStyle;\n  readonly hudColor?: string;\n  readonly hudScanlines?: boolean;\n  readonly hudGlow?: boolean;\n  readonly hudChamfer?: boolean;\n  readonly compactHud?: boolean;\n  readonly highQuality?: boolean;\n  readonly worldSeed?: number;\n  readonly shaderSeed?: number;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: spacelab.render-canvas, spacelab.theme."
+        },
+        {
+          "type": "heading",
+          "text": "RenderSection"
+        },
+        {
+          "type": "paragraph",
+          "text": "Ordered drawing pass section reported to a `RenderTimer` during `Renderer.draw`."
+        },
+        {
+          "type": "code",
+          "text": "export type RenderSection = 'background' | 'planet' | 'path' | 'ship' | 'overlay';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -11427,6 +13102,10 @@
           "text": "ShaderPass"
         },
         {
+          "type": "paragraph",
+          "text": "Built-in WebGL shader program pass identifier (`'scene'`, `'vector'`, or `'text'`)."
+        },
+        {
           "type": "code",
           "text": "export type ShaderPass = 'scene' | 'vector' | 'text';"
         },
@@ -11437,6 +13116,10 @@
         {
           "type": "heading",
           "text": "ShaderSources"
+        },
+        {
+          "type": "paragraph",
+          "text": "Vertex and fragment GLSL shader source strings for a single `ShaderPass`."
         },
         {
           "type": "code",
@@ -11464,6 +13147,22 @@
         },
         {
           "type": "heading",
+          "text": "ShaderControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Live shader pack controller exposed on `RendererFeatures.shaders` for atomic runtime shader replacement."
+        },
+        {
+          "type": "code",
+          "text": "export interface ShaderControl {\n  readonly pack: ShaderPack;\n  /** Validates and compiles atomically; on failure it throws and the previous pack keeps drawing. */\n  set(pack: ShaderPack): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "RendererFeatures"
         },
         {
@@ -11483,12 +13182,32 @@
           "text": "Renderer"
         },
         {
+          "type": "paragraph",
+          "text": "Viewport scene renderer instance bound to a single `HTMLCanvasElement`; frees all GPU/canvas resources in `dispose()`."
+        },
+        {
           "type": "code",
           "text": "export interface Renderer {\n  readonly features?: RendererFeatures;\n  draw(frame: RenderFrame, timer?: RenderTimer): void;\n  dispose?(): void;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "RendererCapabilities"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declared before construction and matched by every renderer the provider creates."
+        },
+        {
+          "type": "code",
+          "text": "export interface RendererCapabilities {\n  /** Accepts ShaderPack data and exposes `features.shaders`. */\n  readonly shaders: boolean;\n  /** Draws `RenderFrame.overlays`. */\n  readonly overlays: boolean;\n  readonly effects?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -11556,7 +13275,27 @@
         },
         {
           "type": "heading",
+          "text": "OverlaySpace"
+        },
+        {
+          "type": "paragraph",
+          "text": "`world`: system coordinates in metres (+Y up), projected by the frame's camera. `screen`: CSS pixels from the viewport's top-left corner (+Y down). Colors are `#RRGGBB` or `#RRGGBBAA`; widths are CSS pixels in both spaces."
+        },
+        {
+          "type": "code",
+          "text": "export type OverlaySpace = 'world' | 'screen';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "OverlayPrimitive"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) drawn in `'world'` metres or `'screen'` CSS pixels."
         },
         {
           "type": "code",
@@ -11565,6 +13304,38 @@
         {
           "type": "paragraph",
           "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationShip"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached presentation snapshot of the piloted vessel, combining body-relative `state` (`m`, `m/s`, `rad`) and system-coordinate `position` (`m`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationShip {\n  readonly id: string;\n  readonly name: string;\n  readonly bodyId: string;\n  /** Interpolated presentation state relative to `bodyId` (metres, m/s, radians). */\n  readonly state: State;\n  readonly controls: Controls;\n  /** Position in system coordinates (metres), as drawn. */\n  readonly position: Vec;\n  readonly fault?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationBody"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached presentation snapshot of the active celestial body in system coordinates (`radius` and `position` in `m`, `mu` in `m³/s²`, optional `spin` in `rad/s`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationBody {\n  readonly id: string;\n  readonly name: string;\n  /** Reference radius (metres) and gravitational parameter (m³/s²). */\n  readonly radius: number;\n  readonly mu: number;\n  /** Centre in system coordinates at the view time. */\n  readonly position: Vec;\n  /** Signed spin rate in rad/s (counter-clockwise positive); absent when the body does not rotate. */\n  readonly spin?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -11587,6 +13358,10 @@
           "text": "ManeuverPreview"
         },
         {
+          "type": "paragraph",
+          "text": "Read-only body-relative SI preview of the active maneuver node and planned trajectory (`time` and `burnSeconds` in `s`, `position` in `m`, `deltaVelocity` in `m/s`)."
+        },
+        {
           "type": "code",
           "text": "export interface ManeuverPreview {\n  /** Completed nodes remain in the editor journal but no longer draw burn targets. */\n  readonly completed?: boolean;\n  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly completed?: boolean; readonly valid: boolean; readonly deltaVelocity?: Vec; readonly throttleBurnSeconds?: number | null }[];\n  readonly time: number;\n  readonly position: Vec;\n  readonly deltaVelocity: Vec;\n  readonly burnSeconds: number;\n  /** Estimate at the current throttle setting, even with engines off. Null means no thrust. */\n  readonly throttleBurnSeconds?: number | null;\n  readonly throttle?: number;\n  readonly remainingDeltaV?: number;\n  readonly valid: boolean;\n  readonly path: readonly GhostSample[];\n}"
         },
@@ -11599,6 +13374,10 @@
           "text": "PresentationView"
         },
         {
+          "type": "paragraph",
+          "text": "Frozen per-frame presentation snapshot extended with the active viewport `Camera`, passed to `LayerHook` and `PanelHook`."
+        },
+        {
           "type": "code",
           "text": "export interface PresentationView extends PresentationSnapshot {\n  /** The camera this frame is drawn with. */\n  readonly camera: Camera;\n}"
         },
@@ -11608,7 +13387,75 @@
         },
         {
           "type": "heading",
+          "text": "CameraInput"
+        },
+        {
+          "type": "paragraph",
+          "text": "Frozen per-frame presentation snapshot extended with the pilot's zoom `scale` (CSS pixels per metre), passed to `CameraHook.frame`."
+        },
+        {
+          "type": "code",
+          "text": "export interface CameraInput extends PresentationSnapshot {\n  /** The pilot's zoom in CSS pixels per metre. */\n  readonly scale: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "LayerHook"
+        },
+        {
+          "type": "paragraph",
+          "text": "Hooks below are synchronous presentation code. Each receives a frozen snapshot and returns data the host validates. A thrown error or invalid result disables only that contribution (reported with module ID and hook); the simulation never observes it."
+        },
+        {
+          "type": "code",
+          "text": "export interface LayerHook {\n  /** Local name; the contribution ID is `<module id>/<name>`. */\n  readonly name: string;\n  readonly label: string;\n  /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */\n  draw(view: PresentationView): readonly OverlayPrimitive[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PanelRow"
+        },
+        {
+          "type": "paragraph",
+          "text": "Single telemetry row (`label`, `value`, and optional `unit`) returned by a `PanelHook`."
+        },
+        {
+          "type": "code",
+          "text": "export interface PanelRow { readonly label: string; readonly value: string; readonly unit?: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PanelHook"
+        },
+        {
+          "type": "paragraph",
+          "text": "Synchronous presentation telemetry panel hook returning up to 16 `PanelRow` entries from a frozen `PresentationView`."
+        },
+        {
+          "type": "code",
+          "text": "export interface PanelHook {\n  readonly name: string;\n  readonly title: string;\n  /** At most four times per second. At most 16 rows; label/unit ≤ 32 and value ≤ 64 characters. */\n  update(view: PresentationView): readonly PanelRow[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "CameraTarget"
+        },
+        {
+          "type": "paragraph",
+          "text": "Camera center (system coordinates in metres) and optional counter-clockwise rotation (radians) returned by a `CameraHook`."
         },
         {
           "type": "code",
@@ -11620,7 +13467,75 @@
         },
         {
           "type": "heading",
+          "text": "CameraHook"
+        },
+        {
+          "type": "paragraph",
+          "text": "Synchronous presentation camera mode hook computing a `CameraTarget` once per rendered frame from a frozen `CameraInput`."
+        },
+        {
+          "type": "code",
+          "text": "export interface CameraHook {\n  readonly name: string;\n  /** Camera button text while selected, such as \"Lead camera\". */\n  readonly label: string;\n  /** Once per frame while selected. */\n  frame(input: CameraInput): CameraTarget;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationContribution"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved presentation hook contribution (`<moduleId>/<hook.name>`) bound to its owning module identity and version."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationContribution<T> {\n  readonly moduleId: string;\n  readonly version: string;\n  /** `<module id>/<hook name>`. */\n  readonly id: string;\n  readonly hook: T;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "LayerExtension"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved overlay `LayerHook` presentation contribution."
+        },
+        {
+          "type": "code",
+          "text": "export type LayerExtension = PresentationContribution<LayerHook>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PanelExtension"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved telemetry `PanelHook` presentation contribution."
+        },
+        {
+          "type": "code",
+          "text": "export type PanelExtension = PresentationContribution<PanelHook>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "CameraExtension"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved `CameraHook` presentation contribution."
         },
         {
           "type": "code",
@@ -11629,6 +13544,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationFault"
+        },
+        {
+          "type": "paragraph",
+          "text": "Diagnostic fault record emitted when a presentation `layer`, `panel`, or `camera` hook throws or returns invalid data."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationFault {\n  readonly moduleId: string;\n  /** Contribution ID, such as `builtin.flight-vectors/velocity`. */\n  readonly hook: string;\n  readonly kind: 'layer' | 'panel' | 'camera';\n  readonly message: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -11792,6 +13723,22 @@
         },
         {
           "type": "heading",
+          "text": "project"
+        },
+        {
+          "type": "paragraph",
+          "text": "Project a single world-space point (metres, `+Y` up) into viewport screen coordinates (CSS pixels, `+Y` down)."
+        },
+        {
+          "type": "code",
+          "text": "export function project(p: Vec, camera: Camera, width: number, height: number): Vec;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "createProjector"
         },
         {
@@ -11805,6 +13752,22 @@
         {
           "type": "paragraph",
           "text": "Used by: builtin.maneuver-planner, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "screenToWorld"
+        },
+        {
+          "type": "paragraph",
+          "text": "Project a screen-space coordinate (CSS pixels) to world coordinates."
+        },
+        {
+          "type": "code",
+          "text": "export function screenToWorld(screenPos: Vec, camera: Camera, width: number, height: number): Vec;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -11825,6 +13788,10 @@
         {
           "type": "heading",
           "text": "blendAngle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Interpolate along the shortest angular arc in radians by `fraction` clamped to `[0, 1]`, wrapped to `(-pi, pi]`."
         },
         {
           "type": "code",
@@ -11869,6 +13836,10 @@
         {
           "type": "heading",
           "text": "getPathGeometry"
+        },
+        {
+          "type": "paragraph",
+          "text": "Compute and WeakMap-cache cumulative chord lengths (metres) and Hermite control points for a trajectory sample array."
         },
         {
           "type": "code",
@@ -12171,6 +14142,10 @@
           "text": "CORE_ROTATION"
         },
         {
+          "type": "paragraph",
+          "text": "Service key for the prescribed sidereal rotation math kernel (`core.rotation@1.0.0`)."
+        },
+        {
           "type": "code",
           "text": "export const CORE_ROTATION: ServiceKey<RotationMath> = Object.freeze({ slot: 'core.rotation', version: '1.0.0' });"
         },
@@ -12196,7 +14171,43 @@
         },
         {
           "type": "heading",
+          "text": "DeterministicMath"
+        },
+        {
+          "type": "paragraph",
+          "text": "Cross-engine deterministic floating-point math operations supplied to authoritative world rules."
+        },
+        {
+          "type": "code",
+          "text": "export interface DeterministicMath {\n  sin(x: number): number;\n  cos(x: number): number;\n  atan2(y: number, x: number): number;\n  hypot(x: number, y: number): number;\n  exp(x: number): number;\n  sqrt(x: number): number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "WorldRuleHook"
+        },
+        {
+          "type": "paragraph",
+          "text": "Once per candidate tick, after all motion/SOI results. Each hook reads the same detached candidate ships/events and its own prior namespace. Commands apply in resolved hook order at the next control boundary. A shared failure aborts and pauses the whole tick; per-ship motion faults retain their existing behavior."
+        },
+        {
+          "type": "code",
+          "text": "export interface WorldRuleHook {\n  readonly modelIdentity: string;\n  readonly initialState: ModuleState;\n  /** Nonzero uint32 seed. RNG authority is committed/rolled back with state. */\n  readonly seed: number;\n  evaluate(input: Readonly<{\n    tick: number; time: number; seconds: number; ships: readonly Ship[];\n    events: readonly WorldEvent[]; state: ModuleState;\n    math: DeterministicMath; random: () => number;\n  }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[] }>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "WorldRuleExtension"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved authoritative world-rule contribution bound to its owning module identity and version."
         },
         {
           "type": "code",
@@ -12209,6 +14220,10 @@
         {
           "type": "heading",
           "text": "WorldRuleState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Persisted authoritative world-rule namespace combining module state and deterministic PRNG uint32 state."
         },
         {
           "type": "code",
@@ -12239,6 +14254,10 @@
           "text": "ProviderIdentity"
         },
         {
+          "type": "paragraph",
+          "text": "Canonical identity and behavioral `modelIdentity` fingerprint of an authoritative motion service provider."
+        },
+        {
           "type": "code",
           "text": "export interface ProviderIdentity {\n  readonly id: string;\n  readonly version: string;\n  /** All parameters affecting behavior; local identity, not a package fingerprint. */\n  readonly modelIdentity: string;\n}"
         },
@@ -12261,6 +14280,22 @@
         {
           "type": "paragraph",
           "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceSupport"
+        },
+        {
+          "type": "paragraph",
+          "text": "Local terrain contact support at a polar angle (radians): query sample, outward support normals, and maximum slope angle in radians."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceSupport {\n  readonly surface: SurfaceQuery;\n  readonly normals: readonly Vec[];\n  readonly maxSlopeRadians: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -12296,6 +14331,22 @@
         },
         {
           "type": "heading",
+          "text": "RailsBinding"
+        },
+        {
+          "type": "paragraph",
+          "text": "Tuple of `modelIdentity` strings (`dynamics`, `orbits`, `bodies`, `surfaces`) that a `RailsProvider` certifies for analytic sleep."
+        },
+        {
+          "type": "code",
+          "text": "export interface RailsBinding {\n  readonly dynamics: string;\n  readonly orbits: string;\n  readonly bodies: string;\n  readonly surfaces: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "RailsProvider"
         },
         {
@@ -12309,6 +14360,38 @@
         {
           "type": "paragraph",
           "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "MotionServices"
+        },
+        {
+          "type": "paragraph",
+          "text": "Group of motion services composed into simulation contexts: orbits, body frames, surfaces, and rails."
+        },
+        {
+          "type": "code",
+          "text": "export interface MotionServices {\n  readonly orbits: OrbitalProvider;\n  readonly bodies: BodyFrameProvider;\n  readonly surfaces: SurfaceProvider;\n  readonly rails: RailsProvider;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "RuleCommand"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authoritative command emitted by world rules to modify ship controls or throttle."
+        },
+        {
+          "type": "code",
+          "text": "export interface RuleCommand {\n  readonly shipId: string;\n  readonly controls?: Controls;\n  readonly throttle?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -12408,7 +14491,27 @@
         },
         {
           "type": "heading",
+          "text": "SessionPlayer"
+        },
+        {
+          "type": "paragraph",
+          "text": "Connected or saved player roster entry in a flight session (`host` is true for the world authority)."
+        },
+        {
+          "type": "code",
+          "text": "export interface SessionPlayer { readonly id: string; readonly name: string; readonly connected: boolean; readonly host?: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ChatLine"
+        },
+        {
+          "type": "paragraph",
+          "text": "Chat message delivered across a flight session (`from` is the sender's player ID when known)."
         },
         {
           "type": "code",
@@ -12439,6 +14542,10 @@
           "text": "SessionHandle"
         },
         {
+          "type": "paragraph",
+          "text": "Disposable session handle combining `SessionRead` flight loop operations with deterministic cleanup."
+        },
+        {
           "type": "code",
           "text": "export interface SessionHandle extends SessionRead, Disposable {}"
         },
@@ -12449,6 +14556,10 @@
         {
           "type": "heading",
           "text": "LocalSessionOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for starting an authoritative local session over a `WorldControl` instance."
         },
         {
           "type": "code",
@@ -12463,6 +14574,10 @@
           "text": "JoinOptions"
         },
         {
+          "type": "paragraph",
+          "text": "Options for joining a remote flight session over a `TextConnection`, including authority lock/fingerprint verification and reconnect token callbacks."
+        },
+        {
           "type": "code",
           "text": "export interface JoinOptions {\n  readonly vehicles?: VehicleCatalog;\n  readonly dataAdapters?: readonly ModuleDataExtension[];\n  readonly createContext?: SimulationContextFactory; readonly name: string; readonly password?: string;\n  /** May reserve a saved pilot asynchronously before sending the join request. */\n  readonly token?: (worldId: string, hostId?: string) => string | undefined | Promise<string | undefined>;\n  readonly saveToken?: (worldId: string, token: string, playerId: string) => void;\n  /** Monotonic milliseconds, used only for network scheduling/interpolation. */\n  readonly now?: () => number;\n  readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;\n  readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[]; readonly commands?: readonly CommandExtension[];\n  /** Validate only against locally installed/enabled modules. A different server universe\n   * may return its independently computed fingerprint; returning true alone retains the\n   * local simulationFingerprint requirement. Never return the host's hash without recomputing it. */\n  readonly verifyCandidate?: (candidate: {\n    lock?: AuthoritativeLock | ModuleLock; fingerprint?: string; universe: UniverseDefinition; systemId: string;\n  }) => { ok: boolean; reason?: string; simulationFingerprint?: string } | boolean;\n}"
         },
@@ -12475,6 +14590,10 @@
           "text": "LocalSessionControl"
         },
         {
+          "type": "paragraph",
+          "text": "Host-side control surface for an authoritative local session: splitscreen guest seats, peer acceptance, pause/catch-up, and snapshots."
+        },
+        {
           "type": "code",
           "text": "export interface LocalSessionControl {\n  readonly token: string; readonly hosting: boolean;\n  seatGuest(name: string, token: string): string; unseatGuest(id: string): void;\n  guestControls(player: string, ship: string, controls: Controls): void;\n  spawnGuest(player: string, preset: string, godMode?: boolean): string;\n  respawnGuest(player: string, ship: string, preset: string, godMode?: boolean): void;\n  setGuestThrottle(player: string, ship: string, value: number): void;\n  accept(connection: TextConnection): void;\n  setPaused(paused: boolean, reason?: string): void; settle(): void;\n  catchUp(seconds: number, ship: string | undefined): WorldEvent[];\n  service(): void; snapshot(): string; roster(): readonly SavedPlayer[]; close(reason?: string): void;\n}"
         },
@@ -12484,7 +14603,27 @@
         },
         {
           "type": "heading",
+          "text": "LocalSessionHandle"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable session handle for an authoritative local world, exposing `local` host controls alongside `SessionRead`."
+        },
+        {
+          "type": "code",
+          "text": "export interface LocalSessionHandle extends SessionHandle { readonly local: LocalSessionControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SessionFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating local authoritative sessions and joining remote peer sessions (`core.session@1.0.0`)."
         },
         {
           "type": "code",
@@ -12493,6 +14632,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.session-flight."
+        },
+        {
+          "type": "heading",
+          "text": "CORE_SESSION"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the core local and remote session factory (`core.session@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const CORE_SESSION: ServiceKey<SessionFactory> = Object.freeze({ slot: 'core.session', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -12509,6 +14664,22 @@
         {
           "type": "paragraph",
           "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/session-discovery.ts."
+        },
+        {
+          "type": "heading",
+          "text": "SessionGreeting"
+        },
+        {
+          "type": "paragraph",
+          "text": "Structured handshake greeting returned by an active game session server."
+        },
+        {
+          "type": "code",
+          "text": "export interface SessionGreeting {\n  /** Human-readable session or world name. */\n  readonly name: string;\n  /** Current count of connected players. */\n  readonly players: number;\n  /** Maximum number of players accepted by the host. */\n  readonly maxPlayers: number;\n  /** Whether the session requires a password to join. */\n  readonly password: boolean;\n  /** Protocol identifier advertised by the server (e.g. `space-sim-flight/1`). */\n  readonly protocol: string;\n  /** Optional universe or physics model identifier. */\n  readonly model?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -12720,6 +14891,38 @@
         },
         {
           "type": "heading",
+          "text": "SmartCameraFrame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation frame describing world-metre camera origin, target position, pan and elapsed wall time."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraFrame {\n  /** Frame origin and target position in the same world-metre coordinate system. */\n  readonly origin: Vec;\n  readonly targetPosition?: Vec;\n  /** Camera displacement from origin, and world metres per wall second. */\n  readonly pan: Vec;\n  readonly velocity: Vec;\n  readonly scale: number;\n  readonly elapsed: number;\n  readonly instant: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SmartCameraStep"
+        },
+        {
+          "type": "paragraph",
+          "text": "Borrowed storage, reused on the next update; follow requests the base camera's own follow mode."
+        },
+        {
+          "type": "code",
+          "text": "export interface SmartCameraStep { readonly pan: Vec; readonly velocity: Vec; readonly follow: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SmartCameraControl"
         },
         {
@@ -12787,6 +14990,10 @@
           "text": "Vec"
         },
         {
+          "type": "paragraph",
+          "text": "Immutable 2D Cartesian vector (SI metres, `m/s`, or `m/s²` in world/body frames with `+Y` up, or CSS pixels in screen space with `+Y` down)."
+        },
+        {
           "type": "code",
           "text": "export interface Vec { readonly x: number; readonly y: number }"
         },
@@ -12796,7 +15003,27 @@
         },
         {
           "type": "heading",
+          "text": "BodyRotation"
+        },
+        {
+          "type": "paragraph",
+          "text": "Sidereal spin of a body: its terrain, oceans and anything resting on them turn with it."
+        },
+        {
+          "type": "code",
+          "text": "export interface BodyRotation {\n  /** Seconds per turn. */\n  readonly period: number;\n  /** -1 turns clockwise, the same sense as default orbits; 1 counter-clockwise. */\n  readonly direction: 1 | -1;\n  /** Angle of the body-fixed frame at time 0, radians. */\n  readonly phase: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "Body"
+        },
+        {
+          "type": "paragraph",
+          "text": "Minimal authoritative celestial body parameters for motion and surface contact: reference `radius` in `m` and gravitational parameter `mu` (`GM`) in `m³/s²`."
         },
         {
           "type": "code",
@@ -12824,7 +15051,27 @@
         },
         {
           "type": "heading",
+          "text": "SurfaceContactEvent"
+        },
+        {
+          "type": "paragraph",
+          "text": "Terrain or sea contact event recorded during a step, with simulation `time` in `s`, step `fraction` in `[0, 1]`, and body-relative `impactVelocity` in `m/s`."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceContactEvent {\n  readonly material?: 'rock' | 'water';\n  readonly time: number;\n  readonly fraction: number;\n  readonly surfaceIdentity: string;\n  readonly impactVelocity: Vec;\n  readonly diagnostics: SurfaceSweepDiagnostics;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "Coast"
+        },
+        {
+          "type": "paragraph",
+          "text": "Exact Keplerian coasting epoch (`epochSeconds` in `s`, body-centered inertial `position` in `m` and `velocity` in `m/s`, `mu` in `m³/s²`) from which unpowered motion is evaluated without drift."
         },
         {
           "type": "code",
@@ -12839,6 +15086,10 @@
           "text": "Controls"
         },
         {
+          "type": "paragraph",
+          "text": "Held pilot flight control inputs: `turn` rate in `[-1, 1]` (positive turns counter-clockwise), `throttle` rate in `[-1, 1]`, and `engine` ignition boolean."
+        },
+        {
           "type": "code",
           "text": "export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }"
         },
@@ -12848,7 +15099,27 @@
         },
         {
           "type": "heading",
+          "text": "Preset"
+        },
+        {
+          "type": "paragraph",
+          "text": "Built-in starting spawn preset identifier (`'pad'`, `'planet-orbit'`, or `'moon-orbit'`)."
+        },
+        {
+          "type": "code",
+          "text": "export type Preset = 'pad' | 'planet-orbit' | 'moon-orbit';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "Sample"
+        },
+        {
+          "type": "paragraph",
+          "text": "Timed 2D position sample with simulation `time` in seconds and `position` in metres."
         },
         {
           "type": "code",
@@ -12861,6 +15132,10 @@
         {
           "type": "heading",
           "text": "GhostSample"
+        },
+        {
+          "type": "paragraph",
+          "text": "Trajectory forecast sample with simulation `time` (`s`), `position` (`m`), and `velocity` (`m/s`) in the translating non-rotating frame of `frameId ?? bodyId`."
         },
         {
           "type": "code",
@@ -12904,6 +15179,86 @@
         },
         {
           "type": "heading",
+          "text": "SurfacePadDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Versioned surface authoring contract."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfacePadDefinition {\n  readonly id: string;\n  readonly angleRadians: number;\n  readonly widthMetres: number;\n  readonly elevationMetres: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Deterministic radial terrain and sea generation recipe in SI metres and radians (`generatorVersion: 1`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceDefinition {\n  readonly kind: 'radial';\n  readonly generatorVersion: 1;\n  readonly seed: number;\n  readonly sampleCount: number;\n  readonly maxReliefMetres: number;\n  readonly minFeatureWidthMetres: number;\n  readonly orientationRadians: number;\n  readonly mountainRangeCount: number;\n  readonly craterCount: number;\n  /** Absolute body-local sea radius; waves never change this level. */\n  readonly seaRadiusMetres?: number;\n  readonly pads?: readonly SurfacePadDefinition[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceBounds"
+        },
+        {
+          "type": "paragraph",
+          "text": "Conservative radial bounds (`minRadius`/`maxRadius` in `m`), radial derivative (`m/rad`), and slope tangent over a terrain profile or interval."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceBounds {\n  readonly minRadius: number;\n  readonly maxRadius: number;\n  readonly maxAbsDerivative: number;\n  readonly maxSlope: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceQuery"
+        },
+        {
+          "type": "paragraph",
+          "text": "Point evaluation of a `SurfaceProfile` at a body-fixed polar angle: radii, elevation, and water depth in metres, unit outward normals, and contact material."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceQuery {\n  readonly groundRadius: number;\n  readonly firstContactRadius: number;\n  readonly waterDepth: number;\n  readonly elevation: number;\n  readonly groundNormal: Readonly<{ x: number; y: number }>;\n  readonly normal: Readonly<{ x: number; y: number }>;\n  readonly intervalIndex: number;\n  readonly material: 'rock' | 'water';\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceFeature"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authored or procedural radial terrain feature metadata (mountain range or crater) with dimensions in metres and polar angle in radians."
+        },
+        {
+          "type": "code",
+          "text": "export type SurfaceFeature = Readonly<{\n  id: string;\n  kind: 'mountain-range';\n  angleRadians: number;\n  widthMetres: number;\n  heightMetres: number;\n} | {\n  id: string;\n  kind: 'crater';\n  angleRadians: number;\n  bowlRadiusMetres: number;\n  rimWidthMetres: number;\n  centralPeakWidthMetres: number;\n  depthMetres: number;\n  rimHeightMetres: number;\n  centralPeakHeightMetres: number;\n}>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SurfaceProfile"
         },
         {
@@ -12917,6 +15272,54 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceSweepOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Geometric tolerance (`m`) and work budget options for continuous chord-vs-terrain collision sweeps."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceSweepDiagnostics"
+        },
+        {
+          "type": "paragraph",
+          "text": "Work and tolerance accounting returned with a `SurfaceSweep` result."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceSweepDiagnostics {\n  readonly toleranceMetres: number;\n  readonly intervals: number;\n  readonly evaluations: number;\n  readonly work: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceSweep"
+        },
+        {
+          "type": "paragraph",
+          "text": "Outcome of sweeping a body-fixed linear segment from `start` to `end` against a `SurfaceProfile`: `'clear'`, `'hit'` (with contact fraction and query), or `'failed'`."
+        },
+        {
+          "type": "code",
+          "text": "export type SurfaceSweep =\n  | (SweepResult & { readonly status: 'clear' })\n  | (SweepResult & { readonly status: 'hit'; readonly fraction: number;\n    /** A bracket on the drift fraction, not a time-of-flight solution. */\n    readonly fractionBracket: readonly [number, number];\n    /** On the drift chord, within the reported tolerance of ground. */\n    readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;\n    readonly kind: 'crossing' | 'touching' })\n  | (SweepResult & { readonly status: 'failed';\n    readonly reason: 'work-limit' | 'precision' | 'initial-penetration';\n    /** Only the prefix through this fraction was verified; do not accept the endpoint. */\n    readonly verifiedFraction: number });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -12997,6 +15400,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.net-tab."
+        },
+        {
+          "type": "heading",
+          "text": "TabHost"
+        },
+        {
+          "type": "paragraph",
+          "text": "Handle representing a hosting session in this tab."
+        },
+        {
+          "type": "code",
+          "text": "export interface TabHost extends Disposable {\n  /** 32-character hexadecimal host address key. */\n  readonly key: string;\n  /** Force an immediate broadcast announcement of current session status. */\n  announce(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -13736,6 +16155,54 @@
         },
         {
           "type": "heading",
+          "text": "SOI"
+        },
+        {
+          "type": "paragraph",
+          "text": "Sphere-of-influence radii in metres (`radius`, optional hysteresis `entryMetres` and `exitMetres`) for gravitational handoffs."
+        },
+        {
+          "type": "code",
+          "text": "export interface SOI {\n  readonly radius: number;\n  readonly entryMetres?: number;\n  readonly exitMetres?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "Ephemeris"
+        },
+        {
+          "type": "paragraph",
+          "text": "Prescribed celestial body trajectory relative to its parent body: fixed inertial coordinates (`m`, `m/s`) or circular Keplerian orbit (`m`, `rad`, `s`)."
+        },
+        {
+          "type": "code",
+          "text": "export type Ephemeris =\n  | {\n      readonly kind: 'fixed-inertial';\n      readonly position?: readonly [number, number];\n      readonly velocity?: readonly [number, number];\n    }\n  | {\n      readonly kind: 'circular-kepler';\n      readonly radius?: number;\n      readonly radiusMetres?: number;\n      readonly phaseRadiansAtEpoch?: number;\n      readonly direction?: number;\n      readonly period?: number;\n    };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CelestialBodyDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authored celestial body definition with SI physical parameters (`radius`/`radiusMetres` in `m`, `mass` in `kg`, `mu` in `m³/s²`), ephemeris, terrain, and appearance."
+        },
+        {
+          "type": "code",
+          "text": "export interface CelestialBodyDefinition {\n  readonly id: string;\n  readonly name: string;\n  readonly parentId?: string | null;\n  readonly radius?: number;\n  readonly radiusMetres?: number;\n  readonly mass?: number; // kg\n  readonly mu?: number; // m^3 / s^2\n  readonly soi?: SOI;\n  readonly color?: string;\n  readonly accentColor?: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly surface?: SurfaceDefinition;\n  readonly ephemeris?: Ephemeris;\n  /** Sidereal spin; absent bodies do not rotate. */\n  readonly rotation?: RotationDefinition;\n  /** How the body is drawn; derived from `surfaceFeatures` and its colours when absent. */\n  readonly appearance?: BodyAppearance;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "AppearanceStyle"
         },
         {
@@ -13753,6 +16220,10 @@
         {
           "type": "heading",
           "text": "BodyAppearance"
+        },
+        {
+          "type": "paragraph",
+          "text": "Presentation-only procedural shader appearance parameters for a celestial body (style, `#rrggbb` palette, seed in `[0, 1000]`, and `[0, 1]` tuning sliders)."
         },
         {
           "type": "code",
@@ -13796,7 +16267,43 @@
         },
         {
           "type": "heading",
+          "text": "RotationDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authored sidereal rotation specification for a celestial body (`period` in `s`, `direction` `-1` CW or `1` CCW, `phaseRadiansAtEpoch` in `rad`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface RotationDefinition {\n  /** Seconds per turn. */\n  readonly period: number;\n  /** -1 (default) turns clockwise like default orbits, so a prograde launch gains the spin. */\n  readonly direction?: number;\n  readonly phaseRadiansAtEpoch?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PresetDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authored ship spawn preset definition relative to `bodyId` (`'landed'`, `'circular-orbit'`, or explicit body-relative SI `'state'`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresetDefinition {\n  readonly id: string;\n  readonly name: string;\n  readonly bodyId: string;\n  readonly kind: 'landed' | 'circular-orbit' | 'state';\n  readonly radius?: number;\n  readonly radiusMetres?: number;\n  readonly altitude?: number;\n  readonly phaseRadians?: number;\n  readonly direction?: number;\n  readonly headingRadians?: number;\n  readonly zoom?: number;\n  readonly position?: readonly [number, number];\n  readonly velocity?: readonly [number, number];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "VehicleDefaults"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authoritative spacecraft handling parameters in SI units: full-thrust `acceleration` (`m/s²`), `turnRate` (`rad/s`), and `initialThrottle` (`[0, 1]`)."
         },
         {
           "type": "code",
@@ -13808,7 +16315,27 @@
         },
         {
           "type": "heading",
+          "text": "SystemDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authored star or planetary system definition containing hierarchical bodies, default vehicle handling, and spawn presets."
+        },
+        {
+          "type": "code",
+          "text": "export interface SystemDefinition {\n  readonly id: string;\n  readonly name: string;\n  readonly description?: string;\n  readonly centralBodyId?: string;\n  readonly bodies: readonly CelestialBodyDefinition[];\n  readonly vehicleDefaults?: Partial<VehicleDefaults>;\n  readonly presets: readonly PresetDefinition[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "UniverseDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, and `systems`)."
         },
         {
           "type": "code",
@@ -13823,12 +16350,32 @@
           "text": "ResolvedBody"
         },
         {
+          "type": "paragraph",
+          "text": "Fully validated celestial body with resolved SI physical constants (`radius` in `m`, `mass` in `kg`, `mu` in `m³/s²`), SOI hysteresis radii, surface identity, and 4-color appearance."
+        },
+        {
           "type": "code",
           "text": "export interface ResolvedBody extends Body {\n  readonly surfaceIdentity: string;\n  readonly id: string;\n  readonly name: string;\n  readonly parentId: string | null;\n  readonly radius: number;\n  readonly mass: number;\n  readonly mu: number;\n  readonly soi: {\n    readonly radius: number;\n    readonly entryMetres: number;\n    readonly exitMetres: number;\n  };\n  readonly color: string;\n  readonly accentColor: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly ephemeris: Ephemeris;\n  /** Always four colours once resolved. */\n  readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.planet-designer."
+        },
+        {
+          "type": "heading",
+          "text": "LoadedSystem"
+        },
+        {
+          "type": "paragraph",
+          "text": "Resolved planetary system instance providing ephemeris queries (`getBodyPosition` in `m`, `getBodyVelocity` in `m/s` at simulation `time` in `s`), preset placement, and SOI transitions."
+        },
+        {
+          "type": "code",
+          "text": "export interface LoadedSystem {\n  readonly universeId: string;\n  readonly universeName: string;\n  readonly system: SystemDefinition;\n  readonly rootBody: ResolvedBody;\n  readonly vehicleDefaults: VehicleDefaults;\n  readonly presets: readonly PresetDefinition[];\n  getResolvedBody(id: string): ResolvedBody;\n  getAllBodies(): readonly ResolvedBody[];\n  getMoonsOf(parentId: string): readonly ResolvedBody[];\n  getBodyPosition(bodyId: string, time: number): Vec;\n  getBodyVelocity(bodyId: string, time: number): Vec;\n  initialState(presetId?: string, surface?: SurfaceProfile): { state: State; body: ResolvedBody };\n  checkSOI(state: State, currentBodyId: string, time: number): {\n    switched: boolean;\n    newBody: ResolvedBody;\n    newState: State;\n  };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "link",
@@ -13877,6 +16424,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.universe-saves."
+        },
+        {
+          "type": "heading",
+          "text": "UniverseSaveSource"
+        },
+        {
+          "type": "paragraph",
+          "text": "Snapshot of session and world identity captured prior to asynchronous save or load IO. Holds read-only world access, optional snapshot configuration, and permission flags."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniverseSaveSource {\n  /** Stable session/world identity; captured before asynchronous work. */\n  readonly identity: object;\n  readonly world: WorldRead;\n  readonly options?: SavedWorldOptions;\n  readonly canSave: boolean;\n  readonly canLoad: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -14168,6 +16731,22 @@
         },
         {
           "type": "heading",
+          "text": "VehicleConfigurationError"
+        },
+        {
+          "type": "paragraph",
+          "text": "A valid universe needs installed vehicle packages, rather than damaged-file recovery."
+        },
+        {
+          "type": "code",
+          "text": "export class VehicleConfigurationError extends Error {}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "VehicleDefinition"
         },
         {
@@ -14235,6 +16814,10 @@
           "text": "vehicleId"
         },
         {
+          "type": "paragraph",
+          "text": "Validate and return a namespaced vehicle identifier (`<module-id>/<local-name>`, max 160 chars). Throws if malformed."
+        },
+        {
           "type": "code",
           "text": "export function vehicleId(value: unknown): string;"
         },
@@ -14244,7 +16827,27 @@
         },
         {
           "type": "heading",
+          "text": "captureVehicleDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate, bound SI handling parameters (`acceleration` in `m/s²`, `turnRate` in `rad/s`, `initialThrottle` in `[0, 1]`), and freeze a `VehicleDefinition`."
+        },
+        {
+          "type": "code",
+          "text": "export function captureVehicleDefinition(value: unknown): VehicleDefinition;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "captureVehicleCatalog"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate, sort by ID, and freeze a `space-sim-vehicles/1` catalog (1–128 unique vehicle definitions). Throws on duplicate or missing `defaultId`."
         },
         {
           "type": "code",
@@ -14333,6 +16936,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "HudAdapter"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service adapter injected into a HUD view for instrument access."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudAdapter<T = unknown> { readonly key: Pick<ServiceKey<T>, 'slot' | 'version'>; readonly service: T }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -14480,6 +17099,22 @@
         },
         {
           "type": "heading",
+          "text": "FlightHudReadout"
+        },
+        {
+          "type": "paragraph",
+          "text": "Detached/read-only flight readout in the body's inertial frame. No world-step or write API."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightHudReadout {\n  readonly state: State; readonly radius: number; readonly spin: number; readonly clearance: number | null;\n  readonly center: Vec; readonly scale: number; readonly cameraRotation: number;\n  readonly frameSetting: number; readonly orientation: 'horizon' | 'camera';\n  readonly accentColor?: string; readonly playerLabel?: string; readonly trajectory?: string;\n  readonly pinned: boolean; readonly dragging: boolean; readonly editing: boolean;\n  readonly maneuver?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "FlightHudAdapter"
         },
         {
@@ -14592,6 +17227,22 @@
         },
         {
           "type": "heading",
+          "text": "ManualReply"
+        },
+        {
+          "type": "paragraph",
+          "text": "Active manual WebRTC reply generated by a joining guest in response to an invitation."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualReply extends Disposable {\n  /** Compact base64url encoded reply code containing compressed SDP answer. */\n  readonly code: string;\n  /** Expiration timestamp in milliseconds (epoch) after which the reply is invalid. */\n  readonly expiresAt: number;\n  /** Return current connection and ICE gathering diagnostics. */\n  diagnostics(): ConnectionDiagnostics;\n  /** Resolves to the established TextConnection once the host accepts the reply. */\n  readonly connection: Promise<TextConnection>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "ManualSignalingProvider"
         },
         {
@@ -14640,6 +17291,70 @@
         },
         {
           "type": "heading",
+          "text": "DocumentBlock"
+        },
+        {
+          "type": "paragraph",
+          "text": "Inert structured text block for portable window documents and guides. Links navigate the host's document catalog, never external URLs."
+        },
+        {
+          "type": "code",
+          "text": "export type DocumentBlock =\n  | { readonly type: 'paragraph' | 'heading' | 'code'; readonly text: string }\n  | { readonly type: 'list'; readonly items: readonly string[]; readonly ordered?: boolean }\n  | { readonly type: 'link'; readonly text: string; readonly page: string };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "WindowDocument"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validated immutable structured document composed of up to 256 document blocks."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowDocument {\n  readonly blocks: readonly DocumentBlock[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PreviewData"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded JSON-compatible value used as candidate data for registered window previews. Subject to recursive depth (max 16) and total element (max 4096) boundaries."
+        },
+        {
+          "type": "code",
+          "text": "export type PreviewData = null | boolean | number | string | readonly PreviewData[] | { readonly [key: string]: PreviewData };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PreviewType"
+        },
+        {
+          "type": "paragraph",
+          "text": "Named, exact-version identifier descriptor for a registered preview component."
+        },
+        {
+          "type": "code",
+          "text": "export interface PreviewType {\n  readonly name: string;\n  readonly version: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "WindowContentDefinition"
         },
         {
@@ -14669,6 +17384,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "WindowPreview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable preview instance mounted inside a window content container. Controls its own canvas or DOM tree and receives dimension updates in CSS pixels."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowPreview extends Disposable {\n  /** Resize viewport to width and height in CSS pixels. The provider owns its independent camera. */\n  resize(width: number, height: number): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
         },
         {
           "type": "heading",
@@ -14993,6 +17724,10 @@
         {
           "type": "heading",
           "text": "WorldEvent"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, or world rule fault."
         },
         {
           "type": "code",

@@ -1,12 +1,14 @@
 import type { Body, State, Vec } from './state';
 import type { SurfaceDefinition, SurfaceProfile } from './surface';
 
+/** Sphere-of-influence radii in metres (`radius`, optional hysteresis `entryMetres` and `exitMetres`) for gravitational handoffs. */
 export interface SOI {
   readonly radius: number;
   readonly entryMetres?: number;
   readonly exitMetres?: number;
 }
 
+/** Prescribed celestial body trajectory relative to its parent body: fixed inertial coordinates (`m`, `m/s`) or circular Keplerian orbit (`m`, `rad`, `s`). */
 export type Ephemeris =
   | {
       readonly kind: 'fixed-inertial';
@@ -22,6 +24,7 @@ export type Ephemeris =
       readonly period?: number;
     };
 
+/** Authored celestial body definition with SI physical parameters (`radius`/`radiusMetres` in `m`, `mass` in `kg`, `mu` in `m³/s²`), ephemeris, terrain, and appearance. */
 export interface CelestialBodyDefinition {
   readonly id: string;
   readonly name: string;
@@ -48,6 +51,7 @@ export interface CelestialBodyDefinition {
 /** Procedural look of a body. Presentation only: it never changes the physical outline. */
 export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';
 
+/** Presentation-only procedural shader appearance parameters for a celestial body (style, `#rrggbb` palette, seed in `[0, 1000]`, and `[0, 1]` tuning sliders). */
 export interface BodyAppearance {
   readonly style: AppearanceStyle;
   /** Up to four '#rrggbb' colours. Their roles depend on the style:
@@ -73,6 +77,7 @@ export type AppearanceTuning = 'water' | 'clouds' | 'ice' | 'craters' | 'turbule
 /** Presentation tuning fields in shader order. */
 export const APPEARANCE_TUNING: readonly AppearanceTuning[] = Object.freeze(['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow']);
 
+/** Authored sidereal rotation specification for a celestial body (`period` in `s`, `direction` `-1` CW or `1` CCW, `phaseRadiansAtEpoch` in `rad`). */
 export interface RotationDefinition {
   /** Seconds per turn. */
   readonly period: number;
@@ -81,6 +86,7 @@ export interface RotationDefinition {
   readonly phaseRadiansAtEpoch?: number;
 }
 
+/** Authored ship spawn preset definition relative to `bodyId` (`'landed'`, `'circular-orbit'`, or explicit body-relative SI `'state'`). */
 export interface PresetDefinition {
   readonly id: string;
   readonly name: string;
@@ -97,12 +103,14 @@ export interface PresetDefinition {
   readonly velocity?: readonly [number, number];
 }
 
+/** Authoritative spacecraft handling parameters in SI units: full-thrust `acceleration` (`m/s²`), `turnRate` (`rad/s`), and `initialThrottle` (`[0, 1]`). */
 export interface VehicleDefaults {
   readonly acceleration: number;
   readonly turnRate: number;
   readonly initialThrottle: number;
 }
 
+/** Authored star or planetary system definition containing hierarchical bodies, default vehicle handling, and spawn presets. */
 export interface SystemDefinition {
   readonly id: string;
   readonly name: string;
@@ -113,6 +121,7 @@ export interface SystemDefinition {
   readonly presets: readonly PresetDefinition[];
 }
 
+/** Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, and `systems`). */
 export interface UniverseDefinition {
   readonly schemaVersion: number;
   readonly id: string;
@@ -123,6 +132,7 @@ export interface UniverseDefinition {
   readonly systems: readonly SystemDefinition[];
 }
 
+/** Fully validated celestial body with resolved SI physical constants (`radius` in `m`, `mass` in `kg`, `mu` in `m³/s²`), SOI hysteresis radii, surface identity, and 4-color appearance. */
 export interface ResolvedBody extends Body {
   readonly surfaceIdentity: string;
   readonly id: string;
@@ -147,6 +157,7 @@ export interface ResolvedBody extends Body {
   readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };
 }
 
+/** Resolved planetary system instance providing ephemeris queries (`getBodyPosition` in `m`, `getBodyVelocity` in `m/s` at simulation `time` in `s`), preset placement, and SOI transitions. */
 export interface LoadedSystem {
   readonly universeId: string;
   readonly universeName: string;

@@ -49,6 +49,7 @@ export const FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory> = Object.freeze({ s
 /** Result of one completed tracing pass. `workMs` is wall-clock work, not simulated time;
  * `coarse` is true for a preview traced while the engine was burning. */
 export interface PredictionSummary { end: GhostEnd; samples: number; workMs: number; coarse: boolean }
+/** Active in-flight trajectory tracing pass accumulating body-relative SI samples and wall-clock work in milliseconds. */
 export interface PredictionPass { readonly samples: readonly GhostSample[]; readonly coarse: boolean; readonly workMs: number }
 /** A progressive trajectory preview for one view. It traces on an isolated motion-context
  * clone (or `world.predictShip` when a world is passed) and never advances live authority.

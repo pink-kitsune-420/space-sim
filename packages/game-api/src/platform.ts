@@ -386,12 +386,14 @@ export interface InviteProvider {
     readonly connection: TextConnection;
   }>;
 }
+/** Declarative, headless-safe UI control descriptor (`'text'`, `'button'`, `'toggle'`, `'slider'`, or `'canvas'`) for module windows and inspectors. */
 export type UiControl =
   | { readonly kind: 'text'; readonly id: string; readonly text: string }
   | { readonly kind: 'button' | 'toggle'; readonly id: string; readonly label: string; readonly action: string }
   | { readonly kind: 'slider'; readonly id: string; readonly label: string; readonly action: string;
       readonly minimum: number; readonly maximum: number; readonly step: number }
   | { readonly kind: 'canvas'; readonly id: string; readonly label: string };
+/** Declarative window contribution (`name`, `title`, `controls`, and optional structured `content` sections) registered via `contributeWindow`. */
 export interface WindowDefinition {
   readonly name: string;
   readonly title: string;
@@ -405,17 +407,23 @@ export interface UiShell {
   set(id: string, value: string | number | boolean): void;
   onAction(id: string, callback: (value: string | number | boolean) => void): Disposable;
 }
+/** Host DOM mounting service (`core.dom@1.0.0`) allowing trusted browser/platform modules to mount custom DOM into a named window container. */
 export interface TrustedDomShell {
   mountTrusted(windowId: string, mount: (root: HTMLElement) => Disposable): Disposable;
 }
+/** Reactive presentation theme service (`core.theme@1.0.0`) providing the current `RenderThemeOptions`, updates, and change subscriptions. */
 export interface ThemeService {
   current(): Readonly<RenderThemeOptions>;
   set(value: Readonly<RenderThemeOptions>): void;
   subscribe(change: (theme: Readonly<RenderThemeOptions>) => void): Disposable;
 }
+/** Service key for the headless-safe declarative UI shell (`core.ui@1.0.0`). */
 export const CORE_UI: ServiceKey<UiShell> = Object.freeze({ slot: 'core.ui', version: '1.0.0' });
+/** Service key for the trusted browser DOM mounting shell (`core.dom@1.0.0`). */
 export const CORE_DOM: ServiceKey<TrustedDomShell> = Object.freeze({ slot: 'core.dom', version: '1.0.0' });
+/** Service key for the reactive presentation theme service (`core.theme@1.0.0`). */
 export const CORE_THEME: ServiceKey<ThemeService> = Object.freeze({ slot: 'core.theme', version: '1.0.0' });
+/** Metadata descriptor registering a packaged structured Manual page (`asset` path to a JSON `WindowDocument`) under the `'players'` or `'creators'` audience. */
 export interface GuidePage {
   readonly id: string;
   readonly audience: 'players' | 'creators';
@@ -423,12 +431,14 @@ export interface GuidePage {
   readonly summary: string;
   readonly asset: string;
 }
+/** Custom GLSL body material contribution binding a packaged `fragmentAsset` shader and numeric `uniforms` to target celestial `bodyIds`. */
 export interface MaterialDefinition {
   readonly name: string;
   readonly bodyIds: readonly string[];
   readonly fragmentAsset: string;
   readonly uniforms: Readonly<Record<string, number>>;
 }
+/** Custom GLSL screen-space post-processing pass contribution with resolution `scale` (`0.5` or `1`), ordering `after`, and numeric `uniforms`. */
 export interface PostEffectDefinition {
   readonly name: string;
   readonly fragmentAsset: string;
@@ -438,7 +448,9 @@ export interface PostEffectDefinition {
 }
 /** Resolved inert assets; IDs and ordering retain their owning module namespace. */
 export interface RenderMaterial extends Omit<MaterialDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }
+/** Resolved post-processing shader pass with its namespaced `id` and loaded GLSL `fragment` source text. */
 export interface RenderPostEffect extends Omit<PostEffectDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }
+/** Optional renderer capability that atomically compiles and configures custom body materials and screen-space post-processing effects. */
 export interface ShaderEffects {
   /** Atomic compilation. Sources implement material(vec2) or effect(vec2,vec4), with
    * fixed uniforms; the renderer owns masks, framebuffers and all graphics objects. */

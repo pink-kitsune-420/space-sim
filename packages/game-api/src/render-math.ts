@@ -6,6 +6,7 @@ import { normalizeAngle } from './math';
 export type { Camera, OverlayPrimitive, OverlaySpace, RenderBody, RenderFrame, RenderSection, RenderShip, RenderTimer,
   Renderer, RendererFeatures } from './presentation';
 
+/** Project a single world-space point (metres, `+Y` up) into viewport screen coordinates (CSS pixels, `+Y` down). */
 export function project(p: Vec, camera: Camera, width: number, height: number): Vec {
   return createProjector(camera, width, height)(p);
 }
@@ -41,6 +42,7 @@ export function dragCamera(camera: Camera, delta: Vec): Camera {
   } };
 }
 
+/** Interpolate along the shortest angular arc in radians by `fraction` clamped to `[0, 1]`, wrapped to `(-pi, pi]`. */
 export function blendAngle(current: number, target: number, fraction: number): number {
   return normalizeAngle(current + normalizeAngle(target - current) * Math.max(0, Math.min(1, fraction)));
 }
@@ -76,6 +78,7 @@ interface PathGeometry {
   readonly controls: Array<readonly [Vec, Vec]>;
 }
 const PATH_GEOMETRY = new WeakMap<readonly GhostSample[], PathGeometry>();
+/** Compute and WeakMap-cache cumulative chord lengths (metres) and Hermite control points for a trajectory sample array. */
 export function getPathGeometry(path: readonly GhostSample[]): PathGeometry {
   let geom = PATH_GEOMETRY.get(path);
   if (!geom) {

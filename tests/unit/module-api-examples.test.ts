@@ -5,10 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { universeSaveFormatService } from '../../packages/game-library/src/universe-save-services';
 import { universeDiskService } from '../../apps/server/src/universe-disk';
-import { FLIGHT_HUD_STATE, FLIGHT_PLANS, MANUAL_READER, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
+import { captureDocument, FLIGHT_HUD_STATE, FLIGHT_PLANS, MANUAL_READER, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
   type FleetViewInput, type FlightHudAdapter, type FlightHudReadout, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
   type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type TextConnection,
   type ThrottleLeverState, type TransportProvider } from '../../packages/game-api/src/index';
+// @ts-expect-error reference.mjs is an untyped ESM script
+import { check as checkReference, generate as generateReference } from '../../packages/module-tools/reference.mjs';
 import { ModuleRegistryV2, moduleAssets } from '../../packages/game-runtime/src/modules-v2';
 import { World } from '../../packages/sim-core/src/world';
 import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
@@ -2934,4 +2936,41 @@ it('creates procedural audio outputs, clamps levels and schedules Web Audio voic
     candidate.dispose();
   }
 });
+
+it('generates reference pages for all 53 public game-api stems, enforces JSDoc on public exports and splits oversized topics', () => {
+  const result = generateReference();
+  const { bundle, text, state } = result;
+  expect(checkReference(result)).toEqual([]);
+  expect(state.api.publicDeclarations.size).toBeGreaterThanOrEqual(610);
+  expect(state.api.namespaces.get('deterministicMath')).toBe('math');
+
+  const gameApiPages = bundle.pages.filter((page: { id: string }) => page.id.startsWith('api-reference/game-api/'));
+  expect(gameApiPages).toHaveLength(53);
+  expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/math')).toBe(true);
+  expect(text).toContain('deterministicMath.sin');
+  for (const page of bundle.pages) {
+    expect(() => captureDocument({ blocks: page.blocks })).not.toThrow();
+  }
+
+  const split = generateReference(state, { pageLimit: { blocks: 160, bytes: 65536 } });
+  const platformPages = split.bundle.pages.filter((page: { id: string }) =>
+    page.id === 'api-reference/game-api/platform' || page.id.startsWith('api-reference/game-api/platform/'));
+  expect(platformPages.map((page: { id: string }) => page.id)).toEqual([
+    'api-reference/game-api/platform',
+    'api-reference/game-api/platform/2',
+  ]);
+  for (const page of platformPages) {
+    expect(() => captureDocument({ blocks: page.blocks })).not.toThrow();
+  }
+
+  const firstDecl = state.api.publicDeclarations.values().next().value!;
+  const savedDoc = firstDecl.doc;
+  try {
+    firstDecl.doc = '';
+    expect(checkReference(result)).toContain(`${firstDecl.path}: public declaration ${firstDecl.name} is missing a leading JSDoc comment`);
+  } finally {
+    firstDecl.doc = savedDoc;
+  }
+});
+
 

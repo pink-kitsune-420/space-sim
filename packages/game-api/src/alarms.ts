@@ -16,6 +16,7 @@ export interface OrbitalAlarmEvent {
 }
 /** Delivered orbital alarm notice indicating arrival or missed status when delivered past event time. */
 export interface OrbitalAlarmNotice extends OrbitalAlarmEvent { readonly missed: boolean }
+/** Simulation-time alarm evaluator tracking per-session deadlines and due notices. Disposing unregisters the clock from the shared catalogue. */
 export interface OrbitalAlarmClock extends Disposable {
  /** Borrowed result buffer, valid until next sync. Each due event fires once, even
   * after a time jump. Session identity or time rewind clears prior in-memory state.
@@ -31,6 +32,7 @@ export const ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory> = Object.freeze({ s
 
 /** Read-only inspection; never an arming, delivery or host-control interface. */
 export interface OrbitalAlarmStatus extends OrbitalAlarmEvent { readonly now: number; readonly handled: boolean }
+/** Read-only service publishing detached simulation-time alarm status snapshots per session (`flight.alarm-catalogue@1.0.0`). */
 export interface OrbitalAlarmCatalogue {
  /** Detached snapshot of current events for one opaque session identity, max1024.
   * Clocks own their schedule; removing a clock removes its catalogue entries. */

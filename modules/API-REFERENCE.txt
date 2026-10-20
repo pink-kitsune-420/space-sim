@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d4921c477d766c67
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 103ee740b08ee2d1
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -88,6 +88,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> logging.ts [api-reference/game-api/logging]
 -> maneuver.ts [api-reference/game-api/maneuver]
 -> manual.ts [api-reference/game-api/manual]
+-> math.ts [api-reference/game-api/math]
 -> mod-menu.ts [api-reference/game-api/mod-menu]
 -> module-data.ts [api-reference/game-api/module-data]
 -> modules.ts [api-reference/game-api/modules]
@@ -587,6 +588,7 @@ EvaluatedFlightNode, FLIGHT_PLANS, FiniteBurnResult, FiniteCaptureResult, Flight
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api flight-plans.ts [api-reference/game-api/flight-plans]
 -> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api math.ts [api-reference/game-api/math]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api world.ts [api-reference/game-api/world]
@@ -1096,6 +1098,7 @@ CORE_CLOCK, ClockService, Controls, MANEUVER_BURNS, ManeuverBurnControl, Maneuve
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api flight-plans.ts [api-reference/game-api/flight-plans]
 -> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api math.ts [api-reference/game-api/math]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api universe.ts [api-reference/game-api/universe]
@@ -1133,6 +1136,7 @@ None.
 ## Game API used
 GhostSample, ManeuverPreview, ModuleInitializationV2, ModuleManifest, OverlayPrimitive, PresentationView, RegisteredModule, ServiceKey, Vec, createProjector, deterministicMath, maneuverDelta
 -> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api math.ts [api-reference/game-api/math]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
@@ -1187,6 +1191,7 @@ CORE_CLOCK, CORE_MOTION, Camera, ClockService, Coast, Controls, CoreMotion, Disp
 -> game-api flight-plans.ts [api-reference/game-api/flight-plans]
 -> game-api flight-view.ts [api-reference/game-api/flight-view]
 -> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api math.ts [api-reference/game-api/math]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
@@ -1981,6 +1986,7 @@ Optional anti-strobe display over pure prescribed sidereal rotation.
 ## Game API used
 Body, CORE_ROTATION, ModuleInitializationV2, RotationMath, SPIN_VIEWS, ServiceKey, SpinViewControl, SpinViewFactory, State, Vec, deterministicMath, interpolateState
 -> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api math.ts [api-reference/game-api/math]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api render-math.ts [api-reference/game-api/render-math]
 -> game-api rotation.ts [api-reference/game-api/rotation]
@@ -2138,6 +2144,7 @@ EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanNode, FlightPlanService
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api flight-plans.ts [api-reference/game-api/flight-plans]
 -> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api math.ts [api-reference/game-api/math]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api transfers.ts [api-reference/game-api/transfers]
@@ -2509,6 +2516,7 @@ Delivered orbital alarm notice indicating arrival or missed status when delivere
 Used by: spacelab.orbital-alarms.
 
 ## OrbitalAlarmClock
+Simulation-time alarm evaluator tracking per-session deadlines and due notices. Disposing unregisters the clock from the shared catalogue.
     export interface OrbitalAlarmClock extends Disposable {
      /** Borrowed result buffer, valid until next sync. Each due event fires once, even
       * after a time jump. Session identity or time rewind clears prior in-memory state.
@@ -2535,6 +2543,7 @@ Read-only inspection; never an arming, delivery or host-control interface.
 Used by: spacelab.orbital-alarms.
 
 ## OrbitalAlarmCatalogue
+Read-only service publishing detached simulation-time alarm status snapshots per session (`flight.alarm-catalogue@1.0.0`).
     export interface OrbitalAlarmCatalogue {
      /** Detached snapshot of current events for one opaque session identity, max1024.
       * Clocks own their schedule; removing a clock removes its catalogue entries. */
@@ -2751,6 +2760,30 @@ Declarations from commands.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/commands.ts.
 
+## CommandParameter
+Bounded numeric parameter schema for an authoritative module command (`[minimum, maximum]`).
+    export interface CommandParameter {
+      readonly type: 'number';
+      readonly default: number;
+      readonly minimum: number;
+      readonly maximum: number;
+      readonly integer?: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## CommandInput
+Detached, read-only input passed to `CommandHook.resolve` at a fixed-step control boundary (`time` in simulation seconds).
+    export interface CommandInput {
+      /** Committed tick and simulation time when the host applies the command. */
+      readonly tick: number;
+      readonly time: number;
+      /** Detached, read-only copy of the commanded ship, owned by the requesting player. */
+      readonly ship: Ship;
+      /** Validated arguments with declared defaults applied. */
+      readonly args: Readonly<Record<string, number>>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## CommandEffect
 Applied to the commanded ship between fixed steps, through the same world operations as built-in commands: held controls ([-1, 1] turn/throttle rate, engine) and throttle [0, 1].
     export interface CommandEffect {
@@ -2759,7 +2792,24 @@ Applied to the commanded ship between fixed steps, through the same world operat
     }
 Used by: spacelab.session-flight.
 
+## CommandHook
+An authoritative request a pilot can issue. Only the authoritative host runs `resolve`: after checking the player owns the ship and the arguments match `parameters`. It is synchronous and pure (no wall clock, IO, randomness or hidden state). A thrown error or invalid effect refuses the command with module/command diagnostics and changes nothing. Clients receive the result through ordinary snapshots; they never run `resolve`.
+    export interface CommandHook {
+      /** Local name; the command ID is `<module id>/<name>`. */
+      readonly name: string;
+      /** Button text. */
+      readonly label: string;
+      /** Suggested binding as a KeyboardEvent.code: `KeyA`–`KeyZ` or `Digit0`–`Digit9`.
+       * Applications reject bindings that collide with their own controls. */
+      readonly key?: string;
+      /** At most eight numeric parameters. Missing arguments take their defaults. */
+      readonly parameters?: Readonly<Record<string, CommandParameter>>;
+      resolve(input: CommandInput): CommandEffect;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## CommandExtension
+Resolved authoritative command contribution bound to its owning module identity and version.
     export interface CommandExtension {
       readonly moduleId: string;
       readonly version: string;
@@ -2797,6 +2847,16 @@ Motion context with an optional numerical/contact replacement and force schedule
     }
 Used by: builtin.motion, spacelab.flight-prediction, spacelab.maneuver-editor.
 
+## CoastCacheStats
+Read-only diagnostic counters for a simulation context's derived Kepler coast sample cache.
+    export interface CoastCacheStats {
+      readonly samples: number;
+      readonly hits: number;
+      readonly misses: number;
+      readonly capacity: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SimulationContextFactory
 Composition supplies a fresh context for each world, including restores and mirrors.
     export type SimulationContextFactory = (settings: Readonly<VehicleDefaults>, options?: MotionContextOptions) => SimulationContext;
@@ -2807,6 +2867,18 @@ Used by: builtin.motion, spacelab.session-flight.
 Declarations from engine.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/engine.ts.
+
+## SavedCoast
+Serialized Keplerian coast epoch (`epochSeconds` in `s`, body-centered inertial `position` in `m` and `velocity` in `m/s`) stored in a `SavedShip`.
+    export interface SavedCoast {
+      /** Present for selected custom services; checked against the installed context on load. */
+      readonly modelIdentity?: string;
+      readonly epochSeconds: number;
+      readonly position: Pair;
+      readonly velocity: Pair;
+      readonly revision: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## SavedShip
 Body-relative Float64 state. Derived caches and per-step diagnostics are rebuilt.
@@ -2840,7 +2912,23 @@ A player identity. Only a SHA-256 hash of the secret reconnect token is stored.
     }
 Used by: spacelab.session-flight.
 
+## SavedGameConfiguration
+Saved module profile and per-environment v2 runtime package selections (`spacelab-progress-configuration/2`) embedded in a world save.
+    export interface SavedGameConfiguration {
+      readonly format: 'spacelab-progress-configuration/2';
+      readonly profile: ModuleProfile;
+      readonly runtime: { readonly format: 'spacelab-runtime-selection/2'; readonly plans: Readonly<Partial<Record<ModuleEnvironment, {
+        readonly profile: ModuleProfileV2;
+        readonly packages: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
+        readonly requiredSlots: readonly string[];
+      }>>> };
+      readonly data: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
+      readonly code: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## WorldSave
+Portable `space-sim-world` save document containing the full `UniverseDefinition`, SI state (`m`, `s`, `rad`) at `tick`/`time`, ships, players, and optional locks/plans.
     export interface WorldSave {
       readonly vehicles?: VehicleCatalog;
       readonly data?: ModuleDataSnapshot;
@@ -2907,12 +2995,14 @@ Body-relative SI state. Read operations retain the world's established rails sem
 Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.planet-designer, spacelab.session-flight, spacelab.transfer-planner.
 
 ## WorldChanges
+Disposable change-tracking subscription reporting ship IDs modified or removed since the previous `take()`.
     export interface WorldChanges extends Disposable {
       take(): { readonly changed: readonly string[]; readonly removed: readonly string[] };
     }
 Used by: spacelab.session-flight.
 
 ## WorldControl
+Authoritative mutable world handle extending `WorldRead` with fixed-step advancement (`0.01 s`), ship spawning/teleportation, and control mutations.
     export interface WorldControl extends WorldRead, Disposable {
       readonly data: ModuleDataControl;
       setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;
@@ -2932,11 +3022,35 @@ Used by: spacelab.session-flight.
     }
 Used by: spacelab.session-flight.
 
+## WorldCreationOptions
+Options for constructing an authoritative `WorldControl` instance: vehicle catalog, module extensions, lock/fingerprint, and context factory.
+    export interface WorldCreationOptions {
+      readonly vehicles?: VehicleCatalog;
+      readonly dataAdapters?: readonly ModuleDataExtension[];
+      readonly configuration?: SavedGameConfiguration;
+      readonly soloPreview?: boolean; readonly migrateState?: WorldRead['migrateState']; readonly systemId?: string; readonly id?: string;
+      readonly createContext?: SimulationContextFactory; readonly rules?: readonly WorldRuleExtension[]; readonly forces?: readonly ForceExtension[];
+      readonly commands?: readonly CommandExtension[]; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string; readonly saveVersion?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## WorldFactory
+Factory service creating authoritative `WorldControl` simulation instances (`core.world@1.0.0`).
     export interface WorldFactory { create(universe: UniverseDefinition, options?: WorldCreationOptions): WorldControl }
 Used by: spacelab.session-flight.
 
+## SavedWorldOptions
+Optional metadata and session state included when serializing a `WorldRead` into a `WorldSave`.
+    export interface SavedWorldOptions {
+      readonly flightPlans?: FlightPlanArchive;
+      readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;
+      readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
+      readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SaveCodec
+Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `space-sim-world` JSON archives.
     export interface SaveCodec {
       /** Exact legacy authority identity used for worlds predating explicit locks. */
       readonly defaultLock: AuthoritativeLock;
@@ -2951,6 +3065,7 @@ Used by: spacelab.session-flight.
 Used by: spacelab.session-flight, spacelab.universe-saves.
 
 ## FixedClock
+Fixed-timestep accumulator converting elapsed wall-clock seconds into discrete `0.01 s` simulation ticks and an interpolation fraction `alpha` in `[0, 1)`.
     export interface FixedClock {
       readonly alpha: number; readonly lastSteps: number; readonly droppedSeconds: number;
       reset(): void; advance(seconds: number, tick: () => void, warp?: number, maxSteps?: number): void;
@@ -2958,8 +3073,14 @@ Used by: spacelab.session-flight, spacelab.universe-saves.
 Used by: spacelab.session-flight.
 
 ## ClockService
+Service providing the fixed simulation timestep (`0.01 s`), neutral `idle` controls, physics model ID, and `FixedClock` instances (`core.clock@1.0.0`).
     export interface ClockService { readonly stepSeconds: 0.01; readonly idle: Controls; readonly model: string; create(): FixedClock }
 Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight.
+
+## WarpSafety
+Warp safety evaluation for a world: maximum granted time-warp factor, optional limiting reason, and analytic rails eligibility.
+    export interface WarpSafety { readonly maxGranted: number; readonly reason?: string; readonly railsEligible: boolean }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## CoreMotion
 Authoritative simulation kernel providing context creation, motion services, warp limits, and vector utilities.
@@ -2975,20 +3096,24 @@ Authoritative simulation kernel providing context creation, motion services, war
 Used by: builtin.motion, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.trainer.
 
 ## CoreCommands
+Service validating and resolving an authoritative `CommandExtension` against a detached ship snapshot at `(tick, time)` (`core.commands@1.0.0`).
     export interface CoreCommands {
       resolve(command: CommandExtension, ship: Ship, args: unknown, tick: number, time: number): CommandEffect;
     }
 Used by: spacelab.session-flight.
 
 ## CORE_WORLD
+Service key for the authoritative world factory (`core.world@1.0.0`).
     export const CORE_WORLD: ServiceKey<WorldFactory> = Object.freeze({ slot: 'core.world', version: '1.0.0' });
 Used by: spacelab.session-flight.
 
 ## CORE_SAVE
+Service key for the authoritative world save/load codec (`core.save@1.0.0`).
     export const CORE_SAVE: ServiceKey<SaveCodec> = Object.freeze({ slot: 'core.save', version: '1.0.0' });
 Used by: spacelab.session-flight, spacelab.universe-saves.
 
 ## CORE_CLOCK
+Service key for the fixed-timestep simulation clock service (`core.clock@1.0.0`).
     export const CORE_CLOCK: ServiceKey<ClockService> = Object.freeze({ slot: 'core.clock', version: '1.0.0' });
 Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight.
 
@@ -2998,6 +3123,7 @@ Service key for the core motion kernel (`core.motion@1.0.0`).
 Used by: builtin.motion, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.trainer.
 
 ## CORE_COMMANDS
+Service key for the authoritative module command resolver (`core.commands@1.0.0`).
     export const CORE_COMMANDS: ServiceKey<CoreCommands> = Object.freeze({ slot: 'core.commands', version: '1.0.0' });
 Used by: spacelab.session-flight.
 -> API reference index [api-reference]
@@ -3045,6 +3171,7 @@ Hardware controller family used for formatting button labels (e.g. A vs Cross vs
 Used by: spacelab.controller-menu, spacelab.input-gamepad.
 
 ## ControllerProfile
+Per-seat gamepad axis, inversion, radial deadzone, and action button mapping profile.
     export interface ControllerProfile {
       /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */
       readonly turnAxis: number;
@@ -3078,6 +3205,7 @@ Legacy flat controller settings format stored in `space-sim:gamepad:v1`.
 Used by: spacelab.input-gamepad, spacelab.input-profiles.
 
 ## GamepadFlightInput
+Normalized per-frame flight control intent sampled from a physical gamepad (`[-1, 1]` axes).
     export interface GamepadFlightInput {
       /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */
       readonly turn: number;
@@ -3146,6 +3274,26 @@ Flight mapping defaults and migration remain reusable without a gamepad device.
     }
 Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
 
+## FlightTouch
+Editable flight overlay; generic touch sources can use other controls/actions.
+    export interface FlightTouch extends Disposable {
+      loadSettings(): TouchMode;
+      saveMode(mode: TouchMode): void;
+      getMode(): TouchMode;
+      onShortcut(handler: (action: FlightActionId) => void): void;
+      onZoom(handler: (factor: number) => void): void;
+      onSlingHold(handler: (holding: boolean) => void): void;
+      setSlingVisible(visible: boolean): void;
+      setSlingActive(active: boolean): void;
+      isTouchDevice(): boolean;
+      attach(container: HTMLElement): void;
+      updateVisibility(): void;
+      pollFlight(): TouchFlightState;
+      isVisible(): boolean;
+      release(): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## FlightKeyboardOptions
 Options configuring the legacy Space Sim flight keyboard adapter.
     export interface FlightKeyboardOptions {
@@ -3186,6 +3334,7 @@ Preset screen anchor location for a player's HUD navball.
 Used by: spacelab.controller-menu, spacelab.local-pilots.
 
 ## NavballPlacement
+Normalized viewport position (`[0, 1]`), anchor preset, and drag-lock flag for a seat's HUD navball.
     export interface NavballPlacement {
       /** Anchor preset or 'custom' */
       readonly anchor: NavballAnchor;
@@ -3287,6 +3436,7 @@ One ship's plan, bound to the world and motion model it was captured in. A chang
 Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## FlightPlanArchive
+Portable `space-sim-flight-plans/1` archive containing up to 64 inert per-ship flight plans.
     export interface FlightPlanArchive { readonly format: 'space-sim-flight-plans/1'; readonly plans: readonly FlightPlan[] }
 Used by: spacelab.flight-plans, spacelab.maneuver-editor.
 
@@ -3300,14 +3450,17 @@ Per-node evaluation. An invalid node carries a readable `reason`; later nodes ar
 Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## FlightPlanProgress
+Progressive step yielded by `FlightPlanService.evaluateAsync` with the active node index and optional traced coast sample.
     export interface FlightPlanProgress { readonly node: number; readonly sample?: GhostSample }
 Used by: spacelab.maneuver-editor.
 
 ## FiniteBurnResult
+Result of a detached finite-burn simulation in body-relative SI units (`after` state and `delta` velocity in `m/s`).
     export interface FiniteBurnResult {readonly after?:State;readonly delta?:Vec;readonly reason:string}
 Used by: spacelab.flight-plans.
 
 ## FiniteCaptureResult
+Result of refining an arrival capture node under a finite-burn controller in body-relative SI units.
     export interface FiniteCaptureResult {readonly node?:FlightPlanNode;readonly after?:State;readonly reason:string}
 Used by: spacelab.flight-plans.
 
@@ -3392,6 +3545,18 @@ Settings configuring a FlightHost server instance.
       readonly joinTimeoutMs: number;
     }
 Used by: spacelab.session-flight.
+
+## FlightHostOptions
+Optional parameters passed when constructing a FlightHost.
+    export interface FlightHostOptions {
+      /** Roster of players to restore into the session from a saved world. */
+      readonly players?: readonly SavedPlayer[];
+      /** Optional monotonic clock source for server timekeeping. */
+      readonly now?: () => number;
+      /** Optional diagnostic logging callback. */
+      readonly log?: (message: string) => void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## FlightHost
 Authoritative flight session host owning peer connections and world stepping. Borrows the supplied WorldControl; steps the simulation and broadcasts events.
@@ -3496,6 +3661,11 @@ Declarations from flight-view.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-view.ts.
 
+## SmartCandidate
+Candidate target with world-space position and piloting metadata for smart camera selection.
+    export interface SmartCandidate { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly position: Vec; readonly isPilotedShip?: boolean }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SmartTargetMatch
 Matched target descriptor returned by smart camera searches.
     export interface SmartTargetMatch { readonly kind: 'ship' | 'body'; readonly id: string; readonly name: string; readonly isPilotedShip?: boolean }
@@ -3545,6 +3715,11 @@ Used by: spacelab.camera-follow, spacelab.flight-split.
 Result of one completed tracing pass. `workMs` is wall-clock work, not simulated time; `coarse` is true for a preview traced while the engine was burning.
     export interface PredictionSummary { end: GhostEnd; samples: number; workMs: number; coarse: boolean }
 Used by: spacelab.flight-prediction.
+
+## PredictionPass
+Active in-flight trajectory tracing pass accumulating body-relative SI samples and wall-clock work in milliseconds.
+    export interface PredictionPass { readonly samples: readonly GhostSample[]; readonly coarse: boolean; readonly workMs: number }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## FlightPrediction
 A progressive trajectory preview for one view. It traces on an isolated motion-context clone (or `world.predictShip` when a world is passed) and never advances live authority. Consumers read `path` and `pathEnd`; the remaining fields are diagnostics. `path` samples are body-relative SI (metres, m/s, seconds of simulation time) in the frame each sample names. Arrays are reused between passes: copy a path you need to keep.
@@ -3644,6 +3819,15 @@ Host callbacks and session access provided to the splitscreen flight manager.
     }
 Used by: spacelab.flight-split.
 
+## FlightSplitTuning
+Configuration thresholds for splitscreen gamepad joining, dynamic separation, and merging.
+    export interface FlightSplitTuning {
+      readonly joinButton?: number; readonly guestPredictionMs?: number; readonly wheelZoom?: number;
+      readonly separateScreenRatio?: number; readonly mergeScreenRatio?: number;
+      readonly separateDistance?: number; readonly mergeDistance?: number; readonly mergeDelayMs?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## FlightSplitServices
 Injected services required by splitscreen flight management.
     export interface FlightSplitServices {
@@ -3678,6 +3862,18 @@ Used by: spacelab.flight-split.
 Service key for the flight split-screen manager (`view.flight-split@1.0.0`).
     export const FLIGHT_SPLIT: ServiceKey<FlightSplitFactory> = Object.freeze({ slot: 'view.flight-split', version: '1.0.0' });
 Used by: spacelab.flight-split.
+
+## ControllerMenu
+Interactive UI controller managing the Players and Controllers tabs of the flight controls dialog.
+    export interface ControllerMenu extends Disposable {
+      /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */
+      open(): void;
+      /** Re-renders the Players tab (splitscreen seat list and device assignments). */
+      renderPlayers(): void;
+      /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */
+      renderPad(): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## ControllerMenuOptions
 Options configuring a ControllerMenu instance.
@@ -3751,6 +3947,18 @@ CSS-pixel rectangle defining HUD component bounds.
     export interface HudRect {readonly x:number;readonly y:number;readonly width:number;readonly height:number}
 Used by: spacelab.hud-layout.
 
+## HudEditorItem
+Metadata describing an editable HUD instrument position.
+    export interface HudEditorItem {
+     readonly id:string;readonly selector:string;readonly label:string;
+     /** Optional selector under the item's parent defining its placement bounds, e.g. its view canvas.
+      * Saved normalized coordinates then follow that view as split-screen panes resize. */
+     readonly bounds?:string;
+     /** False for independently placed controls that should not push automatically fitted instruments. */
+     readonly obstacle?:boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## HudEditorOptions
 Configuration options for the interactive HUD position editor.
     export interface HudEditorOptions {
@@ -3784,6 +3992,11 @@ Responsive HUD layout controller fitting instruments around obstacles.
      fit(preferred:HudRect,width:number,height:number,canvas?:HTMLCanvasElement,avoid?:boolean):HudRect;
     }
 Used by: spacelab.hud-layout.
+
+## HudVisibilityItem
+Descriptor for a toggleable HUD element in the visibility panel.
+    export interface HudVisibilityItem {readonly id:string;readonly label:string;readonly selector?:string;readonly containerClass?:string;readonly default?:boolean}
+Used by: host or creator modules (not imported by shipped modules).
 
 ## HudVisibilityOptions
 Options configuring HUD component visibility checkboxes and persistent preferences.
@@ -3873,6 +4086,14 @@ Pre-join offer sent by a server listing required module packages and session met
       readonly packages: readonly JoinPackageRequirement[];
     }
 Used by: spacelab.join-review, spacelab.session-join.
+
+## JoinPackSource
+Host adapter exporting the active distributable game pack; never an arbitrary file lookup.
+    export interface JoinPackSource {
+      /** Retrieve the current join offer and game pack archive bytes. */
+      current(signal: AbortSignal): Promise<{ readonly offer: JoinOffer; readonly bytes: Uint8Array }>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## JoinStage
 Isolated staging environment for an incoming game pack. Staged candidate has passed validation; `activate()` commits and publishes once authenticated.
@@ -3988,6 +4209,20 @@ A logger scoped to one module identity. The consumer owns it and disposes it whe
      write(level:ModuleLogLevel,event:string,message:string|(()=>string),fields?:ModuleLogFields):void;
     }
 Used by: spacelab.logging.
+
+## ModuleLogQuery
+Filter for {@link ModuleLogService.entries}. Every field is optional and they combine with AND.
+    export interface ModuleLogQuery {
+     /** Only entries written by this module ID. */
+     readonly moduleId?:string;
+     /** Lowest severity to include. Default `debug`. */
+     readonly minimum?:ModuleLogLevel;
+     /** Only entries with a `sequence` greater than this. Default 0. */
+     readonly after?:number;
+     /** Keep at most this many of the newest matches, a non-negative integer. Default and maximum: the retained history size. */
+     readonly limit?:number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## ModuleLogService
 Bounded in-memory diagnostics store. The provider owns the history; consumers own their loggers.
@@ -4167,6 +4402,15 @@ Guide page bound to a specific audience ('players' or 'creators') for catalog re
     }
 Used by: spacelab.manual.
 
+## ManualSection
+Section definition containing an audience label, introductory text, and an array of pages.
+    export interface ManualSection {
+      readonly label: string;
+      readonly intro: string;
+      readonly pages: readonly ManualTopic[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ManualReaderOptions
 Configuration options for instantiating a ManualReader (`ui.manual@1.0.0`). Defines the root host element, audience books, optional viewer preferences storage, ID prefix, optional configuration dialog trigger, live content revision hook, and scroll root.
     export interface ManualReaderOptions {
@@ -4206,6 +4450,52 @@ Used by: spacelab.manual.
 Service key for the Manual reader and guide catalog service (`ui.manual@1.0.0`).
     export const MANUAL_READER: ServiceKey<ManualService> = Object.freeze({ slot: 'ui.manual', version: '1.0.0' });
 Used by: spacelab.manual.
+-> API reference index [api-reference]
+
+=== game-api: math.ts [api-reference/game-api/math]
+Declarations from math.ts used by documented modules.
+
+Import deterministicMath from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/math.ts.
+
+## deterministicMath.sin
+Deterministic sine of `x` in radians using Cody-Waite range reduction and IEEE 754 polynomial evaluation.
+    export function sin(x: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.cos
+Deterministic cosine of `x` in radians using Cody-Waite range reduction and IEEE 754 polynomial evaluation.
+    export function cos(x: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.atan2
+Two-argument arctangent with Math.atan2's quadrants and signed zeros.
+    export function atan2(y: number, x: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.hypot
+Hypotenuse from one square root (correctly rounded everywhere), scaled away from overflow and underflow.
+    export function hypot(x: number, y: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.expm1
+e^x - 1, accurate near zero.
+    export function expm1(x: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.exp
+Deterministic base-e exponential `e^x` using split-ln(2) range reduction and exact power-of-two scaling.
+    export function exp(x: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.twoFifths
+x^(2/5) for x >= 0 (the Laplace sphere-of-influence exponent). With x = b·2^(5q), b in [1, 32): x^(2/5) = b^(2/5)·4^q, and b^(2/5) is Newton's root of y^5 = b^2.
+    export function twoFifths(x: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
+
+## deterministicMath.normalizeAngle
+Wrap an angle into (-π, π] using exact remainders: no trigonometry, so a normalized angle is returned unchanged.
+    export function normalizeAngle(a: number): number;
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.spin-view, spacelab.transfer-planner.
 -> API reference index [api-reference]
 
 === game-api: mod-menu.ts [api-reference/game-api/mod-menu]
@@ -4273,6 +4563,28 @@ Active library view instance (`ui.mod-menu@1.0.0`). Disposing the view aborts in
     }
 Used by: spacelab.mod-menu.
 
+## ModMenuModuleRelease
+Installed module release entry with its v2 manifest and integrity digest.
+    export interface ModMenuModuleRelease {
+      readonly manifest: ManifestV2;
+      readonly digest: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModMenuModuleState
+Complete state snapshot for v2 module selection, capabilities, and provider slot assignments.
+    export interface ModMenuModuleState {
+      readonly installed: readonly ModMenuModuleRelease[];
+      readonly selected: Readonly<Record<string, string>>;
+      readonly providers: Readonly<Record<string, string>>;
+      readonly capabilities: Readonly<Record<string, Readonly<Record<string, string>>>>;
+      readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
+      readonly activeDigests: readonly string[];
+      readonly editable: boolean;
+      readonly busy: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ModMenuModulePort
 Host bridge port for v2 module configuration and capability resolution. Metadata suggestions come from the host's compatibility rules, never a second UI resolver.
     export interface ModMenuModulePort {
@@ -4309,6 +4621,18 @@ Active module configuration view instance (`ui.mod-menu@1.0.0`).
       status(message: string): void;
     }
 Used by: spacelab.mod-menu.
+
+## ModMenuInstalledModule
+Installed module descriptor used in legacy v1 profile editing.
+    export interface ModMenuInstalledModule {
+      readonly manifest: ModuleManifest;
+      readonly active: boolean;
+      readonly digest?: string;
+      readonly inputs?: readonly { readonly path: string; readonly license: string; readonly attribution: string }[];
+      /** Defined only when compatible live presentation settings can be edited. */
+      readonly values?: Readonly<Record<string, number>>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## ModMenuProfileState
 Snapshot of legacy profile state including applied profile and installed manifests.
@@ -4370,7 +4694,13 @@ Declarations from module-data.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/module-data.ts.
 
+## ModuleDataScope
+Storage granularity for an authoritative module data schema: singleton `'world'`, per-`'player'`, or per-`'entity'`.
+    export type ModuleDataScope = 'world' | 'player' | 'entity';
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ModuleDataSchema
+Namespaced identifier, integer schema version, and scope of a replicated module data store.
     export interface ModuleDataSchema {
       /** Stable module namespace plus local name, e.g. example.inventory/items. */
       readonly id: string;
@@ -4380,16 +4710,98 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 Used by: spacelab.session-flight.
 
 ## ModuleDataTarget
+Address of a single module data record combining the namespaced `adapter` ID and record key `id`.
     export interface ModuleDataTarget { readonly adapter: string; readonly id: string }
 Used by: spacelab.session-flight.
 
 ## ModuleDataCommand
+Authoritative mutation request targeting a module data record with a named `command` and JSON-compatible `args`.
     export interface ModuleDataCommand extends ModuleDataTarget { readonly command: string; readonly args: ModuleValue }
 Used by: spacelab.session-flight.
 
+## ModuleDataActor
+Authenticated caller context (`playerId`, optional target `ownerId`, and committed simulation `tick`) passed to `ModuleDataAdapter.authorize`.
+    export interface ModuleDataActor { readonly playerId: string; readonly ownerId?: string; readonly tick: number }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDataAdapter
+Deterministic, synchronous, bounded callbacks. Values are detached and frozen. No IO, clocks or hidden mutable state. A reducer returns its entire next record atomically. All records are replicated to every peer: never put secrets/tokens in this store.
+    export interface ModuleDataAdapter {
+      readonly name: string;
+      readonly version: number;
+      readonly scope: ModuleDataScope;
+      readonly initial: ModuleValue;
+      validate(value: ModuleValue): boolean;
+      /** One migration per schema version, from N to N+1. Used only when loading saves. */
+      readonly migrations?: Readonly<Record<number, (value: ModuleValue) => ModuleValue>>;
+      authorize(input: Readonly<ModuleDataActor & { target: ModuleDataTarget; command: string; args: ModuleValue; state: ModuleValue }>): boolean;
+      reduce(input: Readonly<{ target: ModuleDataTarget; command: string; args: ModuleValue; state: ModuleValue; tick: number }>): ModuleValue;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ModuleDataExtension
+Resolved module data adapter contribution pairing a `ModuleDataSchema` with its deterministic `ModuleDataAdapter`.
     export interface ModuleDataExtension extends ModuleDataSchema { readonly adapter: ModuleDataAdapter }
 Used by: spacelab.session-flight.
+
+## ModuleDataRecord
+Detached, frozen record entry (`adapter`, `id`, and validated `value`) inside a module data snapshot or delta.
+    export interface ModuleDataRecord extends ModuleDataTarget { readonly value: ModuleValue }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDataSnapshot
+Portable `space-sim-module-data/1` snapshot of all registered schemas and non-default records at a monotonic `revision`.
+    export interface ModuleDataSnapshot {
+      readonly format: 'space-sim-module-data/1';
+      readonly revision: number;
+      readonly schemas: readonly ModuleDataSchema[];
+      readonly records: readonly ModuleDataRecord[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDataDelta
+Incremental or full `space-sim-module-data/1` replication payload; `since` names the base revision when sending deltas.
+    export interface ModuleDataDelta extends ModuleDataSnapshot {
+      /** Absent means complete replacement; present means apply only these changed records. */
+      readonly since?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDataRead
+Read-only view of authoritative module data records, schemas, snapshots, and revision deltas.
+    export interface ModuleDataRead {
+      readonly schemas: readonly ModuleDataSchema[];
+      readonly revision: number;
+      get(adapter: string, id: string): ModuleValue | undefined;
+      snapshot(): ModuleDataSnapshot;
+      delta(since: number): ModuleDataDelta;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDataControl
+Mutable authoritative module data store supporting direct host writes, authorized commands, network snapshot application, and migrated save restores.
+    export interface ModuleDataControl extends ModuleDataRead {
+      /** Trusted host initialization/update; remote callers use commands, never arbitrary writes. */
+      set(target: ModuleDataTarget, value: ModuleValue): void;
+      remove(target: ModuleDataTarget): void;
+      command(request: ModuleDataCommand, actor: ModuleDataActor): void;
+      /** Validate every record before committing. Network replication requires exact versions. */
+      apply(snapshot: unknown): void;
+      /** Save loads may use registered one-version migrations. Missing adapters are errors. */
+      restore(snapshot: unknown): void;
+      clear(): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDataFactory
+Headless storage for a session adapter's own world. The session supplies authenticated actor/ownership context; this factory grants no access to another live world.
+    export interface ModuleDataFactory { create(adapters: readonly ModuleDataExtension[]): ModuleDataControl }
+Used by: host or creator modules (not imported by shipped modules).
+
+## CORE_MODULE_DATA
+Service key for the authoritative module data store factory (`core.module-data@1.0.0`).
+    export const CORE_MODULE_DATA: ServiceKey<ModuleDataFactory> = Object.freeze({slot:'core.module-data',version:'1.0.0'});
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: modules.ts [api-reference/game-api/modules]
@@ -4397,11 +4809,28 @@ Declarations from modules.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/modules.ts.
 
+## ModuleEnvironment
+Public module registration and data contracts.
+    export type ModuleEnvironment = 'browser' | 'offline' | 'node';
+Used by: host or creator modules (not imported by shipped modules).
+
 ## Disposable
+Resource cleanup handle with an idempotent `dispose()` method. Register module-owned handles with `context.own(...)`.
     export interface Disposable { dispose(): void }
 Used by: builtin.audio, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud.
 
+## ModuleReference
+An exact module version, as profiles and locks record it.
+    export interface ModuleReference { readonly id: string; readonly version: string }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleDependency
+A dependency or conflict: an exact version or a range such as `^1.2.0`, `~1.2.0`, `>=1.2.0 <2.0.0`, `*`, or alternatives joined by `||`. Prereleases match only ranges that name a prerelease of the same version. Resolution records the exact enabled version.
+    export interface ModuleDependency { readonly id: string; readonly version: string }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## NumberSetting
+Bounded numeric configuration parameter schema declared in a module manifest (`[minimum, maximum]`).
     export interface NumberSetting {
       readonly type: 'number';
       readonly label?: string;
@@ -4416,6 +4845,7 @@ Used by: builtin.audio, builtin.navball, spacelab.academy-ui, spacelab.alarm-pan
 Used by: spacelab.mod-menu.
 
 ## ModuleManifest
+Legacy v1 module manifest (`space-sim-module/1`) targeting `space-sim-game-api/1`.
     export interface ModuleManifest {
       readonly format: 'space-sim-module/1';
       readonly apiVersion: 'space-sim-game-api/1';
@@ -4438,6 +4868,17 @@ Used by: spacelab.mod-menu.
       readonly license: string;
     }
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.mod-menu.
+
+## ModuleProfile
+Legacy v1 profile (`space-sim-profile/1`) selecting enabled modules, slot providers, and numeric setting overrides.
+    export interface ModuleProfile {
+      readonly format: 'space-sim-profile/1';
+      readonly id: string;
+      readonly modules: readonly ModuleReference[];
+      readonly providers: Readonly<Record<string, string>>;
+      readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## ModuleInitialization
 Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile.
@@ -4473,6 +4914,7 @@ Initialization is synchronous in Phase 2. Own resources immediately after alloca
 Used by: spacelab.academy-ui.
 
 ## RegisteredModule
+Legacy v1 registered code module descriptor combining a `ModuleManifest` and synchronous `initialize` entry point.
     export interface RegisteredModule {
       readonly manifest: ModuleManifest;
       /** Canonical imported package identity, independent of the execution environment. */
@@ -4484,6 +4926,7 @@ Used by: spacelab.academy-ui.
 Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.throttle-hud.
 
 ## ModuleLock
+Legacy v1 resolved module lock (`space-sim-lock/1`) recording initialization order, selected slot providers, and settings.
     export interface ModuleLock {
       readonly format: 'space-sim-lock/1';
       readonly profileId: string;
@@ -4509,12 +4952,42 @@ Canonical authoritative lock: excludes presentation modules and binds physics/se
       readonly forces: readonly { readonly moduleId: string; readonly version: string; readonly modelIdentity: string }[];
     }
 Used by: spacelab.session-flight.
+
+## DataModule
+Declarative `space-sim-data-module/1` package supplying vehicle handling overrides, universes, presets, or body appearances without executable code.
+    export interface DataModule {
+      readonly format: 'space-sim-data-module/1';
+      readonly manifest: ModuleManifest;
+      readonly data: {
+        readonly vehicle?: { readonly override: true; readonly settings: Partial<VehicleDefaults> };
+        readonly universes?: readonly { readonly definition: UniverseDefinition; readonly target?: string; readonly override?: true }[];
+        readonly presets?: readonly { readonly universe: string; readonly system: string; readonly preset: PresetDefinition; readonly override?: true }[];
+        readonly appearance?: readonly { readonly universe: string; readonly system: string; readonly body: string;
+          readonly override: true; readonly colors: Readonly<Record<string, string>> }[];
+      };
+    }
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: modules-v2.ts [api-reference/game-api/modules-v2]
 Declarations from modules-v2.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/modules-v2.ts.
+
+## ModuleTier
+Where a module runs and what it may touch. `authoritative` code is deterministic simulation shared by saves and multiplayer; `presentation` code draws or plays per viewer; `platform` code owns devices, windows and files; `network` code owns transports and sessions. Authoritative modules may require only authoritative providers; presentation modules may require presentation or authoritative providers; platform and network modules may require any.
+    export type ModuleTier = 'authoritative' | 'presentation' | 'platform' | 'network';
+Used by: host or creator modules (not imported by shipped modules).
+
+## CapabilityRef
+A provided service: its slot name and exact semver version, such as `hud.throttle` `1.0.0`.
+    export interface CapabilityRef { readonly name: string; readonly version: string }
+Used by: host or creator modules (not imported by shipped modules).
+
+## CapabilityNeed
+A required service. `version` is a semver range such as `^1.0.0`. An optional need may resolve without a provider; read it with `tryUse`. A required need fails resolution instead.
+    export interface CapabilityNeed extends CapabilityRef { readonly optional?: boolean }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## ManifestV2
 New metadata has a separate parser and lock. Legacy manifests/locks keep their identity.
@@ -4544,6 +5017,37 @@ New metadata has a separate parser and lock. Legacy manifests/locks keep their i
     }
 Used by: spacelab.mod-menu.
 
+## ModuleProfileV2
+Dependencies use semver ranges despite sharing the reference record shape.
+    export interface ModuleProfileV2 {
+      readonly format: 'space-sim-profile/2';
+      readonly id: string;
+      readonly modules: readonly ModuleReference[];
+      readonly providers: Readonly<Record<string, string>>;
+      /** Requester ID -> capability name -> explicitly chosen provider ID. */
+      readonly capabilities: Readonly<Record<string, Readonly<Record<string, string>>>>;
+      readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## CapabilityBinding
+Resolved capability binding pairing a required service slot and exact version with the selected provider module reference.
+    export interface CapabilityBinding extends CapabilityRef { readonly provider: ModuleReference }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleLockV2
+Resolved v2 module lock (`space-sim-lock/2`) recording enabled modules, topological initialization order, slot providers, capability bindings, and numeric settings.
+    export interface ModuleLockV2 {
+      readonly format: 'space-sim-lock/2';
+      readonly profileId: string;
+      readonly modules: readonly ModuleReference[];
+      readonly order: readonly string[];
+      readonly providers: Readonly<Record<string, string>>;
+      readonly capabilities: Readonly<Record<string, Readonly<Record<string, CapabilityBinding>>>>;
+      readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ServiceKey
 Typed handle for one service slot and exact version, exported by game-api as a constant (for example `THROTTLE_HUD`). Pass it to `provide`, `use` or `tryUse`; never construct a look-alike key for a service you have not declared in the manifest. A phantom function makes service types invariant under strictFunctionTypes.
     export interface ServiceKey<T> {
@@ -4554,6 +5058,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
 Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
 
 ## ModuleAssets
+Read-only package asset accessor for embedded UTF-8 text, raw bytes, or revocable blob URLs.
     export interface ModuleAssets {
       text(path: string): string;
       bytes(path: string): Uint8Array;
@@ -4562,6 +5067,7 @@ Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navbal
 Used by: spacelab.vector-shaders.
 
 ## ModuleInitializationV2
+Synchronous v2 module initialization context (`space-sim-game-api/2`) providing typed service lookup (`use`/`tryUse`), publication (`provide`), resource ownership (`own`), and host contributions.
     export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {
       /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */
       readonly module?: ModuleReference;
@@ -4592,12 +5098,114 @@ Used by: spacelab.vector-shaders.
       contributePostEffect(effect: PostEffectDefinition): void;
     }
 Used by: builtin.audio, builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.academy-ui, spacelab.alarm-panel, spacelab.audio-controls, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.orbital-lessons, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.tutorial-runner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud.
+
+## RegisteredModuleV2
+Default export of a v2 module entry: `export default function initialize(context)`. Initialization is synchronous and runs once per candidate in resolved dependency order.
+    export interface RegisteredModuleV2 {
+      readonly manifest: ManifestV2;
+      readonly contentDigest?: string;
+      readonly supportsMultiplayer?: boolean;
+      initialize(context: ModuleInitializationV2): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleContribution
+Namespaced contribution record (`<moduleId>/<localName>`) registered by a v2 module during candidate initialization.
+    export interface ModuleContribution<T> {
+      readonly moduleId: string;
+      readonly id: string;
+      readonly value: T;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleHookFault
+Diagnostic fault record when a contributed input, transport, or discovery hook throws or violates its contract.
+    export interface ModuleHookFault {
+      readonly moduleId: string;
+      readonly hook: string;
+      readonly kind: 'input' | 'transport' | 'discovery';
+      readonly message: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## HostServiceAccess
+Untyped host-supplied service descriptor restricting access to specified `tiers` and `environments`.
+    export interface HostServiceAccess {
+      readonly key: Pick<ServiceKey<unknown>, 'slot' | 'version'>;
+      readonly service: unknown;
+      /** Only these tiers receive the façade. Authoritative contracts must be deterministic. */
+      readonly tiers: readonly ModuleTier[];
+      readonly environments: readonly ModuleEnvironment[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## HostService
+Strongly typed host-supplied service descriptor binding a `ServiceKey<T>` to its implementation and tier/environment rules.
+    export interface HostService<T = unknown> extends HostServiceAccess {
+      readonly key: ServiceKey<T>;
+      readonly service: T;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleCandidateV2Handle
+Disposable lifecycle handle for a prepared v2 module candidate and its resolved `ModuleLockV2`.
+    export interface ModuleCandidateV2Handle extends Disposable {
+      readonly lock: ModuleLockV2;
+      readonly available: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: motion.ts [api-reference/game-api/motion]
 Declarations from motion.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/motion.ts.
+
+## ModuleValue
+JSON-serializable value primitive or tree stored in module state.
+    export type ModuleValue = null | boolean | number | string | readonly ModuleValue[] | { readonly [key: string]: ModuleValue };
+Used by: host or creator modules (not imported by shipped modules).
+
+## ModuleState
+Per-ship authoritative state. Each namespace is limited to 16 KiB of JSON.
+    export interface ModuleState { readonly version: number; readonly value: ModuleValue }
+Used by: host or creator modules (not imported by shipped modules).
+
+## MotionStep
+State and control input for advancing one ship by a fixed simulation time step in SI units.
+    export interface MotionStep {
+      readonly state: State;
+      readonly controls: Controls;
+      readonly seconds: number;
+      readonly body: Body;
+      readonly surface?: SurfaceProfile;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ForceEvaluation
+Staged kinematic state and controls evaluated at integration kick stages in body-local coordinates.
+    export interface ForceEvaluation {
+      /** Scheduler boundary tick; time is the actual integrator stage epoch in seconds. */
+      readonly tick: number;
+      readonly time: number;
+      readonly position: Vec;
+      readonly velocity: Vec;
+      readonly body: Body;
+      readonly controls: Controls;
+      readonly state: ModuleState;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## ForceHook
+Synchronous, pure callbacks: no hidden mutable authority, wall clock or random IO. Acceleration is body-local m/s², evaluated at KDK kicks (also fractional contacts). Each component is finite and at most 10,000 m/s² in magnitude. All evaluations in one outer step read the same state; commit runs once after verified motion. Inputs are detached/read-only. Exceptions or invalid outputs abort this ship's step. Work must be bounded by the author; synchronous JS cannot be preempted.
+    export interface ForceHook {
+      /** Include every force parameter in this local cache identity. */
+      readonly modelIdentity: string;
+      readonly initialState: ModuleState;
+      evaluate(input: ForceEvaluation): Vec;
+      commit?(input: Readonly<MotionStep & { readonly next: State; readonly moduleState: ModuleState }>): ModuleState;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## ForceExtension
 Identity and order come from the resolved registry, one hook per module.
@@ -4607,6 +5215,55 @@ Identity and order come from the resolved registry, one hook per module.
       readonly hook: ForceHook;
     }
 Used by: spacelab.session-flight.
+
+## NumericalKernel
+The default numerical/contact kernel, with the active force schedule. A replacement may call it for verified terrain/water behavior, or supply its own bounded motion. Calling it does not commit hook state; the outer motion boundary owns that commit.
+    export type NumericalKernel = (input: MotionStep) => State;
+Used by: host or creator modules (not imported by shipped modules).
+
+## DynamicsServices
+Services provided to replacement integrators, including the base numerical kernel and acceleration query.
+    export interface DynamicsServices {
+      readonly numerical: NumericalKernel;
+      /** For replacement integrators that accept force contributions. Same staged state
+       * and validation as the built-in kernel; position/velocity are stage values. */
+      acceleration(time: number, position: Vec, velocity: Vec): Vec;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## DynamicsProvider
+Integrator extension providing custom numerical or analytic flight stepping.
+    export interface DynamicsProvider {
+      readonly id: string;
+      readonly version: string;
+      readonly modelIdentity: string;
+      readonly supportsForces: boolean;
+      step(input: MotionStep, services: DynamicsServices): State;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## MotionContextOptions
+Configuration options supplied when creating a per-ship or headless simulation motion context.
+    export interface MotionContextOptions {
+      readonly services?: Partial<MotionServices>;
+      /** Shared-world hooks require ordinary stepping even for stationary ships. */
+      readonly worldRules?: boolean;
+      readonly worldRuleIdentity?: string;
+      readonly dynamics?: DynamicsProvider;
+      /** Already resolved dependency/before/after order, captured at construction. */
+      readonly forces?: readonly ForceExtension[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## MotionCapabilities
+Capabilities reported by a simulation context describing available analytic coasting, rails, and diagnostics.
+    export interface MotionCapabilities {
+      readonly analyticCoast: boolean;
+      readonly rails: boolean;
+      readonly orbitalDiagnostics: boolean;
+      readonly legacyCompatible: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: node-transport.ts [api-reference/game-api/node-transport]
@@ -4712,10 +5369,12 @@ Declarations from orbit.ts used by documented modules.
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/orbit.ts.
 
 ## OrbitalState
+Body-relative 2D inertial position (`m`) and velocity (`m/s`) vector pair (+Y up).
     export interface OrbitalState { readonly position: Vec; readonly velocity: Vec }
 Used by: builtin.motion.
 
 ## Elements
+Two-body Keplerian orbital elements in SI units (`m`, `m²/s`, `m²/s²`, `s`, `rad`) around a central body. `null` fields indicate unbound parabolic or hyperbolic trajectories.
     export interface Elements {
       readonly energy: number;
       readonly angularMomentum: number;
@@ -4731,6 +5390,33 @@ Used by: builtin.motion.
       readonly radial: boolean;
     }
 Used by: builtin.motion.
+
+## SolverDiagnostics
+Convergence and iteration diagnostics from universal-variable or Kepler anomaly root finding (`residualSeconds` in `s`).
+    export interface SolverDiagnostics {
+      readonly converged: boolean;
+      readonly iterations: number;
+      readonly bracketIterations: number;
+      readonly residualSeconds: number | null;
+      readonly usedBisection: boolean;
+      readonly reason: string | null;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## Propagation
+Result of propagating a two-body `OrbitalState` forward or backward in simulation seconds.
+    export type Propagation = { readonly ok: true; readonly state: OrbitalState; readonly diagnostics: SolverDiagnostics }
+      | { readonly ok: false; readonly diagnostics: SolverDiagnostics };
+Used by: host or creator modules (not imported by shipped modules).
+
+## SolverOptions
+Iteration caps controlling Kepler/universal-variable orbital propagation root solvers.
+    export interface SolverOptions {
+      readonly maxIterations?: number;
+      readonly maxBracketIterations?: number;
+      readonly maxNewtonIterations?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: planet-designer.ts [api-reference/game-api/planet-designer]
@@ -4840,6 +5526,11 @@ Registry managing active local player seats and input device assignments.
       release(pilot?: number): void;
     }
 Used by: spacelab.local-pilots.
+
+## CORE_PILOTS
+Host service key providing core local pilot registration.
+    export const CORE_PILOTS: ServiceKey<PilotRegistry> = Object.freeze({ slot: 'core.pilots', version: '1.0.0' });
+Used by: host or creator modules (not imported by shipped modules).
 
 ## LocalPilotHost
 Host callbacks that read active session identities and device assignments. Assigning a device must never create a network player or grant session ownership.
@@ -4993,6 +5684,12 @@ Service key for the flight action bindings service.
     export const FLIGHT_ACTIONS: ServiceKey<FlightActionBindings> = Object.freeze({ slot: 'input.flight-actions', version: '1.0.0' });
 Used by: spacelab.controller-menu, spacelab.input-actions.
 
+## GamepadActionBinding
+Binding mapping a physical gamepad axis or button to a namespaced action.
+    export type GamepadActionBinding = { readonly action: string; readonly invert?: boolean } &
+      ({ readonly axis: number; readonly button?: never } | { readonly button: number; readonly axis?: never });
+Used by: host or creator modules (not imported by shipped modules).
+
 ## GamepadInputOptions
 Options configuring a generic gamepad input source.
     export interface GamepadInputOptions {
@@ -5031,6 +5728,20 @@ Service key for flight controller profile codecs and defaults.
     export const FLIGHT_PROFILES: ServiceKey<FlightControllerProfiles> = Object.freeze({ slot: 'input.flight-profiles', version: '1.0.0' });
 Used by: spacelab.controller-menu, spacelab.flight-split, spacelab.input-gamepad, spacelab.input-profiles, spacelab.local-pilots.
 
+## TouchActionBinding
+Binding mapping a DOM element pointer gesture to a namespaced action.
+    export interface TouchActionBinding {
+      /** Namespaced action ID to trigger. */
+      readonly action: string;
+      /** HTML element capturing pointer events. */
+      readonly element: HTMLElement;
+      /** Gesture type: continuous hold button, horizontal axis or vertical axis. */
+      readonly gesture: 'hold' | 'axis-x' | 'axis-y';
+      /** Inverts the evaluated axis direction if true. */
+      readonly invert?: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## TouchInputOptions
 Options configuring a touch input source.
     export interface TouchInputOptions {
@@ -5059,6 +5770,11 @@ Used by: spacelab.input-touch.
 Service key for the touch input provider.
     export const TOUCH_INPUT: ServiceKey<TouchInputFactory> = Object.freeze({ slot: 'input.touch', version: '1.0.0' });
 Used by: spacelab.input-touch.
+
+## ViewTargetTransform
+System coordinates in metres, orientation in radians; a read must never step a world.
+    export interface ViewTargetTransform { readonly position: Vec; readonly orientation: number }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## LocalCameraInput
 Frame inputs for local camera calculations: wall-clock elapsed time, viewport CSS pixels, and target transforms.
@@ -5111,6 +5827,14 @@ Viewport and seat identification binding tying a player to a camera and display 
       readonly viewportId: string; readonly seatId: string; readonly playerId?: string; readonly targetId?: string;
     }
 Used by: spacelab.player-view.
+
+## LocalViewSurface
+A surface borrows read-only world state from its renderer adapter.
+    export interface LocalViewSurface extends Disposable {
+      resize(rect: PaneRect, width: number, height: number, visible: boolean): void;
+      draw(camera: Camera): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## LocalViewOptions
 Options configuring multi-view local allocation and surface binding.
@@ -5185,7 +5909,53 @@ ServiceKey for the WebSocket transport provider (slot `net.websocket`).
     export const WEBSOCKET_TRANSPORT: ServiceKey<TransportProvider> = Object.freeze({ slot: 'net.websocket', version: '1.0.0' });
 Used by: spacelab.net-websocket.
 
+## ServerAdvert
+Advertised server information discovered over LAN, tab broadcast, or directory service.
+    export interface ServerAdvert {
+      /** Unique server session identifier. */
+      readonly id: string;
+      /** Human-readable session or world name. */
+      readonly name: string;
+      /** Address URL used by a TransportProvider to connect (e.g. `ws://...` or `tab://...`). */
+      readonly address: string;
+      /** Current count of connected players. */
+      readonly players: number;
+      /** Maximum supported players for this session. */
+      readonly maxPlayers: number;
+      /** Protocol identifier expected by the session host (e.g. `space-sim-flight/1`). */
+      readonly protocol: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## DiscoveryProvider
+Service for scanning local or tab networks to discover advertised sessions.
+    export interface DiscoveryProvider {
+      /** Name of the discovery mechanism (e.g. 'lan' or 'tab'). */
+      readonly name: string;
+      /** Scan for active server adverts until signal is aborted, invoking emit for each found server. */
+      scan(emit: (advert: ServerAdvert) => void, signal: AbortSignal): Promise<void>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## InviteProvider
+@deprecated Use ManualSignalingProvider: reply codes must precede connection.
+    export interface InviteProvider {
+      /** Generate an invitation offer. */
+      create(signal: AbortSignal): Promise<{
+        readonly offer: string;
+        accept(reply: string): Promise<TextConnection>;
+        dispose(): void;
+      }>;
+      /** Answer an invitation offer with a reply. */
+      answer(offer: string, signal: AbortSignal): Promise<{
+        readonly reply: string;
+        readonly connection: TextConnection;
+      }>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## UiControl
+Declarative, headless-safe UI control descriptor (`'text'`, `'button'`, `'toggle'`, `'slider'`, or `'canvas'`) for module windows and inspectors.
     export type UiControl =
       | { readonly kind: 'text'; readonly id: string; readonly text: string }
       | { readonly kind: 'button' | 'toggle'; readonly id: string; readonly label: string; readonly action: string }
@@ -5194,7 +5964,35 @@ Used by: spacelab.net-websocket.
       | { readonly kind: 'canvas'; readonly id: string; readonly label: string };
 Used by: spacelab.ui-windows.
 
+## WindowDefinition
+Declarative window contribution (`name`, `title`, `controls`, and optional structured `content` sections) registered via `contributeWindow`.
+    export interface WindowDefinition {
+      readonly name: string;
+      readonly title: string;
+      readonly controls: readonly UiControl[];
+      readonly content?: readonly WindowContentDefinition[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## UiShell
+The browser adapter supplies raw DOM separately; this contract stays headless-safe.
+    export interface UiShell {
+      open(windowId: string): void;
+      close(windowId: string): void;
+      set(id: string, value: string | number | boolean): void;
+      onAction(id: string, callback: (value: string | number | boolean) => void): Disposable;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## TrustedDomShell
+Host DOM mounting service (`core.dom@1.0.0`) allowing trusted browser/platform modules to mount custom DOM into a named window container.
+    export interface TrustedDomShell {
+      mountTrusted(windowId: string, mount: (root: HTMLElement) => Disposable): Disposable;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ThemeService
+Reactive presentation theme service (`core.theme@1.0.0`) providing the current `RenderThemeOptions`, updates, and change subscriptions.
     export interface ThemeService {
       current(): Readonly<RenderThemeOptions>;
       set(value: Readonly<RenderThemeOptions>): void;
@@ -5202,7 +6000,34 @@ Used by: spacelab.ui-windows.
     }
 Used by: spacelab.theme.
 
+## CORE_UI
+Service key for the headless-safe declarative UI shell (`core.ui@1.0.0`).
+    export const CORE_UI: ServiceKey<UiShell> = Object.freeze({ slot: 'core.ui', version: '1.0.0' });
+Used by: host or creator modules (not imported by shipped modules).
+
+## CORE_DOM
+Service key for the trusted browser DOM mounting shell (`core.dom@1.0.0`).
+    export const CORE_DOM: ServiceKey<TrustedDomShell> = Object.freeze({ slot: 'core.dom', version: '1.0.0' });
+Used by: host or creator modules (not imported by shipped modules).
+
+## CORE_THEME
+Service key for the reactive presentation theme service (`core.theme@1.0.0`).
+    export const CORE_THEME: ServiceKey<ThemeService> = Object.freeze({ slot: 'core.theme', version: '1.0.0' });
+Used by: host or creator modules (not imported by shipped modules).
+
+## GuidePage
+Metadata descriptor registering a packaged structured Manual page (`asset` path to a JSON `WindowDocument`) under the `'players'` or `'creators'` audience.
+    export interface GuidePage {
+      readonly id: string;
+      readonly audience: 'players' | 'creators';
+      readonly title: string;
+      readonly summary: string;
+      readonly asset: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## MaterialDefinition
+Custom GLSL body material contribution binding a packaged `fragmentAsset` shader and numeric `uniforms` to target celestial `bodyIds`.
     export interface MaterialDefinition {
       readonly name: string;
       readonly bodyIds: readonly string[];
@@ -5212,6 +6037,7 @@ Used by: spacelab.theme.
 Used by: spacelab.render-webgl.
 
 ## PostEffectDefinition
+Custom GLSL screen-space post-processing pass contribution with resolution `scale` (`0.5` or `1`), ordering `after`, and numeric `uniforms`.
     export interface PostEffectDefinition {
       readonly name: string;
       readonly fragmentAsset: string;
@@ -5227,10 +6053,12 @@ Resolved inert assets; IDs and ordering retain their owning module namespace.
 Used by: spacelab.render-webgl.
 
 ## RenderPostEffect
+Resolved post-processing shader pass with its namespaced `id` and loaded GLSL `fragment` source text.
     export interface RenderPostEffect extends Omit<PostEffectDefinition, 'name' | 'fragmentAsset'> { readonly id: string; readonly fragment: string }
 Used by: spacelab.render-webgl.
 
 ## ShaderEffects
+Optional renderer capability that atomically compiles and configures custom body materials and screen-space post-processing effects.
     export interface ShaderEffects {
       /** Atomic compilation. Sources implement material(vec2) or effect(vec2,vec4), with
        * fixed uniforms; the renderer owns masks, framebuffers and all graphics objects. */
@@ -5243,6 +6071,11 @@ Used by: spacelab.render-webgl.
 Declarations from player-view.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/player-view.ts.
+
+## PlayerViewRole
+Role identifier for a player view component adapter.
+    export type PlayerViewRole = 'input' | 'camera' | 'hud' | 'appearance';
+Used by: host or creator modules (not imported by shipped modules).
 
 ## PlayerViewAdapter
 One player's adapter instance. Configuration/schema belongs to its provider, allowing future editors without a shared bag of game-specific settings. The view owns this adapter; underlying borrowed services retain their owner.
@@ -5260,6 +6093,7 @@ Map of player view roles to their active adapter instances.
 Used by: spacelab.player-view.
 
 ## PlayerView
+Per-seat view composition coordinating input, camera, HUD, and appearance adapters with atomic rebind and release.
     export interface PlayerView extends Disposable {
       readonly binding: HudBinding;
       readonly adapters: PlayerViewAdapters;
@@ -5273,7 +6107,13 @@ Used by: spacelab.player-view.
     }
 Used by: spacelab.player-view.
 
+## PlayerAdapterOwnership
+Resource lifecycle ownership policy for wrapped player view components.
+    export type PlayerAdapterOwnership = 'borrowed' | 'owned';
+Used by: host or creator modules (not imported by shipped modules).
+
 ## PlayerViewFactory
+Factory creating per-seat `PlayerView` instances and role adapters (`ui.player-view@1.0.0`).
     export interface PlayerViewFactory extends Disposable {
       create(options: { readonly binding: HudBinding; readonly adapters: PlayerViewAdapters }): PlayerView;
       controller(controller: PlayerController, ownership?: PlayerAdapterOwnership,
@@ -5300,6 +6140,7 @@ System world coordinates (metres, +Y up) to CSS pixels: `scale` pixels per metre
 Used by: spacelab.camera-follow, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme.
 
 ## RenderBody
+Celestial body descriptor for a rendered frame in system world coordinates (`position` and `radius` in `m`, `rotation` in `rad`), plus optional terrain and shader appearance.
     export interface RenderBody {
       readonly id: string;
       readonly name: string;
@@ -5344,6 +6185,7 @@ Another vessel in the same world: one of this player's fleet, or someone else's.
 Used by: spacelab.fleet-view, spacelab.render-canvas, spacelab.render-webgl.
 
 ## RenderFrame
+Complete scene description passed to `Renderer.draw` once per animation frame: interpolated `state`, `path` samples, `camera`, `bodies`, `ships`, `overlays`, and `theme`.
     export interface RenderFrame {
       readonly vehicleId?: string;
       /** Presentation snapshot; may be interpolated between fixed physics steps. */
@@ -5387,22 +6229,27 @@ Used by: spacelab.fleet-view, spacelab.render-canvas, spacelab.render-webgl.
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## ThemeBackdropStyle
+Named deep-space backdrop preset for scene rendering.
     export type ThemeBackdropStyle = 'spacelab' | 'nebula' | 'carina' | 'galactic' | 'aurora' | 'supernova' | 'void' | 'pillars' | 'helix' | 'asteroids';
 Used by: spacelab.render-webgl, spacelab.theme, spacelab.theme-customizer.
 
 ## ThemeGridStyle
+Coordinate reference grid style drawn behind the scene (`'off'` disables grid rendering).
     export type ThemeGridStyle = 'cartesian' | 'polar' | 'dots' | 'hex' | 'off';
 Used by: spacelab.render-webgl, spacelab.theme, spacelab.theme-customizer.
 
 ## ThemeCounterStyle
+Numeric readout and telemetry counter typography/color preset.
     export type ThemeCounterStyle = 'spacelab' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'custom';
 Used by: spacelab.theme, spacelab.theme-customizer.
 
 ## ThemeWindowStyle
+Floating window frame and surface styling preset.
     export type ThemeWindowStyle = 'classic' | 'cyber' | 'apollo' | 'tactical' | 'aurora' | 'solar' | 'void' | 'crimson';
 Used by: spacelab.theme, spacelab.theme-customizer.
 
 ## RenderThemeOptions
+Presentation-only visual theme options controlling backdrop, stars, coordinate grids, window chrome, HUD effects, and shader seeds.
     export interface RenderThemeOptions {
       readonly backdropStyle?: ThemeBackdropStyle;
       readonly nebulaVisible?: boolean;
@@ -5436,16 +6283,23 @@ Used by: spacelab.theme, spacelab.theme-customizer.
     }
 Used by: spacelab.render-canvas, spacelab.theme.
 
+## RenderSection
+Ordered drawing pass section reported to a `RenderTimer` during `Renderer.draw`.
+    export type RenderSection = 'background' | 'planet' | 'path' | 'ship' | 'overlay';
+Used by: host or creator modules (not imported by shipped modules).
+
 ## RenderTimer
 Optional profiler hook, called after each section has been drawn.
     export interface RenderTimer { lap(section: RenderSection): void }
 Used by: spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl.
 
 ## ShaderPass
+Built-in WebGL shader program pass identifier (`'scene'`, `'vector'`, or `'text'`).
     export type ShaderPass = 'scene' | 'vector' | 'text';
 Used by: spacelab.render-webgl, spacelab.vector-shaders.
 
 ## ShaderSources
+Vertex and fragment GLSL shader source strings for a single `ShaderPass`.
     export interface ShaderSources { readonly vertex: string; readonly fragment: string }
 Used by: spacelab.render-webgl.
 
@@ -5458,6 +6312,15 @@ Used by: spacelab.render-webgl.
     }
 Used by: spacelab.flight-split, spacelab.render-webgl, spacelab.vector-shaders.
 
+## ShaderControl
+Live shader pack controller exposed on `RendererFeatures.shaders` for atomic runtime shader replacement.
+    export interface ShaderControl {
+      readonly pack: ShaderPack;
+      /** Validates and compiles atomically; on failure it throws and the previous pack keeps drawing. */
+      set(pack: ShaderPack): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## RendererFeatures
 Optional features of a renderer instance. Applications discover them here, never by class.
     export interface RendererFeatures {
@@ -5469,12 +6332,24 @@ Optional features of a renderer instance. Applications discover them here, never
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## Renderer
+Viewport scene renderer instance bound to a single `HTMLCanvasElement`; frees all GPU/canvas resources in `dispose()`.
     export interface Renderer {
       readonly features?: RendererFeatures;
       draw(frame: RenderFrame, timer?: RenderTimer): void;
       dispose?(): void;
     }
 Used by: spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl.
+
+## RendererCapabilities
+Declared before construction and matched by every renderer the provider creates.
+    export interface RendererCapabilities {
+      /** Accepts ShaderPack data and exposes `features.shaders`. */
+      readonly shaders: boolean;
+      /** Draws `RenderFrame.overlays`. */
+      readonly overlays: boolean;
+      readonly effects?: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## RendererProvider
 The `renderer` slot of a presentation profile. A stateless factory: each renderer owns everything it allocates (contexts, programs, buffers, textures) and frees it in dispose(), so a renderer may outlive the candidate whose provider created it.
@@ -5515,7 +6390,13 @@ Optional `audio` presentation slot. A stateless factory, independent of renderer
     }
 Used by: builtin.audio, spacelab.audio-controls.
 
+## OverlaySpace
+`world`: system coordinates in metres (+Y up), projected by the frame's camera. `screen`: CSS pixels from the viewport's top-left corner (+Y down). Colors are `#RRGGBB` or `#RRGGBBAA`; widths are CSS pixels in both spaces.
+    export type OverlaySpace = 'world' | 'screen';
+Used by: host or creator modules (not imported by shipped modules).
+
 ## OverlayPrimitive
+Declarative 2D vector overlay primitive (`'line'`, `'circle'`, or `'text'`) drawn in `'world'` metres or `'screen'` CSS pixels.
     export type OverlayPrimitive =
       /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */
       | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;
@@ -5526,6 +6407,36 @@ Used by: builtin.audio, spacelab.audio-controls.
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' };
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+
+## PresentationShip
+Detached presentation snapshot of the piloted vessel, combining body-relative `state` (`m`, `m/s`, `rad`) and system-coordinate `position` (`m`).
+    export interface PresentationShip {
+      readonly id: string;
+      readonly name: string;
+      readonly bodyId: string;
+      /** Interpolated presentation state relative to `bodyId` (metres, m/s, radians). */
+      readonly state: State;
+      readonly controls: Controls;
+      /** Position in system coordinates (metres), as drawn. */
+      readonly position: Vec;
+      readonly fault?: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PresentationBody
+Detached presentation snapshot of the active celestial body in system coordinates (`radius` and `position` in `m`, `mu` in `m³/s²`, optional `spin` in `rad/s`).
+    export interface PresentationBody {
+      readonly id: string;
+      readonly name: string;
+      /** Reference radius (metres) and gravitational parameter (m³/s²). */
+      readonly radius: number;
+      readonly mu: number;
+      /** Centre in system coordinates at the view time. */
+      readonly position: Vec;
+      /** Signed spin rate in rad/s (counter-clockwise positive); absent when the body does not rotate. */
+      readonly spin?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## PresentationSnapshot
 A detached, frozen snapshot of what the pilot sees. Built at most once per frame.
@@ -5555,6 +6466,7 @@ A detached, frozen snapshot of what the pilot sees. Built at most once per frame
 Used by: builtin.maneuver-planner, builtin.navball.
 
 ## ManeuverPreview
+Read-only body-relative SI preview of the active maneuver node and planned trajectory (`time` and `burnSeconds` in `s`, `position` in `m`, `deltaVelocity` in `m/s`).
     export interface ManeuverPreview {
       /** Completed nodes remain in the editor journal but no longer draw burn targets. */
       readonly completed?: boolean;
@@ -5573,13 +6485,49 @@ Used by: builtin.maneuver-planner, builtin.navball.
 Used by: builtin.maneuver-planner, spacelab.maneuver-editor.
 
 ## PresentationView
+Frozen per-frame presentation snapshot extended with the active viewport `Camera`, passed to `LayerHook` and `PanelHook`.
     export interface PresentationView extends PresentationSnapshot {
       /** The camera this frame is drawn with. */
       readonly camera: Camera;
     }
 Used by: builtin.maneuver-planner, builtin.navball.
 
+## CameraInput
+Frozen per-frame presentation snapshot extended with the pilot's zoom `scale` (CSS pixels per metre), passed to `CameraHook.frame`.
+    export interface CameraInput extends PresentationSnapshot {
+      /** The pilot's zoom in CSS pixels per metre. */
+      readonly scale: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## LayerHook
+Hooks below are synchronous presentation code. Each receives a frozen snapshot and returns data the host validates. A thrown error or invalid result disables only that contribution (reported with module ID and hook); the simulation never observes it.
+    export interface LayerHook {
+      /** Local name; the contribution ID is `<module id>/<name>`. */
+      readonly name: string;
+      readonly label: string;
+      /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */
+      draw(view: PresentationView): readonly OverlayPrimitive[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PanelRow
+Single telemetry row (`label`, `value`, and optional `unit`) returned by a `PanelHook`.
+    export interface PanelRow { readonly label: string; readonly value: string; readonly unit?: string }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PanelHook
+Synchronous presentation telemetry panel hook returning up to 16 `PanelRow` entries from a frozen `PresentationView`.
+    export interface PanelHook {
+      readonly name: string;
+      readonly title: string;
+      /** At most four times per second. At most 16 rows; label/unit ≤ 32 and value ≤ 64 characters. */
+      update(view: PresentationView): readonly PanelRow[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## CameraTarget
+Camera center (system coordinates in metres) and optional counter-clockwise rotation (radians) returned by a `CameraHook`.
     export interface CameraTarget {
       /** System coordinates (metres). */
       readonly center: Vec;
@@ -5589,9 +6537,53 @@ Used by: builtin.maneuver-planner, builtin.navball.
     }
 Used by: spacelab.camera-follow.
 
+## CameraHook
+Synchronous presentation camera mode hook computing a `CameraTarget` once per rendered frame from a frozen `CameraInput`.
+    export interface CameraHook {
+      readonly name: string;
+      /** Camera button text while selected, such as "Lead camera". */
+      readonly label: string;
+      /** Once per frame while selected. */
+      frame(input: CameraInput): CameraTarget;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PresentationContribution
+Resolved presentation hook contribution (`<moduleId>/<hook.name>`) bound to its owning module identity and version.
+    export interface PresentationContribution<T> {
+      readonly moduleId: string;
+      readonly version: string;
+      /** `<module id>/<hook name>`. */
+      readonly id: string;
+      readonly hook: T;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## LayerExtension
+Resolved overlay `LayerHook` presentation contribution.
+    export type LayerExtension = PresentationContribution<LayerHook>;
+Used by: host or creator modules (not imported by shipped modules).
+
+## PanelExtension
+Resolved telemetry `PanelHook` presentation contribution.
+    export type PanelExtension = PresentationContribution<PanelHook>;
+Used by: host or creator modules (not imported by shipped modules).
+
 ## CameraExtension
+Resolved `CameraHook` presentation contribution.
     export type CameraExtension = PresentationContribution<CameraHook>;
 Used by: spacelab.camera-follow.
+
+## PresentationFault
+Diagnostic fault record emitted when a presentation `layer`, `panel`, or `camera` hook throws or returns invalid data.
+    export interface PresentationFault {
+      readonly moduleId: string;
+      /** Contribution ID, such as `builtin.flight-vectors/velocity`. */
+      readonly hook: string;
+      readonly kind: 'layer' | 'panel' | 'camera';
+      readonly message: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: profiler.ts [api-reference/game-api/profiler]
@@ -5703,10 +6695,20 @@ Declarations from render-math.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-math.ts.
 
+## project
+Project a single world-space point (metres, `+Y` up) into viewport screen coordinates (CSS pixels, `+Y` down).
+    export function project(p: Vec, camera: Camera, width: number, height: number): Vec;
+Used by: host or creator modules (not imported by shipped modules).
+
 ## createProjector
 Cache camera constants once per frame, shared by every body/path/ship vertex.
     export function createProjector(camera: Camera, width: number, height: number): (p: Vec) => Vec;
 Used by: builtin.maneuver-planner, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl.
+
+## screenToWorld
+Project a screen-space coordinate (CSS pixels) to world coordinates.
+    export function screenToWorld(screenPos: Vec, camera: Camera, width: number, height: number): Vec;
+Used by: host or creator modules (not imported by shipped modules).
 
 ## dragCamera
 Move the scene by a screen-space pointer displacement (CSS pixels).
@@ -5714,6 +6716,7 @@ Move the scene by a screen-space pointer displacement (CSS pixels).
 Used by: spacelab.camera-follow.
 
 ## blendAngle
+Interpolate along the shortest angular arc in radians by `fraction` clamped to `[0, 1]`, wrapped to `(-pi, pi]`.
     export function blendAngle(current: number, target: number, fraction: number): number;
 Used by: spacelab.camera-follow.
 
@@ -5728,6 +6731,7 @@ Bézier control points of the cubic Hermite curve between two timed states. Exac
 Used by: spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl.
 
 ## getPathGeometry
+Compute and WeakMap-cache cumulative chord lengths (metres) and Hermite control points for a trajectory sample array.
     export function getPathGeometry(path: readonly GhostSample[]): PathGeometry;
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 
@@ -5881,6 +6885,7 @@ Fixed prescribed sidereal rotation. SI metres/seconds, radians; pure queries nev
 Used by: spacelab.planet-designer, spacelab.spin-view.
 
 ## CORE_ROTATION
+Service key for the prescribed sidereal rotation math kernel (`core.rotation@1.0.0`).
     export const CORE_ROTATION: ServiceKey<RotationMath> = Object.freeze({ slot: 'core.rotation', version: '1.0.0' });
 Used by: spacelab.planet-designer, spacelab.spin-view.
 -> API reference index [api-reference]
@@ -5890,7 +6895,35 @@ Declarations from rules.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/rules.ts.
 
+## DeterministicMath
+Cross-engine deterministic floating-point math operations supplied to authoritative world rules.
+    export interface DeterministicMath {
+      sin(x: number): number;
+      cos(x: number): number;
+      atan2(y: number, x: number): number;
+      hypot(x: number, y: number): number;
+      exp(x: number): number;
+      sqrt(x: number): number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## WorldRuleHook
+Once per candidate tick, after all motion/SOI results. Each hook reads the same detached candidate ships/events and its own prior namespace. Commands apply in resolved hook order at the next control boundary. A shared failure aborts and pauses the whole tick; per-ship motion faults retain their existing behavior.
+    export interface WorldRuleHook {
+      readonly modelIdentity: string;
+      readonly initialState: ModuleState;
+      /** Nonzero uint32 seed. RNG authority is committed/rolled back with state. */
+      readonly seed: number;
+      evaluate(input: Readonly<{
+        tick: number; time: number; seconds: number; ships: readonly Ship[];
+        events: readonly WorldEvent[]; state: ModuleState;
+        math: DeterministicMath; random: () => number;
+      }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[] }>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## WorldRuleExtension
+Resolved authoritative world-rule contribution bound to its owning module identity and version.
     export interface WorldRuleExtension {
       readonly moduleId: string;
       readonly version: string;
@@ -5899,6 +6932,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 Used by: spacelab.session-flight.
 
 ## WorldRuleState
+Persisted authoritative world-rule namespace combining module state and deterministic PRNG uint32 state.
     export interface WorldRuleState {
       readonly state: ModuleState;
       readonly randomState: number;
@@ -5912,6 +6946,7 @@ Declarations from services.ts used by documented modules.
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/services.ts.
 
 ## ProviderIdentity
+Canonical identity and behavioral `modelIdentity` fingerprint of an authoritative motion service provider.
     export interface ProviderIdentity {
       readonly id: string;
       readonly version: string;
@@ -5929,6 +6964,15 @@ Analytic providers promise two-body propagation and conservative radius events. 
       timeToRadius(state: OrbitalState, mu: number, radius: number, direction: 'inbound' | 'outbound', elements?: Elements): number | null;
     }
 Used by: builtin.motion.
+
+## SurfaceSupport
+Local terrain contact support at a polar angle (radians): query sample, outward support normals, and maximum slope angle in radians.
+    export interface SurfaceSupport {
+      readonly surface: SurfaceQuery;
+      readonly normals: readonly Vec[];
+      readonly maxSlopeRadians: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## SurfaceProvider
 All geometry uses the public radial SurfaceProfile contract. Query, contact and generation must agree, including preset placement, water and prediction.
@@ -5950,6 +6994,16 @@ Owns ephemerides, coordinate changes, SOI selection and preset placement. Return
     }
 Used by: builtin.motion.
 
+## RailsBinding
+Tuple of `modelIdentity` strings (`dynamics`, `orbits`, `bodies`, `surfaces`) that a `RailsProvider` certifies for analytic sleep.
+    export interface RailsBinding {
+      readonly dynamics: string;
+      readonly orbits: string;
+      readonly bodies: string;
+      readonly surfaces: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## RailsProvider
 Sleep requires an explicit compatible binding and a conservative event horizon. 0 means unknown; Infinity is allowed only when no event is possible. The world additionally checks idle controls, contact and exact fixed-point eligibility. Evaluation uses the selected orbital provider and the context's guarded coastAt.
     export interface RailsProvider extends ProviderIdentity {
@@ -5957,6 +7011,25 @@ Sleep requires an explicit compatible binding and a conservative event horizon. 
       horizon(system: LoadedSystem, body: ResolvedBody, state: OrbitalState, epoch: OrbitalState, time: number, top: number): number;
     }
 Used by: builtin.motion.
+
+## MotionServices
+Group of motion services composed into simulation contexts: orbits, body frames, surfaces, and rails.
+    export interface MotionServices {
+      readonly orbits: OrbitalProvider;
+      readonly bodies: BodyFrameProvider;
+      readonly surfaces: SurfaceProvider;
+      readonly rails: RailsProvider;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## RuleCommand
+Authoritative command emitted by world rules to modify ship controls or throttle.
+    export interface RuleCommand {
+      readonly shipId: string;
+      readonly controls?: Controls;
+      readonly throttle?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## MOTION_CONTEXTS
 Service key for the simulation motion context factory (`motion@1.0.0`).
@@ -5989,7 +7062,13 @@ Declarations from session.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/session.ts.
 
+## SessionPlayer
+Connected or saved player roster entry in a flight session (`host` is true for the world authority).
+    export interface SessionPlayer { readonly id: string; readonly name: string; readonly connected: boolean; readonly host?: boolean }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ChatLine
+Chat message delivered across a flight session (`from` is the sender's player ID when known).
     export type ChatLine = { readonly from?: string; readonly name: string; readonly text: string };
 Used by: spacelab.session-flight.
 
@@ -6041,16 +7120,19 @@ What the flight loop needs from a game, whether this browser owns the world or f
 Used by: spacelab.flight-split, spacelab.session-flight.
 
 ## SessionHandle
+Disposable session handle combining `SessionRead` flight loop operations with deterministic cleanup.
     export interface SessionHandle extends SessionRead, Disposable {}
 Used by: spacelab.session-flight.
 
 ## LocalSessionOptions
+Options for starting an authoritative local session over a `WorldControl` instance.
     export interface LocalSessionOptions {
       readonly name: string; readonly token?: string; readonly hostId?: string; readonly players?: readonly SavedPlayer[];
     }
 Used by: spacelab.session-flight.
 
 ## JoinOptions
+Options for joining a remote flight session over a `TextConnection`, including authority lock/fingerprint verification and reconnect token callbacks.
     export interface JoinOptions {
       readonly vehicles?: VehicleCatalog;
       readonly dataAdapters?: readonly ModuleDataExtension[];
@@ -6072,6 +7154,7 @@ Used by: spacelab.session-flight.
 Used by: spacelab.session-flight.
 
 ## LocalSessionControl
+Host-side control surface for an authoritative local session: splitscreen guest seats, peer acceptance, pause/catch-up, and snapshots.
     export interface LocalSessionControl {
       readonly token: string; readonly hosting: boolean;
       seatGuest(name: string, token: string): string; unseatGuest(id: string): void;
@@ -6086,19 +7169,48 @@ Used by: spacelab.session-flight.
     }
 Used by: spacelab.flight-split, spacelab.session-flight.
 
+## LocalSessionHandle
+Disposable session handle for an authoritative local world, exposing `local` host controls alongside `SessionRead`.
+    export interface LocalSessionHandle extends SessionHandle { readonly local: LocalSessionControl }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SessionFactory
+Factory creating local authoritative sessions and joining remote peer sessions (`core.session@1.0.0`).
     export interface SessionFactory {
       readonly protocol: string; readonly entitySchema: string;
       local(world: WorldControl, options: LocalSessionOptions): LocalSessionHandle;
       join(peer: TextConnection, options: JoinOptions, signal: AbortSignal): Promise<SessionHandle>;
     }
 Used by: spacelab.session-flight.
+
+## CORE_SESSION
+Service key for the core local and remote session factory (`core.session@1.0.0`).
+    export const CORE_SESSION: ServiceKey<SessionFactory> = Object.freeze({ slot: 'core.session', version: '1.0.0' });
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: session-discovery.ts [api-reference/game-api/session-discovery]
 Declarations from session-discovery.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/session-discovery.ts.
+
+## SessionGreeting
+Structured handshake greeting returned by an active game session server.
+    export interface SessionGreeting {
+      /** Human-readable session or world name. */
+      readonly name: string;
+      /** Current count of connected players. */
+      readonly players: number;
+      /** Maximum number of players accepted by the host. */
+      readonly maxPlayers: number;
+      /** Whether the session requires a password to join. */
+      readonly password: boolean;
+      /** Protocol identifier advertised by the server (e.g. `space-sim-flight/1`). */
+      readonly protocol: string;
+      /** Optional universe or physics model identifier. */
+      readonly model?: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## FoundSession
 Discovered server endpoint record with verified protocol compatibility.
@@ -6225,6 +7337,26 @@ Search criteria describing camera center, drag velocity, rotation and priority c
     }
 Used by: spacelab.camera-smart.
 
+## SmartCameraFrame
+Presentation frame describing world-metre camera origin, target position, pan and elapsed wall time.
+    export interface SmartCameraFrame {
+      /** Frame origin and target position in the same world-metre coordinate system. */
+      readonly origin: Vec;
+      readonly targetPosition?: Vec;
+      /** Camera displacement from origin, and world metres per wall second. */
+      readonly pan: Vec;
+      readonly velocity: Vec;
+      readonly scale: number;
+      readonly elapsed: number;
+      readonly instant: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SmartCameraStep
+Borrowed storage, reused on the next update; follow requests the base camera's own follow mode.
+    export interface SmartCameraStep { readonly pan: Vec; readonly velocity: Vec; readonly follow: boolean }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SmartCameraControl
 Per-view smart camera guidance controller tracking and guiding toward candidate targets.
     export interface SmartCameraControl<T extends SmartCameraTarget = SmartCameraTarget> extends Disposable {
@@ -6259,10 +7391,24 @@ Declarations from state.ts used by documented modules.
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/state.ts.
 
 ## Vec
+Immutable 2D Cartesian vector (SI metres, `m/s`, or `m/s²` in world/body frames with `+Y` up, or CSS pixels in screen space with `+Y` down).
     export interface Vec { readonly x: number; readonly y: number }
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner.
 
+## BodyRotation
+Sidereal spin of a body: its terrain, oceans and anything resting on them turn with it.
+    export interface BodyRotation {
+      /** Seconds per turn. */
+      readonly period: number;
+      /** -1 turns clockwise, the same sense as default orbits; 1 counter-clockwise. */
+      readonly direction: 1 | -1;
+      /** Angle of the body-fixed frame at time 0, radians. */
+      readonly phase: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## Body
+Minimal authoritative celestial body parameters for motion and surface contact: reference `radius` in `m` and gravitational parameter `mu` (`GM`) in `m³/s²`.
     export interface Body {
       readonly id: string;
       readonly radius: number;
@@ -6295,7 +7441,20 @@ A flying state is in the body-centred inertial frame. On a rotating body a lande
     }
 Used by: spacelab.audio-controls, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner.
 
+## SurfaceContactEvent
+Terrain or sea contact event recorded during a step, with simulation `time` in `s`, step `fraction` in `[0, 1]`, and body-relative `impactVelocity` in `m/s`.
+    export interface SurfaceContactEvent {
+      readonly material?: 'rock' | 'water';
+      readonly time: number;
+      readonly fraction: number;
+      readonly surfaceIdentity: string;
+      readonly impactVelocity: Vec;
+      readonly diagnostics: SurfaceSweepDiagnostics;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## Coast
+Exact Keplerian coasting epoch (`epochSeconds` in `s`, body-centered inertial `position` in `m` and `velocity` in `m/s`, `mu` in `m³/s²`) from which unpowered motion is evaluated without drift.
     export interface Coast {
       readonly modelIdentity?: string;
       readonly bodyId: string;
@@ -6312,14 +7471,22 @@ Used by: spacelab.audio-controls, spacelab.fleet-view, spacelab.flight-plans, sp
 Used by: spacelab.fleet-view, spacelab.maneuver-editor.
 
 ## Controls
+Held pilot flight control inputs: `turn` rate in `[-1, 1]` (positive turns counter-clockwise), `throttle` rate in `[-1, 1]`, and `engine` ignition boolean.
     export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }
 Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight.
 
+## Preset
+Built-in starting spawn preset identifier (`'pad'`, `'planet-orbit'`, or `'moon-orbit'`).
+    export type Preset = 'pad' | 'planet-orbit' | 'moon-orbit';
+Used by: host or creator modules (not imported by shipped modules).
+
 ## Sample
+Timed 2D position sample with simulation `time` in seconds and `position` in metres.
     export interface Sample { readonly time: number; readonly position: Vec }
 Used by: spacelab.flight-prediction.
 
 ## GhostSample
+Trajectory forecast sample with simulation `time` (`s`), `position` (`m`), and `velocity` (`m/s`) in the translating non-rotating frame of `frameId ?? bodyId`.
     export interface GhostSample extends Sample {
       readonly velocity: Vec;
       /** Segment ending here is a verified numerical drift, not a conic/Hermite arc. */
@@ -6349,6 +7516,79 @@ Declarations from surface.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/surface.ts.
 
+## SurfacePadDefinition
+Versioned surface authoring contract.
+    export interface SurfacePadDefinition {
+      readonly id: string;
+      readonly angleRadians: number;
+      readonly widthMetres: number;
+      readonly elevationMetres: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceDefinition
+Deterministic radial terrain and sea generation recipe in SI metres and radians (`generatorVersion: 1`).
+    export interface SurfaceDefinition {
+      readonly kind: 'radial';
+      readonly generatorVersion: 1;
+      readonly seed: number;
+      readonly sampleCount: number;
+      readonly maxReliefMetres: number;
+      readonly minFeatureWidthMetres: number;
+      readonly orientationRadians: number;
+      readonly mountainRangeCount: number;
+      readonly craterCount: number;
+      /** Absolute body-local sea radius; waves never change this level. */
+      readonly seaRadiusMetres?: number;
+      readonly pads?: readonly SurfacePadDefinition[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceBounds
+Conservative radial bounds (`minRadius`/`maxRadius` in `m`), radial derivative (`m/rad`), and slope tangent over a terrain profile or interval.
+    export interface SurfaceBounds {
+      readonly minRadius: number;
+      readonly maxRadius: number;
+      readonly maxAbsDerivative: number;
+      readonly maxSlope: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceQuery
+Point evaluation of a `SurfaceProfile` at a body-fixed polar angle: radii, elevation, and water depth in metres, unit outward normals, and contact material.
+    export interface SurfaceQuery {
+      readonly groundRadius: number;
+      readonly firstContactRadius: number;
+      readonly waterDepth: number;
+      readonly elevation: number;
+      readonly groundNormal: Readonly<{ x: number; y: number }>;
+      readonly normal: Readonly<{ x: number; y: number }>;
+      readonly intervalIndex: number;
+      readonly material: 'rock' | 'water';
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceFeature
+Authored or procedural radial terrain feature metadata (mountain range or crater) with dimensions in metres and polar angle in radians.
+    export type SurfaceFeature = Readonly<{
+      id: string;
+      kind: 'mountain-range';
+      angleRadians: number;
+      widthMetres: number;
+      heightMetres: number;
+    } | {
+      id: string;
+      kind: 'crater';
+      angleRadians: number;
+      bowlRadiusMetres: number;
+      rimWidthMetres: number;
+      centralPeakWidthMetres: number;
+      depthMetres: number;
+      rimHeightMetres: number;
+      centralPeakHeightMetres: number;
+    }>;
+Used by: host or creator modules (not imported by shipped modules).
+
 ## SurfaceProfile
 Private Float64 storage; reads/copies cannot mutate authoritative geometry. No cache or browser globals. Callers own profile lifetimes.
     export interface SurfaceProfile {
@@ -6370,6 +7610,42 @@ Private Float64 storage; reads/copies cannot mutate authoritative geometry. No c
       copyElevations(): Float64Array;
     }
 Used by: spacelab.flight-prediction, spacelab.render-canvas, spacelab.render-webgl.
+
+## SurfaceSweepOptions
+Geometric tolerance (`m`) and work budget options for continuous chord-vs-terrain collision sweeps.
+    export interface SurfaceSweepOptions {
+      /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
+      readonly toleranceMetres?: number;
+      /** Interval visits plus clearance evaluations, including root refinement. */
+      readonly maxWork?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceSweepDiagnostics
+Work and tolerance accounting returned with a `SurfaceSweep` result.
+    export interface SurfaceSweepDiagnostics {
+      readonly toleranceMetres: number;
+      readonly intervals: number;
+      readonly evaluations: number;
+      readonly work: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceSweep
+Outcome of sweeping a body-fixed linear segment from `start` to `end` against a `SurfaceProfile`: `'clear'`, `'hit'` (with contact fraction and query), or `'failed'`.
+    export type SurfaceSweep =
+      | (SweepResult & { readonly status: 'clear' })
+      | (SweepResult & { readonly status: 'hit'; readonly fraction: number;
+        /** A bracket on the drift fraction, not a time-of-flight solution. */
+        readonly fractionBracket: readonly [number, number];
+        /** On the drift chord, within the reported tolerance of ground. */
+        readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;
+        readonly kind: 'crossing' | 'touching' })
+      | (SweepResult & { readonly status: 'failed';
+        readonly reason: 'work-limit' | 'precision' | 'initial-penetration';
+        /** Only the prefix through this fraction was verified; do not accept the endpoint. */
+        readonly verifiedFraction: number });
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: tab-transport.ts [api-reference/game-api/tab-transport]
@@ -6434,6 +7710,16 @@ Broadcast advertisement published by a hosting tab.
       readonly maxPlayers: number;
     }
 Used by: spacelab.net-tab.
+
+## TabHost
+Handle representing a hosting session in this tab.
+    export interface TabHost extends Disposable {
+      /** 32-character hexadecimal host address key. */
+      readonly key: string;
+      /** Force an immediate broadcast announcement of current session status. */
+      announce(): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## TabDiscovery
 Active discovery subscription observing tab session advertisements.
@@ -7021,12 +8307,66 @@ Declarations from universe.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe.ts.
 
+## SOI
+Sphere-of-influence radii in metres (`radius`, optional hysteresis `entryMetres` and `exitMetres`) for gravitational handoffs.
+    export interface SOI {
+      readonly radius: number;
+      readonly entryMetres?: number;
+      readonly exitMetres?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## Ephemeris
+Prescribed celestial body trajectory relative to its parent body: fixed inertial coordinates (`m`, `m/s`) or circular Keplerian orbit (`m`, `rad`, `s`).
+    export type Ephemeris =
+      | {
+          readonly kind: 'fixed-inertial';
+          readonly position?: readonly [number, number];
+          readonly velocity?: readonly [number, number];
+        }
+      | {
+          readonly kind: 'circular-kepler';
+          readonly radius?: number;
+          readonly radiusMetres?: number;
+          readonly phaseRadiansAtEpoch?: number;
+          readonly direction?: number;
+          readonly period?: number;
+        };
+Used by: host or creator modules (not imported by shipped modules).
+
+## CelestialBodyDefinition
+Authored celestial body definition with SI physical parameters (`radius`/`radiusMetres` in `m`, `mass` in `kg`, `mu` in `m³/s²`), ephemeris, terrain, and appearance.
+    export interface CelestialBodyDefinition {
+      readonly id: string;
+      readonly name: string;
+      readonly parentId?: string | null;
+      readonly radius?: number;
+      readonly radiusMetres?: number;
+      readonly mass?: number; // kg
+      readonly mu?: number; // m^3 / s^2
+      readonly soi?: SOI;
+      readonly color?: string;
+      readonly accentColor?: string;
+      readonly atmosphereColor?: string;
+      readonly horizonColor?: string;
+      readonly skyColor?: string;
+      readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';
+      readonly surface?: SurfaceDefinition;
+      readonly ephemeris?: Ephemeris;
+      /** Sidereal spin; absent bodies do not rotate. */
+      readonly rotation?: RotationDefinition;
+      /** How the body is drawn; derived from `surfaceFeatures` and its colours when absent. */
+      readonly appearance?: BodyAppearance;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## AppearanceStyle
 Procedural look of a body. Presentation only: it never changes the physical outline.
     export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';
 Used by: spacelab.planet-designer, spacelab.render-webgl.
 
 ## BodyAppearance
+Presentation-only procedural shader appearance parameters for a celestial body (style, `#rrggbb` palette, seed in `[0, 1000]`, and `[0, 1]` tuning sliders).
     export interface BodyAppearance {
       readonly style: AppearanceStyle;
       /** Up to four '#rrggbb' colours. Their roles depend on the style:
@@ -7058,7 +8398,38 @@ Presentation tuning fields in shader order.
     export const APPEARANCE_TUNING: readonly AppearanceTuning[] = Object.freeze(['water', 'clouds', 'ice', 'craters', 'turbulence', 'glow']);
 Used by: spacelab.planet-designer.
 
+## RotationDefinition
+Authored sidereal rotation specification for a celestial body (`period` in `s`, `direction` `-1` CW or `1` CCW, `phaseRadiansAtEpoch` in `rad`).
+    export interface RotationDefinition {
+      /** Seconds per turn. */
+      readonly period: number;
+      /** -1 (default) turns clockwise like default orbits, so a prograde launch gains the spin. */
+      readonly direction?: number;
+      readonly phaseRadiansAtEpoch?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PresetDefinition
+Authored ship spawn preset definition relative to `bodyId` (`'landed'`, `'circular-orbit'`, or explicit body-relative SI `'state'`).
+    export interface PresetDefinition {
+      readonly id: string;
+      readonly name: string;
+      readonly bodyId: string;
+      readonly kind: 'landed' | 'circular-orbit' | 'state';
+      readonly radius?: number;
+      readonly radiusMetres?: number;
+      readonly altitude?: number;
+      readonly phaseRadians?: number;
+      readonly direction?: number;
+      readonly headingRadians?: number;
+      readonly zoom?: number;
+      readonly position?: readonly [number, number];
+      readonly velocity?: readonly [number, number];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## VehicleDefaults
+Authoritative spacecraft handling parameters in SI units: full-thrust `acceleration` (`m/s²`), `turnRate` (`rad/s`), and `initialThrottle` (`[0, 1]`).
     export interface VehicleDefaults {
       readonly acceleration: number;
       readonly turnRate: number;
@@ -7066,7 +8437,21 @@ Used by: spacelab.planet-designer.
     }
 Used by: builtin.motion, spacelab.maneuver-burn.
 
+## SystemDefinition
+Authored star or planetary system definition containing hierarchical bodies, default vehicle handling, and spawn presets.
+    export interface SystemDefinition {
+      readonly id: string;
+      readonly name: string;
+      readonly description?: string;
+      readonly centralBodyId?: string;
+      readonly bodies: readonly CelestialBodyDefinition[];
+      readonly vehicleDefaults?: Partial<VehicleDefaults>;
+      readonly presets: readonly PresetDefinition[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## UniverseDefinition
+Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, and `systems`).
     export interface UniverseDefinition {
       readonly schemaVersion: number;
       readonly id: string;
@@ -7079,6 +8464,7 @@ Used by: builtin.motion, spacelab.maneuver-burn.
 Used by: spacelab.session-flight.
 
 ## ResolvedBody
+Fully validated celestial body with resolved SI physical constants (`radius` in `m`, `mass` in `kg`, `mu` in `m³/s²`), SOI hysteresis radii, surface identity, and 4-color appearance.
     export interface ResolvedBody extends Body {
       readonly surfaceIdentity: string;
       readonly id: string;
@@ -7103,6 +8489,29 @@ Used by: spacelab.session-flight.
       readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };
     }
 Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.planet-designer.
+
+## LoadedSystem
+Resolved planetary system instance providing ephemeris queries (`getBodyPosition` in `m`, `getBodyVelocity` in `m/s` at simulation `time` in `s`), preset placement, and SOI transitions.
+    export interface LoadedSystem {
+      readonly universeId: string;
+      readonly universeName: string;
+      readonly system: SystemDefinition;
+      readonly rootBody: ResolvedBody;
+      readonly vehicleDefaults: VehicleDefaults;
+      readonly presets: readonly PresetDefinition[];
+      getResolvedBody(id: string): ResolvedBody;
+      getAllBodies(): readonly ResolvedBody[];
+      getMoonsOf(parentId: string): readonly ResolvedBody[];
+      getBodyPosition(bodyId: string, time: number): Vec;
+      getBodyVelocity(bodyId: string, time: number): Vec;
+      initialState(presetId?: string, surface?: SurfaceProfile): { state: State; body: ResolvedBody };
+      checkSOI(state: State, currentBodyId: string, time: number): {
+        switched: boolean;
+        newBody: ResolvedBody;
+        newState: State;
+      };
+    }
+Used by: host or creator modules (not imported by shipped modules).
 -> API reference index [api-reference]
 
 === game-api: universe-saving.ts [api-reference/game-api/universe-saving]
@@ -7122,6 +8531,18 @@ Used by: spacelab.universe-saves.
 Service key for host universe container package codec (`core.universe-save-format@1.0.0`).
     export const CORE_UNIVERSE_FORMAT: ServiceKey<UniverseSaveFormat> = Object.freeze({slot:'core.universe-save-format',version:'1.0.0'});
 Used by: spacelab.universe-saves.
+
+## UniverseSaveSource
+Snapshot of session and world identity captured prior to asynchronous save or load IO. Holds read-only world access, optional snapshot configuration, and permission flags.
+    export interface UniverseSaveSource {
+      /** Stable session/world identity; captured before asynchronous work. */
+      readonly identity: object;
+      readonly world: WorldRead;
+      readonly options?: SavedWorldOptions;
+      readonly canSave: boolean;
+      readonly canLoad: boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## UniverseSaveOptions
 Host callbacks and session access supplied when instantiating a UniverseSaveCommands controller. Defines current world resolution and atomic, guarded state restoration.
@@ -7259,6 +8680,11 @@ Legacy craft map to this definition without changing state or old save bytes.
     export const TRAINER_VEHICLE_ID = 'spacelab.trainer/orbit-trainer';
 Used by: spacelab.trainer, spacelab.trainer-appearance.
 
+## VehicleConfigurationError
+A valid universe needs installed vehicle packages, rather than damaged-file recovery.
+    export class VehicleConfigurationError extends Error {}
+Used by: host or creator modules (not imported by shipped modules).
+
 ## VehicleDefinition
 Immutable authoritative handling, in SI units. Omitted handling uses the selected system's vehicleDefaults, preserving the trainer's existing configuration precedence.
     export interface VehicleDefinition {
@@ -7298,10 +8724,17 @@ Lookup table resolving optional vector appearance artwork by namespaced vehicle 
 Used by: spacelab.trainer-appearance.
 
 ## vehicleId
+Validate and return a namespaced vehicle identifier (`<module-id>/<local-name>`, max 160 chars). Throws if malformed.
     export function vehicleId(value: unknown): string;
 Used by: spacelab.session-flight.
 
+## captureVehicleDefinition
+Validate, bound SI handling parameters (`acceleration` in `m/s²`, `turnRate` in `rad/s`, `initialThrottle` in `[0, 1]`), and freeze a `VehicleDefinition`.
+    export function captureVehicleDefinition(value: unknown): VehicleDefinition;
+Used by: host or creator modules (not imported by shipped modules).
+
 ## captureVehicleCatalog
+Validate, sort by ID, and freeze a `space-sim-vehicles/1` catalog (1–128 unique vehicle definitions). Throws on duplicate or missing `defaultId`.
     export function captureVehicleCatalog(value: unknown): VehicleCatalog;
 Used by: spacelab.session-flight.
 
@@ -7330,6 +8763,11 @@ Used by: spacelab.player-view, spacelab.view-hud.
 The pane an instrument draws in. Sizes and offsets are CSS pixels; `root` is the DOM parent the instrument may append its own elements to and must remove them on dispose.
     export interface HudSurface { readonly root: HTMLElement; readonly width: number; readonly height: number; readonly x: number; readonly y: number }
 Used by: spacelab.throttle-hud, spacelab.view-hud.
+
+## HudAdapter
+Service adapter injected into a HUD view for instrument access.
+    export interface HudAdapter<T = unknown> { readonly key: Pick<ServiceKey<T>, 'slot' | 'version'>; readonly service: T }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## HudInstrumentContext
 Per-instrument initialization context providing access to declared required adapters.
@@ -7414,6 +8852,18 @@ Keyboard increments as fractions of full thrust in (0, 1]. Defaults: 0.01 and 0.
     export interface ThrottleLeverOptions { readonly keyboardStep?: number; readonly pageStep?: number }
 Used by: spacelab.throttle-hud.
 
+## FlightHudReadout
+Detached/read-only flight readout in the body's inertial frame. No world-step or write API.
+    export interface FlightHudReadout {
+      readonly state: State; readonly radius: number; readonly spin: number; readonly clearance: number | null;
+      readonly center: Vec; readonly scale: number; readonly cameraRotation: number;
+      readonly frameSetting: number; readonly orientation: 'horizon' | 'camera';
+      readonly accentColor?: string; readonly playerLabel?: string; readonly trajectory?: string;
+      readonly pinned: boolean; readonly dragging: boolean; readonly editing: boolean;
+      readonly maneuver?: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## FlightHudAdapter
 Per-seat flight bridge supplied by the host as the `view.flight-hud-state` adapter. Reads return detached values or undefined when the seat has no flyable target.
     export interface FlightHudAdapter {
@@ -7480,6 +8930,20 @@ Active manual WebRTC invitation created by a session host.
     }
 Used by: spacelab.net-webrtc.
 
+## ManualReply
+Active manual WebRTC reply generated by a joining guest in response to an invitation.
+    export interface ManualReply extends Disposable {
+      /** Compact base64url encoded reply code containing compressed SDP answer. */
+      readonly code: string;
+      /** Expiration timestamp in milliseconds (epoch) after which the reply is invalid. */
+      readonly expiresAt: number;
+      /** Return current connection and ICE gathering diagnostics. */
+      diagnostics(): ConnectionDiagnostics;
+      /** Resolves to the established TextConnection once the host accepts the reply. */
+      readonly connection: Promise<TextConnection>;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## ManualSignalingProvider
 Manual WebRTC signaling provider exchanging copy-paste invite/reply codes for peer-to-peer data channels.
     export interface ManualSignalingProvider {
@@ -7505,6 +8969,34 @@ Declarations from window-content.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/window-content.ts.
 
+## DocumentBlock
+Inert structured text block for portable window documents and guides. Links navigate the host's document catalog, never external URLs.
+    export type DocumentBlock =
+      | { readonly type: 'paragraph' | 'heading' | 'code'; readonly text: string }
+      | { readonly type: 'list'; readonly items: readonly string[]; readonly ordered?: boolean }
+      | { readonly type: 'link'; readonly text: string; readonly page: string };
+Used by: host or creator modules (not imported by shipped modules).
+
+## WindowDocument
+Validated immutable structured document composed of up to 256 document blocks.
+    export interface WindowDocument {
+      readonly blocks: readonly DocumentBlock[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PreviewData
+Bounded JSON-compatible value used as candidate data for registered window previews. Subject to recursive depth (max 16) and total element (max 4096) boundaries.
+    export type PreviewData = null | boolean | number | string | readonly PreviewData[] | { readonly [key: string]: PreviewData };
+Used by: host or creator modules (not imported by shipped modules).
+
+## PreviewType
+Named, exact-version identifier descriptor for a registered preview component.
+    export interface PreviewType {
+      readonly name: string;
+      readonly version: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## WindowContentDefinition
 Tagged union of content sections mountable inside window bodies or dialog layouts. Supports portable documents, interactive inspector forms, scrollable lists/logs, and custom previews.
     export type WindowContentDefinition =
@@ -7523,6 +9015,14 @@ Host callbacks provided when mounting window content structures. Routes declared
       control?(id: string, node: HTMLElement): void;
     }
 Used by: spacelab.ui-windows.
+
+## WindowPreview
+Disposable preview instance mounted inside a window content container. Controls its own canvas or DOM tree and receives dimension updates in CSS pixels.
+    export interface WindowPreview extends Disposable {
+      /** Resize viewport to width and height in CSS pixels. The provider owns its independent camera. */
+      resize(width: number, height: number): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
 
 ## WindowPreviewType
 Extension descriptor for registering a custom versioned preview component (`ui.window-content@1.0.0`). Enforces data validation prior to resource allocation; never receives simulation state or world authority.
@@ -7716,6 +9216,7 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
 Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner.
 
 ## WorldEvent
+Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, or world rule fault.
     export type WorldEvent =
       | { readonly type: 'world-fault'; readonly message: string }
       | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }

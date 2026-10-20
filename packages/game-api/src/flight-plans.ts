@@ -31,6 +31,7 @@ export interface FlightPlan {
  readonly epoch: { readonly time: number; readonly position: Vec; readonly velocity: Vec; readonly heading: number };
  readonly nodes: readonly FlightPlanNode[];
 }
+/** Portable `space-sim-flight-plans/1` archive containing up to 64 inert per-ship flight plans. */
 export interface FlightPlanArchive { readonly format: 'space-sim-flight-plans/1'; readonly plans: readonly FlightPlan[] }
 /** Per-node evaluation. An invalid node carries a readable `reason`; later nodes are not
  * evaluated past the first failure and repeat its reason. */
@@ -39,8 +40,11 @@ export interface EvaluatedFlightNode {
  /** Incoming coast seed and state at the burn. All coordinates are local to bodyId. */
  readonly seed?: State; readonly before?: State; readonly after?: State; readonly delta?: Vec;
 }
+/** Progressive step yielded by `FlightPlanService.evaluateAsync` with the active node index and optional traced coast sample. */
 export interface FlightPlanProgress { readonly node: number; readonly sample?: GhostSample }
+/** Result of a detached finite-burn simulation in body-relative SI units (`after` state and `delta` velocity in `m/s`). */
 export interface FiniteBurnResult {readonly after?:State;readonly delta?:Vec;readonly reason:string}
+/** Result of refining an arrival capture node under a finite-burn controller in body-relative SI units. */
 export interface FiniteCaptureResult {readonly node?:FlightPlanNode;readonly after?:State;readonly reason:string}
 /** Bounded inert intent/codec and selected-provider orbital evaluation, without UI or execution. */
 export interface FlightPlanService {

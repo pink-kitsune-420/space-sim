@@ -8,6 +8,7 @@ export interface SurfacePadDefinition {
   readonly elevationMetres: number;
 }
 
+/** Deterministic radial terrain and sea generation recipe in SI metres and radians (`generatorVersion: 1`). */
 export interface SurfaceDefinition {
   readonly kind: 'radial';
   readonly generatorVersion: 1;
@@ -23,6 +24,7 @@ export interface SurfaceDefinition {
   readonly pads?: readonly SurfacePadDefinition[];
 }
 
+/** Conservative radial bounds (`minRadius`/`maxRadius` in `m`), radial derivative (`m/rad`), and slope tangent over a terrain profile or interval. */
 export interface SurfaceBounds {
   readonly minRadius: number;
   readonly maxRadius: number;
@@ -30,6 +32,7 @@ export interface SurfaceBounds {
   readonly maxSlope: number;
 }
 
+/** Point evaluation of a `SurfaceProfile` at a body-fixed polar angle: radii, elevation, and water depth in metres, unit outward normals, and contact material. */
 export interface SurfaceQuery {
   readonly groundRadius: number;
   readonly firstContactRadius: number;
@@ -41,6 +44,7 @@ export interface SurfaceQuery {
   readonly material: 'rock' | 'water';
 }
 
+/** Authored or procedural radial terrain feature metadata (mountain range or crater) with dimensions in metres and polar angle in radians. */
 export type SurfaceFeature = Readonly<{
   id: string;
   kind: 'mountain-range';
@@ -80,12 +84,14 @@ export interface SurfaceProfile {
   copyElevations(): Float64Array;
 }
 
+/** Geometric tolerance (`m`) and work budget options for continuous chord-vs-terrain collision sweeps. */
 export interface SurfaceSweepOptions {
   /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
   readonly toleranceMetres?: number;
   /** Interval visits plus clearance evaluations, including root refinement. */
   readonly maxWork?: number;
 }
+/** Work and tolerance accounting returned with a `SurfaceSweep` result. */
 export interface SurfaceSweepDiagnostics {
   readonly toleranceMetres: number;
   readonly intervals: number;
@@ -96,6 +102,7 @@ interface SweepResult {
   readonly surfaceIdentity: string;
   readonly diagnostics: SurfaceSweepDiagnostics;
 }
+/** Outcome of sweeping a body-fixed linear segment from `start` to `end` against a `SurfaceProfile`: `'clear'`, `'hit'` (with contact fraction and query), or `'failed'`. */
 export type SurfaceSweep =
   | (SweepResult & { readonly status: 'clear' })
   | (SweepResult & { readonly status: 'hit'; readonly fraction: number;

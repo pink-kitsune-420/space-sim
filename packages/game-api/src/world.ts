@@ -16,6 +16,7 @@ export interface Ship {
   readonly fault?: string;
 }
 
+/** Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, or world rule fault. */
 export type WorldEvent =
   | { readonly type: 'world-fault'; readonly message: string }
   | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }

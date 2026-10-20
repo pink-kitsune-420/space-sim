@@ -2,6 +2,7 @@ import type { ModuleState } from './motion';
 import type { Ship, WorldEvent } from './world';
 import type { RuleCommand } from './services';
 
+/** Cross-engine deterministic floating-point math operations supplied to authoritative world rules. */
 export interface DeterministicMath {
   sin(x: number): number;
   cos(x: number): number;
@@ -25,11 +26,13 @@ export interface WorldRuleHook {
     math: DeterministicMath; random: () => number;
   }>): Readonly<{ state: ModuleState; commands?: readonly RuleCommand[] }>;
 }
+/** Resolved authoritative world-rule contribution bound to its owning module identity and version. */
 export interface WorldRuleExtension {
   readonly moduleId: string;
   readonly version: string;
   readonly hook: WorldRuleHook;
 }
+/** Persisted authoritative world-rule namespace combining module state and deterministic PRNG uint32 state. */
 export interface WorldRuleState {
   readonly state: ModuleState;
   readonly randomState: number;

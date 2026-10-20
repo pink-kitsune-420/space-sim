@@ -40,22 +40,36 @@ function gameApi() {
     }
   }
   // Public names follow index.ts re-exports; every other export stays internal to game-api.
-  const exported = new Set(), index = files.get('index');
-  const exportsOf = stem => [...declarations.values()].filter(item => item.stem === stem).map(item => item.name);
+  const exported = new Set(), namespaces = new Map(), publicDeclarations = new Map(), index = files.get('index');
+  const exportsOf = stem => [...declarations.values()].filter(item => item.stem === stem);
   for (const node of index.parsed.program.body) {
     const target = node.source?.value?.replace(/^\.\//, '');
-    if (node.type === 'ExportAllDeclaration') { if (node.exported) exported.add(node.exported.name); else exportsOf(target).forEach(name => exported.add(name)); }
-    else if (node.type === 'ExportNamedDeclaration' && node.source) for (const item of node.specifiers) exported.add(item.exported.name);
+    if (node.type === 'ExportAllDeclaration') {
+      if (node.exported) {
+        const ns = node.exported.name;
+        exported.add(ns);
+        namespaces.set(ns, target);
+        for (const item of exportsOf(target)) { item.namespace = ns; publicDeclarations.set(item.name, item); }
+      } else {
+        for (const item of exportsOf(target)) { exported.add(item.name); publicDeclarations.set(item.name, item); }
+      }
+    } else if (node.type === 'ExportNamedDeclaration' && node.source) {
+      for (const spec of node.specifiers) {
+        const name = spec.exported.name, local = (spec.local ?? spec.exported).name, item = declarations.get(local);
+        exported.add(name);
+        if (item) publicDeclarations.set(name, item);
+      }
+    }
   }
   const keys = new Map();
-  for (const item of declarations.values()) {
+  for (const item of publicDeclarations.values()) {
     const init = item.declaration.type === 'VariableDeclaration' ? item.declaration.declarations[0].init : undefined;
     const text = init ? item.source.slice(init.start, init.end) : '';
     const slot = /slot:\s*'([^']+)'/.exec(text)?.[1], version = /version:\s*'([^']+)'/.exec(text)?.[1];
     const type = /ServiceKey<\s*([A-Za-z0-9_]+)/.exec(item.source.slice(item.declaration.start, init?.start ?? item.declaration.end))?.[1];
-    if (slot && version && exported.has(item.name)) keys.set(slot, { name: item.name, version, type });
+    if (slot && version) keys.set(slot, { name: item.name, version, type });
   }
-  return { declarations, exported, keys, files };
+  return { declarations, publicDeclarations, namespaces, exported, keys, files };
 }
 function jsdoc(value) {
   return value.replace(/^\*/, '').split('\n').map(line => line.replace(/^\s*\* ?/, '').trimEnd()).join(' ')
@@ -72,6 +86,75 @@ function declarationText(item) {
   const init = declaration.type === 'VariableDeclaration' ? declaration.declarations[0].init : undefined;
   if (init?.type === 'ArrowFunctionExpression') return `${source.slice(node.start, init.body.start).trimEnd()} …;`;
   return source.slice(node.start, node.end);
+}
+function pageFits(blocks, limit = PAGE_LIMIT) {
+  if (blocks.length > limit.blocks) return false;
+  if (Buffer.byteLength(JSON.stringify(blocks)) > limit.bytes) return false;
+  let chars = 0;
+  for (const block of blocks) {
+    if (block.type === 'list') for (const item of block.items) chars += item.length;
+    else chars += block.text.length;
+  }
+  return chars <= limit.bytes;
+}
+function topicPages(stem, items, usedBy, limit = PAGE_LIMIT) {
+  const ns = items[0]?.namespace;
+  const intro = {
+    type: 'paragraph',
+    text: ns
+      ? `Import ${ns} from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/${stem}.ts.`
+      : `Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/${stem}.ts.`,
+  };
+  const footer = { type: 'link', text: 'API reference index', page: 'api-reference' };
+  const groups = items.map(item => {
+    const owners = [...usedBy.get(item.name) ?? []].sort();
+    return [
+      { type: 'heading', text: item.namespace ? `${item.namespace}.${item.name}` : item.name },
+      ...(item.doc ? [{ type: 'paragraph', text: item.doc }] : []),
+      { type: 'code', text: signature(item) },
+      { type: 'paragraph', text: `Used by: ${owners.length ? owners.join(', ') : 'host or creator modules (not imported by shipped modules)'}.` },
+    ];
+  });
+  const singleBlocks = [intro, ...groups.flat(), footer];
+  if (pageFits(singleBlocks, limit)) {
+    return [{
+      id: `api-reference/game-api/${stem}`,
+      title: `game-api: ${stem}.ts`,
+      summary: `Declarations from ${stem}.ts used by documented modules.`,
+      blocks: singleBlocks,
+    }];
+  }
+  const navReserve = { blocks: Math.max(8, Math.min(32, Math.floor(limit.blocks / 8))), bytes: 2048 };
+  const chunkLimit = {
+    blocks: Math.max(6, limit.blocks - navReserve.blocks),
+    bytes: Math.max(1024, limit.bytes - navReserve.bytes),
+  };
+  const chunks = [];
+  let current = [];
+  for (const group of groups) {
+    const candidate = [...current, ...group];
+    if (current.length && !pageFits([intro, ...candidate, footer], chunkLimit)) {
+      chunks.push(current);
+      current = [...group];
+    } else {
+      current = candidate;
+    }
+  }
+  if (current.length) chunks.push(current);
+  const pageId = index => index === 0 ? `api-reference/game-api/${stem}` : `api-reference/game-api/${stem}/${index + 1}`;
+  return chunks.map((chunk, index) => {
+    const navLinks = chunks.map((_, other) => other === index ? null : ({
+      type: 'link',
+      text: `game-api: ${stem}.ts (part ${other + 1} of ${chunks.length})`,
+      page: pageId(other),
+    })).filter(Boolean);
+    return {
+      id: pageId(index),
+      title: index === 0 ? `game-api: ${stem}.ts` : `game-api: ${stem}.ts (${index + 1}/${chunks.length})`,
+      summary: `Declarations from ${stem}.ts (part ${index + 1} of ${chunks.length}).`,
+      blocks: [intro, ...chunk, ...navLinks, footer],
+    };
+  });
 }
 /** Names imported from the public entry point, and other specifiers, of one module/example folder. */
 function imports(folder) {
@@ -159,13 +242,19 @@ function collect() {
   return { api, modules, targets, bookPages, bookLinks, inputs, version: json('package.json').version };
 }
 
-/** Everything published: reference pages for templated modules and the game-api topics they use. */
-export function generate(state = collect()) {
+/** Everything published: reference pages for templated modules and all public game-api topics. */
+export function generate(state = collect(), options = {}) {
+  const pageLimit = options.pageLimit ?? PAGE_LIMIT;
   const { api, modules, targets } = state, documented = modules.filter(module => module.documented);
   const used = new Map(), usedBy = new Map();
   const include = (name, owner) => {
-    const item = api.declarations.get(name);
-    if (!item || !api.exported.has(name)) return;
+    const nsTarget = api.namespaces.get(name);
+    if (nsTarget) {
+      for (const item of api.publicDeclarations.values()) if (item.stem === nsTarget) include(item.name, owner);
+      return;
+    }
+    const item = api.publicDeclarations.get(name);
+    if (!item) return;
     usedBy.set(name, new Set([...usedBy.get(name) ?? [], owner]));
     if (used.has(name)) return;
     used.set(name, item);
@@ -188,8 +277,9 @@ export function generate(state = collect()) {
       if (key) { include(key.name, module.manifest.id); if (key.type) include(key.type, module.manifest.id); }
     }
   }
-  const topics = [...new Set([...used.values()].map(item => item.stem))].sort();
-  for (const item of used.values()) state.inputs.add(item.path);
+  const topics = [...new Set([...api.publicDeclarations.values()].map(item => item.stem))].sort();
+  state.inputs.add(`${GAME_API}/index.ts`);
+  for (const item of api.publicDeclarations.values()) state.inputs.add(item.path);
   for (const module of documented) {
     state.inputs.add(`${module.folder}/module.json`); state.inputs.add(module.usage.path);
     const { example } = moduleImports.get(module.manifest.id);
@@ -205,6 +295,11 @@ export function generate(state = collect()) {
     const key = api.keys.get(name);
     return `${name}@${version}${optional ? ' (optional)' : ''}${key ? ` · ${key.name}${key.type ? `: ServiceKey<${key.type}>` : ''}` : ''}`;
   };
+  const stemOf = name => api.publicDeclarations.get(name)?.stem ?? api.namespaces.get(name);
+  const gameApiPages = topics.flatMap(stem => {
+    const items = [...api.publicDeclarations.values()].filter(item => item.stem === stem).sort((a, b) => a.node.start - b.node.start);
+    return topicPages(stem, items, usedBy, pageLimit);
+  });
   const pages = [{
     id: 'api-reference', title: 'API reference', summary: 'Generated reference for documented modules and the game-api declarations they use.',
     blocks: [
@@ -214,7 +309,11 @@ export function generate(state = collect()) {
       { type: 'heading', text: 'Modules' },
       ...documented.map(module => ({ type: 'link', text: `${module.manifest.name} (${module.manifest.id})`, page: `api-reference/module/${module.manifest.id}` })),
       { type: 'heading', text: 'Game API topics' },
-      ...topics.map(stem => ({ type: 'link', text: `${stem}.ts`, page: `api-reference/game-api/${stem}` })),
+      ...gameApiPages.map(page => ({
+        type: 'link',
+        text: page.id.replace(/^api-reference\/game-api\//, '').replace(/\/(\d+)$/, '.ts (part $1)').replace(/^([^.]+)$/, '$1.ts'),
+        page: page.id,
+      })),
       { type: 'link', text: 'Code modules: manifests, packaging and installation', page: 'modules' },
     ],
   }];
@@ -238,29 +337,17 @@ export function generate(state = collect()) {
         : { type: 'paragraph', text: 'None.' },
       { type: 'heading', text: 'Game API used' },
       { type: 'paragraph', text: used.length ? used.join(', ') : 'None.' },
-      ...[...new Set(used.filter(name => api.declarations.has(name)).map(name => api.declarations.get(name).stem))].sort().map(stem => ({ type: 'link', text: `game-api ${stem}.ts`, page: `api-reference/game-api/${stem}` })),
+      ...[...new Set(used.map(stemOf).filter(Boolean))].sort().map(stem => ({ type: 'link', text: `game-api ${stem}.ts`, page: `api-reference/game-api/${stem}` })),
       { type: 'heading', text: 'Guide and example' },
       { type: 'paragraph', text: `Example source: ${example} (build with npm run module:build -- ${example}/module.json out.spacemod).` },
       ...(targets.has(m.id) ? [{ type: 'link', text: `${module.usage.title}: how to use, replace and remove it`, page: `${m.id}/usage` }] : []),
     ] });
   }
-  for (const stem of topics) {
-    const items = [...used.values()].filter(item => item.stem === stem).sort((a, b) => a.node.start - b.node.start);
-    pages.push({ id: `api-reference/game-api/${stem}`, title: `game-api: ${stem}.ts`, summary: `Declarations from ${stem}.ts used by documented modules.`, blocks: [
-      { type: 'paragraph', text: `Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/${stem}.ts.` },
-      ...items.flatMap(item => [
-        { type: 'heading', text: item.name },
-        ...(item.doc ? [{ type: 'paragraph', text: item.doc }] : []),
-        { type: 'code', text: signature(item) },
-        { type: 'paragraph', text: `Used by: ${[...usedBy.get(item.name)].sort().join(', ')}.` },
-      ]),
-      { type: 'link', text: 'API reference index', page: 'api-reference' },
-    ] });
-  }
+  pages.push(...gameApiPages);
   for (const page of pages) {
     if (/\bimport\s*\(/.test(JSON.stringify(page))) throw new Error(`${page.id}: text resembling a dynamic import breaks the offline build`);
     const size = Buffer.byteLength(JSON.stringify(page.blocks));
-    if (page.blocks.length > PAGE_LIMIT.blocks || size > PAGE_LIMIT.bytes) throw new Error(`${page.id}: ${page.blocks.length} blocks, ${size} bytes exceeds one Manual page; split the topic`);
+    if (!pageFits(page.blocks, pageLimit)) throw new Error(`${page.id}: ${page.blocks.length} blocks, ${size} bytes exceeds one Manual page; split the topic`);
   }
   // The host shows shipped guides only for these modules, so the list is part of the bundle.
   const bundle = { format: 'spacelab-api-reference/1', provenance, modules: documented.map(module => module.manifest.id), pages };
@@ -284,6 +371,9 @@ function text(bundle, documented) {
 export function check(result = generate()) {
   const { state, documented, bundle } = result, { api, modules, targets, bookPages } = state, errors = [];
   const fail = (where, message) => errors.push(`${where}: ${message}`);
+  for (const item of api.publicDeclarations.values()) {
+    if (!item.doc) fail(item.path, `public declaration ${item.name} is missing a leading JSDoc comment`);
+  }
   const providers = new Map();
   for (const module of modules) for (const item of module.manifest.provides) providers.set(item.name, [...providers.get(item.name) ?? [], item.version]);
   const pageIds = new Set([...bookPages, ...bundle.pages.map(page => page.id)]);

@@ -16,6 +16,7 @@ export interface PlayerViewAdapter extends Disposable {
 }
 /** Map of player view roles to their active adapter instances. */
 export type PlayerViewAdapters = Readonly<Partial<Record<PlayerViewRole, PlayerViewAdapter>>>;
+/** Per-seat view composition coordinating input, camera, HUD, and appearance adapters with atomic rebind and release. */
 export interface PlayerView extends Disposable {
   readonly binding: HudBinding;
   readonly adapters: PlayerViewAdapters;
@@ -29,6 +30,7 @@ export interface PlayerView extends Disposable {
 }
 /** Resource lifecycle ownership policy for wrapped player view components. */
 export type PlayerAdapterOwnership = 'borrowed' | 'owned';
+/** Factory creating per-seat `PlayerView` instances and role adapters (`ui.player-view@1.0.0`). */
 export interface PlayerViewFactory extends Disposable {
   create(options: { readonly binding: HudBinding; readonly adapters: PlayerViewAdapters }): PlayerView;
   controller(controller: PlayerController, ownership?: PlayerAdapterOwnership,

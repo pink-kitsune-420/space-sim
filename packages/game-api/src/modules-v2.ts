@@ -50,7 +50,9 @@ export interface ModuleProfileV2 {
   readonly capabilities: Readonly<Record<string, Readonly<Record<string, string>>>>;
   readonly settings: Readonly<Record<string, Readonly<Record<string, number>>>>;
 }
+/** Resolved capability binding pairing a required service slot and exact version with the selected provider module reference. */
 export interface CapabilityBinding extends CapabilityRef { readonly provider: ModuleReference }
+/** Resolved v2 module lock (`space-sim-lock/2`) recording enabled modules, topological initialization order, slot providers, capability bindings, and numeric settings. */
 export interface ModuleLockV2 {
   readonly format: 'space-sim-lock/2';
   readonly profileId: string;
@@ -69,11 +71,13 @@ export interface ServiceKey<T> {
   readonly version: string;
   readonly serviceType?: (value: T) => T;
 }
+/** Read-only package asset accessor for embedded UTF-8 text, raw bytes, or revocable blob URLs. */
 export interface ModuleAssets {
   text(path: string): string;
   bytes(path: string): Uint8Array;
   url(path: string): { readonly href: string; dispose(): void };
 }
+/** Synchronous v2 module initialization context (`space-sim-game-api/2`) providing typed service lookup (`use`/`tryUse`), publication (`provide`), resource ownership (`own`), and host contributions. */
 export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {
   /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */
   readonly module?: ModuleReference;
@@ -111,17 +115,20 @@ export interface RegisteredModuleV2 {
   readonly supportsMultiplayer?: boolean;
   initialize(context: ModuleInitializationV2): void;
 }
+/** Namespaced contribution record (`<moduleId>/<localName>`) registered by a v2 module during candidate initialization. */
 export interface ModuleContribution<T> {
   readonly moduleId: string;
   readonly id: string;
   readonly value: T;
 }
+/** Diagnostic fault record when a contributed input, transport, or discovery hook throws or violates its contract. */
 export interface ModuleHookFault {
   readonly moduleId: string;
   readonly hook: string;
   readonly kind: 'input' | 'transport' | 'discovery';
   readonly message: string;
 }
+/** Untyped host-supplied service descriptor restricting access to specified `tiers` and `environments`. */
 export interface HostServiceAccess {
   readonly key: Pick<ServiceKey<unknown>, 'slot' | 'version'>;
   readonly service: unknown;
@@ -129,10 +136,12 @@ export interface HostServiceAccess {
   readonly tiers: readonly ModuleTier[];
   readonly environments: readonly ModuleEnvironment[];
 }
+/** Strongly typed host-supplied service descriptor binding a `ServiceKey<T>` to its implementation and tier/environment rules. */
 export interface HostService<T = unknown> extends HostServiceAccess {
   readonly key: ServiceKey<T>;
   readonly service: T;
 }
+/** Disposable lifecycle handle for a prepared v2 module candidate and its resolved `ModuleLockV2`. */
 export interface ModuleCandidateV2Handle extends Disposable {
   readonly lock: ModuleLockV2;
   readonly available: boolean;

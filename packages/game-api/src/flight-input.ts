@@ -34,6 +34,7 @@ export type FlightActionId =
 /** Hardware controller family used for formatting button labels (e.g. A vs Cross vs B). */
 export type ControllerFamily = 'xbox' | 'playstation' | 'steam-deck' | 'nintendo' | 'generic';
 
+/** Per-seat gamepad axis, inversion, radial deadzone, and action button mapping profile. */
 export interface ControllerProfile {
   /** Axis index for turning [-1..1]. Default: 0 (Left Stick X / Joystick Roll). */
   readonly turnAxis: number;
@@ -63,6 +64,7 @@ export interface GamepadSettings {
   readonly secondaryEngineButton: number;
 }
 
+/** Normalized per-frame flight control intent sampled from a physical gamepad (`[-1, 1]` axes). */
 export interface GamepadFlightInput {
   /** Turning rate in [-1, 1]: positive turns left (CCW), as the keyboard and touch stick do. */
   readonly turn: number;
@@ -167,6 +169,7 @@ export type InputDevice = 'auto' | 'keyboard' | `pad:${number}` | 'none';
 /** Preset screen anchor location for a player's HUD navball. */
 export type NavballAnchor = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center-bottom' | 'custom';
 
+/** Normalized viewport position (`[0, 1]`), anchor preset, and drag-lock flag for a seat's HUD navball. */
 export interface NavballPlacement {
   /** Anchor preset or 'custom' */
   readonly anchor: NavballAnchor;
