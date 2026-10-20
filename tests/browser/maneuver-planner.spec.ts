@@ -480,7 +480,8 @@ for(const kind of ['efficient','faster'])test(`Auto warp adopts the ${kind} tran
  const use=page.locator(`#maneuver-transfer-use-${kind}`),automatic=page.locator(`#maneuver-transfer-auto-warp-${kind}`);
  await expect(automatic).toBeEnabled();await automatic.scrollIntoViewIfNeeded();
  const useBox=(await use.boundingBox())!,autoBox=(await automatic.boundingBox())!;
- expect(autoBox.y).toBeGreaterThanOrEqual(useBox.y+useBox.height);expect(autoBox.x).toBeCloseTo(useBox.x,0);
+ // Auto warp sits beside Use plan on the same row.
+ expect(autoBox.x).toBeGreaterThanOrEqual(useBox.x+useBox.width);expect(Math.abs(autoBox.y+autoBox.height/2-useBox.y-useBox.height/2)).toBeLessThanOrEqual(1);
  await page.screenshot({path:info.outputPath('auto-warp-transfer.png')});
  await automatic.click();
  await expect(page.locator('#maneuver-automatic')).toBeChecked();await expect(page.locator('#maneuver-auto-warp')).toBeChecked();

@@ -18,7 +18,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Pause flight while searching to preserve departure windows. Best-so-far results can be adopted while sampling continues; Cancel search discards the search. Changing destination, altitudes, mission time, thrust or source orbit invalidates results. Use plan installs an editable inert sequence and leaves the engine off. Auto warp, directly below Use plan, adopts the route, resumes paused flight and enables both automatic execution and auto-warp between burns. You can also choose Execute for each burn, fly manually, or enable those options in the burn editor. Actual encounters and capture are reviewed during execution; a missed encounter or unsafe remaining burn stops automation. Saved and imported plans never arm. Changing the vehicle, providers or orbit needs a new review."
+      "text": "Pause flight while searching to preserve departure windows. Best-so-far results can be adopted while sampling continues; Cancel search discards the search. Changing destination, altitudes, mission time, thrust or source orbit invalidates results. Use plan installs an editable inert sequence and leaves the engine off. Auto warp, beside Use plan, adopts the route, resumes paused flight and enables both automatic execution and auto-warp between burns. You can also choose Execute for each burn, fly manually, or enable those options in the burn editor. Actual encounters and capture are reviewed during execution; a missed encounter or unsafe remaining burn stops automation. Saved and imported plans never arm. Changing the vehicle, providers or orbit needs a new review."
     }
   ]
 }
