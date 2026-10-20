@@ -1,9 +1,12 @@
 // Build-time metadata only. No source bundles, archive inspection or code execution.
+// Host-side Vite tooling: modules cannot import packages/module-tools.
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const publicId = 'virtual:spacelab-bundled-modules', virtualId = `\0${publicId}`;
+/** Vite plugin serving `virtual:spacelab-bundled-modules`: sorted manifest metadata and Creators
+ * guide summaries for every `modules/<folder>/`. Throws on a missing or duplicate module ID. */
 export function bundledCataloguePlugin(root = fileURLToPath(new URL('../../', import.meta.url))) {
   return {
     name: 'spacelab-bundled-catalogue',

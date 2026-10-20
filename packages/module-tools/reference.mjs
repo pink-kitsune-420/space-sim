@@ -1,6 +1,7 @@
 // Generated Creators API reference. Reads manifests, Creators guides, examples and the
 // public game-api declarations they use; writes a Manual page bundle and a plain-text copy.
 // Usage: node packages/module-tools/reference.mjs [--check]
+// Host-side Node tooling: modules cannot import packages/module-tools.
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -8,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { parseSync } from 'rolldown/utils';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+/** Generated files, relative to the checkout root. Never edit them by hand. */
 export const OUTPUTS = { pages: 'apps/web/src/api-reference.json', text: 'modules/API-REFERENCE.txt' };
 /** Section headings of a templated docs/creators/usage.json, in order. */
 export const TEMPLATE = ['What it does', 'Provides and requires', 'Settings', 'Lifecycle', 'Remove or replace', 'Stability', 'Example', 'Related'];
@@ -437,6 +439,7 @@ export function check(result = generate()) {
   }
   return errors;
 }
+/** Write both generated outputs (`OUTPUTS`) from a `generate()` result and return it. */
 export function write(result = generate()) {
   writeFileSync(join(ROOT, OUTPUTS.pages), `${JSON.stringify(result.bundle, null, 2)}\n`);
   writeFileSync(join(ROOT, OUTPUTS.text), result.text);
