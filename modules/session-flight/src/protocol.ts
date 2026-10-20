@@ -7,10 +7,35 @@ const MAX_COMMAND_PARAMETERS = 8;
 
 /** Bumped whenever a message changes shape. Client and host must match exactly, and so must
  * the physics model, because clients predict with the same code the host runs. */
-export const PROTOCOL = 'space-sim-net/5';
+export const PROTOCOL = 'space-sim-net/6';
 /** Explicit extension negotiation; legacy peers cannot silently omit required data. */
 export const VEHICLE_PROTOCOL = 'space-sim-vehicles/1';
 export const MODULE_DATA_PROTOCOL = 'space-sim-module-data/1';
+export const SPATIAL_CHUNK_PROTOCOL = 'space-sim-spatial/1';
+export const MAX_SUBSCRIBED_CHUNKS = 128;
+export const MAX_CHUNK_BYTES_PER_TICK = 64 * 1024;
+export const CHUNK_KEY_REGEX = /^(?:b:[a-z0-9-]+:c:-?[0-9]+:-?[0-9]+(?::-?[0-9]+)?|chunk:-?[0-9]+:-?[0-9]+(?::-?[0-9]+)?)$/;
+
+/** Encodes a Uint8Array binary buffer into a standard Base64 string. */
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
+}
+
+/** Decodes a standard Base64 string into a Uint8Array binary buffer. */
+export function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
 /** Clients only send small commands. */
 export const MAX_CLIENT_MESSAGE = 16 * 1024;
 /** Welcome messages and complete snapshots carry the whole world (a 65,536-object world
@@ -43,6 +68,22 @@ export interface SessionRules {
   readonly snapshotEveryTicks: number;
 }
 
+/** Sparse binary page delta payload for a subscribed spatial chunk. */
+export interface ChunkDeltaPayload {
+  readonly key: string;
+  /** Base64-encoded delta bytes matching SparsePageStore pageSize. */
+  readonly delta: string;
+  readonly revision: number;
+}
+
+/** Broadcast/unicast message containing sparse terrain deltas for active chunk subscriptions. */
+export interface HostChunkDelta {
+  readonly t: 'chunk-delta';
+  readonly bodyId: string;
+  readonly tick: number;
+  readonly deltas: readonly ChunkDeltaPayload[];
+}
+
 export type HostMessage =
   | { readonly vehicles?: VehicleCatalog; readonly dataSchemas?: readonly ModuleDataSchema[]; readonly t: 'info'; readonly protocol: string; readonly model: string; readonly worldId: string;
       readonly name: string; readonly password: boolean; readonly players: number; readonly maxPlayers: number;
@@ -68,8 +109,23 @@ export type HostMessage =
   | { readonly t: 'notice'; readonly text: string }
   /** A chat line. `from` is a player id, or absent for the server console. */
   | { readonly t: 'chat'; readonly from?: string; readonly name: string; readonly text: string }
-  | { readonly t: 'error'; readonly code: ErrorCode; readonly message: string };
+  | { readonly t: 'error'; readonly code: ErrorCode; readonly message: string }
+  | HostChunkDelta;
 export type ErrorCode = 'version' | 'password' | 'full' | 'kicked' | 'replaced' | 'invalid' | 'rate' | 'timeout' | 'closing';
+
+/** Subscription message from client requesting streaming deltas for specific terrain/spatial chunks. */
+export interface ClientSubChunks {
+  readonly t: 'sub-chunks';
+  readonly bodyId: string;
+  readonly chunkKeys: readonly string[]; // e.g. ["chunk:0:1", "chunk:0:2"]
+}
+
+/** Unsubscription message from client releasing interest in spatial chunks. */
+export interface ClientUnsubChunks {
+  readonly t: 'unsub-chunks';
+  readonly bodyId: string;
+  readonly chunkKeys: readonly string[];
+}
 
 export type ClientMessage =
   | { readonly vehicleVersion?: string; readonly dataVersion?: string; readonly t: 'join'; readonly name: string; readonly token?: string; readonly password?: string }
@@ -92,7 +148,9 @@ export type ClientMessage =
   | { readonly t: 'resync' }
   | { readonly t: 'chat'; readonly text: string }
   | { readonly t: 'data-command'; readonly request: ModuleDataCommand }
-  | { readonly t: 'ping'; readonly id: number };
+  | { readonly t: 'ping'; readonly id: number }
+  | ClientSubChunks
+  | ClientUnsubChunks;
 
 export class ProtocolError extends Error {}
 
@@ -195,6 +253,24 @@ export function parseClientMessage(raw: string): ClientMessage {
     case 'resync': return { t: 'resync' };
     case 'chat': return { t: 'chat', text: text(m.text, MAX_CHAT, 'text') };
     case 'ping': return { t: 'ping', id: int(m.id, 'id') };
+    case 'sub-chunks': {
+      const bodyId = ident(m.bodyId, 'bodyId');
+      if (!Array.isArray(m.chunkKeys) || m.chunkKeys.length > MAX_SUBSCRIBED_CHUNKS) bad(`chunkKeys must be a list of at most ${MAX_SUBSCRIBED_CHUNKS} keys`);
+      const chunkKeys = m.chunkKeys.map(k => {
+        if (typeof k !== 'string' || !CHUNK_KEY_REGEX.test(k)) bad('invalid chunk key format');
+        return k;
+      });
+      return { t: 'sub-chunks', bodyId, chunkKeys };
+    }
+    case 'unsub-chunks': {
+      const bodyId = ident(m.bodyId, 'bodyId');
+      if (!Array.isArray(m.chunkKeys) || m.chunkKeys.length > MAX_SUBSCRIBED_CHUNKS) bad(`chunkKeys must be a list of at most ${MAX_SUBSCRIBED_CHUNKS} keys`);
+      const chunkKeys = m.chunkKeys.map(k => {
+        if (typeof k !== 'string' || !CHUNK_KEY_REGEX.test(k)) bad('invalid chunk key format');
+        return k;
+      });
+      return { t: 'unsub-chunks', bodyId, chunkKeys };
+    }
     default: return bad(`unknown message type ${String(m.t)}`);
   }
 }
@@ -297,6 +373,19 @@ export function parseHostMessage(raw: string): HostMessage {
       const codes: readonly ErrorCode[] = ['version', 'password', 'full', 'kicked', 'replaced', 'invalid', 'rate', 'timeout', 'closing'];
       const code = codes.includes(m.code as ErrorCode) ? m.code as ErrorCode : 'invalid';
       return { t: 'error', code, message: text(m.message, 500, 'message') };
+    }
+    case 'chunk-delta': {
+      const bodyId = ident(m.bodyId, 'bodyId');
+      const tick = int(m.tick, 'tick');
+      if (!Array.isArray(m.deltas) || m.deltas.length > 1024) bad('deltas must be a list');
+      const deltas: ChunkDeltaPayload[] = m.deltas.map(d => {
+        const rawDelta = object(d);
+        if (typeof rawDelta.key !== 'string' || !CHUNK_KEY_REGEX.test(rawDelta.key)) bad('invalid chunk key in delta');
+        if (typeof rawDelta.delta !== 'string' || rawDelta.delta.length > 64 * 1024) bad('invalid chunk delta payload');
+        const revision = int(rawDelta.revision, 'revision');
+        return { key: rawDelta.key, delta: rawDelta.delta, revision };
+      });
+      return { t: 'chunk-delta', bodyId, tick, deltas };
     }
     default: return bad(`unknown message type ${String(m.t)}`);
   }

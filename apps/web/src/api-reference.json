@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d74619785338a45b",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d74619785338a45b"
         },
         {
           "type": "paragraph",
@@ -5400,7 +5400,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId"
+          "text": "AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, SparsePageDelta, SparsePageStore, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId"
         },
         {
           "type": "link",
@@ -15207,7 +15207,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: host or creator modules (not imported by shipped modules)."
+          "text": "Used by: spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -15223,7 +15223,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: host or creator modules (not imported by shipped modules)."
+          "text": "Used by: spacelab.session-flight."
         },
         {
           "type": "heading",

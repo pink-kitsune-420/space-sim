@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d74619785338a45b
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -1860,7 +1860,7 @@ Explicit flight protocol using privileged public engine ports and replaceable tr
 None.
 
 ## Game API used
-AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId
+AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, SparsePageDelta, SparsePageStore, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId
 -> game-api commands.ts [api-reference/game-api/commands]
 -> game-api context.ts [api-reference/game-api/context]
 -> game-api engine.ts [api-reference/game-api/engine]
@@ -7590,7 +7590,7 @@ Delta entry representing a modified sparse binary page in a `SparsePageStore`.
       readonly key: string;
       readonly delta: Uint8Array;
     }
-Used by: host or creator modules (not imported by shipped modules).
+Used by: spacelab.session-flight.
 
 ## SparsePageStore
 Versioned copy-on-write sparse binary page store for high-capacity state (e.g. voxel chunks, tile grids).
@@ -7601,7 +7601,7 @@ Versioned copy-on-write sparse binary page store for high-capacity state (e.g. v
       markDirty(key: string): void;
       commitDirtyPages(): readonly SparsePageDelta[];
     }
-Used by: host or creator modules (not imported by shipped modules).
+Used by: spacelab.session-flight.
 
 ## MAX_SPARSE_PAGE_STORE_BYTES
 Maximum aggregate size in bytes (32 MiB) allowable in a single `SparsePageStore`.
@@ -11182,7 +11182,7 @@ This module has no settings.
 This module is essential for flight multiplayer sessions and standard flight gameplay. Standalone non-flight tools like planet viewers do not require it. To replace it, author a network-tier module providing session.flight@1.0.0 implementing FlightSessionFactory.
 
 ## Stability
-Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-net/5 and entity schema space-sim-flight-entities/1.
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze. Wire communication uses protocol identifier space-sim-net/6 and entity schema space-sim-flight-entities/1.
 
 ## Example
 examples/modules/session-flight demonstrates creating an authoritative flight host over a simulation world and asserting pause and step controls. Build and validate it from the repository root:
