@@ -74,6 +74,10 @@ export function createManeuverBurns(clock: Pick<ClockService, 'stepSeconds' | 'i
   instances.clear(); if (errors.length) throw new AggregateError(errors, 'Maneuver burn cleanup failed');
  } });
 }
+/**
+ * Contributes the finite maneuver burn factory.
+ * Provides flight.maneuver-burn@1.0.0 in slot flight.maneuver-burn; requires core.clock@^1.0.0.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
  context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Finite maneuver burns', summary: 'Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping.', asset: 'docs/creators/usage.json' });
  context.provide(MANEUVER_BURNS, context.own(createManeuverBurns(context.use(CORE_CLOCK))));

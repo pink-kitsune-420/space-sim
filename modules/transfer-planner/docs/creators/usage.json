@@ -2,11 +2,101 @@
   "id": "usage",
   "audience": "creators",
   "title": "Bounded orbital transfer search",
-  "summary": "Bounded validated circular/elliptical same-body and interbody transfer intent.",
+  "summary": "Editable bounded same-body and interbody transfers over selected moving-frame prediction contracts.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "flight.transfers@1.0.0 requires flight.plans@1.0.0. The platform host binds its selected flight.maneuver-burn@1.0.0 through withBurns; presentation providers do not acquire platform/clock access. With compatible finite plan services it accepts generic shared-ancestor relationships, compares direct and staged paths, and publishes only complete finite-validated routes. Hierarchy-derived paths consider destination staging, source staging and both; no mandatory capture into a common ancestor. At most seven legs (14 nodes), two safe parking-radius proposals per stop and a beam retaining two cheapest and two earliest prefixes. Each leg is bounded at8,000,000 cooperative steps; after a success it samples two more windows or stops after two accepted candidates. Each leg uses at most24 shortlisted Lambert/ejection corrections,18 differential-correction iterations and up to eight damping retries for finite probes; every accepted capture refines actual finite thrust and validates a safe revolution. Final complete sequences are reevaluated before publication. Explicit maxFlightSeconds includes waiting and every leg; default50 and maximum100 Julian years. Default display forecasts retain their shorter bound. Route metadata supplies body IDs, stops, horizon, finiteValidated and per-node burn costs/durations. Efficient and Faster compare complete mission costs; bounded beam sampling is not global optimization. Without a burn provider, legacy same-body and direct parent/child/sibling impulsive planning remains available and other relationships return an explanation. Cancellation closes all child jobs and contexts. Search never steps authority, commands thrust, arms execution or changes a view. TransferProgress.options may publish only validated complete options; callers invalidate them on source or committed-input changes. First-tick and last-tick fractional thrust keep the finite controller continuous across 10ms timing boundaries. Target apsis tolerance is max(.01m,radius*1e-7); encounter/contact and work limits can reject all proposals. Route searches interleave cooperatively; identical pending legs share their completed cache. TransferProgress.phase identifies current work; the optional fraction is a nondecreasing whole-search estimate in [0, 1] (tested/total may describe one leg only), and hosts show indeterminate progress without it. TransferResult.compared counts fully validated direct/staged alternatives even when dominated by the displayed options. Older plan providers without withBurns and finite evaluation retain legacy relationship coverage."
+      "text": "This module provides a generator-based bounded solver evaluating circular, elliptical, same-body, and interbody transfer trajectories and intermediate parking orbits over verified prediction contracts. It compares departure apsides, solves tangential velocity increments, checks terrain contact clearances, and structures candidate routes into efficient and faster options."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides flight.transfers@1.0.0 through the TRANSFERS service key: creates TransferPlanner generator instances.",
+        "Fills the flight.transfers slot in presentation profiles.",
+        "Requires flight.plans@^1.0.0: integrates with flight plan node creation and route evaluation."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization resolves the flight plan service and provides TRANSFERS.",
+        "withBurns(factory) optionally binds a finite maneuver burn factory to refine burn durations and capture validation.",
+        "search(world, request) returns a generator yielding intermediate TransferProgress objects and returning a final TransferResult.",
+        "Each generator step performs bounded cooperative search calculations without advancing live simulation time.",
+        "Search cancellation terminates child contexts and releases allocated prediction seeds."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize orbital transfer trajectory search algorithms or add specialized planetary encounter heuristics, contribute an alternative provider for flight.transfers@1.0.0 to the flight.transfers slot. Removing this module disables transfer window searches while preserving manual node editing."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: search iteration limits and route option data structures may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/transfer-planner demonstrates querying transfer solver capabilities and stepping through transfer search progress. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/transfer-planner/module.json /tmp/example-transfer-planner.spacemod\nnpm run module:validate -- /tmp/example-transfer-planner.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Orbital transfer search",
+      "page": "api-reference/module/spacelab.transfer-planner"
+    },
+    {
+      "type": "link",
+      "text": "game-api: transfers.ts",
+      "page": "api-reference/game-api/transfers"
+    },
+    {
+      "type": "link",
+      "text": "Flight plans: how to use, replace and remove it",
+      "page": "spacelab.flight-plans/usage"
     }
   ]
 }

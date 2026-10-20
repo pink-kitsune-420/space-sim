@@ -2,7 +2,7 @@
   "id": "burns",
   "audience": "players",
   "title": "Burn reminders",
-  "summary": "Burn reminders",
+  "summary": "Manual burn alarms, preparation lead and optional pause.",
   "blocks": [
     {
       "type": "paragraph",

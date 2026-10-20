@@ -1,8 +1,11 @@
 import { CORE_MOTION, MOTION_CONTEXTS, ORBITAL_MOTION, BODY_FRAMES, SURFACE_GEOMETRY, RAILS_POLICY, type ModuleInitializationV2 } from '@space-sim/game-api';
 export { createLegacyMotion } from './legacy';
 
-/** Editable provider selection over the fixed, verified headless kernel. It neither owns
- * celestial state nor steps a world; distinct slots remain independently replaceable. */
+/**
+ * Contributes independently replaceable motion context, orbital, frame, surface, and rails policy services.
+ * Provides motion@1.0.0, orbits@1.0.0, bodies@1.0.0, surfaces@1.0.0, rails@1.0.0, and builtin.motion@1.0.0 in their respective slots.
+ * Requires core.motion@^1.0.0.
+ */
 export default function initialize(context: ModuleInitializationV2): void {
  const core = context.use(CORE_MOTION);
  if (context.selected(MOTION_CONTEXTS.slot)) context.provide(MOTION_CONTEXTS, core.createContext);

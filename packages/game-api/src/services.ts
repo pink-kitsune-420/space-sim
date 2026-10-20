@@ -54,21 +54,27 @@ export interface RailsProvider extends ProviderIdentity {
   readonly compatible: readonly RailsBinding[];
   horizon(system: LoadedSystem, body: ResolvedBody, state: OrbitalState, epoch: OrbitalState, time: number, top: number): number;
 }
+/** Group of motion services composed into simulation contexts: orbits, body frames, surfaces, and rails. */
 export interface MotionServices {
   readonly orbits: OrbitalProvider;
   readonly bodies: BodyFrameProvider;
   readonly surfaces: SurfaceProvider;
   readonly rails: RailsProvider;
 }
+/** Authoritative command emitted by world rules to modify ship controls or throttle. */
 export interface RuleCommand {
   readonly shipId: string;
   readonly controls?: Controls;
   readonly throttle?: number;
 }
 
-/** Existing independently replaceable motion slots, with explicit v2 service versions. */
+/** Service key for the simulation motion context factory (`motion@1.0.0`). */
 export const MOTION_CONTEXTS: ServiceKey<SimulationContextFactory> = Object.freeze({ slot: 'motion', version: '1.0.0' });
+/** Service key for orbital mechanics calculation service (`orbits@1.0.0`). */
 export const ORBITAL_MOTION: ServiceKey<OrbitalProvider> = Object.freeze({ slot: 'orbits', version: '1.0.0' });
+/** Service key for celestial body frame resolution service (`bodies@1.0.0`). */
 export const BODY_FRAMES: ServiceKey<BodyFrameProvider> = Object.freeze({ slot: 'bodies', version: '1.0.0' });
+/** Service key for surface terrain and collision geometry query service (`surfaces@1.0.0`). */
 export const SURFACE_GEOMETRY: ServiceKey<SurfaceProvider> = Object.freeze({ slot: 'surfaces', version: '1.0.0' });
+/** Service key for rails horizon evaluation and sleep scheduling policy (`rails@1.0.0`). */
 export const RAILS_POLICY: ServiceKey<RailsProvider> = Object.freeze({ slot: 'rails', version: '1.0.0' });

@@ -2,43 +2,112 @@
   "id": "usage",
   "audience": "creators",
   "title": "Independent maneuver editors",
-  "summary": "Owned preview/window lifecycle and explicit validated host actions.",
+  "summary": "Read-only candidate previews and validated host commands over shared floating windows.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "view.maneuver-planner@1.0.0 requires core.motion/core.clock, ui.windows, view.prediction, flight.maneuver-burn and view.maneuver-display at compatible 1.x versions. It creates independent floating editors over supplied read-only flight/world state; a shared dock is an optional borrowed addInstrument port. Set a distinct window id per independent editor. No private app or storage/physics implementation is imported."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "The editor clones preview state and uses isolated prediction jobs. Pointer picking, timing and radial/prograde form edits change only local candidate nodes. canWarp=false supports read-only planning: execution/warp controls remain unavailable. setWarp, setThrottle and releaseControls are explicit host commands that must validate current authority; an editor never grants ownership or steps the world. Node/vehicle/clock/session continuity and manual-input cancellation preserve the original finite-burn policy."
+      "text": "This module provides floating window and interactive map overlay editors for creating, adjusting, validating, and executing orbital maneuver plans. It computes candidate trajectory forecasts over isolated prediction jobs, manages prograde and radial impulse adjustments, coordinates automatic attitude alignment, and communicates validated execution commands to the simulation host."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.maneuver-planner@1.0.0 through the MANEUVER_PLANNERS service key: creates ManeuverPlannerControl instances.",
+        "Fills the view.maneuver-planner slot in platform profiles.",
+        "Requires core.motion@^1.0.0: uses simulation context motion services for orbital state evaluation.",
+        "Requires core.clock@^1.0.0: coordinates execution with fixed simulation clock steps.",
+        "Requires ui.windows@^1.0.0: mounts floating editor windows within the user interface.",
+        "Requires view.prediction@^1.0.0: generates trajectory coast and encounter predictions.",
+        "Requires flight.maneuver-burn@^1.0.0: executes finite burn attitude alignment and throttle commands.",
+        "Requires view.maneuver-display@^1.0.0: provides maneuver overlay presentation styling.",
+        "Requires flight.plans@^1.0.0 (optional): adds multi-node plan chains, serialization, and save integration.",
+        "Requires flight.transfers@^1.0.0 (optional): embeds automated orbital transfer window searching.",
+        "Requires flight.alarms@^1.0.0 (optional): connects burn reminders and automated warp release."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "previewMaxMs (default 1, from 0.1 to 8, step 0.1): Per-update wall-time budget in milliseconds for the independent planned-burn preview.",
+        "uiRefreshMs (default 100, from 16 to 1000, step 1): Minimum wall time in milliseconds between editor status and summary refreshes.",
+        "alignmentWarp (default 4, from 1 to 4, step 1): Automatic alignment warp multiplier during explicitly authorized attitude alignment."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization resolves required and optional services, injects stylesheet assets, and registers MANEUVER_PLANNERS.",
+        "create(options) mounts an independent floating window, attaches optional map drag handlers, and initializes preview workers.",
+        "step(manual) advances active burn execution before each simulation tick, applying host-authorized controls.",
+        "dispose cancels pending actions, releases held host controls, detaches DOM event listeners, and closes the editor window."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Supply the optional map() callback with the current surface element, displayed camera and active-body world origin to enable on-map node and P\u00b1/R\u00b1 handles. Coordinates and dragging use CSS pixels. Map and window edits share the same local node; disposal removes map controls and listeners. Selected adjustment steps apply to buttons and map drags, with Shift for finer changes and Escape to cancel a drag. Warp to node is a separate coasting-only action and works with zero delta-v or no thrust; Execute burn remains explicitly opt-in."
+      "text": "To replace the maneuver planner UI or candidate node workflow, provide view.maneuver-planner@1.0.0 in the view.maneuver-planner slot. Removing this module removes maneuver editing windows and node manipulation while retaining background prediction and telemetry."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "Each editor owns its window, dock lease, listeners, preview jobs and unfinished burn policy. Dispose cancels pending actions, releases host controls, aborts listeners and closes resources even after child failures. Provider removal closes every editor and its injected styles. previewMaxMs and uiRefreshMs preserve default 1 ms/100 ms viewer budgets. The default app adapter retains legacy control IDs and layout preferences until actual manifest startup in Phase 4."
+      "text": "Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: multi-node chain evaluation contracts and fleet warp coordination hooks may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
     },
     {
       "type": "paragraph",
-      "text": "Optional flight.plans@1.0.0 adds shared inert intent, up to 16 ordered nodes, progressive provider-validated cross-body chains, portable JSON export/import and optional universe-save metadata. Chained previews reuse WorldRead.predictShip with detached future seeds; they never step live authority. Earlier edits recompute later states. Selection, imports and review do not arm. Later execution is blocked while prior burns remain pending; a completed or interrupted finite burn, manual trajectory change or missed event requires explicit review against actual flight. Loaded plans always require review. Without this optional service the single-node editor remains usable. Cross-body evaluation uses the declared exact-time shared predictor and timed position/velocity frame conversions. Burn editor and Transfer window are separate tabs. openTransfers() optionally opens a search directly, without a node or flight command. Plan actions contains the less frequent add, flown and archive controls; per-node execution and abort remain explicit."
+      "text": "examples/modules/maneuver-editor demonstrates creating a headless maneuver planner adapter, evaluating node candidates, and verifying diagnostics. Build and validate it from the repository root:"
     },
     {
-      "type": "paragraph",
-      "text": "The optional fleet port validates ownership and supplies per-ship fixed-tick controls plus requestSlowWarp. Call stepFleet before every normal 10 ms world tick, including when another ship is selected. All ships share a 1 ms progressive review budget per work slice. The browser editor also advances detached validation in bounded tasks between frames; those tasks cannot choose warp or ignite a burn. Follow-clock is the default. Optional authorizeWarp(shipId, scope) queries permission without clock writes: slowdown grants cover one upcoming node, auto-warp grants cover the explicitly armed run, including validated arrival corrections. A false result is pending; refusal may throw. Hosts without this port retain slowdown-only behavior through requestSlowWarp. Explicit Auto-warp between burns coordinates one clock against every active ship\u2019s preparation deadline and core motion safety limits, uses normal fixed ticks during alignment/thrust, and releases the clock at final cutoff. Manual warp cancels auto-warp runs. Arming and auto-warp permissions never persist in archives. Saved/imported plans contain no arming permission. Continue reviews actual flight and authorizes just the next pending node. clearPlan(shipId) removes intent after a successful reset or reposition without touching other ships. Optional setPaused allows explicit Execute to resume, revalidate authority and only then arm. Call manualWarp() before an explicit pilot warp change; it cancels conflicting execution without setting a replacement factor, and suspends the cancelled approach\u2019s reminder until review/edit. After a completed burn, the editor selects and reviews the next pending node without arming it. ManeuverPreview.completed suppresses the completed target while preserving pending nodes. Once every node is completed, the editor offers Clear completed plan; it calls clearPlan for the selected ship, removes its intent and markers, and leaves actual flight and other ships untouched."
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/maneuver-editor/module.json /tmp/example-maneuver-editor.spacemod\nnpm run module:validate -- /tmp/example-maneuver-editor.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "alignmentWarp (integer 1\u20134, default 4) allows explicitly authorized Execute/Continue and auto-warp plans to align at up to 4x, using the existing 10 ms attitude steps. Session adapters must call the normal before-step hooks during physical warp, before every tick; high analytic warp does not run these hooks. Preparation margins bound every running ship; thrust and final cutoff run at 1x. 1 retains real-time alignment. Follow-clock plans never raise warp, manual controls cancel automation, and host consent still gates automatic clock changes."
+      "type": "heading",
+      "text": "Related"
     },
     {
-      "type": "paragraph",
-      "text": "Future-body Continue/Execute uses detached bounded encounter forecasts instead of requiring the destination at the old impulse time. Explicitly authorized runs coast through SOI events, then re-review at actual entry. Optional FlightPlanNode.targetOrbit records periapsisAltitude/apoapsisAltitude above the destination reference radius. A feasible single-burn repair preserves that conic proposal; actual finite thrust/contact/SOI checks and a full captured revolution must pass before arming. If the inbound approach needs an extra correction, detached validation must qualify the correction, finite capture and full captured revolution. An explicitly enabled automatic plan retains its run permission, inserts the validated correction, executes it, then reviews capture against actual flight again. One-shot Execute/Continue instead stop at 1x and offer the correction and capture for explicit review. Missing goals, unsafe or uncorrectable target radii, insufficient preparation, changed flight or failed validation stop rather than reuse stale delta-v. Stop reasons stay visible beside the automatic-plan checkbox through asynchronous reviews until execution or rearming. Manual component/time edits clear the stored goal. Detached tasks have no clock/engine authority, saved plans remain inert, and manual/host permissions retain priority."
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
     },
     {
-      "type": "paragraph",
-      "text": "Optional ManeuverPlannerOptions.focusShip(shipId) handles a local select-and-follow request from a due node alarm. Hosts apply it after their current input/physics step so held controls cannot transfer to another ship. The per-node NodeAlarmSettings.focusShip flag defaults off and persists with inert intent; no camera or selection dependency is added to the pure orbital clock. The editor hides the checkbox without this host port. One focus request is emitted per delivery batch, using earliest deadline and stable ship ID to resolve ties."
+      "type": "link",
+      "text": "API reference: Maneuver editor",
+      "page": "api-reference/module/spacelab.maneuver-editor"
+    },
+    {
+      "type": "link",
+      "text": "game-api: maneuver.ts",
+      "page": "api-reference/game-api/maneuver"
+    },
+    {
+      "type": "link",
+      "text": "game-api: engine.ts",
+      "page": "api-reference/game-api/engine"
     }
   ]
 }

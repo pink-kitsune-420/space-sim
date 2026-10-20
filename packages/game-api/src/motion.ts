@@ -2,9 +2,11 @@ import type { Body, Controls, State, Vec } from './state';
 import type { MotionServices } from './services';
 import type { SurfaceProfile } from './surface';
 
+/** JSON-serializable value primitive or tree stored in module state. */
 export type ModuleValue = null | boolean | number | string | readonly ModuleValue[] | { readonly [key: string]: ModuleValue };
 /** Per-ship authoritative state. Each namespace is limited to 16 KiB of JSON. */
 export interface ModuleState { readonly version: number; readonly value: ModuleValue }
+/** State and control input for advancing one ship by a fixed simulation time step in SI units. */
 export interface MotionStep {
   readonly state: State;
   readonly controls: Controls;
@@ -12,6 +14,7 @@ export interface MotionStep {
   readonly body: Body;
   readonly surface?: SurfaceProfile;
 }
+/** Staged kinematic state and controls evaluated at integration kick stages in body-local coordinates. */
 export interface ForceEvaluation {
   /** Scheduler boundary tick; time is the actual integrator stage epoch in seconds. */
   readonly tick: number;
@@ -45,12 +48,14 @@ export interface ForceExtension {
  * may call it for verified terrain/water behavior, or supply its own bounded motion.
  * Calling it does not commit hook state; the outer motion boundary owns that commit. */
 export type NumericalKernel = (input: MotionStep) => State;
+/** Services provided to replacement integrators, including the base numerical kernel and acceleration query. */
 export interface DynamicsServices {
   readonly numerical: NumericalKernel;
   /** For replacement integrators that accept force contributions. Same staged state
    * and validation as the built-in kernel; position/velocity are stage values. */
   acceleration(time: number, position: Vec, velocity: Vec): Vec;
 }
+/** Integrator extension providing custom numerical or analytic flight stepping. */
 export interface DynamicsProvider {
   readonly id: string;
   readonly version: string;
@@ -58,6 +63,7 @@ export interface DynamicsProvider {
   readonly supportsForces: boolean;
   step(input: MotionStep, services: DynamicsServices): State;
 }
+/** Configuration options supplied when creating a per-ship or headless simulation motion context. */
 export interface MotionContextOptions {
   readonly services?: Partial<MotionServices>;
   /** Shared-world hooks require ordinary stepping even for stationary ships. */
@@ -67,6 +73,7 @@ export interface MotionContextOptions {
   /** Already resolved dependency/before/after order, captured at construction. */
   readonly forces?: readonly ForceExtension[];
 }
+/** Capabilities reported by a simulation context describing available analytic coasting, rails, and diagnostics. */
 export interface MotionCapabilities {
   readonly analyticCoast: boolean;
   readonly rails: boolean;

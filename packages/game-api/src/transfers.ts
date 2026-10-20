@@ -1,6 +1,7 @@
 import type { ServiceKey } from './modules-v2';
 import type { WorldRead } from './engine';
 import type { FlightPlan } from './flight-plans';
+/** Transfer window search request specifying ship, destination body, target altitudes in SI metres, and duration limits. */
 export interface TransferRequest {
  readonly shipId: string; readonly destinationId: string;
  /** SI metres above the destination's reference radius. Equal values select a circle. */
@@ -12,6 +13,7 @@ export interface TransferRequest {
   * declares parkingOrbits. */
  readonly highParking?: boolean;
 }
+/** Evaluated transfer route candidate providing flight plan nodes, burn times, delta-v breakdown in m/s, and route structure. */
 export interface TransferOption {
  readonly kind: 'efficient' | 'faster'; readonly plan: FlightPlan;
  readonly waitSeconds: number; readonly travelSeconds: number;
@@ -21,6 +23,7 @@ export interface TransferOption {
  /** Optional whole-route summary. IDs resolve through the same world hierarchy as the picker. */
  readonly route?: { readonly bodyIds:readonly string[];readonly stops:readonly string[];readonly maxFlightSeconds:number;readonly finiteValidated:boolean;readonly burns?:readonly {readonly nodeId:string;readonly deltaV:number;readonly seconds:number}[] };
 }
+/** Intermediate transfer search progress describing current phase, candidate counts, completion fraction, and best options so far. */
 export interface TransferProgress {
  /** Optional explanation of the leg or whole-route validation currently running. */
  readonly phase?: string;
@@ -33,6 +36,7 @@ export interface TransferProgress {
   * A new array signals changed results. Search may continue after publication. */
  readonly options?: readonly TransferOption[];
 }
+/** Final result of a bounded transfer search returning discovered options and an explanation if empty. */
 export interface TransferResult {
  /** Fully validated whole-route alternatives, including those dominated by the displayed options. */
  readonly compared?: {readonly direct:number;readonly staged:number};
@@ -40,6 +44,7 @@ export interface TransferResult {
 /** Inert bounded search; each next() performs one bounded candidate operation or shared
  * forecast yield. return() cancels owned forecasts/contexts. No controls or live stepping. */
 export type TransferRelationship = 'same-body' | 'child' | 'parent' | 'sibling' | 'other';
+/** Generator-based bounded orbital transfer solver evaluating same-body and interbody trajectories (`flight.transfers@1.0.0`). */
 export interface TransferPlanner {
  /** Bind the host-selected controller without a dependency on a higher module tier. */
  withBurns?(burns:import('./maneuver').ManeuverBurnFactory):TransferPlanner;
@@ -53,4 +58,5 @@ export interface TransferPlanner {
  readonly parkingOrbits?:boolean;
  search(world: WorldRead, request: TransferRequest): Generator<TransferProgress, TransferResult>;
 }
+/** Service key for the orbital transfer planner (`flight.transfers@1.0.0`). */
 export const TRANSFERS: ServiceKey<TransferPlanner> = Object.freeze({ slot: 'flight.transfers', version: '1.0.0' });

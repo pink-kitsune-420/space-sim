@@ -2,11 +2,100 @@
   "id": "usage",
   "audience": "creators",
   "title": "Maneuver vector display",
-  "summary": "Read-only node and predicted path overlays.",
+  "summary": "Removable node and predicted trajectory overlays over detached read-only snapshots.",
   "blocks": [
     {
+      "type": "heading",
+      "text": "What it does"
+    },
+    {
       "type": "paragraph",
-      "text": "This optional presentation contribution draws detached maneuver snapshots, with bounded Hermite path dashes and no world commands. It retains builtin.maneuver-planner and the original v1 adapter for default controls and saves. The v2 capability is view.maneuver-display@1.0.0; a planner editor can require it while a compatible read-only viewer can supply its own validated snapshot. Removal removes overlays and authoring UI enablement, preserving live physics. Shipped identity requires the exact catalogue pin; edited forks use creator IDs."
+      "text": "This presentation module contributes vector overlay primitives for displaying planned maneuver nodes, burn delta-v vectors, burn durations, and predicted post-burn trajectory paths. It draws node diamond markers, directional arrows, and decimated Hermite trajectory path segments in world coordinates without executing flight commands or mutating simulation state."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides view.maneuver-display@1.0.0 through presentation layer registration.",
+        "Declares no module slots.",
+        "Requires no external services in its module manifest."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers the maneuver presentation layer and contributes this guide.",
+        "During rendering, drawManeuver inspects the presentation view's active maneuver snapshot.",
+        "Generates world-space line primitives for node markers, delta-v arrows, and predicted path intervals.",
+        "Renders text primitives for countdowns, node labels, and delta-v magnitude readouts."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "To customize maneuver node visual markers or projected trajectory styling, contribute an alternative presentation provider implementing view.maneuver-display@1.0.0. Removing this module omits maneuver graphics from the rendered view while preserving planned burn execution."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: primitive generation contracts and trajectory Hermite decimation bounds may evolve prior to final API freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/maneuver-display demonstrates generating maneuver overlays from simulated view state and inspecting output primitives. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/maneuver-display/module.json /tmp/example-maneuver-display.spacemod\nnpm run module:validate -- /tmp/example-maneuver-display.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Maneuver vector display",
+      "page": "api-reference/module/builtin.maneuver-planner"
+    },
+    {
+      "type": "link",
+      "text": "game-api: presentation.ts",
+      "page": "api-reference/game-api/presentation"
+    },
+    {
+      "type": "link",
+      "text": "game-api: maneuver.ts",
+      "page": "api-reference/game-api/maneuver"
     }
   ]
 }

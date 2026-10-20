@@ -173,6 +173,7 @@ export interface FixedClock {
 }
 export interface ClockService { readonly stepSeconds: 0.01; readonly idle: Controls; readonly model: string; create(): FixedClock }
 export interface WarpSafety { readonly maxGranted: number; readonly reason?: string; readonly railsEligible: boolean }
+/** Authoritative simulation kernel providing context creation, motion services, warp limits, and vector utilities. */
 export interface CoreMotion {
   readonly services: MotionServices;
   createContext(settings?: Partial<VehicleDefaults>, options?: MotionContextOptions): SimulationContext;
@@ -188,5 +189,6 @@ export interface CoreCommands {
 export const CORE_WORLD: ServiceKey<WorldFactory> = Object.freeze({ slot: 'core.world', version: '1.0.0' });
 export const CORE_SAVE: ServiceKey<SaveCodec> = Object.freeze({ slot: 'core.save', version: '1.0.0' });
 export const CORE_CLOCK: ServiceKey<ClockService> = Object.freeze({ slot: 'core.clock', version: '1.0.0' });
+/** Service key for the core motion kernel (`core.motion@1.0.0`). */
 export const CORE_MOTION: ServiceKey<CoreMotion> = Object.freeze({ slot: 'core.motion', version: '1.0.0' });
 export const CORE_COMMANDS: ServiceKey<CoreCommands> = Object.freeze({ slot: 'core.commands', version: '1.0.0' });

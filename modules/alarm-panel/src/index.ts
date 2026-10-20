@@ -40,6 +40,11 @@ export function createAlarmPanels(windows:Pick<WindowSystem,'create'>|undefined,
   }catch(error){dock?.dispose();window?.dispose();throw error;}
  },dispose(){if(disposed)return;disposed=true;const errors:unknown[]=[];for(const panel of panels)try{panel.dispose();}catch(e){errors.push(e);}panels.clear();if(errors.length)throw new AggregateError(errors,'Alarm panels cleanup failed');}});
 }
+/**
+ * Contributes the Alarms dock instrument panel window over existing orbital clocks.
+ * Provides view.alarms@1.0.0 in slot view.alarms; requires flight.alarm-catalogue@^1.0.0
+ * and optionally consumes ui.windows@^1.0.0.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.provide(ALARM_PANELS,context.own(createAlarmPanels(context.tryUse(WINDOWS),context.use(ALARM_CATALOGUE))));
  context.contributeGuide({id:'usage',audience:'creators',title:'Alarms dock instrument',summary:'Optional read-only window over independent orbital clocks.',asset:'docs/creators/usage.json'});

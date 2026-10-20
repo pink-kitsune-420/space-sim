@@ -1,7 +1,8 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 12cfccc228fbb2c2",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0817caf64a51d088",
   "modules": [
+    "spacelab.alarm-panel",
     "spacelab.trainer-appearance",
     "spacelab.camera-follow",
     "spacelab.camera-smart",
@@ -21,11 +22,16 @@
     "spacelab.join-review",
     "spacelab.local-pilots",
     "spacelab.local-views",
+    "spacelab.maneuver-burn",
+    "builtin.maneuver-planner",
+    "spacelab.maneuver-editor",
     "builtin.navball",
     "spacelab.net-node-ws",
     "spacelab.net-tab",
     "spacelab.net-webrtc",
     "spacelab.net-websocket",
+    "spacelab.orbital-alarms",
+    "builtin.motion",
     "spacelab.player-controller",
     "spacelab.player-view",
     "spacelab.render-canvas",
@@ -37,6 +43,8 @@
     "spacelab.theme",
     "spacelab.theme-customizer",
     "spacelab.throttle-hud",
+    "spacelab.transfer-planner",
+    "spacelab.trainer",
     "spacelab.view-hud"
   ],
   "pages": [
@@ -51,7 +59,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 12cfccc228fbb2c2"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0817caf64a51d088"
         },
         {
           "type": "paragraph",
@@ -60,6 +68,11 @@
         {
           "type": "heading",
           "text": "Modules"
+        },
+        {
+          "type": "link",
+          "text": "Alarms dock instrument (spacelab.alarm-panel)",
+          "page": "api-reference/module/spacelab.alarm-panel"
         },
         {
           "type": "link",
@@ -158,6 +171,21 @@
         },
         {
           "type": "link",
+          "text": "Finite maneuver burns (spacelab.maneuver-burn)",
+          "page": "api-reference/module/spacelab.maneuver-burn"
+        },
+        {
+          "type": "link",
+          "text": "Maneuver vector display (builtin.maneuver-planner)",
+          "page": "api-reference/module/builtin.maneuver-planner"
+        },
+        {
+          "type": "link",
+          "text": "Maneuver editor (spacelab.maneuver-editor)",
+          "page": "api-reference/module/spacelab.maneuver-editor"
+        },
+        {
+          "type": "link",
           "text": "Navball HUD (builtin.navball)",
           "page": "api-reference/module/builtin.navball"
         },
@@ -180,6 +208,16 @@
           "type": "link",
           "text": "WebSocket transport (spacelab.net-websocket)",
           "page": "api-reference/module/spacelab.net-websocket"
+        },
+        {
+          "type": "link",
+          "text": "Orbital alarm clock (spacelab.orbital-alarms)",
+          "page": "api-reference/module/spacelab.orbital-alarms"
+        },
+        {
+          "type": "link",
+          "text": "Shared rails motion (builtin.motion)",
+          "page": "api-reference/module/builtin.motion"
         },
         {
           "type": "link",
@@ -238,12 +276,27 @@
         },
         {
           "type": "link",
+          "text": "Orbital transfer search (spacelab.transfer-planner)",
+          "page": "api-reference/module/spacelab.transfer-planner"
+        },
+        {
+          "type": "link",
+          "text": "Orbit trainer (spacelab.trainer)",
+          "page": "api-reference/module/spacelab.trainer"
+        },
+        {
+          "type": "link",
           "text": "Shared per-view HUD (spacelab.view-hud)",
           "page": "api-reference/module/spacelab.view-hud"
         },
         {
           "type": "heading",
           "text": "Game API topics"
+        },
+        {
+          "type": "link",
+          "text": "alarms.ts",
+          "page": "api-reference/game-api/alarms"
         },
         {
           "type": "link",
@@ -327,6 +380,11 @@
         },
         {
           "type": "link",
+          "text": "orbit.ts",
+          "page": "api-reference/game-api/orbit"
+        },
+        {
+          "type": "link",
           "text": "platform.ts",
           "page": "api-reference/game-api/platform"
         },
@@ -359,6 +417,11 @@
           "type": "link",
           "text": "rules.ts",
           "page": "api-reference/game-api/rules"
+        },
+        {
+          "type": "link",
+          "text": "services.ts",
+          "page": "api-reference/game-api/services"
         },
         {
           "type": "link",
@@ -407,6 +470,11 @@
         },
         {
           "type": "link",
+          "text": "transfers.ts",
+          "page": "api-reference/game-api/transfers"
+        },
+        {
+          "type": "link",
           "text": "universe.ts",
           "page": "api-reference/game-api/universe"
         },
@@ -439,6 +507,114 @@
           "type": "link",
           "text": "Code modules: manifests, packaging and installation",
           "page": "modules"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.alarm-panel",
+      "title": "Alarms dock instrument reference",
+      "summary": "Optional read-only window over independent orbital clocks.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional read-only window over independent orbital clocks."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.alarm-panel",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.alarms@1.0.0 · ALARM_PANELS: ServiceKey<AlarmPanelFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.windows@^1.0.0 (optional) · WINDOWS: ServiceKey<WindowSystem>",
+            "flight.alarm-catalogue@^1.0.0 · ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.alarms",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ALARM_CATALOGUE, ALARM_PANELS, AlarmPanel, AlarmPanelFactory, AlarmPanelOptions, Disposable, ModuleInitializationV2, OrbitalAlarmCatalogue, ServiceKey, WINDOWS, WindowChrome, WindowSystem"
+        },
+        {
+          "type": "link",
+          "text": "game-api alarms.ts",
+          "page": "api-reference/game-api/alarms"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api windows.ts",
+          "page": "api-reference/game-api/windows"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/alarm-panel (build with npm run module:build -- examples/modules/alarm-panel/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Alarms dock instrument: how to use, replace and remove it",
+          "page": "spacelab.alarm-panel/usage"
         }
       ]
     },
@@ -2476,6 +2652,392 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.maneuver-burn",
+      "title": "Finite maneuver burns reference",
+      "summary": "Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.maneuver-burn",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "flight.maneuver-burn@1.0.0 · MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.clock@^1.0.0 · CORE_CLOCK: ServiceKey<ClockService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: flight.maneuver-burn",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "CORE_CLOCK, ClockService, Controls, MANEUVER_BURNS, ManeuverBurnControl, ManeuverBurnFactory, ModuleInitializationV2, ServiceKey, State, Vec, VehicleDefaults, deterministicMath, flightTimeTolerance"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-plans.ts",
+          "page": "api-reference/game-api/flight-plans"
+        },
+        {
+          "type": "link",
+          "text": "game-api maneuver.ts",
+          "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/maneuver-burn (build with npm run module:build -- examples/modules/maneuver-burn/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/builtin.maneuver-planner",
+      "title": "Maneuver vector display reference",
+      "summary": "Removable node and predicted trajectory overlays over detached read-only snapshots.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Removable node and predicted trajectory overlays over detached read-only snapshots."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: builtin.maneuver-planner",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.maneuver-display@1.0.0"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: none",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "GhostSample, ManeuverPreview, ModuleInitializationV2, ModuleManifest, OverlayPrimitive, PresentationView, RegisteredModule, ServiceKey, Vec, createProjector, deterministicMath, maneuverDelta"
+        },
+        {
+          "type": "link",
+          "text": "game-api maneuver.ts",
+          "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/maneuver-display (build with npm run module:build -- examples/modules/maneuver-display/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.maneuver-editor",
+      "title": "Maneuver editor reference",
+      "summary": "Read-only candidate previews and validated host commands over shared floating windows.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Read-only candidate previews and validated host commands over shared floating windows."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.maneuver-editor",
+            "Version: 0.2.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.maneuver-planner@1.0.0 · MANEUVER_PLANNERS: ServiceKey<ManeuverPlannerFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>",
+            "core.clock@^1.0.0 · CORE_CLOCK: ServiceKey<ClockService>",
+            "ui.windows@^1.0.0 · WINDOWS: ServiceKey<WindowSystem>",
+            "view.prediction@^1.0.0 · PREDICTIONS: ServiceKey<PredictionFactory>",
+            "flight.maneuver-burn@^1.0.0 · MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory>",
+            "view.maneuver-display@^1.0.0",
+            "flight.plans@^1.0.0 (optional) · FLIGHT_PLANS: ServiceKey<FlightPlanService>",
+            "flight.transfers@^1.0.0 (optional) · TRANSFERS: ServiceKey<TransferPlanner>",
+            "flight.alarms@^1.0.0 (optional) · ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.maneuver-planner",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "previewMaxMs: number, default 1, from 0.1 to 8, step 0.1. Maneuver preview work (ms): Per-update wall-time budget for the independent planned-burn preview. Leaves live physics and the main coast preview unchanged.",
+            "uiRefreshMs: number, default 100, from 16 to 1000, step 1. Maneuver text refresh (ms): Minimum wall time between editor status/summary refreshes. Commands and trajectory validity still run at their existing boundaries.",
+            "alignmentWarp: number, default 4, from 1 to 4, step 1. Automatic alignment warp (×): Ship rotation speed during explicitly authorized automatic approaches. Choose 1 for real time, or 2–4 to align faster using the same accurate rotation physics. Engine burns run at 1×. Follow-clock plans never increase warp."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "CORE_CLOCK, CORE_MOTION, Camera, ClockService, Coast, Controls, CoreMotion, Disposable, EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanArchive, FlightPlanNode, FlightPlanProgress, FlightPlanService, FlightPrediction, GhostSample, MANEUVER_BURNS, MANEUVER_PLANNERS, MAX_FLIGHT_PLAN_SECONDS, ManeuverBurnControl, ManeuverBurnFactory, ManeuverFlight, ManeuverPlannerControl, ManeuverPlannerFactory, ManeuverPlannerOptions, ManeuverPreview, ModuleInitializationV2, NodeAlarmSettings, ORBITAL_ALARMS, OrbitalAlarmClock, OrbitalAlarmEvent, OrbitalAlarmFactory, PREDICTIONS, PredictionFactory, ServiceKey, Ship, SimulationContext, State, TRANSFERS, TransferOption, TransferPlanner, TransferProgress, TransferRelationship, TransferResult, Vec, WINDOWS, WindowChrome, WindowSystem, WorldRead, createProjector, deterministicMath, flightSampleInFrame, flightTimeTolerance, hermiteControls, maneuverDelta"
+        },
+        {
+          "type": "link",
+          "text": "game-api alarms.ts",
+          "page": "api-reference/game-api/alarms"
+        },
+        {
+          "type": "link",
+          "text": "game-api context.ts",
+          "page": "api-reference/game-api/context"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-plans.ts",
+          "page": "api-reference/game-api/flight-plans"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api maneuver.ts",
+          "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-math.ts",
+          "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api transfers.ts",
+          "page": "api-reference/game-api/transfers"
+        },
+        {
+          "type": "link",
+          "text": "game-api windows.ts",
+          "page": "api-reference/game-api/windows"
+        },
+        {
+          "type": "link",
+          "text": "game-api world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/maneuver-editor (build with npm run module:build -- examples/modules/maneuver-editor/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/builtin.navball",
       "title": "Navball HUD reference",
       "summary": "Optional attitude instrument using the shared HUD lifecycle.",
@@ -2976,6 +3538,229 @@
         {
           "type": "paragraph",
           "text": "Example source: examples/modules/net-websocket (build with npm run module:build -- examples/modules/net-websocket/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.orbital-alarms",
+      "title": "Orbital alarm clock reference",
+      "summary": "Bounded isolated clocks with no engine or host commands.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bounded isolated clocks with no engine or host commands."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.orbital-alarms",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "flight.alarms@1.0.0 · ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory>",
+            "flight.alarm-catalogue@1.0.0 · ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: flight.alarms, flight.alarm-catalogue",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ALARM_CATALOGUE, Disposable, ModuleInitializationV2, ORBITAL_ALARMS, OrbitalAlarmCatalogue, OrbitalAlarmClock, OrbitalAlarmEvent, OrbitalAlarmFactory, OrbitalAlarmNotice, OrbitalAlarmStatus, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api alarms.ts",
+          "page": "api-reference/game-api/alarms"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/orbital-alarms (build with npm run module:build -- examples/modules/orbital-alarms/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Simulation-time orbital alarms: how to use, replace and remove it",
+          "page": "spacelab.orbital-alarms/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/builtin.motion",
+      "title": "Shared rails motion reference",
+      "summary": "Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: builtin.motion",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: authoritative",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "builtin.motion@1.0.0",
+            "motion@1.0.0 · MOTION_CONTEXTS: ServiceKey<SimulationContextFactory>",
+            "orbits@1.0.0 · ORBITAL_MOTION: ServiceKey<OrbitalProvider>",
+            "bodies@1.0.0 · BODY_FRAMES: ServiceKey<BodyFrameProvider>",
+            "surfaces@1.0.0 · SURFACE_GEOMETRY: ServiceKey<SurfaceProvider>",
+            "rails@1.0.0 · RAILS_POLICY: ServiceKey<RailsProvider>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: motion, orbits, bodies, surfaces, rails",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "BODY_FRAMES, BodyFrameProvider, CORE_MOTION, CoreMotion, Elements, MOTION_CONTEXTS, ModuleInitializationV2, ORBITAL_MOTION, OrbitalProvider, OrbitalState, RAILS_POLICY, RailsProvider, RegisteredModule, SURFACE_GEOMETRY, ServiceKey, SimulationContext, SimulationContextFactory, SurfaceProvider, VehicleDefaults"
+        },
+        {
+          "type": "link",
+          "text": "game-api context.ts",
+          "page": "api-reference/game-api/context"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api orbit.ts",
+          "page": "api-reference/game-api/orbit"
+        },
+        {
+          "type": "link",
+          "text": "game-api services.ts",
+          "page": "api-reference/game-api/services"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/physics-rails (build with npm run module:build -- examples/modules/physics-rails/module.json out.spacemod)."
         }
       ]
     },
@@ -4239,6 +5024,218 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.transfer-planner",
+      "title": "Orbital transfer search reference",
+      "summary": "Editable bounded same-body and interbody transfers over selected moving-frame prediction contracts.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Editable bounded same-body and interbody transfers over selected moving-frame prediction contracts."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.transfer-planner",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "flight.transfers@1.0.0 · TRANSFERS: ServiceKey<TransferPlanner>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "flight.plans@^1.0.0 · FLIGHT_PLANS: ServiceKey<FlightPlanService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: flight.transfers",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanNode, FlightPlanService, GhostEnd, GhostSample, MAX_FLIGHT_PLAN_SECONDS, ManeuverBurnFactory, ModuleInitializationV2, ServiceKey, Ship, State, TRANSFERS, TransferOption, TransferPlanner, TransferProgress, TransferRelationship, TransferRequest, TransferResult, Vec, WorldRead, deterministicMath, flightSampleInFrame, flightTimeTolerance, maneuverDelta"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-plans.ts",
+          "page": "api-reference/game-api/flight-plans"
+        },
+        {
+          "type": "link",
+          "text": "game-api maneuver.ts",
+          "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api transfers.ts",
+          "page": "api-reference/game-api/transfers"
+        },
+        {
+          "type": "link",
+          "text": "game-api world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/transfer-planner (build with npm run module:build -- examples/modules/transfer-planner/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Bounded orbital transfer search: how to use, replace and remove it",
+          "page": "spacelab.transfer-planner/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.trainer",
+      "title": "Orbit trainer reference",
+      "summary": "Per-craft handling over shared physics, with explicit save/session identity.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Per-craft handling over shared physics, with explicit save/session identity."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.trainer",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: authoritative",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: none",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleDefinition"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api vehicles.ts",
+          "page": "api-reference/game-api/vehicles"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/vehicle-trainer (build with npm run module:build -- examples/modules/vehicle-trainer/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.view-hud",
       "title": "Shared per-view HUD reference",
       "summary": "Optional instruments with independent per-view lifetimes.",
@@ -4339,6 +5336,222 @@
       ]
     },
     {
+      "id": "api-reference/game-api/alarms",
+      "title": "game-api: alarms.ts",
+      "summary": "Declarations from alarms.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/alarms.ts."
+        },
+        {
+          "type": "heading",
+          "text": "NodeAlarmSettings"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portable reminder preferences; notified survives save/load without saving execution."
+        },
+        {
+          "type": "code",
+          "text": "export interface NodeAlarmSettings {\n readonly enabled: boolean; readonly leadSeconds: number; readonly pause: boolean;\n /** Optional local presentation request; absent/false leaves selection and camera alone. */\n readonly focusShip?: boolean;\n readonly notified?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalAlarmEvent"
+        },
+        {
+          "type": "paragraph",
+          "text": "Declared orbital reminder event with simulation-second deadline, impulse center time, and pause flag."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalAlarmEvent {\n readonly id: string; readonly kind: string; readonly label: string;\n /** Simulation seconds: reminder deadline and physical event/impulse centre. */\n readonly deadline: number; readonly time: number; readonly pause: boolean;\n readonly handled?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalAlarmNotice"
+        },
+        {
+          "type": "paragraph",
+          "text": "Delivered orbital alarm notice indicating arrival or missed status when delivered past event time."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalAlarmNotice extends OrbitalAlarmEvent { readonly missed: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalAlarmClock"
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalAlarmClock extends Disposable {\n /** Borrowed result buffer, valid until next sync. Each due event fires once, even\n  * after a time jump. Session identity or time rewind clears prior in-memory state.\n  * Call with the complete current set (max 1024); omitted events are deleted. */\n sync(session: object, now: number, events: readonly OrbitalAlarmEvent[]): readonly OrbitalAlarmNotice[];\n readonly secondsUntilNext: number;\n clear(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalAlarmFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating independent simulation-time orbital alarm clocks (`flight.alarms@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalAlarmFactory { create(): OrbitalAlarmClock }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "ORBITAL_ALARMS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the orbital alarm clock factory (`flight.alarms@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory> = Object.freeze({ slot: 'flight.alarms', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalAlarmStatus"
+        },
+        {
+          "type": "paragraph",
+          "text": "Read-only inspection; never an arming, delivery or host-control interface."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalAlarmStatus extends OrbitalAlarmEvent { readonly now: number; readonly handled: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalAlarmCatalogue"
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalAlarmCatalogue {\n /** Detached snapshot of current events for one opaque session identity, max1024.\n  * Clocks own their schedule; removing a clock removes its catalogue entries. */\n read(session: object): readonly OrbitalAlarmStatus[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel, spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "ALARM_CATALOGUE"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the read-only orbital alarm catalogue (`flight.alarm-catalogue@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue> = Object.freeze({slot:'flight.alarm-catalogue',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel, spacelab.orbital-alarms."
+        },
+        {
+          "type": "heading",
+          "text": "AlarmPanelOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for creating an Alarms dock instrument panel window over an active session."
+        },
+        {
+          "type": "code",
+          "text": "export interface AlarmPanelOptions {\n readonly id?: string; readonly container: HTMLElement;\n /** Optional explicit host chrome; otherwise use the selected ui.windows provider. */\n readonly windows?: Pick<WindowSystem,'create'>;\n readonly shell?: Pick<WindowShell,'addInstrument'>;\n session(): object;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel."
+        },
+        {
+          "type": "heading",
+          "text": "AlarmPanel"
+        },
+        {
+          "type": "paragraph",
+          "text": "Removable dock/window presentation panel displaying pending and delivered orbital alarms."
+        },
+        {
+          "type": "code",
+          "text": "export interface AlarmPanel extends Disposable { update(): void }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel."
+        },
+        {
+          "type": "heading",
+          "text": "AlarmPanelFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory creating alarm dock instrument panels (`view.alarms@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface AlarmPanelFactory { create(options: AlarmPanelOptions): AlarmPanel }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel."
+        },
+        {
+          "type": "heading",
+          "text": "ALARM_PANELS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the alarm dock instrument panel factory (`view.alarms@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const ALARM_PANELS: ServiceKey<AlarmPanelFactory> = Object.freeze({slot:'view.alarms',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/chat",
       "title": "game-api: chat.ts",
       "summary": "Declarations from chat.ts used by documented modules.",
@@ -4377,7 +5590,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.chat-console, spacelab.hud-layout."
+          "text": "Used by: spacelab.alarm-panel, spacelab.chat-console."
         },
         {
           "type": "heading",
@@ -4517,7 +5730,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: builtin.motion, spacelab.flight-prediction, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -4533,7 +5746,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: builtin.motion, spacelab.session-flight."
         },
         {
           "type": "link",
@@ -4597,7 +5810,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -4669,11 +5882,15 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight."
         },
         {
           "type": "heading",
           "text": "CoreMotion"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authoritative simulation kernel providing context creation, motion services, warp limits, and vector utilities."
         },
         {
           "type": "code",
@@ -4681,7 +5898,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight."
+          "text": "Used by: builtin.motion, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.trainer."
         },
         {
           "type": "heading",
@@ -4729,11 +5946,15 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.session-flight."
+          "text": "Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight."
         },
         {
           "type": "heading",
           "text": "CORE_MOTION"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the core motion kernel (`core.motion@1.0.0`)."
         },
         {
           "type": "code",
@@ -4741,7 +5962,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight."
+          "text": "Used by: builtin.motion, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.trainer."
         },
         {
           "type": "heading",
@@ -5077,7 +6298,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5093,7 +6314,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5109,7 +6330,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5125,7 +6346,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5137,7 +6358,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -5153,7 +6374,19 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "FlightPlanProgress"
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightPlanProgress { readonly node: number; readonly sample?: GhostSample }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -5193,7 +6426,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5209,7 +6442,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -5225,7 +6458,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "link",
@@ -5449,7 +6682,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -5465,7 +6698,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -5481,7 +6714,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -6125,7 +7358,27 @@
         },
         {
           "type": "heading",
+          "text": "ManeuverBurnControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Local intent policy. Call before each compatible fixed tick; the session validates ownership/commands and advances the world. Disposal never mutates authority."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverBurnControl extends Disposable {\n readonly time: number; readonly delta: Vec; readonly start: number;\n readonly phase: 'aligning' | 'waiting' | 'burning' | 'complete';\n readonly remaining: number;\n next(state: State): { readonly controls: Controls; readonly throttle?: number };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-burn, spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
           "text": "ManeuverBurnFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory for creating finite maneuver burn controllers given planned burn time, delta-v in m/s, and vehicle handling."
         },
         {
           "type": "code",
@@ -6133,7 +7386,23 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "MANEUVER_BURNS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the finite maneuver burn factory (`flight.maneuver-burn@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory> = Object.freeze({ slot: 'flight.maneuver-burn', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-burn, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -6149,7 +7418,87 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-plans."
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "ManeuverFlight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Flight context and host authority state supplied to maneuver planners in SI units and simulation seconds."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverFlight {\n readonly world: WorldRead; readonly ship?: Ship;\n readonly body: ResolvedBody;\n readonly enabled: boolean; readonly canWarp: boolean; readonly paused: boolean; readonly inputBlocked: boolean;\n readonly warp: number; readonly requestedWarp: number; readonly warpReason?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
+          "text": "ManeuverPlannerOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration and host authority callbacks for creating an interactive maneuver planner window and editor."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverPlannerOptions {\n readonly container: HTMLElement; readonly id?: string;\n readonly shell?: Pick<WindowShell, 'addInstrument'>;\n /** Optional live map surface. Coordinates use CSS pixels and the displayed camera;\n  * origin is the active body's world position. Omit to use the window editor alone. */\n map?(): { readonly element: HTMLElement; readonly camera: Camera; readonly origin: Vec } | undefined;\n flight(): ManeuverFlight;\n /** Optional authoritative fleet port. Saved plans never carry execution permission. */\n readonly fleet?: {\n  owns(shipId: string): boolean;\n  setControls(shipId: string, controls: Controls): void;\n  /** Request 1×; false means pending/refused. Multiplayer requires host approval. */\n  requestSlowWarp(shipId: string): boolean;\n  /** Optional permission query without clock writes. An auto-warp grant covers\n   * this explicitly armed plan; a slowdown grant covers one upcoming burn. */\n  authorizeWarp?(shipId: string, scope: {readonly id: string;readonly mode: 'slowdown'|'auto-warp'}): boolean;\n };\n setWarp(factor: number): void;\n /** Optional host pause command; explicitly executing a burn may resume flight.\n  * Alarms never use engine/execution commands. */\n setPaused?(paused: boolean): void;\n /** Optional local alarm action: select this ship and follow it with the camera.\n  * Hosts should apply after their current input/physics step to avoid rerouting held input. */\n focusShip?(shipId: string): void;\n setThrottle(shipId: string, throttle: number): void;\n releaseControls(shipId: string): void;\n notify(text: string): void;\n event?(kind: string, detail: Record<string, unknown>): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
+          "text": "ManeuverPlannerControl"
+        },
+        {
+          "type": "paragraph",
+          "text": "Interactive maneuver planner controller managing candidate nodes, previews, execution steps, and plan persistence."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverPlannerControl extends Disposable {\n readonly executing: boolean;\n /** Open the transfer search directly without placing or arming a burn. */\n openTransfers?(): void;\n savePlans(): FlightPlanArchive;\n loadPlans(raw: unknown): void;\n /** Optional targeted cleanup when a ship is reset or explicitly repositioned. */\n clearPlan?(shipId: string): void;\n /** Session-local arming state, never restored from a plan archive. */\n isAutomatic?(shipId: string): boolean;\n /** Give explicit pilot warp input priority, without writing a new warp factor. */\n manualWarp?(): void;\n cancel(): void;\n /** Optional fixed-tick hook for independently armed owned ships. */\n stepFleet?(): void;\n step(manual: Controls): Controls;\n beforeAdvance(controls: Controls): void;\n place(pointer: Vec, camera: Camera, origin: Vec, width: number, height: number, prediction: FlightPrediction): boolean;\n update(seconds: number, prediction: FlightPrediction, engine: boolean): void;\n snapshot(): ManeuverPreview | undefined;\n diagnostics(): Record<string, unknown> | null;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
+          "text": "ManeuverPlannerFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory for creating independent maneuver planner controllers (`view.maneuver-planner@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverPlannerFactory { create(options: ManeuverPlannerOptions): ManeuverPlannerControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
+          "text": "MANEUVER_PLANNERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the maneuver planner factory (`view.maneuver-planner@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const MANEUVER_PLANNERS: ServiceKey<ManeuverPlannerFactory> = Object.freeze({ slot: 'view.maneuver-planner', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor."
         },
         {
           "type": "link",
@@ -6241,7 +7590,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud."
+          "text": "Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -6253,7 +7602,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball."
         },
         {
           "type": "heading",
@@ -6269,7 +7618,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.trainer-appearance."
+          "text": "Used by: spacelab.alarm-panel."
         },
         {
           "type": "heading",
@@ -6281,7 +7630,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.throttle-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.throttle-hud."
         },
         {
           "type": "heading",
@@ -6341,7 +7690,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -6365,7 +7714,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "link",
@@ -6542,6 +7891,46 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.net-node-ws."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/orbit",
+      "title": "game-api: orbit.ts",
+      "summary": "Declarations from orbit.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/orbit.ts."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalState"
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalState { readonly position: Vec; readonly velocity: Vec }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "Elements"
+        },
+        {
+          "type": "code",
+          "text": "export interface Elements {\n  readonly energy: number;\n  readonly angularMomentum: number;\n  readonly eccentricityVector: Vec;\n  readonly eccentricity: number;\n  readonly semilatusRectum: number;\n  readonly periapsis: number;\n  readonly apoapsis: number | null;\n  readonly semiMajorAxis: number | null;\n  readonly period: number | null;\n  readonly periapsisAngle: number | null;\n  readonly kind: 'elliptic' | 'parabolic' | 'hyperbolic';\n  readonly radial: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
         },
         {
           "type": "link",
@@ -7409,7 +8798,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.camera-follow, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme."
+          "text": "Used by: spacelab.camera-follow, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme."
         },
         {
           "type": "heading",
@@ -7621,7 +9010,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -7637,7 +9026,19 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball."
+        },
+        {
+          "type": "heading",
+          "text": "ManeuverPreview"
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverPreview {\n  /** Completed nodes remain in the editor journal but no longer draw burn targets. */\n  readonly completed?: boolean;\n  readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly completed?: boolean; readonly valid: boolean; readonly deltaVelocity?: Vec; readonly throttleBurnSeconds?: number | null }[];\n  readonly time: number;\n  readonly position: Vec;\n  readonly deltaVelocity: Vec;\n  readonly burnSeconds: number;\n  /** Estimate at the current throttle setting, even with engines off. Null means no thrust. */\n  readonly throttleBurnSeconds?: number | null;\n  readonly throttle?: number;\n  readonly remainingDeltaV?: number;\n  readonly valid: boolean;\n  readonly path: readonly GhostSample[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.maneuver-planner, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -7649,7 +9050,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball."
         },
         {
           "type": "heading",
@@ -7705,7 +9106,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: builtin.maneuver-planner, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -7765,7 +9166,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -8118,6 +9519,178 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.session-flight."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/services",
+      "title": "game-api: services.ts",
+      "summary": "Declarations from services.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/services.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ProviderIdentity"
+        },
+        {
+          "type": "code",
+          "text": "export interface ProviderIdentity {\n  readonly id: string;\n  readonly version: string;\n  /** All parameters affecting behavior; local identity, not a package fingerprint. */\n  readonly modelIdentity: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "OrbitalProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "Analytic providers promise two-body propagation and conservative radius events. A provider without that verified contract sets analytic=false; ordinary motion remains usable."
+        },
+        {
+          "type": "code",
+          "text": "export interface OrbitalProvider extends ProviderIdentity {\n  readonly analytic: boolean;\n  elements(state: OrbitalState, mu: number): Elements;\n  propagate(state: OrbitalState, mu: number, seconds: number, options?: SolverOptions): Propagation;\n  timeToRadius(state: OrbitalState, mu: number, radius: number, direction: 'inbound' | 'outbound', elements?: Elements): number | null;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "All geometry uses the public radial SurfaceProfile contract. Query, contact and generation must agree, including preset placement, water and prediction."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  support(profile: SurfaceProfile, angle: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "BodyFrameProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "Owns ephemerides, coordinate changes, SOI selection and preset placement. Returned systems are isolated per world; mutable derived ephemeris caches are permitted."
+        },
+        {
+          "type": "code",
+          "text": "export interface BodyFrameProvider extends ProviderIdentity {\n  load(universe: UniverseDefinition, systemId: string, surfaces: SurfaceProvider): LoadedSystem;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "RailsProvider"
+        },
+        {
+          "type": "paragraph",
+          "text": "Sleep requires an explicit compatible binding and a conservative event horizon. 0 means unknown; Infinity is allowed only when no event is possible. The world additionally checks idle controls, contact and exact fixed-point eligibility. Evaluation uses the selected orbital provider and the context's guarded coastAt."
+        },
+        {
+          "type": "code",
+          "text": "export interface RailsProvider extends ProviderIdentity {\n  readonly compatible: readonly RailsBinding[];\n  horizon(system: LoadedSystem, body: ResolvedBody, state: OrbitalState, epoch: OrbitalState, time: number, top: number): number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "MOTION_CONTEXTS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the simulation motion context factory (`motion@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const MOTION_CONTEXTS: ServiceKey<SimulationContextFactory> = Object.freeze({ slot: 'motion', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "ORBITAL_MOTION"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for orbital mechanics calculation service (`orbits@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const ORBITAL_MOTION: ServiceKey<OrbitalProvider> = Object.freeze({ slot: 'orbits', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "BODY_FRAMES"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for celestial body frame resolution service (`bodies@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const BODY_FRAMES: ServiceKey<BodyFrameProvider> = Object.freeze({ slot: 'bodies', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "SURFACE_GEOMETRY"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for surface terrain and collision geometry query service (`surfaces@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const SURFACE_GEOMETRY: ServiceKey<SurfaceProvider> = Object.freeze({ slot: 'surfaces', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
+        },
+        {
+          "type": "heading",
+          "text": "RAILS_POLICY"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for rails horizon evaluation and sleep scheduling policy (`rails@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const RAILS_POLICY: ServiceKey<RailsProvider> = Object.freeze({ slot: 'rails', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion."
         },
         {
           "type": "link",
@@ -8521,7 +10094,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -8549,7 +10122,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -8561,7 +10134,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.fleet-view."
+          "text": "Used by: spacelab.fleet-view, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -8573,7 +10146,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.session-flight."
+          "text": "Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -8597,7 +10170,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: builtin.maneuver-planner, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.transfer-planner."
         },
         {
           "type": "heading",
@@ -8613,7 +10186,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.flight-prediction."
+          "text": "Used by: spacelab.flight-prediction, spacelab.transfer-planner."
         },
         {
           "type": "link",
@@ -9007,6 +10580,134 @@
       ]
     },
     {
+      "id": "api-reference/game-api/transfers",
+      "title": "game-api: transfers.ts",
+      "summary": "Declarations from transfers.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/transfers.ts."
+        },
+        {
+          "type": "heading",
+          "text": "TransferRequest"
+        },
+        {
+          "type": "paragraph",
+          "text": "Transfer window search request specifying ship, destination body, target altitudes in SI metres, and duration limits."
+        },
+        {
+          "type": "code",
+          "text": "export interface TransferRequest {\n readonly shipId: string; readonly destinationId: string;\n /** SI metres above the destination's reference radius. Equal values select a circle. */\n readonly periapsisAltitude: number; readonly apoapsisAltitude: number;\n /** Optional total search horizon from the source epoch, in SI seconds. */\n readonly maxFlightSeconds?: number;\n /** Staged routes park in a high orbit beside the neighbouring moon when true or\n  * omitted; false keeps low parking near each stop body. Honoured when the provider\n  * declares parkingOrbits. */\n readonly highParking?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "TransferOption"
+        },
+        {
+          "type": "paragraph",
+          "text": "Evaluated transfer route candidate providing flight plan nodes, burn times, delta-v breakdown in m/s, and route structure."
+        },
+        {
+          "type": "code",
+          "text": "export interface TransferOption {\n readonly kind: 'efficient' | 'faster'; readonly plan: FlightPlan;\n readonly waitSeconds: number; readonly travelSeconds: number;\n readonly deltaV: number; readonly departureDeltaV: number; readonly arrivalDeltaV: number;\n readonly departureBurnSeconds: number; readonly arrivalBurnSeconds: number;\n readonly warning: string;\n /** Optional whole-route summary. IDs resolve through the same world hierarchy as the picker. */\n readonly route?: { readonly bodyIds:readonly string[];readonly stops:readonly string[];readonly maxFlightSeconds:number;readonly finiteValidated:boolean;readonly burns?:readonly {readonly nodeId:string;readonly deltaV:number;readonly seconds:number}[] };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "TransferProgress"
+        },
+        {
+          "type": "paragraph",
+          "text": "Intermediate transfer search progress describing current phase, candidate counts, completion fraction, and best options so far."
+        },
+        {
+          "type": "code",
+          "text": "export interface TransferProgress {\n /** Optional explanation of the leg or whole-route validation currently running. */\n readonly phase?: string;\n readonly tested: number; readonly total: number; readonly accepted: number;\n /** Optional whole-search completion estimate in [0, 1], nondecreasing for one search.\n  * tested/total may describe only the current leg or phase; hosts show progress as\n  * indeterminate when this is absent. */\n readonly fraction?: number;\n /** Fully validated best options so far; optional for existing providers.\n  * A new array signals changed results. Search may continue after publication. */\n readonly options?: readonly TransferOption[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "TransferResult"
+        },
+        {
+          "type": "paragraph",
+          "text": "Final result of a bounded transfer search returning discovered options and an explanation if empty."
+        },
+        {
+          "type": "code",
+          "text": "export interface TransferResult {\n /** Fully validated whole-route alternatives, including those dominated by the displayed options. */\n readonly compared?: {readonly direct:number;readonly staged:number};\n readonly options: readonly TransferOption[]; readonly reason: string }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "TransferRelationship"
+        },
+        {
+          "type": "paragraph",
+          "text": "Inert bounded search; each next() performs one bounded candidate operation or shared forecast yield. return() cancels owned forecasts/contexts. No controls or live stepping."
+        },
+        {
+          "type": "code",
+          "text": "export type TransferRelationship = 'same-body' | 'child' | 'parent' | 'sibling' | 'other';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "TransferPlanner"
+        },
+        {
+          "type": "paragraph",
+          "text": "Generator-based bounded orbital transfer solver evaluating same-body and interbody trajectories (`flight.transfers@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface TransferPlanner {\n /** Bind the host-selected controller without a dependency on a higher module tier. */\n withBurns?(burns:ManeuverBurnFactory):TransferPlanner;\n /** Optional solver coverage for destination browsing. Absent: the search explains\n  * suitability. A relationship being listed is not a feasibility guarantee. */\n readonly relationships?: readonly TransferRelationship[];\n /** Optional bounds for an explicit mission-duration input. */\n readonly maxFlightSeconds?:number;\n readonly defaultFlightSeconds?:number;\n /** True when search honours TransferRequest.highParking for intermediate stops. */\n readonly parkingOrbits?:boolean;\n search(world: WorldRead, request: TransferRequest): Generator<TransferProgress, TransferResult>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "heading",
+          "text": "TRANSFERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the orbital transfer planner (`flight.transfers@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const TRANSFERS: ServiceKey<TransferPlanner> = Object.freeze({ slot: 'flight.transfers', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.maneuver-editor, spacelab.transfer-planner."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/universe",
       "title": "game-api: universe.ts",
       "summary": "Declarations from universe.ts used by documented modules.",
@@ -9030,6 +10731,18 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "VehicleDefaults"
+        },
+        {
+          "type": "code",
+          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: builtin.motion, spacelab.maneuver-burn."
         },
         {
           "type": "heading",
@@ -9085,7 +10798,23 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.trainer-appearance."
+          "text": "Used by: spacelab.trainer, spacelab.trainer-appearance."
+        },
+        {
+          "type": "heading",
+          "text": "VehicleDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Immutable authoritative handling, in SI units. Omitted handling uses the selected system's vehicleDefaults, preserving the trainer's existing configuration precedence."
+        },
+        {
+          "type": "code",
+          "text": "export interface VehicleDefinition {\n  readonly id: string;\n  readonly name: string;\n  readonly handling?: Readonly<VehicleDefaults>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.trainer."
         },
         {
           "type": "heading",
@@ -9557,6 +11286,18 @@
         },
         {
           "type": "heading",
+          "text": "WindowChrome"
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowChrome extends Disposable {\n  readonly element: HTMLElement; readonly body: HTMLElement; readonly icon: WindowIcon;\n  readonly isOpen: boolean; readonly pinned: boolean; readonly isFront: boolean;\n  open(): void; close(): void; raise(): void; setPinned(pinned: boolean): void;\n  onChange(listener: () => void): Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.alarm-panel, spacelab.maneuver-editor."
+        },
+        {
+          "type": "heading",
           "text": "WindowSystem"
         },
         {
@@ -9565,7 +11306,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.hud-layout."
+          "text": "Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor."
         },
         {
           "type": "heading",
@@ -9577,7 +11318,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.hud-layout."
+          "text": "Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor."
         },
         {
           "type": "link",
@@ -9609,7 +11350,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.session-flight."
+          "text": "Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner."
         },
         {
           "type": "heading",

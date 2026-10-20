@@ -7,10 +7,11 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 12cfccc228fbb2c2
+Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0817caf64a51d088
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
+-> Alarms dock instrument (spacelab.alarm-panel) [api-reference/module/spacelab.alarm-panel]
 -> Trainer vector appearance (spacelab.trainer-appearance) [api-reference/module/spacelab.trainer-appearance]
 -> Independent follow cameras (spacelab.camera-follow) [api-reference/module/spacelab.camera-follow]
 -> Smart camera add-on (spacelab.camera-smart) [api-reference/module/spacelab.camera-smart]
@@ -30,11 +31,16 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Server pack review (spacelab.join-review) [api-reference/module/spacelab.join-review]
 -> Local pilots (spacelab.local-pilots) [api-reference/module/spacelab.local-pilots]
 -> Local views (spacelab.local-views) [api-reference/module/spacelab.local-views]
+-> Finite maneuver burns (spacelab.maneuver-burn) [api-reference/module/spacelab.maneuver-burn]
+-> Maneuver vector display (builtin.maneuver-planner) [api-reference/module/builtin.maneuver-planner]
+-> Maneuver editor (spacelab.maneuver-editor) [api-reference/module/spacelab.maneuver-editor]
 -> Navball HUD (builtin.navball) [api-reference/module/builtin.navball]
 -> Node WebSocket server transport (spacelab.net-node-ws) [api-reference/module/spacelab.net-node-ws]
 -> Scoped tab transport (spacelab.net-tab) [api-reference/module/spacelab.net-tab]
 -> Manual WebRTC transport (spacelab.net-webrtc) [api-reference/module/spacelab.net-webrtc]
 -> WebSocket transport (spacelab.net-websocket) [api-reference/module/spacelab.net-websocket]
+-> Orbital alarm clock (spacelab.orbital-alarms) [api-reference/module/spacelab.orbital-alarms]
+-> Shared rails motion (builtin.motion) [api-reference/module/builtin.motion]
 -> Player controller (spacelab.player-controller) [api-reference/module/spacelab.player-controller]
 -> Player view adapters (spacelab.player-view) [api-reference/module/spacelab.player-view]
 -> Canvas 2D (spacelab.render-canvas) [api-reference/module/spacelab.render-canvas]
@@ -46,9 +52,12 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> Theme and procedural backdrop (spacelab.theme) [api-reference/module/spacelab.theme]
 -> Theme controls (spacelab.theme-customizer) [api-reference/module/spacelab.theme-customizer]
 -> Throttle HUD (spacelab.throttle-hud) [api-reference/module/spacelab.throttle-hud]
+-> Orbital transfer search (spacelab.transfer-planner) [api-reference/module/spacelab.transfer-planner]
+-> Orbit trainer (spacelab.trainer) [api-reference/module/spacelab.trainer]
 -> Shared per-view HUD (spacelab.view-hud) [api-reference/module/spacelab.view-hud]
 
 ## Game API topics
+-> alarms.ts [api-reference/game-api/alarms]
 -> chat.ts [api-reference/game-api/chat]
 -> commands.ts [api-reference/game-api/commands]
 -> context.ts [api-reference/game-api/context]
@@ -65,6 +74,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> modules-v2.ts [api-reference/game-api/modules-v2]
 -> motion.ts [api-reference/game-api/motion]
 -> node-transport.ts [api-reference/game-api/node-transport]
+-> orbit.ts [api-reference/game-api/orbit]
 -> platform.ts [api-reference/game-api/platform]
 -> player-view.ts [api-reference/game-api/player-view]
 -> presentation.ts [api-reference/game-api/presentation]
@@ -72,6 +82,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> rendering.ts [api-reference/game-api/rendering]
 -> rotation.ts [api-reference/game-api/rotation]
 -> rules.ts [api-reference/game-api/rules]
+-> services.ts [api-reference/game-api/services]
 -> session.ts [api-reference/game-api/session]
 -> session-discovery.ts [api-reference/game-api/session-discovery]
 -> shader-format.ts [api-reference/game-api/shader-format]
@@ -81,6 +92,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> tab-transport.ts [api-reference/game-api/tab-transport]
 -> theme.ts [api-reference/game-api/theme]
 -> theme-customizer.ts [api-reference/game-api/theme-customizer]
+-> transfers.ts [api-reference/game-api/transfers]
 -> universe.ts [api-reference/game-api/universe]
 -> vehicles.ts [api-reference/game-api/vehicles]
 -> view-hud.ts [api-reference/game-api/view-hud]
@@ -88,6 +100,45 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> windows.ts [api-reference/game-api/windows]
 -> world.ts [api-reference/game-api/world]
 -> Code modules: manifests, packaging and installation [modules]
+
+=== Alarms dock instrument reference [api-reference/module/spacelab.alarm-panel]
+Optional read-only window over independent orbital clocks.
+- ID: spacelab.alarm-panel
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.alarms@1.0.0 · ALARM_PANELS: ServiceKey<AlarmPanelFactory>
+
+## Requires
+- ui.windows@^1.0.0 (optional) · WINDOWS: ServiceKey<WindowSystem>
+- flight.alarm-catalogue@^1.0.0 · ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue>
+
+## Composition
+- Slots: view.alarms
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ALARM_CATALOGUE, ALARM_PANELS, AlarmPanel, AlarmPanelFactory, AlarmPanelOptions, Disposable, ModuleInitializationV2, OrbitalAlarmCatalogue, ServiceKey, WINDOWS, WindowChrome, WindowSystem
+-> game-api alarms.ts [api-reference/game-api/alarms]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api windows.ts [api-reference/game-api/windows]
+
+## Guide and example
+Example source: examples/modules/alarm-panel (build with npm run module:build -- examples/modules/alarm-panel/module.json out.spacemod).
+-> Alarms dock instrument: how to use, replace and remove it [spacelab.alarm-panel/usage]
 
 === Trainer vector appearance reference [api-reference/module/spacelab.trainer-appearance]
 Shared optional Canvas/WebGL hull and flame data.
@@ -833,6 +884,141 @@ LOCAL_VIEWS, LocalCameraFactory, LocalCameraInput, LocalViewFactory, LocalViewOp
 Example source: examples/modules/local-views (build with npm run module:build -- examples/modules/local-views/module.json out.spacemod).
 -> Independent local views: how to use, replace and remove it [spacelab.local-views/usage]
 
+=== Finite maneuver burns reference [api-reference/module/spacelab.maneuver-burn]
+Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping.
+- ID: spacelab.maneuver-burn
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- flight.maneuver-burn@1.0.0 · MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory>
+
+## Requires
+- core.clock@^1.0.0 · CORE_CLOCK: ServiceKey<ClockService>
+
+## Composition
+- Slots: flight.maneuver-burn
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+CORE_CLOCK, ClockService, Controls, MANEUVER_BURNS, ManeuverBurnControl, ManeuverBurnFactory, ModuleInitializationV2, ServiceKey, State, Vec, VehicleDefaults, deterministicMath, flightTimeTolerance
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api flight-plans.ts [api-reference/game-api/flight-plans]
+-> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api universe.ts [api-reference/game-api/universe]
+
+## Guide and example
+Example source: examples/modules/maneuver-burn (build with npm run module:build -- examples/modules/maneuver-burn/module.json out.spacemod).
+
+=== Maneuver vector display reference [api-reference/module/builtin.maneuver-planner]
+Removable node and predicted trajectory overlays over detached read-only snapshots.
+- ID: builtin.maneuver-planner
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.maneuver-display@1.0.0
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: none
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+GhostSample, ManeuverPreview, ModuleInitializationV2, ModuleManifest, OverlayPrimitive, PresentationView, RegisteredModule, ServiceKey, Vec, createProjector, deterministicMath, maneuverDelta
+-> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api state.ts [api-reference/game-api/state]
+
+## Guide and example
+Example source: examples/modules/maneuver-display (build with npm run module:build -- examples/modules/maneuver-display/module.json out.spacemod).
+
+=== Maneuver editor reference [api-reference/module/spacelab.maneuver-editor]
+Read-only candidate previews and validated host commands over shared floating windows.
+- ID: spacelab.maneuver-editor
+- Version: 0.2.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: platform
+- Environments: browser, offline
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- view.maneuver-planner@1.0.0 · MANEUVER_PLANNERS: ServiceKey<ManeuverPlannerFactory>
+
+## Requires
+- core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>
+- core.clock@^1.0.0 · CORE_CLOCK: ServiceKey<ClockService>
+- ui.windows@^1.0.0 · WINDOWS: ServiceKey<WindowSystem>
+- view.prediction@^1.0.0 · PREDICTIONS: ServiceKey<PredictionFactory>
+- flight.maneuver-burn@^1.0.0 · MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory>
+- view.maneuver-display@^1.0.0
+- flight.plans@^1.0.0 (optional) · FLIGHT_PLANS: ServiceKey<FlightPlanService>
+- flight.transfers@^1.0.0 (optional) · TRANSFERS: ServiceKey<TransferPlanner>
+- flight.alarms@^1.0.0 (optional) · ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory>
+
+## Composition
+- Slots: view.maneuver-planner
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+- previewMaxMs: number, default 1, from 0.1 to 8, step 0.1. Maneuver preview work (ms): Per-update wall-time budget for the independent planned-burn preview. Leaves live physics and the main coast preview unchanged.
+- uiRefreshMs: number, default 100, from 16 to 1000, step 1. Maneuver text refresh (ms): Minimum wall time between editor status/summary refreshes. Commands and trajectory validity still run at their existing boundaries.
+- alignmentWarp: number, default 4, from 1 to 4, step 1. Automatic alignment warp (×): Ship rotation speed during explicitly authorized automatic approaches. Choose 1 for real time, or 2–4 to align faster using the same accurate rotation physics. Engine burns run at 1×. Follow-clock plans never increase warp.
+
+## Game API used
+CORE_CLOCK, CORE_MOTION, Camera, ClockService, Coast, Controls, CoreMotion, Disposable, EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanArchive, FlightPlanNode, FlightPlanProgress, FlightPlanService, FlightPrediction, GhostSample, MANEUVER_BURNS, MANEUVER_PLANNERS, MAX_FLIGHT_PLAN_SECONDS, ManeuverBurnControl, ManeuverBurnFactory, ManeuverFlight, ManeuverPlannerControl, ManeuverPlannerFactory, ManeuverPlannerOptions, ManeuverPreview, ModuleInitializationV2, NodeAlarmSettings, ORBITAL_ALARMS, OrbitalAlarmClock, OrbitalAlarmEvent, OrbitalAlarmFactory, PREDICTIONS, PredictionFactory, ServiceKey, Ship, SimulationContext, State, TRANSFERS, TransferOption, TransferPlanner, TransferProgress, TransferRelationship, TransferResult, Vec, WINDOWS, WindowChrome, WindowSystem, WorldRead, createProjector, deterministicMath, flightSampleInFrame, flightTimeTolerance, hermiteControls, maneuverDelta
+-> game-api alarms.ts [api-reference/game-api/alarms]
+-> game-api context.ts [api-reference/game-api/context]
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api flight-plans.ts [api-reference/game-api/flight-plans]
+-> game-api flight-view.ts [api-reference/game-api/flight-view]
+-> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api transfers.ts [api-reference/game-api/transfers]
+-> game-api windows.ts [api-reference/game-api/windows]
+-> game-api world.ts [api-reference/game-api/world]
+
+## Guide and example
+Example source: examples/modules/maneuver-editor (build with npm run module:build -- examples/modules/maneuver-editor/module.json out.spacemod).
+
 === Navball HUD reference [api-reference/module/builtin.navball]
 Optional attitude instrument using the shared HUD lifecycle.
 - ID: builtin.navball
@@ -1021,6 +1207,89 @@ Disposable, ModuleInitializationV2, ServiceKey, TextConnection, TransportProvide
 
 ## Guide and example
 Example source: examples/modules/net-websocket (build with npm run module:build -- examples/modules/net-websocket/module.json out.spacemod).
+
+=== Orbital alarm clock reference [api-reference/module/spacelab.orbital-alarms]
+Bounded isolated clocks with no engine or host commands.
+- ID: spacelab.orbital-alarms
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- flight.alarms@1.0.0 · ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory>
+- flight.alarm-catalogue@1.0.0 · ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue>
+
+## Requires
+Nothing.
+
+## Composition
+- Slots: flight.alarms, flight.alarm-catalogue
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ALARM_CATALOGUE, Disposable, ModuleInitializationV2, ORBITAL_ALARMS, OrbitalAlarmCatalogue, OrbitalAlarmClock, OrbitalAlarmEvent, OrbitalAlarmFactory, OrbitalAlarmNotice, OrbitalAlarmStatus, ServiceKey
+-> game-api alarms.ts [api-reference/game-api/alarms]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+
+## Guide and example
+Example source: examples/modules/orbital-alarms (build with npm run module:build -- examples/modules/orbital-alarms/module.json out.spacemod).
+-> Simulation-time orbital alarms: how to use, replace and remove it [spacelab.orbital-alarms/usage]
+
+=== Shared rails motion reference [api-reference/module/builtin.motion]
+Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.
+- ID: builtin.motion
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: authoritative
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- builtin.motion@1.0.0
+- motion@1.0.0 · MOTION_CONTEXTS: ServiceKey<SimulationContextFactory>
+- orbits@1.0.0 · ORBITAL_MOTION: ServiceKey<OrbitalProvider>
+- bodies@1.0.0 · BODY_FRAMES: ServiceKey<BodyFrameProvider>
+- surfaces@1.0.0 · SURFACE_GEOMETRY: ServiceKey<SurfaceProvider>
+- rails@1.0.0 · RAILS_POLICY: ServiceKey<RailsProvider>
+
+## Requires
+- core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>
+
+## Composition
+- Slots: motion, orbits, bodies, surfaces, rails
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+BODY_FRAMES, BodyFrameProvider, CORE_MOTION, CoreMotion, Elements, MOTION_CONTEXTS, ModuleInitializationV2, ORBITAL_MOTION, OrbitalProvider, OrbitalState, RAILS_POLICY, RailsProvider, RegisteredModule, SURFACE_GEOMETRY, ServiceKey, SimulationContext, SimulationContextFactory, SurfaceProvider, VehicleDefaults
+-> game-api context.ts [api-reference/game-api/context]
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api modules.ts [api-reference/game-api/modules]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api orbit.ts [api-reference/game-api/orbit]
+-> game-api services.ts [api-reference/game-api/services]
+-> game-api universe.ts [api-reference/game-api/universe]
+
+## Guide and example
+Example source: examples/modules/physics-rails (build with npm run module:build -- examples/modules/physics-rails/module.json out.spacemod).
 
 === Player controller reference [api-reference/module/spacelab.player-controller]
 Routes namespaced intent to a compatible entity/session adapter without advancing a world.
@@ -1466,6 +1735,82 @@ FLIGHT_HUD_STATE, HudInstrumentDefinition, HudSurface, ModuleInitializationV2, O
 Example source: examples/modules/throttle-hud (build with npm run module:build -- examples/modules/throttle-hud/module.json out.spacemod).
 -> Throttle HUD: how to use, replace and remove it [spacelab.throttle-hud/usage]
 
+=== Orbital transfer search reference [api-reference/module/spacelab.transfer-planner]
+Editable bounded same-body and interbody transfers over selected moving-frame prediction contracts.
+- ID: spacelab.transfer-planner
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: presentation
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+- flight.transfers@1.0.0 · TRANSFERS: ServiceKey<TransferPlanner>
+
+## Requires
+- flight.plans@^1.0.0 · FLIGHT_PLANS: ServiceKey<FlightPlanService>
+
+## Composition
+- Slots: flight.transfers
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+EvaluatedFlightNode, FLIGHT_PLANS, FlightPlan, FlightPlanNode, FlightPlanService, GhostEnd, GhostSample, MAX_FLIGHT_PLAN_SECONDS, ManeuverBurnFactory, ModuleInitializationV2, ServiceKey, Ship, State, TRANSFERS, TransferOption, TransferPlanner, TransferProgress, TransferRelationship, TransferRequest, TransferResult, Vec, WorldRead, deterministicMath, flightSampleInFrame, flightTimeTolerance, maneuverDelta
+-> game-api engine.ts [api-reference/game-api/engine]
+-> game-api flight-plans.ts [api-reference/game-api/flight-plans]
+-> game-api maneuver.ts [api-reference/game-api/maneuver]
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api state.ts [api-reference/game-api/state]
+-> game-api transfers.ts [api-reference/game-api/transfers]
+-> game-api world.ts [api-reference/game-api/world]
+
+## Guide and example
+Example source: examples/modules/transfer-planner (build with npm run module:build -- examples/modules/transfer-planner/module.json out.spacemod).
+-> Bounded orbital transfer search: how to use, replace and remove it [spacelab.transfer-planner/usage]
+
+=== Orbit trainer reference [api-reference/module/spacelab.trainer]
+Per-craft handling over shared physics, with explicit save/session identity.
+- ID: spacelab.trainer
+- Version: 0.1.0
+- API: space-sim-game-api/2
+- Manifest format: space-sim-module/2
+- Kind: provider
+- Tier: authoritative
+- Environments: browser, offline, node
+- Entry: src/index.ts
+- Multiplayer: supported
+
+## Provides
+Nothing.
+
+## Requires
+- core.motion@^1.0.0 · CORE_MOTION: ServiceKey<CoreMotion>
+
+## Composition
+- Slots: none
+- Dependencies: none
+- Conflicts: none
+- Initialize before: none; after: none
+
+## Settings
+None.
+
+## Game API used
+ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleDefinition
+-> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api vehicles.ts [api-reference/game-api/vehicles]
+
+## Guide and example
+Example source: examples/modules/vehicle-trainer (build with npm run module:build -- examples/modules/vehicle-trainer/module.json out.spacemod).
+
 === Shared per-view HUD reference [api-reference/module/spacelab.view-hud]
 Optional instruments with independent per-view lifetimes.
 - ID: spacelab.view-hud
@@ -1503,6 +1848,102 @@ HudBinding, HudInstrument, HudInstrumentDefinition, HudSurface, ModuleInitializa
 Example source: examples/modules/view-hud (build with npm run module:build -- examples/modules/view-hud/module.json out.spacemod).
 -> Shared view HUD lifecycle: how to use, replace and remove it [spacelab.view-hud/usage]
 
+=== game-api: alarms.ts [api-reference/game-api/alarms]
+Declarations from alarms.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/alarms.ts.
+
+## NodeAlarmSettings
+Portable reminder preferences; notified survives save/load without saving execution.
+    export interface NodeAlarmSettings {
+     readonly enabled: boolean; readonly leadSeconds: number; readonly pause: boolean;
+     /** Optional local presentation request; absent/false leaves selection and camera alone. */
+     readonly focusShip?: boolean;
+     readonly notified?: boolean;
+    }
+Used by: spacelab.maneuver-editor.
+
+## OrbitalAlarmEvent
+Declared orbital reminder event with simulation-second deadline, impulse center time, and pause flag.
+    export interface OrbitalAlarmEvent {
+     readonly id: string; readonly kind: string; readonly label: string;
+     /** Simulation seconds: reminder deadline and physical event/impulse centre. */
+     readonly deadline: number; readonly time: number; readonly pause: boolean;
+     readonly handled?: boolean;
+    }
+Used by: spacelab.maneuver-editor, spacelab.orbital-alarms.
+
+## OrbitalAlarmNotice
+Delivered orbital alarm notice indicating arrival or missed status when delivered past event time.
+    export interface OrbitalAlarmNotice extends OrbitalAlarmEvent { readonly missed: boolean }
+Used by: spacelab.orbital-alarms.
+
+## OrbitalAlarmClock
+    export interface OrbitalAlarmClock extends Disposable {
+     /** Borrowed result buffer, valid until next sync. Each due event fires once, even
+      * after a time jump. Session identity or time rewind clears prior in-memory state.
+      * Call with the complete current set (max 1024); omitted events are deleted. */
+     sync(session: object, now: number, events: readonly OrbitalAlarmEvent[]): readonly OrbitalAlarmNotice[];
+     readonly secondsUntilNext: number;
+     clear(): void;
+    }
+Used by: spacelab.maneuver-editor, spacelab.orbital-alarms.
+
+## OrbitalAlarmFactory
+Factory creating independent simulation-time orbital alarm clocks (`flight.alarms@1.0.0`).
+    export interface OrbitalAlarmFactory { create(): OrbitalAlarmClock }
+Used by: spacelab.maneuver-editor, spacelab.orbital-alarms.
+
+## ORBITAL_ALARMS
+Service key for the orbital alarm clock factory (`flight.alarms@1.0.0`).
+    export const ORBITAL_ALARMS: ServiceKey<OrbitalAlarmFactory> = Object.freeze({ slot: 'flight.alarms', version: '1.0.0' });
+Used by: spacelab.maneuver-editor, spacelab.orbital-alarms.
+
+## OrbitalAlarmStatus
+Read-only inspection; never an arming, delivery or host-control interface.
+    export interface OrbitalAlarmStatus extends OrbitalAlarmEvent { readonly now: number; readonly handled: boolean }
+Used by: spacelab.orbital-alarms.
+
+## OrbitalAlarmCatalogue
+    export interface OrbitalAlarmCatalogue {
+     /** Detached snapshot of current events for one opaque session identity, max1024.
+      * Clocks own their schedule; removing a clock removes its catalogue entries. */
+     read(session: object): readonly OrbitalAlarmStatus[];
+    }
+Used by: spacelab.alarm-panel, spacelab.orbital-alarms.
+
+## ALARM_CATALOGUE
+Service key for the read-only orbital alarm catalogue (`flight.alarm-catalogue@1.0.0`).
+    export const ALARM_CATALOGUE: ServiceKey<OrbitalAlarmCatalogue> = Object.freeze({slot:'flight.alarm-catalogue',version:'1.0.0'});
+Used by: spacelab.alarm-panel, spacelab.orbital-alarms.
+
+## AlarmPanelOptions
+Options for creating an Alarms dock instrument panel window over an active session.
+    export interface AlarmPanelOptions {
+     readonly id?: string; readonly container: HTMLElement;
+     /** Optional explicit host chrome; otherwise use the selected ui.windows provider. */
+     readonly windows?: Pick<WindowSystem,'create'>;
+     readonly shell?: Pick<WindowShell,'addInstrument'>;
+     session(): object;
+    }
+Used by: spacelab.alarm-panel.
+
+## AlarmPanel
+Removable dock/window presentation panel displaying pending and delivered orbital alarms.
+    export interface AlarmPanel extends Disposable { update(): void }
+Used by: spacelab.alarm-panel.
+
+## AlarmPanelFactory
+Factory creating alarm dock instrument panels (`view.alarms@1.0.0`).
+    export interface AlarmPanelFactory { create(options: AlarmPanelOptions): AlarmPanel }
+Used by: spacelab.alarm-panel.
+
+## ALARM_PANELS
+Service key for the alarm dock instrument panel factory (`view.alarms@1.0.0`).
+    export const ALARM_PANELS: ServiceKey<AlarmPanelFactory> = Object.freeze({slot:'view.alarms',version:'1.0.0'});
+Used by: spacelab.alarm-panel.
+-> API reference index [api-reference]
+
 === game-api: chat.ts [api-reference/game-api/chat]
 Declarations from chat.ts used by documented modules.
 
@@ -1525,7 +1966,7 @@ Borrowed window interaction service; the caller owns the shared stacking order.
         start?: () => void; change(width: number, height: number, x: number, y: number): void; end(): void;
       }): Disposable;
     }
-Used by: spacelab.chat-console, spacelab.hud-layout.
+Used by: spacelab.alarm-panel, spacelab.chat-console.
 
 ## ChatConsoleOptions
 Options configuring a chat console UI instance.
@@ -1628,12 +2069,12 @@ Motion context with an optional numerical/contact replacement and force schedule
       /** Release derived caches. Idempotent; the context can rebuild them if reused. */
       dispose(): void;
     }
-Used by: spacelab.flight-prediction.
+Used by: builtin.motion, spacelab.flight-prediction, spacelab.maneuver-editor.
 
 ## SimulationContextFactory
 Composition supplies a fresh context for each world, including restores and mirrors.
     export type SimulationContextFactory = (settings: Readonly<VehicleDefaults>, options?: MotionContextOptions) => SimulationContext;
-Used by: spacelab.session-flight.
+Used by: builtin.motion, spacelab.session-flight.
 -> API reference index [api-reference]
 
 === game-api: engine.ts [api-reference/game-api/engine]
@@ -1707,7 +2148,7 @@ Body-relative SI state. Read operations retain the world's established rails sem
       predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;
       cloneForPrediction(): WorldControl;
     }
-Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.session-flight.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner.
 
 ## WorldChanges
     export interface WorldChanges extends Disposable {
@@ -1762,9 +2203,10 @@ Used by: spacelab.session-flight.
 
 ## ClockService
     export interface ClockService { readonly stepSeconds: 0.01; readonly idle: Controls; readonly model: string; create(): FixedClock }
-Used by: spacelab.session-flight.
+Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight.
 
 ## CoreMotion
+Authoritative simulation kernel providing context creation, motion services, warp limits, and vector utilities.
     export interface CoreMotion {
       readonly services: MotionServices;
       createContext(settings?: Partial<VehicleDefaults>, options?: MotionContextOptions): SimulationContext;
@@ -1774,7 +2216,7 @@ Used by: spacelab.session-flight.
       nextWarpFactor(factor: number, direction: 1 | -1, maxAllowed?: number): number;
       magnitude(value: Vec): number; normalizeAngle(value: number): number;
     }
-Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight.
+Used by: builtin.motion, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.trainer.
 
 ## CoreCommands
     export interface CoreCommands {
@@ -1792,11 +2234,12 @@ Used by: spacelab.session-flight.
 
 ## CORE_CLOCK
     export const CORE_CLOCK: ServiceKey<ClockService> = Object.freeze({ slot: 'core.clock', version: '1.0.0' });
-Used by: spacelab.session-flight.
+Used by: spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight.
 
 ## CORE_MOTION
+Service key for the core motion kernel (`core.motion@1.0.0`).
     export const CORE_MOTION: ServiceKey<CoreMotion> = Object.freeze({ slot: 'core.motion', version: '1.0.0' });
-Used by: spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight.
+Used by: builtin.motion, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.trainer.
 
 ## CORE_COMMANDS
     export const CORE_COMMANDS: ServiceKey<CoreCommands> = Object.freeze({ slot: 'core.commands', version: '1.0.0' });
@@ -2055,12 +2498,12 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## MAX_FLIGHT_PLAN_SECONDS
 Maximum explicit planning horizon; default display forecasts retain their shorter cap.
     export const MAX_FLIGHT_PLAN_SECONDS = 100 * 365.25 * 86400;
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## flightTimeTolerance
 Absolute-time comparisons remain below a fixed tick, including multi-year epochs.
     export const flightTimeTolerance = (time:number):number => …;
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## FlightPlanNode
 Portable SI intent only. No engine, warp, controls or execution state is persisted. `time` is absolute simulation seconds; `prograde` and `radial` are impulse components in m/s relative to the velocity at the node, in the frame of `bodyId`.
@@ -2075,7 +2518,7 @@ Portable SI intent only. No engine, warp, controls or execution state is persist
       * Intent only: never grants permission to coast, change a node, or ignite. */
      readonly targetOrbit?: { readonly periapsisAltitude:number; readonly apoapsisAltitude:number };
     }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## FlightPlan
 One ship's plan, bound to the world and motion model it was captured in. A changed universe, system, simulation fingerprint or motion identity makes every node invalid until the player reviews it. `epoch` is the coast start, local to `bodyId`.
@@ -2085,11 +2528,11 @@ One ship's plan, bound to the world and motion model it was captured in. A chang
      readonly epoch: { readonly time: number; readonly position: Vec; readonly velocity: Vec; readonly heading: number };
      readonly nodes: readonly FlightPlanNode[];
     }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## FlightPlanArchive
     export interface FlightPlanArchive { readonly format: 'space-sim-flight-plans/1'; readonly plans: readonly FlightPlan[] }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor.
 
 ## EvaluatedFlightNode
 Per-node evaluation. An invalid node carries a readable `reason`; later nodes are not evaluated past the first failure and repeat its reason.
@@ -2098,7 +2541,11 @@ Per-node evaluation. An invalid node carries a readable `reason`; later nodes ar
      /** Incoming coast seed and state at the burn. All coordinates are local to bodyId. */
      readonly seed?: State; readonly before?: State; readonly after?: State; readonly delta?: Vec;
     }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## FlightPlanProgress
+    export interface FlightPlanProgress { readonly node: number; readonly sample?: GhostSample }
+Used by: spacelab.maneuver-editor.
 
 ## FiniteBurnResult
     export interface FiniteBurnResult {readonly after?:State;readonly delta?:Vec;readonly reason:string}
@@ -2130,17 +2577,17 @@ Bounded inert intent/codec and selected-provider orbital evaluation, without UI 
      /** Progressive chained preview through the shared world predictor; cancellation closes its child job. */
      predict(plan: FlightPlan, world: WorldRead): Generator<GhostSample, GhostEnd>;
     }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## FLIGHT_PLANS
 Shared flight-plan intent and evaluation, provided by `spacelab.flight-plans` in Space Sim.
     export const FLIGHT_PLANS: ServiceKey<FlightPlanService> = Object.freeze({ slot: 'flight.plans', version: '1.0.0' });
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## flightSampleInFrame
 Translate a timed sample between nonrotating body frames, including velocity. bodyId remains the physical SOI. Encounter snapshots follow the sample frame.
     export function flightSampleInFrame(sample: GhostSample, frameId: string, system: LoadedSystem): GhostSample;
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
 -> API reference index [api-reference]
 
 === game-api: flight-session.ts [api-reference/game-api/flight-session]
@@ -2360,17 +2807,17 @@ A progressive trajectory preview for one view. It traces on an isolated motion-c
       /** Short status for a readout, such as `Full orbit · period 5400.0 s` or `Tracing · 120 points`. */
       text(state: State): string;
     }
-Used by: spacelab.flight-prediction, spacelab.flight-split.
+Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-editor.
 
 ## PredictionFactory
 Creates independent previews. Each preview owns its job and cloned context; disposing the preview or the provider closes both. `onComplete` runs once per finished pass.
     export interface PredictionFactory { create(onComplete: (summary: PredictionSummary) => void): FlightPrediction }
-Used by: spacelab.flight-prediction, spacelab.flight-split.
+Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-editor.
 
 ## PREDICTIONS
 Progressive flight prediction, provided by `spacelab.flight-prediction` in Space Sim.
     export const PREDICTIONS: ServiceKey<PredictionFactory> = Object.freeze({ slot: 'view.prediction', version: '1.0.0' });
-Used by: spacelab.flight-prediction, spacelab.flight-split.
+Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-editor.
 
 ## FleetViewInput
 Frame inputs for fleet visibility evaluation, orbital culling, and presentation rendering.
@@ -2745,14 +3192,109 @@ Declarations from maneuver.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/maneuver.ts.
 
+## ManeuverBurnControl
+Local intent policy. Call before each compatible fixed tick; the session validates ownership/commands and advances the world. Disposal never mutates authority.
+    export interface ManeuverBurnControl extends Disposable {
+     readonly time: number; readonly delta: Vec; readonly start: number;
+     readonly phase: 'aligning' | 'waiting' | 'burning' | 'complete';
+     readonly remaining: number;
+     next(state: State): { readonly controls: Controls; readonly throttle?: number };
+    }
+Used by: spacelab.maneuver-burn, spacelab.maneuver-editor.
+
 ## ManeuverBurnFactory
+Factory for creating finite maneuver burn controllers given planned burn time, delta-v in m/s, and vehicle handling.
     export interface ManeuverBurnFactory { create(time: number, delta: Vec, vehicle: VehicleDefaults): ManeuverBurnControl }
-Used by: spacelab.flight-plans.
+Used by: spacelab.flight-plans, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## MANEUVER_BURNS
+Service key for the finite maneuver burn factory (`flight.maneuver-burn@1.0.0`).
+    export const MANEUVER_BURNS: ServiceKey<ManeuverBurnFactory> = Object.freeze({ slot: 'flight.maneuver-burn', version: '1.0.0' });
+Used by: spacelab.maneuver-burn, spacelab.maneuver-editor.
 
 ## maneuverDelta
 Velocity-relative prograde plus body-relative radial intent, in metres/second.
     export function maneuverDelta(sample: GhostSample, prograde: number, radial: number): Vec;
-Used by: spacelab.flight-plans.
+Used by: builtin.maneuver-planner, spacelab.flight-plans, spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## ManeuverFlight
+Flight context and host authority state supplied to maneuver planners in SI units and simulation seconds.
+    export interface ManeuverFlight {
+     readonly world: WorldRead; readonly ship?: Ship;
+     readonly body: ResolvedBody;
+     readonly enabled: boolean; readonly canWarp: boolean; readonly paused: boolean; readonly inputBlocked: boolean;
+     readonly warp: number; readonly requestedWarp: number; readonly warpReason?: string;
+    }
+Used by: spacelab.maneuver-editor.
+
+## ManeuverPlannerOptions
+Configuration and host authority callbacks for creating an interactive maneuver planner window and editor.
+    export interface ManeuverPlannerOptions {
+     readonly container: HTMLElement; readonly id?: string;
+     readonly shell?: Pick<WindowShell, 'addInstrument'>;
+     /** Optional live map surface. Coordinates use CSS pixels and the displayed camera;
+      * origin is the active body's world position. Omit to use the window editor alone. */
+     map?(): { readonly element: HTMLElement; readonly camera: Camera; readonly origin: Vec } | undefined;
+     flight(): ManeuverFlight;
+     /** Optional authoritative fleet port. Saved plans never carry execution permission. */
+     readonly fleet?: {
+      owns(shipId: string): boolean;
+      setControls(shipId: string, controls: Controls): void;
+      /** Request 1×; false means pending/refused. Multiplayer requires host approval. */
+      requestSlowWarp(shipId: string): boolean;
+      /** Optional permission query without clock writes. An auto-warp grant covers
+       * this explicitly armed plan; a slowdown grant covers one upcoming burn. */
+      authorizeWarp?(shipId: string, scope: {readonly id: string;readonly mode: 'slowdown'|'auto-warp'}): boolean;
+     };
+     setWarp(factor: number): void;
+     /** Optional host pause command; explicitly executing a burn may resume flight.
+      * Alarms never use engine/execution commands. */
+     setPaused?(paused: boolean): void;
+     /** Optional local alarm action: select this ship and follow it with the camera.
+      * Hosts should apply after their current input/physics step to avoid rerouting held input. */
+     focusShip?(shipId: string): void;
+     setThrottle(shipId: string, throttle: number): void;
+     releaseControls(shipId: string): void;
+     notify(text: string): void;
+     event?(kind: string, detail: Record<string, unknown>): void;
+    }
+Used by: spacelab.maneuver-editor.
+
+## ManeuverPlannerControl
+Interactive maneuver planner controller managing candidate nodes, previews, execution steps, and plan persistence.
+    export interface ManeuverPlannerControl extends Disposable {
+     readonly executing: boolean;
+     /** Open the transfer search directly without placing or arming a burn. */
+     openTransfers?(): void;
+     savePlans(): FlightPlanArchive;
+     loadPlans(raw: unknown): void;
+     /** Optional targeted cleanup when a ship is reset or explicitly repositioned. */
+     clearPlan?(shipId: string): void;
+     /** Session-local arming state, never restored from a plan archive. */
+     isAutomatic?(shipId: string): boolean;
+     /** Give explicit pilot warp input priority, without writing a new warp factor. */
+     manualWarp?(): void;
+     cancel(): void;
+     /** Optional fixed-tick hook for independently armed owned ships. */
+     stepFleet?(): void;
+     step(manual: Controls): Controls;
+     beforeAdvance(controls: Controls): void;
+     place(pointer: Vec, camera: Camera, origin: Vec, width: number, height: number, prediction: FlightPrediction): boolean;
+     update(seconds: number, prediction: FlightPrediction, engine: boolean): void;
+     snapshot(): ManeuverPreview | undefined;
+     diagnostics(): Record<string, unknown> | null;
+    }
+Used by: spacelab.maneuver-editor.
+
+## ManeuverPlannerFactory
+Factory for creating independent maneuver planner controllers (`view.maneuver-planner@1.0.0`).
+    export interface ManeuverPlannerFactory { create(options: ManeuverPlannerOptions): ManeuverPlannerControl }
+Used by: spacelab.maneuver-editor.
+
+## MANEUVER_PLANNERS
+Service key for the maneuver planner factory (`view.maneuver-planner@1.0.0`).
+    export const MANEUVER_PLANNERS: ServiceKey<ManeuverPlannerFactory> = Object.freeze({ slot: 'view.maneuver-planner', version: '1.0.0' });
+Used by: spacelab.maneuver-editor.
 -> API reference index [api-reference]
 
 === game-api: module-data.ts [api-reference/game-api/module-data]
@@ -2789,7 +3331,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Disposable
     export interface Disposable { dispose(): void }
-Used by: builtin.navball, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud.
+Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.view-hud.
 
 ## ModuleManifest
     export interface ModuleManifest {
@@ -2813,7 +3355,7 @@ Used by: builtin.navball, spacelab.camera-follow, spacelab.chat-console, spacela
       readonly settings: Readonly<Record<string, NumberSetting>>;
       readonly license: string;
     }
-Used by: builtin.navball.
+Used by: builtin.maneuver-planner, builtin.navball.
 
 ## ModuleInitialization
 Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile.
@@ -2846,7 +3388,7 @@ Initialization is synchronous in Phase 2. Own resources immediately after alloca
       /** The API exposed by one of this module's declared dependencies, which initialize first. */
       dependency<T extends object>(id: string): T;
     }
-Used by: spacelab.trainer-appearance.
+Used by: spacelab.alarm-panel.
 
 ## RegisteredModule
     export interface RegisteredModule {
@@ -2857,7 +3399,7 @@ Used by: spacelab.trainer-appearance.
       readonly supportsMultiplayer?: boolean;
       initialize(context: ModuleInitialization): void;
     }
-Used by: builtin.navball, spacelab.throttle-hud.
+Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.throttle-hud.
 
 ## ModuleLock
     export interface ModuleLock {
@@ -2899,7 +3441,7 @@ Typed handle for one service slot and exact version, exported by game-api as a c
       readonly version: string;
       readonly serviceType?: (value: T) => T;
     }
-Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud.
+Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud.
 
 ## ModuleAssets
     export interface ModuleAssets {
@@ -2939,7 +3481,7 @@ Used by: spacelab.vector-shaders.
       contributeMaterial(material: MaterialDefinition): void;
       contributePostEffect(effect: PostEffectDefinition): void;
     }
-Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer-appearance, spacelab.vector-shaders, spacelab.view-hud.
+Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.vector-shaders, spacelab.view-hud.
 -> API reference index [api-reference]
 
 === game-api: motion.ts [api-reference/game-api/motion]
@@ -3052,6 +3594,33 @@ Used by: spacelab.net-node-ws.
 ServiceKey for the Node WebSocket server transport (slot `net.node-ws`).
     export const NODE_WEBSOCKET_TRANSPORT: ServiceKey<NodeWebSocketProvider> = Object.freeze({ slot: 'net.node-ws', version: '1.0.0' });
 Used by: spacelab.net-node-ws.
+-> API reference index [api-reference]
+
+=== game-api: orbit.ts [api-reference/game-api/orbit]
+Declarations from orbit.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/orbit.ts.
+
+## OrbitalState
+    export interface OrbitalState { readonly position: Vec; readonly velocity: Vec }
+Used by: builtin.motion.
+
+## Elements
+    export interface Elements {
+      readonly energy: number;
+      readonly angularMomentum: number;
+      readonly eccentricityVector: Vec;
+      readonly eccentricity: number;
+      readonly semilatusRectum: number;
+      readonly periapsis: number;
+      readonly apoapsis: number | null;
+      readonly semiMajorAxis: number | null;
+      readonly period: number | null;
+      readonly periapsisAngle: number | null;
+      readonly kind: 'elliptic' | 'parabolic' | 'hyperbolic';
+      readonly radial: boolean;
+    }
+Used by: builtin.motion.
 -> API reference index [api-reference]
 
 === game-api: platform.ts [api-reference/game-api/platform]
@@ -3570,7 +4139,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## Camera
 System world coordinates (metres, +Y up) to CSS pixels: `scale` pixels per metre, `rotation` radians counter-clockwise applied to the world before projection.
     export interface Camera { readonly center: Vec; readonly rotation: number; readonly scale: number }
-Used by: spacelab.camera-follow, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme.
+Used by: spacelab.camera-follow, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.theme.
 
 ## RenderBody
     export interface RenderBody {
@@ -3771,7 +4340,7 @@ Used by: spacelab.flight-split.
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' };
-Used by: builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+Used by: builtin.maneuver-planner, builtin.navball, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
 
 ## PresentationSnapshot
 A detached, frozen snapshot of what the pilot sees. Built at most once per frame.
@@ -3798,14 +4367,32 @@ A detached, frozen snapshot of what the pilot sees. Built at most once per frame
       /** Shared-world rule namespaces at the last committed tick. */
       readonly moduleState: Readonly<Record<string, WorldRuleState>>;
     }
-Used by: builtin.navball.
+Used by: builtin.maneuver-planner, builtin.navball.
+
+## ManeuverPreview
+    export interface ManeuverPreview {
+      /** Completed nodes remain in the editor journal but no longer draw burn targets. */
+      readonly completed?: boolean;
+      readonly nodes?: readonly { readonly id: string; readonly time: number; readonly position: Vec; readonly label: string; readonly selected: boolean; readonly completed?: boolean; readonly valid: boolean; readonly deltaVelocity?: Vec; readonly throttleBurnSeconds?: number | null }[];
+      readonly time: number;
+      readonly position: Vec;
+      readonly deltaVelocity: Vec;
+      readonly burnSeconds: number;
+      /** Estimate at the current throttle setting, even with engines off. Null means no thrust. */
+      readonly throttleBurnSeconds?: number | null;
+      readonly throttle?: number;
+      readonly remainingDeltaV?: number;
+      readonly valid: boolean;
+      readonly path: readonly GhostSample[];
+    }
+Used by: builtin.maneuver-planner, spacelab.maneuver-editor.
 
 ## PresentationView
     export interface PresentationView extends PresentationSnapshot {
       /** The camera this frame is drawn with. */
       readonly camera: Camera;
     }
-Used by: builtin.navball.
+Used by: builtin.maneuver-planner, builtin.navball.
 
 ## CameraTarget
     export interface CameraTarget {
@@ -3830,7 +4417,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## createProjector
 Cache camera constants once per frame, shared by every body/path/ship vertex.
     export function createProjector(camera: Camera, width: number, height: number): (p: Vec) => Vec;
-Used by: spacelab.render-canvas, spacelab.render-webgl.
+Used by: builtin.maneuver-planner, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl.
 
 ## dragCamera
 Move the scene by a screen-space pointer displacement (CSS pixels).
@@ -3849,7 +4436,7 @@ Used by: spacelab.fleet-view, spacelab.spin-view.
 ## hermiteControls
 Bézier control points of the cubic Hermite curve between two timed states. Exact end positions and velocities keep sparse quantized samples smooth at any zoom; the projection is affine, so world-space control points project directly.
     export function hermiteControls(a: GhostSample, b: GhostSample): readonly [Vec, Vec];
-Used by: spacelab.render-canvas, spacelab.render-webgl.
+Used by: spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl.
 
 ## getPathGeometry
     export function getPathGeometry(path: readonly GhostSample[]): PathGeometry;
@@ -4028,6 +4615,84 @@ Used by: spacelab.session-flight.
       readonly randomState: number;
     }
 Used by: spacelab.session-flight.
+-> API reference index [api-reference]
+
+=== game-api: services.ts [api-reference/game-api/services]
+Declarations from services.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/services.ts.
+
+## ProviderIdentity
+    export interface ProviderIdentity {
+      readonly id: string;
+      readonly version: string;
+      /** All parameters affecting behavior; local identity, not a package fingerprint. */
+      readonly modelIdentity: string;
+    }
+Used by: builtin.motion.
+
+## OrbitalProvider
+Analytic providers promise two-body propagation and conservative radius events. A provider without that verified contract sets analytic=false; ordinary motion remains usable.
+    export interface OrbitalProvider extends ProviderIdentity {
+      readonly analytic: boolean;
+      elements(state: OrbitalState, mu: number): Elements;
+      propagate(state: OrbitalState, mu: number, seconds: number, options?: SolverOptions): Propagation;
+      timeToRadius(state: OrbitalState, mu: number, radius: number, direction: 'inbound' | 'outbound', elements?: Elements): number | null;
+    }
+Used by: builtin.motion.
+
+## SurfaceProvider
+All geometry uses the public radial SurfaceProfile contract. Query, contact and generation must agree, including preset placement, water and prediction.
+    export interface SurfaceProvider extends ProviderIdentity {
+      generate(body: Body): SurfaceProfile;
+      identity(body: Body): string;
+      validate(body: Body, profile: SurfaceProfile): void;
+      query(profile: SurfaceProfile, angle: number): SurfaceQuery;
+      support(profile: SurfaceProfile, angle: number): SurfaceSupport;
+      sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
+      sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
+    }
+Used by: builtin.motion.
+
+## BodyFrameProvider
+Owns ephemerides, coordinate changes, SOI selection and preset placement. Returned systems are isolated per world; mutable derived ephemeris caches are permitted.
+    export interface BodyFrameProvider extends ProviderIdentity {
+      load(universe: UniverseDefinition, systemId: string, surfaces: SurfaceProvider): LoadedSystem;
+    }
+Used by: builtin.motion.
+
+## RailsProvider
+Sleep requires an explicit compatible binding and a conservative event horizon. 0 means unknown; Infinity is allowed only when no event is possible. The world additionally checks idle controls, contact and exact fixed-point eligibility. Evaluation uses the selected orbital provider and the context's guarded coastAt.
+    export interface RailsProvider extends ProviderIdentity {
+      readonly compatible: readonly RailsBinding[];
+      horizon(system: LoadedSystem, body: ResolvedBody, state: OrbitalState, epoch: OrbitalState, time: number, top: number): number;
+    }
+Used by: builtin.motion.
+
+## MOTION_CONTEXTS
+Service key for the simulation motion context factory (`motion@1.0.0`).
+    export const MOTION_CONTEXTS: ServiceKey<SimulationContextFactory> = Object.freeze({ slot: 'motion', version: '1.0.0' });
+Used by: builtin.motion.
+
+## ORBITAL_MOTION
+Service key for orbital mechanics calculation service (`orbits@1.0.0`).
+    export const ORBITAL_MOTION: ServiceKey<OrbitalProvider> = Object.freeze({ slot: 'orbits', version: '1.0.0' });
+Used by: builtin.motion.
+
+## BODY_FRAMES
+Service key for celestial body frame resolution service (`bodies@1.0.0`).
+    export const BODY_FRAMES: ServiceKey<BodyFrameProvider> = Object.freeze({ slot: 'bodies', version: '1.0.0' });
+Used by: builtin.motion.
+
+## SURFACE_GEOMETRY
+Service key for surface terrain and collision geometry query service (`surfaces@1.0.0`).
+    export const SURFACE_GEOMETRY: ServiceKey<SurfaceProvider> = Object.freeze({ slot: 'surfaces', version: '1.0.0' });
+Used by: builtin.motion.
+
+## RAILS_POLICY
+Service key for rails horizon evaluation and sleep scheduling policy (`rails@1.0.0`).
+    export const RAILS_POLICY: ServiceKey<RailsProvider> = Object.freeze({ slot: 'rails', version: '1.0.0' });
+Used by: builtin.motion.
 -> API reference index [api-reference]
 
 === game-api: session.ts [api-reference/game-api/session]
@@ -4306,7 +4971,7 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 
 ## Vec
     export interface Vec { readonly x: number; readonly y: number }
-Used by: builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view.
+Used by: builtin.maneuver-planner, builtin.navball, spacelab.camera-follow, spacelab.camera-smart, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.spin-view, spacelab.transfer-planner.
 
 ## Body
     export interface Body {
@@ -4339,7 +5004,7 @@ A flying state is in the body-centred inertial frame. On a rotating body a lande
       /** Split drift vertex retained for prediction of a gentle sea entry. */
       readonly waterEntry?: GhostSample;
     }
-Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.render-canvas, spacelab.render-webgl, spacelab.spin-view, spacelab.transfer-planner.
 
 ## Coast
     export interface Coast {
@@ -4355,11 +5020,11 @@ Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction,
       /** Absent for the circular preview contact model, even on configured bodies. */
       readonly contactSurfaceIdentity?: string;
     }
-Used by: spacelab.fleet-view.
+Used by: spacelab.fleet-view, spacelab.maneuver-editor.
 
 ## Controls
     export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }
-Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.session-flight.
+Used by: spacelab.flight-prediction, spacelab.flight-split, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.session-flight.
 
 ## Sample
     export interface Sample { readonly time: number; readonly position: Vec }
@@ -4382,12 +5047,12 @@ Used by: spacelab.flight-prediction.
        * reference radius is not a terrain/contact boundary. */
       readonly encounterBody?: { readonly position: Vec; readonly radius: number; readonly name: string };
     }
-Used by: spacelab.flight-prediction.
+Used by: builtin.maneuver-planner, spacelab.flight-prediction, spacelab.maneuver-editor, spacelab.transfer-planner.
 
 ## GhostEnd
 Why an orbital ghost projection pass ended.
     export type GhostEnd = 'closed' | 'impact' | 'escape' | 'open' | 'grounded' | 'floating' | 'failed' | 'horizon';
-Used by: spacelab.flight-prediction.
+Used by: spacelab.flight-prediction, spacelab.transfer-planner.
 -> API reference index [api-reference]
 
 === game-api: surface.ts [api-reference/game-api/surface]
@@ -4699,6 +5364,91 @@ Service key for the public theme customizer factory (`ui.theme-customizer@1.0.0`
 Used by: spacelab.theme-customizer.
 -> API reference index [api-reference]
 
+=== game-api: transfers.ts [api-reference/game-api/transfers]
+Declarations from transfers.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/transfers.ts.
+
+## TransferRequest
+Transfer window search request specifying ship, destination body, target altitudes in SI metres, and duration limits.
+    export interface TransferRequest {
+     readonly shipId: string; readonly destinationId: string;
+     /** SI metres above the destination's reference radius. Equal values select a circle. */
+     readonly periapsisAltitude: number; readonly apoapsisAltitude: number;
+     /** Optional total search horizon from the source epoch, in SI seconds. */
+     readonly maxFlightSeconds?: number;
+     /** Staged routes park in a high orbit beside the neighbouring moon when true or
+      * omitted; false keeps low parking near each stop body. Honoured when the provider
+      * declares parkingOrbits. */
+     readonly highParking?: boolean;
+    }
+Used by: spacelab.transfer-planner.
+
+## TransferOption
+Evaluated transfer route candidate providing flight plan nodes, burn times, delta-v breakdown in m/s, and route structure.
+    export interface TransferOption {
+     readonly kind: 'efficient' | 'faster'; readonly plan: FlightPlan;
+     readonly waitSeconds: number; readonly travelSeconds: number;
+     readonly deltaV: number; readonly departureDeltaV: number; readonly arrivalDeltaV: number;
+     readonly departureBurnSeconds: number; readonly arrivalBurnSeconds: number;
+     readonly warning: string;
+     /** Optional whole-route summary. IDs resolve through the same world hierarchy as the picker. */
+     readonly route?: { readonly bodyIds:readonly string[];readonly stops:readonly string[];readonly maxFlightSeconds:number;readonly finiteValidated:boolean;readonly burns?:readonly {readonly nodeId:string;readonly deltaV:number;readonly seconds:number}[] };
+    }
+Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## TransferProgress
+Intermediate transfer search progress describing current phase, candidate counts, completion fraction, and best options so far.
+    export interface TransferProgress {
+     /** Optional explanation of the leg or whole-route validation currently running. */
+     readonly phase?: string;
+     readonly tested: number; readonly total: number; readonly accepted: number;
+     /** Optional whole-search completion estimate in [0, 1], nondecreasing for one search.
+      * tested/total may describe only the current leg or phase; hosts show progress as
+      * indeterminate when this is absent. */
+     readonly fraction?: number;
+     /** Fully validated best options so far; optional for existing providers.
+      * A new array signals changed results. Search may continue after publication. */
+     readonly options?: readonly TransferOption[];
+    }
+Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## TransferResult
+Final result of a bounded transfer search returning discovered options and an explanation if empty.
+    export interface TransferResult {
+     /** Fully validated whole-route alternatives, including those dominated by the displayed options. */
+     readonly compared?: {readonly direct:number;readonly staged:number};
+     readonly options: readonly TransferOption[]; readonly reason: string }
+Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## TransferRelationship
+Inert bounded search; each next() performs one bounded candidate operation or shared forecast yield. return() cancels owned forecasts/contexts. No controls or live stepping.
+    export type TransferRelationship = 'same-body' | 'child' | 'parent' | 'sibling' | 'other';
+Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## TransferPlanner
+Generator-based bounded orbital transfer solver evaluating same-body and interbody trajectories (`flight.transfers@1.0.0`).
+    export interface TransferPlanner {
+     /** Bind the host-selected controller without a dependency on a higher module tier. */
+     withBurns?(burns:ManeuverBurnFactory):TransferPlanner;
+     /** Optional solver coverage for destination browsing. Absent: the search explains
+      * suitability. A relationship being listed is not a feasibility guarantee. */
+     readonly relationships?: readonly TransferRelationship[];
+     /** Optional bounds for an explicit mission-duration input. */
+     readonly maxFlightSeconds?:number;
+     readonly defaultFlightSeconds?:number;
+     /** True when search honours TransferRequest.highParking for intermediate stops. */
+     readonly parkingOrbits?:boolean;
+     search(world: WorldRead, request: TransferRequest): Generator<TransferProgress, TransferResult>;
+    }
+Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+
+## TRANSFERS
+Service key for the orbital transfer planner (`flight.transfers@1.0.0`).
+    export const TRANSFERS: ServiceKey<TransferPlanner> = Object.freeze({ slot: 'flight.transfers', version: '1.0.0' });
+Used by: spacelab.maneuver-editor, spacelab.transfer-planner.
+-> API reference index [api-reference]
+
 === game-api: universe.ts [api-reference/game-api/universe]
 Declarations from universe.ts used by documented modules.
 
@@ -4708,6 +5458,14 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 Procedural look of a body. Presentation only: it never changes the physical outline.
     export type AppearanceStyle = 'rocky' | 'arid' | 'oceanic' | 'banded' | 'icy' | 'hazy' | 'volcanic' | 'star';
 Used by: spacelab.render-webgl.
+
+## VehicleDefaults
+    export interface VehicleDefaults {
+      readonly acceleration: number;
+      readonly turnRate: number;
+      readonly initialThrottle: number;
+    }
+Used by: builtin.motion, spacelab.maneuver-burn.
 
 ## UniverseDefinition
     export interface UniverseDefinition {
@@ -4756,7 +5514,16 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## TRAINER_VEHICLE_ID
 Legacy craft map to this definition without changing state or old save bytes.
     export const TRAINER_VEHICLE_ID = 'spacelab.trainer/orbit-trainer';
-Used by: spacelab.trainer-appearance.
+Used by: spacelab.trainer, spacelab.trainer-appearance.
+
+## VehicleDefinition
+Immutable authoritative handling, in SI units. Omitted handling uses the selected system's vehicleDefaults, preserving the trainer's existing configuration precedence.
+    export interface VehicleDefinition {
+      readonly id: string;
+      readonly name: string;
+      readonly handling?: Readonly<VehicleDefaults>;
+    }
+Used by: spacelab.trainer.
 
 ## VehicleCatalog
 Explicit opt-in for mixed-vehicle saves/sessions. Definitions come from enabled, approved modules; saved definitions never install or execute missing packages.
@@ -4999,6 +5766,15 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
     export type WindowIcon = 'grip' | 'setup' | 'ship' | 'fleet' | 'online' | 'instruments' | 'trajectory' | 'telemetry' | 'alarm' | 'chat' | 'settings' | 'tools' | 'library' | 'manual' | 'pin';
 Used by: spacelab.hud-layout.
 
+## WindowChrome
+    export interface WindowChrome extends Disposable {
+      readonly element: HTMLElement; readonly body: HTMLElement; readonly icon: WindowIcon;
+      readonly isOpen: boolean; readonly pinned: boolean; readonly isFront: boolean;
+      open(): void; close(): void; raise(): void; setPinned(pinned: boolean): void;
+      onChange(listener: () => void): Disposable;
+    }
+Used by: spacelab.alarm-panel, spacelab.maneuver-editor.
+
 ## WindowSystem
     export interface WindowSystem extends Disposable, WindowInteractions {
       /** Fixed first-party vector paths; labels and imported content remain DOM text. */
@@ -5006,11 +5782,11 @@ Used by: spacelab.hud-layout.
       create(options: WindowChromeOptions): WindowChrome;
       isFront(panel: HTMLElement): boolean;
     }
-Used by: spacelab.hud-layout.
+Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor.
 
 ## WINDOWS
     export const WINDOWS: ServiceKey<WindowSystem> = Object.freeze({slot:'ui.windows', version:'1.0.0'});
-Used by: spacelab.hud-layout.
+Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor.
 -> API reference index [api-reference]
 
 === game-api: world.ts [api-reference/game-api/world]
@@ -5034,7 +5810,7 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
        * cleared or it respawns. */
       readonly fault?: string;
     }
-Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.session-flight.
+Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner.
 
 ## WorldEvent
     export type WorldEvent =
@@ -5044,6 +5820,45 @@ Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spac
       | { readonly type: 'fault'; readonly shipId: string; readonly message: string };
 Used by: spacelab.session-flight.
 -> API reference index [api-reference]
+
+=== Alarms dock instrument [spacelab.alarm-panel/usage]
+Optional read-only window over independent orbital clocks.
+
+
+## What it does
+This module contributes a dock instrument button and floating inspection window for viewing pending and delivered orbital alarms. It reads active simulation-time events from the flight alarm catalogue, formats relative countdowns and event descriptions, and presents polite live-region updates without scheduling, modifying, or executing flight commands.
+
+## Provides and requires
+- Provides view.alarms@1.0.0 through the ALARM_PANELS service key: creates AlarmPanel UI controller instances.
+- Fills the view.alarms slot in platform profiles.
+- Requires flight.alarm-catalogue@^1.0.0: queries active reminders and delivered status.
+- Requires ui.windows@^1.0.0 (optional): creates floating chrome windows in supported window managers.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization resolves the alarm catalogue and optional window manager, registering ALARM_PANELS.
+- create(options) mounts an Alarms window, adds the clock instrument to the dock shell, and binds change listeners.
+- update() queries the catalogue at a throttled rate (minimum 200 ms between UI passes) to update countdowns and status text.
+- dispose unregisters the dock instrument and closes the window chrome.
+
+## Remove or replace
+To customize alarm listing presentation or integrate with an alternative windowing framework, contribute an alternative provider for view.alarms@1.0.0 to the view.alarms slot. Removing this module removes the dock button and panel while underlying alarm clocks continue operating.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: DOM container structures and throttle interval timings may evolve prior to final API freeze.
+
+## Example
+examples/modules/alarm-panel demonstrates instantiating an alarm panel controller with a mock container and verifying rendered countdowns. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/alarm-panel/module.json /tmp/example-alarm-panel.spacemod
+    npm run module:validate -- /tmp/example-alarm-panel.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Alarms dock instrument [api-reference/module/spacelab.alarm-panel]
+-> game-api: alarms.ts [api-reference/game-api/alarms]
+-> Simulation-time orbital alarms: how to use, replace and remove it [spacelab.orbital-alarms/usage]
 
 === Vehicle vector artwork [spacelab.trainer-appearance/usage]
 Shared optional Canvas/WebGL hull and flame data.
@@ -5795,6 +6610,131 @@ examples/modules/local-views demonstrates calculating splitscreen pane rectangle
 -> Independent follow cameras: target tracking and flight viewports [spacelab.camera-follow/usage]
 -> game-api platform.ts: local view cameras, surfaces, and layouts [api-reference/game-api/platform]
 
+=== Finite maneuver burns [spacelab.maneuver-burn/usage]
+Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping.
+
+
+## What it does
+This module provides finite maneuver burn intent calculation in the body's inertial reference frame. It computes burn start epochs centered on the scheduled impulse time, guides ship attitude alignment prior to ignition, requests fractional throttle on boundary ticks, and accumulates delivered velocity changes with compensated summation to prevent drift during prolonged thrust.
+
+## Provides and requires
+- Provides flight.maneuver-burn@1.0.0 through the MANEUVER_BURNS service key: creates ManeuverBurnControl controllers.
+- Fills the flight.maneuver-burn slot in platform profiles.
+- Requires core.clock@^1.0.0: operates over a compatible fixed 0.01-second physics clock.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization captures the core.clock service and registers the MANEUVER_BURNS provider.
+- create(time, delta, vehicle) calculates the burn start epoch half the total burn duration before the target impulse time.
+- next(state) is called once before each fixed physics tick at 1x time warp, commanding alignment turns, waiting until start, or commanding engine thrust.
+- The controller transitions through aligning, waiting, burning, and complete phases, releasing pending controls upon completion.
+- dispose marks pending intent inert without mutating authoritative world state.
+
+## Remove or replace
+To customize finite burn integration or attitude steering heuristics, contribute an alternative flight.maneuver-burn@1.0.0 provider to the flight.maneuver-burn slot. Removing this module leaves flight planning without finite burn execution capability.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: steering error thresholds and compensated impulse accounting may evolve prior to final freeze.
+
+## Example
+examples/modules/maneuver-burn demonstrates instantiating a finite burn controller, stepping through alignment phases, and verifying delivered delta-v. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/maneuver-burn/module.json /tmp/example-maneuver-burn.spacemod
+    npm run module:validate -- /tmp/example-maneuver-burn.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Finite maneuver burns [api-reference/module/spacelab.maneuver-burn]
+-> game-api: maneuver.ts [api-reference/game-api/maneuver]
+-> game-api: engine.ts [api-reference/game-api/engine]
+
+=== Maneuver vector display [builtin.maneuver-planner/usage]
+Removable node and predicted trajectory overlays over detached read-only snapshots.
+
+
+## What it does
+This presentation module contributes vector overlay primitives for displaying planned maneuver nodes, burn delta-v vectors, burn durations, and predicted post-burn trajectory paths. It draws node diamond markers, directional arrows, and decimated Hermite trajectory path segments in world coordinates without executing flight commands or mutating simulation state.
+
+## Provides and requires
+- Provides view.maneuver-display@1.0.0 through presentation layer registration.
+- Declares no module slots.
+- Requires no external services in its module manifest.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization registers the maneuver presentation layer and contributes this guide.
+- During rendering, drawManeuver inspects the presentation view's active maneuver snapshot.
+- Generates world-space line primitives for node markers, delta-v arrows, and predicted path intervals.
+- Renders text primitives for countdowns, node labels, and delta-v magnitude readouts.
+
+## Remove or replace
+To customize maneuver node visual markers or projected trajectory styling, contribute an alternative presentation provider implementing view.maneuver-display@1.0.0. Removing this module omits maneuver graphics from the rendered view while preserving planned burn execution.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: primitive generation contracts and trajectory Hermite decimation bounds may evolve prior to final API freeze.
+
+## Example
+examples/modules/maneuver-display demonstrates generating maneuver overlays from simulated view state and inspecting output primitives. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/maneuver-display/module.json /tmp/example-maneuver-display.spacemod
+    npm run module:validate -- /tmp/example-maneuver-display.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Maneuver vector display [api-reference/module/builtin.maneuver-planner]
+-> game-api: presentation.ts [api-reference/game-api/presentation]
+-> game-api: maneuver.ts [api-reference/game-api/maneuver]
+
+=== Independent maneuver editors [spacelab.maneuver-editor/usage]
+Read-only candidate previews and validated host commands over shared floating windows.
+
+
+## What it does
+This module provides floating window and interactive map overlay editors for creating, adjusting, validating, and executing orbital maneuver plans. It computes candidate trajectory forecasts over isolated prediction jobs, manages prograde and radial impulse adjustments, coordinates automatic attitude alignment, and communicates validated execution commands to the simulation host.
+
+## Provides and requires
+- Provides view.maneuver-planner@1.0.0 through the MANEUVER_PLANNERS service key: creates ManeuverPlannerControl instances.
+- Fills the view.maneuver-planner slot in platform profiles.
+- Requires core.motion@^1.0.0: uses simulation context motion services for orbital state evaluation.
+- Requires core.clock@^1.0.0: coordinates execution with fixed simulation clock steps.
+- Requires ui.windows@^1.0.0: mounts floating editor windows within the user interface.
+- Requires view.prediction@^1.0.0: generates trajectory coast and encounter predictions.
+- Requires flight.maneuver-burn@^1.0.0: executes finite burn attitude alignment and throttle commands.
+- Requires view.maneuver-display@^1.0.0: provides maneuver overlay presentation styling.
+- Requires flight.plans@^1.0.0 (optional): adds multi-node plan chains, serialization, and save integration.
+- Requires flight.transfers@^1.0.0 (optional): embeds automated orbital transfer window searching.
+- Requires flight.alarms@^1.0.0 (optional): connects burn reminders and automated warp release.
+
+## Settings
+- previewMaxMs (default 1, from 0.1 to 8, step 0.1): Per-update wall-time budget in milliseconds for the independent planned-burn preview.
+- uiRefreshMs (default 100, from 16 to 1000, step 1): Minimum wall time in milliseconds between editor status and summary refreshes.
+- alignmentWarp (default 4, from 1 to 4, step 1): Automatic alignment warp multiplier during explicitly authorized attitude alignment.
+
+## Lifecycle
+- Initialization resolves required and optional services, injects stylesheet assets, and registers MANEUVER_PLANNERS.
+- create(options) mounts an independent floating window, attaches optional map drag handlers, and initializes preview workers.
+- step(manual) advances active burn execution before each simulation tick, applying host-authorized controls.
+- dispose cancels pending actions, releases held host controls, detaches DOM event listeners, and closes the editor window.
+
+## Remove or replace
+To replace the maneuver planner UI or candidate node workflow, provide view.maneuver-planner@1.0.0 in the view.maneuver-planner slot. Removing this module removes maneuver editing windows and node manipulation while retaining background prediction and telemetry.
+
+## Stability
+Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: multi-node chain evaluation contracts and fleet warp coordination hooks may evolve prior to final API freeze.
+
+## Example
+examples/modules/maneuver-editor demonstrates creating a headless maneuver planner adapter, evaluating node candidates, and verifying diagnostics. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/maneuver-editor/module.json /tmp/example-maneuver-editor.spacemod
+    npm run module:validate -- /tmp/example-maneuver-editor.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Maneuver editor [api-reference/module/spacelab.maneuver-editor]
+-> game-api: maneuver.ts [api-reference/game-api/maneuver]
+-> game-api: engine.ts [api-reference/game-api/engine]
+
 === Per-view navball [builtin.navball/usage]
 Optional attitude instrument using the shared HUD lifecycle.
 
@@ -5988,6 +6928,89 @@ examples/modules/net-websocket demonstrates connecting to a WebSocket server wit
 -> Code modules: manifests, packaging and installation [modules]
 -> game-api platform.ts: TextConnection and TransportProvider contracts [api-reference/game-api/platform]
 -> API reference: WebSocket transport [api-reference/module/spacelab.net-websocket]
+
+=== Simulation-time orbital alarms [spacelab.orbital-alarms/usage]
+Bounded isolated clocks with no engine or host commands.
+
+
+## What it does
+This module provides simulation-time orbital reminder clocks and a detached read-only event catalogue. It tracks declared reminder deadlines and physical impulse event epochs against elapsed simulation seconds, delivering notices when deadlines pass without issuing engine commands, altering warp factors, or stepping the physics simulation.
+
+## Provides and requires
+- Provides flight.alarms@1.0.0 through the ORBITAL_ALARMS service key: creates independent OrbitalAlarmClock instances.
+- Provides flight.alarm-catalogue@1.0.0 through the ALARM_CATALOGUE service key: inspects registered alarms across sessions.
+- Fills the flight.alarms and flight.alarm-catalogue slots in presentation profiles.
+- Requires no external services in its module manifest.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization provides ORBITAL_ALARMS and ALARM_CATALOGUE implementations.
+- create() allocates an independent clock supporting up to 1024 concurrent events across up to 64 active clocks.
+- sync(session, now, events) synchronizes declared events against simulation time, returning due notices and tracking missed status.
+- ALARM_CATALOGUE.read(session) yields detached snapshots of active reminders for UI display.
+- dispose clears registered events and unbinds clock references.
+
+## Remove or replace
+To customize alarm scheduling or reminder delivery policy, contribute alternative providers for flight.alarms@1.0.0 and flight.alarm-catalogue@1.0.0. Removing this module disables orbital event notifications while leaving maneuver planning functional.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: clock limit constants and event delivery structures may evolve prior to final API freeze.
+
+## Example
+examples/modules/orbital-alarms demonstrates creating an orbital alarm clock, synchronizing events, and reading the catalogue. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/orbital-alarms/module.json /tmp/example-orbital-alarms.spacemod
+    npm run module:validate -- /tmp/example-orbital-alarms.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Orbital alarm clock [api-reference/module/spacelab.orbital-alarms]
+-> game-api: alarms.ts [api-reference/game-api/alarms]
+-> Alarms dock instrument: how to use, replace and remove it [spacelab.alarm-panel/usage]
+
+=== Rails and shared motion services [builtin.motion/usage]
+Preserved numerical flight, analytic coasting, frame/contact services and independently replaceable rails policy.
+
+
+## What it does
+This authoritative module connects the core simulation motion engine to standard module slots. It provides context creation for simulation stepping, Keplerian orbit and conic trajectory solvers, celestial body reference frame transformations, surface elevation and water contact detection, and conservative rails sleep scheduling for coasting craft.
+
+## Provides and requires
+- Provides builtin.motion@1.0.0 as the unified authoritative motion provider capability.
+- Provides motion@1.0.0 through the MOTION_CONTEXTS service key: creates per-ship simulation contexts.
+- Provides orbits@1.0.0 through the ORBITAL_MOTION service key: evaluates orbital elements and Keplerian propagation.
+- Provides bodies@1.0.0 through the BODY_FRAMES service key: resolves celestial body frames and SOI boundaries.
+- Provides surfaces@1.0.0 through the SURFACE_GEOMETRY service key: queries surface heights, bounds, and normal vectors.
+- Provides rails@1.0.0 through the RAILS_POLICY service key: computes wake horizons for inactive ships.
+- Fills the motion, orbits, bodies, surfaces, and rails slots in authoritative profiles.
+- Requires core.motion@^1.0.0: operates over the authoritative simulation kernel.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization queries context.use(CORE_MOTION) to access authoritative kernel services.
+- For each selected slot (motion, orbits, bodies, surfaces, rails), context.provide registers the corresponding service.
+- World simulation contexts invoke these services during physics ticks, trajectory predictions, and rails sleep evaluation.
+- Services remain stateless singletons bound for the lifetime of the running world session.
+
+## Remove or replace
+Each motion slot can be replaced independently by custom modules providing motion@1.0.0, orbits@1.0.0, bodies@1.0.0, surfaces@1.0.0, or rails@1.0.0. Removing this module requires alternative providers for all motion capabilities required by the authoritative game profile.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: numerical tolerance limits and rails horizon wake heuristics may evolve prior to final API freeze.
+
+## Example
+examples/modules/physics-rails demonstrates accessing motion services, creating a simulation context, and evaluating orbital elements. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/physics-rails/module.json /tmp/example-physics-rails.spacemod
+    npm run module:validate -- /tmp/example-physics-rails.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Shared rails motion [api-reference/module/builtin.motion]
+-> game-api: services.ts [api-reference/game-api/services]
+-> game-api: motion.ts [api-reference/game-api/motion]
 
 === Player controller [spacelab.player-controller/usage]
 Routes namespaced intent to a compatible entity/session adapter without advancing a world.
@@ -6427,6 +7450,83 @@ examples/modules/throttle-hud is a minimal replacement provider: a text readout 
 -> Code modules: manifests, packaging and installation [modules]
 -> game-api view-hud.ts: the instrument lifecycle and flight adapter contracts [api-reference/game-api/view-hud]
 -> API reference: Throttle HUD [api-reference/module/spacelab.throttle-hud]
+
+=== Bounded orbital transfer search [spacelab.transfer-planner/usage]
+Editable bounded same-body and interbody transfers over selected moving-frame prediction contracts.
+
+
+## What it does
+This module provides a generator-based bounded solver evaluating circular, elliptical, same-body, and interbody transfer trajectories and intermediate parking orbits over verified prediction contracts. It compares departure apsides, solves tangential velocity increments, checks terrain contact clearances, and structures candidate routes into efficient and faster options.
+
+## Provides and requires
+- Provides flight.transfers@1.0.0 through the TRANSFERS service key: creates TransferPlanner generator instances.
+- Fills the flight.transfers slot in presentation profiles.
+- Requires flight.plans@^1.0.0: integrates with flight plan node creation and route evaluation.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization resolves the flight plan service and provides TRANSFERS.
+- withBurns(factory) optionally binds a finite maneuver burn factory to refine burn durations and capture validation.
+- search(world, request) returns a generator yielding intermediate TransferProgress objects and returning a final TransferResult.
+- Each generator step performs bounded cooperative search calculations without advancing live simulation time.
+- Search cancellation terminates child contexts and releases allocated prediction seeds.
+
+## Remove or replace
+To customize orbital transfer trajectory search algorithms or add specialized planetary encounter heuristics, contribute an alternative provider for flight.transfers@1.0.0 to the flight.transfers slot. Removing this module disables transfer window searches while preserving manual node editing.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: search iteration limits and route option data structures may evolve prior to final API freeze.
+
+## Example
+examples/modules/transfer-planner demonstrates querying transfer solver capabilities and stepping through transfer search progress. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/transfer-planner/module.json /tmp/example-transfer-planner.spacemod
+    npm run module:validate -- /tmp/example-transfer-planner.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Orbital transfer search [api-reference/module/spacelab.transfer-planner]
+-> game-api: transfers.ts [api-reference/game-api/transfers]
+-> Flight plans: how to use, replace and remove it [spacelab.flight-plans/usage]
+
+=== Portable trainer [spacelab.trainer/usage]
+Per-craft handling over shared physics, with explicit save/session identity.
+
+
+## What it does
+This authoritative module contributes the Orbit Trainer vehicle definition and accompanying flight guides. It registers spacelab.trainer/orbit-trainer into the world's vehicle catalog, inheriting system vehicle defaults for mass, thrust acceleration, and turn rate without modifying simulation mechanics.
+
+## Provides and requires
+- Provides no module capabilities directly; contributes the Orbit Trainer vehicle definition via contributeVehicle.
+- Declares no module slots.
+- Requires core.motion@^1.0.0: operates within simulation motion contexts.
+
+## Settings
+This module has no settings.
+
+## Lifecycle
+- Initialization calls context.contributeVehicle(trainer) to register the Orbit Trainer vehicle definition.
+- Registers player and creator usage guides with the manual.
+- World creation incorporates the registered vehicle definition into the authoritative vehicle catalog.
+- The vehicle definition remains active for the duration of the simulation session.
+
+## Remove or replace
+To add or customize vehicle handling, contribute alternative vehicle definitions using context.contributeVehicle. Removing this module omits the default orbit trainer craft; another module must provide at least one valid vehicle definition.
+
+## Stability
+Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: vehicle definition fields and catalog registry contracts may evolve prior to final API freeze.
+
+## Example
+examples/modules/vehicle-trainer demonstrates registering a vehicle definition and querying the vehicle catalog. Build and validate it from the repository root:
+    npm run module:build -- examples/modules/vehicle-trainer/module.json /tmp/example-vehicle-trainer.spacemod
+    npm run module:validate -- /tmp/example-vehicle-trainer.spacemod
+
+## Related
+-> Code modules: manifests, packaging and installation [modules]
+-> API reference: Orbit trainer [api-reference/module/spacelab.trainer]
+-> game-api: vehicles.ts [api-reference/game-api/vehicles]
+-> game-api: engine.ts [api-reference/game-api/engine]
 
 === Shared view HUD lifecycle [spacelab.view-hud/usage]
 Optional instruments with independent per-view lifetimes.

@@ -2,7 +2,7 @@
   "id": "flight",
   "audience": "players",
   "title": "Transfer window planning",
-  "summary": "Choose a final destination and compare complete direct or staged trips.",
+  "summary": "Compare and review circular or elliptical orbit changes and moon/planet transfers.",
   "blocks": [
     {
       "type": "paragraph",

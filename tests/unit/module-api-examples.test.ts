@@ -229,6 +229,58 @@ import windowsInitialize from '../../modules/ui-windows/src/index';
 import windowsDescriptor from '../../modules/ui-windows/module.json';
 import windowsGuide from '../../modules/ui-windows/docs/creators/usage.json';
 
+import maneuverBurnInitialize from '../../modules/maneuver-burn/src/index';
+import maneuverBurnDescriptor from '../../modules/maneuver-burn/module.json';
+import maneuverBurnGuide from '../../modules/maneuver-burn/docs/creators/usage.json';
+import maneuverBurnExampleInitialize, { MANEUVER_BURN_EXECUTOR } from '../../examples/modules/maneuver-burn/src/main';
+import maneuverBurnExampleDescriptor from '../../examples/modules/maneuver-burn/module.json';
+
+import maneuverDisplayInitialize from '../../modules/maneuver-display/src/index';
+import maneuverDisplayDescriptor from '../../modules/maneuver-display/module.json';
+import maneuverDisplayGuide from '../../modules/maneuver-display/docs/creators/usage.json';
+import maneuverDisplayExampleInitialize, { MANEUVER_DISPLAY_HELPER } from '../../examples/modules/maneuver-display/src/main';
+import maneuverDisplayExampleDescriptor from '../../examples/modules/maneuver-display/module.json';
+
+import maneuverEditorInitialize from '../../modules/maneuver-editor/src/index';
+import maneuverEditorDescriptor from '../../modules/maneuver-editor/module.json';
+import maneuverEditorGuide from '../../modules/maneuver-editor/docs/creators/usage.json';
+import maneuverEditorExampleInitialize, { MANEUVER_EDITOR_HELPER } from '../../examples/modules/maneuver-editor/src/main';
+import maneuverEditorExampleDescriptor from '../../examples/modules/maneuver-editor/module.json';
+
+import orbitalAlarmsInitialize from '../../modules/orbital-alarms/src/index';
+import orbitalAlarmsDescriptor from '../../modules/orbital-alarms/module.json';
+import orbitalAlarmsGuide from '../../modules/orbital-alarms/docs/creators/usage.json';
+import orbitalAlarmsExampleInitialize, { ORBITAL_ALARM_HELPER } from '../../examples/modules/orbital-alarms/src/main';
+import orbitalAlarmsExampleDescriptor from '../../examples/modules/orbital-alarms/module.json';
+
+import alarmPanelInitialize from '../../modules/alarm-panel/src/index';
+import alarmPanelDescriptor from '../../modules/alarm-panel/module.json';
+import alarmPanelGuide from '../../modules/alarm-panel/docs/creators/usage.json';
+import alarmPanelExampleInitialize, { ALARM_PANEL_HELPER } from '../../examples/modules/alarm-panel/src/main';
+import alarmPanelExampleDescriptor from '../../examples/modules/alarm-panel/module.json';
+
+import transferPlannerInitialize from '../../modules/transfer-planner/src/index';
+import transferPlannerDescriptor from '../../modules/transfer-planner/module.json';
+import transferPlannerGuide from '../../modules/transfer-planner/docs/creators/usage.json';
+import transferPlannerExampleInitialize, { TRANSFER_PLANNER_HELPER } from '../../examples/modules/transfer-planner/src/main';
+import transferPlannerExampleDescriptor from '../../examples/modules/transfer-planner/module.json';
+
+import physicsRailsInitialize from '../../modules/physics-rails/src/index';
+import physicsRailsDescriptor from '../../modules/physics-rails/module.json';
+import physicsRailsGuide from '../../modules/physics-rails/docs/creators/usage.json';
+import physicsRailsExampleInitialize, { MOTION_KERNEL_HELPER } from '../../examples/modules/physics-rails/src/main';
+import physicsRailsExampleDescriptor from '../../examples/modules/physics-rails/module.json';
+
+import vehicleTrainerInitialize from '../../modules/vehicle-trainer/src/index';
+import vehicleTrainerDescriptor from '../../modules/vehicle-trainer/module.json';
+import vehicleTrainerGuide from '../../modules/vehicle-trainer/docs/creators/usage.json';
+import vehicleTrainerExampleInitialize, { VEHICLE_TRAINER_HELPER } from '../../examples/modules/vehicle-trainer/src/main';
+import vehicleTrainerExampleDescriptor from '../../examples/modules/vehicle-trainer/module.json';
+
+const maneuverEditorAssets: Record<string, string> = {
+  'assets/editor.css': readFileSync('modules/maneuver-editor/assets/editor.css', 'utf8'),
+};
+
 const windowsAssets: Record<string, string> = {
   'assets/windows.css': readFileSync('modules/ui-windows/assets/windows.css', 'utf8'),
 };
@@ -293,6 +345,7 @@ const createMockEl = (tag = 'div'): any => {
     querySelectorAll: () => [],
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
     open: false,
     showModal: vi.fn(),
     close: vi.fn(),
@@ -1586,5 +1639,363 @@ it('initializes flight split-screen manager and coordinates guest views via flig
     candidate.dispose();
   }
 });
+
+it('integrates finite maneuver burn intent and transitions phases via maneuver-burn example', () => {
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [maneuverBurnDescriptor, maneuverBurnInitialize, maneuverBurnGuide],
+    [maneuverBurnExampleDescriptor, maneuverBurnExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    maneuverBurnDescriptor,
+    maneuverBurnExampleDescriptor,
+  ], {
+    'flight.maneuver-burn': 'spacelab.maneuver-burn',
+    'example.maneuver-burn': 'example.maneuver-burn',
+  }), 'node');
+  try {
+    const executor = candidate.providedService(MANEUVER_BURN_EXECUTOR);
+    const vehicle = { mass: 1000, acceleration: 20, turnRate: 2, initialThrottle: 0 };
+    // Burn of 200 m/s at 20 m/s^2 takes 10s. Centered at 100s, starts at 95s.
+    const burn = executor.createBurn(100, { x: 200, y: 0 }, vehicle);
+    expect(burn.phase).toBe('aligning');
+    expect(burn.start).toBe(95);
+    expect(burn.remaining).toBeCloseTo(200, 1);
+
+    // Ship facing +X (heading 0), aligned with {x: 200, y: 0} at time 90 (< 95)
+    const stateWait = { time: 90, position: { x: 0, y: 7000000 }, velocity: { x: 7500, y: 0 }, heading: 0, status: 'flying' as const, throttle: 0, revision: 0 };
+    const stepWait = executor.stepBurn(burn, stateWait);
+    expect(stepWait.phase).toBe('waiting');
+    expect(stepWait.controls.engine).toBe(false);
+
+    // At burn start (95s), transition to burning
+    const stateBurn = { time: 95, position: { x: 0, y: 7000000 }, velocity: { x: 7500, y: 0 }, heading: 0, status: 'flying' as const, throttle: 0, revision: 1 };
+    const stepBurn = executor.stepBurn(burn, stateBurn);
+    expect(stepBurn.phase).toBe('burning');
+    expect(stepBurn.controls.engine).toBe(true);
+    expect(stepBurn.throttle).toBeGreaterThan(0);
+
+    burn.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('computes impulse vectors and summarizes maneuver overlays via maneuver-display example', () => {
+  const graph = registry([
+    [maneuverDisplayDescriptor, maneuverDisplayInitialize, maneuverDisplayGuide],
+    [maneuverDisplayExampleDescriptor, maneuverDisplayExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    maneuverDisplayDescriptor,
+    maneuverDisplayExampleDescriptor,
+  ], {
+    'example.maneuver-display': 'example.maneuver-display',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(MANEUVER_DISPLAY_HELPER);
+    const sample = { position: { x: 7000000, y: 0 }, velocity: { x: 0, y: 7500 }, time: 0 };
+    const delta = helper.computeDelta(sample, 100, 50);
+    expect(delta.x).toBeCloseTo(50, 1);
+    expect(delta.y).toBeCloseTo(100, 1);
+
+    const summary = helper.summarize({
+      time: 150,
+      position: { x: 7000000, y: 0 },
+      deltaVelocity: { x: 30, y: 40 },
+      burnSeconds: 10,
+      valid: true,
+      completed: false,
+      nodes: [{ id: 'node-1', label: 'NODE 1', time: 150, position: { x: 7000000, y: 0 }, deltaVelocity: { x: 30, y: 40 }, valid: true, selected: true }],
+      path: [],
+    });
+    expect(summary.time).toBe(150);
+    expect(summary.deltaV).toBeCloseTo(50, 1);
+    expect(summary.valid).toBe(true);
+    expect(summary.completed).toBe(false);
+    expect(summary.nodeCount).toBe(1);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('initializes maneuver planner editor session and queries diagnostics via maneuver-editor example', () => {
+  const hostServices = engineModuleServices();
+  const mockDoc: any = {
+    defaultView: {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      ResizeObserver: class MockResizeObserver {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+      },
+    },
+    createElement: (tag: string) => {
+      const el = createMockEl(tag);
+      el.ownerDocument = mockDoc;
+      return el;
+    },
+    head: { append: vi.fn() },
+    dispatchEvent: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  };
+  const mockContainer = createMockEl('div');
+  mockContainer.ownerDocument = mockDoc;
+
+  const graph = registry([
+    [windowsDescriptor, windowsInitialize, windowsGuide, windowsAssets],
+    [predictionDescriptor, predictionInitialize, predictionGuide],
+    [maneuverBurnDescriptor, maneuverBurnInitialize, maneuverBurnGuide],
+    [maneuverDisplayDescriptor, maneuverDisplayInitialize, maneuverDisplayGuide],
+    [maneuverEditorDescriptor, maneuverEditorInitialize, maneuverEditorGuide, maneuverEditorAssets],
+    [maneuverEditorExampleDescriptor, maneuverEditorExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    windowsDescriptor,
+    predictionDescriptor,
+    maneuverBurnDescriptor,
+    maneuverDisplayDescriptor,
+    maneuverEditorDescriptor,
+    maneuverEditorExampleDescriptor,
+  ], {
+    'ui.windows': 'spacelab.ui-windows',
+    'view.prediction': 'spacelab.flight-prediction',
+    'flight.maneuver-burn': 'spacelab.maneuver-burn',
+    'view.maneuver-planner': 'spacelab.maneuver-editor',
+    'example.maneuver-editor': 'example.maneuver-editor',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(MANEUVER_EDITOR_HELPER);
+    const mockFlight = {
+      world: {
+        time: 100,
+        ship: () => ({ id: 'ship-1', state: { time: 100, position: { x: 0, y: 7000000 }, velocity: { x: 7500, y: 0 }, heading: 0, status: 'flying', throttle: 0, revision: 0 } }),
+        body: () => ({ id: 'earth', radius: 6371000, mu: 3.986004418e14 }),
+      } as any,
+      body: { id: 'earth', radius: 6371000, mu: 3.986004418e14 } as any,
+      enabled: true,
+      canWarp: true,
+      paused: false,
+      inputBlocked: false,
+      warp: 1,
+      requestedWarp: 1,
+    };
+    const session = helper.createSession({
+      container: mockContainer,
+      id: 'test-maneuver-editor',
+      flight: () => mockFlight,
+      setWarp: vi.fn(),
+      setThrottle: vi.fn(),
+      releaseControls: vi.fn(),
+      notify: vi.fn(),
+    });
+    expect(session.isExecuting).toBe(false);
+    expect(session.getDiagnostics()).toBeDefined();
+    session.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('schedules simulation-time orbital alarms and inspects catalogue via orbital-alarms example', () => {
+  const burnsGuideText = readFileSync('modules/orbital-alarms/docs/players/burns.json', 'utf8');
+  const graph = registry([
+    [orbitalAlarmsDescriptor, orbitalAlarmsInitialize, orbitalAlarmsGuide, { 'docs/players/burns.json': burnsGuideText }],
+    [orbitalAlarmsExampleDescriptor, orbitalAlarmsExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    orbitalAlarmsDescriptor,
+    orbitalAlarmsExampleDescriptor,
+  ], {
+    'flight.alarms': 'spacelab.orbital-alarms',
+    'flight.alarm-catalogue': 'spacelab.orbital-alarms',
+    'example.orbital-alarms': 'example.orbital-alarms',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(ORBITAL_ALARM_HELPER);
+    const clock = helper.createClock();
+    const sessionObj = {};
+    const events = [
+      { id: 'burn-1', kind: 'maneuver', label: 'Prograde burn', deadline: 100, time: 110, pause: true },
+    ];
+
+    // At now = 50, event is not due
+    const noticesBefore = helper.syncClock(clock, sessionObj, 50, events);
+    expect(noticesBefore.length).toBe(0);
+
+    // Catalogue shows the pending alarm
+    const catalogue = helper.readCatalogue(sessionObj);
+    expect(catalogue.some(e => e.label === 'Prograde burn')).toBe(true);
+
+    // At now = 100, deadline is reached
+    const noticesDue = helper.syncClock(clock, sessionObj, 100, events);
+    expect(noticesDue.length).toBe(1);
+    expect(noticesDue[0]!.id).toBe('burn-1');
+    expect(noticesDue[0]!.missed).toBe(false);
+
+    clock.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('manages Alarms dock panel updates and countdown formatting via alarm-panel example', () => {
+  const burnsGuideText = readFileSync('modules/orbital-alarms/docs/players/burns.json', 'utf8');
+  const alarmsGuideText = readFileSync('modules/alarm-panel/docs/players/alarms.json', 'utf8');
+  const mockDoc: any = {
+    createElement: (tag: string) => createMockEl(tag),
+  };
+  const mockContainer = createMockEl('div');
+  mockContainer.ownerDocument = mockDoc;
+
+  const graph = registry([
+    [orbitalAlarmsDescriptor, orbitalAlarmsInitialize, orbitalAlarmsGuide, { 'docs/players/burns.json': burnsGuideText }],
+    [alarmPanelDescriptor, alarmPanelInitialize, alarmPanelGuide, { 'docs/players/alarms.json': alarmsGuideText }],
+    [alarmPanelExampleDescriptor, alarmPanelExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    orbitalAlarmsDescriptor,
+    alarmPanelDescriptor,
+    alarmPanelExampleDescriptor,
+  ], {
+    'flight.alarms': 'spacelab.orbital-alarms',
+    'flight.alarm-catalogue': 'spacelab.orbital-alarms',
+    'view.alarms': 'spacelab.alarm-panel',
+    'example.alarm-panel': 'example.alarm-panel',
+  }), 'browser');
+  try {
+    const helper = candidate.providedService(ALARM_PANEL_HELPER);
+    const mockWindowChrome: any = {
+      body: createMockEl('div'),
+      isOpen: true,
+      onChange: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const mockWindows: any = {
+      create: vi.fn(() => mockWindowChrome),
+    };
+    const mockShell: any = {
+      addInstrument: vi.fn(() => ({ dispose: vi.fn() })),
+    };
+    const sessionObj = {};
+    const panel = helper.createPanel({
+      container: mockContainer,
+      windows: mockWindows,
+      shell: mockShell,
+      session: () => sessionObj,
+    });
+    expect(mockWindows.create).toHaveBeenCalled();
+    expect(mockShell.addInstrument).toHaveBeenCalled();
+    helper.updatePanel(panel);
+    panel.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('queries transfer capabilities and runs bounded trajectory search via transfer-planner example', () => {
+  const flightGuideText = readFileSync('modules/transfer-planner/docs/players/flight.json', 'utf8');
+  const graph = registry([
+    [plansDescriptor, plansInitialize, plansGuide],
+    [transferPlannerDescriptor, transferPlannerInitialize, transferPlannerGuide, { 'docs/players/flight.json': flightGuideText }],
+    [transferPlannerExampleDescriptor, transferPlannerExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([
+    plansDescriptor,
+    transferPlannerDescriptor,
+    transferPlannerExampleDescriptor,
+  ], {
+    'flight.plans': 'spacelab.flight-plans',
+    'flight.transfers': 'spacelab.transfer-planner',
+    'example.transfer-planner': 'example.transfer-planner',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(TRANSFER_PLANNER_HELPER);
+    const caps = helper.getCapabilities();
+    expect(caps.relationships).toContain('same-body');
+
+    const mockWorld: any = {
+      ship: () => null,
+      time: 100,
+    };
+    const request = {
+      shipId: 'nonexistent-ship',
+      destinationId: 'moon',
+      periapsisAltitude: 50000,
+      apoapsisAltitude: 50000,
+    };
+    const result = helper.runSearch(mockWorld, request, 10);
+    expect(result.options).toEqual([]);
+    expect(result.reason.length).toBeGreaterThan(0);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('computes orbital elements and validates motion services via physics-rails example', () => {
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [physicsRailsDescriptor, physicsRailsInitialize, physicsRailsGuide],
+    [physicsRailsExampleDescriptor, physicsRailsExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    physicsRailsDescriptor,
+    physicsRailsExampleDescriptor,
+  ], {
+    'motion': 'builtin.motion',
+    'orbits': 'builtin.motion',
+    'bodies': 'builtin.motion',
+    'surfaces': 'builtin.motion',
+    'rails': 'builtin.motion',
+    'example.physics-rails': 'example.physics-rails',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(MOTION_KERNEL_HELPER);
+    const diag = helper.diagnose();
+    expect(diag.hasContext).toBe(true);
+    expect(diag.railsCompatible).toBe(true);
+
+    // Circular low earth orbit (r = 7000 km, v ~ 7546 m/s, mu = 3.986e14)
+    const elements = helper.computeElements(
+      { position: { x: 7000000, y: 0 }, velocity: { x: 0, y: 7546 } },
+      3.986004418e14,
+    );
+    expect(elements.kind).toBe('elliptic');
+    expect(elements.periapsis).toBeGreaterThan(6000000);
+    expect(elements.apoapsis).toBeGreaterThan(6000000);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('queries vehicle definitions and trainer defaults via vehicle-trainer example', () => {
+  const flightGuideText = readFileSync('modules/vehicle-trainer/docs/players/flight.json', 'utf8');
+  const hostServices = engineModuleServices();
+  const graph = registry([
+    [vehicleTrainerDescriptor, vehicleTrainerInitialize, vehicleTrainerGuide, { 'docs/players/flight.json': flightGuideText }],
+    [vehicleTrainerExampleDescriptor, vehicleTrainerExampleInitialize],
+  ], hostServices);
+  const candidate = graph.prepare(profile([
+    vehicleTrainerDescriptor,
+    vehicleTrainerExampleDescriptor,
+  ], {
+    'example.vehicle-trainer': 'example.vehicle-trainer',
+  }), 'node');
+  try {
+    const helper = candidate.providedService(VEHICLE_TRAINER_HELPER);
+    expect(helper.defaultTrainerId).toBe('spacelab.trainer/orbit-trainer');
+
+    const custom = helper.getCustomVehicle();
+    expect(custom.id).toBe('example.vehicle-trainer/trainer-scout');
+    expect(custom.name).toBe('Scout trainer variant');
+    expect(custom.handling?.acceleration).toBe(25);
+    expect(custom.handling?.turnRate).toBe(3.5);
+  } finally {
+    candidate.dispose();
+  }
+});
+
 
 
