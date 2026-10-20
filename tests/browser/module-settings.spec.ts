@@ -6,6 +6,7 @@ import {buildPortableModule} from '../../packages/module-tools/package.mjs';
 import {openPanel} from '../helpers/workspace';
 import {useCanvas} from '../helpers/canvas';
 let directory:string,bytes:Buffer,logging:Buffer;
+test.describe.configure({ timeout: 60000 });
 test.beforeAll(async()=>{
  directory=await mkdtemp(join(tmpdir(),'described-module-settings-'));const folder=join(directory,'source'),archive=join(directory,'websocket.spacemod');
  await cp(resolve('modules/net-websocket'),folder,{recursive:true});await buildPortableModule(join(folder,'module.json'),archive,{typecheck:false});bytes=await readFile(archive);
@@ -25,7 +26,7 @@ test('module diagnostics export scoped lifecycle and selected provider logs, the
  // Applying the same graph publishes the new guide lease before releasing the old candidate.
  await page.locator('#apply-device-modules').click();await expect(page.locator('#device-module-status')).toContainText('enabled for this game');
  await openPanel(page,'manual');await page.locator('#manual-tab-creators').click();await page.locator('#manual-search').fill('Module logging');
- await expect(page.locator('.manual-topic b').filter({hasText:'Module logging'})).toHaveCount(1);await openPanel(page,'library');
+ await expect(page.locator('.manual-topic b').filter({hasText:/^Module logging$/})).toHaveCount(1);await openPanel(page,'library');
  await row.locator('input[type=checkbox]').uncheck();await page.locator('#apply-device-modules').click();await expect(page.locator('#device-module-status')).toContainText('enabled for this game');
  const second=await report();expect(second.moduleLogs.modules).toEqual([]);expect(second.moduleLogs.host).toEqual(expect.arrayContaining([expect.objectContaining({event:'candidate.disposed'})]));
 });

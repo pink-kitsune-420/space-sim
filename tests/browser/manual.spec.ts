@@ -44,7 +44,27 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await expect(manual.locator('#manual-page')).toContainText('Setup → Export');
   await expect(manual.locator('#manual-page')).toContainText('Fleet → Save universe');
   await manual.locator('#manual-search').fill('determin');
-  await expect(manual.locator('.manual-topic b')).toHaveText(['Files, exports and saved progress', 'Code modules', 'Rules for simulation modules']);
+  await expect(manual.locator('.manual-topic b')).toHaveText([
+    'Files, exports and saved progress',
+    'Code modules',
+    'Rules for simulation modules',
+    'Shared flight plans reference',
+    'Finite maneuver burns reference',
+    'Maneuver vector display reference',
+    'Maneuver editor reference',
+    'Body spin presentation reference',
+    'Orbital transfer search reference',
+    'game-api: audio.ts',
+    'game-api: math.ts',
+    'game-api: module-data.ts',
+    'game-api: modules-v2.ts',
+    'game-api: rules.ts',
+    'game-api: session.ts',
+    'game-api: surface.ts',
+    'game-api: transfers.ts',
+    'Procedural sound',
+    'Progressive flight prediction',
+  ]);
   await manual.locator('#manual-search').fill('zzzz');
   await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');
   await manual.locator('#manual-search').fill('');
