@@ -44,7 +44,7 @@ export function createTransferPlanner(plans:FlightPlanService,burns?:ManeuverBur
    const targets=rp===ra?[rp]:[rp,ra],total=departures.length*targets.length*FACTORS.length,candidates:Omit<TransferOption,'kind'>[]=[];
    let tested=0,accepted=0,lastReason='No sampled coast satisfied the target and contact checks.';
    for(const departure of departures)for(const target of targets)for(const factor of FACTORS) {
-    tested++;yield{tested,total,accepted};
+    tested++;yield{tested,total,accepted,fraction:(tested-1)/total};
     const at=context.coastAt(coast,departure,body,surface,{cache:false});if(!at.ok)continue;
     const r1=radius(at.state.position),direction=orbit.angularMomentum>0?1:-1;
     const direct=Math.abs(r1-target)<=tolerance(target);
@@ -84,7 +84,7 @@ export function createTransferPlanner(plans:FlightPlanService,burns?:ManeuverBur
       const step=forecast.next();if(step.done){lastReason=`Prediction ended before arrival (${step.value}).`;break;}
       if(step.value.bodyId&&step.value.bodyId!==body.id){lastReason='This candidate encounters another SOI; interbody solving remains open.';break;}
       if(step.value.time>=arrival.time-1e-7){reached=true;break;}
-      yield{tested,total,accepted};
+      yield{tested,total,accepted,fraction:(tested-1)/total};
      }
     }finally{forecast.return('open');}
     if(!reached)continue;

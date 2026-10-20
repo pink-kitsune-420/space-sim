@@ -14,7 +14,11 @@ function setup(r=640,speedScale=1,acceleration=125){
 }
 function search(world:World,request:TransferRequest){
  const job=solver.search(world,request);let last:TransferProgress|undefined,yields=0;
- for(;;){const r=job.next();if(r.done)return{result:r.value,last,yields};last=r.value;if(++yields>800000)throw Error('Unbounded search');}
+ for(;;){const r=job.next();if(r.done)return{result:r.value,last,yields};checkFraction(r.value,last);last=r.value;if(++yields>800000)throw Error('Unbounded search');}
+}
+/** Whole-search progress stays inside [0, 1] and never moves backwards. */
+function checkFraction(progress:TransferProgress,previous?:TransferProgress){
+ if(!(progress.fraction!>=(previous?.fraction??0)&&progress.fraction!<=1))throw Error(`Progress fraction ${progress.fraction} after ${previous?.fraction}`);
 }
 it.each([[640,1,768,768],[1280,1,128,128],[640,1.15,512,512],[640,1.15,256,1024],[1280,1.1,128,388],[640,-1,256,1024]])('finds validated circular/elliptical orbit changes from r=%s scale=%s to altitudes %s/%s',(r,scale,low,high)=>{
  const {world,ship,body}=setup(r,scale),before=JSON.stringify(saveWorld(world));

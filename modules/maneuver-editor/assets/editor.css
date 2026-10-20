@@ -46,7 +46,16 @@
 .maneuver-window .transfer-timing label { margin: 0; font-size: 12px; }
 .maneuver-window .transfer-help > summary { min-height: 28px; box-sizing: border-box; padding: 6px 0; }
 .transfer-help .maneuver-help { padding: 3px 0; }
-.maneuver-window .transfer-status { font-size: 11px; overflow-wrap: anywhere; }
+.maneuver-window .transfer-status { font-size: 11px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+/* Indeterminate unless the provider reports TransferProgress.fraction: tested/total may cover one leg only. */
+.transfer-progress { display: grid; gap: 5px; }
+.transfer-bar { position: relative; height: 4px; overflow: hidden; border-radius: 2px; background: #36566a; }
+.transfer-bar span { position: absolute; inset: 0 auto 0 0; width: 30%; border-radius: inherit; background: #f7c775; animation: transfer-scan 1.8s ease-in-out infinite; }
+@keyframes transfer-scan { from { transform: translateX(-100%); } to { transform: translateX(334%); } }
+.transfer-bar[aria-valuenow] span { width: 0; animation: none; transition: width .25s linear; }
+@media (prefers-reduced-motion: reduce) { .transfer-bar:not([aria-valuenow]) span { width: 100%; opacity: .45; animation: none; } .transfer-bar[aria-valuenow] span { transition: none; } }
+/* Two reserved lines keep a wrapped counter from moving the status and cards below. */
+.maneuver-window .transfer-progress-text { margin: 0; min-height: 2.9em; font-size: 11px; line-height: 1.45; opacity: .85; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .transfer-option { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; padding: 9px; border: 1px solid #36566a; border-radius: 7px; margin-top: 8px; }
 .transfer-option strong { color: #f7c775; font-size: 12px; }
 .transfer-option .transfer-actions button { margin: 0; padding: 5px 9px; min-height: 32px; font-size: 11px; }

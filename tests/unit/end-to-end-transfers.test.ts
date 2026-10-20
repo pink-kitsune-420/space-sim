@@ -6,9 +6,12 @@ import {DEFAULT_UNIVERSE} from '../../packages/sim-core/src/universe';
 import {createFlightPlans} from '../../modules/flight-plans/src/index';
 import {createManeuverBurns} from '../../modules/maneuver-burn/src/index';
 import {deltaComponents} from '../../modules/transfer-planner/src/math';
-import type {FlightPlan,FlightPlanNode,ManeuverPlannerOptions} from '../../packages/game-api/src/index';
+import type {FlightPlan,FlightPlanNode,ManeuverPlannerOptions,TransferProgress,TransferResult} from '../../packages/game-api/src/index';
 const idle={engine:false,turn:0,throttle:0},clock={stepSeconds:.01 as const,idle};
 const drain=<T>(job:Generator<unknown,T>):T=>{for(let i=0;i<20000000;i++){const step=job.next();if(step.done)return step.value;}throw Error('Test work limit');};
+/** Route progress stays inside [0, 1] and never moves backwards across interleaved legs. */
+const drainSearch=(job:Generator<TransferProgress,TransferResult>):TransferResult=>{let fraction=0;for(let i=0;i<20000000;i++){const step=job.next();if(step.done)return step.value;
+ if(!(step.value.fraction!>=fraction&&step.value.fraction!<=1))throw Error(`Progress fraction ${step.value.fraction} after ${fraction}`);fraction=step.value.fraction!;}throw Error('Test work limit');};
 it.each([{altitude:100,epoch:0},{altitude:512,epoch:0},{altitude:100,epoch:2*365.25*86400},{altitude:100,epoch:99*365.25*86400}])('refines finite capture at $altitude metres and epoch $epoch without changing flight',({altitude,epoch})=>{
  const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'moon-orbit'}),body=world.body('moon'),plans=createFlightPlans(),burns=createManeuverBurns(clock);
  try {
@@ -36,7 +39,7 @@ import {createTransferPlanner} from '../../modules/transfer-planner/src/index';
 it.each(['moon','nix'])('finds a finite validated complete transfer to %s',destinationId=>{
  const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),burns=createManeuverBurns(clock),plans=createFlightPlans(burns),solver=createTransferPlanner(plans,burns),before=JSON.stringify(ship);
  try{
-  const result=drain(solver.search(worldFacade(world).read,{shipId:ship.id,destinationId,periapsisAltitude:100,apoapsisAltitude:100}));
+  const result=drainSearch(solver.search(worldFacade(world).read,{shipId:ship.id,destinationId,periapsisAltitude:100,apoapsisAltitude:100}));
   expect(result.options.length,result.reason).toBeGreaterThan(0);
   for(const option of result.options){
    expect(option.route?.finiteValidated).toBe(true);

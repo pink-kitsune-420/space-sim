@@ -25,6 +25,10 @@ export interface TransferProgress {
  /** Optional explanation of the leg or whole-route validation currently running. */
  readonly phase?: string;
  readonly tested: number; readonly total: number; readonly accepted: number;
+ /** Optional whole-search completion estimate in [0, 1], nondecreasing for one search.
+  * tested/total may describe only the current leg or phase; hosts show progress as
+  * indeterminate when this is absent. */
+ readonly fraction?: number;
  /** Fully validated best options so far; optional for existing providers.
   * A new array signals changed results. Search may continue after publication. */
  readonly options?: readonly TransferOption[];

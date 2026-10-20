@@ -3,6 +3,9 @@ import {MAX_FLIGHT_PLAN_SECONDS,flightTimeTolerance,flightSampleInFrame,maneuver
 import {lambert,ejection} from './lambert';
 import {burnsFit,deltaComponents,radius,tolerance,transferOptions} from './math';
 const YEAR=365.25*86400;
+/** Progress share of the coarse window scan. Measured on default-universe legs, it is
+ * 1-5% of leg time; refinement runs finite probes and dominates. */
+export const REFINE_START=.05;
 const add=(a:Vec,b:Vec):Vec=>({x:a.x+b.x,y:a.y+b.y});
 const subtract=(a:Vec,b:Vec):Vec=>({x:a.x-b.x,y:a.y-b.y});
 const scale=(v:Vec,f:number):Vec=>({x:v.x*f,y:v.y*f});
@@ -25,7 +28,9 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
  const context=world.contextFor(ship).cloneForPrediction(),orbits=context.services.orbits;
  let tested=0,accepted=0,total=0,lastReason='No sampled transfer converged safely. Try a different parking orbit or target altitude.';
  let options:readonly TransferOption[]=[];
- const progress=():TransferProgress=>({tested,total,accepted,options:options.length?options:undefined});
+ // Coarse samples are cheap single forecasts; each refined trial runs many finite probes.
+ let base=0,weight=REFINE_START;
+ const progress=():TransferProgress=>({tested,total,accepted,fraction:base+weight*Math.max(0,tested-1)/Math.max(1,total),options:options.length?options:undefined});
  try {
   if(ship.controls.engine)return none('Stop thrust before searching for a transfer.');
   if(!context.capabilities.analyticCoast||!context.capabilities.rails||world.requiresWorldPrediction||!world.predictionFeatures?.futureSeeds||!world.predictionFeatures.endTime||!plans.evaluateAsync)
@@ -106,7 +111,7 @@ export function* searchInterbody(plans:FlightPlanService,world:WorldRead,request
    trials.push({before,endpoint,velocity:seedVelocity,departure,travel,arrival,score:radius(subtract(seedVelocity,at.state.velocity))+capture});
   }
   const selected=[...new Set([...trials.slice().sort((a,b)=>a.score-b.score||a.arrival-b.arrival).slice(0,16),...trials.slice().sort((a,b)=>a.arrival-b.arrival||a.score-b.score).slice(0,8)])];
-  tested=0;total=selected.length;
+  tested=0;total=selected.length;base=REFINE_START;weight=1-REFINE_START;
   let beforeProbe=start;
   for(const trial of selected){
    tested++;yield progress();

@@ -25,7 +25,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/1",
-    "inputsDigest": "e1f40830436b0a4a06a2500e26172664ac1e1c0634a073d93bb5bd3134dc7211"
+    "inputsDigest": "c89db58d814be7d90d2af732b651a06e7697aba0d0eb343a38d7328a7b3d1214"
   },
   "compatibility": {
     "deterministic": true,
@@ -306,7 +306,7 @@
     },
     {
       "path": "game-api/transfers.ts",
-      "sha256": "994d1be491f5a4628b0c13d52a1c0f5d9aef49a52ce52accc40b2e08bd0ddc75",
+      "sha256": "90011409e360e03c52d0ddec8c265d5aebf518cd2fba1ddbae5d53161702a73a",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
