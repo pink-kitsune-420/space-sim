@@ -173,7 +173,7 @@ export const THEME_PRESETS: readonly ThemePreset[] = Object.freeze([
   },
   {
     id: 'obsidian-apollo',
-    name: 'Deep Field & Apollo 1969 CRT',
+    name: 'Deep Field & Retro CRT',
     description: 'Pitch-black obsidian void with twinkling distant galaxies and vintage amber phosphor.',
     previewColor: '#ffb300',
     settings: {

@@ -11,7 +11,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -192,6 +192,8 @@ function packageAndroid() {
     rmSync(dest, { recursive: true, force: true });
     mkdirSync(dest, { recursive: true });
     cpSync(src, dest, { recursive: true });
+    if (existsSync(join(root, 'LICENSE'))) copyFileSync(join(root, 'LICENSE'), join(dest, 'LICENSE.txt'));
+    if (existsSync(join(root, 'CREDITS.md'))) copyFileSync(join(root, 'CREDITS.md'), join(dest, 'CREDITS.md'));
   });
 
   const hasAndroidSdk = Boolean(process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT);

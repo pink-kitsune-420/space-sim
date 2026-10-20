@@ -6,7 +6,7 @@ const WINDOW_STYLE_COLORS: Record<ThemeWindowStyle, string> = {
 
 const COLOR_PALETTE = [
   { label: 'Cyan', color: '#00f0ff' },
-  { label: 'Apollo Amber', color: '#ffb300' },
+  { label: 'Phosphor Amber', color: '#ffb300' },
   { label: 'Solar Gold', color: '#ffd700' },
   { label: 'Hazard Orange', color: '#ff6600' },
   { label: 'Aurora Emerald', color: '#00ffaa' },
@@ -562,7 +562,7 @@ function renderDialogContent(
   const counterThemes: { id: ThemeCounterStyle; label: string; desc: string; color: string }[] = [
     { id: 'spacelab', label: 'Classic Spacelab', desc: 'Understated slate-blue and teal aerospace telemetry', color: '#6d8893' },
     { id: 'cyber', label: 'Cyber Neon Cyan', desc: 'Electric cyan phosphor, neon magenta accents & chamfers', color: '#00f0ff' },
-    { id: 'apollo', label: 'Apollo 1969 Retro CRT', desc: 'NASA mission control amber phosphor & CRT scanlines', color: '#ffb300' },
+    { id: 'apollo', label: 'Retro Mission CRT', desc: 'Vintage mission control amber phosphor & CRT scanlines', color: '#ffb300' },
     { id: 'tactical', label: 'Deep Space Tactical', desc: 'Stealth gunmetal with hazard orange & yellow warnings', color: '#ff6600' },
     { id: 'aurora', label: 'Aurora Glassmorphism', desc: 'Translucent frosted glass with emerald & violet sheen', color: '#00ffaa' },
     { id: 'solar', label: 'Solar Flare Gold', desc: 'Deep obsidian and radiant golden solar observatory readouts', color: '#ffd700' },
@@ -670,7 +670,7 @@ function populateWindowStyles(
   const styles: { id: ThemeWindowStyle; label: string; desc: string; icon: string; color: string }[] = [
     { id: 'classic', label: 'Classic Slate', desc: 'Original Spacelab aerospace slate-blue frames', icon: '🛰', color: '#38bdf8' },
     { id: 'cyber', label: 'Cyberpunk Neon', desc: 'Electric cyan luminous chassis and glowing borders', icon: '⚡', color: '#00f0ff' },
-    { id: 'apollo', label: 'Apollo Mission', desc: 'NASA vintage amber phosphor console styling', icon: '📻', color: '#ffb300' },
+    { id: 'apollo', label: 'Retro Mission Control', desc: 'Vintage amber phosphor console styling', icon: '📻', color: '#ffb300' },
     { id: 'tactical', label: 'Tactical Gunmetal', desc: 'Stealth gunmetal with hazard orange accents', icon: '🎯', color: '#ff6600' },
     { id: 'aurora', label: 'Aurora Glass', desc: 'Frosted emerald translucent glassmorphism', icon: '💎', color: '#00ffaa' },
     { id: 'solar', label: 'Solar Gold', desc: 'Radiant golden solar observatory chassis', icon: '☀️', color: '#ffd700' },
