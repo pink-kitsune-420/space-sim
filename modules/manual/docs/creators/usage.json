@@ -14,7 +14,7 @@
     },
     {
       "type": "paragraph",
-      "text": "For trusted live content, the host can provide a mount callback and a revision string. The game adapter owns input interpretation and template expansion; refresh updates the body only when the page or revision changes, preserving scroll and expanded explanations during chrome changes. Source-only default Space Sim book content remains editable in src/content.ts. No tutorial runner or F28 redesign is included."
+      "text": "For trusted live content, the host can provide a mount callback and a revision string. The game adapter owns input interpretation and template expansion; refresh updates the body only when the page or revision changes, preserving scroll and expanded explanations during chrome changes. The default Space Sim book is editable in modules/manual/src/content.ts and composed through apps/web/src/manual-content.ts; the app expands live keybindings when mounting it. The reader does not run tutorials."
     },
     {
       "type": "paragraph",

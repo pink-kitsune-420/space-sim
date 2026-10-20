@@ -829,6 +829,8 @@ to customize worlds, flight rules, instruments and sound. Available controls and
 <p>The <b>ModMenu</b> window manages games and plugins. Its <b>Plugin controls</b> show simulation options and
 instruments you can change now. Choose <b>Browse bundled packages</b> to search the included source packages by name
 or category. These are source references: some bundled systems do not have individual switches in this alpha.</p>
+<p>Before sharing, read <a data-page="files">Files, exports and saved progress</a> to choose the right file.
+Game setup, reusable content and a flight in progress have separate exports.</p>
 ${deeper('how the pieces fit', `
 <p>A <b>game</b> lists two profiles. The <b>simulation profile</b> picks the modules that decide what happens,
 such as the motion model and content. Those are part of every save and every multiplayer session. The
@@ -838,6 +840,39 @@ panels and cameras. Each viewer can change those freely.</p>
 with <code>context.expose()</code>, and another can use it with <code>context.dependency()</code>. The built-in
 instruments use this: the velocity arrow, orbit markers and telemetry panel all read from a shared
 <code>builtin.flight-data</code> module.</p>`)}`,
+  },
+  {
+    id: 'files',
+    title: 'Files, exports and saved progress',
+    summary: 'Choose .spacegame, .spacemod, .spacedata or .spaceuniverse',
+    html: `
+<p><b>Goal:</b> share a game, reuse content or continue a flight on another device.</p>
+<dl>
+  <dt>.spacegame — game setup</dt><dd>Selected modules, content and settings. Use <b>ModMenu → Export .spacegame</b>.
+    A game starts a new world. Its target and required providers determine where it can run.</dd>
+  <dt>.spacemod — code package</dt><dd>Editable module source and a compiled bundle. Use the module build tools,
+    then import it in ModMenu. The browser cannot compile TypeScript.</dd>
+  <dt>.spacedata — reusable definitions</dt><dd>Universe definitions, shaders or other data.
+    Use <b>Setup → Export</b> for a universe or <b>Tools → Shaders → Export shaders</b> for a shader pack.</dd>
+  <dt>.spaceuniverse — flight progress</dt><dd>The current clock, ships, pilots and available saved flight plans.
+    Use <b>Fleet → Save universe</b>, then <b>Load universe…</b> to resume.</dd>
+</dl>
+<p>For a custom flight, keep both the game setup and its universe save. On the receiving device,
+import and start the compatible game first, then load the universe save. Review flight plans before using them;
+loading progress never arms automatic burns or installs executable code.</p>
+<p>Importing a code package inspects its contents. Code runs when you enable the module or play its game,
+so choose authors you trust. Browser storage is local to this device and origin; export files to back up
+or share your work.</p>
+${deeper('editable archives and older files', `
+<p>New portable files use standard ZIP containers. From a source checkout, unpack a file with
+<code>npm run file:unpack -- content.spacedata my-copy</code> into a new or empty destination.
+After editing data, run <code>npm run file:pack -- my-copy edited.spacedata</code> and
+<code>npm run file:validate -- edited.spacedata</code>.</p>
+<p>For code changes, use <code>module:build</code> before packing; for changed game selections, use
+<code>game:build</code>. Packing cannot compile source or repair a stale game lock.</p>
+<p>Older JSON, gzip and <code>.spaceuniverse</code> definition files remain importable.
+The importer checks the contents, so an older definition file is not treated as flight progress just
+because it ends in <code>.spaceuniverse</code>.</p>`)}`,
   },
   {
     id: 'flight-services',
@@ -904,14 +939,17 @@ ground is √(μ/R). Small, dense bodies give short orbits that are quick to pla
     html: `
 <ol>
   <li>Open <b>Tools → Shaders</b> and choose <b>Export shaders</b>. This saves a <code>.spacedata</code> file with all the current shaders. Legacy shader JSON and GLSL still import.</li>
-  <li>Edit the GLSL in any text editor.</li>
-  <li>Choose <b>Load shader…</b> to apply your copy.</li>
+  <li>Unpack the archive with <code>npm run file:unpack -- my-shaders.spacedata my-shaders</code>.
+    Edit the GLSL strings in the shader definition under <code>data/</code>, then repack it with
+    <code>npm run file:pack -- my-shaders edited-shaders.spacedata</code>.</li>
+  <li>Choose <b>Load shader…</b> to apply your repacked file.</li>
 </ol>
 <ul>
   <li>Shaders need WebGL 2. Loading a pack while using the 2D renderer switches to WebGL.</li>
   <li>If a shader has an error, the game rejects it and keeps the previous one.</li>
 </ul>
-<p><code>examples/shaders/</code> has a finished pack to start from.</p>
+<p>For a simpler text-only start, copy <code>examples/shaders/violet.json</code>, edit its GLSL strings
+and load the JSON directly. See <a data-page="files">Files, exports and saved progress</a> for archive tooling.</p>
 ${deeper('how packs are built', `
 <p>A pack has the format <code>space-sim-shaders/1</code> and three passes, each with a vertex and a fragment
 shader: <code>scene</code> (background, planets, atmospheres), <code>vector</code> (orbits, ship, HUD lines) and

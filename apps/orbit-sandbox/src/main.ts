@@ -891,7 +891,7 @@ export function initOrbitSandbox(options?: OrbitSandboxOptions): OrbitSandboxIns
     try {
       const { compressedBytes, universe } = await exportUniverseFiles(bodies, inpUniverseId.value, inpUniverseName.value);
       downloadFile(`${universe.id}.spacedata`, compressedBytes as unknown as BlobPart, 'application/octet-stream');
-      showToast(`Downloaded ${universe.id}.spaceuniverse`);
+      showToast(`Downloaded ${universe.id}.spacedata`);
     } catch (err) {
       alert(`Export error: ${(err as Error).message}`);
     }

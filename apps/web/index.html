@@ -64,9 +64,9 @@
                 <div class="universe-row">
                   <label for="universe-select">Universe</label>
                   <div class="universe-actions">
-                    <button id="load-universe" type="button" title="Import a universe from JSON, .spaceuniverse or .json.gz">Import…</button>
+                    <button id="load-universe" type="button" title="Import universe definitions from .spacedata, JSON or legacy compressed files">Import…</button>
                     <input id="universe-file" type="file" accept=".spacedata,.spaceuniverse,.json,.gz,application/gzip,application/json" hidden />
-                    <button id="export-universe" type="button" title="Download this universe with all its planets as a losslessly compressed .spaceuniverse file">Export</button>
+                    <button id="export-universe" type="button" title="Download reusable universe definitions as a .spacedata archive">Export</button>
                     <button id="export-universe-json" type="button" title="Download editable, uncompressed universe JSON">JSON</button>
                   </div>
                 </div>
@@ -434,9 +434,9 @@
                   </div>
 
                   <div class="export-card">
-                    <h3>Compressed Binary (.spaceuniverse)</h3>
-                    <p>Lossless gzip binary archive ready for the Space Sim Import button.</p>
-                    <button id="btn-download-spaceuniverse" class="btn btn-secondary btn-block">📦 Download .spaceuniverse</button>
+                    <h3>Universe definitions (.spacedata)</h3>
+                    <p>Reusable definitions in a ZIP archive, ready for Space Sim's Setup → Import… button.</p>
+                    <button id="btn-download-spaceuniverse" class="btn btn-secondary btn-block">📦 Download .spacedata</button>
                   </div>
 
                   <div class="export-card">

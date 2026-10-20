@@ -39,8 +39,12 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
   await expect(manual.getByRole('button', { name: 'Configure controls…' })).toHaveCount(0);
   await manual.locator('#manual-page a[data-page="shaders"]').click();
   await expect(manual.locator('#manual-page h2')).toHaveText('Shader packs');
+  await manual.locator('.manual-topic[data-page="files"]').click();
+  await expect(manual.locator('#manual-page h2')).toHaveText('Files, exports and saved progress');
+  await expect(manual.locator('#manual-page')).toContainText('Setup → Export');
+  await expect(manual.locator('#manual-page')).toContainText('Fleet → Save universe');
   await manual.locator('#manual-search').fill('determin');
-  await expect(manual.locator('.manual-topic b')).toHaveText(['Code modules', 'Rules for simulation modules']);
+  await expect(manual.locator('.manual-topic b')).toHaveText(['Files, exports and saved progress', 'Code modules', 'Rules for simulation modules']);
   await manual.locator('#manual-search').fill('zzzz');
   await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');
   await manual.locator('#manual-search').fill('');

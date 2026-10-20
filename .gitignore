@@ -90,6 +90,7 @@ examples/packages/*/integrity.json
 modules/*/integrity.json
 
 # Private research requested at repository-root paths.
+/proposal/
 /orbital-sandbox-refactor.md
 /rocket-collision-research.md
 
