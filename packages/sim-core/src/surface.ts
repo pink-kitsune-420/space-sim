@@ -301,3 +301,15 @@ export function generateSurface(body: { readonly radius: number; readonly surfac
   return profileFromSamples(radius, s.orientationRadians, elevations,
     surfaceIdentity({ radius, surface: s }), scaledFeatures, s.pads, s.seaRadiusMetres);
 }
+
+/** Radial gravitational acceleration (`m/s²`) at body-centred `(x, y)` (`m`) for gravitational parameter `mu` (`m³/s²`), written into `out` without allocation; returns `out`. At or beyond `coreRadiusMetres` it is exact point-mass gravity. Inside, a softened uniform-density interior `-mu·(x, y)/coreRadius³` grows linearly from zero at the centre and meets the exterior value continuously at the core radius, so excavation toward `r → 0` never divides by zero. The exact centre yields zero; a non-positive or non-finite core radius falls back to point-mass gravity. Host-only (`packages/sim-core`). */
+export function evaluateSafeRadialGravity(x: number, y: number, mu: number, coreRadiusMetres: number, out: { x: number; y: number }): { x: number; y: number } {
+  const r2 = x * x + y * y;
+  const core = coreRadiusMetres > 0 && Number.isFinite(coreRadiusMetres) ? coreRadiusMetres : 0;
+  let scale: number;
+  if (r2 === 0) scale = 0;
+  else if (r2 < core * core) scale = -mu / (core * core * core);
+  else scale = -mu / (r2 * Math.sqrt(r2));
+  out.x = x * scale; out.y = y * scale;
+  return out;
+}

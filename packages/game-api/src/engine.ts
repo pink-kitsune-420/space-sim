@@ -34,6 +34,8 @@ export interface SavedShip {
   readonly position: Pair;
   readonly velocity: Pair;
   readonly heading: number;
+  /** Rotation rate in rad/s; omitted when 0. */
+  readonly angularVelocity?: number;
   readonly throttle: number;
   readonly status: State['status'];
   readonly revision: number;

@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b314d7ad533fa853",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b314d7ad533fa853"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 4b3cd4860dfdee25"
         },
         {
           "type": "paragraph",
@@ -7795,7 +7795,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SavedShip {\n  readonly vehicleId?: string;\n  readonly id: string;\n  readonly name: string;\n  readonly ownerId: string;\n  readonly bodyId: string;\n  readonly position: Pair;\n  readonly velocity: Pair;\n  readonly heading: number;\n  readonly throttle: number;\n  readonly status: State['status'];\n  readonly revision: number;\n  readonly godMode?: boolean;\n  readonly water?: 'submerged' | 'floating';\n  /** Present while coasting: the epoch this ship's exact Kepler motion is evaluated from. */\n  readonly coast?: SavedCoast;\n  readonly fault?: string;\n  readonly moduleState?: Readonly<Record<string, ModuleState>>;\n}"
+          "text": "export interface SavedShip {\n  readonly vehicleId?: string;\n  readonly id: string;\n  readonly name: string;\n  readonly ownerId: string;\n  readonly bodyId: string;\n  readonly position: Pair;\n  readonly velocity: Pair;\n  readonly heading: number;\n  /** Rotation rate in rad/s; omitted when 0. */\n  readonly angularVelocity?: number;\n  readonly throttle: number;\n  readonly status: State['status'];\n  readonly revision: number;\n  readonly godMode?: boolean;\n  readonly water?: 'submerged' | 'floating';\n  /** Present while coasting: the epoch this ship's exact Kepler motion is evaluated from. */\n  readonly coast?: SavedCoast;\n  readonly fault?: string;\n  readonly moduleState?: Readonly<Record<string, ModuleState>>;\n}"
         },
         {
           "type": "paragraph",
@@ -11315,7 +11315,23 @@
         },
         {
           "type": "code",
-          "text": "export interface ForceEvaluation {\n  /** Scheduler boundary tick; time is the actual integrator stage epoch in seconds. */\n  readonly tick: number;\n  readonly time: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  readonly body: Body;\n  readonly controls: Controls;\n  readonly state: ModuleState;\n}"
+          "text": "export interface ForceEvaluation {\n  /** Scheduler boundary tick; time is the actual integrator stage epoch in seconds. */\n  readonly tick: number;\n  readonly time: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  /** Stage heading in rad and rotation rate in rad/s (inertial frame). */\n  readonly heading: number;\n  readonly angularVelocity: number;\n  readonly body: Body;\n  readonly controls: Controls;\n  readonly state: ModuleState;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "GeneralizedForce"
+        },
+        {
+          "type": "paragraph",
+          "text": "Force hook output: body-local linear acceleration in m/s² (finite, at most 10,000 per component) and an optional angular acceleration in rad/s² (finite, at most 1,000) added to the ship's rotation rate. A plain `Vec` is a valid result."
+        },
+        {
+          "type": "code",
+          "text": "export interface GeneralizedForce {\n  readonly x: number;\n  readonly y: number;\n  readonly angularAcceleration?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -11327,11 +11343,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Synchronous, pure callbacks: no hidden mutable authority, wall clock or random IO. Acceleration is body-local m/s², evaluated at KDK kicks (also fractional contacts). Each component is finite and at most 10,000 m/s² in magnitude. All evaluations in one outer step read the same state; commit runs once after verified motion. Inputs are detached/read-only. Exceptions or invalid outputs abort this ship's step. Work must be bounded by the author; synchronous JS cannot be preempted."
+          "text": "Synchronous, pure callbacks: no hidden mutable authority, wall clock or random IO. Acceleration is body-local m/s², evaluated at KDK kicks (also fractional contacts). Each component is finite and at most 10,000 m/s² in magnitude; `angularAcceleration` is likewise finite and at most 1,000 rad/s² and is integrated into `State.angularVelocity` and `heading`. All evaluations in one outer step read the same state; commit runs once after verified motion. Inputs are detached/read-only. Exceptions or invalid outputs abort this ship's step. Work must be bounded by the author; synchronous JS cannot be preempted."
         },
         {
           "type": "code",
-          "text": "export interface ForceHook {\n  /** Include every force parameter in this local cache identity. */\n  readonly modelIdentity: string;\n  readonly initialState: ModuleState;\n  evaluate(input: ForceEvaluation): Vec;\n  commit?(input: Readonly<MotionStep & { readonly next: State; readonly moduleState: ModuleState }>): ModuleState;\n}"
+          "text": "export interface ForceHook {\n  /** Include every force parameter in this local cache identity. */\n  readonly modelIdentity: string;\n  readonly initialState: ModuleState;\n  evaluate(input: ForceEvaluation): GeneralizedForce;\n  commit?(input: Readonly<MotionStep & { readonly next: State; readonly moduleState: ModuleState }>): ModuleState;\n}"
         },
         {
           "type": "paragraph",
@@ -15059,7 +15075,7 @@
         },
         {
           "type": "code",
-          "text": "export interface State {\n  readonly moduleState?: Readonly<Record<string, ModuleState>>;\n  readonly time: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  readonly heading: number;\n  readonly throttle: number;\n  readonly status: 'landed' | 'flying' | 'crashed';\n  readonly revision: number;\n  readonly godMode?: boolean;\n  readonly coast?: Coast;\n  readonly dynamics?: 'kepler' | 'numerical';\n  readonly solver?: SolverDiagnostics;\n  /** Terrain event epoch lies within this completed scheduler step. */\n  readonly contact?: SurfaceContactEvent;\n  readonly water?: 'submerged' | 'floating';\n  /** Split drift vertex retained for prediction of a gentle sea entry. */\n  readonly waterEntry?: GhostSample;\n}"
+          "text": "export interface State {\n  readonly moduleState?: Readonly<Record<string, ModuleState>>;\n  readonly time: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  readonly heading: number;\n  /** Ship rotation rate in rad/s (counter-clockwise), integrated from force-hook `angularAcceleration` on top of the control turn rate. Absent means 0; cleared on landing or a crash. */\n  readonly angularVelocity?: number;\n  readonly throttle: number;\n  readonly status: 'landed' | 'flying' | 'crashed';\n  readonly revision: number;\n  readonly godMode?: boolean;\n  readonly coast?: Coast;\n  readonly dynamics?: 'kepler' | 'numerical';\n  readonly solver?: SolverDiagnostics;\n  /** Terrain event epoch lies within this completed scheduler step. */\n  readonly contact?: SurfaceContactEvent;\n  readonly water?: 'submerged' | 'floating';\n  /** Split drift vertex retained for prediction of a gentle sea entry. */\n  readonly waterEntry?: GhostSample;\n}"
         },
         {
           "type": "paragraph",

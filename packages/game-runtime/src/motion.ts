@@ -5,6 +5,8 @@ import type { ForceExtension, ModuleState, MotionContextOptions, MotionServices,
 export const MAX_MODULE_STATE_BYTES = 16_384;
 /** Largest acceleration per component, in m/s² (`10000`), that one force hook or the combined force schedule may return (`acceleration must be finite and bounded to 10000 m/s² per component`); a violation faults that ship. Host-only (`packages/game-runtime`). */
 export const MAX_FORCE_ACCELERATION = 10_000;
+/** Bound on a force hook's (and the combined schedule's) `angularAcceleration`, in rad/s². */
+export const MAX_ANGULAR_ACCELERATION = 1_000;
 
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object') {
@@ -131,24 +133,33 @@ export class ForceTransaction {
     });
   }
   acceleration(time: number, position: Vec, velocity: Vec): Vec {
+    const { x, y } = this.evaluate(time, position, velocity);
+    return { x, y };
+  }
+  /** Linear plus angular acceleration of the whole schedule at one integrator stage. `heading` (rad) and `angularVelocity` (rad/s) default to the step-start values. */
+  evaluate(time: number, position: Vec, velocity: Vec, heading = this.input.state.heading, angularVelocity = this.input.state.angularVelocity ?? 0): { x: number; y: number; angularAcceleration: number } {
     const tolerance = Number.EPSILON * Math.max(1, Math.abs(this.input.state.time)) * 8;
     if (!Number.isFinite(time) || time < this.input.state.time - tolerance || time > this.input.state.time + this.input.seconds + tolerance
-      || !Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(velocity.x) || !Number.isFinite(velocity.y)) {
+      || !Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(velocity.x) || !Number.isFinite(velocity.y)
+      || !Number.isFinite(heading) || !Number.isFinite(angularVelocity)) {
       throw new Error(`Force schedule tick ${this.tick}: invalid integrator stage`);
     }
-    let x = 0, y = 0;
+    let x = 0, y = 0, w = 0;
     for (const { moduleId, hook } of this.forces) {
       const a = hookCall(moduleId, 'force.evaluate', this.tick, () => {
         const result = hook.evaluate(Object.freeze({ tick: this.tick, time, position: motionCopy(position), velocity: motionCopy(velocity),
-          body: this.input.body, controls: this.input.controls, state: this.states[moduleId]! }));
+          heading, angularVelocity, body: this.input.body, controls: this.input.controls, state: this.states[moduleId]! }));
         if (!result || !Number.isFinite(result.x) || !Number.isFinite(result.y)
           || Math.abs(result.x) > MAX_FORCE_ACCELERATION || Math.abs(result.y) > MAX_FORCE_ACCELERATION) throw new Error('acceleration must be finite and bounded to 10000 m/s² per component');
-        return { x: result.x, y: result.y };
+        const alpha = result.angularAcceleration ?? 0;
+        if (typeof alpha !== 'number' || !Number.isFinite(alpha) || Math.abs(alpha) > MAX_ANGULAR_ACCELERATION) throw new Error('angularAcceleration must be finite and bounded to 1000 rad/s²');
+        return { x: result.x, y: result.y, angularAcceleration: alpha };
       });
-      x += a.x; y += a.y;
+      x += a.x; y += a.y; w += a.angularAcceleration;
     }
     if (!Number.isFinite(x + y) || Math.abs(x) > MAX_FORCE_ACCELERATION || Math.abs(y) > MAX_FORCE_ACCELERATION) throw new Error(`Force schedule tick ${this.tick}: combined acceleration exceeds 10000 m/s²`);
-    return { x, y };
+    if (!Number.isFinite(w) || Math.abs(w) > MAX_ANGULAR_ACCELERATION) throw new Error(`Force schedule tick ${this.tick}: combined angular acceleration exceeds 1000 rad/s²`);
+    return { x, y, angularAcceleration: w };
   }
   commit(next: State): State {
     const verified = motionCopy(next);

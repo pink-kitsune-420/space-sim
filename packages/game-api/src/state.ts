@@ -29,6 +29,8 @@ export interface State {
   readonly position: Vec;
   readonly velocity: Vec;
   readonly heading: number;
+  /** Ship rotation rate in rad/s (counter-clockwise), integrated from force-hook `angularAcceleration` on top of the control turn rate. Absent means 0; cleared on landing or a crash. */
+  readonly angularVelocity?: number;
   readonly throttle: number;
   readonly status: 'landed' | 'flying' | 'crashed';
   readonly revision: number;
