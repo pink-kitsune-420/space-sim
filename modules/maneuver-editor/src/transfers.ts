@@ -12,22 +12,28 @@ export class TransferControls {
  private readonly cancelButton:HTMLButtonElement;private readonly find:HTMLButtonElement;
  private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement;autoWarp:HTMLButtonElement}[]=[];
  private readonly status:HTMLOutputElement;private readonly choices:HTMLDivElement;
+ private readonly pauseHint:HTMLParagraphElement;
  private shownOptions?:readonly TransferOption[];
  private scheduled?:number;
  constructor(private readonly root:HTMLElement,private readonly prefix:string,private readonly service:TransferPlanner,
   private readonly options:ManeuverPlannerOptions,private readonly install:(plan:FlightPlan)=>void,private readonly signal:AbortSignal,
   private readonly automate?:(plan:FlightPlan)=>void){
-  root.innerHTML=`<p class="maneuver-help">Plan a complete trip to the orbit you want. Choose a destination and review the route and all burns before adopting. Pause flight to keep departure windows available while searching.</p>
+  root.innerHTML=`<fieldset class="transfer-section"><legend>1 · Destination & orbit</legend>
    <div id="${prefix}-picker" class="transfer-picker"></div>
-   <label>Target low altitude (m)<input id="${prefix}-low" type="number" step="any"></label>
-   <label><input id="${prefix}-circular" type="checkbox" checked> Circular target</label>
-   <label>Target high altitude (m)<input id="${prefix}-high" type="number" step="any" disabled></label>
-   ${service.maxFlightSeconds?`<label>Maximum mission time (Julian years)<input id="${prefix}-years" type="number" min="0.000001" max="${service.maxFlightSeconds/(365.25*86400)}" step="any" value="${(service.defaultFlightSeconds??service.maxFlightSeconds)/(365.25*86400)}"></label><p class="maneuver-help">Includes waiting and all legs. Search compares direct trips and intermediate parking stops within this limit.</p>`:''}
+   <div class="transfer-orbit"><label class="transfer-field">Low altitude (m)<input id="${prefix}-low" type="number" step="any" aria-describedby="${prefix}-orbit-help"></label>
+   <label class="transfer-circle"><input id="${prefix}-circular" type="checkbox" checked> Circular</label>
+   <label class="transfer-field transfer-high">High altitude (m)<input id="${prefix}-high" type="number" step="any" disabled aria-describedby="${prefix}-orbit-help"></label></div>
+   <details class="transfer-help"><summary>About target altitude</summary><p id="${prefix}-orbit-help" class="maneuver-help">Altitudes are metres above the destination’s reference radius. Circular uses the same low and high altitude; turn it off to set both apsides. Search checks terrain clearance and orbit limits.</p></details></fieldset>
+   ${service.maxFlightSeconds?`<fieldset class="transfer-section"><legend>2 · Timing</legend><div class="transfer-timing"><label for="${prefix}-years">Mission limit (yr)</label><input id="${prefix}-years" type="number" min="0.000001" max="${service.maxFlightSeconds/(365.25*86400)}" step="any" value="${(service.defaultFlightSeconds??service.maxFlightSeconds)/(365.25*86400)}" aria-describedby="${prefix}-timing-hint ${prefix}-timing-help"></div><p id="${prefix}-timing-hint" class="maneuver-help">Maximum wait + travel, including all stops.</p><details class="transfer-help"><summary>How timing affects search</summary><p id="${prefix}-timing-help" class="maneuver-help">This is a duration limit, not an arrival date. One Julian year is 365.25 days. Search compares direct trips and intermediate parking stops within this limit (up to ${service.maxFlightSeconds/(365.25*86400)} yr). A shorter limit can exclude routes.</p></details></fieldset>`:''}
+   <section class="transfer-section" aria-labelledby="${prefix}-review-title"><h3 id="${prefix}-review-title">${service.maxFlightSeconds?'3':'2'} · Search & review</h3>
+   <p id="${prefix}-pause-hint" class="maneuver-help">Pause flight to keep departure windows available.</p>
    <div class="maneuver-adjust"><button id="${prefix}-find" type="button">Find transfer windows</button><button id="${prefix}-cancel" type="button" hidden>Cancel search</button></div>
-   <output id="${prefix}-status" aria-live="polite">Choose an orbit and find options.</output><div id="${prefix}-choices"></div>`;
+   <output id="${prefix}-status" class="transfer-status" aria-live="polite">Choose an orbit, then find transfer windows.</output><div id="${prefix}-choices"></div>
+   <details class="transfer-help"><summary>Using a transfer plan</summary><p class="maneuver-help">Compare wait, travel time, total Δv and all burns. Use plan creates editable nodes for review; execute them separately. Auto warp adopts the plan and authorizes automatic flight through its burns. Finite-burn checks apply to the current flight conditions; review warnings before departure.</p></details></section>`;
   const get=<T extends HTMLElement>(name:string)=>root.querySelector<T>(`#${prefix}-${name}`)!;
   this.horizon=root.querySelector<HTMLInputElement>(`#${prefix}-years`)??undefined;
   this.cancelButton=get('cancel');this.find=get('find');this.low=get('low');this.high=get('high');this.circular=get('circular');this.status=get('status');this.choices=get('choices');
+  this.pauseHint=get('pause-hint');
   this.destination=new DestinationPicker(get('picker'),prefix,service,()=>{this.cancel('Destination changed. Find new options.');this.resetTarget();this.destinationStatus();},signal);
   const on=(target:EventTarget,type:string,callback:()=>void)=>target.addEventListener(type,callback,{signal:this.signal});
   for(const input of [this.low,this.high])on(input,'input',()=>{if(this.circular.checked)this.high.value=this.low.value;this.cancel('Inputs changed. Find new options.');this.destinationStatus();});
@@ -58,7 +64,7 @@ export class TransferControls {
    &&Math.hypot(expected.state.velocity.x-ship.state.velocity.x,expected.state.velocity.y-ship.state.velocity.y)<=.05;
  }
  private search():void {
-  this.cancel();if(!this.destinationStatus())return;const flight=this.options.flight(),ship=flight.ship;if(!ship){this.status.textContent='Choose a flying ship in a bound orbit.';return;}
+  this.cancel();if(!this.destinationStatus())return;this.destination.collapse();const flight=this.options.flight(),ship=flight.ship;if(!ship){this.status.textContent='Choose a flying ship in a bound orbit.';return;}
   const context=flight.world.contextFor(ship),state=structuredClone(ship.state),coast=context.keplerCoast(state,flight.body,flight.world.surface(flight.body.id));
   if(!coast){this.status.textContent='No safe analytic starting coast is available.';return;}
   this.anchor={world:flight.world,shipId:ship.id,bodyId:ship.bodyId,state,context,coast};
@@ -71,9 +77,10 @@ export class TransferControls {
  }
  update():void {
   if(this.disposed)return;const flight=this.options.flight();
+  if(this.pauseHint.hidden!==!!flight.paused)this.pauseHint.hidden=!!flight.paused;
   if(flight.world!==this.world||(flight.ship?.bodyId??'')!==this.bodyId||(flight.ship?.id??'')!==this.shipId){
    const reset=flight.world!==this.world||(flight.ship?.id??'')!==this.shipId;
-   this.cancel('Flight changed. Find new options.');this.world=flight.world;this.bodyId=flight.ship?.bodyId??'';this.shipId=flight.ship?.id??'';
+   this.cancel(this.world?'Flight changed. Find new options.':'Choose an orbit, then find transfer windows.');this.world=flight.world;this.bodyId=flight.ship?.bodyId??'';this.shipId=flight.ship?.id??'';
    const previous=this.destination.value;
    this.destination.populate(flight.world,this.bodyId,reset);
    if(reset||this.destination.value!==previous)this.resetTarget();
@@ -122,17 +129,17 @@ export class TransferControls {
   this.status.textContent=result.options.length?`Compare sampled options. ${result.compared?`Validated ${result.compared.direct} direct · ${result.compared.staged} staged. `:''}${result.reason}`:result.reason;
   const generation=this.generation;
   for(const option of result.options) {
-   const document=this.root.ownerDocument,card=document.createElement('article'),text=document.createElement('p'),button=document.createElement('button'),autoWarp=document.createElement('button'),actions=document.createElement('div'),header=document.createElement('header'),title=document.createElement('strong'),metrics=document.createElement('output'),details=document.createElement('details'),summary=document.createElement('summary'),warning=document.createElement('p');
+   const document=this.root.ownerDocument,card=document.createElement('article'),text=document.createElement('p'),button=document.createElement('button'),autoWarp=document.createElement('button'),actions=document.createElement('div'),title=document.createElement('strong'),metrics=document.createElement('output'),details=document.createElement('details'),summary=document.createElement('summary'),warning=document.createElement('p');
    card.className='transfer-option';text.className='maneuver-help';metrics.className='transfer-metrics';warning.className='transfer-warning';
    title.textContent=option.kind==='efficient'?'Efficient':'Faster';summary.textContent='Burn estimates & limits';
    warning.textContent=option.route?.finiteValidated?'Complete route · finite burns checked':option.warning.startsWith('Long finite burn')?'Long burn · encounter may differ':'Impulsive estimate · review after departure';
-   actions.className='transfer-actions';actions.append(button,autoWarp);header.append(title,actions);card.append(header);
+   actions.className='transfer-actions';actions.append(button,autoWarp);card.append(title);
    if(option.route){const route=document.createElement('p'),stops=document.createElement('p');route.className='transfer-route';stops.className='maneuver-help';
     const world=this.options.flight().world,name=(id:string)=>world.body(id).name;
     route.textContent=option.route.bodyIds.map(name).join(' → ');stops.textContent=`${option.plan.nodes.length} burns · ${option.route.stops.length?`Parking stops: ${option.route.stops.map(name).join(', ')}`:'Direct · no intermediate parking'}`;
     card.append(route,stops);
    }
-   details.append(summary,text);card.append(metrics,warning,details);
+   details.append(summary,text);card.append(metrics,warning,actions,details);
    button.id=`${this.prefix}-use-${option.kind}`;button.type='button';button.textContent='Use plan';button.setAttribute('aria-label',`Use ${option.kind} plan`);
    autoWarp.id=`${this.prefix}-auto-warp-${option.kind}`;autoWarp.type='button';autoWarp.textContent='Auto warp';autoWarp.setAttribute('aria-label',`Auto warp ${option.kind} plan`);autoWarp.title='Use this plan, resume flight and automatically execute all burns with auto-warp between them';autoWarp.hidden=!this.automate;
    const adopt=(automatic:boolean)=>{
@@ -161,8 +168,7 @@ export class TransferControls {
    autoWarp.disabled=button.disabled||!this.canAutomate();
    const flight=this.options.flight(),throttle=flight.ship?.state.throttle??0,acceleration=flight.ship?flight.world.contextFor(flight.ship).vehicle.acceleration:0;
    const duration=(dv:number)=>dv===0?'0.0 s':acceleration*throttle>0?`${(dv/(acceleration*throttle)).toFixed(1)} s`:'no thrust';
-   let description=`${option.kind==='efficient'?'Efficient':'Faster'} · wait ${Math.max(0,wait).toFixed(1)} s · travel ${option.travelSeconds.toFixed(1)} s · Δv ${option.deltaV.toFixed(1)} m/s
-Departure ${option.departureDeltaV.toFixed(1)} m/s (${option.departureBurnSeconds.toFixed(1)} s at full throttle) · arrival ${option.arrivalDeltaV.toFixed(1)} m/s (${option.arrivalBurnSeconds.toFixed(1)} s at full throttle). At ${(throttle*100).toFixed(0)}% throttle: departure ${duration(option.departureDeltaV)}, arrival ${duration(option.arrivalDeltaV)}. ${option.warning}`;
+   let description=`Departure ${option.departureDeltaV.toFixed(1)} m/s (${option.departureBurnSeconds.toFixed(1)} s at full throttle) · arrival ${option.arrivalDeltaV.toFixed(1)} m/s (${option.arrivalBurnSeconds.toFixed(1)} s at full throttle). At ${(throttle*100).toFixed(0)}% throttle: departure ${duration(option.departureDeltaV)}, arrival ${duration(option.arrivalDeltaV)}. ${option.warning}`;
    if(option.route){description=`At ${(throttle*100).toFixed(0)}% throttle: durations scale with available thrust. Automatic execution uses full throttle.\n`+option.plan.nodes.map(node=>{const burn=option.route?.burns?.find(b=>b.nodeId===node.id);return `${node.label} · ${formatDuration(node.time-now)} from now${burn?` · Δv ${burn.deltaV.toFixed(1)} m/s · ${formatDuration(burn.seconds)} at full throttle`:''}`;}).join('\n')+`\n${option.warning}`;}
    const stats=`Wait ${formatDuration(Math.max(0,wait))} · Travel ${formatDuration(option.travelSeconds)} · Δv ${option.deltaV.toFixed(1)} m/s`;
    if(metrics.textContent!==stats)metrics.textContent=stats;

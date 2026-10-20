@@ -29,18 +29,31 @@
 .maneuver-review { width: 100%; margin: 6px 0 0; min-height: 28px; padding: 5px; border-color: #b08a49; color: #f7c775; font-size: 11px; }
 .maneuver-window details > summary { cursor: pointer; padding: 4px 0; font-size: 11px; opacity: .8; }
 .maneuver-window [id$="-plan-actions"] .maneuver-adjust { margin-top: 6px; }
-.maneuver-window [id$="-transfers"] > label { display: grid; gap: 4px; margin: 0; font-size: 12px; }
 .maneuver-window [id$="-transfers"] input, .maneuver-window [id$="-transfers"] select { width: 100%; min-width: 0; margin: 0; min-height: 32px; }
 .maneuver-window [id$="-transfers"] label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 6px; font-size: 11px; }
 .maneuver-window [id$="-transfers"] input[type="checkbox"] { width: auto; min-height: 0; }
 .maneuver-window [id$="-find"] { color: #f7c775; border-color: #b08a49; }
-.transfer-option { display: grid; gap: 6px; padding: 9px; border: 1px solid #36566a; border-radius: 7px; margin-top: 8px; }
-.transfer-option header { padding: 0; margin: 0; border: 0; background: none; letter-spacing: normal; min-height: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.transfer-section { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 8px 0 0; border: 0; border-top: 1px solid #36566a; }
+.transfer-section legend, .transfer-section h3 { padding: 0 7px 0 0; margin: 0; color: #9fb3ba; font-size: 11px; font-weight: 600; }
+.transfer-section h3 { padding: 0; }
+.transfer-orbit { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: end; gap: 6px 10px; }
+.maneuver-window .transfer-field { display: grid; gap: 4px; margin: 0; font-size: 12px; }
+.maneuver-window .transfer-circle { align-self: end; min-height: 32px; margin: 0; }
+.transfer-high { grid-column: 2; grid-row: 1; }
+.transfer-orbit:has(.transfer-high:not([hidden])) .transfer-circle { grid-column: 1 / -1; grid-row: 2; }
+.maneuver-window .transfer-orbit input, .maneuver-window .transfer-timing input { box-sizing: border-box; padding: 5px 7px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.transfer-timing { display: grid; grid-template-columns: minmax(0,1fr) minmax(72px,90px); align-items: center; gap: 8px; }
+.maneuver-window .transfer-timing label { margin: 0; font-size: 12px; }
+.maneuver-window .transfer-help > summary { min-height: 28px; box-sizing: border-box; padding: 6px 0; }
+.transfer-help .maneuver-help { padding: 3px 0; }
+.maneuver-window .transfer-status { font-size: 11px; overflow-wrap: anywhere; }
+.transfer-option { display: grid; gap: 6px; min-width: 0; overflow-wrap: anywhere; padding: 9px; border: 1px solid #36566a; border-radius: 7px; margin-top: 8px; }
 .transfer-option strong { color: #f7c775; font-size: 12px; }
-.transfer-option header button { margin: 0; padding: 5px 9px; min-height: 29px; font-size: 11px; }
-.transfer-actions { display: grid; gap: 5px; }
+.transfer-option .transfer-actions button { margin: 0; padding: 5px 9px; min-height: 32px; font-size: 11px; }
+.transfer-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.transfer-actions button { flex: 1; }
 .transfer-option .transfer-metrics { display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; font-size: 11px; }
-.transfer-option .transfer-warning { margin: 0; font-size: 10px; color: #f7c775; opacity: .9; }
+.transfer-option .transfer-warning { margin: 0; font-size: 11px; color: #f7c775; opacity: .9; }
 .maneuver-map { position: absolute; pointer-events: none; overflow: hidden; z-index: 4; }
 .maneuver-map[hidden], .maneuver-map button[hidden] { display: none; }
 .maneuver-map button { position: absolute; top: 0; left: 0; width: 34px; height: 34px; padding: 0; margin: 0;
@@ -60,8 +73,10 @@
 .maneuver-window [id$="-automatic"] { width: auto; margin: 0; }
 
 .transfer-picker { display: grid; gap: 6px; min-width: 0; font: 12px system-ui, sans-serif; }
-.transfer-selected { position: sticky; top: 0; z-index: 1; padding: 6px 8px; border-left: 2px solid #c89d58; background: #101b25; overflow-wrap: anywhere; }
-.transfer-selected > span { font-size: 10px; opacity: .7; }
+.transfer-selected { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 6px; padding: 6px 8px; border-left: 2px solid #c89d58; background: #101b25; overflow-wrap: anywhere; }
+.transfer-selected span { font-size: 11px; color: #9fb3ba; }
+.transfer-chooser { display: grid; gap: 4px; min-width: 0; }
+.maneuver-window .transfer-picker .maneuver-help { font-size: 11px; }
 .transfer-selected output { color: #f7c775; }
 .transfer-destinations { max-height: 132px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #36566a; border-radius: 5px; padding: 3px; font-size: 11px; }
 .transfer-destination-row { display: flex; gap: 3px; }

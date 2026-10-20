@@ -19,13 +19,16 @@ export class DestinationPicker {
  private readonly localSection:HTMLDetailsElement;private readonly starSection:HTMLDetailsElement;private readonly stars:HTMLDivElement;
  private readonly searchSection:HTMLDivElement;private readonly matches:HTMLDivElement;private readonly matchCount:HTMLOutputElement;
  private readonly trail:HTMLElement;private readonly results:HTMLDivElement;private readonly count:HTMLOutputElement;
+ private readonly chooser:HTMLDivElement;private readonly change:HTMLButtonElement;
  private browseId='';private destinationId='';
  get value():string{return this.destinationId;}
  get accepted():boolean{return this.relations.has(this.value)&&this.supports(this.value);}
+ collapse():void{this.setOpen(false);}
  constructor(private readonly root:HTMLElement,prefix:string,private readonly service:TransferPlanner,
   private readonly commit:()=>void,signal:AbortSignal){
-  root.innerHTML=`<output id="${prefix}-context" class="maneuver-help"></output>
-   <div class="transfer-selected"><span>Destination</span><output id="${prefix}-destination" aria-live="polite"></output></div>
+  root.innerHTML=`<div class="transfer-selected"><div><span>Destination</span><output id="${prefix}-destination" aria-live="polite"></output></div><button id="${prefix}-change" type="button" aria-expanded="true" aria-controls="${prefix}-chooser">Change</button></div>
+   <div id="${prefix}-chooser" class="transfer-chooser">
+   <output id="${prefix}-context" class="maneuver-help"></output>
    <div class="transfer-search"><label for="${prefix}-query">Find any destination</label><input id="${prefix}-query" type="search" autocomplete="off" placeholder="Search bodies or moons"><button id="${prefix}-clear" type="button">Clear</button></div>
    <div id="${prefix}-search-results" hidden><output id="${prefix}-match-count" class="maneuver-help" aria-live="polite"></output><div id="${prefix}-matches" class="transfer-destinations" role="group" aria-label="Search results"></div></div>
    <details id="${prefix}-local-section" open><summary>Local maneuvers</summary><div class="transfer-destinations" id="${prefix}-local" role="group" aria-label="Local destinations"></div></details>
@@ -34,10 +37,13 @@ export class DestinationPicker {
     <output id="${prefix}-count" class="maneuver-help"></output>
     <div id="${prefix}-results" class="transfer-destinations" role="group" aria-label="Planet and moon destinations"></div>
    </details><details id="${prefix}-star-section"><summary id="${prefix}-star-title">Star</summary><div id="${prefix}-stars" class="transfer-destinations" role="group" aria-label="Star destinations"></div>
-   </details><output id="${prefix}-support" class="maneuver-help" aria-live="polite"></output>`;
+   </details></div><output id="${prefix}-support" class="maneuver-help" aria-live="polite"></output>`;
   const get=<T extends HTMLElement>(name:string)=>root.querySelector<T>(`#${prefix}-${name}`)!;
   this.context=get('context');this.selected=get('destination');this.support=get('support');this.local=get('local');this.browser=get('browser');this.query=get('query');this.trail=get('trail');this.results=get('results');this.count=get('count');
   this.localSection=get('local-section');this.starSection=get('star-section');this.stars=get('stars');this.searchSection=get('search-results');this.matches=get('matches');this.matchCount=get('match-count');
+  this.chooser=get('chooser');this.change=get('change');
+  this.change.addEventListener('click',()=>{const open=this.chooser.hasAttribute('hidden');this.setOpen(open);if(open)this.query.focus();},{signal});
+  this.chooser.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();this.setOpen(false);this.change.focus();}},{signal});
   this.query.addEventListener('input',()=>this.renderBrowser(),{signal});
   get('clear').addEventListener('click',()=>{this.query.value='';this.renderBrowser();this.query.focus();},{signal});
   root.addEventListener('click',event=>{
@@ -81,7 +87,7 @@ export class DestinationPicker {
   }
   this.context.textContent=current?`Current body: ${current.name}${current.parentId?` · parent: ${this.byId.get(current.parentId)?.name??current.parentId}`:' · no parent'}`:'Choose a ship to see its orbital neighborhood.';
   this.destinationId=current?(reset||!this.byId.has(previous)?currentId:previous):'';
-  if(reset){this.query.value='';this.localSection.open=true;this.browser.open=false;this.starSection.open=false;this.browseId='';}
+  if(reset){this.setOpen(true);this.query.value='';this.localSection.open=true;this.browser.open=false;this.starSection.open=false;this.browseId='';}
   if(!this.byId.has(this.browseId))this.browseId='';
   const rank:Record<TransferRelationship,number>={'same-body':0,child:1,parent:2,sibling:3,other:4};
   const local=current?this.bodies.filter(body=>{
@@ -101,8 +107,14 @@ export class DestinationPicker {
   this.renderBrowser();this.showSelection();
  }
  private choose(id:string):void {
-  if(id===this.value||!this.byId.has(id))return;
+  if(!this.byId.has(id))return;
+  this.setOpen(false);this.change.focus({preventScroll:true});
+  if(id===this.value)return;
   this.destinationId=id;this.showSelection();this.commit();
+ }
+ private setOpen(open:boolean):void {
+  this.chooser.hidden=!open;this.change.setAttribute('aria-expanded',String(open));
+  this.change.textContent=open?'Done':'Change';
  }
  private showSelection():void {
   this.selected.textContent=this.labels.get(this.value)??'No destination';
@@ -111,6 +123,8 @@ export class DestinationPicker {
   else if(!this.service.relationships)this.support.textContent=`${relationshipNames[relation]}. The provider does not declare coverage; search will check suitability.`;
   else if(this.supports(this.value))this.support.textContent=`${relationshipNames[relation]}. The provider accepts this relationship; a safe trajectory is not guaranteed.`;
   else this.support.textContent=`${relationshipNames[relation]} is not supported by the selected provider.${relation==='other'?' This requires separate legs; this planner does not build an end-to-end route.':' Choose another destination or transfer provider.'}`;
+  // Declared coverage is secondary guidance; unsupported or unknown coverage stays visible.
+  this.support.hidden=!!relation&&!!this.service.relationships&&this.supports(this.value);
   for(const button of this.root.querySelectorAll<HTMLButtonElement>('[data-destination]'))button.setAttribute('aria-pressed',String(button.dataset.destination===this.value));
  }
  private button(text:string):HTMLButtonElement {

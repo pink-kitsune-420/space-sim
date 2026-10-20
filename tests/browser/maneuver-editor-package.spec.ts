@@ -39,6 +39,11 @@ async function setup(page:Page,noEngine=false,sharedPlans=false,transfers=false,
  },{bundles:bundles.filter(bundle=>(alarmPanel||(bundle.manifest as any).id!=='spacelab.alarm-panel')&&(alarms||(bundle.manifest as any).id!=='spacelab.orbital-alarms')&&(sharedPlans||(bundle.manifest as any).id!=='spacelab.flight-plans')&&(transfers||(bundle.manifest as any).id!=='spacelab.transfer-planner')),noEngine});
 }
 
+async function changeDestination(page:Page,prefix:string):Promise<void>{
+ const button=page.locator(`#${prefix}-change`);
+ if(await button.getAttribute('aria-expanded')==='false')await button.click();
+}
+
 test('coasting to a zero-delta node needs no engine and issues only warp commands',async({page})=>{
  await setup(page,true);
  const result=await page.evaluate(()=>{
@@ -393,20 +398,24 @@ test('full Solar System destinations support local Earth/Moon and sibling choice
  await expect(local.locator('[data-destination]')).toHaveCount(2);await expect(local.locator('[data-destination="moon"]')).toHaveText('Visit Moon');await expect(local.locator('[data-destination="sun"]')).toHaveCount(0);await expect(local.locator('[data-destination="mars"]')).toHaveCount(0);
  await expect(page.locator('#solar-transfer-context')).toContainText('Current body: Earth · parent: Sun');
  await local.locator('[data-destination="moon"]').click();await expect(destination).toHaveText('Moon · Earth · Sun');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
+ await expect(page.locator('#solar-transfer-chooser')).toBeHidden();await expect(page.locator('#solar-transfer-change')).toBeFocused();
+ await changeDestination(page,'solar-transfer');
  await page.locator('#solar-transfer-star-section summary').click();await page.locator('#solar-transfer-stars [data-destination="sun"]').click();await expect(destination).toHaveText('Sun');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
+ await changeDestination(page,'solar-transfer');
  await page.locator('#solar-transfer-browser summary').click();await results.locator('[data-destination="mars"]').click();await expect(destination).toHaveText('Mars · Sun');await expect(page.locator('#solar-transfer-support')).toContainText('Sibling transfer');
+ await changeDestination(page,'solar-transfer');
  expect(await results.locator('[data-destination]').count()).toBeLessThan(25);await expect(results.locator('[data-destination="sun"]')).toHaveCount(0);await expect(results.locator('[data-destination="europa"]')).toHaveCount(0);
  await expect(results.locator('[data-browse="jupiter"]')).toHaveText(/Moons/);await results.locator('[data-browse="jupiter"]').click();await expect(destination).toHaveText('Mars · Sun');
  await expect(results.locator('[data-destination="jupiter"]')).toHaveText('Choose Jupiter');await expect(results.locator('[data-destination="europa"]')).toHaveText('Choose Europa');
  await results.locator('[data-destination="europa"]').click();await expect(destination).toHaveText('Europa · Jupiter · Sun');await expect(page.locator('#solar-transfer-find')).toBeEnabled();
  await expect(page.locator('#solar-transfer-support')).toContainText('accepts this relationship');
  await page.screenshot({path:info.outputPath('destination-browse-narrow.png')});
- await query.fill('Titan');await expect(matches.locator('[data-destination="titan"]')).toContainText('Orbits Saturn');await expect(page.locator('#solar-transfer-browser')).toBeHidden();
+ await changeDestination(page,'solar-transfer');await query.fill('Titan');await expect(matches.locator('[data-destination="titan"]')).toContainText('Orbits Saturn');await expect(page.locator('#solar-transfer-browser')).toBeHidden();
  await matches.locator('[data-destination="titan"]').click();await expect(destination).toHaveText('Titan · Saturn · Sun');
- await query.fill('Europa');await expect(matches.locator('[data-destination="europa"]')).toHaveCount(1);
+ await changeDestination(page,'solar-transfer');await query.fill('Europa');await expect(matches.locator('[data-destination="europa"]')).toHaveCount(1);
  await query.press('Tab');await expect(page.locator('#solar-transfer-clear')).toBeFocused();await page.keyboard.press('Tab');
  await expect(matches.locator('[data-destination="europa"]')).toBeFocused();await page.keyboard.press('Enter');await expect(destination).toHaveText('Europa · Jupiter · Sun');
- await query.fill('no-such-body');await expect(page.locator('#solar-transfer-match-count')).toContainText('No destinations found');await expect(destination).toHaveText('Europa · Jupiter · Sun');
+ await changeDestination(page,'solar-transfer');await query.fill('no-such-body');await expect(page.locator('#solar-transfer-match-count')).toContainText('No destinations found');await expect(destination).toHaveText('Europa · Jupiter · Sun');
  await page.locator('#solar-transfer-clear').click();await expect(query).toBeFocused();await expect(results.locator('[data-destination="europa"]')).toHaveCount(1);
  await page.locator('#solar-transfer-trail [data-browse=""]').click();await results.locator('[data-browse="saturn"]').click();
  expect(await results.locator('[data-destination]').count()).toBeGreaterThan(200);
@@ -460,10 +469,12 @@ test('browsing preserves a running search; destination commits cancel it and det
  });
  await page.locator('#controlled-find').click();await expect(page.locator('#controlled-use-efficient')).toBeEnabled();
  await page.evaluate(()=>{(window as any).fixture.controlled.stale=document.getElementById('controlled-use-efficient');});
+ await changeDestination(page,'controlled');
  await page.locator('#controlled-browser summary').click();await page.locator('#controlled-results [data-browse="magnus"]').click();await page.locator('#controlled-query').fill('Nix');
  await expect(page.locator('#controlled-cancel')).toBeVisible();await expect(page.locator('#controlled-use-efficient')).toBeEnabled();await expect(page.locator('#controlled-destination')).toContainText('Primus');
  expect(await page.evaluate(()=>(window as any).fixture.controlled.state.cancelled)).toBe(0);
  await page.locator('#controlled-matches [data-destination="nix"]').click();await expect(page.locator('#controlled-cancel')).toBeHidden();await expect(page.locator('#controlled-use-efficient')).toHaveCount(0);await expect(page.locator('#controlled-find')).toBeDisabled();
+ await changeDestination(page,'controlled');await expect(page.locator('#controlled-support')).toBeVisible();
  await page.locator('#controlled-clear').click();await page.locator('#controlled-local [data-destination="moon"]').click();await page.locator('#controlled-find').click();await expect(page.locator('#controlled-use-efficient')).toBeEnabled();
  const result=await page.evaluate(()=>{const f=(window as any).fixture.controlled;f.stale.click();return{requests:f.requests.map((r:any)=>r.destinationId),cancelled:f.state.cancelled,installed:f.installed.length};});
  expect(result).toEqual({requests:['planet','moon'],cancelled:1,installed:0});

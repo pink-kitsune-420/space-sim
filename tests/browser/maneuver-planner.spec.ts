@@ -380,10 +380,26 @@ test('dragging the maneuver diamond captures the pointer and projects far-away m
 test('offers a validated moon plan while the remaining search is still running',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
  await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-low').fill('512');
+ // Observe publication order: a fast solver can publish and finish in one task,
+ // before a Playwright round trip or even the next browser paint.
+ await page.evaluate(()=>{
+  (window as any).sawProgressiveTransfer=false;
+  const choices=document.getElementById('maneuver-transfer-choices')!,cancel=document.getElementById('maneuver-transfer-cancel')!;
+  let published=false;
+  const observer=new MutationObserver(records=>{
+   for(const record of records){
+    if(record.target===choices&&[...record.addedNodes].some(node=>node instanceof HTMLElement&&node.matches('.transfer-option')))published=true;
+    // Adding hidden ends the search. Its old value is null while searching.
+    if(published&&record.target===cancel&&record.type==='attributes'&&record.oldValue===null)(window as any).sawProgressiveTransfer=true;
+   }
+   if(published&&!cancel.hidden)(window as any).sawProgressiveTransfer=true;
+   if((window as any).sawProgressiveTransfer)observer.disconnect();
+  });
+  observer.observe(document.getElementById('maneuver-transfers')!,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden'],attributeOldValue:true});
+ });
  const before=await debug(page);await page.locator('#maneuver-transfer-find').click();
  const use=page.locator('#maneuver-transfer-use-efficient');await expect(use).toBeEnabled({timeout:60000});
- await expect(page.locator('#maneuver-transfer-cancel')).toBeVisible();
- await expect(page.locator('#maneuver-transfer-status')).toContainText('Best so far');
+ await expect.poll(()=>page.evaluate(()=>(window as any).sawProgressiveTransfer)).toBe(true);
  await use.click();await expect(page.locator('#maneuver-transfer-cancel')).toBeHidden();
  await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
  expect((await debug(page)).tick).toBe(before.tick);
@@ -581,10 +597,11 @@ test('filters excessive shortcuts for a tiny orbit change and cancels background
  await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();const before=await debug(page);
  await page.locator('#maneuver-transfer-low').fill('129');await page.locator('#maneuver-transfer-find').click();
  await expect(page.locator('#maneuver-transfer-cancel')).toBeHidden();await expect(page.locator('#maneuver-transfer-use-efficient')).toBeVisible();await expect(page.locator('#maneuver-transfer-use-faster')).toHaveCount(0);
- await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-find').click();await page.locator('#maneuver-transfer-cancel').click();
+ await expect(page.locator('#maneuver-transfer-chooser')).toBeHidden();
+ await page.locator('#maneuver-transfer-change').click();await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();await page.locator('#maneuver-transfer-find').click();await page.locator('#maneuver-transfer-cancel').click();
  await expect(page.locator('#maneuver-transfer-status')).toHaveText('Search cancelled.');await page.waitForTimeout(200);
  await expect(page.locator('#maneuver-transfer-choices')).toBeEmpty();await expect(page.locator('#maneuver-transfer-status')).toHaveText('Search cancelled.');
- await page.locator('#maneuver-transfer-local [data-destination="planet"]').click();await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
+ await page.locator('#maneuver-transfer-change').click();await page.locator('#maneuver-transfer-local [data-destination="planet"]').click();await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-find').click();
  await expect(page.locator('#maneuver-transfer-use-efficient')).toBeEnabled();await expect(page.locator('#maneuver-transfer-use-faster')).toBeEnabled();
  expect((await debug(page)).tick).toBe(before.tick);expect((await debug(page)).engine).toBe(false);
 });
@@ -688,12 +705,14 @@ test('the production Transfer picker searches collapsed Solar System moons and k
  await page.locator('#maneuver-transfer-local [data-destination="moon"]').click();
  await expect(page.locator('#maneuver-transfer-picker details > summary')).toHaveText(['Local maneuvers','Interplanetary','Star']);
  await page.screenshot({path:info.outputPath('destination-local-earth.png')});
+ await page.locator('#maneuver-transfer-change').click();
  await page.locator('#maneuver-transfer-browser summary').click();
  await page.locator('#maneuver-transfer-results [data-browse="jupiter"]').click();
  await page.locator('#maneuver-transfer-results [data-destination="europa"]').click();
  await expect(page.locator('#maneuver-transfer-destination')).toHaveText('Europa · Jupiter · Sun');
  await page.screenshot({path:info.outputPath('destination-system-browser.png')});
  await page.setViewportSize({width:390,height:560});
+ await page.locator('#maneuver-transfer-change').click();
  await page.locator('#maneuver-transfer-query').fill('titan');
  await page.locator('#maneuver-transfer-matches [data-destination="titan"]').click();
  await expect(page.locator('#maneuver-transfer-destination')).toHaveText('Titan · Saturn · Sun');
@@ -702,6 +721,62 @@ test('the production Transfer picker searches collapsed Solar System moons and k
  await page.screenshot({path:info.outputPath('destination-search-narrow.png')});
  await page.locator('#maneuver-transfer-find').scrollIntoViewIfNeeded();await expect(page.locator('#maneuver-transfer-find')).toBeEnabled();
  await expect(page.locator('#maneuver-transfer-support')).toContainText('accepts this relationship');
+});
+
+test('Transfer layout fits narrow and wide panels with long names, expanded fields, validation and results',async({page},info)=>{
+ await setup(page);await openPanel(page,'setup');
+ const universe=JSON.parse(await readFile('games/space-sim/universes/sandbox/default/universe.json','utf8'));
+ const longName='Primus with an exceptionally long destination name';
+ universe.systems[0].bodies.find((body:any)=>body.id==='planet').name=longName;
+ await page.locator('#universe-file').setInputFiles({name:'long-names.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(universe))});
+ await page.locator('#preset').selectOption('planet-orbit');await closePanel(page);
+ if(await page.locator('#pause').textContent()==='Pause')await page.locator('#pause').click();
+ await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ const panel=page.locator('#maneuver-window'),chooser=page.locator('#maneuver-transfer-chooser'),change=page.locator('#maneuver-transfer-change');
+ const fit=async()=>{
+  const geometry=await panel.evaluate(el=>({overflow:el.scrollWidth-el.clientWidth,bodyOverflow:el.querySelector('.flight-window-body')!.scrollWidth-el.querySelector('.flight-window-body')!.clientWidth,inputs:[...el.querySelectorAll<HTMLInputElement>('#maneuver-transfers input:not([type="checkbox"])')].filter(input=>input.getClientRects().length).map(input=>({width:input.getBoundingClientRect().width,height:input.getBoundingClientRect().height}))}));
+  expect(geometry.overflow).toBeLessThanOrEqual(1);expect(geometry.bodyOverflow).toBeLessThanOrEqual(1);
+  for(const input of geometry.inputs){expect(input.width).toBeGreaterThan(60);expect(input.height).toBeGreaterThanOrEqual(32);}
+ };
+ for(const width of [310,520]){
+  await page.setViewportSize({width:width===310?390:1100,height:width===310?660:900});
+  const bounds=(await panel.boundingBox())!;
+  await page.mouse.move(bounds.x+bounds.width-3,bounds.y+bounds.height/2);await page.mouse.down();
+  await page.mouse.move(bounds.x+width-3,bounds.y+bounds.height/2);await page.mouse.up();
+  await expect.poll(async()=>(await panel.boundingBox())!.width).toBe(width);
+  if(await change.getAttribute('aria-expanded')==='false')await change.click();
+  await page.locator('#maneuver-transfer-browser summary').evaluate(el=>{(el.parentElement as HTMLDetailsElement).open=true;});
+  await fit();await page.screenshot({path:info.outputPath(`transfer-${width}-browse.png`)});
+  await page.locator('#maneuver-transfer-local [data-destination="planet"]').click();
+  await expect(chooser).toBeHidden();await expect(change).toBeFocused();
+  await expect(page.locator('#maneuver-transfer-destination')).toContainText(`${longName} · Lumen`);
+  await page.locator('.flight-window-body').filter({has:page.locator('#maneuver-transfers')}).evaluate(el=>{el.scrollTop=0;});
+  await page.screenshot({path:info.outputPath(`transfer-${width}-selected.png`)});
+  await page.locator('#maneuver-transfer-circular').uncheck();
+  await page.locator('#maneuver-transfer-low').fill('768');await page.locator('#maneuver-transfer-high').fill('1024');
+  await page.getByText('About target altitude',{exact:true}).click();await page.getByText('How timing affects search',{exact:true}).click();
+  await fit();await page.screenshot({path:info.outputPath(`transfer-${width}-expanded.png`)});
+  await page.getByText('About target altitude',{exact:true}).click();await page.getByText('How timing affects search',{exact:true}).click();
+  const searchFits=await panel.evaluate(el=>{
+   const body=el.querySelector('.flight-window-body')!;body.scrollTop=0;
+   return el.querySelector('#maneuver-transfer-find')!.getBoundingClientRect().bottom<=body.getBoundingClientRect().bottom;
+  });
+  expect(searchFits).toBe(true);
+  await page.locator('#maneuver-transfer-years').fill('101');await page.locator('#maneuver-transfer-find').click();
+  await expect(page.locator('#maneuver-transfer-status')).toContainText('100 Julian years');await fit();
+  await page.screenshot({path:info.outputPath(`transfer-${width}-validation.png`)});
+  await page.locator('#maneuver-transfer-years').fill('50');await page.locator('#maneuver-transfer-find').click();
+  await expect(page.locator('#maneuver-transfer-use-efficient')).toBeEnabled();
+  await expect(page.locator('.transfer-option').first()).toContainText('Δv');
+  await page.locator('.transfer-option details summary').first().click();await fit();
+  await page.locator('.transfer-option').first().scrollIntoViewIfNeeded();
+  await page.screenshot({path:info.outputPath(`transfer-${width}-results.png`)});
+  await page.locator('#maneuver-transfer-years').fill('20');await expect(page.locator('.transfer-option')).toHaveCount(0);
+ }
+ // Escape dismisses browsing without discarding orbit or timing edits.
+ await change.click();await page.locator('#maneuver-transfer-query').press('Escape');await expect(chooser).toBeHidden();await expect(change).toBeFocused();
+ await expect(page.locator('#maneuver-transfer-low')).toHaveValue('768');await expect(page.locator('#maneuver-transfer-high')).toHaveValue('1024');await expect(page.locator('#maneuver-transfer-years')).toHaveValue('20');
+ expect((await debug(page)).engine).toBe(false);
 });
 
 for(const follow of [false,true])test(`a background ship alarm ${follow?'selects and follows its ship when enabled':'leaves selection and camera alone by default'}`,async({page},info)=>{
