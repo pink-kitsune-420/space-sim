@@ -1,0 +1,399 @@
+{
+  "format": "space-lab-game/1",
+  "info": {
+    "id": "builtin.space-sim-nextgen",
+    "name": "Space Sim Next-Gen: Spherical Tile Planets",
+    "description": "Spherical 2D Cartesian disk tile planets with radial gravity, subsurface strata, cave networks, trajectory-predictive chunk streaming, laser drill mining, and Horizon EVA camera."
+  },
+  "bundle": {
+    "format": "space-sim-module-profile/1",
+    "profile": {
+      "format": "space-sim-profile/1",
+      "id": "nextgen.planet-tiles-profile",
+      "modules": [
+        {
+          "id": "builtin.content",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.motion",
+          "version": "0.1.0"
+        },
+        {
+          "id": "nextgen.planet-tiles-sim",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "content": "builtin.content",
+        "motion": "builtin.motion"
+      },
+      "settings": {
+        "nextgen.planet-tiles-sim": {
+          "tileSizeMetres": 0.5,
+          "drillPower": 120,
+          "worldSeed": 4242
+        }
+      }
+    },
+    "modules": [],
+    "code": [
+      {
+        "id": "nextgen.planet-tiles-sim",
+        "version": "0.1.0",
+        "digest": "dc66e080ab1cb1ec29c9ec21887cb620e54a60e3195bac091dca744feecd28d5"
+      },
+      {
+        "id": "nextgen.planet-tiles-hud",
+        "version": "0.1.0",
+        "digest": "da428ae8bf9221bb4bb714a99fd06f3474fc314bb013a1b4d8ce999baded61d0"
+      }
+    ],
+    "presentation": {
+      "format": "space-sim-profile/1",
+      "id": "nextgen.presentation",
+      "modules": [
+        {
+          "id": "builtin.webgl",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.canvas",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.flight-data",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.flight-vectors",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.orbit-markers",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.telemetry",
+          "version": "0.1.0"
+        },
+        {
+          "id": "nextgen.planet-tiles-hud",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "renderer": "builtin.webgl"
+      },
+      "settings": {
+        "nextgen.planet-tiles-hud": {
+          "chunkGridRadius": 1,
+          "showRadialBasis": 1
+        }
+      }
+    },
+    "selection": {
+      "universe": "builtin.content/dry-terrain-examples"
+    }
+  },
+  "plugins": [
+    {
+      "format": "space-sim-code-module/1",
+      "manifest": {
+        "format": "space-sim-module/1",
+        "apiVersion": "space-sim-game-api/1",
+        "id": "nextgen.planet-tiles-sim",
+        "name": "Spherical Tile Planets & Laser Mining (Sim)",
+        "version": "0.1.0",
+        "kind": "provider",
+        "authority": "authoritative",
+        "environments": [
+          "browser",
+          "offline",
+          "node"
+        ],
+        "dependencies": [
+          {
+            "id": "builtin.motion",
+            "version": "^0.1.0"
+          }
+        ],
+        "provides": [],
+        "requires": [
+          "builtin.motion/v1"
+        ],
+        "slots": [],
+        "before": [],
+        "after": [],
+        "settings": {
+          "tileSizeMetres": {
+            "type": "number",
+            "default": 0.5,
+            "minimum": 0.25,
+            "maximum": 2
+          },
+          "drillPower": {
+            "type": "number",
+            "default": 120,
+            "minimum": 20,
+            "maximum": 500
+          },
+          "worldSeed": {
+            "type": "number",
+            "default": 4242,
+            "minimum": 1,
+            "maximum": 999999
+          }
+        },
+        "license": "MIT"
+      },
+      "source": "var SpaceSimModule = (function(exports) {\n\tObject.defineProperties(exports, {\n\t\t__esModule: { value: true },\n\t\t[Symbol.toStringTag]: { value: \"Module\" }\n\t});\n\t//#region games/space-sim-nextgen/portable-modules/planet-tiles-sim/src/main.ts\n\tconst CHUNK_SIZE = 32;\n\tfunction hash2D(ix, iy, seed) {\n\t\tlet h = (seed | 0) ^ Math.imul(ix | 0, 668265261) ^ Math.imul(iy | 0, 374761393);\n\t\th = Math.imul(h ^ h >>> 15, 2246822507);\n\t\th = Math.imul(h ^ h >>> 13, 3266489909);\n\t\treturn h ^ h >>> 16;\n\t}\n\tfunction hash2DFloat(ix, iy, seed) {\n\t\treturn (hash2D(ix, iy, seed) >>> 8) * (1 / 8388607.5) - 1;\n\t}\n\tfunction fade(t) {\n\t\treturn t * t * t * (t * (t * 6 - 15) + 10);\n\t}\n\tfunction valueNoise2D(x, y, seed) {\n\t\tconst ix = Math.floor(x);\n\t\tconst iy = Math.floor(y);\n\t\tconst fx = x - ix;\n\t\tconst fy = y - iy;\n\t\tconst u = fade(fx);\n\t\tconst v = fade(fy);\n\t\tconst n00 = hash2DFloat(ix, iy, seed);\n\t\tconst n10 = hash2DFloat(ix + 1, iy, seed);\n\t\tconst n01 = hash2DFloat(ix, iy + 1, seed);\n\t\tconst n11 = hash2DFloat(ix + 1, iy + 1, seed);\n\t\treturn n00 + u * (n10 - n00) + v * (n01 + u * (n11 - n01) - (n00 + u * (n10 - n00)));\n\t}\n\tfunction sampleTileMaterial(x, y, r, theta, sinTheta, seed) {\n\t\tconst polar = Math.abs(sinTheta);\n\t\tconst bNoise = valueNoise2D(Math.cos(theta) * 4, sinTheta * 4, seed + 404);\n\t\tconst biome = polar + bNoise * .12 > .86 ? \"Polar Ice Cap\" : bNoise > .28 ? \"Highland Ridge\" : bNoise < -.22 ? \"Crater Basalt\" : \"Regolith Plains\";\n\t\tconst oreNoise = valueNoise2D(x * .14, y * .14, seed + 909);\n\t\tconst oreKind = valueNoise2D(x * .07 + 31.4, y * .07 - 19.8, seed + 1313);\n\t\tif (oreNoise > .58) {\n\t\t\tif (oreKind > .35) return {\n\t\t\t\tbiome,\n\t\t\t\tstratum: \"Ore Vein\",\n\t\t\t\tmaterial: \"Iron Ore\",\n\t\t\t\toreKey: \"iron\"\n\t\t\t};\n\t\t\tif (oreKind > 0) return {\n\t\t\t\tbiome,\n\t\t\t\tstratum: \"Ore Vein\",\n\t\t\t\tmaterial: \"Copper Ore\",\n\t\t\t\toreKey: \"copper\"\n\t\t\t};\n\t\t\tif (oreKind > -.35) return {\n\t\t\t\tbiome,\n\t\t\t\tstratum: \"Ore Vein\",\n\t\t\t\tmaterial: \"Quartz Silicon\",\n\t\t\t\toreKey: \"silicon\"\n\t\t\t};\n\t\t\treturn {\n\t\t\t\tbiome,\n\t\t\t\tstratum: \"Exotic Vein\",\n\t\t\t\tmaterial: \"Titanium Ilmenite\",\n\t\t\t\toreKey: \"titanium\"\n\t\t\t};\n\t\t}\n\t\tif (biome === \"Polar Ice Cap\") return {\n\t\t\tbiome,\n\t\t\tstratum: \"Cryo Crust\",\n\t\t\tmaterial: \"Volatiles Ice\",\n\t\t\toreKey: \"ice\"\n\t\t};\n\t\tif (biome === \"Crater Basalt\") return {\n\t\t\tbiome,\n\t\t\tstratum: \"Basalt Basin\",\n\t\t\tmaterial: \"Crater Basalt\",\n\t\t\toreKey: \"stone\"\n\t\t};\n\t\tif (r < 500) return {\n\t\t\tbiome,\n\t\t\tstratum: \"Deep Igneous\",\n\t\t\tmaterial: \"Deep Igneous Rock\",\n\t\t\toreKey: \"stone\"\n\t\t};\n\t\treturn {\n\t\t\tbiome,\n\t\t\tstratum: \"Surface Crust\",\n\t\t\tmaterial: \"Surface Regolith\",\n\t\t\toreKey: \"stone\"\n\t\t};\n\t}\n\tfunction initialize(context) {\n\t\tconst tileSize = context.settings.tileSizeMetres ?? .5;\n\t\tconst drillPower = context.settings.drillPower ?? 120;\n\t\tconst worldSeed = context.settings.worldSeed ?? 4242;\n\t\tconst chunkMetres = CHUNK_SIZE * tileSize;\n\t\tcontext.contributeCommand({\n\t\t\tname: \"laser-drill-pulse\",\n\t\t\tlabel: \"Pulse Laser Drill\",\n\t\t\tkey: \"KeyM\",\n\t\t\tparameters: { power: {\n\t\t\t\ttype: \"number\",\n\t\t\t\tdefault: drillPower,\n\t\t\t\tminimum: 20,\n\t\t\t\tmaximum: 500\n\t\t\t} },\n\t\t\tresolve({ ship }) {\n\t\t\t\treturn { controls: {\n\t\t\t\t\t...ship.controls,\n\t\t\t\t\tturn: 0\n\t\t\t\t} };\n\t\t\t}\n\t\t});\n\t\tconst initialRuleValue = {\n\t\t\tbodyId: \"planet\",\n\t\t\tchunkX: 0,\n\t\t\tchunkY: 0,\n\t\t\ttx: 0,\n\t\t\tty: 0,\n\t\t\tlocalX: 0,\n\t\t\tlocalY: 0,\n\t\t\tbiome: \"Regolith Plains\",\n\t\t\tstratum: \"Surface Crust\",\n\t\t\ttargetMaterial: \"Surface Regolith\",\n\t\t\tpreloadedChunks: 9,\n\t\t\tminedCount: 0,\n\t\t\tlastMinedTile: \"None\",\n\t\t\tinventory: {\n\t\t\t\tiron: 0,\n\t\t\t\tcopper: 0,\n\t\t\t\ttitanium: 0,\n\t\t\t\tsilicon: 0,\n\t\t\t\tice: 0,\n\t\t\t\tstone: 0\n\t\t\t}\n\t\t};\n\t\tcontext.contributeWorldRule({\n\t\t\tmodelIdentity: `nextgen-planet-tiles:${tileSize}:${drillPower}:${worldSeed}/v1`,\n\t\t\tseed: worldSeed | 0 || 4242,\n\t\t\tinitialState: {\n\t\t\t\tversion: 1,\n\t\t\t\tvalue: initialRuleValue\n\t\t\t},\n\t\t\tevaluate({ tick, ships, events, state, math }) {\n\t\t\t\tconst prev = typeof state.value === \"object\" && state.value !== null && !Array.isArray(state.value) ? state.value : initialRuleValue;\n\t\t\t\tconst primaryShip = ships[0];\n\t\t\t\tif (!primaryShip) return { state };\n\t\t\t\tconst pos = primaryShip.state.position;\n\t\t\t\tconst vel = primaryShip.state.velocity;\n\t\t\t\tconst r = math.hypot(pos.x, pos.y);\n\t\t\t\tconst theta = pos.x === 0 && pos.y === 0 ? 0 : math.atan2(pos.y, pos.x);\n\t\t\t\tconst sinTheta = math.sin(theta);\n\t\t\t\tconst tx = Math.floor(pos.x / tileSize);\n\t\t\t\tconst ty = Math.floor(pos.y / tileSize);\n\t\t\t\tconst chunkX = Math.floor(tx / CHUNK_SIZE);\n\t\t\t\tconst chunkY = Math.floor(ty / CHUNK_SIZE);\n\t\t\t\tconst localX = tx - chunkX * CHUNK_SIZE;\n\t\t\t\tconst localY = ty - chunkY * CHUNK_SIZE;\n\t\t\t\tconst speed = math.hypot(vel.x, vel.y);\n\t\t\t\tconst preloadedChunks = 9 + Math.min(32, Math.ceil(speed * 10 / chunkMetres)) * 3;\n\t\t\t\tconst invR = r > 1e-9 ? 1 / r : 0;\n\t\t\t\tconst sample = sampleTileMaterial(pos.x - pos.x * invR * (tileSize * 2), pos.y - pos.y * invR * (tileSize * 2), r, theta, sinTheta, worldSeed);\n\t\t\t\tlet minedCount = typeof prev.minedCount === \"number\" ? prev.minedCount : 0;\n\t\t\t\tlet lastMinedTile = typeof prev.lastMinedTile === \"string\" ? prev.lastMinedTile : \"None\";\n\t\t\t\tconst prevInv = typeof prev.inventory === \"object\" && prev.inventory !== null && !Array.isArray(prev.inventory) ? prev.inventory : initialRuleValue.inventory;\n\t\t\t\tlet iron = Number(prevInv.iron ?? 0);\n\t\t\t\tlet copper = Number(prevInv.copper ?? 0);\n\t\t\t\tlet titanium = Number(prevInv.titanium ?? 0);\n\t\t\t\tlet silicon = Number(prevInv.silicon ?? 0);\n\t\t\t\tlet ice = Number(prevInv.ice ?? 0);\n\t\t\t\tlet stone = Number(prevInv.stone ?? 0);\n\t\t\t\tconst isLandedOrContact = primaryShip.state.status === \"landed\" || events.some((e) => \"shipId\" in e && e.shipId === primaryShip.id);\n\t\t\t\tconst drillIntervalTicks = Math.max(10, Math.round(6e3 / Math.max(20, drillPower)));\n\t\t\t\tif (isLandedOrContact && tick > 0 && tick % drillIntervalTicks === 0) {\n\t\t\t\t\tminedCount += 1;\n\t\t\t\t\tlastMinedTile = sample.material;\n\t\t\t\t\tif (sample.oreKey === \"iron\") iron += 1;\n\t\t\t\t\telse if (sample.oreKey === \"copper\") copper += 1;\n\t\t\t\t\telse if (sample.oreKey === \"titanium\") titanium += 1;\n\t\t\t\t\telse if (sample.oreKey === \"silicon\") silicon += 1;\n\t\t\t\t\telse if (sample.oreKey === \"ice\") ice += 1;\n\t\t\t\t\telse stone += 1;\n\t\t\t\t}\n\t\t\t\treturn { state: {\n\t\t\t\t\tversion: 1,\n\t\t\t\t\tvalue: {\n\t\t\t\t\t\tbodyId: primaryShip.bodyId,\n\t\t\t\t\t\tchunkX,\n\t\t\t\t\t\tchunkY,\n\t\t\t\t\t\ttx,\n\t\t\t\t\t\tty,\n\t\t\t\t\t\tlocalX,\n\t\t\t\t\t\tlocalY,\n\t\t\t\t\t\tbiome: sample.biome,\n\t\t\t\t\t\tstratum: sample.stratum,\n\t\t\t\t\t\ttargetMaterial: sample.material,\n\t\t\t\t\t\tpreloadedChunks,\n\t\t\t\t\t\tminedCount,\n\t\t\t\t\t\tlastMinedTile,\n\t\t\t\t\t\tinventory: {\n\t\t\t\t\t\t\tiron,\n\t\t\t\t\t\t\tcopper,\n\t\t\t\t\t\t\ttitanium,\n\t\t\t\t\t\t\tsilicon,\n\t\t\t\t\t\t\tice,\n\t\t\t\t\t\t\tstone\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t} };\n\t\t\t}\n\t\t});\n\t}\n\t//#endregion\n\t//#region games/space-sim-nextgen/portable-modules/planet-tiles-sim/src/entry.ts\n\tfunction entry(context) {\n\t\tinitialize({\n\t\t\t...context,\n\t\t\tassets: { ...context.assets }\n\t\t});\n\t}\n\t//#endregion\n\texports.default = entry;\n\treturn exports;\n})({});\n",
+      "assets": {},
+      "inputs": [
+        {
+          "path": "game-api/commands.ts",
+          "sha256": "84acac405233c00e816e9b1237031053e42d6914704ae9ef8ff416bc277bd186",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/context.ts",
+          "sha256": "2a816e753e0af866825ee51c064addf9a31eb433a693bac01e9d2f53020d821e",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/index.ts",
+          "sha256": "8ce1c98605842d48584c3f6d77db21a9049a68841e59a120032e37c65fe67d2a",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/math.ts",
+          "sha256": "62203a4f5d14a07e98963dbd4d20810dcd66cfce1ad502e2738e451fc417016c",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/modules.ts",
+          "sha256": "141ba35f38c4a481469248f7138284d953fabc1c7a6fa234d3a7422c00e7dbc7",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/motion.ts",
+          "sha256": "f151758f7fc1b1bb44cacb75e8aa7283cf6f9a293c15d0d19174e59ec86e7d57",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/orbit.ts",
+          "sha256": "d7fb82248be53ea51b7469fc0c088bd9664cfec905e0b72c13fe14d03bdd97a5",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/presentation.ts",
+          "sha256": "e5ac651ea05e604d69d4313dfcfdae7a1f8315d296d6face86a057ad83fc25f0",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/rules.ts",
+          "sha256": "fa8c75da4f7a046e25ed12e25d388b878753eef6edbceca9c1298d4bd7d6d8ec",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/services.ts",
+          "sha256": "6f97c3c49149a5cff1d99f29db75ed118b614f7263817ed3628e04291cdbdfd9",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/state.ts",
+          "sha256": "a7d7a9a0df9a8fe85023257dc1d7752fece56870bddaa014eee19e09ae132c48",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/surface.ts",
+          "sha256": "0b0fb0eda442ae53c9fde6864ce7dc6e801333ef9eca857187c854558a19cf67",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/universe.ts",
+          "sha256": "016dfa7beef22caba7ca3c31121914cb5f7234934233bf1615341e66ec4b0d8d",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/world.ts",
+          "sha256": "88eb2f57e5663afd1f59f3741b45074fc8e34367ed549eb5dc0e3425e23cb2d3",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "src/entry.ts",
+          "sha256": "e97d90bd4d285996b6b966c93e16cc4f9bd54d963de8a34b71a075b1a5b4c832",
+          "license": "MIT",
+          "attribution": "game-api/commands.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/context.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/index.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/math.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/modules.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/motion.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/orbit.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/presentation.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/rules.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/services.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/state.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/surface.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/universe.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/world.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\nmain.ts\nMIT\nSpace Sim Next-Gen Spherical Tile Planets authoritative simulation module. Licensed under MIT.\n"
+        },
+        {
+          "path": "src/main.ts",
+          "sha256": "f3ed44b424587428ea9b5953991b38da980da80d78bbb921d65d3b10636a06ab",
+          "license": "MIT",
+          "attribution": "Space Sim Next-Gen Spherical Tile Planets authoritative simulation module. Licensed under MIT."
+        }
+      ],
+      "compatibility": {
+        "deterministic": true,
+        "multiplayer": true
+      },
+      "digest": "dc66e080ab1cb1ec29c9ec21887cb620e54a60e3195bac091dca744feecd28d5"
+    },
+    {
+      "format": "space-sim-code-module/1",
+      "manifest": {
+        "format": "space-sim-module/1",
+        "apiVersion": "space-sim-game-api/1",
+        "id": "nextgen.planet-tiles-hud",
+        "name": "Spherical Tile Planets & Laser Mining (HUD & Camera)",
+        "version": "0.1.0",
+        "kind": "provider",
+        "authority": "presentation",
+        "environments": [
+          "browser",
+          "offline"
+        ],
+        "dependencies": [],
+        "provides": [],
+        "requires": [],
+        "slots": [],
+        "before": [],
+        "after": [],
+        "settings": {
+          "chunkGridRadius": {
+            "type": "number",
+            "default": 1,
+            "minimum": 1,
+            "maximum": 3
+          },
+          "showRadialBasis": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "license": "MIT"
+      },
+      "source": "var SpaceSimModule = (function(exports) {\n\tObject.defineProperties(exports, {\n\t\t__esModule: { value: true },\n\t\t[Symbol.toStringTag]: { value: \"Module\" }\n\t});\n\t//#region packages/game-api/src/math.ts\n\tconst TAU = 2 * Math.PI;\n\tconst HALF_PI = Math.PI / 2;\n\tconst QUARTER_PI = Math.PI / 4;\n\tconst EIGHTH_PI = Math.PI / 8;\n\tconst TAN_PI_8 = Math.sqrt(2) - 1;\n\tconst TAN_PI_16 = .198912367379658;\n\tconst TAN_3PI_16 = .6681786379192989;\n\tArray.from({ length: 8 }, (_, k) => (k % 2 ? 1 : -1) / factorial(2 * k + 3));\n\tArray.from({ length: 9 }, (_, k) => (k % 2 ? 1 : -1) / factorial(2 * k + 2));\n\tArray.from({ length: 16 }, (_, k) => 1 / factorial(k + 1));\n\tfunction factorial(n) {\n\t\tlet f = 1;\n\t\tfor (let i = 2; i <= n; i++) f *= i;\n\t\treturn f;\n\t}\n\t/** atan on [-0.2, 0.2]: odd Taylor series to t^25. */\n\tfunction atanSmall(t) {\n\t\tconst z = t * t;\n\t\tlet p = 1 / 25;\n\t\tfor (let k = 11; k >= 1; k--) p = (k % 2 ? -1 : 1) / (2 * k + 1) + z * p;\n\t\treturn t + t * z * p;\n\t}\n\t/** atan for 0 <= z <= 1, reduced to |t| <= 0.2 about 0, π/8 or π/4. */\n\tfunction atanUnit(z) {\n\t\tif (z > TAN_3PI_16) return QUARTER_PI + atanSmall((z - 1) / (z + 1));\n\t\tif (z > TAN_PI_16) return EIGHTH_PI + atanSmall((z - TAN_PI_8) / (1 + z * TAN_PI_8));\n\t\treturn atanSmall(z);\n\t}\n\t/** atan for z >= 0 (including Infinity). */\n\tfunction atanPositive(z) {\n\t\treturn z > 1 ? HALF_PI - atanUnit(1 / z) : atanUnit(z);\n\t}\n\t/** Two-argument arctangent with Math.atan2's quadrants and signed zeros. */\n\tfunction atan2(y, x) {\n\t\tif (Number.isNaN(x) || Number.isNaN(y)) return NaN;\n\t\tconst ax = Math.abs(x), ay = Math.abs(y);\n\t\tif (ax === Infinity && ay === Infinity) {\n\t\t\tconst a = x > 0 ? QUARTER_PI : 3 * QUARTER_PI;\n\t\t\treturn y > 0 ? a : -a;\n\t\t}\n\t\tif (ax === 0) {\n\t\t\tif (ay === 0) {\n\t\t\t\tconst a = Object.is(x, -0) ? Math.PI : 0;\n\t\t\t\treturn Object.is(y, -0) || y < 0 ? -a : a;\n\t\t\t}\n\t\t\treturn y > 0 ? HALF_PI : -HALF_PI;\n\t\t}\n\t\tconst a = atanPositive(ay / ax);\n\t\tif (x > 0) return y > 0 || Object.is(y, 0) ? a : -a;\n\t\treturn y > 0 || Object.is(y, 0) ? Math.PI - a : a - Math.PI;\n\t}\n\t/** Hypotenuse from one square root (correctly rounded everywhere), scaled away from\n\t* overflow and underflow. */\n\tfunction hypot(x, y) {\n\t\tconst ax = Math.abs(x), ay = Math.abs(y);\n\t\tif (ax === Infinity || ay === Infinity) return Infinity;\n\t\tconst big = ax > ay ? ax : ay;\n\t\tif (big > 1e150 || big < 1e-150 && big > 0) {\n\t\t\tconst sx = ax / big, sy = ay / big;\n\t\t\treturn big * Math.sqrt(sx * sx + sy * sy);\n\t\t}\n\t\treturn Math.sqrt(x * x + y * y);\n\t}\n\t/** Wrap an angle into (-π, π] using exact remainders: no trigonometry, so a normalized\n\t* angle is returned unchanged. */\n\tfunction normalizeAngle(a) {\n\t\tif (a > -Math.PI && a <= Math.PI) return a;\n\t\tlet r = a % TAU;\n\t\tif (r > Math.PI) r -= TAU;\n\t\telse if (r <= -Math.PI) r += TAU;\n\t\treturn r;\n\t}\n\t//#endregion\n\t//#region games/space-sim-nextgen/portable-modules/planet-tiles-hud/src/main.ts\n\tconst CHUNK_METRES = 16;\n\tconst TILE_METRES = .5;\n\tfunction readRuleValue(moduleState) {\n\t\tconst entry = moduleState[\"nextgen.planet-tiles-sim\"];\n\t\tif (!entry || typeof entry.state.value !== \"object\" || entry.state.value === null || Array.isArray(entry.state.value)) return null;\n\t\treturn entry.state.value;\n\t}\n\tfunction initialize(context) {\n\t\tconst chunkRadius = Math.max(1, Math.min(3, Math.round(context.settings.chunkGridRadius ?? 1)));\n\t\tconst showRadialBasis = (context.settings.showRadialBasis ?? 1) >= .5;\n\t\tcontext.contributeLayer({\n\t\t\tname: \"planet-tile-overlay\",\n\t\t\tlabel: \"Planet Tile & Chunk Grid\",\n\t\t\tdraw(view) {\n\t\t\t\tconst ship = view.ship;\n\t\t\t\tif (!ship) return [];\n\t\t\t\tconst primitives = [];\n\t\t\t\tconst bodyOrigin = view.body.position;\n\t\t\t\tconst relPos = ship.state.position;\n\t\t\t\tconst vel = ship.state.velocity;\n\t\t\t\tconst centerCx = Math.floor(relPos.x / CHUNK_METRES);\n\t\t\t\tconst centerCy = Math.floor(relPos.y / CHUNK_METRES);\n\t\t\t\tfor (let dy = -chunkRadius; dy <= chunkRadius; dy++) for (let dx = -chunkRadius; dx <= chunkRadius; dx++) {\n\t\t\t\t\tconst cx = centerCx + dx;\n\t\t\t\t\tconst cy = centerCy + dy;\n\t\t\t\t\tconst x0 = bodyOrigin.x + cx * CHUNK_METRES;\n\t\t\t\t\tconst y0 = bodyOrigin.y + cy * CHUNK_METRES;\n\t\t\t\t\tconst x1 = x0 + CHUNK_METRES;\n\t\t\t\t\tconst y1 = y0 + CHUNK_METRES;\n\t\t\t\t\tconst isCurrent = dx === 0 && dy === 0;\n\t\t\t\t\tprimitives.push({\n\t\t\t\t\t\tkind: \"line\",\n\t\t\t\t\t\tspace: \"world\",\n\t\t\t\t\t\tclosed: true,\n\t\t\t\t\t\twidth: isCurrent ? 1.8 : 1,\n\t\t\t\t\t\tcolor: isCurrent ? \"#38b6ffaa\" : \"#38b6ff38\",\n\t\t\t\t\t\tpoints: [\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: x0,\n\t\t\t\t\t\t\t\ty: y0\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: x1,\n\t\t\t\t\t\t\t\ty: y0\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: x1,\n\t\t\t\t\t\t\t\ty: y1\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: x0,\n\t\t\t\t\t\t\t\ty: y1\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t]\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tif (hypot(vel.x, vel.y) > 2) for (const lookaheadSec of [2, 5]) {\n\t\t\t\t\tconst predX = relPos.x + vel.x * lookaheadSec;\n\t\t\t\t\tconst predY = relPos.y + vel.y * lookaheadSec;\n\t\t\t\t\tconst pcx = Math.floor(predX / CHUNK_METRES);\n\t\t\t\t\tconst pcy = Math.floor(predY / CHUNK_METRES);\n\t\t\t\t\tif (pcx === centerCx && pcy === centerCy) continue;\n\t\t\t\t\tconst px0 = bodyOrigin.x + pcx * CHUNK_METRES;\n\t\t\t\t\tconst py0 = bodyOrigin.y + pcy * CHUNK_METRES;\n\t\t\t\t\tprimitives.push({\n\t\t\t\t\t\tkind: \"line\",\n\t\t\t\t\t\tspace: \"world\",\n\t\t\t\t\t\tclosed: true,\n\t\t\t\t\t\twidth: 1.2,\n\t\t\t\t\t\tcolor: \"#22d3ee88\",\n\t\t\t\t\t\tpoints: [\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: px0,\n\t\t\t\t\t\t\t\ty: py0\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: px0 + CHUNK_METRES,\n\t\t\t\t\t\t\t\ty: py0\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: px0 + CHUNK_METRES,\n\t\t\t\t\t\t\t\ty: py0 + CHUNK_METRES\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\tx: px0,\n\t\t\t\t\t\t\t\ty: py0 + CHUNK_METRES\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t]\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t\tconst r = hypot(relPos.x, relPos.y);\n\t\t\t\tif (r > 1e-6 && showRadialBasis) {\n\t\t\t\t\tconst ux = relPos.x / r;\n\t\t\t\t\tconst uy = relPos.y / r;\n\t\t\t\t\tconst tx = -uy;\n\t\t\t\t\tconst ty = ux;\n\t\t\t\t\tconst shipWorld = ship.position;\n\t\t\t\t\tconst vectorLen = 8;\n\t\t\t\t\tprimitives.push({\n\t\t\t\t\t\tkind: \"line\",\n\t\t\t\t\t\tspace: \"world\",\n\t\t\t\t\t\twidth: 2,\n\t\t\t\t\t\tcolor: \"#4ade80cc\",\n\t\t\t\t\t\tpoints: [shipWorld, {\n\t\t\t\t\t\t\tx: shipWorld.x + ux * vectorLen,\n\t\t\t\t\t\t\ty: shipWorld.y + uy * vectorLen\n\t\t\t\t\t\t}]\n\t\t\t\t\t});\n\t\t\t\t\tprimitives.push({\n\t\t\t\t\t\tkind: \"line\",\n\t\t\t\t\t\tspace: \"world\",\n\t\t\t\t\t\twidth: 1.5,\n\t\t\t\t\t\tcolor: \"#38bdf8bb\",\n\t\t\t\t\t\tpoints: [shipWorld, {\n\t\t\t\t\t\t\tx: shipWorld.x + tx * vectorLen,\n\t\t\t\t\t\t\ty: shipWorld.y + ty * vectorLen\n\t\t\t\t\t\t}]\n\t\t\t\t\t});\n\t\t\t\t\tconst clearance = view.groundClearance ?? r - view.body.radius;\n\t\t\t\t\tif (clearance < 40) {\n\t\t\t\t\t\tconst drillTargetX = relPos.x - ux * Math.max(1.5, clearance + TILE_METRES);\n\t\t\t\t\t\tconst drillTargetY = relPos.y - uy * Math.max(1.5, clearance + TILE_METRES);\n\t\t\t\t\t\tconst tileX0 = bodyOrigin.x + Math.floor(drillTargetX / TILE_METRES) * TILE_METRES;\n\t\t\t\t\t\tconst tileY0 = bodyOrigin.y + Math.floor(drillTargetY / TILE_METRES) * TILE_METRES;\n\t\t\t\t\t\tprimitives.push({\n\t\t\t\t\t\t\tkind: \"line\",\n\t\t\t\t\t\t\tspace: \"world\",\n\t\t\t\t\t\t\twidth: ship.state.status === \"landed\" ? 2.5 : 1.2,\n\t\t\t\t\t\t\tcolor: ship.state.status === \"landed\" ? \"#ff5522dd\" : \"#fbbf2488\",\n\t\t\t\t\t\t\tpoints: [shipWorld, {\n\t\t\t\t\t\t\t\tx: tileX0 + TILE_METRES * .5,\n\t\t\t\t\t\t\t\ty: tileY0 + TILE_METRES * .5\n\t\t\t\t\t\t\t}]\n\t\t\t\t\t\t});\n\t\t\t\t\t\tprimitives.push({\n\t\t\t\t\t\t\tkind: \"line\",\n\t\t\t\t\t\t\tspace: \"world\",\n\t\t\t\t\t\t\tclosed: true,\n\t\t\t\t\t\t\twidth: 1.8,\n\t\t\t\t\t\t\tcolor: \"#ff5522ee\",\n\t\t\t\t\t\t\tpoints: [\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tx: tileX0,\n\t\t\t\t\t\t\t\t\ty: tileY0\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tx: tileX0 + TILE_METRES,\n\t\t\t\t\t\t\t\t\ty: tileY0\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tx: tileX0 + TILE_METRES,\n\t\t\t\t\t\t\t\t\ty: tileY0 + TILE_METRES\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\t{\n\t\t\t\t\t\t\t\t\tx: tileX0,\n\t\t\t\t\t\t\t\t\ty: tileY0 + TILE_METRES\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t]\n\t\t\t\t\t\t});\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t\treturn primitives;\n\t\t\t}\n\t\t});\n\t\tcontext.contributePanel({\n\t\t\tname: \"planet-tile-telemetry\",\n\t\t\ttitle: \"Planet Tiles & Mining\",\n\t\t\tupdate(view) {\n\t\t\t\tconst ship = view.ship;\n\t\t\t\tconst rule = readRuleValue(view.moduleState);\n\t\t\t\tif (!ship) return [{\n\t\t\t\t\tlabel: \"Status\",\n\t\t\t\t\tvalue: \"No active vessel\"\n\t\t\t\t}];\n\t\t\t\tconst rel = ship.state.position;\n\t\t\t\tconst tx = typeof rule?.tx === \"number\" ? rule.tx : Math.floor(rel.x / TILE_METRES);\n\t\t\t\tconst ty = typeof rule?.ty === \"number\" ? rule.ty : Math.floor(rel.y / TILE_METRES);\n\t\t\t\tconst cx = typeof rule?.chunkX === \"number\" ? rule.chunkX : Math.floor(tx / 32);\n\t\t\t\tconst cy = typeof rule?.chunkY === \"number\" ? rule.chunkY : Math.floor(ty / 32);\n\t\t\t\tconst biome = typeof rule?.biome === \"string\" ? rule.biome : \"Scanning...\";\n\t\t\t\tconst stratum = typeof rule?.stratum === \"string\" ? rule.stratum : \"Crust\";\n\t\t\t\tconst targetMat = typeof rule?.targetMaterial === \"string\" ? rule.targetMaterial : \"Regolith\";\n\t\t\t\tconst preloaded = typeof rule?.preloadedChunks === \"number\" ? rule.preloadedChunks : 9;\n\t\t\t\tconst minedCount = typeof rule?.minedCount === \"number\" ? rule.minedCount : 0;\n\t\t\t\tconst inv = typeof rule?.inventory === \"object\" && rule.inventory !== null && !Array.isArray(rule.inventory) ? rule.inventory : {};\n\t\t\t\tconst iron = Number(inv.iron ?? 0);\n\t\t\t\tconst copper = Number(inv.copper ?? 0);\n\t\t\t\tconst titanium = Number(inv.titanium ?? 0);\n\t\t\t\tconst silicon = Number(inv.silicon ?? 0);\n\t\t\t\tconst ice = Number(inv.ice ?? 0);\n\t\t\t\tconst horizonDeg = hypot(rel.x, rel.y) > 1e-6 ? (atan2(rel.y, rel.x) * 180 / Math.PI).toFixed(1) : \"0.0\";\n\t\t\t\treturn [\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Active Planet\",\n\t\t\t\t\t\tvalue: `${view.body.name} (R=${Math.round(view.body.radius)}m)`\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Chunk (Cx, Cy)\",\n\t\t\t\t\t\tvalue: `(${cx}, ${cy})`,\n\t\t\t\t\t\tunit: \"16m\"\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Tile (Tx, Ty)\",\n\t\t\t\t\t\tvalue: `(${tx}, ${ty})`,\n\t\t\t\t\t\tunit: \"0.5m\"\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Polar Angle\",\n\t\t\t\t\t\tvalue: horizonDeg,\n\t\t\t\t\t\tunit: \"deg\"\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Surface Biome\",\n\t\t\t\t\t\tvalue: biome\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Subsurface\",\n\t\t\t\t\t\tvalue: stratum\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Drill Reticle\",\n\t\t\t\t\t\tvalue: targetMat\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Stream Queue\",\n\t\t\t\t\t\tvalue: `${preloaded} chunks`,\n\t\t\t\t\t\tunit: \"LRU\"\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Excavated\",\n\t\t\t\t\t\tvalue: `${minedCount} tiles`\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Fe / Cu / Si\",\n\t\t\t\t\t\tvalue: `${iron} / ${copper} / ${silicon}`\n\t\t\t\t\t},\n\t\t\t\t\t{\n\t\t\t\t\t\tlabel: \"Ti / Ice\",\n\t\t\t\t\t\tvalue: `${titanium} / ${ice}`\n\t\t\t\t\t}\n\t\t\t\t];\n\t\t\t}\n\t\t});\n\t\tcontext.contributeCamera({\n\t\t\tname: \"horizon-eva\",\n\t\t\tlabel: \"Horizon EVA camera\",\n\t\t\tframe(input) {\n\t\t\t\tconst ship = input.ship;\n\t\t\t\tif (!ship) return {\n\t\t\t\t\tcenter: input.body.position,\n\t\t\t\t\trotation: 0\n\t\t\t\t};\n\t\t\t\tconst rel = ship.state.position;\n\t\t\t\tconst angle = rel.x === 0 && rel.y === 0 ? 0 : normalizeAngle(atan2(rel.y, rel.x) - Math.PI * .5);\n\t\t\t\treturn {\n\t\t\t\t\tcenter: ship.position,\n\t\t\t\t\trotation: -angle\n\t\t\t\t};\n\t\t\t}\n\t\t});\n\t}\n\t//#endregion\n\t//#region games/space-sim-nextgen/portable-modules/planet-tiles-hud/src/entry.ts\n\tfunction entry(context) {\n\t\tinitialize({\n\t\t\t...context,\n\t\t\tassets: { ...context.assets }\n\t\t});\n\t}\n\t//#endregion\n\texports.default = entry;\n\treturn exports;\n})({});\n",
+      "assets": {},
+      "inputs": [
+        {
+          "path": "game-api/commands.ts",
+          "sha256": "84acac405233c00e816e9b1237031053e42d6914704ae9ef8ff416bc277bd186",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/context.ts",
+          "sha256": "2a816e753e0af866825ee51c064addf9a31eb433a693bac01e9d2f53020d821e",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/index.ts",
+          "sha256": "8ce1c98605842d48584c3f6d77db21a9049a68841e59a120032e37c65fe67d2a",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/math.ts",
+          "sha256": "62203a4f5d14a07e98963dbd4d20810dcd66cfce1ad502e2738e451fc417016c",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/modules.ts",
+          "sha256": "141ba35f38c4a481469248f7138284d953fabc1c7a6fa234d3a7422c00e7dbc7",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/motion.ts",
+          "sha256": "f151758f7fc1b1bb44cacb75e8aa7283cf6f9a293c15d0d19174e59ec86e7d57",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/orbit.ts",
+          "sha256": "d7fb82248be53ea51b7469fc0c088bd9664cfec905e0b72c13fe14d03bdd97a5",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/presentation.ts",
+          "sha256": "e5ac651ea05e604d69d4313dfcfdae7a1f8315d296d6face86a057ad83fc25f0",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/rules.ts",
+          "sha256": "fa8c75da4f7a046e25ed12e25d388b878753eef6edbceca9c1298d4bd7d6d8ec",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/services.ts",
+          "sha256": "6f97c3c49149a5cff1d99f29db75ed118b614f7263817ed3628e04291cdbdfd9",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/state.ts",
+          "sha256": "a7d7a9a0df9a8fe85023257dc1d7752fece56870bddaa014eee19e09ae132c48",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/surface.ts",
+          "sha256": "0b0fb0eda442ae53c9fde6864ce7dc6e801333ef9eca857187c854558a19cf67",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/universe.ts",
+          "sha256": "016dfa7beef22caba7ca3c31121914cb5f7234934233bf1615341e66ec4b0d8d",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "game-api/world.ts",
+          "sha256": "88eb2f57e5663afd1f59f3741b45074fc8e34367ed549eb5dc0e3425e23cb2d3",
+          "license": "LicenseRef-Project",
+          "attribution": "Space Sim first-party public API"
+        },
+        {
+          "path": "src/entry.ts",
+          "sha256": "e97d90bd4d285996b6b966c93e16cc4f9bd54d963de8a34b71a075b1a5b4c832",
+          "license": "MIT",
+          "attribution": "game-api/commands.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/context.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/index.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/math.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/modules.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/motion.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/orbit.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/presentation.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/rules.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/services.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/state.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/surface.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/universe.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\ngame-api/world.ts\nLicenseRef-Project\nSpace Sim first-party public API\n\nmain.ts\nMIT\nSpace Sim Next-Gen Spherical Tile Planets presentation HUD and Horizon EVA camera module. Licensed under MIT.\n"
+        },
+        {
+          "path": "src/main.ts",
+          "sha256": "4561d0006ff444434ea0efd3806fdd8dd7c34e54372f27a71a5c3a0e91dd012b",
+          "license": "MIT",
+          "attribution": "Space Sim Next-Gen Spherical Tile Planets presentation HUD and Horizon EVA camera module. Licensed under MIT."
+        }
+      ],
+      "compatibility": {
+        "deterministic": true,
+        "multiplayer": true
+      },
+      "digest": "da428ae8bf9221bb4bb714a99fd06f3474fc314bb013a1b4d8ce999baded61d0"
+    }
+  ]
+}

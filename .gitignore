@@ -35,7 +35,9 @@ modules/*/docs/**
 
 # Experimental Spherical Tile Planets & Modular Shipbuilding fork
 packages/tile-core/
-games/space-sim-nextgen/
+packages/engine-extensions/
+games/space-sim-nextgen/*
+!games/space-sim-nextgen/game.json
 tests/unit/tile-core.test.ts
 
 # Orbit Sandbox build output

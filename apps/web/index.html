@@ -501,7 +501,7 @@
           <div id="toast-container" class="toast-container"></div>
         </div>
         <section id="lab-manager" class="lab-manager" aria-labelledby="lab-title">
-          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / MODMENU</p><h2 id="lab-title">Games & plugins</h2></div><button id="browse-bundled-modules" type="button">Browse bundled packages</button><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
+          <div class="lab-heading"><div><p class="eyebrow">SPACELAB / MODMENU</p><h2 id="lab-title">Games & plugins</h2></div><label class="game-picker-container" for="game-picker">Switch Game: <select id="game-picker" aria-label="Switch game"><option value="" disabled selected>Select game…</option></select></label><button id="browse-bundled-modules" type="button">Browse bundled packages</button><button id="lab-import" type="button">Import game, plugin or universe…</button><input id="lab-file" type="file" accept=".spacedata,.spacemod,.spacegame,.spaceplugin,.spaceuniverse,.gz,.json,application/gzip,application/json" hidden /></div>
           <p id="lab-status" role="status">Choose a game, customize its plugins, or import something new.</p>
           <details class="library-settings" open><summary>Game library (Load game)</summary>
             <p id="library-storage" class="control-note">Opening your local library…</p>

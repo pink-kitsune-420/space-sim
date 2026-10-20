@@ -1,0 +1,71 @@
+{
+  "$schema": "./catalog.schema.json",
+  "format": "space-lab-game-catalog/1",
+  "defaultGame": "builtin.space-sim",
+  "games": [
+    {
+      "id": "builtin.space-sim",
+      "alias": "space-sim",
+      "name": "Space Sim Classic",
+      "description": "Authentic Keplerian orbital mechanics, Newtonian flight, and celestial navigation.",
+      "category": "game",
+      "adapter": "flight",
+      "path": "space-sim/game.json",
+      "defaultUniverse": "sandbox/default/universe.json"
+    },
+    {
+      "id": "builtin.space-sim-nextgen",
+      "alias": "space-sim-nextgen",
+      "name": "Space Sim Next-Gen: Spherical Tile Planets",
+      "description": "Next-generation planetary simulation with high-density spherical voxel terrain and EVA avatars.",
+      "category": "game",
+      "adapter": "flight",
+      "path": "space-sim-nextgen/game.json"
+    },
+    {
+      "id": "builtin.orbit-sandbox",
+      "alias": "orbit-sandbox",
+      "name": "Orbit Sandbox",
+      "description": "Interactive orbital gravity playground.",
+      "category": "game",
+      "adapter": "legacy-sandbox",
+      "path": "orbit-sandbox/game.json"
+    },
+    {
+      "id": "builtin.orbit-academy",
+      "alias": "orbit-academy",
+      "name": "Orbit Academy",
+      "description": "Interactive spaceflight academy lessons and orbital maneuvers.",
+      "category": "game",
+      "adapter": "flight",
+      "path": "orbit-academy/game.json"
+    },
+    {
+      "id": "builtin.flight-starter",
+      "alias": "flight-starter",
+      "name": "Flight Starter",
+      "description": "Minimal flight template for creators and modders.",
+      "category": "example",
+      "adapter": "flight",
+      "path": "flight-starter/game.json"
+    },
+    {
+      "id": "builtin.planet-viewer",
+      "alias": "planet-viewer",
+      "name": "Planet Viewer",
+      "description": "Surface terrain and procedural contour visualizer.",
+      "category": "example",
+      "adapter": "static-viewer",
+      "path": "planet-viewer/game.json"
+    },
+    {
+      "id": "builtin.survey-fixture",
+      "alias": "survey-fixture",
+      "name": "Survey Fixture",
+      "description": "Automated terrain survey and landing pad fixture.",
+      "category": "example",
+      "adapter": "bounded-survey",
+      "path": "survey-fixture/game.json"
+    }
+  ]
+}

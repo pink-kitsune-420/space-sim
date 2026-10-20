@@ -7,7 +7,7 @@ import {GameLibrary,type LibraryGame} from './game-library';
 import {downloadBytes,element,show} from './ui';
 import {createModMenu,mountBundledCatalogue} from '../../../modules/mod-menu/src/index';
 import bundledModules from 'virtual:spacelab-bundled-modules';
-import {bundledGameDefinition,bundledGameAdapters,bundledGameCategory} from './bundled-games';
+import {bundledGameDefinition,bundledGameAdapters,bundledGameCategory,catalog,bundledGames} from './bundled-games';
 
 function exportUnavailable(game:GamePackage):string|undefined {
  const bundled=bundledGameDefinition(game),adapter=bundled&&bundledGameAdapters.get(bundled.info.id);
@@ -36,6 +36,44 @@ export class LabManager implements Disposable {
   element('bundled-module-summary').textContent=`Bundled source packages · ${bundledModules.length}`;
   const browse=element('browse-bundled-modules');browse.textContent=`Browse bundled packages · ${bundledModules.length}`;
   browse.addEventListener('click',()=>{const catalogue=element('bundled-module-catalogue');catalogue.closest('details')!.open=true;catalogue.scrollIntoView({block:'start'});catalogue.querySelector('input')!.focus({preventScroll:true});},{signal:this.controller.signal});
+  const picker=document.getElementById('game-picker') as HTMLSelectElement|null;
+  if(picker){
+   picker.innerHTML='';
+   for(const entry of catalog.games){
+    const opt=document.createElement('option');
+    opt.value=entry.id;
+    opt.textContent=`${entry.name} (${entry.category})`;
+    if(entry.id===this.options.builtin.info.id)opt.selected=true;
+    picker.appendChild(opt);
+   }
+   picker.addEventListener('change',async()=>{
+    const targetId=picker.value;
+    const entry=this.entries().find(e=>e.game.info.id===targetId||e.id===targetId);
+    const game=entry?.game??bundledGames.find(g=>g.info.id===targetId);
+    if(!game)return;
+    if(!options.editable()){
+     show('lab-status','Leave multiplayer before switching games');
+     picker.value=this.options.builtin.info.id;
+     return;
+    }
+    if(typeof confirm==='function'&&!confirm('Switching games will reset the current flight session. Any unsaved modifications will be lost. Continue?')){
+     picker.value=this.options.builtin.info.id;
+     return;
+    }
+    try{
+     await this.ready;
+     await options.play(game,this.controller.signal);
+     show('active-game',game.info.name);
+     document.title=`Spacelab · ${game.info.name}`;
+     const nameInput=document.getElementById('game-name') as HTMLInputElement|null;
+     if(nameInput)nameInput.value=`${game.info.name} remix`;
+     show('lab-status',`Playing ${game.info.name}. Its plugin selection is active in a new world.`);
+    }catch(err:unknown){
+     const msg=err instanceof Error?err.message:String(err);
+     show('lab-status',msg);
+    }
+   },{signal:this.controller.signal});
+  }
   this.view=this.modMenu.library({importButton:element<HTMLButtonElement>('lab-import'),importFile:element<HTMLInputElement>('lab-file'),save:element<HTMLButtonElement>('lab-save'),export:element<HTMLButtonElement>('lab-export'),name:element<HTMLInputElement>('game-name'),folder:element<HTMLInputElement>('game-folder'),search:element<HTMLInputElement>('game-search'),sort:element<HTMLSelectElement>('game-sort'),favorites:element<HTMLInputElement>('game-favorites'),list:element('game-list'),empty:element('game-empty'),status:element('lab-status')},{
    entries:()=>this.entries().map(entry=>({id:entry.id,name:entry.game.info.name,description:entry.game.info.description,folder:entry.folder,favorite:entry.favorite,builtin:this.isBuiltin(entry.id),category:this.isBuiltin(entry.id)?bundledGameCategory(entry.game.info.id):'game',pinned:entry.id==='builtin',dataModules:entry.game.bundle.modules.length,codeModules:entry.game.plugins.length,exportUnavailable:exportUnavailable(entry.game)} satisfies ModMenuGame)),editable:options.editable,
    importFile:async(file,signal)=>{await this.ready;signal.throwIfAborted();return this.importFile(file,signal);},
@@ -46,7 +84,7 @@ export class LabManager implements Disposable {
     const bytes=entry?.archive;if(bytes)await decodePackage(bytes);const encoded=bytes??await encodePackage(game);signal.throwIfAborted();downloadBytes(`${game.info.name.replace(/[^a-z0-9-]+/gi,'-').toLowerCase()}.spacegame`,encoded);
     if(id===undefined)return `Exported ${game.info.name} with its selected plugins, data and settings.`;
    },
-   play:async(id,signal)=>{await this.ready;signal.throwIfAborted();if(!options.editable())throw new Error('Leave multiplayer before switching games');const entry=this.entry(id);await options.play(entry.game,signal);signal.throwIfAborted();show('active-game',entry.game.info.name);document.title=`Spacelab · ${entry.game.info.name}`;element<HTMLInputElement>('game-name').value=`${entry.game.info.name} remix`;return `Playing ${entry.game.info.name}. Its plugin selection is active in a new world.`;},
+   play:async(id,signal)=>{await this.ready;signal.throwIfAborted();if(!options.editable())throw new Error('Leave multiplayer before switching games');const entry=this.entry(id);await options.play(entry.game,signal);signal.throwIfAborted();show('active-game',entry.game.info.name);document.title=`Spacelab · ${entry.game.info.name}`;element<HTMLInputElement>('game-name').value=`${entry.game.info.name} remix`;if(picker)picker.value=entry.game.info.id;return `Playing ${entry.game.info.name}. Its plugin selection is active in a new world.`;},
    organize:async(id,changes,signal)=>{await this.ready;signal.throwIfAborted();if(this.isBuiltin(id))throw new Error('Save a copy before organizing a built-in game');const entry=this.entry(id);await this.library.put({...entry.game,info:{...entry.game.info,name:changes.name??entry.game.info.name}},{id:entry.id,folder:changes.folder??entry.folder,favorite:changes.favorite??entry.favorite});signal.throwIfAborted();},
    remove:async(id,signal)=>{await this.ready;signal.throwIfAborted();if(this.isBuiltin(id))throw new Error('Built-in games cannot be removed');const entry=this.entry(id);await this.library.remove(id);signal.throwIfAborted();return `Removed ${entry.game.info.name} from the library. The active world is unchanged.`;}
   });
