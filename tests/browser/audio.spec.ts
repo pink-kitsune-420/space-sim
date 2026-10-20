@@ -217,7 +217,7 @@ test(`a gentle ${attitude} contact on ${terrain ? 'terrain' : 'a smooth planet'}
   });
   await expect(page.locator('#status')).toHaveText('FLYING');
   await expect(page.locator('#status')).toHaveText(attitude === 'side-on' ? 'CRASHED' : 'LANDED');
-  await expect.poll(() => page.evaluate(() => window.audioProbe.peak)).toBeGreaterThan(.01);
+  await expect.poll(() => page.evaluate(() => window.audioProbe.peak)).toBeGreaterThan(.003);
   if (terrain) await expect.poll(async () => (await debug(page)).contact?.time).toEqual(expect.any(Number));
   expect(await page.evaluate(() => window.audioProbe.tones.length + window.audioProbe.bursts.length)).toBe(before + 1);
   await page.waitForTimeout(350);

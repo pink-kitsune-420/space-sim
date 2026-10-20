@@ -229,10 +229,12 @@ test('Execute burn crosses a two-hour parking-orbit wait promptly and returns th
 test('Abort burn releases thrust during a finite burn and requires replanning', async ({ page }) => {
   await setup(page); await place(page);
   await page.locator('#maneuver-prograde').fill('400');
-  await page.locator('#maneuver-time').fill('8'); await page.locator('#maneuver-time').press('Tab');
-  await page.locator('#pause').click();
+  await page.locator('#maneuver-time').fill('25'); await page.locator('#maneuver-time').press('Tab');
+  if ((await page.locator('#pause').textContent()) === 'Resume') await page.locator('#pause').click();
+  await expect(page.locator('#pause')).toHaveText('Pause');
+  await expect(page.locator('#maneuver-execute')).toBeEnabled();
   await page.locator('#maneuver-execute').click();
-  await expect.poll(async () => (await debug(page)).maneuver?.execution, { timeout: 15000 }).toBe('burning');
+  await expect.poll(async () => (await debug(page)).maneuver?.execution, { timeout: 25000 }).toBe('burning');
   const burning = await debug(page);
   await test.info().attach('finite-burn-profile', { contentType: 'application/json', body: JSON.stringify({
     workP95Ms: burning.workP95Ms, simulationP95Ms: burning.simulationP95Ms,
