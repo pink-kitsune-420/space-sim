@@ -1,0 +1,1294 @@
+{
+  "format": "spacelab-api-reference/1",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c51f600b62f9bde2",
+  "modules": [
+    "spacelab.flight-plans",
+    "spacelab.flight-prediction",
+    "spacelab.throttle-hud"
+  ],
+  "pages": [
+    {
+      "id": "api-reference",
+      "title": "API reference",
+      "summary": "Generated reference for documented modules and the game-api declarations they use.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template."
+        },
+        {
+          "type": "paragraph",
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest c51f600b62f9bde2"
+        },
+        {
+          "type": "paragraph",
+          "text": "Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change."
+        },
+        {
+          "type": "heading",
+          "text": "Modules"
+        },
+        {
+          "type": "link",
+          "text": "Shared flight plans (spacelab.flight-plans)",
+          "page": "api-reference/module/spacelab.flight-plans"
+        },
+        {
+          "type": "link",
+          "text": "Progressive flight prediction (spacelab.flight-prediction)",
+          "page": "api-reference/module/spacelab.flight-prediction"
+        },
+        {
+          "type": "link",
+          "text": "Throttle HUD (spacelab.throttle-hud)",
+          "page": "api-reference/module/spacelab.throttle-hud"
+        },
+        {
+          "type": "heading",
+          "text": "Game API topics"
+        },
+        {
+          "type": "link",
+          "text": "context.ts",
+          "page": "api-reference/game-api/context"
+        },
+        {
+          "type": "link",
+          "text": "engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "flight-plans.ts",
+          "page": "api-reference/game-api/flight-plans"
+        },
+        {
+          "type": "link",
+          "text": "flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "maneuver.ts",
+          "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "surface.ts",
+          "page": "api-reference/game-api/surface"
+        },
+        {
+          "type": "link",
+          "text": "universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "link",
+          "text": "view-hud.ts",
+          "page": "api-reference/game-api/view-hud"
+        },
+        {
+          "type": "link",
+          "text": "world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "link",
+          "text": "Code modules: manifests, packaging and installation",
+          "page": "modules"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.flight-plans",
+      "title": "Shared flight plans reference",
+      "summary": "A shared service that stores maneuver plans as portable intent and checks them against the selected physics.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "A shared service that stores maneuver plans as portable intent and checks them against the selected physics."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.flight-plans",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "flight.plans@1.0.0 · FLIGHT_PLANS: ServiceKey<FlightPlanService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: flight.plans",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "EvaluatedFlightNode, FLIGHT_PLANS, FiniteBurnResult, FiniteCaptureResult, FlightPlan, FlightPlanArchive, FlightPlanNode, FlightPlanService, MAX_FLIGHT_PLAN_SECONDS, ManeuverBurnFactory, ModuleInitializationV2, ServiceKey, Ship, State, Vec, WorldRead, deterministicMath, flightSampleInFrame, flightTimeTolerance, maneuverDelta"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-plans.ts",
+          "page": "api-reference/game-api/flight-plans"
+        },
+        {
+          "type": "link",
+          "text": "game-api maneuver.ts",
+          "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api world.ts",
+          "page": "api-reference/game-api/world"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/flight-plans (build with npm run module:build -- examples/modules/flight-plans/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Shared flight plans: how to use, replace and remove it",
+          "page": "spacelab.flight-plans/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.flight-prediction",
+      "title": "Progressive flight prediction reference",
+      "summary": "Cancellable trajectory previews that a view can trace a little at a time without touching live flight.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Cancellable trajectory previews that a view can trace a little at a time without touching live flight."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.flight-prediction",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "view.prediction@1.0.0 · PREDICTIONS: ServiceKey<PredictionFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: view.prediction",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "maxMs: number, default 3, from 0.1 to 16, step 0.1. Prediction work per view (ms): Wall-time ceiling for one tracing update. Guest view overrides can lower their budget; physics and prediction results are unchanged.",
+            "traceSamplesPerSecond: number, default 1000, from 1 to 1000, step 1. Analytic tracing rate (samples/s): Rate at which a progressive coast preview earns sample work. Changes how quickly the complete path appears, not simulation precision.",
+            "numericalSamplesPerSecond: number, default 12000, from 120 to 24000, step 1. Surface/numerical tracing rate (samples/s): Sample-work rate for terrain/contact or numerical previews, still bounded by the work-time ceiling and existing per-update cap."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Controls, FlightPrediction, GhostEnd, GhostSample, ModuleInitializationV2, PREDICTIONS, PredictionFactory, PredictionSummary, ResolvedBody, ServiceKey, SimulationContext, State, SurfaceProfile, WorldRead"
+        },
+        {
+          "type": "link",
+          "text": "game-api context.ts",
+          "page": "api-reference/game-api/context"
+        },
+        {
+          "type": "link",
+          "text": "game-api engine.ts",
+          "page": "api-reference/game-api/engine"
+        },
+        {
+          "type": "link",
+          "text": "game-api flight-view.ts",
+          "page": "api-reference/game-api/flight-view"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api state.ts",
+          "page": "api-reference/game-api/state"
+        },
+        {
+          "type": "link",
+          "text": "game-api surface.ts",
+          "page": "api-reference/game-api/surface"
+        },
+        {
+          "type": "link",
+          "text": "game-api universe.ts",
+          "page": "api-reference/game-api/universe"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/flight-prediction (build with npm run module:build -- examples/modules/flight-prediction/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Progressive flight prediction: how to use, replace and remove it",
+          "page": "spacelab.flight-prediction/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.throttle-hud",
+      "title": "Throttle HUD reference",
+      "summary": "A per-seat throttle lever that any game can place in its HUD through the hud.throttle service.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "A per-seat throttle lever that any game can place in its HUD through the hud.throttle service."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.throttle-hud",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: presentation",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "hud.throttle@1.0.0 · THROTTLE_HUD: ServiceKey<HudInstrumentDefinition>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: hud.throttle",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "keyboardStepPercent: number, default 1, from 0.1 to 100, step 0.1. Arrow-key throttle step (%): Percentage-point change from one Up/Down arrow press on a focused throttle lever. Session ownership and input locks still apply.",
+            "pageStepPercent: number, default 10, from 0.1 to 100, step 0.1. Page-key throttle step (%): Percentage-point change from one Page Up/Page Down press on a focused throttle lever. Home and End still select zero and full thrust."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "FLIGHT_HUD_STATE, HudInstrumentDefinition, HudSurface, ModuleInitializationV2, OverlayPrimitive, RegisteredModule, THROTTLE_HUD, ThrottleLeverOptions, ThrottleLeverState"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api view-hud.ts",
+          "page": "api-reference/game-api/view-hud"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/throttle-hud (build with npm run module:build -- examples/modules/throttle-hud/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Throttle HUD: how to use, replace and remove it",
+          "page": "spacelab.throttle-hud/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/context",
+      "title": "game-api: context.ts",
+      "summary": "Declarations from context.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/context.ts."
+        },
+        {
+          "type": "heading",
+          "text": "SimulationContext"
+        },
+        {
+          "type": "paragraph",
+          "text": "Motion context with an optional numerical/contact replacement and force schedule. All motion is synchronous, body-relative 2D SI: metres, seconds, radians (+Y up). Methods leave input state untouched. Contexts are owned per world/vehicle definition; craft with the same handling share a context. No DOM or timers. Prediction consumers own a clone and dispose it when a job ends or is cancelled."
+        },
+        {
+          "type": "code",
+          "text": "export interface SimulationContext {\n  readonly modelIdentity: string;\n  readonly stepSeconds: 0.01;\n  readonly vehicle: Readonly<VehicleDefaults>;\n  readonly capabilities: MotionCapabilities;\n  readonly services: MotionServices;\n  validateState(state: State, body: Body, surface?: SurfaceProfile): void;\n  step(state: State, controls: Controls, seconds: number, body: Body, surface?: SurfaceProfile): State;\n  advance(state: State, controls: Controls, seconds: number, body: Body, surface?: SurfaceProfile): State;\n  predict(start: State, coarse: boolean, body: Body, surface?: SurfaceProfile): Generator<GhostSample, GhostEnd>;\n  keplerCoast(state: State, body: Body, surface?: SurfaceProfile, seconds?: number): Coast | undefined;\n  coastAt(coast: Coast, time: number, body: Body, surface?: SurfaceProfile, options?: { readonly cache?: boolean }): Propagation;\n  coastCacheStats(coast: Coast | undefined): CoastCacheStats;\n  /** Same immutable configuration; fresh derived caches and no live mutable state. */\n  cloneForPrediction(): SimulationContext;\n  /** Release derived caches. Idempotent; the context can rebuild them if reused. */\n  dispose(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/engine",
+      "title": "game-api: engine.ts",
+      "summary": "Declarations from engine.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/engine.ts."
+        },
+        {
+          "type": "heading",
+          "text": "WorldRead"
+        },
+        {
+          "type": "paragraph",
+          "text": "Body-relative SI state. Read operations retain the world's established rails semantics."
+        },
+        {
+          "type": "code",
+          "text": "export interface WorldRead {\n  readonly vehicles?: VehicleCatalog;\n  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext;\n  readonly data: ModuleDataRead;\n  readonly dataAdapters: readonly ModuleDataExtension[];\n  readonly configuration?: SavedGameConfiguration;\n  /** Absent on older hosts; planners must not assume optional seed arguments are understood. */\n  readonly predictionFeatures?: { readonly futureSeeds: boolean; readonly endTime?: boolean };\n  readonly id: string; readonly tick: number; readonly time: number;\n  readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;\n  readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;\n  readonly simulationFingerprint: string; readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly rules: readonly WorldRuleExtension[]; readonly forces: readonly ForceExtension[]; readonly commands: readonly CommandExtension[];\n  readonly moduleState: Readonly<Record<string, WorldRuleState>>;\n  readonly soloPreview: boolean; readonly paused: boolean; readonly fault?: string;\n  readonly rails: boolean; readonly nextWakeTick: number; readonly requiresWorldPrediction: boolean;\n  readonly version: number; readonly nextShipNumber: number; readonly saveVersion?: number;\n  readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;\n  readonly surfaces: ReadonlyMap<string, SurfaceProfile>;\n  record(id: string): Ship | undefined; records(): IterableIterator<Ship>;\n  ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;\n  awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;\n  ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;\n  stateAt(id: string, time: number): State | undefined;\n  hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;\n  presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };\n  /** Optional inert future seed is supported by independent analytic flight only;\n   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most\n   * 100 Julian years after the seed), disabling orbit closure; requires predictionFeatures.endTime. */\n  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;\n  cloneForPrediction(): WorldControl;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/flight-plans",
+      "title": "game-api: flight-plans.ts",
+      "summary": "Declarations from flight-plans.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-plans.ts."
+        },
+        {
+          "type": "heading",
+          "text": "MAX_FLIGHT_PLAN_SECONDS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Maximum explicit planning horizon; default display forecasts retain their shorter cap."
+        },
+        {
+          "type": "code",
+          "text": "export const MAX_FLIGHT_PLAN_SECONDS = 100 * 365.25 * 86400;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "flightTimeTolerance"
+        },
+        {
+          "type": "paragraph",
+          "text": "Absolute-time comparisons remain below a fixed tick, including multi-year epochs."
+        },
+        {
+          "type": "code",
+          "text": "export const flightTimeTolerance = (time:number):number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FlightPlanNode"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portable SI intent only. No engine, warp, controls or execution state is persisted. `time` is absolute simulation seconds; `prograde` and `radial` are impulse components in m/s relative to the velocity at the node, in the frame of `bodyId`."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightPlanNode {\n readonly id: string; readonly label: string; readonly bodyId: string;\n readonly time: number; readonly prograde: number; readonly radial: number;\n readonly completed?: boolean;\n readonly alarm?: NodeAlarmSettings;\n /** Use the selected finite-burn controller for progressive evaluation. */\n readonly finite?: boolean;\n /** Optional arrival goal, in SI metres above the destination's reference radius.\n  * Intent only: never grants permission to coast, change a node, or ignite. */\n readonly targetOrbit?: { readonly periapsisAltitude:number; readonly apoapsisAltitude:number };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FlightPlan"
+        },
+        {
+          "type": "paragraph",
+          "text": "One ship's plan, bound to the world and motion model it was captured in. A changed universe, system, simulation fingerprint or motion identity makes every node invalid until the player reviews it. `epoch` is the coast start, local to `bodyId`."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightPlan {\n readonly shipId: string; readonly universeId: string; readonly systemId: string;\n readonly fingerprint: string; readonly motionIdentity: string; readonly bodyId: string;\n readonly epoch: { readonly time: number; readonly position: Vec; readonly velocity: Vec; readonly heading: number };\n readonly nodes: readonly FlightPlanNode[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FlightPlanArchive"
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightPlanArchive { readonly format: 'space-sim-flight-plans/1'; readonly plans: readonly FlightPlan[] }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "EvaluatedFlightNode"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-node evaluation. An invalid node carries a readable `reason`; later nodes are not evaluated past the first failure and repeat its reason."
+        },
+        {
+          "type": "code",
+          "text": "export interface EvaluatedFlightNode {\n readonly intent: FlightPlanNode; readonly valid: boolean; readonly reason: string;\n /** Incoming coast seed and state at the burn. All coordinates are local to bodyId. */\n readonly seed?: State; readonly before?: State; readonly after?: State; readonly delta?: Vec;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FiniteBurnResult"
+        },
+        {
+          "type": "code",
+          "text": "export interface FiniteBurnResult {readonly after?:State;readonly delta?:Vec;readonly reason:string}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FiniteCaptureResult"
+        },
+        {
+          "type": "code",
+          "text": "export interface FiniteCaptureResult {readonly node?:FlightPlanNode;readonly after?:State;readonly reason:string}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FlightPlanService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded inert intent/codec and selected-provider orbital evaluation, without UI or execution."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightPlanService {\n /** Bind the host-selected controller for detached finite evaluation; no execution permission. */\n withBurns?(burns:ManeuverBurnFactory):FlightPlanService;\n /** Detached selected-controller validation; caller owns and cancels the generator. */\n simulateBurn?(world:WorldRead,ship:Ship,node:FlightPlanNode,burns:ManeuverBurnFactory):Generator<void,FiniteBurnResult>;\n refineCapture?(world:WorldRead,ship:Ship,node:FlightPlanNode,burns:ManeuverBurnFactory):Generator<void,FiniteCaptureResult>;\n /** Snapshot the ship's current coast and world identity as a new plan. Throws\n  * `Flight plan: ...` for invalid nodes, like `read`. Never changes the world. */\n capture(world: WorldRead, ship: Ship, nodes: readonly FlightPlanNode[]): FlightPlan;\n /** Validate an untrusted `space-sim-flight-plans/1` archive (at most 64 plans of 16 nodes,\n  * node times increasing and within 100 Julian years of the epoch). Unknown fields are\n  * dropped. Throws an Error whose message starts with `Flight plan:`. */\n read(raw: unknown): FlightPlanArchive;\n /** Fast same-body compatibility evaluation; cross-body legs request progressive evaluation. */\n evaluate(plan: FlightPlan, world: WorldRead): readonly EvaluatedFlightNode[];\n /** Full bounded coast/contact/SOI and optional finite-burn evaluation; yields detached work. */\n evaluateAsync?(plan: FlightPlan, world: WorldRead, traceCoasts?: boolean): Generator<FlightPlanProgress, readonly EvaluatedFlightNode[]>;\n /** Progressive chained preview through the shared world predictor; cancellation closes its child job. */\n predict(plan: FlightPlan, world: WorldRead): Generator<GhostSample, GhostEnd>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_PLANS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Shared flight-plan intent and evaluation, provided by `spacelab.flight-plans` in Space Sim."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_PLANS: ServiceKey<FlightPlanService> = Object.freeze({ slot: 'flight.plans', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "flightSampleInFrame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Translate a timed sample between nonrotating body frames, including velocity. bodyId remains the physical SOI. Encounter snapshots follow the sample frame."
+        },
+        {
+          "type": "code",
+          "text": "export function flightSampleInFrame(sample: GhostSample, frameId: string, system: LoadedSystem): GhostSample;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/flight-view",
+      "title": "game-api: flight-view.ts",
+      "summary": "Declarations from flight-view.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/flight-view.ts."
+        },
+        {
+          "type": "heading",
+          "text": "PredictionSummary"
+        },
+        {
+          "type": "paragraph",
+          "text": "Result of one completed tracing pass. `workMs` is wall-clock work, not simulated time; `coarse` is true for a preview traced while the engine was burning."
+        },
+        {
+          "type": "code",
+          "text": "export interface PredictionSummary { end: GhostEnd; samples: number; workMs: number; coarse: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "FlightPrediction"
+        },
+        {
+          "type": "paragraph",
+          "text": "A progressive trajectory preview for one view. It traces on an isolated motion-context clone (or `world.predictShip` when a world is passed) and never advances live authority. Consumers read `path` and `pathEnd`; the remaining fields are diagnostics. `path` samples are body-relative SI (metres, m/s, seconds of simulation time) in the frame each sample names. Arrays are reused between passes: copy a path you need to keep."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightPrediction extends Disposable {\n  pass: PredictionPass | undefined; passKey: string; pathKey: string; passCount: number; path: readonly GhostSample[]; pathEnd: GhostEnd;\n  lastPass: PredictionSummary;\n  /** Wall-clock milliseconds of tracing work allowed per `update`, from 0.1 to 16. */\n  maxMs: number;\n  /** Cancel the current pass and clear the path; the next `update` starts a new one. */\n  invalidate(): void;\n  /** Call once per rendered frame. Starts a new pass when the ship, body, surface, motion\n   * model or relevant command epoch changed, otherwise continues the current one within\n   * `maxMs`. `seconds` is the elapsed wall time used to earn sample work. Throws after dispose. */\n  update(context: SimulationContext, state: State, activeBody: ResolvedBody, surface: SurfaceProfile | undefined,\n    selectedShipId: string | undefined, seconds: number, engine: boolean, controls?: Controls, world?: WorldRead): void;\n  /** Short status for a readout, such as `Full orbit · period 5400.0 s` or `Tracing · 120 points`. */\n  text(state: State): string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "PredictionFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Creates independent previews. Each preview owns its job and cloned context; disposing the preview or the provider closes both. `onComplete` runs once per finished pass."
+        },
+        {
+          "type": "code",
+          "text": "export interface PredictionFactory { create(onComplete: (summary: PredictionSummary) => void): FlightPrediction }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "PREDICTIONS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Progressive flight prediction, provided by `spacelab.flight-prediction` in Space Sim."
+        },
+        {
+          "type": "code",
+          "text": "export const PREDICTIONS: ServiceKey<PredictionFactory> = Object.freeze({ slot: 'view.prediction', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/maneuver",
+      "title": "game-api: maneuver.ts",
+      "summary": "Declarations from maneuver.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/maneuver.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ManeuverBurnFactory"
+        },
+        {
+          "type": "code",
+          "text": "export interface ManeuverBurnFactory { create(time: number, delta: Vec, vehicle: VehicleDefaults): ManeuverBurnControl }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "maneuverDelta"
+        },
+        {
+          "type": "paragraph",
+          "text": "Velocity-relative prograde plus body-relative radial intent, in metres/second."
+        },
+        {
+          "type": "code",
+          "text": "export function maneuverDelta(sample: GhostSample, prograde: number, radial: number): Vec;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/modules",
+      "title": "game-api: modules.ts",
+      "summary": "Declarations from modules.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/modules.ts."
+        },
+        {
+          "type": "heading",
+          "text": "Disposable"
+        },
+        {
+          "type": "code",
+          "text": "export interface Disposable { dispose(): void }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleInitialization"
+        },
+        {
+          "type": "paragraph",
+          "text": "Initialization is synchronous in Phase 2. Own resources immediately after allocation. provide() only accepts slots selected for this module by the resolved profile."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleInitialization {\n  /** Resolved values for the manifest's declared settings, after profile overrides and\n   * range validation. Read them during initialization; a change prepares a new candidate. */\n  readonly settings: Readonly<Record<string, number>>;\n  /** Text assets embedded in an imported code artifact; empty for static modules. */\n  readonly assets: Readonly<Record<string, string>>;\n  /** Own a sequential state migration in this candidate, without global registration. */\n  migrateState(fromVersion: number, migrate: (value: ModuleValue) => ModuleValue): void;\n  /** Register a resource for disposal with this candidate, in reverse acquisition order.\n   * Disposal runs when the candidate is replaced or removed, including after a failed start. */\n  own<T extends Disposable>(resource: T): T;\n  /** True when the resolved profile selected this module as the provider of `slot`. */\n  selected(slot: string): boolean;\n  provide(slot: string, service: unknown): void;\n  /** Authoritative static modules only; uses the resolved module identity and order. */\n  contributeForce(hook: ForceHook): void;\n  contributeWorldRule(hook: WorldRuleHook): void;\n  /** Authoritative modules only: up to 32 named commands, run by the authoritative host. */\n  contributeCommand(hook: CommandHook): void;\n  /** Presentation modules only: up to eight of each, in resolved module order. */\n  contributeLayer(hook: LayerHook): void;\n  contributePanel(hook: PanelHook): void;\n  contributeCamera(hook: CameraHook): void;\n  /** Publish a read-only API (an object of functions and constants) for dependent modules.\n   * At most once. Authoritative state still belongs in module state, never in closures. */\n  expose(api: object): void;\n  /** The API exposed by one of this module's declared dependencies, which initialize first. */\n  dependency<T extends object>(id: string): T;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "RegisteredModule"
+        },
+        {
+          "type": "code",
+          "text": "export interface RegisteredModule {\n  readonly manifest: ModuleManifest;\n  /** Canonical imported package identity, independent of the execution environment. */\n  readonly contentDigest?: string;\n  /** Author declaration; numerical/replay conformance remains the author’s responsibility. */\n  readonly supportsMultiplayer?: boolean;\n  initialize(context: ModuleInitialization): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/modules-v2",
+      "title": "game-api: modules-v2.ts",
+      "summary": "Declarations from modules-v2.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/modules-v2.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ServiceKey"
+        },
+        {
+          "type": "paragraph",
+          "text": "Typed handle for one service slot and exact version, exported by game-api as a constant (for example `THROTTLE_HUD`). Pass it to `provide`, `use` or `tryUse`; never construct a look-alike key for a service you have not declared in the manifest. A phantom function makes service types invariant under strictFunctionTypes."
+        },
+        {
+          "type": "code",
+          "text": "export interface ServiceKey<T> {\n  readonly slot: string;\n  readonly version: string;\n  readonly serviceType?: (value: T) => T;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleInitializationV2"
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleInitializationV2 extends Omit<ModuleInitialization, 'assets' | 'provide'> {\n  /** Present on current hosts; older v2 hosts may omit this additive diagnostic identity. */\n  readonly module?: ModuleReference;\n  readonly assets: ModuleAssets;\n  /** Initialization only. Publishes this module's implementation of a declared `provides`\n   * entry; throws unless the resolved profile selected this module for the slot. */\n  provide<T>(key: ServiceKey<T>, service: T): void;\n  /** Initialization only. Returns the bound provider for a declared `requires` entry, which\n   * initialized first. Throws for an undeclared, unbound or version-incompatible key.\n   * Keep the returned service; it remains valid until this candidate is disposed. */\n  use<T>(key: ServiceKey<T>): T;\n  /** Initialization only. Absence is allowed only for a declared optional capability\n   * with no binding; invalid access and a bound provider's failures still throw. */\n  tryUse<T>(key: ServiceKey<T>): T | undefined;\n  contributeInput(source: InputSource): void;\n  contributeActions(actions: readonly ActionDefinitionV2[]): void;\n  contributeTransport(provider: TransportProvider): void;\n  contributeDiscovery(provider: DiscoveryProvider): void;\n  /** Authoritative records shared by saves and compatible session replication. */\n  contributeData(adapter: ModuleDataAdapter): void;\n  contributeVehicle(vehicle: VehicleDefinition): void;\n  contributeVehicleAppearance(appearance: VehicleAppearance): void;\n  contributeWindow(window: WindowDefinition): void;\n  /** Bounded structured Manual data, available in every tier without a UI dependency. */\n  contributeGuide(page: GuidePage): void;\n  contributeMaterial(material: MaterialDefinition): void;\n  contributePostEffect(effect: PostEffectDefinition): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction, spacelab.throttle-hud."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/presentation",
+      "title": "game-api: presentation.ts",
+      "summary": "Declarations from presentation.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/presentation.ts."
+        },
+        {
+          "type": "heading",
+          "text": "OverlayPrimitive"
+        },
+        {
+          "type": "code",
+          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/state",
+      "title": "game-api: state.ts",
+      "summary": "Declarations from state.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/state.ts."
+        },
+        {
+          "type": "heading",
+          "text": "Vec"
+        },
+        {
+          "type": "code",
+          "text": "export interface Vec { readonly x: number; readonly y: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "heading",
+          "text": "Body"
+        },
+        {
+          "type": "code",
+          "text": "export interface Body {\n  readonly id: string;\n  readonly radius: number;\n  readonly mu: number;\n  readonly surface?: SurfaceDefinition;\n  readonly rotation?: BodyRotation;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "State"
+        },
+        {
+          "type": "paragraph",
+          "text": "A flying state is in the body-centred inertial frame. On a rotating body a landed or crashed state is in the body-fixed frame instead: it rests with constant position and heading."
+        },
+        {
+          "type": "code",
+          "text": "export interface State {\n  readonly moduleState?: Readonly<Record<string, ModuleState>>;\n  readonly time: number;\n  readonly position: Vec;\n  readonly velocity: Vec;\n  readonly heading: number;\n  readonly throttle: number;\n  readonly status: 'landed' | 'flying' | 'crashed';\n  readonly revision: number;\n  readonly godMode?: boolean;\n  readonly coast?: Coast;\n  readonly dynamics?: 'kepler' | 'numerical';\n  readonly solver?: SolverDiagnostics;\n  /** Terrain event epoch lies within this completed scheduler step. */\n  readonly contact?: SurfaceContactEvent;\n  readonly water?: 'submerged' | 'floating';\n  /** Split drift vertex retained for prediction of a gentle sea entry. */\n  readonly waterEntry?: GhostSample;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans, spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "Controls"
+        },
+        {
+          "type": "code",
+          "text": "export interface Controls { readonly turn: number; readonly throttle: number; readonly engine: boolean }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "Sample"
+        },
+        {
+          "type": "code",
+          "text": "export interface Sample { readonly time: number; readonly position: Vec }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "GhostSample"
+        },
+        {
+          "type": "code",
+          "text": "export interface GhostSample extends Sample {\n  readonly velocity: Vec;\n  /** Segment ending here is a verified numerical drift, not a conic/Hermite arc. */\n  readonly linear?: boolean;\n  readonly contactMaterial?: 'water';\n  /** Active gravitational body. Multi-body forecasts express position/velocity in\n   * frameId's translating, nonrotating frame at this sample's time. */\n  readonly bodyId?: string;\n  readonly frameId?: string;\n  /** First sample in a new SOI; continuous position, velocity and time. */\n  readonly encounter?: { readonly from: string; readonly to: string };\n  /** Destination body at this SOI handoff time, in the same translating frame as\n   * position. Optional display snapshot, never current world coordinates. The\n   * reference radius is not a terrain/contact boundary. */\n  readonly encounterBody?: { readonly position: Vec; readonly radius: number; readonly name: string };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "heading",
+          "text": "GhostEnd"
+        },
+        {
+          "type": "paragraph",
+          "text": "Why an orbital ghost projection pass ended."
+        },
+        {
+          "type": "code",
+          "text": "export type GhostEnd = 'closed' | 'impact' | 'escape' | 'open' | 'grounded' | 'floating' | 'failed' | 'horizon';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/surface",
+      "title": "game-api: surface.ts",
+      "summary": "Declarations from surface.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/surface.ts."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceProfile"
+        },
+        {
+          "type": "paragraph",
+          "text": "Private Float64 storage; reads/copies cannot mutate authoritative geometry. No cache or browser globals. Callers own profile lifetimes."
+        },
+        {
+          "type": "code",
+          "text": "export interface SurfaceProfile {\n  readonly identity: string;\n  readonly referenceRadius: number;\n  readonly orientationRadians: number;\n  readonly sampleCount: number;\n  readonly seaRadiusMetres?: number;\n  /** Exact polar-linear sea crossings, wrapped to [0, 2*pi). */\n  readonly coastAngles: readonly number[];\n  readonly hasWater: boolean;\n  readonly bounds: SurfaceBounds;\n  readonly features: readonly SurfaceFeature[];\n  readonly pads: readonly SurfacePadDefinition[];\n  /** Elevations plus three interval arrays; excludes JS objects and identity text. */\n  readonly storageBytes: number;\n  sampleElevation(index: number): number;\n  intervalBounds(index: number): SurfaceBounds;\n  copyElevations(): Float64Array;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/universe",
+      "title": "game-api: universe.ts",
+      "summary": "Declarations from universe.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/universe.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ResolvedBody"
+        },
+        {
+          "type": "code",
+          "text": "export interface ResolvedBody extends Body {\n  readonly surfaceIdentity: string;\n  readonly id: string;\n  readonly name: string;\n  readonly parentId: string | null;\n  readonly radius: number;\n  readonly mass: number;\n  readonly mu: number;\n  readonly soi: {\n    readonly radius: number;\n    readonly entryMetres: number;\n    readonly exitMetres: number;\n  };\n  readonly color: string;\n  readonly accentColor: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly ephemeris: Ephemeris;\n  /** Always four colours once resolved. */\n  readonly appearance: BodyAppearance & { readonly colors: readonly [string, string, string, string] };\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-prediction."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/view-hud",
+      "title": "game-api: view-hud.ts",
+      "summary": "Declarations from view-hud.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/view-hud.ts."
+        },
+        {
+          "type": "heading",
+          "text": "HudSurface"
+        },
+        {
+          "type": "paragraph",
+          "text": "The pane an instrument draws in. Sizes and offsets are CSS pixels; `root` is the DOM parent the instrument may append its own elements to and must remove them on dispose."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudSurface { readonly root: HTMLElement; readonly width: number; readonly height: number; readonly x: number; readonly y: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "HudInstrumentDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "A selectable instrument, published as a service such as `THROTTLE_HUD`. Stateless and reusable: the HUD owner calls `create` once per seat and disposes each instance."
+        },
+        {
+          "type": "code",
+          "text": "export interface HudInstrumentDefinition {\n  /** Namespaced ID, such as `spacelab.throttle-hud`; unique within one selection. */\n  readonly id: string;\n  /** Exact-version, read-only view adapters. An incompatible view omits this contribution. */\n  readonly requires: readonly Pick<ServiceKey<unknown>, 'slot' | 'version'>[];\n  create(context: HudInstrumentContext): HudInstrument;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "ThrottleLeverState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Throttle readout for one seat. `throttle` is a fraction from 0 to 1; Space Sim reports 0 while the engine is not firing. `locked` means the host is ignoring throttle input, for example while paused. `world` and `shipId` identify the target so a gesture can detect a switch."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThrottleLeverState {\n  readonly world: object; readonly shipId: string; readonly throttle: number; readonly locked: boolean; readonly firing: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "ThrottleLeverOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Keyboard increments as fractions of full thrust in (0, 1]. Defaults: 0.01 and 0.1."
+        },
+        {
+          "type": "code",
+          "text": "export interface ThrottleLeverOptions { readonly keyboardStep?: number; readonly pageStep?: number }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "FlightHudAdapter"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-seat flight bridge supplied by the host as the `view.flight-hud-state` adapter. Reads return detached values or undefined when the seat has no flyable target."
+        },
+        {
+          "type": "code",
+          "text": "export interface FlightHudAdapter {\n  /** Zero-based local seat index; Player 1 is 0. */\n  readonly pilot: number;\n  navball(): FlightHudReadout | undefined;\n  throttle(): ThrottleLeverState | undefined;\n  /** Fit the independent lever's preferred pane-local position around host HUD obstacles.\n   * Both input and result are CSS pixels; callers must not retain the scratch input. */\n  placeThrottle?(preferred: Vec, surface: HudSurface): Vec;\n  /** Request thrust as a fraction from 0 to 1. The adapter rechecks session ownership, target\n   * and input suppression at command time and ignores out-of-range or locked requests. */\n  setThrottle(value: number): void;\n  cancelGestures?(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "FLIGHT_HUD_STATE"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host adapter for flight instruments. Declare it in `HudInstrumentDefinition.requires`."
+        },
+        {
+          "type": "code",
+          "text": "export const FLIGHT_HUD_STATE: ServiceKey<FlightHudAdapter> = Object.freeze({slot:'view.flight-hud-state',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "heading",
+          "text": "THROTTLE_HUD"
+        },
+        {
+          "type": "paragraph",
+          "text": "Per-seat throttle lever instrument, provided by `spacelab.throttle-hud` in Space Sim."
+        },
+        {
+          "type": "code",
+          "text": "export const THROTTLE_HUD: ServiceKey<HudInstrumentDefinition> = Object.freeze({slot:'hud.throttle',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.throttle-hud."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/world",
+      "title": "game-api: world.ts",
+      "summary": "Declarations from world.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/world.ts."
+        },
+        {
+          "type": "heading",
+          "text": "Ship"
+        },
+        {
+          "type": "paragraph",
+          "text": "One independently controlled vessel. `state` is relative to `bodyId`'s non-rotating frame."
+        },
+        {
+          "type": "code",
+          "text": "export interface Ship {\n  /** Absent only on the legacy trainer path. Stable across respawn, replay and ownership. */\n  readonly vehicleId?: string;\n  readonly id: string;\n  readonly name: string;\n  readonly ownerId: string;\n  readonly bodyId: string;\n  readonly state: State;\n  /** Held controls applied at every step until replaced. */\n  readonly controls: Controls;\n  /** Motion failed validation; the ship holds its last verified state until the fault is\n   * cleared or it respawns. */\n  readonly fault?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.flight-plans."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    }
+  ]
+}

@@ -8,7 +8,9 @@ export const MAX_FLIGHT_PLAN_SECONDS = 100 * 365.25 * 86400;
 /** Absolute-time comparisons remain below a fixed tick, including multi-year epochs. */
 export const flightTimeTolerance = (time:number):number => Math.max(1e-7,Math.abs(time)*Number.EPSILON*4);
 
-/** Portable SI intent only. No engine, warp, controls or execution state is persisted. */
+/** Portable SI intent only. No engine, warp, controls or execution state is persisted.
+ * `time` is absolute simulation seconds; `prograde` and `radial` are impulse components in
+ * m/s relative to the velocity at the node, in the frame of `bodyId`. */
 export interface FlightPlanNode {
  readonly id: string; readonly label: string; readonly bodyId: string;
  readonly time: number; readonly prograde: number; readonly radial: number;
@@ -20,6 +22,9 @@ export interface FlightPlanNode {
   * Intent only: never grants permission to coast, change a node, or ignite. */
  readonly targetOrbit?: { readonly periapsisAltitude:number; readonly apoapsisAltitude:number };
 }
+/** One ship's plan, bound to the world and motion model it was captured in. A changed
+ * universe, system, simulation fingerprint or motion identity makes every node invalid
+ * until the player reviews it. `epoch` is the coast start, local to `bodyId`. */
 export interface FlightPlan {
  readonly shipId: string; readonly universeId: string; readonly systemId: string;
  readonly fingerprint: string; readonly motionIdentity: string; readonly bodyId: string;
@@ -27,6 +32,8 @@ export interface FlightPlan {
  readonly nodes: readonly FlightPlanNode[];
 }
 export interface FlightPlanArchive { readonly format: 'space-sim-flight-plans/1'; readonly plans: readonly FlightPlan[] }
+/** Per-node evaluation. An invalid node carries a readable `reason`; later nodes are not
+ * evaluated past the first failure and repeat its reason. */
 export interface EvaluatedFlightNode {
  readonly intent: FlightPlanNode; readonly valid: boolean; readonly reason: string;
  /** Incoming coast seed and state at the burn. All coordinates are local to bodyId. */
@@ -42,7 +49,12 @@ export interface FlightPlanService {
  /** Detached selected-controller validation; caller owns and cancels the generator. */
  simulateBurn?(world:WorldRead,ship:Ship,node:FlightPlanNode,burns:import('./maneuver').ManeuverBurnFactory):Generator<void,FiniteBurnResult>;
  refineCapture?(world:WorldRead,ship:Ship,node:FlightPlanNode,burns:import('./maneuver').ManeuverBurnFactory):Generator<void,FiniteCaptureResult>;
+ /** Snapshot the ship's current coast and world identity as a new plan. Throws
+  * `Flight plan: ...` for invalid nodes, like `read`. Never changes the world. */
  capture(world: WorldRead, ship: Ship, nodes: readonly FlightPlanNode[]): FlightPlan;
+ /** Validate an untrusted `space-sim-flight-plans/1` archive (at most 64 plans of 16 nodes,
+  * node times increasing and within 100 Julian years of the epoch). Unknown fields are
+  * dropped. Throws an Error whose message starts with `Flight plan:`. */
  read(raw: unknown): FlightPlanArchive;
  /** Fast same-body compatibility evaluation; cross-body legs request progressive evaluation. */
  evaluate(plan: FlightPlan, world: WorldRead): readonly EvaluatedFlightNode[];
@@ -51,6 +63,7 @@ export interface FlightPlanService {
  /** Progressive chained preview through the shared world predictor; cancellation closes its child job. */
  predict(plan: FlightPlan, world: WorldRead): Generator<GhostSample, GhostEnd>;
 }
+/** Shared flight-plan intent and evaluation, provided by `spacelab.flight-plans` in Space Sim. */
 export const FLIGHT_PLANS: ServiceKey<FlightPlanService> = Object.freeze({ slot: 'flight.plans', version: '1.0.0' });
 
 /** Translate a timed sample between nonrotating body frames, including velocity.

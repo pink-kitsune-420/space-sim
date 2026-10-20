@@ -28,7 +28,7 @@ import { HudVisibility } from './hud-visibility';
 import { createChatConsole } from '../../../modules/chat-console/src/index';
 import { attachWindowResize, raiseWindow, releaseWindow } from './window-resize';
 import { initFlightWindows } from './flight-windows';
-import { initManual } from './manual';
+import { DOCUMENTED_MODULES, initManual, registerModuleGuides } from './manual';
 import { artifactModules, type GamePackage } from '../../../packages/game-library/src/archive';
 import { createPresentationRegistry, presentationProfile, DEFAULT_PRESENTATION_PROFILE } from '../../../packages/modules/src/browser';
 import { bundledGames, bundledGameDefinition, bundledGameAdapters, defaultGame, orbitSandboxGame, requestedBuiltinGame } from './bundled-games';
@@ -100,6 +100,8 @@ let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
 // Presentation/platform composition is separate from legacy authoritative save/lock identity.
 const hostFeatures = prepareBrowserTarget(startupGame.info.id, environment());
+// Shipped target guides appear once their module's documentation is verified.
+registerModuleGuides(hostFeatures, DOCUMENTED_MODULES);
 try {
 const presentationProviders = browserPresentationProviders(hostFeatures);
 const smartCameraPolicy = hostFeatures.lock.providers[SMART_CAMERAS.slot] ? hostFeatures.providedService(SMART_CAMERAS) : undefined;

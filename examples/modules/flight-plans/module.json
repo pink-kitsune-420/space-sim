@@ -1,0 +1,49 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.plan-summary",
+    "name": "Plan summary example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.plan-summary",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "flight.plans",
+        "version": "^1.0.0",
+        "optional": true
+      }
+    ],
+    "slots": [
+      "example.plan-summary"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT",
+    "tier": "presentation"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

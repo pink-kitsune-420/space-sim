@@ -1,20 +1,110 @@
 {
   "id": "usage",
   "audience": "creators",
-  "title": "Shared flight-plan intent",
-  "summary": "Bounded portable plans with explicit per-node review.",
+  "title": "Shared flight plans",
+  "summary": "A shared service that stores maneuver plans as portable intent and checks them against the selected physics.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "flight.plans@1.0.0 captures and validates inert SI plan archives for up to 64 ships and 16 nodes per ship. Every node identifies its body and time. No thrust, warp, arming or execution state is stored. Evaluate through the selected public motion/orbit/surface/rails contracts; evaluateAsync progressively validates exact-time coasts through moving SOIs and contact checks; evaluate retains fast same-body compatibility. Cross-body hosts declare predictionFeatures.endTime. Samples and encounter snapshots use the initial translating nonrotating frame, including velocity conversion. Cancel generators to release forecasts and cloned contexts. Headless use needs no UI, camera, prediction, audio or split-screen module."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Optional node.targetOrbit stores ordered finite nonnegative periapsisAltitude/apoapsisAltitude in metres above the node body reference radius. It is portable inert intent, with no execution/arming permission. An explicitly authorized arrival reviewer may use it to propose a capture from actual flight; ordinary evaluate/evaluateAsync never retime nodes or execute controls. Older nodes without this goal remain readable."
+      "text": "A flight plan is a list of maneuver nodes for one ship: at an absolute simulation time, add a velocity change made of prograde and radial parts, in m/s, around a named body. This module captures, validates and evaluates those plans. It stores intent only: no throttle, warp, arming or execution state. Evaluation uses the physics the game selected (motion, orbits, surfaces and rails) on a cloned context and never changes the live world."
     },
     {
       "type": "paragraph",
-      "text": "Explicit plans allow at most100 Julian years after their epoch, while default display prediction retains its shorter cap. Optional boolean node.finite requests selected finite-controller evaluation through evaluateAsync; synchronous evaluate returns a progressive-evaluation diagnostic for these nodes. The host binds its selected flight.maneuver-burn controller through withBurns; presentation providers do not import platform services. Absence never silently treats finite intent as an impulse. simulateBurn and refineCapture are detached cancellable generators using the supplied selected controller, terrain/SOI safety, bounded work and max(.01m,radius*1e-7) capture-apsis tolerance. No live authority or execution permission is modified. Absolute-time comparisons account for double-precision spacing at multi-year epochs."
+      "text": "Planners, transfer search and save files share one plan format, space-sim-flight-plans/1, so a plan made by one tool can be reviewed by another."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides flight.plans@1.0.0 through the FLIGHT_PLANS key: a FlightPlanService.",
+        "Requires no services. Callers pass a WorldRead and ship. Finite-burn checks also need a ManeuverBurnFactory, which the host binds with withBurns.",
+        "Consumers in this checkout: spacelab.transfer-planner requires flight.plans@^1.0.0; spacelab.maneuver-editor declares it as optional; the Space Sim host uses it to validate plans stored in saves."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "paragraph",
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization provides one frozen, stateless service and this guide. The module owns no resources between calls.",
+        "capture snapshots the ship's current coast, the world identity and its motion model. read validates an untrusted archive: at most 64 plans of 16 nodes, node times increasing and within 100 Julian years of the plan's start. Unknown fields are dropped, and invalid input throws an Error that starts with \"Flight plan:\".",
+        "evaluate is a fast check for nodes around the starting body. A node on another body, a finite-burn node, or a coast that may cross an SOI or reach the surface first gets a reason asking for progressive evaluation.",
+        "evaluateAsync and predict are generators that do a bounded amount of work per step. They follow coasts through SOI changes and surface contact. They need world.predictionFeatures.futureSeeds, and endTime when a coast has to be traced rather than solved directly; older hosts get a reason instead. Close a generator you stop early with return(): this releases its forecast and cloned motion context.",
+        "Each evaluated node reports valid and a readable reason. A changed universe, system, physics fingerprint or motion model invalidates every node until the player reviews the plan; after the first failure, later nodes repeat its reason."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
+    },
+    {
+      "type": "paragraph",
+      "text": "Space Sim enables this module but does not list flight.plans as a required slot. Without it, the transfer planner cannot be enabled because it requires the service, the maneuver editor keeps working without shared plans, and a save that contains flight plans fails to load with a message asking for the module."
+    },
+    {
+      "type": "paragraph",
+      "text": "A replacement provides flight.plans@1.0.0, lists flight.plans in slots and is selected with \"providers\": { \"flight.plans\": \"your.module-id\" }. It must still read space-sim-flight-plans/1 archives, so that existing saves and other planners stay compatible."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Three versions apply here and change independently: the module version 0.1.0, the API identifier space-sim-game-api/2, and the archive format space-sim-flight-plans/1. The API and the manifest format, space-sim-module/2, are pre-freeze. A new archive format would need a migration so that older saves keep loading. Optional members of FlightPlanService, such as evaluateAsync and withBurns, may be missing on older providers; check for them before calling."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/flight-plans declares flight.plans as an optional service. It summarizes an archive when the service is present, reports the validation message when an archive is rejected, and still works when no provider is enabled. Build and check it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/flight-plans/module.json /tmp/plan-summary.spacemod\nnpm run module:validate -- /tmp/plan-summary.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "game-api flight-plans.ts: plan, node and service contracts",
+      "page": "api-reference/game-api/flight-plans"
+    },
+    {
+      "type": "link",
+      "text": "Progressive flight prediction: per-view previews of the current path",
+      "page": "spacelab.flight-prediction/usage"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Shared flight plans",
+      "page": "api-reference/module/spacelab.flight-plans"
     }
   ]
 }

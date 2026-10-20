@@ -131,7 +131,9 @@ export function createPredictions(options: PredictionTuning = {}): PredictionFac
   instances.clear(); if (errors.length) throw new AggregateError(errors, 'Prediction provider cleanup failed');
  } });
 }
+/** Provides PREDICTIONS (view.prediction@1.0.0) tuned by this module's settings. The factory
+ * is owned by the candidate, so replacing or removing the module disposes every preview. */
 export default function initialize(context: ModuleInitializationV2): void {
- context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Progressive flight prediction', summary: 'Isolated cancellable coast, surface and world-aware previews with bounded viewer work.', asset: 'docs/creators/usage.json' });
+ context.contributeGuide({ id: 'usage', audience: 'creators', title: 'Progressive flight prediction', summary: 'Cancellable trajectory previews that a view can trace a little at a time without touching live flight.', asset: 'docs/creators/usage.json' });
  context.provide(PREDICTIONS, context.own(createPredictions(context.settings)));
 }

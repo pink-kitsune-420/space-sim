@@ -173,7 +173,9 @@ export function createFlightPlans(burns?:ManeuverBurnFactory): FlightPlanService
  };
  return Object.freeze(service);
 }
+/** Provides FLIGHT_PLANS (flight.plans@1.0.0) without a finite-burn controller; hosts bind
+ * one with withBurns. The service is stateless and owns no resources. */
 export default function initialize(context:ModuleInitializationV2):void {
  context.provide(FLIGHT_PLANS,createFlightPlans());
- context.contributeGuide({id:'usage',audience:'creators',title:'Shared flight-plan intent',summary:'Portable inert plans and bounded selected-provider chain evaluation.',asset:'docs/creators/usage.json'});
+ context.contributeGuide({id:'usage',audience:'creators',title:'Shared flight plans',summary:'A shared service that stores maneuver plans as portable intent and checks them against the selected physics.',asset:'docs/creators/usage.json'});
 }

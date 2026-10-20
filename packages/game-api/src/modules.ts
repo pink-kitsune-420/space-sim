@@ -55,12 +55,17 @@ export interface ModuleProfile {
 /** Initialization is synchronous in Phase 2. Own resources immediately after allocation.
  * provide() only accepts slots selected for this module by the resolved profile. */
 export interface ModuleInitialization {
+  /** Resolved values for the manifest's declared settings, after profile overrides and
+   * range validation. Read them during initialization; a change prepares a new candidate. */
   readonly settings: Readonly<Record<string, number>>;
   /** Text assets embedded in an imported code artifact; empty for static modules. */
   readonly assets: Readonly<Record<string, string>>;
   /** Own a sequential state migration in this candidate, without global registration. */
   migrateState(fromVersion: number, migrate: (value: ModuleValue) => ModuleValue): void;
+  /** Register a resource for disposal with this candidate, in reverse acquisition order.
+   * Disposal runs when the candidate is replaced or removed, including after a failed start. */
   own<T extends Disposable>(resource: T): T;
+  /** True when the resolved profile selected this module as the provider of `slot`. */
   selected(slot: string): boolean;
   provide(slot: string, service: unknown): void;
   /** Authoritative static modules only; uses the resolved module identity and order. */

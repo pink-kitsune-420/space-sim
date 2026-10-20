@@ -1007,7 +1007,9 @@ and required providers before sharing it.</p>`)}`,
     title: 'Code modules',
     summary: 'Forces, rules, commands, instruments, cameras, sound',
     html: `
-<p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. Open a section below for the details and examples.</p>
+<p>Modules are written in TypeScript against the public API in <code>packages/game-api</code>. Open a section below for the details and examples.
+The <a data-page="api-reference">API reference</a> lists each documented module's services, settings and the exact
+game-api declarations it uses, with links to its guide.</p>
 <details class="manual-deeper"><summary>Module kinds</summary>
 <dl>
   <dt>Data</dt><dd>Only JSON, for example vehicle settings. Try <code>examples/modules/gentle-flight.json</code> with

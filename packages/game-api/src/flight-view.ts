@@ -41,17 +41,34 @@ export interface FlightCameraController extends Disposable {
 }
 export interface FlightCameraFactory { create(): FlightCameraController }
 export const FLIGHT_CAMERAS: ServiceKey<FlightCameraFactory> = Object.freeze({ slot: 'view.flight-camera', version: '1.0.0' });
+/** Result of one completed tracing pass. `workMs` is wall-clock work, not simulated time;
+ * `coarse` is true for a preview traced while the engine was burning. */
 export interface PredictionSummary { end: GhostEnd; samples: number; workMs: number; coarse: boolean }
 export interface PredictionPass { readonly samples: readonly GhostSample[]; readonly coarse: boolean; readonly workMs: number }
+/** A progressive trajectory preview for one view. It traces on an isolated motion-context
+ * clone (or `world.predictShip` when a world is passed) and never advances live authority.
+ * Consumers read `path` and `pathEnd`; the remaining fields are diagnostics. `path` samples
+ * are body-relative SI (metres, m/s, seconds of simulation time) in the frame each sample
+ * names. Arrays are reused between passes: copy a path you need to keep. */
 export interface FlightPrediction extends Disposable {
   pass: PredictionPass | undefined; passKey: string; pathKey: string; passCount: number; path: readonly GhostSample[]; pathEnd: GhostEnd;
-  lastPass: PredictionSummary; maxMs: number;
+  lastPass: PredictionSummary;
+  /** Wall-clock milliseconds of tracing work allowed per `update`, from 0.1 to 16. */
+  maxMs: number;
+  /** Cancel the current pass and clear the path; the next `update` starts a new one. */
   invalidate(): void;
+  /** Call once per rendered frame. Starts a new pass when the ship, body, surface, motion
+   * model or relevant command epoch changed, otherwise continues the current one within
+   * `maxMs`. `seconds` is the elapsed wall time used to earn sample work. Throws after dispose. */
   update(context: SimulationContext, state: State, activeBody: ResolvedBody, surface: SurfaceProfile | undefined,
     selectedShipId: string | undefined, seconds: number, engine: boolean, controls?: Controls, world?: WorldRead): void;
+  /** Short status for a readout, such as `Full orbit · period 5400.0 s` or `Tracing · 120 points`. */
   text(state: State): string;
 }
+/** Creates independent previews. Each preview owns its job and cloned context; disposing the
+ * preview or the provider closes both. `onComplete` runs once per finished pass. */
 export interface PredictionFactory { create(onComplete: (summary: PredictionSummary) => void): FlightPrediction }
+/** Progressive flight prediction, provided by `spacelab.flight-prediction` in Space Sim. */
 export const PREDICTIONS: ServiceKey<PredictionFactory> = Object.freeze({ slot: 'view.prediction', version: '1.0.0' });
 export interface FleetViewInput {
   readonly world: WorldRead; readonly time: number; readonly alpha: number; readonly paused: boolean; readonly skipId?: string;

@@ -1,6 +1,6 @@
 import { parsePackageJson } from './json';
 export { parsePackageJson } from './json';
-import type { DataModule, ModuleManifest, ManifestV2 } from '../../game-api/src/index';
+import { captureDocument, type DataModule, type ModuleManifest, type ManifestV2 } from '../../game-api/src/index';
 import { artifactDigest, artifactPath, MODULE_LICENSES, parseCodeArtifact, type CodeArtifact } from '../../game-runtime/src/artifact';
 import { canonicalJson, sha256Bytes } from '../../game-runtime/src/authoritative';
 import { freezeJson, keys, object, string, validateManifest } from '../../game-runtime/src/validation';
@@ -146,10 +146,8 @@ function validateGuide(bytes: Uint8Array): void {
   keys(raw, ['id', 'audience', 'title', 'summary', 'blocks'], 'Guide');
   if (!['players', 'creators'].includes(raw.audience as string)) throw new Error('Guide audience must be players or creators');
   string(raw.id, 'Guide ID'); string(raw.title, 'Guide title'); string(raw.summary, 'Guide summary');
-  for (const value of array(raw.blocks, 'Guide blocks')) {
-    const block = object(value, 'Guide block'); keys(block, ['type', 'text'], 'Guide block');
-    if (!['paragraph', 'heading', 'code'].includes(block.type as string) || typeof block.text !== 'string' || block.text.length > 65536) throw new Error('Unsupported guide block');
-  }
+  // Same bounded block schema the Manual renders, including lists and page links.
+  captureDocument(raw);
 }
 /** Validate source packages inertly; playable=false permits missing/stale bundles for inspection. */
 export function inspectModuleFiles(files: PackageFiles, playable = true, options: ShippedPackageOptions = {}): InspectedModule {
