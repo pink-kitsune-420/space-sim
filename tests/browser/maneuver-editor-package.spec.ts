@@ -171,6 +171,8 @@ test('using a generated transfer preserves another ship’s plan and disposed se
   const delta=document.getElementById('fleet-transfer-prograde') as HTMLInputElement;delta.value='10';delta.dispatchEvent(new Event('input'));
   const before=JSON.stringify(planner.savePlans().plans.find((p:any)=>p.shipId===first.id));
   selected=other.id;planner.update(.1,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
+  // The same-body default target is the preset's own 128 m orbit; raise it so the search has a transfer to find.
+  const low=document.getElementById('fleet-transfer-transfer-low') as HTMLInputElement;low.value='512';low.dispatchEvent(new Event('input'));
   (document.getElementById('fleet-transfer-transfer-find') as HTMLButtonElement).click();
   for(let i=0;i<500&&!document.getElementById('fleet-transfer-transfer-use-efficient');i++)planner.update(.1,prediction,false);
   const use=document.getElementById('fleet-transfer-transfer-use-efficient') as HTMLButtonElement;if(!use)throw Error('No validated transfer');use.click();planner.update(.1,prediction,false);

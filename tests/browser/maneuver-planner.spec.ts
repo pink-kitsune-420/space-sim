@@ -423,8 +423,10 @@ test('moon transfers show both burn indicators, editable arrival and current-thr
  await expect.poll(async()=>(await debug(page)).maneuver?.end,{timeout:15000}).toMatch(/horizon|impact|closed|escape/);
  await expect.poll(async()=>(await debug(page)).maneuver?.selected).toBe('arrival');
  const originalTime=(await debug(page)).maneuver.time,diamond=page.locator('.maneuver-map [data-map-control="node"]'),box=(await diamond.boundingBox())!;
- await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+100,box.y-100,{steps:4});
- await expect.poll(async()=>(await debug(page)).maneuver.time).not.toBe(originalTime);
+ // Drag back along the approach to a capture that still validates. The arc start is the SOI entry, which has no
+ // time to align, and an invalid drag snaps back once its evaluation finishes, so require a settled valid move.
+ await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width/2-30,box.y+box.height/2,{steps:4});
+ await expect.poll(async()=>{const m=(await debug(page)).maneuver;return m.time!==originalTime&&m.valid;}).toBe(true);
  await page.keyboard.press('Escape');await page.mouse.up();await expect.poll(async()=>(await debug(page)).maneuver.time).toBe(originalTime);
  await expect.poll(async()=>(await debug(page)).maneuver.valid).toBe(true);
  await page.locator('#maneuver-radial').fill('1');await expect.poll(async()=>(await debug(page)).maneuver?.valid).toBe(true);
@@ -804,25 +806,26 @@ for(const follow of [false,true])test(`a background ship alarm ${follow?'selects
 
 
 test('a distant moon route exposes every stop and burn; mission-time edits discard adoptable results in a narrow panel',async({page},info)=>{
- test.setTimeout(180000);await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ // Four sequential Nix searches share frames with software painting, which scales with canvas area: run the
+ // whole test in the narrow panel (about 3.5x faster first search in headless Chromium) and allow loaded runners.
+ test.setTimeout(480000);await page.setViewportSize({width:390,height:560});await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
  await page.locator('#maneuver-transfer-query').fill('Nix');await page.locator('#maneuver-transfer-matches [data-destination="nix"]').focus();await page.keyboard.press('Enter');
  await page.locator('#maneuver-transfer-low').fill('100');await page.locator('#maneuver-transfer-find').click();
- const use=page.locator('#maneuver-transfer-use-efficient');await expect(use).toBeEnabled({timeout:120000});
+ const use=page.locator('#maneuver-transfer-use-efficient');await expect(use).toBeEnabled({timeout:180000});
  const before=await debug(page),stale=await use.elementHandle();
  await expect(page.locator('.transfer-route').first()).toContainText('Nix');await expect(page.locator('.transfer-option').first()).toContainText(/burns/);
- await page.setViewportSize({width:390,height:560});
  await page.locator('.transfer-option').first().evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:info.outputPath('end-to-end-route-narrow.png')});
  await page.locator('.transfer-option details summary').first().click();await expect(page.locator('.transfer-option details').first()).toContainText('Capture · Nix');
  await page.locator('.transfer-option').first().evaluate(el=>el.scrollIntoView({block:'start'}));await page.screenshot({path:info.outputPath('end-to-end-burns-narrow.png')});
  await page.locator('#maneuver-transfer-years').fill('20');await expect(use).toHaveCount(0);
  await stale!.evaluate(el=>(el as HTMLButtonElement).click());expect((await debug(page)).maneuver).toBeNull();expect((await debug(page)).tick).toBe(before.tick);
  const parking=page.locator('#maneuver-transfer-high-parking');await expect(parking).toBeChecked();
- await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});
+ await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:180000});
  // Parking choice is a search input: changing it discards results, both settings search.
  await parking.uncheck();await expect(use).toHaveCount(0);await expect(page.locator('#maneuver-transfer-status')).toContainText('Parking stops changed');
- await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});
+ await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:180000});
  await parking.check();await expect(use).toHaveCount(0);
- await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:120000});await use.click();
+ await page.locator('#maneuver-transfer-find').click();await expect(use).toBeEnabled({timeout:180000});await use.click();
  await expect.poll(async()=>(await debug(page)).maneuver?.valid,{timeout:30000}).toBe(true);
  await expect(page.locator('#maneuver-nodes option').last()).toContainText('Capture · Nix');expect((await debug(page)).engine).toBe(false);
  await page.screenshot({path:info.outputPath('end-to-end-adopted.png')});
