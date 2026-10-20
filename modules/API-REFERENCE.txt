@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 88ac2166ea6e7084
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest e141c8c7d601ed19
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -2785,10 +2785,11 @@ Detached, read-only input passed to `CommandHook.resolve` at a fixed-step contro
 Used by: host or creator modules (not imported by shipped modules).
 
 ## CommandEffect
-Applied to the commanded ship between fixed steps, through the same world operations as built-in commands: held controls ([-1, 1] turn/throttle rate, engine) and throttle [0, 1].
+Applied to the commanded ship between fixed steps, through the same world operations as built-in commands: held controls ([-1, 1] turn/throttle rate, engine), throttle [0, 1], and direct domain events queued into WorldRuleHook.evaluate.
     export interface CommandEffect {
       readonly controls?: Controls;
       readonly throttle?: number;
+      readonly moduleEvent?: { readonly type: string; readonly payload: ModuleValue };
     }
 Used by: spacelab.session-flight.
 
@@ -3006,6 +3007,7 @@ Authoritative mutable world handle extending `WorldRead` with fixed-step advance
     export interface WorldControl extends WorldRead, Disposable {
       readonly data: ModuleDataControl;
       setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;
+      queueModuleEvent(shipId: string, event: { readonly type: string; readonly payload: ModuleValue }): void;
       step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];
       put(ship: Ship): void; remove(id: string): boolean;
       spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;
@@ -9216,12 +9218,13 @@ One independently controlled vessel. `state` is relative to `bodyId`'s non-rotat
 Used by: spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-split, spacelab.maneuver-editor, spacelab.session-flight, spacelab.transfer-planner.
 
 ## WorldEvent
-Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, or world rule fault.
+Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event.
     export type WorldEvent =
       | { readonly type: 'world-fault'; readonly message: string }
       | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
       | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }
-      | { readonly type: 'fault'; readonly shipId: string; readonly message: string };
+      | { readonly type: 'fault'; readonly shipId: string; readonly message: string }
+      | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } };
 Used by: spacelab.audio-controls, spacelab.session-flight.
 -> API reference index [api-reference]
 

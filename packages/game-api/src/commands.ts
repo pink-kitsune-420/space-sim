@@ -1,3 +1,4 @@
+import type { ModuleValue } from './motion';
 import type { Controls } from './state';
 import type { Ship } from './world';
 
@@ -20,10 +21,12 @@ export interface CommandInput {
   readonly args: Readonly<Record<string, number>>;
 }
 /** Applied to the commanded ship between fixed steps, through the same world operations
- * as built-in commands: held controls ([-1, 1] turn/throttle rate, engine) and throttle [0, 1]. */
+ * as built-in commands: held controls ([-1, 1] turn/throttle rate, engine), throttle [0, 1],
+ * and direct domain events queued into WorldRuleHook.evaluate. */
 export interface CommandEffect {
   readonly controls?: Controls;
   readonly throttle?: number;
+  readonly moduleEvent?: { readonly type: string; readonly payload: ModuleValue };
 }
 /** An authoritative request a pilot can issue. Only the authoritative host runs `resolve`:
  * after checking the player owns the ship and the arguments match `parameters`. It is

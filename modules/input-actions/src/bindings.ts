@@ -192,7 +192,7 @@ export const ACTION_DEFINITIONS: readonly ActionDefinition[] = [
   },
 ];
 
-export type KeyBindings = Record<ActionId, string[]>;
+export type KeyBindings = Record<ActionId, string[]> & Record<string, string[]>;
 
 export const DEFAULT_KEYBINDINGS: KeyBindings = Object.freeze(
   ACTION_DEFINITIONS.reduce((acc, def) => {

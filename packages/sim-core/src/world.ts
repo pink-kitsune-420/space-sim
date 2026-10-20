@@ -117,6 +117,7 @@ export class World implements WorldControl {
   /** Ship ids per owner. */
   private readonly owners = new Map<string, Set<string>>();
   private static readonly NONE: ReadonlySet<string> = new Set();
+  private readonly pendingModuleEvents: WorldEvent[] = [];
 
   readonly configuration: WorldOptions['configuration'];
   constructor(universe: UniverseDefinition, options: WorldOptions = {}) {
@@ -439,6 +440,7 @@ export class World implements WorldControl {
     this.dispose();
     this.tick = 0; this.time = 0; this.nextShipNumber = 1;
     this.ruleState = initialRuleState(this.rules); this.paused = false; this.fault = undefined;
+    this.pendingModuleEvents.length = 0;
   }
 
   setControls(shipId: string, controls: Controls): void {
@@ -461,6 +463,10 @@ export class World implements WorldControl {
       throttle: Math.max(0, Math.min(1, throttle)), revision: ship.state.revision + 1 } });
     this.wake(shipId);
     this.touched(shipId);
+  }
+
+  queueModuleEvent(shipId: string, event: { readonly type: string; readonly payload: import('../../game-api/src/index').ModuleValue }): void {
+    this.pendingModuleEvents.push(Object.freeze({ type: 'module', shipId, moduleEvent: event, event }));
   }
 
   setGodMode(shipId: string, enabled: boolean): void {
@@ -513,7 +519,8 @@ export class World implements WorldControl {
   step(): WorldEvent[] {
     if (this.paused) return [];
     if (this.rules.length) return this.stepWithRules();
-    const events: WorldEvent[] = [];
+    const events: WorldEvent[] = [...this.pendingModuleEvents];
+    this.pendingModuleEvents.length = 0;
     const time = this.time + STEP;
     const tick = this.tick + 1;
     this.prior.clear();
@@ -602,7 +609,8 @@ export class World implements WorldControl {
 
   /** Shared rules run against a complete candidate; no live fields change until validation. */
   private stepWithRules(): WorldEvent[] {
-    const events: WorldEvent[] = [];
+    const events: WorldEvent[] = [...this.pendingModuleEvents];
+    this.pendingModuleEvents.length = 0;
     const prior = [...this.fleet.values()];
     const candidates = prior.map(ship => ship.fault ? ship : this.stepShip(ship, events));
     try {

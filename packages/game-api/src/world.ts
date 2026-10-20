@@ -1,3 +1,4 @@
+import type { ModuleValue } from './motion';
 import type { Controls, State, SurfaceContactEvent } from './state';
 
 /** One independently controlled vessel. `state` is relative to `bodyId`'s non-rotating frame. */
@@ -16,10 +17,12 @@ export interface Ship {
   readonly fault?: string;
 }
 
-/** Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, or world rule fault. */
+/** Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event. */
 export type WorldEvent =
   | { readonly type: 'world-fault'; readonly message: string }
   | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
   | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }
-  | { readonly type: 'fault'; readonly shipId: string; readonly message: string };
+  | { readonly type: 'fault'; readonly shipId: string; readonly message: string }
+  | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } };
+
 

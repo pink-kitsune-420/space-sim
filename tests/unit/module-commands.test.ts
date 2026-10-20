@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CommandHook, ModuleManifest, RegisteredModule } from '../../packages/game-api/src/index';
+import type { CommandHook, ModuleManifest, RegisteredModule, WorldEvent, WorldRuleHook } from '../../packages/game-api/src/index';
 import { ModuleRegistry, captureCommand, captureCommands, commandArguments } from '../../packages/game-runtime/src/index';
 import { prepareGame } from '../../packages/modules/src/index';
 import { GAME_EXAMPLES } from '../../examples/modules/index';
@@ -7,6 +7,8 @@ import { HostSession, SessionError } from '../../packages/net/src/host';
 import { PROTOCOL, ProtocolError, parseClientMessage } from '../../packages/net/src/protocol';
 import { Game } from '../helpers/net-harness';
 import { checkCommandKeys } from '../../apps/web/src/commands';
+import { createFlightSessions } from '../../modules/session-flight/src/index';
+import { flightSessionServices } from '../../packages/net/src/session-services';
 
 const TOKEN = '0123456789abcdef0123456789abcdef';
 const BASE = [{ id: 'builtin.content', version: '0.1.0' }, { id: 'builtin.motion', version: '0.1.0' }];
@@ -142,6 +144,103 @@ describe('commands on the authoritative host', () => {
     expect(Object.isFrozen(input.ship)).toBe(true);
     expect(world.ship(ship.id)!.state.throttle).toBe(.3);
     expect(world.ship(ship.id)!.controls).toEqual({ turn: -1, throttle: 0, engine: false });
+    world.dispose();
+  });
+  it('preserves command controls across session.update polling until step runs (NTG-BUG-017)', () => {
+    const eva: RegisteredModule = {
+      manifest: manifest('test.eva'),
+      initialize(c) {
+        c.contributeCommand({
+          name: 'disembark',
+          label: 'Disembark',
+          resolve: () => ({ controls: { turn: 0, throttle: 0.11, engine: false } }),
+        });
+      },
+    };
+    const world = worldWith([eva], ['test.eva']);
+    const provider = createFlightSessions(flightSessionServices());
+    const session = provider.local(world, { name: 'Pilot' });
+    const shipId = session.spawn('pad', false)!;
+    expect(world.ship(shipId)!.controls).toEqual({ turn: 0, throttle: 0, engine: false });
+
+    // Pilot triggers command via shortcut/HUD button
+    session.command(shipId, 'test.eva/disembark');
+    expect(world.ship(shipId)!.controls).toEqual({ turn: 0, throttle: 0.11, engine: false });
+
+    // Intervening animation frame (5ms < 10ms tick step) with momentary idle flight stick input
+    const idle = { turn: 0, throttle: 0, engine: false };
+    session.update(0.005, shipId, idle);
+
+    // Controls must SURVIVE the intervening frame polling without being clobbered back to idle!
+    expect(world.ship(shipId)!.controls).toEqual({ turn: 0, throttle: 0.11, engine: false });
+
+    // Next frame advances past the 10ms threshold and executes step()
+    session.update(0.006, shipId, idle);
+
+    // Pending command controls were applied in the tick step and are now cleared for subsequent frames
+    session.update(0.01, shipId, idle);
+    expect(world.ship(shipId)!.controls).toEqual(idle);
+
+    session.dispose();
+    provider.dispose();
+    world.dispose();
+  });
+  it('supports moduleEvent in CommandEffect and delivers it directly to WorldRuleHook.evaluate', () => {
+    const observedEvents: WorldEvent[] = [];
+    const ruleHook: WorldRuleHook = {
+      modelIdentity: 'test.rule/v1',
+      initialState: { version: 1, value: 0 },
+      seed: 42,
+      evaluate(input) {
+        observedEvents.push(...input.events);
+        return { state: input.state };
+      },
+    };
+    const domainMod: RegisteredModule = {
+      manifest: manifest('test.domain'),
+      initialize(c) {
+        c.contributeWorldRule(ruleHook);
+        c.contributeCommand({
+          name: 'switch-tool',
+          label: 'Switch Tool',
+          resolve: () => ({
+            moduleEvent: {
+              type: 'tool-change',
+              payload: { tool: 'laser', power: 100 },
+            },
+          }),
+        });
+      },
+    };
+    const world = worldWith([domainMod], ['test.domain']);
+    const host = new HostSession(world);
+    const ada = host.seatHost('Ada', TOKEN);
+    const ship = host.spawnShip(ada, 'pad');
+
+    // Run a step first; verify no module events initially
+    host.step();
+    expect(observedEvents.some(e => e.type === 'module')).toBe(false);
+
+    // Issue module command with domain event payload
+    host.command(ada, ship.id, 'test.domain/switch-tool');
+
+    // On the subsequent fixed step, WorldRuleHook.evaluate receives the moduleEvent directly!
+    host.step();
+    const modEvent = observedEvents.find(e => e.type === 'module');
+    expect(modEvent).toBeDefined();
+    expect(modEvent).toMatchObject({
+      type: 'module',
+      shipId: ship.id,
+      moduleEvent: {
+        type: 'tool-change',
+        payload: { tool: 'laser', power: 100 },
+      },
+      event: {
+        type: 'tool-change',
+        payload: { tool: 'laser', power: 100 },
+      },
+    });
+
     world.dispose();
   });
 });

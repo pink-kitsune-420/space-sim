@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 88ac2166ea6e7084",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest e141c8c7d601ed19",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 88ac2166ea6e7084"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest e141c8c7d601ed19"
         },
         {
           "type": "paragraph",
@@ -7647,11 +7647,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Applied to the commanded ship between fixed steps, through the same world operations as built-in commands: held controls ([-1, 1] turn/throttle rate, engine) and throttle [0, 1]."
+          "text": "Applied to the commanded ship between fixed steps, through the same world operations as built-in commands: held controls ([-1, 1] turn/throttle rate, engine), throttle [0, 1], and direct domain events queued into WorldRuleHook.evaluate."
         },
         {
           "type": "code",
-          "text": "export interface CommandEffect {\n  readonly controls?: Controls;\n  readonly throttle?: number;\n}"
+          "text": "export interface CommandEffect {\n  readonly controls?: Controls;\n  readonly throttle?: number;\n  readonly moduleEvent?: { readonly type: string; readonly payload: ModuleValue };\n}"
         },
         {
           "type": "paragraph",
@@ -7891,7 +7891,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldControl extends WorldRead, Disposable {\n  readonly data: ModuleDataControl;\n  setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;\n  step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];\n  put(ship: Ship): void; remove(id: string): boolean;\n  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;\n  respawn(id: string, preset?: string, godMode?: boolean): Ship;\n  teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;\n  reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;\n  rename(id: string, name: string): void; clearFault(id: string): void;\n  setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;\n  adopt(record: Ship, ticks: number, before?: (ship: Ship, tick: number) => Ship): WorldEvent[];\n  /** Reconciliation may rewind. No stepping, rounding or epoch conversion occurs here. */\n  restoreClock(tick: number, time: number): void;\n  /** One owned delta consumer per world, released before another session can subscribe. */\n  subscribeChanges(): WorldChanges;\n}"
+          "text": "export interface WorldControl extends WorldRead, Disposable {\n  readonly data: ModuleDataControl;\n  setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;\n  queueModuleEvent(shipId: string, event: { readonly type: string; readonly payload: ModuleValue }): void;\n  step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];\n  put(ship: Ship): void; remove(id: string): boolean;\n  spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;\n  respawn(id: string, preset?: string, godMode?: boolean): Ship;\n  teleport(id: string, body: string, position: Vec, velocity: Vec, heading?: number): Ship;\n  reset(): void; setGodMode(id: string, enabled: boolean): void; setGodModeAll(enabled: boolean): void;\n  rename(id: string, name: string): void; clearFault(id: string): void;\n  setModuleState(state: Readonly<Record<string, WorldRuleState>>): void;\n  adopt(record: Ship, ticks: number, before?: (ship: Ship, tick: number) => Ship): WorldEvent[];\n  /** Reconciliation may rewind. No stepping, rounding or epoch conversion occurs here. */\n  restoreClock(tick: number, time: number): void;\n  /** One owned delta consumer per world, released before another session can subscribe. */\n  subscribeChanges(): WorldChanges;\n}"
         },
         {
           "type": "paragraph",
@@ -17727,11 +17727,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, or world rule fault."
+          "text": "Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event."
         },
         {
           "type": "code",
-          "text": "export type WorldEvent =\n  | { readonly type: 'world-fault'; readonly message: string }\n  | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }\n  | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }\n  | { readonly type: 'fault'; readonly shipId: string; readonly message: string };"
+          "text": "export type WorldEvent =\n  | { readonly type: 'world-fault'; readonly message: string }\n  | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }\n  | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }\n  | { readonly type: 'fault'; readonly shipId: string; readonly message: string }\n  | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } };"
         },
         {
           "type": "paragraph",

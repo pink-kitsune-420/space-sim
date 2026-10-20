@@ -20,6 +20,7 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
   /** Interpolation is off until the next step after a reset or pause. */
   private settled = true;
   private controlled?: string;
+  private readonly pendingCommandControls = new Map<string, Controls>();
 
   constructor(private readonly services: FlightSessionServices, world: W, options: LocalSessionOptions) {
     this.clock = services.clock.create();
@@ -52,26 +53,43 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
     const events: WorldEvent[] = [];
     if (this.controlled !== shipId && this.controlled && this.world.record(this.controlled)?.ownerId === this.playerId) {
       this.host.setControls(this.playerId, this.controlled, this.services.clock.idle);
+      this.pendingCommandControls.delete(this.controlled);
     }
     this.controlled = shipId;
     if (!this.paused) {
-      if (shipId && this.world.record(shipId)?.ownerId === this.playerId) this.host.setControls(this.playerId, shipId, controls);
+      const pending = shipId ? this.pendingCommandControls.get(shipId) : undefined;
+      if (shipId && this.world.record(shipId)?.ownerId === this.playerId) {
+        this.host.setControls(this.playerId, shipId, pending ?? controls);
+      }
       if (this.host.warp > 1) {
         this.settled = false;
+        const tickBefore = this.world.tick;
         events.push(...this.host.advance(seconds, beforeStep || beforeTick ? () => {
           beforeTick?.();
-          if (beforeStep && shipId && this.world.record(shipId)?.ownerId === this.playerId) {
+          if (beforeStep && shipId && this.world.record(shipId)?.ownerId === this.playerId && !this.pendingCommandControls.has(shipId)) {
             this.host.setControls(this.playerId, shipId, beforeStep());
           }
         } : undefined));
+        if (shipId && this.pendingCommandControls.has(shipId) && this.world.tick > tickBefore) {
+          this.pendingCommandControls.delete(shipId);
+          if (this.world.record(shipId)?.ownerId === this.playerId) {
+            this.host.setControls(this.playerId, shipId, controls);
+          }
+        }
       } else {
         this.clock.advance(seconds, () => {
           beforeTick?.();
-          if (beforeStep && shipId && this.world.record(shipId)?.ownerId === this.playerId) {
+          if (beforeStep && shipId && this.world.record(shipId)?.ownerId === this.playerId && !this.pendingCommandControls.has(shipId)) {
             this.host.setControls(this.playerId, shipId, beforeStep());
           }
           this.settled = false;
           events.push(...this.host.step());
+          if (shipId && this.pendingCommandControls.has(shipId)) {
+            this.pendingCommandControls.delete(shipId);
+            if (this.world.record(shipId)?.ownerId === this.playerId) {
+              this.host.setControls(this.playerId, shipId, controls);
+            }
+          }
         });
       }
     }
@@ -93,7 +111,7 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
     this.settled = true;
   }
   /** Drop interpolation history, e.g. after a reset. */
-  settle(): void { this.clock.reset(); this.settled = true; }
+  settle(): void { this.clock.reset(); this.settled = true; this.pendingCommandControls.clear(); }
 
   spawn(presetId: string, godMode: boolean, vehicleId?: string): string | undefined {
     return this.host.spawnShip(this.playerId, presetId, godMode, vehicleId).id;
@@ -122,7 +140,10 @@ export class LocalSession<W extends WorldControl = WorldControl> implements Game
   setGodModeAll(enabled: boolean): void { this.host.setGodModeAll(enabled); }
   command(shipId: string, commandId: string, args?: Readonly<Record<string, number>>): void {
     const ownerId = this.world.record(shipId)?.ownerId ?? this.playerId;
-    this.host.command(ownerId, shipId, commandId, args);
+    const effect = this.host.command(ownerId, shipId, commandId, args);
+    if (effect?.controls) {
+      this.pendingCommandControls.set(shipId, effect.controls);
+    }
   }
   /** Split-screen seats: extra pilots on this screen, each a player of their own. */
   seatGuest(name: string, token: string): string { return this.host.seatLocal(name, token); }

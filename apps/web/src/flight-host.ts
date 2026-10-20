@@ -822,7 +822,7 @@ function useSession(next: GameSession, recenter = true): void {
     syncCameraButton();
     fitZoom(state);
   }
-  commandBar.sync(next.world.commands);
+  commandBar.sync(next.world.commands, id => keybindings[id] ?? []);
   invalidatePrediction();
   lastWall = undefined;
   updateMultiplayer();
@@ -2798,7 +2798,7 @@ hudVisibility.bind('profiler', 'Profiler', () => !profilerPanel.hidden,
 
 /** Module commands: buttons and keys for the active world's command table. The session sends
  * each request to the authoritative host, which checks and applies it. */
-const commandBar = new CommandBar(element('module-commands'), issueCommand);
+const commandBar = new CommandBar(element('module-commands'), issueCommand, id => keybindings[id] ?? []);
 function issueCommand(command: CommandExtension): void {
   const ship = selectedShip();
   if (!ship) { notify('No ship to command.'); return; }
@@ -4137,7 +4137,7 @@ bindFlightInput({
 });
 
 // Controls & Remapping Modal Management
-let listeningChip: { action: ActionId; keyIndex?: number; element: HTMLElement } | null = null;
+let listeningChip: { action: ActionId | string; keyIndex?: number; element: HTMLElement } | null = null;
 
 function stopListening(): void {
   if (listeningChip) {
@@ -4193,6 +4193,7 @@ function renderKeybindingsList(): void {
         currentKeys.splice(idx, 1);
         saveKeybindings(keybindings);
         refreshKeyLookup();
+        commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
         renderKeybindingsList();
       });
       chip.appendChild(remove);
@@ -4223,6 +4224,89 @@ function renderKeybindingsList(): void {
     row.appendChild(badges);
     keybindingsList.appendChild(row);
   }
+
+  const moduleCommands = session?.world?.commands ?? [];
+  if (moduleCommands.length > 0) {
+    const categoryHeader = document.createElement('div');
+    categoryHeader.className = 'key-category-header';
+    categoryHeader.textContent = 'Module Commands';
+    keybindingsList.appendChild(categoryHeader);
+
+    for (const cmd of moduleCommands) {
+      const row = document.createElement('div');
+      row.className = 'key-action-row';
+
+      const info = document.createElement('div');
+      info.className = 'key-action-info';
+
+      const name = document.createElement('span');
+      name.className = 'key-action-name';
+      name.textContent = cmd.hook.label;
+
+      const desc = document.createElement('span');
+      desc.className = 'key-action-desc';
+      desc.textContent = `Module command (${cmd.id})`;
+
+      info.appendChild(name);
+      info.appendChild(desc);
+      row.appendChild(info);
+
+      const badges = document.createElement('div');
+      badges.className = 'key-badges-cell';
+
+      const currentKeys: string[] = keybindings[cmd.id] = keybindings[cmd.id] ?? (cmd.hook.key ? [cmd.hook.key] : []);
+      currentKeys.forEach((k, idx) => {
+        const chip = document.createElement('span');
+        chip.className = 'key-chip';
+        chip.setAttribute('role', 'button');
+        chip.setAttribute('tabindex', '0');
+        chip.title = `Click to remap ${formatKeyCode(k)}`;
+
+        const label = document.createElement('span');
+        label.textContent = formatKeyCode(k);
+        chip.appendChild(label);
+
+        const remove = document.createElement('span');
+        remove.className = 'remove-key';
+        remove.textContent = '×';
+        remove.title = 'Remove key';
+        remove.addEventListener('click', (e) => {
+          e.stopPropagation();
+          currentKeys.splice(idx, 1);
+          saveKeybindings(keybindings);
+          refreshKeyLookup();
+          commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
+          renderKeybindingsList();
+        });
+        chip.appendChild(remove);
+
+        chip.addEventListener('click', () => {
+          stopListening();
+          listeningChip = { action: cmd.id, keyIndex: idx, element: chip };
+          chip.classList.add('listening');
+          label.textContent = 'Press key...';
+        });
+
+        badges.appendChild(chip);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'add-key-btn';
+      addBtn.textContent = '+ Add';
+      addBtn.title = `Add alternative key for ${cmd.hook.label}`;
+      addBtn.addEventListener('click', () => {
+        stopListening();
+        listeningChip = { action: cmd.id, element: addBtn };
+        addBtn.classList.add('listening');
+        addBtn.textContent = 'Press key...';
+      });
+      badges.appendChild(addBtn);
+
+      row.appendChild(badges);
+      keybindingsList.appendChild(row);
+    }
+  }
 }
 
 // Global capture listener when remapping a key in the modal
@@ -4238,10 +4322,10 @@ window.addEventListener('keydown', (e) => {
 
   const { action, keyIndex } = listeningChip;
   // Held controls bind physical keys; shortcuts wait for the chord’s non-modifier key.
-  const held = isFlightAction(action) || action === 'throwShip';
+  const held = (isFlightAction as (a: unknown) => boolean)(action) || action === 'throwShip';
   if (!held && /^(Shift|Control|Meta|Alt)(Left|Right)$/.test(e.code)) return;
   const binding = held ? e.code : shortcutBinding(e);
-  const list = keybindings[action] || [];
+  const list = keybindings[action] = keybindings[action] || [];
 
   if (keyIndex !== undefined) {
     if (e.code === 'Backspace' || e.code === 'Delete') {
@@ -4257,6 +4341,7 @@ window.addEventListener('keydown', (e) => {
 
   saveKeybindings(keybindings);
   refreshKeyLookup();
+  commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
   stopListening();
 }, true);
 
@@ -4317,6 +4402,7 @@ touchOverlayMode.addEventListener('change', () => {
 resetKeybindingsBtn.addEventListener('click', () => {
   keybindings = resetKeybindings();
   refreshKeyLookup();
+  commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
   renderKeybindingsList();
 });
 window.addEventListener('error', event => profiler.event('error',
@@ -4456,7 +4542,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
 
 function hud(engine: boolean): void {
   syncCameraButton();
-  commandBar.sync(session.world.commands);
+  commandBar.sync(session.world.commands, id => keybindings[id] ?? []);
   const terrainNotice = element('terrain-notice');
   terrainNotice.hidden = session.world.surfaces.size === 0;
   const ship = selectedShip();

@@ -1,6 +1,6 @@
 /** Host-only (`packages/game-runtime`): pilot command capture and argument/effect validation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules register commands with `contributeCommand` and hosts run them through `CORE_COMMANDS`. */
-import type { CommandEffect, CommandExtension, CommandHook, CommandParameter, Ship } from '../../game-api/src/index';
-import { motionCopy } from './motion';
+import type { CommandEffect, CommandExtension, CommandHook, CommandParameter, ModuleValue, Ship } from '../../game-api/src/index';
+import { motionCopy, validateModuleState } from './motion';
 
 /** Most `contributeCommand` hooks per module (`32`; `Module <id>: at most 32 commands`). Host-only (`packages/game-runtime`). */
 export const MAX_COMMANDS_PER_MODULE = 32;
@@ -84,15 +84,24 @@ function effect(command: CommandExtension, raw: unknown): CommandEffect {
   const e = raw as Record<string, unknown> | null;
   if (e && typeof (e as { then?: unknown }).then === 'function') throw new Error('invalid command effect: asynchronous commands are unsupported');
   if (!e || typeof e !== 'object' || ![Object.prototype, null].includes(Object.getPrototypeOf(e))
-    || Object.keys(e).some(k => k !== 'controls' && k !== 'throttle')) throw new Error('invalid command effect');
+    || Object.keys(e).some(k => k !== 'controls' && k !== 'throttle' && k !== 'moduleEvent')) throw new Error('invalid command effect');
   const c = e.controls as Record<string, unknown> | undefined;
   if (c !== undefined && (!c || typeof c !== 'object' || Object.keys(c).some(k => !['turn', 'throttle', 'engine'].includes(k))
     || !finite(c.turn) || Math.abs(c.turn) > 1 || !finite(c.throttle) || Math.abs(c.throttle) > 1
     || typeof c.engine !== 'boolean')) throw new Error('invalid command controls');
   if (e.throttle !== undefined && (!finite(e.throttle) || e.throttle < 0 || e.throttle > 1)) throw new Error('invalid command throttle');
-  if (c === undefined && e.throttle === undefined) throw new Error(`empty effect from ${command.id}`);
+  let moduleEvent: { readonly type: string; readonly payload: ModuleValue } | undefined;
+  if (e.moduleEvent !== undefined) {
+    const m = e.moduleEvent as Record<string, unknown> | null;
+    if (!m || typeof m !== 'object' || Object.keys(m).some(k => k !== 'type' && k !== 'payload')
+      || typeof m.type !== 'string' || !m.type) throw new Error('invalid command module event');
+    const payload = validateModuleState({ version: 1, value: m.payload as ModuleValue }).value;
+    moduleEvent = Object.freeze({ type: m.type, payload });
+  }
+  if (c === undefined && e.throttle === undefined && moduleEvent === undefined) throw new Error(`empty effect from ${command.id}`);
   return Object.freeze({ ...(c ? { controls: Object.freeze({ turn: c.turn as number, throttle: c.throttle as number, engine: c.engine as boolean }) } : {}),
-    ...(e.throttle !== undefined ? { throttle: e.throttle as number } : {}) });
+    ...(e.throttle !== undefined ? { throttle: e.throttle as number } : {}),
+    ...(moduleEvent !== undefined ? { moduleEvent } : {}) });
 }
 
 /** Run one command for the authoritative host. The caller has checked ownership; this

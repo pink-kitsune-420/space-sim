@@ -10,7 +10,7 @@ import type { UniverseDefinition, LoadedSystem, ResolvedBody, VehicleDefaults } 
 import type { SurfaceProfile } from './surface';
 import type { WorldRuleExtension, WorldRuleState } from './rules';
 import type { CommandExtension, CommandEffect } from './commands';
-import type { ForceExtension, ModuleState, MotionContextOptions } from './motion';
+import type { ForceExtension, ModuleState, MotionContextOptions, ModuleValue } from './motion';
 import type { MotionServices } from './services';
 import type { ServiceKey } from './modules-v2';
 
@@ -132,6 +132,7 @@ export interface WorldChanges extends Disposable {
 export interface WorldControl extends WorldRead, Disposable {
   readonly data: ModuleDataControl;
   setControls(id: string, controls: Controls): void; setThrottle(id: string, value: number): void;
+  queueModuleEvent(shipId: string, event: { readonly type: string; readonly payload: ModuleValue }): void;
   step(): WorldEvent[]; advanceTo(tick: number, maxSteps?: number): WorldEvent[];
   put(ship: Ship): void; remove(id: string): boolean;
   spawn(options: { readonly ownerId: string; readonly presetId?: string; readonly name?: string; readonly godMode?: boolean; readonly vehicleId?: string }): Ship;

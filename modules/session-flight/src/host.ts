@@ -354,7 +354,7 @@ export class HostSession<W extends WorldControl = WorldControl> {
   /** A registered module command for one owned ship, applied now (between fixed steps)
    * through the same world operations as the built-in commands above. The runtime
    * validates the arguments and the proposed effect before anything changes. */
-  command(playerId: string, shipId: string, commandId: string, args?: unknown): void {
+  command(playerId: string, shipId: string, commandId: string, args?: unknown): CommandEffect {
     this.assertActive();
     this.owned(playerId, shipId);
     const command = this.world.commands.find(c => c.id === commandId);
@@ -367,7 +367,11 @@ export class HostSession<W extends WorldControl = WorldControl> {
     }
     if (effect.controls) this.world.setControls(shipId, effect.controls);
     if (effect.throttle !== undefined) this.world.setThrottle(shipId, effect.throttle);
+    if (effect.moduleEvent && typeof this.world.queueModuleEvent === 'function') {
+      this.world.queueModuleEvent(shipId, effect.moduleEvent);
+    }
     this.changed();
+    return effect;
   }
 
   /** Send a chat line to everyone: from a player, or from the server console (no id). */
