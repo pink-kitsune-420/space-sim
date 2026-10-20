@@ -578,6 +578,9 @@ Begin in Primus’s <b>Circular orbit · 128 m altitude</b>, moving in the same 
 enter a circular target altitude of <b>100 m</b> and choose <b>Find transfer windows</b>.
 Compare wait, travel and Δv, then choose <b>Use plan</b>. Inspect both editable burn nodes
 and their current-throttle duration. Execute each burn separately and review actual flight after departure and SOI changes.</p>
+<p>For an automatic transfer, choose <b>Auto warp</b> directly below <b>Use plan</b> on the desired route.
+This adopts the plan, resumes paused flight and enables both automatic execution and auto-warp between burns,
+including arrival and capture. Manual flight input or <b>Abort burn</b> stops automation.</p>
 <p>To explore the encounter manually:</p>
 <ol>
   <li><b>Raise the far side.</b> Plan a prograde departure until Ap reaches roughly Parvus’s orbital distance.

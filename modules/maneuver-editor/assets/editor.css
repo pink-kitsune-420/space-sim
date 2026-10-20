@@ -38,6 +38,7 @@
 .transfer-option header { padding: 0; margin: 0; border: 0; background: none; letter-spacing: normal; min-height: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .transfer-option strong { color: #f7c775; font-size: 12px; }
 .transfer-option header button { margin: 0; padding: 5px 9px; min-height: 29px; font-size: 11px; }
+.transfer-actions { display: grid; gap: 5px; }
 .transfer-option .transfer-metrics { display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; font-size: 11px; }
 .transfer-option .transfer-warning { margin: 0; font-size: 10px; color: #f7c775; opacity: .9; }
 .maneuver-map { position: absolute; pointer-events: none; overflow: hidden; z-index: 4; }

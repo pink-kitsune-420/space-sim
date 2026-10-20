@@ -2,7 +2,7 @@ import type { Coast, FlightPlan, ManeuverPlannerOptions, SimulationContext, Stat
 
 import { DestinationPicker } from './destinations';
 
-/** Optional search UI owns no execution. Search results are tied to the source orbit. */
+/** Search results are tied to the source orbit; execution is delegated to the editor. */
 export class TransferControls {
  private job?: Generator<TransferProgress,TransferResult>;
  private anchor?: {world:WorldRead;shipId:string;bodyId:string;state:State;context:SimulationContext;coast:Coast};
@@ -10,12 +10,13 @@ export class TransferControls {
  private readonly destination:DestinationPicker;private readonly low:HTMLInputElement;private readonly high:HTMLInputElement;private readonly circular:HTMLInputElement;
  private readonly horizon?:HTMLInputElement;
  private readonly cancelButton:HTMLButtonElement;private readonly find:HTMLButtonElement;
- private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement}[]=[];
+ private readonly cards:{option:TransferOption;text:HTMLParagraphElement;metrics:HTMLOutputElement;button:HTMLButtonElement;autoWarp:HTMLButtonElement}[]=[];
  private readonly status:HTMLOutputElement;private readonly choices:HTMLDivElement;
  private shownOptions?:readonly TransferOption[];
  private scheduled?:number;
  constructor(private readonly root:HTMLElement,private readonly prefix:string,private readonly service:TransferPlanner,
-  private readonly options:ManeuverPlannerOptions,private readonly install:(plan:FlightPlan)=>void,private readonly signal:AbortSignal){
+  private readonly options:ManeuverPlannerOptions,private readonly install:(plan:FlightPlan)=>void,private readonly signal:AbortSignal,
+  private readonly automate?:(plan:FlightPlan)=>void){
   root.innerHTML=`<p class="maneuver-help">Plan a complete trip to the orbit you want. Choose a destination and review the route and all burns before adopting. Pause flight to keep departure windows available while searching.</p>
    <div id="${prefix}-picker" class="transfer-picker"></div>
    <label>Target low altitude (m)<input id="${prefix}-low" type="number" step="any" value="512"></label>
@@ -108,11 +109,11 @@ export class TransferControls {
   this.status.textContent=result.options.length?`Compare sampled options. ${result.compared?`Validated ${result.compared.direct} direct · ${result.compared.staged} staged. `:''}${result.reason}`:result.reason;
   const generation=this.generation;
   for(const option of result.options) {
-   const document=this.root.ownerDocument,card=document.createElement('article'),text=document.createElement('p'),button=document.createElement('button'),header=document.createElement('header'),title=document.createElement('strong'),metrics=document.createElement('output'),details=document.createElement('details'),summary=document.createElement('summary'),warning=document.createElement('p');
+   const document=this.root.ownerDocument,card=document.createElement('article'),text=document.createElement('p'),button=document.createElement('button'),autoWarp=document.createElement('button'),actions=document.createElement('div'),header=document.createElement('header'),title=document.createElement('strong'),metrics=document.createElement('output'),details=document.createElement('details'),summary=document.createElement('summary'),warning=document.createElement('p');
    card.className='transfer-option';text.className='maneuver-help';metrics.className='transfer-metrics';warning.className='transfer-warning';
    title.textContent=option.kind==='efficient'?'Efficient':'Faster';summary.textContent='Burn estimates & limits';
    warning.textContent=option.route?.finiteValidated?'Complete route · finite burns checked':option.warning.startsWith('Long finite burn')?'Long burn · encounter may differ':'Impulsive estimate · review after departure';
-   header.append(title,button);card.append(header);
+   actions.className='transfer-actions';actions.append(button,autoWarp);header.append(title,actions);card.append(header);
    if(option.route){const route=document.createElement('p'),stops=document.createElement('p');route.className='transfer-route';stops.className='maneuver-help';
     const world=this.options.flight().world,name=(id:string)=>world.body(id).name;
     route.textContent=option.route.bodyIds.map(name).join(' → ');stops.textContent=`${option.plan.nodes.length} burns · ${option.route.stops.length?`Parking stops: ${option.route.stops.map(name).join(', ')}`:'Direct · no intermediate parking'}`;
@@ -120,20 +121,31 @@ export class TransferControls {
    }
    details.append(summary,text);card.append(metrics,warning,details);
    button.id=`${this.prefix}-use-${option.kind}`;button.type='button';button.textContent='Use plan';button.setAttribute('aria-label',`Use ${option.kind} plan`);
-   button.addEventListener('click',()=>{
+   autoWarp.id=`${this.prefix}-auto-warp-${option.kind}`;autoWarp.type='button';autoWarp.textContent='Auto warp';autoWarp.setAttribute('aria-label',`Auto warp ${option.kind} plan`);autoWarp.title='Use this plan, resume flight and automatically execute all burns with auto-warp between them';autoWarp.hidden=!this.automate;
+   const adopt=(automatic:boolean)=>{
     if(this.disposed||generation!==this.generation||!this.cards.some(card=>card.button===button))return;
+    if(automatic&&(!this.automate||!this.canAutomate()))return;
     if(!this.valid()){this.cancel('Flight conditions changed. Find new options.');return;}
     if(option.plan.nodes[0]!.time-option.departureBurnSeconds/2<=this.options.flight().world.time+1){this.cancel('The departure preparation window passed. Find new options.');return;}
-    this.cancel();this.install(option.plan);this.options.notify(`${option.plan.nodes.length} editable burn nodes created. Review the complete route; execution needs a separate command.`);
-   },{signal:this.signal});this.choices.append(card);this.cards.push({option,text,metrics,button});
+    this.cancel();this.install(option.plan);
+    if(automatic)this.automate!(option.plan);
+    else this.options.notify(`${option.plan.nodes.length} editable burn nodes created. Review the complete route; execution needs a separate command.`);
+   };
+   button.addEventListener('click',()=>adopt(false),{signal:this.signal});autoWarp.addEventListener('click',()=>adopt(true),{signal:this.signal});this.choices.append(card);this.cards.push({option,text,metrics,button,autoWarp});
   }
   this.refreshCards();
  }
+ private canAutomate():boolean {
+  const flight=this.options.flight();
+  return !!this.automate&&flight.enabled&&flight.canWarp&&!flight.inputBlocked&&(!flight.paused||!!this.options.setPaused)
+   &&!!flight.ship&&!!this.options.fleet?.owns(flight.ship.id)&&!!this.options.fleet.authorizeWarp;
+ }
  private refreshCards():void {
   const now=this.options.flight().world.time;
-  for(const {option,text,metrics,button} of this.cards) {
+  for(const {option,text,metrics,button,autoWarp} of this.cards) {
    const wait=option.plan.nodes[0]!.time-now;
    button.disabled=wait-option.departureBurnSeconds/2<=1;
+   autoWarp.disabled=button.disabled||!this.canAutomate();
    const flight=this.options.flight(),throttle=flight.ship?.state.throttle??0,acceleration=flight.ship?flight.world.contextFor(flight.ship).vehicle.acceleration:0;
    const duration=(dv:number)=>dv===0?'0.0 s':acceleration*throttle>0?`${(dv/(acceleration*throttle)).toFixed(1)} s`:'no thrust';
    let description=`${option.kind==='efficient'?'Efficient':'Faster'} · wait ${Math.max(0,wait).toFixed(1)} s · travel ${option.travelSeconds.toFixed(1)} s · Δv ${option.deltaV.toFixed(1)} m/s

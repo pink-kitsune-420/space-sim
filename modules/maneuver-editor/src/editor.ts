@@ -233,7 +233,16 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (services.transfers) this.transferControls = new TransferControls(get('transfers'), `${this.id}-transfer`, services.transfers, options, plan => {
       this.continueShip=undefined;this.fleet?.stop(plan.shipId); this.abortExecution(); this.stopWarp(); this.insertPlan(plan, this.options.flight());
       this.current = this.nodes.get(plan.shipId); this.rebuildPlan(true); this.refreshInputs(); this.showMode('node'); this.window.body.querySelector<HTMLButtonElement>(`#${this.id}-node-tab`)!.focus({preventScroll:true});
-    }, this.lifetime.signal);
+    }, this.lifetime.signal, this.fleet&&options.fleet?.authorizeWarp?plan=>{
+      const flight=options.flight();
+      if(flight.paused){
+        try{options.setPaused!(false);}catch(error){options.notify(error instanceof Error?error.message:'Could not resume flight.');return;}
+      }
+      const resumed=options.flight();
+      if(this.disposed||resumed.paused||resumed.world!==flight.world||resumed.ship?.id!==plan.shipId||!resumed.enabled||!resumed.canWarp||resumed.inputBlocked||this.plans.get(plan.shipId)?.[0]!==this.current)return;
+      this.cancelPlanEvaluation();this.fleet!.arm(plan.shipId,false,true);this.lastUi=-Infinity;
+      if(this.fleet!.has(plan.shipId))options.notify('Automatic transfer enabled. Auto-warp and all burns will follow this plan.');
+    }:undefined);
     if (services.alarms) this.alarmControls = new NodeAlarms(get('alarms'), services.alarms, options,
       node => this.alarmDeadline(node as Node), () => this.collectAlarms(),
       () => { if(this.warping){this.lastRequest=this.options.flight().requestedWarp;if(this.lastRequest<=1)this.warping=false;} },

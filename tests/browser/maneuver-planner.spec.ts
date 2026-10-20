@@ -456,6 +456,25 @@ test('Transfers is discoverable without a node and the compact burn editor keeps
 });
 
 
+for(const kind of ['efficient','faster'])test(`Auto warp adopts the ${kind} transfer, resumes flight and completes both burns`,async({page},info)=>{
+ test.setTimeout(180000);
+ await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
+ await page.locator('#maneuver-transfer-low').fill('1536');await page.locator('#maneuver-transfer-find').click();
+ const use=page.locator(`#maneuver-transfer-use-${kind}`),automatic=page.locator(`#maneuver-transfer-auto-warp-${kind}`);
+ await expect(automatic).toBeEnabled();await automatic.scrollIntoViewIfNeeded();
+ const useBox=(await use.boundingBox())!,autoBox=(await automatic.boundingBox())!;
+ expect(autoBox.y).toBeGreaterThanOrEqual(useBox.y+useBox.height);expect(autoBox.x).toBeCloseTo(useBox.x,0);
+ await page.screenshot({path:info.outputPath('auto-warp-transfer.png')});
+ await automatic.click();
+ await expect(page.locator('#maneuver-automatic')).toBeChecked();await expect(page.locator('#maneuver-auto-warp')).toBeChecked();
+ await expect(page.locator('#pause')).toHaveText('Pause');
+ await expect(page.locator('#maneuver-nodes option').first()).toContainText('flown',{timeout:60000});
+ await expect(page.locator('#maneuver-nodes option').last()).toContainText('flown',{timeout:90000});
+ await expect(page.locator('#maneuver-automatic')).not.toBeChecked();await expect(page.locator('#warp-factor')).toHaveText('1×');
+ const done=await debug(page);expect(done.engine).toBe(false);expect(done.maneuver.completed).toBe(true);
+ expect(Math.abs(done.orbit.periapsis-2048)).toBeLessThan(20);expect(Math.abs(done.orbit.apoapsis-2048)).toBeLessThan(20);
+});
+
 test('an explicitly enabled ship follows the clock and completes its prepared two-burn plan',async({page})=>{
  test.setTimeout(180000);
  await setup(page);await page.getByRole('button',{name:'Transfers',exact:true}).click();
