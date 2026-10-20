@@ -6,6 +6,7 @@ import { IDLE, MODEL, STEP, contactMargin } from './constants';
 import type { Propagation } from './orbit';
 import { BUILTIN_SERVICES } from './services';
 import type { SurfaceProfile } from './surface';
+import { evaluateSafeRadialGravity } from './surface';
 import { surfaceContactTolerance } from './surface-contact';
 import { safeSurfaceLanding, SurfaceContactError } from './surface-flight';
 import { dampedKick, WATER_CRASH_SPEED, waterFloatRadius, waterForces } from './water';
@@ -30,7 +31,7 @@ export const GHOST_ESCAPE_RADII = 32;
 
 const DEFAULT_PLANET: Body = Object.freeze({ id: 'planet', radius: 512, mu: 13107200 });
 const DEFAULT_MOON: Body = Object.freeze({ id: 'moon', radius: 128, mu: 204800 });
-const MOTION_STATE_FIELDS = new Set(['time', 'position', 'velocity', 'heading', 'throttle', 'status', 'revision',
+const MOTION_STATE_FIELDS = new Set(['time', 'position', 'velocity', 'heading', 'angularVelocity', 'throttle', 'status', 'revision',
   'godMode', 'coast', 'dynamics', 'solver', 'contact', 'water', 'waterEntry', 'moduleState']);
 /** Default headless reference planet (`id: 'planet'`, `radius: 512` `m`, `mu: 13,107,200` `m³/s²`). Host-only (`packages/sim-core`). */
 export const planet: Body = DEFAULT_PLANET;
@@ -83,8 +84,14 @@ export function setGodMode(state: State, enabled: boolean): State {
     water: enabled && state.status === 'crashed' && state.water ? 'submerged' : state.water };
 }
 
+/** Fraction of the reference radius below which gravity switches to the softened interior model. Terrain and craters stay well above it, so ordinary motion keeps exact point-mass gravity. */
+const GRAVITY_CORE_FRACTION = 0.5;
+
 function gravity(p: Vec, body: Body): Vec {
   const r = magnitude(p);
+  // Deep inside the body (excavation) use the softened model: finite, and zero at the centre.
+  const core = body.radius * GRAVITY_CORE_FRACTION;
+  if (r < core) return evaluateSafeRadialGravity(p.x, p.y, body.mu, core, { x: 0, y: 0 });
   const scale = -body.mu / (r * r * r);
   return { x: p.x * scale, y: p.y * scale };
 }
@@ -216,7 +223,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
 
   /** `step` for an already validated state. */
   function numericalAdvance(state: State, controls: Controls, dt: number, body: Body, surface?: SurfaceProfile, transaction?: ForceTransaction): State {
-    if (!transaction && !surface && state.status === 'flying') {
+    if (!transaction && !surface && state.status === 'flying' && !state.angularVelocity) {
       const fast = freeFlightStep(state, controls, dt, body);
       if (fast) return fast;
     }
@@ -227,6 +234,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       revision: state.revision, dynamics: 'numerical' };
     if (state.godMode !== undefined) numerical.godMode = state.godMode;
     if (state.water !== undefined) numerical.water = state.water;
+    if (state.angularVelocity !== undefined) numerical.angularVelocity = state.angularVelocity;
     const result = numericalStep(numerical, controls, dt, body, surface, transaction);
     if (customServices) validateStep(result, IDLE, STEP, body, surface);
     return result;
@@ -265,7 +273,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     // Runs for every ship on every step: plain comparisons, no temporary arrays.
     if (!Number.isFinite(state.time) || !Number.isFinite(state.position.x) || !Number.isFinite(state.position.y)
       || !Number.isFinite(state.velocity.x) || !Number.isFinite(state.velocity.y) || !Number.isFinite(state.heading)
-      || !Number.isFinite(state.throttle) || !Number.isFinite(controls.turn) || !Number.isFinite(controls.throttle)) {
+      || !Number.isFinite(state.throttle) || (state.angularVelocity !== undefined && !Number.isFinite(state.angularVelocity)) || !Number.isFinite(controls.turn) || !Number.isFinite(controls.throttle)) {
       throw new Error('Invalid state or controls');
     }
     if (state.status !== 'landed' && state.status !== 'flying' && state.status !== 'crashed') throw new Error('Invalid flight status');
@@ -295,23 +303,35 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
   }
 
   function numericalStep(state: State, controls: Controls, dt: number, body: Body, surface?: SurfaceProfile, transaction?: ForceTransaction): State {
-    if (state.status === 'crashed') return { ...state, time: state.time + dt };
+    if (state.status === 'crashed') { const { angularVelocity: _spin, ...wreck } = state; return { ...wreck, time: state.time + dt }; }
     // On a rotating body a landed state is body-fixed (see State) and flight is inertial: the
     // ground, its terrain and its water turn underneath at omega. Without spin every
     // rotation below is the identity and every ground velocity is zero.
     const omega = spinRate(body), fixed = omega !== 0 && state.status === 'landed';
     const theta0 = spinAngle(body, state.time);
     const turn = Math.max(-1, Math.min(1, controls.turn)) * vehicle.turnRate;
-    const heading = normalizeAngle(state.heading + turn * dt);
+    // Force modules always see the inertial frame. A landed (body-fixed) ship is not spinning in it
+    // beyond the ground's own rate.
+    const w0 = state.angularVelocity ?? 0;
+    let a0: { x: number; y: number; angularAcceleration: number } | undefined;
+    if (transaction) {
+      if (!fixed) a0 = transaction.evaluate(state.time, state.position, state.velocity, state.heading, w0);
+      else {
+        const p = rotate(state.position, theta0);
+        const r = transaction.evaluate(state.time, p, groundVelocity(omega, p), state.heading + theta0, omega);
+        const v = rotate(r, -theta0);
+        a0 = { x: v.x, y: v.y, angularAcceleration: r.angularAcceleration };
+      }
+    }
+    // KDK for rotation: half-kick the rate with the torque at the start, drift the heading, half-kick at the end.
+    const wHalf = w0 + (a0 ? a0.angularAcceleration * dt / 2 : 0);
+    const rate = wHalf === 0 ? turn : turn + wHalf;
+    const heading = normalizeAngle(state.heading + rate * dt);
     const throttle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * 0.78125));
     const midThrottle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * .78125 / 2));
     const thrust = controls.engine ? midThrottle * vehicle.acceleration : 0;
-    const midHeading = state.heading + turn * dt / 2;
+    const midHeading = state.heading + rate * dt / 2;
     const engine = { x: dm.cos(midHeading) * thrust, y: dm.sin(midHeading) * thrust };
-    // Force modules always see the inertial frame.
-    const a0 = !transaction ? undefined : !fixed ? transaction.acceleration(state.time, state.position, state.velocity)
-      : rotate(transaction.acceleration(state.time, rotate(state.position, theta0),
-        groundVelocity(omega, rotate(state.position, theta0))), -theta0);
     const engine0 = a0 ? { x: engine.x + a0.x, y: engine.y + a0.y } : engine;
     const g0 = gravity(state.position, body);
     const radius = magnitude(state.position);
@@ -319,7 +339,9 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const inWater = sea !== undefined && (radius < sea || state.water !== undefined);
     const f0 = surface && inWater ? waterForces(surface, fixed ? state.position : rotate(state.position, -theta0), querySurface) : { gravityFactor: 1, drag: 0 };
     const radialAcceleration = (engine0.x * state.position.x + engine0.y * state.position.y) / radius;
-    const next = { ...state, heading, throttle, time: state.time + dt, revision: state.revision + 1 };
+    // Rotation rate lives only in flight; every landing or settling return below drops it.
+    const { angularVelocity: _spin, ...base } = state;
+    const next = { ...base, heading, throttle, time: state.time + dt, revision: state.revision + 1 };
     if (state.status === 'landed') {
       // A point vessel resting on a very shallow seabed can already lie inside
       // the floating support tolerance. Settle before buoyancy can kick it out
@@ -391,8 +413,8 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
         // Enter once, then sweep only seabed. Retain the fractional sea vertex so
         // the predictor draws the same two drifts as live motion.
         const entry: GhostSample = { time: state.time + dt * hit, position: contact, velocity: impactV, linear: true };
-        const entered: State = { ...next, time: entry.time, heading: normalizeAngle(state.heading + turn * dt * hit),
-          throttle: Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * hit * .78125)),
+        const entered: State = { ...next, time: entry.time, heading: normalizeAngle(state.heading + rate * dt * hit),
+          ...(wHalf !== 0 ? { angularVelocity: wHalf } : {}), throttle: Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * hit * .78125)),
           position: contact, velocity: impactV, status: 'flying', water: 'submerged' };
         const remainder = dt * (1 - hit);
         const result = remainder > 0 ? numericalStep(entered, controls, remainder, body, surface, transaction) : entered;
@@ -400,7 +422,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
           ...(result.contact ? { contact: { ...result.contact, fraction: (result.contact.time - state.time) / dt } } : {}) };
       }
       const safe = surface ? safeSurfaceLanding(surfaceSupport(surface, angle),
-        state.heading + turn * dt * hit - thetaHit, magnitude(groundImpact))
+        state.heading + rate * dt * hit - thetaHit, magnitude(groundImpact))
         : magnitude(groundImpact) <= 5 && Math.abs(normalizeAngle(heading - thetaHit - angle)) <= Math.PI / 9;
       return { ...next, position: local, velocity: { x: 0, y: 0 },
         ...(omega === 0 ? {} : { heading: normalizeAngle(heading - thetaHit) }),
@@ -412,7 +434,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     }
     const g1 = gravity(position, body);
     const f1 = surface && sea !== undefined ? waterForces(surface, local1, querySurface) : { gravityFactor: 1, drag: 0 };
-    const a1 = transaction?.acceleration(state.time + dt, position, halfV);
+    const a1 = transaction?.evaluate(state.time + dt, position, halfV, heading, wHalf);
     const engine1 = a1 ? { x: engine.x + a1.x, y: engine.y + a1.y } : engine;
     const u1 = groundVelocity(omega, position);
     const velocity = {
@@ -429,7 +451,9 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
           ...(omega === 0 ? {} : { heading: normalizeAngle(heading - theta1) }) };
       }
     }
-    return { ...next, position, velocity, status: 'flying', water: wet ? 'submerged' : undefined };
+    const w1 = a1 ? wHalf + a1.angularAcceleration * dt / 2 : wHalf;
+    return { ...next, position, velocity, status: 'flying', water: wet ? 'submerged' : undefined,
+      ...(w1 !== 0 ? { angularVelocity: w1 } : {}) };
   }
 
   /** Height above the highest ground (terrain envelope or sea, else the reference radius)

@@ -21,13 +21,23 @@ export interface ForceEvaluation {
   readonly time: number;
   readonly position: Vec;
   readonly velocity: Vec;
+  /** Stage heading in rad and rotation rate in rad/s (inertial frame). */
+  readonly heading: number;
+  readonly angularVelocity: number;
   readonly body: Body;
   readonly controls: Controls;
   readonly state: ModuleState;
 }
+/** Force hook output: body-local linear acceleration in m/s² (finite, at most 10,000 per component) and an optional angular acceleration in rad/s² (finite, at most 1,000) added to the ship's rotation rate. A plain `Vec` is a valid result. */
+export interface GeneralizedForce {
+  readonly x: number;
+  readonly y: number;
+  readonly angularAcceleration?: number;
+}
 /** Synchronous, pure callbacks: no hidden mutable authority, wall clock or random IO.
  * Acceleration is body-local m/s², evaluated at KDK kicks (also fractional contacts).
- * Each component is finite and at most 10,000 m/s² in magnitude. All evaluations in
+ * Each component is finite and at most 10,000 m/s² in magnitude; `angularAcceleration`
+ * is likewise finite and at most 1,000 rad/s² and is integrated into `State.angularVelocity` and `heading`. All evaluations in
  * one outer step read the same state; commit runs once after verified motion.
  * Inputs are detached/read-only. Exceptions or invalid outputs abort this ship's step.
  * Work must be bounded by the author; synchronous JS cannot be preempted. */
@@ -35,7 +45,7 @@ export interface ForceHook {
   /** Include every force parameter in this local cache identity. */
   readonly modelIdentity: string;
   readonly initialState: ModuleState;
-  evaluate(input: ForceEvaluation): Vec;
+  evaluate(input: ForceEvaluation): GeneralizedForce;
   commit?(input: Readonly<MotionStep & { readonly next: State; readonly moduleState: ModuleState }>): ModuleState;
 }
 /** Identity and order come from the resolved registry, one hook per module. */
