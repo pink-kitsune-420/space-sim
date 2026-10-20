@@ -1,87 +1,47 @@
-# Orbit Sandbox (Interactive Planet Creator & Gravity Playground)
+# Orbit Sandbox
 
-A standalone Spacelab application for dynamically creating, customizing, and slinging celestial bodies into orbit, simulating emergent gravitational interactions (Kepler 2-Body, N-Body, and Full Body Physics), and exporting custom universes (`.spacedata` and `.json`) to Space Sim.
+A Spacelab planetary-system editor and gravity playground. Create bodies by dragging empty space, inspect their physical and visual settings, experiment with gravity modes, and export universe definitions for Space Sim.
 
----
+In the combined player, choose **Orbit Sandbox** in **ModMenu**, or open `?game=orbit-sandbox`. The in-game **Manual → Players → Orbit Sandbox** covers controls, warp and the CPU limiter.
 
-## Quick Start
+## Standalone development
 
-Launch the development server on port 5174:
+From the repository root, with Node.js 22.12 or newer:
 
-```bash
+```sh
+npm ci
 npm run dev:sandbox
 ```
 
-Or build for production:
+Open the URL Vite prints, normally `http://127.0.0.1:5174/`. For a standalone production build and its unit tests:
 
-```bash
-npx vite build apps/orbit-sandbox --config apps/orbit-sandbox/vite.config.ts
+```sh
+npx vite build --config apps/orbit-sandbox/vite.config.ts
+npm run test:sandbox
 ```
 
-Open your browser to `http://127.0.0.1:5174/`.
+The standalone build writes `dist-orbit-sandbox/`. `npm run build` builds the combined player containing the Sandbox; it does not refresh this separate distribution. The root `npm test` and `npm run check` exclude the Sandbox's separate unit suite.
 
----
+## Create and inspect
 
-## Core Features
+Select a style in the bottom palette, then drag empty space to preview and launch a body. Circularize snaps a launch to the circular speed around its dominant parent. Click a body to open the **Planet inspector** for radius, gravity, rotation, atmosphere, appearance and rings. The dock opens **Physics**, **Appearance**, **Testing** and **Export**.
 
-### 1. Vector Space Canvas
-- High-DPI canvas rendered using the Spacelab dark space palette (`#080f19`).
-- Smooth pan & zoom camera controls following `packages/render-2d` conventions.
-- Parallax starfield and distance grid reference rings.
+Orbit guides show estimated conics relative to parent bodies. In interacting systems these are local orbit estimates. The launch preview and selected orbit can show apoapsis and periapsis markers.
 
-### 2. Interactive Slingshot Planet Launcher
-- **Click & Drag to Sling**: Click empty space to spawn a candidate celestial body, drag to pull back a velocity vector arrow $\vec{v}_0$.
-- **Real-Time Ghost Trajectory**: Dynamic path prediction showing the resulting orbit, apoapsis (Ap), periapsis (Pe), orbital period, and collision/escape warnings before releasing.
-- **1-Click Circularize Snap**: Hold `Shift` or click the **Circularize** button in the header to automatically snap velocity to an exact circular orbit ($v_{\text{circ}} = \sqrt{\mu / r}$).
+## Physics modes
 
-### 3. In-Situ Planet Customizer Panel
-- Click any existing celestial body to open the floating inspector:
-  - **Style Presets**: Oceanic Garden, Rocky Moon, Gas Giant (with rings), Icy World, Volcanic World, Radiant Star.
-  - **Dynamic Sliders**: Physical radius, mass / gravitational parameter $\mu$, rotation period, ocean coverage level, atmosphere glow color.
-  - **Ring Belt Creator**: Add particle rings with configurable inner and outer radius boundaries and real-time rotating ring particles.
-  - **Camera Focus & Deletion**: Center view on the body or delete it.
+- **Kepler 2-Body** uses central-force orbital motion around a dominant parent.
+- **N-Body Gravity** integrates pairwise gravitational interactions and merges colliding bodies.
+- **Full Body Physics** adds optional equatorial J₂ perturbations, tidal spin coupling and configurable collision response.
 
-### 4. Physics Simulation Modes
-- **Kepler 2-Body**: Patched-conics central force propagation.
-- **N-Body Gravity**: Universal gravitational interaction between all celestial bodies with momentum-conserving coalescence.
-- **Full Body Physics**:
-  - $J_2$ Equatorial oblateness quadrupole harmonic perturbation causing apsidal precession.
-  - Tidal torques and spin-orbit coupling (gradual tidal locking).
-  - Physical collision response: Inelastic merge vs elastic/semi-elastic bounce with adjustable restitution coefficient $e$.
+These are the Sandbox's own model modes. Export creates a hierarchical universe definition for the receiving game; it does not carry the Sandbox's running N-body state or numerical solver into Space Sim. Space Sim uses its flight physics and requires compatible hierarchy and starting data.
 
-### 5. Cached Planetary Orbit Lines
-- Real-time Keplerian conic orbit line rendering for all planetary bodies and moons.
-- **Smart Conic Estimation & Epoch Caching**: Caches relative 64-point ellipse vertices per-body with an epoch-based validity check (0.25s), shifting smoothly relative to parent bodies without per-frame numerical re-integration.
-- Visual periapsis (`Pe`) and apoapsis (`Ap`) distance markers and parent-colored trajectory paths.
-- Toggle anytime via the header **Orbits** button or `O` hotkey.
+Warp is selectable up to 100,000×. Faster warp adds bounded numerical steps; a CPU budget can lower the requested speed. **Testing Lab → Disable CPU limiter (debug)** removes that work budget for the session and can stall the interface at high speeds.
 
-### 6. Interactive & Automated Testing Lab
-- **In-Browser Diagnostic Suite**: Run live verifications of energy conservation, circular orbital velocity, $J_2$ precession deflection, schema validation, and gzip compression.
-- **5 Interactive Scenario Benchmarks**:
-  - Figure-8 3-Body Choreography
-  - $J_2$ Oblateness Nodal Precession
-  - Tidal Locking Spin Dissipation
-  - 2-Body Elastic Collision Bounce
-  - 500-Particle Ring Belt Stress Test
-- **CLI Unit Tests**: Run Vitest test runner with `npm run test:sandbox`.
+## Export and share
 
-### 7. Universe Export & Space Sim Integration
-- **Direct Validation**: Verified against `games/space-sim/universes/universe.schema.json` via `@spacelab/sim-core` `validateUniverse`.
-- **Export Formats**:
-  - Uncompressed `.json` file download.
-  - Lossless `.spacedata` (standard ZIP) definition download. Universe saves use `.spaceuniverse` in Space Sim.
-  - Clipboard JSON copy.
-  - Direct Flight Console deep-link staging into `localStorage`.
+**Export Universe** validates definitions with the simulation core's `validateUniverse`. Download editable JSON, download reusable `.spacedata` definitions, copy JSON, or stage the definition for Space Sim. Direct staging uses local browser storage and needs both applications to share an origin; file export/import also works across origins.
 
----
+A `.spacedata` file is a ZIP containing definitions. Space Sim's **Fleet → Save universe** instead writes `.spaceuniverse` flight progress. Legacy `.spaceuniverse` definition files remain importable.
 
-## Keyboard Shortcuts
-
-- `Space`: Play / Pause simulation.
-- `Shift` (hold): Snap slingshot to exact circular orbit.
-- `C`: Toggle circularize mode on/off.
-- `O`: Toggle planetary orbit lines on/off.
-- `Delete` / `Backspace`: Delete currently selected celestial body.
-- Right-click / Middle-click + Drag: Pan camera.
-- Mouse Wheel: Zoom in / out centered on cursor.
-
+The **Testing Lab** includes diagnostic checks and interactive scenarios for three-body motion, J₂ perturbations, tidal locking, collisions and ring stress. Use the unit suite for automated regression checks; interactive demonstrations do not establish numerical accuracy by themselves.

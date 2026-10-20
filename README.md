@@ -1,140 +1,72 @@
-# Spacelab 🚀
+# Spacelab
 
-A browser-first workspace and simulation engine for modular 2D space games, featuring double-precision orbital mechanics, hardware-accelerated WebGL 2 GPU shaders, multiplayer fleets, and custom module authoring.
+A free, open-source toolkit for modular 2D space games. **Space Sim**, the bundled orbital flight game, combines double-precision Keplerian mechanics, terrain and ocean landings, and multiplayer in a minimalist vector world.
 
-The bundled default game is **Space Sim** (`space-sim`).
+**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[MIT license](LICENSE)**
 
----
+Spacelab is in alpha. Module contracts and file tooling are still evolving.
 
-## 🌟 Key Features
+## Play and learn
 
-- **Double-Precision Orbital Mechanics:** Real double-precision Keplerian conic propagation, patched conics, and numerical solvers for rocket burns and surface contacts.
-- **Flight Console & Telemetry:** Real-time trajectory prediction, apoapsis/periapsis markers, velocity vectors, altitude telemetry, and time warp up to 100,000×.
-- **Physical Surfaces & Terrains:** Land on pads, explore rugged terrain worlds, or navigate oceanic splashdowns with hydrostatic buoyancy.
-- **Fleets & Multiplayer:** Command fleets of ships, swap pilot control, host peer-to-peer WebRTC sessions, or connect to the standalone dedicated server.
-- **Extensible & Modular:** Built-in Lab Manager to create, customize, and remix game packages (`.spacegame`), universes (`.spaceuniverse`), custom GLSL shader packs, and code modules.
-- **Clean-Room & Permissive:** 100% first-party code, zero runtime third-party dependencies, licensed under the [MIT License](LICENSE).
+Open **Manual** in the game's dock. The **Players** tab covers your first orbit, live controls, maneuver planning, transfers, landing, saves and multiplayer. Controls support keyboard, touch and gamepad; remap them under **Settings → Controls & keybindings…**.
 
----
+- Fly with trajectory predictions, a navball, multi-node plans, burn reminders and time warp up to 100,000×.
+- Explore the compact Primus system, terrain and ocean worlds, or scaled and full-scale Solar System definitions.
+- Fly fleets with up to four local pilots using dynamic split screen, browser invites, or a dedicated server.
+- Choose Canvas 2D or WebGL 2 rendering, customize planet appearances and shaders, and arrange instrument windows.
 
-## 🎮 Play Options
+For offline play, download the release's `space-lab-<tag>-offline.html` and open it locally. Desktop and dedicated server downloads are available for Windows, macOS and Linux; Android APKs are available for sideloading. The desktop executable uses an installed browser to display its embedded game. Keep the included `NODE-LICENSE.txt` with desktop and server executables.
 
-### 1. Play in Browser
-Play directly in any modern desktop or mobile web browser:
-**[Launch Space Sim Online](https://pink-kitsune-420.github.io/space-sim/)**
+## Create and remix
 
-### 2. Single-File Offline Web
-Download `space-lab-offline.html` from the [Releases](https://github.com/pink-kitsune-420/space-sim/releases) page and double-click to play locally with zero internet connection or server required.
+Open the Manual's **Creators** tab for universe authoring, shader packs, reusable modules and game composition. **ModMenu** manages games and plugins. **Orbit Sandbox** lets you create planetary systems; **Flight starter**, **Planet viewer** and **Survey fixture** demonstrate smaller compositions with different tools and host adapters.
 
-### 3. Standalone Desktop & Dedicated Server Executables
-Download self-contained single-file executables for Windows, macOS, or Linux from GitHub Releases:
-- **Game Executable:** Launches a frameless, standalone desktop window.
-- **Dedicated Server Executable:** Runs a headless multiplayer server with automatic periodic world saves and backups.
+| File | Contains |
+| --- | --- |
+| `.spacegame` | Game setup, selected modules, content and settings |
+| `.spacemod` | Code module with editable source and a compiled bundle |
+| `.spacedata` | Reusable definitions, including universes or shaders |
+| `.spaceuniverse` | Saved flight progress |
 
----
+Older JSON, gzip and `.spaceuniverse` definition files remain readable. **Setup → Export** shares universe definitions; **Fleet → Save universe** saves flight progress. Importing a code package inspects it; enabling or playing it executes code, so use authors you trust.
 
-## 🕹️ Flight Controls
+Start with the [module examples](examples/modules/README.md), [editable packages](examples/packages/README.md), [shader example](examples/shaders/README.md) or [universe library](games/space-sim/universes/README.md). Module contracts live in [packages/game-api](packages/game-api/src/index.ts).
 
-| Action | Keyboard | Touch / On-screen |
-|---|---|---|
-| **Ignition** | <kbd>Space</kbd> (Hold) | Hold on-screen **BURN** button |
-| **Attitude (Turn)** | <kbd>←</kbd> / <kbd>→</kbd> or <kbd>A</kbd> / <kbd>D</kbd> | Hold turn buttons (↶ / ↷) |
-| **Throttle** | <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>W</kbd> / <kbd>S</kbd> | Drag throttle slider |
-| **Time Warp** | <kbd>[</kbd> / <kbd>]</kbd> or <kbd>,</kbd> / <kbd>.</kbd> | Click warp buttons (◀◀ / ▶▶) |
-| **Switch Vessel** | <kbd>\</kbd> (next) / <kbd>Backspace</kbd> (previous) | Select vessel in Fleet panel |
-| **Camera View** | <kbd>C</kbd> (Follow) / <kbd>H</kbd> (Horizon) | Click camera toolbar buttons |
-| **Zoom** | <kbd>+</kbd> / <kbd>−</kbd> or Mouse Wheel | Click Zoom in/out buttons |
-| **Pause / Reset** | <kbd>P</kbd> / <kbd>R</kbd> | Click Pause / Reset buttons |
+## Develop
 
-Every key can be remapped in **Settings → Controls & keybindings…**. For more help, open **Manual** in the game's dock. It covers flying, orbital mechanics, multiplayer and making your own content.
+Requires **Node.js 22.12 or newer** and npm. Run these commands from the repository root:
 
----
-
-## 🛠️ Creating Custom Content
-
-### Custom Universes
-Spacelab supports custom planetary systems and universes with arbitrary hierarchies, physical radii, gravitational parameters ($\mu$), atmospheres, and terrains.
-- Use the **Import…** button to load a `.spaceuniverse` or `.json` file.
-- Use the **Export** button to download your customized universe.
-- Pre-made universes are available in `games/space-sim/universes/` (including the compact default system, ocean worlds, rugged terrain worlds, and the full 1:1 scale solar system with 477 bodies).
-
-### Custom Shaders
-Switch between Canvas 2D and WebGL 2 GPU shader renderers at any time. Under **Shaders**, you can:
-- Live-edit the GLSL shaders (background starfield, celestial bodies, atmospheres, rings, ship glows, HUD overlays).
-- Import and export `.json` shader packs (see `examples/shaders/` for reference packs).
-
-### Custom Code Modules
-Extend physics, add custom instrument panels, or implement game rules using the module authoring toolkit:
-- Contracts: Defined in `@space-sim/game-api` (`packages/game-api`).
-- Starters & Examples: Found under `examples/modules/` (force models, numerical integrators, telemetry HUD overlays, custom state migrations).
-- Build command:
-  ```sh
-  npm run module:build -- path/to/module.json output.module.json
-  ```
-
----
-
-## 💻 Development & Building
-
-### Prerequisites
-- Node.js >= 22.12 (Node 22 LTS recommended)
-- npm
-
-### Quickstart
 ```sh
-# Clone repository
 git clone https://github.com/pink-kitsune-420/space-sim.git
 cd space-sim
-
-# Install dependencies
 npm ci
-
-# Start local dev server
 npm run dev
 ```
 
-### Build & Test Suite
-```sh
-# Build production web bundle, offline single-file HTML, desktop bundle, and server
-npm run build
-
-# Run unit test suite (Vitest)
-npm test
-
-# Run full project verification (TypeScript, module boundaries, unit tests, licenses, integrity)
-npm run check
-
-# Browser smoke tests (Playwright)
-npm run test:browser
-```
-
-### Packaging Binaries
-Packaging rebuilds current sources before creating executables. `npm run build` alone
-updates bundles and offline HTML; it does not replace existing standalone executables.
+Open the URL printed by Vite. To build and verify:
 
 ```sh
-# Matching standalone desktop game and dedicated server (one shared build)
-npm run package -- --target=multiplayer
-
-# Standalone desktop game executable for current OS (dist-desktop/space-sim)
-npm run package -- --target=desktop-exe
-
-# Standalone dedicated server executable (dist-server/space-sim-server)
-npm run package -- --target=server-exe
-
-# Single-file offline HTML player
-npm run package -- --target=offline
-
-# Sync assets into Android native project
-npm run package -- --target=android
+npm run build           # Web, offline HTML, desktop/server bundles and Academy add-on
+npm run check           # Module boundaries, build, unit tests, licenses and integrity
+npx playwright install # Install browsers once before browser tests
+npm run test:browser    # Tests the production build; rebuild after source edits
 ```
 
----
+`npm run check` excludes browser tests. See the [web application README](apps/web/README.md) for targeted checks and [Orbit Sandbox](apps/orbit-sandbox/README.md) for its separate development setup.
 
-## 📄 License & Credits
+## Host and package
 
-Spacelab is free, open-source software licensed under the **[MIT License](LICENSE)**.
+```sh
+npm run host                              # Build, start a server and open its game
+npm run package -- --target=multiplayer    # Matching desktop and server executables
+npm run package -- --target=offline        # dist/space-lab-offline.html
+npm run package -- --target=android        # Stage assets; build APK when SDK is configured
+```
 
-- **Shipped Code:** 100% first-party code authored specifically for Spacelab, with zero third-party runtime dependencies.
-- **Node.js Runtime Exception:** Standalone single-file executables bundle the official, unmodified Node.js runtime (MIT license) and are distributed alongside `NODE-LICENSE.txt`.
-- **Third-Party Build Tools:** Verified for commercial-friendly open-source licensing (MIT, Apache-2.0, BSD-3-Clause). See [CREDITS.md](CREDITS.md).
+Packaging rebuilds current sources. `npm run build` produces JavaScript bundles and web artifacts; it does not replace standalone executables. Desktop/server packaging targets the current operating system and architecture and requires the matching Node.js license text; set `NODE_LICENSE_PATH` if it cannot be found beside Node.
+
+See the [server README](apps/server/README.md) for persistent worlds, custom games and configuration. Run `npm run package -- --help` for individual targets and prerequisite checks.
+
+## License and credits
+
+Spacelab's application code is first-party and [MIT-licensed](LICENSE), with no third-party runtime dependencies in the web player. Standalone desktop and server executables also bundle Node.js. Attribution and build-tool notices are in [CREDITS.md](CREDITS.md).

@@ -1,11 +1,15 @@
-# 2D & WebGL 2 Renderer
+# Canvas 2D and WebGL 2 rendering adapters
 
-Consumes coherent simulation snapshots, timed trajectory paths, and camera transforms. Owns projection, analytical clipping, curve tessellation, celestial disc/horizon drawing, and HUD markers.
+Consumes simulation snapshots, trajectory samples and camera transforms to draw the world. Renderer code does not mutate simulation state.
 
-`src/index.ts` provides the renderer interface and shared world projection with per-frame camera constants, screen-space mouse panning, camera rotation and shortest-angle blending. Ship, body, heading and coast samples use one transform. Renderer code never mutates simulation state.
+The reusable implementations live in [modules/render-canvas](../../modules/render-canvas/) and [modules/render-webgl](../../modules/render-webgl/). This package supplies compatibility constructors and engine ports for the existing flight application. New module code uses the public rendering contracts in [packages/game-api](../game-api/src/index.ts).
 
-`RenderFrame.ships` adds other vessels beneath the piloted one, tinted by whether they belong to this player's fleet or to someone else.
+- [src/index.ts](src/index.ts) exposes the compatibility renderers, projection helpers, appearance preview and theme support.
+- [src/frame.ts](src/frame.ts) re-exports pure projection and path math from the public API; importing it does not load a renderer.
+- [src/canvas.ts](src/canvas.ts) and [src/webgl.ts](src/webgl.ts) bind engine ports to the module-owned renderer classes.
+- [src/terrain.ts](src/terrain.ts) adapts shared CPU terrain geometry to the engine's surface queries. Drawing and flight use the same deterministic surface profiles.
+- [src/shaders.ts](src/shaders.ts) exposes the default shader stages. Shader packs can replace the public scene, vector and text passes; terrain uses a separate built-in pass.
 
-`src/canvas.ts` contains Canvas 2D drawing. `src/webgl.ts` owns GPU resources and geometry submission; `src/shaders/` contains the default scene, vector and text GLSL stages, including their palettes. Shader packs can replace those public passes at load time.
+Projection keeps world calculations in double precision and uses local coordinates for rendering. Additional ships share the same camera transform as the piloted vessel, with fleet/ownership styling supplied by the frame.
 
-`src/terrain.ts` supplies shared CPU terrain geometry, view selection, error-bounded tessellation/simplification, double precision local projection, viewport clipping, relief shading and body-fixed feature accents. Both renderers consume `RenderBody.surface`. Profiles are generated on system load by the app, and supplied to flight and prediction.
+For editing shader packs, see [examples/shaders](../../examples/shaders/README.md) and **Manual → Creators → Shader packs**.
