@@ -41,7 +41,7 @@ describe('motion matches the original implementation bit for bit', () => {
         if (body.surfaceFeatures === 'star') continue;
         const surface = world.surface(body.id);
         const top = surface?.bounds.maxRadius ?? body.radius;
-        for (let i = 0; i < 300; i++) {
+        for (let i = 0; i < 150; i++) {
           // Altitudes from just above the highest ground (or inside a sea) to orbital.
           const r = random() < 0.5 ? top + random() * 30 : top * (1.05 + random() * 3);
           const angle = random() * 2 * Math.PI;

@@ -16,10 +16,11 @@ export function checkCommandKeys(commands: readonly CommandExtension[]): void {
  * session (the authoritative host checks and applies them); nothing here changes the world. */
 export class CommandBar {
   private commands: readonly CommandExtension[] = [];
+  private readonly renderedKeys = new Map<string, string | undefined>();
   constructor(
     private readonly container: HTMLElement,
     issue: (command: CommandExtension) => void,
-    private keysFor?: (id: string) => readonly string[],
+    private keysFor?: (id: string) => readonly string[] | undefined,
   ) {
     container.addEventListener('click', event => {
       const id = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-command]')?.dataset.command;
@@ -27,18 +28,35 @@ export class CommandBar {
       if (command) issue(command);
     });
   }
+  commandKeys(command: CommandExtension): readonly string[] {
+    const configured = this.keysFor?.(command.id);
+    if (configured !== undefined && configured.length > 0) return configured;
+    return command.hook.key ? [command.hook.key] : [];
+  }
   /** Rebuild when the world's command table changes or remapping occurs. */
-  sync(commands: readonly CommandExtension[], keysFor?: (id: string) => readonly string[]): void {
+  sync(commands: readonly CommandExtension[], keysFor?: (id: string) => readonly string[] | undefined): void {
     if (keysFor) this.keysFor = keysFor;
+    const sameCommands = commands === this.commands || (commands.length === this.commands.length && commands.every((c, i) => c === this.commands[i]));
+    if (sameCommands) {
+      let keysChanged = false;
+      for (const cmd of commands) {
+        if (this.renderedKeys.get(cmd.id) !== this.commandKeys(cmd)[0]) {
+          keysChanged = true;
+          break;
+        }
+      }
+      if (!keysChanged) return;
+    }
     this.commands = commands;
+    this.renderedKeys.clear();
     this.container.replaceChildren(...commands.map(command => {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.command = command.id;
       button.title = `${command.hook.label} · module command ${command.id}`;
       button.append(command.hook.label);
-      const configuredKey = this.keysFor ? this.keysFor(command.id)?.[0] : undefined;
-      const key = configuredKey ?? command.hook.key;
+      const key = this.commandKeys(command)[0];
+      this.renderedKeys.set(command.id, key);
       if (key) {
         const kbd = document.createElement('kbd');
         kbd.textContent = keyName(key);
@@ -52,9 +70,6 @@ export class CommandBar {
     for (const button of this.container.querySelectorAll('button')) button.disabled = value;
   }
   byKey(code: string): CommandExtension | undefined {
-    return this.commands.find(c => {
-      const keys = this.keysFor ? (this.keysFor(c.id) ?? (c.hook.key ? [c.hook.key] : [])) : (c.hook.key ? [c.hook.key] : []);
-      return keys.includes(code);
-    });
+    return this.commands.find(c => this.commandKeys(c).includes(code));
   }
 }

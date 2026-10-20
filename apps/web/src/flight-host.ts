@@ -822,7 +822,7 @@ function useSession(next: GameSession, recenter = true): void {
     syncCameraButton();
     fitZoom(state);
   }
-  commandBar.sync(next.world.commands, id => keybindings[id] ?? []);
+  commandBar.sync(next.world.commands, id => keybindings[id]);
   invalidatePrediction();
   lastWall = undefined;
   updateMultiplayer();
@@ -2798,7 +2798,7 @@ hudVisibility.bind('profiler', 'Profiler', () => !profilerPanel.hidden,
 
 /** Module commands: buttons and keys for the active world's command table. The session sends
  * each request to the authoritative host, which checks and applies it. */
-const commandBar = new CommandBar(element('module-commands'), issueCommand, id => keybindings[id] ?? []);
+const commandBar = new CommandBar(element('module-commands'), issueCommand, id => keybindings[id]);
 function issueCommand(command: CommandExtension): void {
   const ship = selectedShip();
   if (!ship) { notify('No ship to command.'); return; }
@@ -4193,7 +4193,7 @@ function renderKeybindingsList(): void {
         currentKeys.splice(idx, 1);
         saveKeybindings(keybindings);
         refreshKeyLookup();
-        commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
+        commandBar.sync(session?.world?.commands ?? [], id => keybindings[id]);
         renderKeybindingsList();
       });
       chip.appendChild(remove);
@@ -4275,7 +4275,7 @@ function renderKeybindingsList(): void {
           currentKeys.splice(idx, 1);
           saveKeybindings(keybindings);
           refreshKeyLookup();
-          commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
+          commandBar.sync(session?.world?.commands ?? [], id => keybindings[id]);
           renderKeybindingsList();
         });
         chip.appendChild(remove);
@@ -4341,7 +4341,7 @@ window.addEventListener('keydown', (e) => {
 
   saveKeybindings(keybindings);
   refreshKeyLookup();
-  commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
+  commandBar.sync(session?.world?.commands ?? [], id => keybindings[id]);
   stopListening();
 }, true);
 
@@ -4402,7 +4402,7 @@ touchOverlayMode.addEventListener('change', () => {
 resetKeybindingsBtn.addEventListener('click', () => {
   keybindings = resetKeybindings();
   refreshKeyLookup();
-  commandBar.sync(session?.world?.commands ?? [], id => keybindings[id] ?? []);
+  commandBar.sync(session?.world?.commands ?? [], id => keybindings[id]);
   renderKeybindingsList();
 });
 window.addEventListener('error', event => profiler.event('error',
@@ -4542,7 +4542,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
 
 function hud(engine: boolean): void {
   syncCameraButton();
-  commandBar.sync(session.world.commands, id => keybindings[id] ?? []);
+  commandBar.sync(session.world.commands, id => keybindings[id]);
   const terrainNotice = element('terrain-notice');
   terrainNotice.hidden = session.world.surfaces.size === 0;
   const ship = selectedShip();

@@ -6,6 +6,7 @@ import {createFlightPlans} from '../../modules/flight-plans/src/index';
 import {createManeuverBurns} from '../../modules/maneuver-burn/src/index';
 import {createTransferPlanner} from '../../modules/transfer-planner/src/index';
 import type {UniverseDefinition,TransferResult} from '../../packages/game-api/src/index';
+
 it('plans a multi-year Earth to Europa mission without silently selecting Jupiter',()=>{
  const world=new World(solarSystem as UniverseDefinition),ship=world.spawn({ownerId:'pilot',presetId:'earth-orbit'}),burns=createManeuverBurns({stepSeconds:.01,idle:{engine:false,turn:0,throttle:0}}),plans=createFlightPlans(burns),solver=createTransferPlanner(plans,burns),year=365.25*86400;
  const job=solver.search(world,{shipId:ship.id,destinationId:'europa',periapsisAltitude:100000,apoapsisAltitude:100000,maxFlightSeconds:10*year});

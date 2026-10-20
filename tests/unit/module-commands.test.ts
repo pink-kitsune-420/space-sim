@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { CommandHook, ModuleManifest, RegisteredModule, WorldEvent, WorldRuleHook } from '../../packages/game-api/src/index';
+import type { CommandExtension, CommandHook, ModuleManifest, RegisteredModule, WorldEvent, WorldRuleHook } from '../../packages/game-api/src/index';
 import { ModuleRegistry, captureCommand, captureCommands, commandArguments } from '../../packages/game-runtime/src/index';
 import { prepareGame } from '../../packages/modules/src/index';
 import { GAME_EXAMPLES } from '../../examples/modules/index';
 import { HostSession, SessionError } from '../../packages/net/src/host';
 import { PROTOCOL, ProtocolError, parseClientMessage } from '../../packages/net/src/protocol';
 import { Game } from '../helpers/net-harness';
-import { checkCommandKeys } from '../../apps/web/src/commands';
+import { checkCommandKeys, CommandBar } from '../../apps/web/src/commands';
 import { createFlightSessions } from '../../modules/session-flight/src/index';
 import { flightSessionServices } from '../../packages/net/src/session-services';
 
@@ -291,3 +291,57 @@ describe('commands over the network', () => {
     world.dispose();
   });
 });
+
+describe('CommandBar key resolution', () => {
+  it('falls back to command hook key when unmapped or empty, and respects configured keys', () => {
+    const mockContainer = {
+      addEventListener: () => {},
+      replaceChildren: () => {},
+      hidden: false,
+      querySelectorAll: () => [],
+    } as unknown as HTMLElement;
+    const keybindings: Record<string, string[] | undefined> = {};
+    const bar = new CommandBar(mockContainer, () => {}, id => keybindings[id]);
+    const cmd1: CommandExtension = {
+      id: 'mod/cmd1',
+      moduleId: 'mod',
+      version: '1.0.0',
+      hook: { name: 'cmd1', label: 'Cmd 1', key: 'KeyU', resolve: () => ({}) },
+    };
+    const cmd2: CommandExtension = {
+      id: 'mod/cmd2',
+      moduleId: 'mod',
+      version: '1.0.0',
+      hook: { name: 'cmd2', label: 'Cmd 2', resolve: () => ({}) },
+    };
+
+    const prevDoc = (globalThis as unknown as { document?: unknown }).document;
+    (globalThis as unknown as { document: unknown }).document = {
+      createElement: () => ({ append: () => {}, setAttribute: () => {}, dataset: {} }),
+    };
+    try {
+      bar.sync([cmd1, cmd2]);
+
+      // Unconfigured falls back to hook.key
+      expect(bar.commandKeys(cmd1)).toEqual(['KeyU']);
+      expect(bar.commandKeys(cmd2)).toEqual([]);
+      expect(bar.byKey('KeyU')).toBe(cmd1);
+      expect(bar.byKey('KeyX')).toBeUndefined();
+
+      // Explicit empty array still falls back to hook.key
+      keybindings['mod/cmd1'] = [];
+      expect(bar.commandKeys(cmd1)).toEqual(['KeyU']);
+      expect(bar.byKey('KeyU')).toBe(cmd1);
+
+      // Configured overrides hook.key
+      keybindings['mod/cmd1'] = ['KeyX', 'KeyY'];
+      expect(bar.commandKeys(cmd1)).toEqual(['KeyX', 'KeyY']);
+      expect(bar.byKey('KeyX')).toBe(cmd1);
+      expect(bar.byKey('KeyY')).toBe(cmd1);
+      expect(bar.byKey('KeyU')).toBeUndefined();
+    } finally {
+      (globalThis as unknown as { document?: unknown }).document = prevDoc;
+    }
+  });
+});
+
