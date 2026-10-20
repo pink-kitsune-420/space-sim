@@ -49,6 +49,12 @@ export function createModuleLogs(options:ModuleLogOptions={}):ModuleLogService {
   dispose(){if(disposed)return;disposed=true;ring.fill(undefined);count=0;}
  });
 }
+/**
+ * Contributes bounded module-scoped diagnostics.
+ * Provides diagnostics.logs@1.0.0 in slot diagnostics.logs.
+ * Requires nothing.
+ * Settings minimumLevel, historyEntries, maxPerSecond, messageLength and consoleOutput configure severity, retention, rate, message size and console mirroring.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'Module logging',summary:'Bounded module-scoped diagnostics with severity filtering and no simulation state.',asset:'docs/creators/usage.json'});
  const level=LEVELS[context.settings.minimumLevel??1]??'info';

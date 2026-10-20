@@ -1,0 +1,47 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "example.profiler",
+    "name": "Profiler example",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline"
+    ],
+    "tier": "platform",
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "example.profiler",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [
+      {
+        "name": "diagnostics.profiler",
+        "version": "^1.0.0"
+      }
+    ],
+    "slots": [
+      "example.profiler"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT"
+  },
+  "entry": "src/main.ts",
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [],
+  "inputs": [],
+  "sourceStatus": "included"
+}

@@ -205,6 +205,12 @@ export function createProfilers(defaults: ProfilerOptions = {}): ProfilerFactory
    profilers.clear(); if (errors.length) throw new AggregateError(errors, 'Profiler provider cleanup failed');}
  });
 }
+/**
+ * Contributes optional bounded viewer frame profilers.
+ * Provides diagnostics.profiler@1.0.0 in slot diagnostics.profiler.
+ * Requires nothing.
+ * Settings precise, longWorkMs, hitchMs, hitchRatio and graphMs set the defaults for new profilers.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'Frame profiler',summary:'Optional bounded viewer diagnostics.',asset:'docs/creators/usage.json'});
  context.provide(PROFILERS,context.own(createProfilers({precise:(context.settings.precise??0)>=1,longWorkMs:context.settings.longWorkMs??LONG_WORK_MS,hitchMs:context.settings.hitchMs,hitchRatio:context.settings.hitchRatio,graphMs:context.settings.graphMs})));

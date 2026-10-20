@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 16e728ffbe7733e4",
+  "provenance": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7c878813d8906403",
   "modules": [
     "spacelab.alarm-panel",
     "spacelab.trainer-appearance",
@@ -22,9 +22,12 @@
     "spacelab.join-review",
     "spacelab.local-pilots",
     "spacelab.local-views",
+    "spacelab.logging",
     "spacelab.maneuver-burn",
     "builtin.maneuver-planner",
     "spacelab.maneuver-editor",
+    "spacelab.manual",
+    "spacelab.mod-menu",
     "builtin.navball",
     "spacelab.net-node-ws",
     "spacelab.net-tab",
@@ -35,6 +38,7 @@
     "spacelab.planet-designer",
     "spacelab.player-controller",
     "spacelab.player-view",
+    "spacelab.profiler",
     "spacelab.render-canvas",
     "spacelab.render-webgl",
     "spacelab.session-flight",
@@ -45,6 +49,8 @@
     "spacelab.theme-customizer",
     "spacelab.throttle-hud",
     "spacelab.transfer-planner",
+    "spacelab.ui-shell",
+    "spacelab.ui-windows",
     "spacelab.universe-files",
     "spacelab.universe-save-controls",
     "spacelab.universe-saves",
@@ -64,7 +70,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 16e728ffbe7733e4"
+          "text": "Spacelab package 0.6.4-alpha.1 · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7c878813d8906403"
         },
         {
           "type": "paragraph",
@@ -176,6 +182,11 @@
         },
         {
           "type": "link",
+          "text": "Module logging (spacelab.logging)",
+          "page": "api-reference/module/spacelab.logging"
+        },
+        {
+          "type": "link",
           "text": "Finite maneuver burns (spacelab.maneuver-burn)",
           "page": "api-reference/module/spacelab.maneuver-burn"
         },
@@ -188,6 +199,16 @@
           "type": "link",
           "text": "Maneuver editor (spacelab.maneuver-editor)",
           "page": "api-reference/module/spacelab.maneuver-editor"
+        },
+        {
+          "type": "link",
+          "text": "Manual reader and guides (spacelab.manual)",
+          "page": "api-reference/module/spacelab.manual"
+        },
+        {
+          "type": "link",
+          "text": "ModMenu (spacelab.mod-menu)",
+          "page": "api-reference/module/spacelab.mod-menu"
         },
         {
           "type": "link",
@@ -241,6 +262,11 @@
         },
         {
           "type": "link",
+          "text": "Frame profiler (spacelab.profiler)",
+          "page": "api-reference/module/spacelab.profiler"
+        },
+        {
+          "type": "link",
           "text": "Canvas 2D (spacelab.render-canvas)",
           "page": "api-reference/module/spacelab.render-canvas"
         },
@@ -288,6 +314,16 @@
           "type": "link",
           "text": "Orbital transfer search (spacelab.transfer-planner)",
           "page": "api-reference/module/spacelab.transfer-planner"
+        },
+        {
+          "type": "link",
+          "text": "Window shell and dock (spacelab.ui-shell)",
+          "page": "api-reference/module/spacelab.ui-shell"
+        },
+        {
+          "type": "link",
+          "text": "Shared windows (spacelab.ui-windows)",
+          "page": "api-reference/module/spacelab.ui-windows"
         },
         {
           "type": "link",
@@ -380,8 +416,23 @@
         },
         {
           "type": "link",
+          "text": "logging.ts",
+          "page": "api-reference/game-api/logging"
+        },
+        {
+          "type": "link",
           "text": "maneuver.ts",
           "page": "api-reference/game-api/maneuver"
+        },
+        {
+          "type": "link",
+          "text": "manual.ts",
+          "page": "api-reference/game-api/manual"
+        },
+        {
+          "type": "link",
+          "text": "mod-menu.ts",
+          "page": "api-reference/game-api/mod-menu"
         },
         {
           "type": "link",
@@ -432,6 +483,11 @@
           "type": "link",
           "text": "presentation.ts",
           "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "profiler.ts",
+          "page": "api-reference/game-api/profiler"
         },
         {
           "type": "link",
@@ -532,6 +588,16 @@
           "type": "link",
           "text": "webrtc-transport.ts",
           "page": "api-reference/game-api/webrtc-transport"
+        },
+        {
+          "type": "link",
+          "text": "window-content.ts",
+          "page": "api-reference/game-api/window-content"
+        },
+        {
+          "type": "link",
+          "text": "window-shell.ts",
+          "page": "api-reference/game-api/window-shell"
         },
         {
           "type": "link",
@@ -2692,6 +2758,102 @@
       ]
     },
     {
+      "id": "api-reference/module/spacelab.logging",
+      "title": "Module logging reference",
+      "summary": "Bounded module-scoped diagnostics with severity filtering and no simulation state.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Bounded module-scoped diagnostics with severity filtering and no simulation state."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.logging",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline, node",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "diagnostics.logs@1.0.0 · MODULE_LOGS: ServiceKey<ModuleLogService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: diagnostics.logs",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "minimumLevel: number, default 1, from 0 to 3, step 1. Minimum log severity: 0 debug, 1 info, 2 warning, 3 error. Filter before formatting. Default info omits verbose lifecycle traces.",
+            "historyEntries: number, default 512, from 1 to 10000, step 1. Retained log entries: Maximum recent entries in the in-memory ring. Old entries are overwritten. Nothing is uploaded or saved automatically.",
+            "maxPerSecond: number, default 100, from 1 to 10000, step 1. Entries per logger per second: Drop excess entries from each scoped logger during a diagnostic wall second; prevents repeated messages from filling history.",
+            "messageLength: number, default 2048, from 64 to 8192, step 1. Maximum message characters: Truncate long diagnostic messages to this length. Structured scalar fields have separate bounded sizes.",
+            "consoleOutput: number, default 0, from 0 to 1, step 1. Mirror logs to console: 0 keeps logs in memory; 1 also writes accepted entries to the local developer console. Console output can be expensive."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "MODULE_LOGS, ModuleInitializationV2, ModuleLogEntry, ModuleLogFields, ModuleLogLevel, ModuleLogOptions, ModuleLogService, ModuleLogger, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api logging.ts",
+          "page": "api-reference/game-api/logging"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/logging (build with npm run module:build -- examples/modules/logging/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
       "id": "api-reference/module/spacelab.maneuver-burn",
       "title": "Finite maneuver burns reference",
       "summary": "Validated fixed-tick intent with compensated impulse accounting; the host owns commands and stepping.",
@@ -3074,6 +3236,203 @@
         {
           "type": "paragraph",
           "text": "Example source: examples/modules/maneuver-editor (build with npm run module:build -- examples/modules/maneuver-editor/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.manual",
+      "title": "Manual reader and guides reference",
+      "summary": "Optional Players/Creators navigation over shared documents with explicit live-content adapters.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional Players/Creators navigation over shared documents with explicit live-content adapters."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.manual",
+            "Version: 0.1.2",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.manual@1.0.0 · MANUAL_READER: ServiceKey<ManualService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.window-content@^1.0.0 · WINDOW_CONTENT: ServiceKey<WindowContentService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.manual",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable, MANUAL_READER, ManualAudience, ManualGuide, ManualReader, ManualReaderOptions, ManualService, ManualTopic, ModuleInitializationV2, ServiceKey, WINDOW_CONTENT, WindowContentService, captureDocument, documentText"
+        },
+        {
+          "type": "link",
+          "text": "game-api manual.ts",
+          "page": "api-reference/game-api/manual"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api window-content.ts",
+          "page": "api-reference/game-api/window-content"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/manual (build with npm run module:build -- examples/modules/manual/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.mod-menu",
+      "title": "ModMenu reference",
+      "summary": "Metadata browsing and explicit cancellable host commands without archive or world ownership.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Metadata browsing and explicit cancellable host commands without archive or world ownership."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.mod-menu",
+            "Version: 0.2.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.mod-menu@1.0.0 · MOD_MENU: ServiceKey<ModMenuService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.mod-menu",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable, MOD_MENU, ManifestV2, ModMenuGame, ModMenuLibraryElements, ModMenuLibraryPort, ModMenuLibraryView, ModMenuModuleOptions, ModMenuModulePort, ModMenuModuleView, ModMenuProfileElements, ModMenuProfilePort, ModMenuProfileState, ModMenuProfileView, ModMenuService, ModuleInitializationV2, ModuleManifest, NumberSetting, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api mod-menu.ts",
+          "page": "api-reference/game-api/mod-menu"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/mod-menu (build with npm run module:build -- examples/modules/mod-menu/module.json out.spacemod)."
         }
       ]
     },
@@ -4119,6 +4478,102 @@
           "type": "link",
           "text": "Customizable player views: how to use, replace and remove it",
           "page": "spacelab.player-view/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.profiler",
+      "title": "Frame profiler reference",
+      "summary": "Optional bounded viewer diagnostics.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional bounded viewer diagnostics."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.profiler",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "diagnostics.profiler@1.0.0 · PROFILERS: ServiceKey<ProfilerFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: diagnostics.profiler",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "precise: number, default 0, from 0 to 1, step 1. Precise renderer timing: 0 measures CPU submission; 1 flushes deferred renderer work at each timing lap. More accurate attribution can reduce frame rate. Viewer diagnostics only.",
+            "longWorkMs: number, default 11, from 1 to 1000, step 0.1. Slow work threshold (ms): Record a slow-frame event when measured game work exceeds this wall-time budget. Does not change simulation speed.",
+            "hitchMs: number, default 25, from 1 to 1000, step 0.1. Frame hitch threshold (ms): Minimum frame interval before the profiler considers an unusual hitch; the relative hitch ratio must also be exceeded.",
+            "hitchRatio: number, default 2.5, from 1 to 10, step 0.1. Frame hitch ratio: A frame interval must exceed this multiple of the recent typical interval, as well as the hitch threshold, to count as a hitch.",
+            "graphMs: number, default 33.4, from 8 to 1000, step 0.1. Graph vertical range (ms): Wall milliseconds represented by the graph height. The reference line stays at one 60 Hz frame (16.7 ms)."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "FrameProfiler, ModuleInitializationV2, PROFILERS, ProfileEvent, ProfileSection, ProfileStats, ProfileSummary, ProfilerFactory, ProfilerOptions, ServiceKey"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api profiler.ts",
+          "page": "api-reference/game-api/profiler"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/profiler (build with npm run module:build -- examples/modules/profiler/module.json out.spacemod)."
         }
       ]
     },
@@ -5305,6 +5760,216 @@
           "type": "link",
           "text": "Bounded orbital transfer search: how to use, replace and remove it",
           "page": "spacelab.transfer-planner/usage"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.ui-shell",
+      "title": "Window shell and dock reference",
+      "summary": "Optional grouped dock and window lifecycle.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Optional grouped dock and window lifecycle."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.ui-shell",
+            "Version: 0.2.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.shell@1.0.0 · WINDOW_SHELL: ServiceKey<WindowShellFactory>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.windows@^1.0.0 · WINDOWS: ServiceKey<WindowSystem>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.shell",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "list",
+          "items": [
+            "escapeToggleMs: number, default 300, from 0 to 1000, step 1. Escape debounce (ms): Minimum wall time between Escape/fullscreen menu toggles. Lower values respond faster; higher values prevent accidental double toggles."
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable, ModuleInitializationV2, ServiceKey, WINDOWS, WINDOW_SHELL, WindowChrome, WindowIcon, WindowPanelSpec, WindowShell, WindowShellFactory, WindowShellOptions, WindowSystem"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api window-shell.ts",
+          "page": "api-reference/game-api/window-shell"
+        },
+        {
+          "type": "link",
+          "text": "game-api windows.ts",
+          "page": "api-reference/game-api/windows"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/ui-shell (build with npm run module:build -- examples/modules/ui-shell/module.json out.spacemod)."
+        }
+      ]
+    },
+    {
+      "id": "api-reference/module/spacelab.ui-windows",
+      "title": "Shared windows reference",
+      "summary": "Independent movable, resizable and disposable windows through public ui.windows@1.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Independent movable, resizable and disposable windows through public ui.windows@1."
+        },
+        {
+          "type": "list",
+          "items": [
+            "ID: spacelab.ui-windows",
+            "Version: 0.1.0",
+            "API: space-sim-game-api/2",
+            "Manifest format: space-sim-module/2",
+            "Kind: provider",
+            "Tier: platform",
+            "Environments: browser, offline",
+            "Entry: src/index.ts",
+            "Multiplayer: supported"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Provides"
+        },
+        {
+          "type": "list",
+          "items": [
+            "ui.windows@1.0.0 · WINDOWS: ServiceKey<WindowSystem>",
+            "ui.window-content@1.0.0 · WINDOW_CONTENT: ServiceKey<WindowContentService>"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Requires"
+        },
+        {
+          "type": "paragraph",
+          "text": "Nothing."
+        },
+        {
+          "type": "heading",
+          "text": "Composition"
+        },
+        {
+          "type": "list",
+          "items": [
+            "Slots: ui.windows, ui.window-content",
+            "Dependencies: none",
+            "Conflicts: none",
+            "Initialize before: none; after: none"
+          ]
+        },
+        {
+          "type": "heading",
+          "text": "Settings"
+        },
+        {
+          "type": "paragraph",
+          "text": "None."
+        },
+        {
+          "type": "heading",
+          "text": "Game API used"
+        },
+        {
+          "type": "paragraph",
+          "text": "Disposable, ModuleInitializationV2, ServiceKey, UiControl, WINDOWS, WINDOW_CONTENT, WindowChrome, WindowChromeOptions, WindowContentDefinition, WindowContentOptions, WindowContentService, WindowIcon, WindowPreviewType, WindowSystem, captureDocument, capturePreviewData"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules.ts",
+          "page": "api-reference/game-api/modules"
+        },
+        {
+          "type": "link",
+          "text": "game-api modules-v2.ts",
+          "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api platform.ts",
+          "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "link",
+          "text": "game-api window-content.ts",
+          "page": "api-reference/game-api/window-content"
+        },
+        {
+          "type": "link",
+          "text": "game-api windows.ts",
+          "page": "api-reference/game-api/windows"
+        },
+        {
+          "type": "heading",
+          "text": "Guide and example"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example source: examples/modules/ui-windows (build with npm run module:build -- examples/modules/ui-windows/module.json out.spacemod)."
         }
       ]
     },
@@ -7920,6 +8585,134 @@
       ]
     },
     {
+      "id": "api-reference/game-api/logging",
+      "title": "game-api: logging.ts",
+      "summary": "Declarations from logging.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/logging.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogLevel"
+        },
+        {
+          "type": "paragraph",
+          "text": "Severity, ordered from least to most severe: `debug`, `info`, `warn`, `error`."
+        },
+        {
+          "type": "code",
+          "text": "export type ModuleLogLevel='debug'|'info'|'warn'|'error';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogFields"
+        },
+        {
+          "type": "paragraph",
+          "text": "Diagnostic metadata only; never retain worlds, commands, packets or live objects."
+        },
+        {
+          "type": "code",
+          "text": "export type ModuleLogFields=Readonly<Record<string,string|number|boolean|null>>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogEntry"
+        },
+        {
+          "type": "paragraph",
+          "text": "One immutable log record. Entries are frozen snapshots; later changes to the source never alter them."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleLogEntry {\n /** Provider-wide, strictly increasing from 1; survives `clear()`. Use it as the `after` cursor of a query. */\n readonly sequence:number;\n /** Monotonic diagnostic wall milliseconds, unrelated to simulation time. */\n readonly timeMs:number;\n /** Exact module ID and version that wrote the entry. */\n readonly module:ModuleReference;\n /** Severity the writer chose. */\n readonly level:ModuleLogLevel;\n /** Short non-empty machine-readable event name, at most 96 characters. */\n readonly event:string;\n /** Human-readable text, truncated to the provider's message-length limit. */\n readonly message:string;\n /** Optional scalar metadata: at most 32 fields, keys up to 64 characters, strings clipped to 1024. */\n readonly fields?:ModuleLogFields;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogger"
+        },
+        {
+          "type": "paragraph",
+          "text": "A logger scoped to one module identity. The consumer owns it and disposes it when it is removed."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleLogger extends Disposable {\n /** True when an entry of this severity would currently be considered; false after disposal. Use it to skip expensive preparation. */\n enabled(level:ModuleLogLevel):boolean;\n /** A lazy message is evaluated only after severity and rate filtering. Invalid entries are dropped.\n  * Diagnostic failures must never change gameplay or candidate publication. */\n write(level:ModuleLogLevel,event:string,message:string|(()=>string),fields?:ModuleLogFields):void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded in-memory diagnostics store. The provider owns the history; consumers own their loggers."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleLogService extends Disposable {\n /** Creates a logger for an exact module ID and version. Throws for a malformed identity or after the provider is disposed. */\n logger(module:ModuleReference):ModuleLogger;\n /** Oldest first; immutable bounded snapshots. No live subscription or frame-loop polling.\n  * Throws for an invalid query; returns an empty list after disposal. */\n entries(query?:ModuleLogQuery):readonly ModuleLogEntry[];\n /** Drops all retained entries. Sequence numbering continues. */\n clear():void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "ModuleLogOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Provider limits and host-owned ports. Invalid values make creation throw."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModuleLogOptions {\n /** Ring size in entries, integer 1 to 10000. Default 512. Older entries are overwritten. */\n readonly history?:number;\n /** Lowest severity accepted. Default `info`. */\n readonly minimum?:ModuleLogLevel;\n /** Accepted entries per logger per wall-clock second, integer 1 to 10000. Default 100. Excess entries are dropped. */\n readonly maxPerSecond?:number;\n /** Message length in characters, integer 64 to 8192. Default 2048. Longer text is truncated. */\n readonly messageLength?:number;\n /** Host-owned diagnostic clock/sink. Both stay outside authoritative behavior. */\n readonly now?:()=>number;\n /** Called synchronously with every stored entry; exceptions are swallowed. */\n readonly sink?:(entry:ModuleLogEntry)=>void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "heading",
+          "text": "MODULE_LOGS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the module-logging provider (`diagnostics.logs@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const MODULE_LOGS:ServiceKey<ModuleLogService>=Object.freeze({slot:'diagnostics.logs',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.logging."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/maneuver",
       "title": "game-api: maneuver.ts",
       "summary": "Declarations from maneuver.ts used by documented modules.",
@@ -8080,6 +8873,358 @@
       ]
     },
     {
+      "id": "api-reference/game-api/manual",
+      "title": "game-api: manual.ts",
+      "summary": "Declarations from manual.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/manual.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ManualAudience"
+        },
+        {
+          "type": "paragraph",
+          "text": "Audience discriminator for Manual reader tabs."
+        },
+        {
+          "type": "code",
+          "text": "export type ManualAudience = 'players' | 'creators';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "ManualTopic"
+        },
+        {
+          "type": "paragraph",
+          "text": "Portable manual topic or guide entry. Can contain either a structured WindowDocument or an explicit trusted DOM mounting function."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualTopic {\n  readonly id: string;\n  readonly title: string;\n  readonly summary: string;\n  /** Plain additional search text for a trusted custom renderer. Structured body text is automatic. */\n  readonly searchText?: string;\n  readonly document?: WindowDocument;\n  /** Explicit trusted host/content adapter, never constructed from imported HTML strings. */\n  readonly mount?: (root: HTMLElement) => Disposable | void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "ManualGuide"
+        },
+        {
+          "type": "paragraph",
+          "text": "Guide page bound to a specific audience ('players' or 'creators') for catalog registration."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualGuide extends ManualTopic {\n  readonly audience: ManualAudience;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "ManualReaderOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for instantiating a ManualReader (`ui.manual@1.0.0`). Defines the root host element, audience books, optional viewer preferences storage, ID prefix, optional configuration dialog trigger, live content revision hook, and scroll root."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualReaderOptions {\n  readonly root: HTMLElement;\n  readonly book: Readonly<Record<ManualAudience, ManualSection>>;\n  readonly storage?: ThemePreferences;\n  readonly storageKey?: string;\n  readonly idPrefix?: string;\n  readonly configure?: { readonly label: string; open(): void };\n  /** Host-controlled live-content revision; ordinary chrome refresh preserves scroll/details. */\n  readonly revision?: () => string;\n  readonly scrollContainer?: HTMLElement;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "ManualReader"
+        },
+        {
+          "type": "paragraph",
+          "text": "Active Manual reader UI instance (`ui.manual@1.0.0`). Provides navigation control and DOM cleanup upon disposal."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualReader extends Disposable {\n  refresh(): void;\n  show(pageId: string): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "ManualService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service for registering documentation guides and creating interactive manual readers (`ui.manual@1.0.0`). Disposing the service clears registered guides, listeners, active readers, and injected stylesheets."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManualService extends Disposable {\n  /** Candidate publication may temporarily shadow matching IDs; disposing its lease restores\n   * the prior guides. Duplicate IDs inside one registration always fail. */\n  register(pages: readonly ManualGuide[], options?: { readonly replace?: boolean }): Disposable;\n  /** Guides remain discoverable by recovery/library UI without mounting a Manual reader. */\n  guides(audience: ManualAudience): readonly ManualGuide[];\n  create(options: ManualReaderOptions): ManualReader;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "MANUAL_READER"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the Manual reader and guide catalog service (`ui.manual@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const MANUAL_READER: ServiceKey<ManualService> = Object.freeze({ slot: 'ui.manual', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/mod-menu",
+      "title": "game-api: mod-menu.ts",
+      "summary": "Declarations from mod-menu.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/mod-menu.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuGame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Metadata record for a game or example entry displayed in the ModMenu library view. Contains display labels, counts, and classification; never includes raw archive bytes or live worlds."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuGame {\n  readonly id: string;\n  readonly name: string;\n  readonly description: string;\n  readonly folder: string;\n  readonly favorite: boolean;\n  readonly builtin: boolean;\n  readonly dataModules: number;\n  readonly codeModules: number;\n  /** Host-selected entries sort first, while still respecting search and favorites filters. */\n  readonly pinned?: boolean;\n  /** Optional display grouping; omitted entries belong to Games. This does not affect game compatibility. */\n  readonly category?: 'game' | 'example';\n  /** Host explains when a runnable source fixture has no portable game adapter yet. */\n  readonly exportUnavailable?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuLibraryPort"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host bridge port for library browsing, file imports, and world lifecycle commands. Host owns verification, persistence, trust, exact selection, and atomic game replacement. Commands must honor cancellation before publishing; importing installs inert content only."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuLibraryPort {\n  entries(): readonly ModMenuGame[];\n  editable(): boolean;\n  importFile(file: File, signal: AbortSignal): Promise<string>;\n  save(name: string, folder: string, signal: AbortSignal): Promise<string>;\n  export(id: string | undefined, name: string, signal: AbortSignal): Promise<string | void>;\n  play(id: string, signal: AbortSignal): Promise<string>;\n  organize(id: string, changes: { readonly name?: string; readonly folder?: string; readonly favorite?: boolean }, signal: AbortSignal): Promise<void>;\n  remove(id: string, signal: AbortSignal): Promise<string>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuLibraryElements"
+        },
+        {
+          "type": "paragraph",
+          "text": "Required DOM element bindings used by the library view."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuLibraryElements {\n  readonly importButton: HTMLButtonElement;\n  readonly importFile: HTMLInputElement;\n  readonly save: HTMLButtonElement;\n  readonly export: HTMLButtonElement;\n  readonly name: HTMLInputElement;\n  readonly folder: HTMLInputElement;\n  readonly search: HTMLInputElement;\n  readonly sort: HTMLSelectElement;\n  readonly favorites: HTMLInputElement;\n  readonly list: HTMLElement;\n  readonly empty: HTMLElement;\n  readonly status: HTMLElement;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuLibraryView"
+        },
+        {
+          "type": "paragraph",
+          "text": "Active library view instance (`ui.mod-menu@1.0.0`). Disposing the view aborts in-flight commands and restores original element contents."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuLibraryView extends Disposable {\n  refresh(): void;\n  status(message: string): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuModulePort"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host bridge port for v2 module configuration and capability resolution. Metadata suggestions come from the host's compatibility rules, never a second UI resolver."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuModulePort {\n  state(): ModMenuModuleState;\n  compatible(need: CapabilityNeed): readonly ModMenuModuleRelease[];\n  select(id: string, digest: string | undefined): void;\n  version(id: string, digest: string): void;\n  setting(id: string, key: string, value: number): void;\n  capability(id: string, name: string, providerDigest: string | undefined): void;\n  provider(slot: string, id: string, digest: string): void;\n  includeRequired(): void;\n  removeDependents(): void;\n  cancel(): void;\n  apply(signal: AbortSignal): Promise<void>;\n  remove(digest: string, signal: AbortSignal): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuModuleOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for the module editor view."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuModuleOptions {\n  readonly prefix?: string;\n  readonly title?: string;\n  readonly notice?: string;\n  readonly ids?: { readonly list: string; readonly status: string; readonly apply: string; readonly cancel: string };\n  readonly applyLabel?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuModuleView"
+        },
+        {
+          "type": "paragraph",
+          "text": "Active module configuration view instance (`ui.mod-menu@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuModuleView extends Disposable {\n  refresh(): void;\n  status(message: string): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuProfileState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Snapshot of legacy profile state including applied profile and installed manifests."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuProfileState {\n  readonly applied: ModuleProfile;\n  readonly available: readonly ModuleManifest[];\n  readonly installed: readonly ModMenuInstalledModule[];\n  readonly editable: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuProfileElements"
+        },
+        {
+          "type": "paragraph",
+          "text": "DOM element bindings required for the legacy profile editor view."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuProfileElements {\n  readonly list: HTMLElement;\n  readonly providers: HTMLElement;\n  readonly installed: HTMLElement;\n  readonly apply: HTMLButtonElement;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuProfilePort"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host bridge port for legacy profile operations. Explicit legacy compatibility view; no conversion to a v2 lock or silent schema upgrade."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuProfilePort {\n  changed(): void;\n  error(message: string): void;\n  exportModule(id: string, signal: AbortSignal): Promise<void>;\n  removeModule(id: string, signal: AbortSignal): Promise<void>;\n  presentationSettings(id: string, values: Readonly<Record<string, number>>, signal: AbortSignal): Promise<void>;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuProfileView"
+        },
+        {
+          "type": "paragraph",
+          "text": "Active legacy profile editor view (`ui.mod-menu@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuProfileView extends Disposable {\n  refresh(state: ModMenuProfileState): void;\n  draft(): ModuleProfile;\n  select(modules: readonly ModuleReference[]): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "ModMenuService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory service creating library, module editor, and legacy profile views (`ui.mod-menu@1.0.0`). Disposing the service closes active views and removes injected stylesheets."
+        },
+        {
+          "type": "code",
+          "text": "export interface ModMenuService extends Disposable {\n  library(elements: ModMenuLibraryElements, port: ModMenuLibraryPort): ModMenuLibraryView;\n  modules(root: HTMLElement, port: ModMenuModulePort, options?: ModMenuModuleOptions): ModMenuModuleView;\n  profile(elements: ModMenuProfileElements, port: ModMenuProfilePort, initial: ModuleProfile): ModMenuProfileView;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
+          "text": "MOD_MENU"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the ModMenu library and configuration service (`ui.mod-menu@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const MOD_MENU: ServiceKey<ModMenuService> = Object.freeze({ slot: 'ui.mod-menu', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/module-data",
       "title": "game-api: module-data.ts",
       "summary": "Declarations from module-data.ts used by documented modules.",
@@ -8162,7 +9307,19 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud."
+          "text": "Used by: builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "NumberSetting"
+        },
+        {
+          "type": "code",
+          "text": "export interface NumberSetting {\n  readonly type: 'number';\n  readonly label?: string;\n  /** Plain-text help for module configuration controls. */\n  readonly description?: string;\n  /** Optional numeric increment, measured from minimum. Omitted means continuous. */\n  readonly step?: number;\n  readonly default: number;\n  readonly minimum: number;\n  readonly maximum: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
         },
         {
           "type": "heading",
@@ -8174,7 +9331,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.navball."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.mod-menu."
         },
         {
           "type": "heading",
@@ -8250,6 +9407,22 @@
         },
         {
           "type": "heading",
+          "text": "ManifestV2"
+        },
+        {
+          "type": "paragraph",
+          "text": "New metadata has a separate parser and lock. Legacy manifests/locks keep their identity."
+        },
+        {
+          "type": "code",
+          "text": "export interface ManifestV2 {\n  readonly format: 'space-sim-module/2';\n  readonly apiVersion: 'space-sim-game-api/2';\n  readonly id: string;\n  readonly name: string;\n  readonly version: string;\n  readonly kind: 'provider' | 'data';\n  readonly tier: ModuleTier;\n  readonly environments: readonly ModuleEnvironment[];\n  readonly dependencies: readonly ModuleReference[];\n  readonly conflicts: readonly ModuleReference[];\n  readonly provides: readonly CapabilityRef[];\n  readonly requires: readonly CapabilityNeed[];\n  /** Service slots this module can fill. A profile selects one provider per slot. */\n  readonly slots: readonly string[];\n  /** Module IDs this module must initialize before or after; both must be enabled. */\n  readonly before: readonly string[];\n  readonly after: readonly string[];\n  readonly beforeIfPresent?: readonly string[];\n  readonly afterIfPresent?: readonly string[];\n  /** Numeric settings shown in module configuration; values reach `context.settings`. */\n  readonly settings: Readonly<Record<string, NumberSetting>>;\n  readonly license: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.mod-menu."
+        },
+        {
+          "type": "heading",
           "text": "ServiceKey"
         },
         {
@@ -8262,7 +9435,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "heading",
@@ -8286,7 +9459,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
+          "text": "Used by: builtin.maneuver-planner, builtin.motion, builtin.navball, spacelab.alarm-panel, spacelab.camera-follow, spacelab.camera-smart, spacelab.chat-console, spacelab.controller-menu, spacelab.discovery-lan, spacelab.fleet-view, spacelab.flight-plans, spacelab.flight-prediction, spacelab.flight-split, spacelab.hud-layout, spacelab.input-actions, spacelab.input-gamepad, spacelab.input-keyboard, spacelab.input-profiles, spacelab.input-touch, spacelab.join-review, spacelab.local-pilots, spacelab.local-views, spacelab.logging, spacelab.maneuver-burn, spacelab.maneuver-editor, spacelab.manual, spacelab.mod-menu, spacelab.net-node-ws, spacelab.net-tab, spacelab.net-webrtc, spacelab.net-websocket, spacelab.orbital-alarms, spacelab.planet-designer, spacelab.player-controller, spacelab.player-view, spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl, spacelab.session-flight, spacelab.session-join, spacelab.spin-view, spacelab.theme, spacelab.theme-customizer, spacelab.throttle-hud, spacelab.trainer, spacelab.trainer-appearance, spacelab.transfer-planner, spacelab.ui-shell, spacelab.ui-windows, spacelab.universe-files, spacelab.universe-save-controls, spacelab.universe-saves, spacelab.universe-server-storage, spacelab.vector-shaders, spacelab.view-hud."
         },
         {
           "type": "link",
@@ -9258,6 +10431,18 @@
         },
         {
           "type": "heading",
+          "text": "UiControl"
+        },
+        {
+          "type": "code",
+          "text": "export type UiControl =\n  | { readonly kind: 'text'; readonly id: string; readonly text: string }\n  | { readonly kind: 'button' | 'toggle'; readonly id: string; readonly label: string; readonly action: string }\n  | { readonly kind: 'slider'; readonly id: string; readonly label: string; readonly action: string;\n      readonly minimum: number; readonly maximum: number; readonly step: number }\n  | { readonly kind: 'canvas'; readonly id: string; readonly label: string };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
           "text": "ThemeService"
         },
         {
@@ -9566,7 +10751,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+          "text": "Used by: spacelab.profiler, spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -9727,6 +10912,150 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.camera-follow."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/profiler",
+      "title": "game-api: profiler.ts",
+      "summary": "Declarations from profiler.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/profiler.ts."
+        },
+        {
+          "type": "heading",
+          "text": "ProfileSection"
+        },
+        {
+          "type": "paragraph",
+          "text": "A timed part of a frame: a render section or one of `physics`, `prediction`, `hud`."
+        },
+        {
+          "type": "code",
+          "text": "export type ProfileSection = RenderSection | 'physics' | 'prediction' | 'hud';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "ProfileStats"
+        },
+        {
+          "type": "paragraph",
+          "text": "Distribution of one measurement over the retained frames, in wall-clock milliseconds. All zero when no frame was recorded."
+        },
+        {
+          "type": "code",
+          "text": "export interface ProfileStats {\n  /** Mean. */ readonly avg: number;\n  /** Median. */ readonly p50: number;\n  /** 95th percentile. */ readonly p95: number;\n  /** 99th percentile. */ readonly p99: number;\n  /** Largest value. */ readonly max: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "ProfileSummary"
+        },
+        {
+          "type": "paragraph",
+          "text": "Snapshot of the retained window of at most 600 frames. Treat it as read-only; it may be cached until the next frame ends."
+        },
+        {
+          "type": "code",
+          "text": "export interface ProfileSummary {\n  /** Frames recorded since creation, not capped at the window size. */\n  readonly frames: number;\n  /** Frames per second implied by the mean frame interval; 0 with no data. */\n  readonly fps: number;\n  /** Wall time between frame starts, in ms. */\n  readonly interval: ProfileStats;\n  /** Game work per frame, in ms, from `begin` to the last `lap`. */\n  readonly work: ProfileStats;\n  /** Per-section time in ms. */\n  readonly sections: Readonly<Record<ProfileSection,ProfileStats>>;\n  /** Frames flagged as long work or hitches since creation. */\n  readonly slowFrames: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "ProfileEvent"
+        },
+        {
+          "type": "paragraph",
+          "text": "One bounded-log event. `t` is wall-clock seconds on the viewer's monotonic clock; extra fields are free-form detail."
+        },
+        {
+          "type": "code",
+          "text": "export interface ProfileEvent { readonly t: number; readonly type: string; readonly [detail: string]: unknown }"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "FrameProfiler"
+        },
+        {
+          "type": "paragraph",
+          "text": "Viewer-local wall-clock measurements; never feeds simulation or authoritative identity."
+        },
+        {
+          "type": "code",
+          "text": "export interface FrameProfiler extends RenderTimer, Disposable {\n  /** When true each `lap` first calls the flush callback so deferred raster work is attributed to the section that queued it. Slower. */\n  precise: boolean;\n  /** Wall-clock date at creation. */\n  readonly startedAt: Date;\n  /** Most recent `slow-frame` event, or undefined. */\n  readonly lastSlow: ProfileEvent | undefined;\n  /** Starts a frame. `intervalMs` is the wall time since the previous frame started. */\n  begin(intervalMs: number): void;\n  /** Attributes the time since the previous lap (or `begin`) to `section`. */\n  lap(section: ProfileSection): void;\n  /** Ends the frame, stores it in the 600-frame ring and may log a `slow-frame` event. Call once per `begin`. */\n  end(): void;\n  /** Appends an event to the 1000-event log (oldest dropped) and returns it. After disposal it is returned but not stored. */\n  event(type: string, detail?: Record<string,unknown>): ProfileEvent;\n  /** Computes statistics for the retained frames on request; cached until the next frame ends. */\n  summary(): ProfileSummary;\n  /** Statistics of the per-frame sum of several sections, not the sum of their percentiles. */\n  group(sections: readonly ProfileSection[]): ProfileStats;\n  /** Oldest-first copy of the retained frames (milliseconds, rounded) for export. Allocates. */\n  history(): Array<Record<string,number>>;\n  /** The live bounded event log, oldest first. Do not mutate. */\n  log(): readonly ProfileEvent[];\n  /** Draws stacked per-section bars of recent frames into a 2D canvas, newest at the right. Does nothing after disposal. */\n  drawGraph(canvas: HTMLCanvasElement): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "ProfilerOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional tuning for a profiler. Every value is viewer-only and never affects simulation."
+        },
+        {
+          "type": "code",
+          "text": "export interface ProfilerOptions {\n  /** Start in precise mode. Default false. */\n  readonly precise?: boolean;\n  /** Game work above this many ms flags a slow frame. Default 11. */\n  readonly longWorkMs?: number;\n  /** Frame interval in ms above which a hitch may be flagged. Default 25. */\n  readonly hitchMs?: number;\n  /** A hitch must also exceed this multiple of the typical interval. Default 2.5. */\n  readonly hitchRatio?: number;\n  /** Full height of the graph in ms. Default 33.4. */\n  readonly graphMs?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "ProfilerFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Creates independent profilers. The factory owns them: disposing it disposes every instance."
+        },
+        {
+          "type": "code",
+          "text": "export interface ProfilerFactory extends Disposable {\n  /** `flush` is optional and is called before each lap in precise mode (for example to read back a canvas pixel). Throws after disposal. */\n  create(flush?: () => void, options?: ProfilerOptions): FrameProfiler\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "heading",
+          "text": "PROFILERS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the frame-profiler provider (`diagnostics.profiler@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const PROFILERS: ServiceKey<ProfilerFactory> = Object.freeze({slot:'diagnostics.profiler',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.profiler."
         },
         {
           "type": "link",
@@ -12264,6 +13593,246 @@
       ]
     },
     {
+      "id": "api-reference/game-api/window-content",
+      "title": "game-api: window-content.ts",
+      "summary": "Declarations from window-content.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/window-content.ts."
+        },
+        {
+          "type": "heading",
+          "text": "WindowContentDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Tagged union of content sections mountable inside window bodies or dialog layouts. Supports portable documents, interactive inspector forms, scrollable lists/logs, and custom previews."
+        },
+        {
+          "type": "code",
+          "text": "export type WindowContentDefinition =\n  | { readonly kind: 'document' | 'instruction'; readonly id: string; readonly document: WindowDocument }\n  | { readonly kind: 'inspector' | 'form'; readonly id: string; readonly controls: readonly UiControl[] }\n  | { readonly kind: 'list' | 'log'; readonly id: string; readonly items: readonly string[] }\n  | { readonly kind: 'preview'; readonly id: string; readonly type: PreviewType; readonly data: PreviewData };"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "WindowContentOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Host callbacks provided when mounting window content structures. Routes declared UI actions, document page navigation, and control attachments."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowContentOptions {\n  /** Host validates declared actions and authority; a preview never receives a mutable world. */\n  action?(id: string, value: string | number | boolean): void;\n  navigate?(page: string): void;\n  control?(id: string, node: HTMLElement): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "WindowPreviewType"
+        },
+        {
+          "type": "paragraph",
+          "text": "Extension descriptor for registering a custom versioned preview component (`ui.window-content@1.0.0`). Enforces data validation prior to resource allocation; never receives simulation state or world authority."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowPreviewType {\n  readonly type: PreviewType;\n  /** Validate/capture data before creating resources. No authority is passed to a preview. */\n  validate(data: PreviewData): PreviewData;\n  mount(root: HTMLElement, data: PreviewData, options: WindowContentOptions): WindowPreview;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "WindowContentService"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service for registering preview types and mounting structured content sections (`ui.window-content@1.0.0`). Disposing the service unregisters active preview types and cleans up mounted sections."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowContentService extends Disposable {\n  /** Owner-published named, exact-version extension; add-ons declare this service need. */\n  register(preview: WindowPreviewType): Disposable;\n  mount(root: HTMLElement, content: WindowContentDefinition, options?: WindowContentOptions): Disposable;\n  document(root: HTMLElement, document: WindowDocument, options?: WindowContentOptions): Disposable;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual, spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "WINDOW_CONTENT"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the window content mounting and preview registry service (`ui.window-content@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const WINDOW_CONTENT: ServiceKey<WindowContentService> = Object.freeze({ slot: 'ui.window-content', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual, spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "captureDocument"
+        },
+        {
+          "type": "paragraph",
+          "text": "Headless parser and validator for portable guide and manual documents. Validates block structure, restricts character limits (<= 64 KiB total), and returns a deeply frozen document. Throws when block count exceeds 256, when text length exceeds 64 KiB, or when unsupported block fields exist."
+        },
+        {
+          "type": "code",
+          "text": "export function captureDocument(value: unknown): WindowDocument;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual, spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "documentText"
+        },
+        {
+          "type": "paragraph",
+          "text": "Extracts searchable raw plain text from a structured window document. Concatenates all paragraph, heading, code, and list item text separated by spaces."
+        },
+        {
+          "type": "code",
+          "text": "export function documentText(document: WindowDocument): string;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.manual."
+        },
+        {
+          "type": "heading",
+          "text": "capturePreviewData"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validates and deep-freezes candidate data for a window preview component. Recursively inspects data structure ensuring depth <= 16, total elements <= 4096, and encoded UTF-8 text <= 64 KiB. Throws when data exceeds structural or byte-size boundaries."
+        },
+        {
+          "type": "code",
+          "text": "export function capturePreviewData(value: PreviewData): PreviewData;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-windows."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/window-shell",
+      "title": "game-api: window-shell.ts",
+      "summary": "Declarations from window-shell.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/window-shell.ts."
+        },
+        {
+          "type": "heading",
+          "text": "WindowPanelSpec"
+        },
+        {
+          "type": "paragraph",
+          "text": "Specification for a workspace panel mounted into the window shell dock and viewport layer. Defines panel identification, title, dock label, vector icon, hover hint, borrowed DOM content, and whether the window is placed in the global overlay layer or beside the dock."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowPanelSpec {\n  readonly id: string;\n  readonly title: string;\n  readonly label: string;\n  readonly icon: WindowIcon;\n  readonly hint: string;\n  readonly content: readonly HTMLElement[];\n  readonly global?: boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-shell."
+        },
+        {
+          "type": "heading",
+          "text": "WindowShellOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Configuration options for creating a workspace window shell and dock (`ui.shell@1.0.0`). Defines the main viewport element, optional overlay root, grouped panel definitions, instrument toggle integration, wall-millisecond Escape debounce interval, chrome settings, and input focus/release lifecycle hooks."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowShellOptions {\n  readonly viewport: HTMLElement;\n  readonly overlayRoot?: HTMLElement;\n  readonly groups: readonly (readonly WindowPanelSpec[])[];\n  readonly instrumentGroup?: number;\n  readonly instrumentToggle?: HTMLElement;\n  /** Wall milliseconds between Escape/fullscreen toggles; default 300. */\n  readonly escapeToggleMs?: number;\n  readonly chrome?: Pick<WindowChromeOptions, 'storage' | 'storagePrefix' | 'dismissOn' | 'decorate'>;\n  release(): void;\n  focus(): void;\n  onClose?(): void;\n  captureEscape?(event: KeyboardEvent): boolean;\n  dismissModal?(): boolean;\n  filePanel?(input: HTMLInputElement): string | undefined;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-shell."
+        },
+        {
+          "type": "heading",
+          "text": "WindowShell"
+        },
+        {
+          "type": "paragraph",
+          "text": "Workspace window shell managing an edge dock and floating window lifecycles (`ui.shell@1.0.0`). Unpinned windows behave like tabs (one at a time, closed by returning to flight or pressing Escape), while pinned windows stay open during flight. Manages Escape debounce, fullscreen exit detection, file-input change routing to workspace panels, and borrowed content node restoration on disposal. Throws when invoked after disposal or when opening an unregistered panel."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowShell extends Disposable {\n  readonly isOpen: boolean;\n  addInstrument(window: WindowChrome, label: string, hint: string): Disposable;\n  open(panel?: string): void;\n  close(focus?: boolean, fromEscape?: boolean): void;\n  toggle(fromEscape?: boolean): void;\n  handleFullscreenEscape(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-shell."
+        },
+        {
+          "type": "heading",
+          "text": "WindowShellFactory"
+        },
+        {
+          "type": "paragraph",
+          "text": "Factory service creating workspace window shells (`ui.shell@1.0.0`). Injects shared shell stylesheet rules into target documents. Disposing the factory disposes all active shell instances and removes injected stylesheet elements."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowShellFactory extends Disposable {\n  create(options: WindowShellOptions): WindowShell;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-shell."
+        },
+        {
+          "type": "heading",
+          "text": "WINDOW_SHELL"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the workspace window shell factory (`ui.shell@1.0.0`)."
+        },
+        {
+          "type": "code",
+          "text": "export const WINDOW_SHELL: ServiceKey<WindowShellFactory> = Object.freeze({slot:'ui.shell',version:'1.0.0'});"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-shell."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/windows",
       "title": "game-api: windows.ts",
       "summary": "Declarations from windows.ts used by documented modules.",
@@ -12277,28 +13846,56 @@
           "text": "WindowIcon"
         },
         {
+          "type": "paragraph",
+          "text": "First-party vector icon identifier rendered in window chrome headers and dock items."
+        },
+        {
           "type": "code",
           "text": "export type WindowIcon = 'grip' | 'setup' | 'ship' | 'fleet' | 'online' | 'instruments' | 'trajectory' | 'telemetry' | 'alarm' | 'chat' | 'settings' | 'tools' | 'library' | 'manual' | 'pin';"
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.hud-layout."
+          "text": "Used by: spacelab.hud-layout, spacelab.ui-shell, spacelab.ui-windows."
+        },
+        {
+          "type": "heading",
+          "text": "WindowChromeOptions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Options for creating a floating window chrome instance (`ui.windows@1.0.0`). Defines identification, title, icon, mount container, optional viewer storage for window coordinates and pinned state, initial placement, dismiss predicates, and lifecycle callbacks."
+        },
+        {
+          "type": "code",
+          "text": "export interface WindowChromeOptions {\n  readonly id: string;\n  readonly title: string;\n  readonly icon?: WindowIcon;\n  readonly container: HTMLElement;\n  /** Viewer-only preferences. No storage is accessed unless supplied. */\n  readonly storage?: ThemePreferences;\n  readonly storagePrefix?: string;\n  readonly pinned?: boolean;\n  readonly className?: string;\n  readonly place?: (container: HTMLElement, panel: HTMLElement) => { x: number; y: number };\n  /** The game decides which interactions return to its main view. */\n  readonly dismissOn?: (target: EventTarget | null) => boolean;\n  readonly decorate?: (panel: HTMLElement) => Disposable | void;\n  readonly onCloseButton?: () => void;\n  readonly releaseInput?: () => void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.ui-windows."
         },
         {
           "type": "heading",
           "text": "WindowChrome"
         },
         {
+          "type": "paragraph",
+          "text": "Movable, resizable, and pinnable floating window instance (`ui.windows@1.0.0`). Owns the container DOM element, header chrome, body content host, dragging listeners, and visibility state. Notifies subscribers when opened, closed, pinned, or raised."
+        },
+        {
           "type": "code",
-          "text": "export interface WindowChrome extends Disposable {\n  readonly element: HTMLElement; readonly body: HTMLElement; readonly icon: WindowIcon;\n  readonly isOpen: boolean; readonly pinned: boolean; readonly isFront: boolean;\n  open(): void; close(): void; raise(): void; setPinned(pinned: boolean): void;\n  onChange(listener: () => void): Disposable;\n}"
+          "text": "export interface WindowChrome extends Disposable {\n  readonly element: HTMLElement;\n  readonly body: HTMLElement;\n  readonly icon: WindowIcon;\n  readonly isOpen: boolean;\n  readonly pinned: boolean;\n  readonly isFront: boolean;\n  open(): void;\n  close(): void;\n  raise(): void;\n  setPinned(pinned: boolean): void;\n  onChange(listener: () => void): Disposable;\n}"
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.alarm-panel, spacelab.maneuver-editor."
+          "text": "Used by: spacelab.alarm-panel, spacelab.maneuver-editor, spacelab.ui-shell, spacelab.ui-windows."
         },
         {
           "type": "heading",
           "text": "WindowSystem"
+        },
+        {
+          "type": "paragraph",
+          "text": "Shared floating window management and vector icon service (`ui.windows@1.0.0`). Coordinates window creation, front-of-stack ordering, interactive element resizing, and shared SVG path lookup without coupling to simulation state. Disposing the system closes managed windows and detaches injected stylesheets."
         },
         {
           "type": "code",
@@ -12306,11 +13903,15 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor."
+          "text": "Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor, spacelab.ui-shell, spacelab.ui-windows."
         },
         {
           "type": "heading",
           "text": "WINDOWS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Service key for the shared floating window management system (`ui.windows@1.0.0`)."
         },
         {
           "type": "code",
@@ -12318,7 +13919,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor."
+          "text": "Used by: spacelab.alarm-panel, spacelab.hud-layout, spacelab.maneuver-editor, spacelab.ui-shell, spacelab.ui-windows."
         },
         {
           "type": "link",

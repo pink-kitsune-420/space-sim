@@ -1,40 +1,98 @@
 {
   "id": "usage",
   "audience": "creators",
-  "title": "ModMenu",
-  "summary": "Game library, exact module drafts and legacy profile configuration over explicit host ports.",
+  "title": "ModMenu library view",
+  "summary": "Metadata browsing and explicit cancellable host commands without archive or world ownership.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "ui.mod-menu@1.0.0 creates a reusable browser/offline library view. Initialization needs no other capability. Each instance requires explicit DOM roles and a ModMenuLibraryPort; its host owns verified packages, persistence, code approval, exact profiles, world publication and download encoding. Shared floating chrome can host these roles without becoming a library database."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "entries() returns display metadata only: opaque item ID, purpose, collection/favorite, explicit built-in status and code/data counts. Search, sorting and card rendering never receive archive blobs or live worlds. The current app adapter still opens/decodes its existing store; indexed metadata/lazy inspection optimization remains separate measured work. Hosts may mark an entry pinned to sort it before favorites and the selected name/collection order. Search and favorites filters still apply; the default app pins Space Sim."
+      "text": "Provides a reusable library and module-management view for browser and offline hosts. Each view takes explicit DOM roles and a host port. The host owns verified packages, persistence, code approval, exact profiles, world publication and download encoding; the view shows display metadata only and never receives archive blobs or live worlds. Importing inert bytes, editing a draft and enabling a game stay separate explicit actions."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.mod-menu@1.0.0 through the MOD_MENU service key: creates library, module and profile views.",
+        "Fills the ui.mod-menu slot in platform profiles.",
+        "Requires nothing; initialization needs no other capability. Each view needs a host port: ModMenuLibraryPort (library), ModMenuModulePort (module drafts) or ModMenuProfilePort (legacy profile).",
+        "Also exports mountBundledCatalogue(root, entries): an inert searchable inventory of bundled source packages that never installs anything."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "The same owner creates modules(root, port, options) for exact v2 releases/capability/provider/settings drafts and profile(elements, port, initial) for intentional v1 compatibility. Host compatible() supplies metadata suggestions; this UI contains no second dependency resolver. A module dependency, capability contract and singleton provider choice stay distinct. Numeric help/defaults/bounds/steps are displayed without changing schemas or activating a draft."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers MOD_MENU with the shared styles and contributes this guide.",
+        "library(elements, port) browses entries (opaque ID, purpose, collection, favorite, built-in status, code/data counts). Hosts may pin an entry ahead of favorites; search and favorite filters still apply.",
+        "modules(root, port, options) edits exact v2 release, capability, provider and setting drafts. The host's compatible() supplies suggestions; the view contains no second dependency resolver. profile(elements, port, initial) keeps the legacy v1 profile editor, whose draft() does not manufacture a v2 lock.",
+        "Import, save, export, play, organize and remove are async host commands with an AbortSignal, one at a time. The host must check cancellation before changing the active world, validate and stage a compatible candidate before publishing, and keep active artifacts protected from removal.",
+        "Rebuilding cards aborts their handlers. Disposing a view aborts its pending command, restores borrowed list, status and disabled state and ignores late results. The provider owns views and styles and rejects creation after disposal."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "The legacy profile editor exposes draft() and select() over public v1 manifests; it does not manufacture a v2 lock. Installed attribution, export/removal and compatible presentation settings route through explicit host commands. Active artifacts remain protected from removal. The host revalidates commands and exact candidate state before publication. Importing inert bytes, editing a draft and enabling a game are separate actions."
+      "text": "Provide another ui.mod-menu@1.0.0 implementation in the ui.mod-menu slot for a different library UI. Removing the module removes the library view, so keep a minimal import and dependency recovery path in the host. Hierarchical module folders, a collection archive format, workers, a marketplace and version upgrades are not implemented."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "The release menu separates built-in controls, installed packages and bundled source packages. mountBundledCatalogue(root, entries) is an inert searchable source inventory: it never installs packages, changes a profile or proves runtime portability. The build generates its compact metadata from owned module descriptors and guide summaries. Legacy profile drafts survive unrelated menu refreshes and reset when the applied profile changes. Hosts create a fresh profile view when switching worlds or games, so unapplied edits do not leak between selections with identical profiles."
+      "text": "Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: details may change before the final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
     },
     {
       "type": "paragraph",
-      "text": "Import, save, export, play, organize and remove are explicit async host commands with an AbortSignal. Import must verify/install inert bytes and never implicitly activate code. Play must validate and stage a compatible candidate before publication. The host must check cancellation before changing the active world; committed inert storage writes need not be rolled back by view disposal. Organizing metadata must not silently change exact enabled package pins."
+      "text": "examples/modules/mod-menu mounts the exact-release module picker through the public ui.mod-menu service with a host port. Build and validate it from the repository root:"
     },
     {
-      "type": "paragraph",
-      "text": "One command runs at a time. Rebuilding cards aborts their event handlers; removing a view aborts its pending command and restores borrowed list/status/disabled state. A late result cannot update the removed UI. The provider owns views and styles and rejects creation after disposal. Preserve minimal import/dependency recovery if this optional view is absent."
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/mod-menu/module.json /tmp/example-mod-menu.spacemod\nnpm run module:validate -- /tmp/example-mod-menu.spacemod"
     },
     {
-      "type": "paragraph",
-      "text": "Current extraction preserves the existing game-library collection label and favorite UI. It does not implement hierarchical module folders, a collection archive format, workers, a marketplace, version upgrades or offline application generation. Portable game packs and ready-to-play offline applications are distinct. Public creator guidance and examples remain in the offline Creators Manual."
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: ModMenu library view",
+      "page": "api-reference/module/spacelab.mod-menu"
+    },
+    {
+      "type": "link",
+      "text": "game-api: mod-menu.ts",
+      "page": "api-reference/game-api/mod-menu"
     }
   ]
 }

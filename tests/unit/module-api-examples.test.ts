@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { universeSaveFormatService } from '../../packages/game-library/src/universe-save-services';
 import { universeDiskService } from '../../apps/server/src/universe-disk';
-import { FLIGHT_HUD_STATE, FLIGHT_PLANS, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
+import { FLIGHT_HUD_STATE, FLIGHT_PLANS, MANUAL_READER, JOIN_REVIEW, LOCAL_PILOTS, NODE_WEBSOCKET_CODECS, THROTTLE_HUD,
   type FleetViewInput, type FlightHudAdapter, type FlightHudReadout, type HostServiceAccess, type ManifestV2, type ModuleProfileV2,
   type OverlayPrimitive, type PredictionFactory, type RegisteredModuleV2, type TextConnection,
   type ThrottleLeverState, type TransportProvider } from '../../packages/game-api/src/index';
@@ -293,6 +293,34 @@ import universeSavesDescriptor from '../../modules/universe-saves/module.json';
 import universeSavesGuide from '../../modules/universe-saves/docs/creators/usage.json';
 import universeSavesExampleInitialize, { UNIVERSE_SAVES_HELPER } from '../../examples/modules/universe-saves/src/main';
 import universeSavesExampleDescriptor from '../../examples/modules/universe-saves/module.json';
+
+import shellInitialize from '../../modules/ui-shell/src/index';
+import shellDescriptor from '../../modules/ui-shell/module.json';
+import shellGuide from '../../modules/ui-shell/docs/creators/usage.json';
+import shellExampleInitialize, { SINGLE_PANEL_SHELL } from '../../examples/modules/ui-shell/src/main';
+import shellExampleDescriptor from '../../examples/modules/ui-shell/module.json';
+import windowsExampleInitialize, { NOTICE_WINDOWS } from '../../examples/modules/ui-windows/src/main';
+import windowsExampleDescriptor from '../../examples/modules/ui-windows/module.json';
+import modMenuInitialize from '../../modules/mod-menu/src/index';
+import modMenuDescriptor from '../../modules/mod-menu/module.json';
+import modMenuGuide from '../../modules/mod-menu/docs/creators/usage.json';
+import modMenuExampleInitialize, { MODULE_PICKER } from '../../examples/modules/mod-menu/src/main';
+import modMenuExampleDescriptor from '../../examples/modules/mod-menu/module.json';
+import manualInitialize from '../../modules/manual/src/index';
+import manualDescriptor from '../../modules/manual/module.json';
+import manualGuide from '../../modules/manual/docs/creators/usage.json';
+import manualExampleInitialize, { GUIDE_PUBLISHER } from '../../examples/modules/manual/src/main';
+import manualExampleDescriptor from '../../examples/modules/manual/module.json';
+import loggingInitialize from '../../modules/logging/src/index';
+import loggingDescriptor from '../../modules/logging/module.json';
+import loggingGuide from '../../modules/logging/docs/creators/usage.json';
+import loggingExampleInitialize, { AUDIT_LOG } from '../../examples/modules/logging/src/main';
+import loggingExampleDescriptor from '../../examples/modules/logging/module.json';
+import profilerInitialize from '../../modules/profiler/src/index';
+import profilerDescriptor from '../../modules/profiler/module.json';
+import profilerGuide from '../../modules/profiler/docs/creators/usage.json';
+import profilerExampleInitialize, { FRAME_TIMER } from '../../examples/modules/profiler/src/main';
+import profilerExampleDescriptor from '../../examples/modules/profiler/module.json';
 
 import universeSaveControlsInitialize from '../../modules/universe-save-controls/src/index';
 import universeSaveControlsDescriptor from '../../modules/universe-save-controls/module.json';
@@ -2305,6 +2333,176 @@ it('provides planet appearance designer and query overrides via planet-designer 
   }
 });
 
+const uiAssets: Record<string, string> = {
+  'assets/windows.css': readFileSync('modules/ui-windows/assets/windows.css', 'utf8'),
+  'assets/shell.css': readFileSync('modules/ui-shell/assets/shell.css', 'utf8'),
+  'assets/mod-menu.css': readFileSync('modules/mod-menu/assets/mod-menu.css', 'utf8'),
+  'assets/manual.css': readFileSync('modules/manual/assets/manual.css', 'utf8'),
+};
 
+function uiDocument(): any {
+  const doc: any = {
+    defaultView: {
+      ...globalThis,
+      AbortController: globalThis.AbortController,
+      cancelAnimationFrame: vi.fn(),
+      requestAnimationFrame: vi.fn(),
+      ResizeObserver: class { observe() {} unobserve() {} disconnect() {} },
+    },
+    createElement: (tag: string) => {
+      const el = createMockEl(tag);
+      el.ownerDocument = doc;
+      el.closest = () => null;
+      if (tag === 'select') {
+        el.options = [];
+        el.replaceChildren = (...children: any[]) => { el.options = children; el.childNodes = children; };
+      }
+      return el;
+    },
+    head: { append: vi.fn() },
+    getElementById: vi.fn(),
+    createComment: () => ({ replaceWith: vi.fn(), remove: vi.fn() }),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  };
+  return doc;
+}
 
+it('opens a movable notice window via ui-windows example', () => {
+  const graph = registry([
+    [windowsDescriptor, windowsInitialize, windowsGuide, uiAssets],
+    [windowsExampleDescriptor, windowsExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([windowsDescriptor, windowsExampleDescriptor], {
+    'ui.windows': 'spacelab.ui-windows',
+    'example.ui-windows': 'example.ui-windows',
+  }), 'browser');
+  try {
+    const container = uiDocument().createElement('div');
+    const notice = candidate.providedService(NOTICE_WINDOWS).create(container, 'notice', 'Notice');
+    expect(notice.isOpen).toBe(false);
+    notice.open();
+    expect(notice.isOpen).toBe(true);
+    notice.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
 
+it('wraps one panel in a shell via ui-shell example', () => {
+  const graph = registry([
+    [windowsDescriptor, windowsInitialize, windowsGuide, uiAssets],
+    [shellDescriptor, shellInitialize, shellGuide, uiAssets],
+    [shellExampleDescriptor, shellExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([windowsDescriptor, shellDescriptor, shellExampleDescriptor], {
+    'ui.windows': 'spacelab.ui-windows',
+    'ui.shell': 'spacelab.ui-shell',
+    'example.ui-shell': 'example.ui-shell',
+  }), 'browser');
+  try {
+    const doc = uiDocument();
+    const viewport = doc.createElement('div');
+    const content = doc.createElement('div');
+    content.before = vi.fn();
+    const shell = candidate.providedService(SINGLE_PANEL_SHELL).create(viewport, content, vi.fn(), vi.fn());
+    expect(shell.isOpen).toBe(false);
+    shell.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('mounts the module picker via mod-menu example', () => {
+  const graph = registry([
+    [modMenuDescriptor, modMenuInitialize, modMenuGuide, uiAssets],
+    [modMenuExampleDescriptor, modMenuExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([modMenuDescriptor, modMenuExampleDescriptor], {
+    'ui.mod-menu': 'spacelab.mod-menu',
+    'example.mod-menu': 'example.mod-menu',
+  }), 'browser');
+  try {
+    const root = uiDocument().createElement('div');
+    const port: any = {
+      state: () => ({ installed: [], selected: {}, providers: {}, capabilities: {}, settings: {}, activeDigests: [], editable: true, busy: false }),
+      compatible: () => [],
+      select: vi.fn(), version: vi.fn(), setting: vi.fn(), capability: vi.fn(), provider: vi.fn(),
+      includeRequired: vi.fn(), removeDependents: vi.fn(), cancel: vi.fn(),
+      apply: async () => {}, remove: async () => {},
+    };
+    const view = candidate.providedService(MODULE_PICKER).mount(root, port);
+    view.refresh();
+    view.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('publishes and withdraws a guide via manual example', () => {
+  const graph = registry([
+    [windowsDescriptor, windowsInitialize, windowsGuide, uiAssets],
+    [manualDescriptor, manualInitialize, manualGuide, uiAssets],
+    [manualExampleDescriptor, manualExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([windowsDescriptor, manualDescriptor, manualExampleDescriptor], {
+    'ui.windows': 'spacelab.ui-windows',
+    'ui.window-content': 'spacelab.ui-windows',
+    'ui.manual': 'spacelab.manual',
+    'example.manual': 'example.manual',
+  }), 'browser');
+  try {
+    const manual = candidate.providedService(MANUAL_READER);
+    const lease = candidate.providedService(GUIDE_PUBLISHER).publish('example.manual/help', 'Example help', 'Read this first.');
+    expect(manual.guides('creators').some(page => page.id === 'example.manual/help')).toBe(true);
+    expect(() => candidate.providedService(GUIDE_PUBLISHER).publish('example.manual/help', 'Again', 'Duplicate.')).toThrow('duplicate');
+    lease.dispose();
+    expect(manual.guides('creators').some(page => page.id === 'example.manual/help')).toBe(false);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('records and reads scoped diagnostics via logging example', () => {
+  const graph = registry([
+    [loggingDescriptor, loggingInitialize, loggingGuide],
+    [loggingExampleDescriptor, loggingExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([loggingDescriptor, loggingExampleDescriptor], {
+    'diagnostics.logs': 'spacelab.logging',
+    'example.logging': 'example.logging',
+  }), 'node');
+  try {
+    const audit = candidate.providedService(AUDIT_LOG);
+    audit.note('example.started', 'Started');
+    audit.note('', 'Dropped: empty event name');
+    const entries = audit.recent();
+    expect(entries.map(entry => entry.event)).toEqual(['example.started']);
+    expect(entries[0]).toMatchObject({ level: 'info', message: 'Started', module: { id: 'example.logging' } });
+    expect(Object.isFrozen(entries[0])).toBe(true);
+  } finally {
+    candidate.dispose();
+  }
+});
+
+it('times frames and summarizes them via profiler example', () => {
+  const graph = registry([
+    [profilerDescriptor, profilerInitialize, profilerGuide],
+    [profilerExampleDescriptor, profilerExampleInitialize],
+  ]);
+  const candidate = graph.prepare(profile([profilerDescriptor, profilerExampleDescriptor], {
+    'diagnostics.profiler': 'spacelab.profiler',
+    'example.profiler': 'example.profiler',
+  }), 'browser');
+  try {
+    const timer = candidate.providedService(FRAME_TIMER).create();
+    for (let i = 0; i < 3; i++) timer.frame(16.7, ['physics', 'hud']);
+    const summary = timer.profiler.summary();
+    expect(summary.frames).toBe(3);
+    expect(summary.sections.physics.max).toBeGreaterThanOrEqual(0);
+    timer.profiler.dispose();
+  } finally {
+    candidate.dispose();
+  }
+});

@@ -64,6 +64,11 @@ export function createModMenu(css=''):ModMenuService {
   dispose(){if(disposed)return;disposed=true;const errors:unknown[]=[];for(const view of views){try{view.dispose();}catch(error){errors.push(error);}}for(const style of styles.values())style.remove();styles.clear();if(errors.length)throw new AggregateError(errors,'ModMenu cleanup failed');}
  });
 }
+/**
+ * Contributes the ModMenu library, module-draft and legacy-profile views.
+ * Provides ui.mod-menu@1.0.0 in slot ui.mod-menu.
+ * Requires nothing; the host supplies library, module and profile ports per view. This module has no settings.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'ModMenu library view',summary:'Metadata browsing and explicit cancellable host commands without archive or world ownership.',asset:'docs/creators/usage.json'});
  context.provide(MOD_MENU,context.own(createModMenu(context.assets.text('assets/mod-menu.css'))));

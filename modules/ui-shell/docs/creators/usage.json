@@ -5,20 +5,101 @@
   "summary": "Optional grouped dock and window lifecycle.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Require ui.shell@^1.0.0 and use WINDOW_SHELL to create a shell for your viewport. Supply grouped panel definitions, borrowed content nodes, input-release/focus callbacks and optional viewer-only chrome preferences. No game-specific panels are created implicitly. The shell owns its windows, dock entries, subscriptions, keyboard/file listeners and styles. Removing it restores borrowed nodes to their original locations."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Use addInstrument for optional windows. Dispose its returned lease when that instrument is removed; the shell does not own borrowed instrument windows. The game can omit the shell entirely. Modal Escape, fullscreen transitions and import-to-panel routing are host callbacks, independent of gameplay/session authority."
+      "text": "Provides a window shell: grouped panels, a dock of buttons, optional instrument windows, modal Escape handling, fullscreen-Escape handling and import-to-panel routing, all on top of shared windows. It creates no game-specific panels; the host supplies panel definitions, borrowed content nodes and callbacks. The game can omit the shell entirely, and nothing here touches gameplay or session authority."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.shell@1.0.0 through the WINDOW_SHELL service key: creates window shells for a viewport.",
+        "Fills the ui.shell slot in platform profiles.",
+        "Requires ui.windows@^1.0.0 through the WINDOWS service key: supplies window chrome and icons.",
+        "Also exports createActionDock for grouped game-specific actions that share native vector button chrome."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "escapeToggleMs (default 300, from 0 to 1000, step 1): minimum wall-time interval in milliseconds between Escape or fullscreen toggles. Raising it ignores rapid repeats; 0 allows every press."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization captures WINDOWS, registers WINDOW_SHELL and contributes this guide.",
+        "create(options) builds one shell for a viewport from grouped panel specs and borrowed content nodes. The shell owns its windows, dock entries, subscriptions, keyboard and file listeners and styles.",
+        "addInstrument(window, label, hint) adds an optional dock entry for a borrowed window and returns a lease; dispose the lease when the instrument is removed. The shell does not own borrowed instrument windows.",
+        "open, close, toggle and handleFullscreenEscape drive the panels; release and focus are host callbacks for input.",
+        "Disposing a shell, or the provider, removes listeners and styles and restores borrowed nodes to their original locations. A dock lease restores the controls it borrowed."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Configuration: escapeToggleMs sets the minimum wall-time interval between Escape/fullscreen toggles (default 300 ms). Existing panel layout and preferences keep their defaults."
+      "text": "Provide another ui.shell@1.0.0 implementation in the ui.shell slot to change how panels and the dock look and behave. Removing the module leaves the game without a grouped dock; any host code that requires ui.shell must handle that, while gameplay and sessions are unaffected."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
     },
     {
       "type": "paragraph",
-      "text": "Game composition can also use the exported createActionDock helper for grouped game-specific actions. It shares native vector button chrome with workspace windows, can borrow existing controls without replacing their listeners, and restores those controls when its lease is disposed. A dock does not create gameplay or session services."
+      "text": "Module version 0.2.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: details may change before the final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/ui-shell wraps one panel in a shell through the public ui.shell service, showing the factory contract and borrowed-content lifecycle. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/ui-shell/module.json /tmp/example-ui-shell.spacemod\nnpm run module:validate -- /tmp/example-ui-shell.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Window shell and dock",
+      "page": "api-reference/module/spacelab.ui-shell"
+    },
+    {
+      "type": "link",
+      "text": "game-api: window-shell.ts",
+      "page": "api-reference/game-api/window-shell"
+    },
+    {
+      "type": "link",
+      "text": "game-api: windows.ts",
+      "page": "api-reference/game-api/windows"
     }
   ]
 }

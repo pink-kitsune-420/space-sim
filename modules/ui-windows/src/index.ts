@@ -32,6 +32,11 @@ export function createWindows(css = ''): WindowSystem {
    if(errors.length)throw new AggregateError(errors,'Window provider cleanup failed');}
  });
 }
+/**
+ * Contributes shared floating window chrome and structured window content.
+ * Provides ui.windows@1.0.0 in slot ui.windows and ui.window-content@1.0.0 in slot ui.window-content, each only when selected for its slot.
+ * Requires nothing; this module has no settings.
+ */
 export default function initialize(context:ModuleInitializationV2):void {
  context.contributeGuide({id:'usage',audience:'creators',title:'Shared windows',summary:'Independent movable, resizable and disposable windows through public ui.windows@1.',asset:'docs/creators/usage.json'});
  if(context.selected(WINDOWS.slot))context.provide(WINDOWS,context.own(createWindows(context.assets.text('assets/windows.css'))));

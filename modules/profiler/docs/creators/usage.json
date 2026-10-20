@@ -5,16 +5,98 @@
   "summary": "Optional bounded viewer diagnostics.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Require diagnostics.profiler@^1.0.0 and use PROFILERS to create independent viewer-local profilers. Call begin with the wall-frame interval, lap after timed sections and end once per rendered frame. Fixed ring buffers retain 600 frames and 1000 events. Percentile/group/history calculations run on request; diagnostic timing never changes deterministic simulation. Precise mode invokes the supplied optional renderer flush. Removing the package leaves gameplay and renderer lifetime independent."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Use summary/history/log for a window, text log or export; drawGraph optionally renders a canvas graph. Dispose an instance or its provider to stop collection and release retained events. Browsers, offline viewers and headless diagnostic consumers can compose the same service; initialization requires no DOM, ship, world or renderer."
+      "text": "Provides optional viewer-local frame profilers for browser, offline and headless diagnostic consumers. A profiler times named frame sections with wall-clock milliseconds, keeps fixed ring buffers of 600 frames and 1000 events, and computes statistics only on request. Measurements never feed simulation or authoritative identity, and initialization needs no DOM, ship, world or renderer."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides diagnostics.profiler@1.0.0 through the PROFILERS service key: creates independent frame profilers.",
+        "Fills the diagnostics.profiler slot in platform profiles.",
+        "Requires nothing. Consumers declare diagnostics.profiler@^1.0.0 and may omit it; removing the package leaves gameplay and renderer lifetime independent."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
+    },
+    {
+      "type": "list",
+      "items": [
+        "precise (default 0, from 0 to 1, step 1): 1 calls the optional flush callback at each lap so deferred raster work is attributed to the section that queued it. It is slower, and Chromium may keep the canvas unaccelerated until reload.",
+        "longWorkMs (default 11, from 1 to 1000, step 0.1): game work per frame above this many milliseconds flags a slow frame.",
+        "hitchMs (default 25, from 1 to 1000, step 0.1): a frame interval above this many milliseconds may be flagged as a hitch.",
+        "hitchRatio (default 2.5, from 1 to 10, step 0.1): a hitch must also exceed this multiple of the typical interval.",
+        "graphMs (default 33.4, from 8 to 1000, step 0.1): full height of drawGraph in milliseconds."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization reads settings, registers PROFILERS and contributes this guide.",
+        "create(flush, options) returns an independent profiler. Per frame, call begin(intervalMs) with the wall interval, lap(section) after each timed part and end() once.",
+        "summary(), group(sections), history() and log() compute or copy results on request; drawGraph(canvas) optionally renders recent frames. history() allocates; the frame path itself does not.",
+        "Disposing a profiler stops collection and releases retained events. Disposing the provider disposes every profiler and rejects new creation."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Configuration: precise is 0 (normal) or 1 (flush deferred raster work at each lap). longWorkMs sets the diagnostic slow-work threshold, default 11 ms. These viewer-only values never affect simulation."
+      "text": "Provide another diagnostics.profiler@1.0.0 implementation in the diagnostics.profiler slot to change measurement or reporting. Removing the module only removes profiling windows and exports; nothing else depends on it."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: details may change before the final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/profiler times frames and reads back a summary through the public diagnostics.profiler service. Build and validate it from the repository root:"
+    },
+    {
+      "type": "code",
+      "text": "npm run module:build -- examples/modules/profiler/module.json /tmp/example-profiler.spacemod\nnpm run module:validate -- /tmp/example-profiler.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Frame profiler",
+      "page": "api-reference/module/spacelab.profiler"
+    },
+    {
+      "type": "link",
+      "text": "game-api: profiler.ts",
+      "page": "api-reference/game-api/profiler"
     }
   ]
 }

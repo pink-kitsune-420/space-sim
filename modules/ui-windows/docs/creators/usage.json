@@ -2,27 +2,101 @@
   "id": "usage",
   "audience": "creators",
   "title": "Shared windows",
-  "summary": "Shared floating chrome, structured documents/forms/logs and versioned previews.",
+  "summary": "Independent movable, resizable and disposable windows through public ui.windows@1.",
   "blocks": [
     {
-      "type": "paragraph",
-      "text": "Require ui.windows@^1.0.0, use WINDOWS during initialization, then create one window per content instance. Supply its container, ID, title and optional viewer preference storage. The provider owns chrome, pointer/keyboard moving and resizing, pin/minimize/maximize, stacking and disposal. Opening can release input through the supplied callback. Modules keep authority out of layout preferences."
+      "type": "heading",
+      "text": "What it does"
     },
     {
       "type": "paragraph",
-      "text": "Use one WindowSystem for all windows sharing a stack, including borrowed chat WindowInteractions. Each factory has an independent stack. Dispose the content and window on removal; disposing the provider also closes remaining windows and releases styles. Titles are always rendered as text. A game supplies its own dismiss gesture, theme decoration and dock."
+      "text": "Provides shared floating windows and structured window content. Windows give independent chrome (moving, resizing, pin, minimize, maximize, stacking) around host-supplied containers. Window content mounts documents, instructions, inspectors, forms, lists, logs and versioned previews as plain text and DOM. The module owns layout chrome only; layout preferences never carry authority, and titles and all content strings are rendered as text."
+    },
+    {
+      "type": "heading",
+      "text": "Provides and requires"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Provides ui.windows@1.0.0 through the WINDOWS service key: creates windows and one shared window system per factory.",
+        "Provides ui.window-content@1.0.0 through the WINDOW_CONTENT service key: mounts structured content and registers preview types.",
+        "Fills the ui.windows and ui.window-content slots in platform profiles.",
+        "Requires nothing."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Settings"
     },
     {
       "type": "paragraph",
-      "text": "Require ui.window-content@^1.0.0 and use WINDOW_CONTENT to mount document/instruction, inspector/form, list/log or preview sections. Imported window definitions accept a content array alongside legacy controls. Document blocks support paragraphs, headings, code, lists and internal page links. The Manual uses this same reader and searches contributed body text. All strings remain text, including titles, list entries and code."
+      "text": "This module has no settings."
+    },
+    {
+      "type": "heading",
+      "text": "Lifecycle"
+    },
+    {
+      "type": "list",
+      "items": [
+        "Initialization registers each service only when selected for its slot and contributes this guide.",
+        "WINDOWS.create(options) returns one window for a container, ID and title, with optional viewer preference storage. Windows created by one system share a stack; each provider has an independent stack, so borrowed chat window interactions use the same WindowSystem.",
+        "WINDOW_CONTENT.mount and document mount content into a root and return a lease. register({type:{name,version},validate,mount}) publishes an exact-version preview type; its mounts own their camera and renderer, receive immutable bounded data and must dispose every read-only subscription. Missing versions fail preparation; unregistering closes all instances of that type.",
+        "Dispose window and content leases on removal. Disposing the provider closes remaining windows, releases styles and stops retained callbacks. A game supplies its own dismiss gesture, theme decoration and dock."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Remove or replace"
     },
     {
       "type": "paragraph",
-      "text": "Publish a named exact-version preview type with register({type:{name,version},validate,mount}). Add-ons declare their ui.window-content service requirement, own the returned registration and validate candidate data before allocating resources. Each mount owns its independent camera/renderer, receives immutable bounded data and resize callbacks, and disposes every borrowed read-only subscription. Editing uses declared namespaced actions routed through the host and authoritative command validation. No mutable world is passed to previews. Missing versions fail preparation; unregistering closes all instances and suppresses retained callbacks. Orbit prediction providers follow this contract in extraction group 6."
+      "text": "Provide another ui.windows@1.0.0 or ui.window-content@1.0.0 implementation in the matching slot to restyle or replace chrome or content rendering. Removing this module removes shared windows from every module that requires them, including the shell and the Manual."
+    },
+    {
+      "type": "heading",
+      "text": "Stability"
+    },
+    {
+      "type": "paragraph",
+      "text": "Module version 0.1.0 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: details may change before the final freeze."
+    },
+    {
+      "type": "heading",
+      "text": "Example"
+    },
+    {
+      "type": "paragraph",
+      "text": "examples/modules/ui-windows opens a movable notice window through the public ui.windows service and disposes it. Build and validate it from the repository root:"
     },
     {
       "type": "code",
-      "text": "context.contributeWindow({name:'help',title:'Help',controls:[],content:[{kind:'instruction',id:'steps',document:{blocks:[{type:'paragraph',text:'Read this before flying.'}]}}]});"
+      "text": "npm run module:build -- examples/modules/ui-windows/module.json /tmp/example-ui-windows.spacemod\nnpm run module:validate -- /tmp/example-ui-windows.spacemod"
+    },
+    {
+      "type": "heading",
+      "text": "Related"
+    },
+    {
+      "type": "link",
+      "text": "Code modules: manifests, packaging and installation",
+      "page": "modules"
+    },
+    {
+      "type": "link",
+      "text": "API reference: Shared windows",
+      "page": "api-reference/module/spacelab.ui-windows"
+    },
+    {
+      "type": "link",
+      "text": "game-api: windows.ts",
+      "page": "api-reference/game-api/windows"
+    },
+    {
+      "type": "link",
+      "text": "game-api: window-content.ts",
+      "page": "api-reference/game-api/window-content"
     }
   ]
 }
