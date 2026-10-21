@@ -31,6 +31,9 @@ export class ControllerMenu {
   private raf: number | undefined;
   private capture: { readonly kind: 'button'; readonly action: ActionId } | { readonly kind: 'device'; readonly slot: number } | undefined;
   private shownPads = '';
+  private diagnosticPad: Pick<GamepadDiagnostic, 'index' | 'id' | 'family'> | undefined;
+  private readonly axisNodes: { readonly fill: HTMLElement; readonly value: HTMLElement }[] = [];
+  private readonly buttonNodes: HTMLElement[] = [];
   private readonly note: HTMLElement;
 
   constructor(options: ControllerMenuOptions, private readonly services: ControllerMenuServices) {
@@ -302,6 +305,51 @@ export class ControllerMenu {
     }
   }
 
+  private clearDiagnostics(): void {
+    if (!this.diagnosticPad) return;
+    this.element('gamepad-axes-display').replaceChildren();
+    this.element('gamepad-buttons-display').replaceChildren();
+    this.axisNodes.length = 0; this.buttonNodes.length = 0; this.diagnosticPad = undefined;
+  }
+
+  /** Retain channel nodes until the selected device or channel counts change. */
+  private updateDiagnostics(pad: GamepadDiagnostic): void {
+    const previous = this.diagnosticPad;
+    if (!previous || previous.index !== pad.index || previous.id !== pad.id || previous.family !== pad.family
+      || this.axisNodes.length !== pad.axes.length || this.buttonNodes.length !== pad.buttons.length) {
+      const axes = document.createDocumentFragment(), buttons = document.createDocumentFragment();
+      this.axisNodes.length = 0; this.buttonNodes.length = 0;
+      for (let i = 0; i < pad.axes.length; i++) {
+        const row = document.createElement('div'); row.className = 'axis-meter';
+        row.innerHTML = `<span class="axis-meter-label">Axis ${i}</span><div class="axis-meter-track"><div class="axis-meter-center"></div><div class="axis-meter-fill"></div></div><span class="axis-meter-val"></span>`;
+        this.axisNodes.push({ fill: row.querySelector<HTMLElement>('.axis-meter-fill')!, value: row.querySelector<HTMLElement>('.axis-meter-val')! });
+        axes.append(row);
+      }
+      for (let i = 0; i < pad.buttons.length; i++) {
+        const button = document.createElement('span'); button.className = 'btn-indicator';
+        this.buttonNodes.push(button); buttons.append(button);
+      }
+      this.element('gamepad-axes-display').replaceChildren(axes);
+      this.element('gamepad-buttons-display').replaceChildren(buttons);
+      this.diagnosticPad = { index: pad.index, id: pad.id, family: pad.family };
+    }
+    for (let i = 0; i < pad.axes.length; i++) {
+      const value = Math.max(-1, Math.min(1, pad.axes[i]!)), width = Math.abs(value) * 50;
+      const left = `${value < 0 ? 50 - width : 50}%`, size = `${width}%`;
+      const text = `${value >= 0 ? '+' : ''}${value.toFixed(2)}`, node = this.axisNodes[i]!;
+      if (node.fill.style.left !== left) node.fill.style.left = left;
+      if (node.fill.style.width !== size) node.fill.style.width = size;
+      if (node.value.textContent !== text) node.value.textContent = text;
+    }
+    for (let i = 0; i < pad.buttons.length; i++) {
+      const value = pad.buttons[i]!, node = this.buttonNodes[i]!, text = value.label.slice(0, 3);
+      const title = `Button ${i}: ${value.label}`;
+      if (node.classList.contains('pressed') !== value.pressed) node.classList.toggle('pressed', value.pressed);
+      if (node.textContent !== text) node.textContent = text;
+      if (node.title !== title) node.title = title;
+    }
+  }
+
   /** Connection banner, activity lights and the selected player's live axes and buttons. */
   private live(): void {
     const pads = this.connected();
@@ -321,8 +369,7 @@ export class ControllerMenu {
         : pads.length ? `No controller is assigned to player ${this.player + 1}. Assign one on the Players tab.`
           : 'No controller detected. Connect a Steam Deck, Xbox, PlayStation (DualSense / DualShock), or joystick and press any button.';
       status.classList.remove('connected');
-      this.element('gamepad-axes-display').innerHTML = '';
-      this.element('gamepad-buttons-display').innerHTML = '';
+      this.clearDiagnostics();
       return;
     }
     const text = `Controller ${pad.index + 1}: ${pad.id} · ${pad.familyName} (${pad.axes.length} axes, ${pad.buttons.length} buttons)`;
@@ -330,16 +377,11 @@ export class ControllerMenu {
       status.innerHTML = `Controller ${pad.index + 1}: <b>${escapeHtml(pad.id)}</b> <span class="gamepad-family-tag ${pad.family}">${escapeHtml(pad.familyName)}</span> (${pad.axes.length} axes, ${pad.buttons.length} buttons)`;
       status.classList.add('connected');
     }
-    this.element('gamepad-axes-display').innerHTML = pad.axes.map((val, i) => {
-      const clamped = Math.max(-1, Math.min(1, val));
-      const width = Math.abs(clamped) * 50, left = clamped < 0 ? 50 - width : 50;
-      return `<div class="axis-meter"><span class="axis-meter-label">Axis ${i}</span><div class="axis-meter-track"><div class="axis-meter-center"></div><div class="axis-meter-fill" style="left:${left}%;width:${width}%"></div></div><span class="axis-meter-val">${clamped >= 0 ? '+' : ''}${clamped.toFixed(2)}</span></div>`;
-    }).join('');
-    this.element('gamepad-buttons-display').innerHTML = pad.buttons
-      .map((b, i) => `<span class="btn-indicator ${b.pressed ? 'pressed' : ''}" title="Button ${i}: ${escapeHtml(b.label)}">${escapeHtml(b.label.slice(0, 3))}</span>`).join('');
+    this.updateDiagnostics(pad);
   }
   dispose(): void {
     if (this.disposed) return; this.disposed = true;
+    this.axisNodes.length = 0; this.buttonNodes.length = 0; this.diagnosticPad = undefined;
     const errors: unknown[] = [];
     const close = (action: () => void): void => { try { action(); } catch (error) { errors.push(error); } };
     close(() => { if (this.raf !== undefined) cancelAnimationFrame(this.raf); }); this.raf = undefined;

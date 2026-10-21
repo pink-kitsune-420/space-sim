@@ -5,7 +5,7 @@ import { computeNavballCenter } from '../../apps/web/src/local-players';
 import { TRACK } from '../../modules/navball/src/drawing';
 
 interface TestPad { index: number; id: string; connected: boolean; axes: number[]; buttons: { pressed: boolean; value: number; touched: boolean }[] }
-declare global { interface Window { localPilotTestPads: (TestPad | null)[] } }
+declare global { interface Window { localPilotTestPads: (TestPad | null)[]; localPilotFramePolls: number[] } }
 const configKey = 'space-sim:local-players:v1';
 async function debug(page: Page) { return JSON.parse(await page.locator('#debug').textContent() || '{}'); }
 async function stored(page: Page) { return page.evaluate(key => JSON.parse(localStorage.getItem(key)!), configKey); }
@@ -31,7 +31,14 @@ test.beforeEach(async ({ page }) => {
     } });
     window.localPilotTestPads = [0, 1].map(index => ({ index, id: `Xbox Test ${index}`, connected: true, axes: [0, 0, 0, 0],
       buttons: Array.from({ length: 18 }, () => ({ pressed: false, touched: false, value: 0 })) }));
-    Object.defineProperty(navigator, 'getGamepads', { value: () => window.localPilotTestPads });
+    window.localPilotFramePolls = [];
+    let stamp: number | undefined, polls = 0;
+    const raf = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = callback => raf(time => {
+      if (time !== stamp) { if (stamp !== undefined) window.localPilotFramePolls.push(polls); stamp = time; polls = 0; }
+      callback(time);
+    });
+    Object.defineProperty(navigator, 'getGamepads', { value: () => { polls++; return window.localPilotTestPads; } });
   });
   await page.goto('/');
   await expect.poll(async () => (await debug(page)).localPlayers?.count).toBe(1);
@@ -274,4 +281,55 @@ test('HUD edit mode moves only the selected guest navball in shared and split vi
   await page.reload();
   await expect.poll(async () => (await debug(page)).localPlayers?.count).toBe(2);
   for (const tag of await page.locator('.split-tag').all()) await expect(tag).toBeHidden();
+});
+
+
+for (const seats of [1, 4]) test(`${seats} seats share device captures and retain live diagnostic nodes until topology changes`, async ({ page }) => {
+  await page.evaluate(count => {
+    window.localPilotTestPads = Array.from({ length: count }, (_, index) => ({ index, id: `Xbox Test ${index}`, connected: true,
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 18 }, () => ({ pressed: false, touched: false, value: 0 })) }));
+  }, seats);
+  await players(page, seats);
+  for (let i = 0; i < seats; i++) await page.getByLabel(`Player ${i + 1} input`, { exact: true }).selectOption(`pad:${i}`);
+  await page.locator('#tab-gamepad-btn').click();
+  const axes = page.locator('#gamepad-axes-display .axis-meter'), buttons = page.locator('#gamepad-buttons-display .btn-indicator');
+  await expect(axes).toHaveCount(4); await expect(buttons).toHaveCount(18);
+  const firstAxis = await axes.first().elementHandle(), firstButton = await buttons.first().elementHandle();
+  if (!firstAxis || !firstButton) throw new Error('Missing diagnostic channels');
+  const observed = await page.evaluateHandle(() => {
+    const changes = { added: 0, removed: 0 };
+    const observer = new MutationObserver(records => { for (const r of records) { changes.added += r.addedNodes.length; changes.removed += r.removedNodes.length; } });
+    for (const id of ['gamepad-axes-display', 'gamepad-buttons-display']) observer.observe(document.getElementById(id)!, { childList: true, subtree: true });
+    window.localPilotFramePolls.length = 0;
+    return { observer, changes };
+  });
+  await expect.poll(() => page.evaluate(() => window.localPilotFramePolls.length)).toBeGreaterThanOrEqual(5);
+  expect(await page.evaluate(() => Math.max(...window.localPilotFramePolls))).toBe(1);
+  expect(await observed.evaluate(({ changes }) => changes)).toEqual({ added: 0, removed: 0 });
+  expect(await firstAxis.evaluate(el => el.isConnected)).toBe(true);
+  expect(await firstButton.evaluate(el => el.isConnected)).toBe(true);
+  await page.evaluate(() => { const pad = window.localPilotTestPads[0]!; pad.axes[0] = .75; pad.buttons[0] = { pressed: true, touched: true, value: 1 }; });
+  await expect(axes.first().locator('.axis-meter-val')).toHaveText('+0.75');
+  await expect(buttons.first()).toHaveClass('btn-indicator pressed');
+  expect(await firstAxis.evaluate(el => el.isConnected)).toBe(true);
+  expect(await firstButton.evaluate(el => el.isConnected)).toBe(true);
+  await page.evaluate(() => { const pad = window.localPilotTestPads[0]!; pad.axes.push(.25); pad.buttons.push({ pressed: false, touched: false, value: 0 }); });
+  await expect(axes).toHaveCount(5); await expect(buttons).toHaveCount(19);
+  expect(await firstAxis.evaluate(el => el.isConnected)).toBe(false);
+  await page.evaluate(() => { window.localPilotTestPads[0]!.connected = false; });
+  await expect(axes).toHaveCount(0); await expect(buttons).toHaveCount(0);
+  await page.evaluate(() => { const pad = window.localPilotTestPads[0]!; pad.connected = true; pad.id = 'Replacement <img src=x> controller'; pad.axes.fill(0); pad.buttons.forEach(button => { button.pressed = button.touched = false; button.value = 0; }); });
+  await expect(axes).toHaveCount(5); await expect(buttons).toHaveCount(19);
+  await expect(page.locator('#gamepad-status')).toContainText('Replacement <img src=x> controller');
+  await expect(page.locator('#gamepad-status img')).toHaveCount(0);
+  await expect(axes.first().locator('.axis-meter-val')).toHaveText('+0.00');
+  await page.locator('#controls-close').click(); await closePanel(page);
+  await page.waitForTimeout(100);
+  await observed.evaluate(({ changes }) => { changes.added = changes.removed = 0; window.localPilotFramePolls.length = 0; });
+  await page.evaluate(() => { window.localPilotTestPads[0]!.axes[0] = -.5; });
+  await expect.poll(() => page.evaluate(() => window.localPilotFramePolls.length)).toBeGreaterThanOrEqual(5);
+  expect(await page.evaluate(() => Math.max(...window.localPilotFramePolls))).toBe(1);
+  expect(await observed.evaluate(({ changes }) => changes)).toEqual({ added: 0, removed: 0 });
+  expect(await axes.first().locator('.axis-meter-val').textContent()).toBe('+0.00');
+  await observed.evaluate(({ observer }) => observer.disconnect()); await observed.dispose();
 });

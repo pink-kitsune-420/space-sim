@@ -40,7 +40,7 @@
     },
     {
       "type": "paragraph",
-      "text": "When a supplied FlightGamepad reports captureId, diagnostic reads reuse the most recently sampled input frame while the host continues updating controls. Older or standalone providers without that optional identity are read fresh. The menu does not create a global device cache or take over another owner’s sampling; removal still cancels its UI callbacks and disposes only resources it owns."
+      "text": "When a supplied FlightGamepad reports captureId, diagnostic reads reuse the most recently sampled input frame while the host continues updating controls. Older or standalone providers without that optional identity are read fresh. The menu does not create a global device cache or take over another owner\u2019s sampling; removal still cancels its UI callbacks and disposes only resources it owns."
     },
     {
       "type": "list",
@@ -98,6 +98,10 @@
       "type": "link",
       "text": "game-api flight-view.ts: controller menu and splitscreen view contracts",
       "page": "api-reference/game-api/flight-view"
+    },
+    {
+      "type": "paragraph",
+      "text": "Live axis meters and button indicators retain their DOM nodes while the selected device and channel counts are unchanged. Device/channel changes rebuild the diagnostic nodes; absent devices clear them once. Open menus update values in place, and closing or disposing a menu stops its diagnostic RAF work. Capture IDs reuse the selected provider snapshot; older providers retain their fresh-sampling fallback."
     }
   ]
 }
