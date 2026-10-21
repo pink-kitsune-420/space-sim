@@ -30,6 +30,18 @@ function worldWith(code: readonly RegisteredModule[], ids: readonly string[], so
 const examples = (soloPreview?: boolean) => worldWith(GAME_EXAMPLES, ['example.maneuvers'], soloPreview);
 
 describe('view-bound presentation commands', () => {
+  it('accepts fresh flight input immediately after release without a game-owned target', () => {
+    const world = examples(), provider = createFlightSessions(flightSessionServices());
+    const session = provider.local(world, { name: 'Pilot' });
+    const router = createPresentationControls({ create: createPlayerController });
+    try {
+      const ship = session.spawn('pad', false)!;
+      const held = { turn: -1, throttle: 0, engine: false };
+      router.release();
+      // Resume and keydown can happen between adjacent host frames.
+      expect(router.route(session, session.playerId, ship, held, undefined, true)).toEqual(held);
+    } finally { router.dispose(); session.dispose(); provider.dispose(); world.dispose(); }
+  });
   it('routes repeated held input through PlayerController before stepping and releases it on handoff', () => {
     const controls: RegisteredModule = { manifest: manifest('test.pilot'), initialize(c) {
       c.contributeCommand({ name: 'eva-input', label: 'EVA input', parameters: {
@@ -53,6 +65,9 @@ describe('view-bound presentation commands', () => {
       for (let i = 0; i < 60; i++) session.update(.016, ship, router.route(session, session.playerId, ship, held, target, true));
       expect(world.ship(ship)!.state.heading).toBe(heading);
       expect(world.moduleState['test.pilot']!.state.value).toEqual({ turn: -1, throttle: 0, engine: 0 });
+      router.release();
+      session.update(.02, ship, router.route(session, session.playerId, ship, held, target, true));
+      expect(world.moduleState['test.pilot']!.state.value).toEqual({ turn: 0, throttle: 0, engine: 0 });
       session.update(.02, ship, router.route(session, session.playerId, ship, held, target, false));
       expect(world.moduleState['test.pilot']!.state.value).toEqual({ turn: 0, throttle: 0, engine: 0 });
       // Returning to the ship first releases the astronaut and requires neutral intent.

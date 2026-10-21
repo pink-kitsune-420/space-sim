@@ -123,12 +123,17 @@ test('shared departure/arrival plans chain previews, require review after load a
  expect(result).toMatchObject({count:2,markers:2,waiting:true,moved:true,loadedInvalid:true,loadedDisabled:true,reviewed:true,inert:true,cleared:true,commands:[]});expect(result.pathSamples).toBeGreaterThan(20);
 });
 
-test('a missed first burn invalidates later nodes and marking it flown still requires actual-flight review',async({page})=>{
+for(const deferred of [false,true])test(`a missed first burn invalidates later nodes and marking it flown still requires actual-flight review${deferred?' with deferred validation':''}`,async({page})=>{
  await setup(page,false,true);
- const result=await page.evaluate(()=>{
+ const result=await page.evaluate((deferred)=>{
   const f=(window as any).fixture,{factory,prediction,world,current,body,root}=f,commands:string[]=[];
   const planner=factory.create({container:root,id:'missed',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){commands.push('warp');},setThrottle(){commands.push('throttle');},releaseControls(){commands.push('release');},notify(){}});
-  planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);(document.getElementById('missed-add') as HTMLButtonElement).click();
+  planner.update(0,prediction,false);
+  const now=performance.now.bind(performance);let budgetClock=now();
+  // Exhaust each evaluation slice before it can advance, independently of machine speed.
+  if(deferred)performance.now=()=>budgetClock+=2;
+  try{planner.place(f.pointer,f.camera,f.origin,800,600,prediction);(document.getElementById('missed-add') as HTMLButtonElement).click();}
+  finally{if(deferred)performance.now=now;}
   const archive=planner.savePlans(),select=document.getElementById('missed-nodes') as HTMLSelectElement;select.value=archive.plans[0].nodes[0].id;select.dispatchEvent(new Event('change'));
   while(world.time<archive.plans[0].nodes[0].time+2)world.step();planner.update(.1,prediction,false);
   const missed=planner.diagnostics()?.valid===false;
@@ -137,7 +142,7 @@ test('a missed first burn invalidates later nodes and marking it flown still req
   select.value=archive.plans[0].nodes[1].id;select.dispatchEvent(new Event('change'));planner.update(.1,prediction,false);const stillInvalid=planner.diagnostics()?.valid===false;
   (document.getElementById('missed-review') as HTMLButtonElement).click();planner.update(.1,prediction,false);const reviewed=planner.diagnostics()?.valid===true;
   planner.dispose();f.candidate.dispose();world.dispose();return{missed,laterInvalid,stillInvalid,reviewed,commands};
- });
+ },deferred);
  expect(result).toEqual({missed:true,laterInvalid:true,stillInvalid:true,reviewed:true,commands:[]});
 });
 

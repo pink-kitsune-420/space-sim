@@ -61,7 +61,7 @@ export function createPresentationControls(factory: PlayerControllerFactory | un
       } catch { reset(); }
       return IDLE;
     },
-    release() { controller?.release(); waitForNeutral = true; },
+    release() { controller?.release(); if (context) waitForNeutral = true; },
     dispose() { controller?.dispose(); controller = undefined; context = undefined; },
   };
 }

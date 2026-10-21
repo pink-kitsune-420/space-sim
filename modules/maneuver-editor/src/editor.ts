@@ -837,6 +837,9 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     if (flight.world !== this.world) { this.continueShip=undefined;this.fleet?.clear();this.cancelPlanEvaluation(); this.abortExecution(); this.stopWarp(); this.world = flight.world; this.plans.clear(); this.anchors.clear(); this.chains.clear(); this.needsReview.clear(); this.executionNotices.clear(); this.nodes.clear(); this.current = undefined; this.preview.invalidate(); }
     const node = ship && this.nodes.get(ship.id);
     if (node !== this.current) { this.continueShip=undefined;this.abortExecution(); this.stopWarp(); this.current = node; this.preview.invalidate(); this.refreshInputs(); this.lastUi = -Infinity; }
+    // A completed detached evaluation describes its captured epoch. Validate it
+    // against live flight in this frame before exposing it as actionable intent.
+    this.advancePlanEvaluation();
     if (node?.valid && ship && !this.fleet?.has(ship.id) && this.execution?.burn.phase !== 'burning') {
       const root = this.plans.get(ship.id)?.find(value => !value.completed) ?? node;
       const rootSeed=this.rootSeed(root);
@@ -863,7 +866,6 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       const id=this.reviewAfterBurn;this.reviewAfterBurn=undefined;
       if(ship?.id===id&&!this.fleet?.has(id)&&this.plans.get(id)?.some(value=>!value.completed))this.rebuildPlan(true);
     }
-    this.advancePlanEvaluation();
     this.transferControls?.update();
     this.map?.update();
     if (performance.now() - this.lastUi > (this.tuning.uiRefreshMs ?? 100)) { this.lastUi = performance.now(); this.updateUi(flight); }
