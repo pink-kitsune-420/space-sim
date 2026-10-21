@@ -2,7 +2,7 @@
 
 A free, open-source toolkit for modular 2D space games. **Space Sim**, the bundled orbital flight game, combines double-precision Keplerian mechanics, terrain and ocean landings, and multiplayer in a minimalist vector world.
 
-**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[MIT license](LICENSE)** · **[API reference](modules/API-REFERENCE.html)**
+**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[MIT license](LICENSE)** · **[API reference](https://pink-kitsune-420.github.io/space-sim/API-REFERENCE.html)**
 
 Spacelab is in alpha. Module contracts and file tooling are still evolving.
 
@@ -30,7 +30,7 @@ Open the Manual's **Creators** tab for universe authoring, shader packs, reusabl
 
 Older JSON, gzip and `.spaceuniverse` definition files remain readable. **Setup → Export** shares universe definitions; **Fleet → Save universe** saves flight progress. Importing a code package inspects it; enabling or playing it executes code, so use authors you trust.
 
-Start with the [module examples](examples/modules/README.md), [editable packages](examples/packages/README.md), [shader example](examples/shaders/README.md) or [universe library](games/space-sim/universes/README.md). Module contracts live in [packages/game-api](packages/game-api/src/index.ts). Open the [standalone API reference](modules/API-REFERENCE.html) locally for searchable declarations and Creator guides without starting the game. Regenerate the HTML, text and in-game references with `npm run module:reference`; `npm run check:modules` checks all three for drift.
+Start with the [module examples](examples/modules/README.md), [editable packages](examples/packages/README.md), [shader example](examples/shaders/README.md) or [universe library](games/space-sim/universes/README.md). Module contracts live in [packages/game-api](packages/game-api/src/index.ts). Browse the [API reference](https://pink-kitsune-420.github.io/space-sim/API-REFERENCE.html) online, or open the [standalone HTML](modules/API-REFERENCE.html) locally for searchable declarations and Creator guides without starting the game. Regenerate the HTML, text and in-game references with `npm run module:reference`; `npm run check:modules` checks all three for drift.
 
 ## Develop
 

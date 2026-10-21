@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -20,6 +20,22 @@ test.beforeAll(async () => {
   await writeFile(join(directory, 'reference.html'), renderHtml({pages: [page], provenance: 'Fixture'}, [], new Map([['Example', {stem: 'fixture', name: 'Example'}]])));
 });
 test.afterAll(async () => { await rm(directory, {recursive: true, force: true}); });
+
+test('published reference serves the standalone HTML with searchable deep links', async ({page}) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const fragment = 'symbol:shader-format:validateShaderDefinition';
+  const response = await page.goto('/API-REFERENCE.html#' + encodeURIComponent(fragment));
+  expect(response?.status()).toBe(200);
+  expect(response?.headers()['content-type']).toContain('text/html');
+  expect(await response!.body()).toEqual(await readFile('modules/API-REFERENCE.html'));
+  await expect(page.locator('h3[id="' + fragment + '"]')).toBeFocused();
+  await page.getByRole('searchbox', {name: 'Search declarations and guides'}).fill('validateShaderDefinition');
+  const entry = page.locator('article[data-entry]:visible');
+  await expect(entry).toHaveCount(1);
+  await expect(entry.locator('h3')).toContainText('validateShaderDefinition');
+  expect(errors).toEqual([]);
+});
 
 test('standalone file searches public declarations, keeps deep links and back navigation, and makes no network requests', async ({page, context}) => {
   await disableNetwork(context);

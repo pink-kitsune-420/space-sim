@@ -1,5 +1,5 @@
 // Inline the single Vite entry and stylesheet. The artifact opens directly via file://.
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
 import { resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -37,6 +37,8 @@ if (gameCatalog.format !== 'space-lab-game-catalog/1' || !Array.isArray(gameCata
 html = html.replace('</head>', `<script id="space-lab-game-catalog" type="application/json">${JSON.stringify(gameCatalog)}</script>\n</head>`);
 const output = resolve(root, 'space-lab-offline.html');
 await writeFile(output, html);
+// Publish the standalone reference alongside the game on GitHub Pages.
+await copyFile(new URL('../modules/API-REFERENCE.html', import.meta.url), resolve(root, 'API-REFERENCE.html'));
 await writeFile(resolve(root, 'catalog.json'), `${JSON.stringify(gameCatalog, null, 2)}\n`);
 
 for (const entry of gameCatalog.games) {
