@@ -1,5 +1,5 @@
 // Generated Creators API reference. Reads manifests, Creators guides, examples and the
-// public game-api declarations they use; writes a Manual page bundle and a plain-text copy.
+// public game-api declarations they use; writes a Manual page bundle, plain-text copy and standalone offline HTML.
 // Usage: node packages/module-tools/reference.mjs [--check]
 // Host-side Node tooling: modules cannot import packages/module-tools.
 import { createHash } from 'node:crypto';
@@ -7,10 +7,11 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSync } from 'rolldown/utils';
+import { renderHtml } from './reference-html.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 /** Generated files, relative to the checkout root. Never edit them by hand. */
-export const OUTPUTS = { pages: 'apps/web/src/api-reference.json', text: 'modules/API-REFERENCE.txt' };
+export const OUTPUTS = { pages: 'apps/web/src/api-reference.json', text: 'modules/API-REFERENCE.txt', html: 'modules/API-REFERENCE.html' };
 /** Section headings of a templated docs/creators/usage.json, in order. */
 export const TEMPLATE = ['What it does', 'Provides and requires', 'Settings', 'Lifecycle', 'Remove or replace', 'Stability', 'Example', 'Related'];
 const GAME_API = 'packages/game-api/src';
@@ -353,7 +354,7 @@ export function generate(state = collect(), options = {}) {
   }
   // The host shows shipped guides only for these modules, so the list is part of the bundle.
   const bundle = { format: 'spacelab-api-reference/1', provenance, modules: documented.map(module => module.manifest.id), pages };
-  return { bundle, text: text(bundle, documented), documented, state };
+  return { bundle, text: text(bundle, documented), html: renderHtml(bundle, documented, api.publicDeclarations), documented, state };
 }
 function text(bundle, documented) {
   const render = page => [`=== ${page.title} [${page.id}]`, ...page.blocks[0]?.text === page.summary ? [] : [page.summary, ''], ...page.blocks.flatMap(block =>
@@ -430,7 +431,7 @@ export function check(result = generate()) {
     for (const page of ['modules', `api-reference/module/${m.id}`]) if (!related.includes(page)) fail(where, `Related must link to ${page}`);
     links(where, guide.blocks);
   }
-  const expected = { [OUTPUTS.pages]: `${JSON.stringify(bundle, null, 2)}\n`, [OUTPUTS.text]: result.text };
+  const expected = { [OUTPUTS.pages]: `${JSON.stringify(bundle, null, 2)}\n`, [OUTPUTS.text]: result.text, [OUTPUTS.html]: result.html };
   for (const [path, content] of Object.entries(expected)) {
     const current = existsSync(join(ROOT, path)) ? read(path) : undefined;
     if (current === content) continue;
@@ -439,10 +440,11 @@ export function check(result = generate()) {
   }
   return errors;
 }
-/** Write both generated outputs (`OUTPUTS`) from a `generate()` result and return it. */
+/** Write all generated outputs (`OUTPUTS`) from a `generate()` result and return it. */
 export function write(result = generate()) {
   writeFileSync(join(ROOT, OUTPUTS.pages), `${JSON.stringify(result.bundle, null, 2)}\n`);
   writeFileSync(join(ROOT, OUTPUTS.text), result.text);
+  writeFileSync(join(ROOT, OUTPUTS.html), result.html);
   return result;
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
@@ -453,7 +455,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       else console.log('API reference check passed');
     } else {
       const result = write();
-      console.log(`Wrote ${relative(ROOT, join(ROOT, OUTPUTS.pages))} (${result.bundle.pages.length} pages) and ${OUTPUTS.text}`);
+      console.log(`Wrote ${relative(ROOT, join(ROOT, OUTPUTS.pages))} (${result.bundle.pages.length} pages) and ${OUTPUTS.text}, ${OUTPUTS.html}`);
     }
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
