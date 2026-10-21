@@ -4495,6 +4495,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
   const summary = profiler.summary();
   const world = session.world;
   return {
+    tileCapabilities: presentation.rendering.renderer?.features?.tileChunks ?? null,
     renderer: presentation.provider.id, shader: presentation.rendering.shaders.name,
     hostFeatures: { modules: hostFeatures.lock.modules, providers: hostFeatures.lock.providers, profile: hostFeatures.lock.profileId },
     presentation: presentation.diagnostics(), commands: world.commands.map(c => c.id),

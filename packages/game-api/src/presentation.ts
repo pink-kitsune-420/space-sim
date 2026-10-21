@@ -159,8 +159,17 @@ export interface RendererFeatures {
   readonly effects?: import('./platform').ShaderEffects;
   /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
    * Absence means unsupported. This does not qualify underground light/wall parity. */
-  readonly tileChunks?: { readonly version: 1; readonly rotation: true; readonly clipPolygon: true };
-  /** Custom tile palette registration for instanced tile-chunk primitives. */
+  readonly tileChunks?: {
+    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;
+    /** Optional supplied-light profile, separate from unlit version-1 geometry. */
+    readonly lightEncoding?: 'nibble';
+    readonly paletteEntries?: 1024;
+    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */
+    readonly walls?: true;
+    readonly buffers?: 'borrowed-through-draw';
+  };
+  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,
+   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */
   readonly tilePalettes?: {
     register(paletteId: string, colors: readonly string[]): void;
   };
@@ -242,10 +251,46 @@ export type OverlayPrimitive =
       readonly clipPolygon?: readonly Vec[];
       readonly size: 32;
       readonly tiles: Uint16Array;
+      /** Optional 1,024 background palette IDs, shown through air at 55% brightness.
+       * Cosmetic main-compatible walls only; the foreground masks its backing. */
+      readonly walls?: Uint16Array;
+      /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.
+       * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.
+       * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */
+      readonly lightEncoding?: 'nibble';
+      /** Arrays are borrowed unchanged through all synchronous draw consumers. They may
+       * change between completed draws. No ownership transfer or persistent identity. */
       readonly light?: Uint8Array;
       readonly paletteId?: string;
       readonly color?: string;
     };
+
+/** Preflight essential tile requirements on the actual renderer before beginning play.
+ * Missing or incompatible metadata is unsupported. Optional visuals may instead use
+ * a declared vector fallback. Geometry-only version-1 providers remain compatible. */
+export function requireTileChunkFeatures(features: RendererFeatures | undefined,
+  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void {
+  const tile = features?.tileChunks;
+  if (tile?.version !== 1 || tile.rotation !== true || tile.clipPolygon !== true || typeof features?.tilePalettes?.register !== 'function'
+    || (required.lightEncoding && (tile.lightEncoding !== required.lightEncoding || tile.paletteEntries !== 1024))
+    || (required.walls && !tile.walls)) throw new Error('Renderer does not support the required tile profile.');
+}
+
+/** Validate the opt-in supplied-light profile. Legacy arrays retain their semantics.
+ * Callers retain byte ownership; validation never copies or retains chunk buffers. */
+export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void {
+  if (chunk.lightEncoding === undefined) return;
+  if (chunk.lightEncoding !== 'nibble') throw new Error('tile lightEncoding must be nibble');
+  if (!(chunk.tiles instanceof Uint16Array) || chunk.tiles.length !== 1024
+    || (chunk.walls !== undefined && (!(chunk.walls instanceof Uint16Array) || chunk.walls.length !== 1024)))
+    throw new Error('tile IDs must have 1024 entries');
+  for (let i = 0; i < 1024; i++) if (chunk.tiles[i]! > 1023 || (chunk.walls?.[i] ?? 0) > 1023)
+    throw new Error('tile palette IDs must be 0..1023');
+  if (chunk.light !== undefined) {
+    if (!(chunk.light instanceof Uint8Array) || chunk.light.length !== 1024) throw new Error('tile light must have 1024 entries');
+    for (let i = 0; i < chunk.light.length; i++) if (chunk.light[i]! > 15) throw new Error('tile nibble light must be 0..15');
+  }
+}
 
 /** Default 27 first-party Space Sim tile material colors. */
 export const DEFAULT_TILE_PALETTE_HEX: readonly string[] = Object.freeze([

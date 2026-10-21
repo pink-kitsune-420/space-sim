@@ -4,7 +4,7 @@ export function hexToRgb(hex?: string): { r: number; g: number; b: number } {
   if (!hex) return { r: 56, g: 189, b: 248 };
   let h = hex.trim().replace(/^#/, '');
   if (h.length === 3) h = h.split('').map(c => c + c).join('');
-  const num = parseInt(h, 16);
+  const num = parseInt(h.slice(0, 6), 16);
   if (Number.isNaN(num)) return { r: 56, g: 189, b: 248 };
   return {
     r: (num >> 16) & 255,

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { requireTileChunkFeatures } from '../../packages/game-api/src/index';
 import type { OverlayPrimitive, RenderFrame } from '../../packages/game-api/src/index';
 import { CanvasRenderer, DEFAULT_SHADERS, WebGLRenderer } from '../../packages/render-2d/src/index';
 import { initialState } from '../../packages/sim-core/src/index';
@@ -30,13 +31,19 @@ function fake2d() {
 }
 
 function fakeGl(stencil = true) {
-  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[] };
+  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[],
+    buffers: new Set<object>(), tileUploads: [] as number[][] };
   let program: unknown, linked = 0;
   const gl = new Proxy({} as Record<string, unknown>, {
     get(_target, key) {
       if (typeof key !== 'string') return undefined;
       if (/^[A-Z_0-9]+$/.test(key)) return key.length; // Distinct enum stand-ins.
       switch (key) {
+        case 'createBuffer': return () => { const buffer = {}; stats.buffers.add(buffer); return buffer; };
+        case 'deleteBuffer': return (buffer: object) => { stats.buffers.delete(buffer); };
+        case 'bufferSubData': return (_target: unknown, _offset: unknown, data: unknown) => {
+          if (data instanceof Uint16Array && data.length === 1024) stats.tileUploads.push(Array.from(data));
+        };
         case 'createProgram': return () => { stats.programs++; stats.created++; return { id: ++linked }; };
         case 'deleteProgram': return (p: unknown) => { if (p) stats.programs--; };
         case 'getShaderParameter': case 'getProgramParameter': return (_: unknown, parameter: number) => parameter === 'LINK_STATUS'.length || parameter === 'COMPILE_STATUS'.length ? true : 0;
@@ -45,8 +52,8 @@ function fakeGl(stencil = true) {
         case 'uniform4f': return (_: unknown, ...rgba: number[]) => { stats.colors.push(rgba.map(c => +c.toFixed(2))); };
         case 'drawArrays': return (mode: number, _first: number, count: number) => { stats.draws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}`); };
         case 'drawArraysInstanced': return (mode: number, _first: number, count: number, primcount: number) => { stats.instancedDraws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}:${primcount}`); };
-        case 'getExtension': return () => null;
         case 'getContextAttributes': return () => ({ stencil });
+        case 'getExtension': return () => null;
         case 'getError': return () => 0;
         default: return () => ({});
       }
@@ -59,6 +66,59 @@ function fakeGl(stencil = true) {
 }
 
 describe('renderer features', () => {
+  it('draws cosmetic walls behind air, clears omitted GPU walls, and releases tile buffers', () => {
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const walls = new Uint16Array(1024); walls[0] = 2; walls[1] = 2;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 },
+      tileMetres: 1, size: 32, tiles, walls, paletteId: 'fixture' };
+    const palette = ['#00000000', '#112233', '#aabbcc'];
+    const canvas = fake2d(); const cpu = new CanvasRenderer(canvas.canvas);
+    cpu.features.tilePalettes?.register('fixture', palette);
+    cpu.draw(frame([chunk]));
+    expect(canvas.calls).toContain('fillStyle=#112233'); // Foreground masks its wall.
+    expect(canvas.calls).toContain('fillStyle=#5e6770'); // Air reveals the dim background.
+    expect(canvas.calls).not.toContain('fillStyle=#aabbcc');
+    cpu.features.tilePalettes?.register('fixture', ['#00000000', '#112233', '#ffffff']);
+    canvas.calls.length = 0; cpu.draw(frame([chunk]));
+    expect(canvas.calls).toContain('fillStyle=#8c8c8c'); // Palette replacement invalidates walls too.
+    cpu.dispose();
+
+    const webgl = fakeGl(); const gpu = new WebGLRenderer(webgl.canvas);
+    gpu.draw(frame([chunk, { ...chunk, walls: undefined }]));
+    expect(webgl.stats.tileUploads).toHaveLength(4);
+    expect(webgl.stats.tileUploads[1]).toEqual(Array.from(walls));
+    expect(webgl.stats.tileUploads[3]).toEqual(Array(1024).fill(0));
+    webgl.stats.tileUploads.length = 0;
+    gpu.draw(frame([{ ...chunk, walls: undefined }]));
+    expect(webgl.stats.tileUploads).toHaveLength(1); // Legacy chunks need no repeated wall upload.
+    gpu.dispose();
+    expect(webgl.stats.buffers.size).toBe(0);
+    expect(webgl.stats.programs).toBe(0);
+  });
+
+
+  it('preflights essential profiles, copies palettes and observes borrowed arrays only through a draw', () => {
+    const source = fake2d(), renderer = new CanvasRenderer(source.canvas);
+    expect(() => requireTileChunkFeatures(undefined)).toThrow('required tile profile');
+    expect(() => requireTileChunkFeatures({ tileChunks: { version: 9 } } as never)).toThrow();
+    expect(() => requireTileChunkFeatures({ ...renderer.features, tileChunks: { version: 1, rotation: true, clipPolygon: true } }, {lightEncoding:'nibble'})).toThrow();
+    requireTileChunkFeatures(renderer.features, {lightEncoding:'nibble', walls:true});
+    const colors = ['#00000000', '#ffffff'];
+    renderer.features.tilePalettes!.register('strict', colors); colors[1] = '#ff0000';
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const light = new Uint8Array(1024);
+    const chunk: Extract<OverlayPrimitive, {kind:'tile-chunk'}> = {kind:'tile-chunk', space:'world', origin:{x:0,y:0},size:32,tileMetres:1,tiles,light,lightEncoding:'nibble',paletteId:'strict'};
+    renderer.draw(frame([chunk])); expect(source.calls).toContain('fillStyle=#333333');
+    source.calls.length=0;light[0]=15; renderer.draw(frame([chunk]));expect(source.calls).toContain('fillStyle=#ffffff');
+    source.calls.length=0; renderer.draw(frame([{...chunk,light:undefined}]));expect(source.calls).toContain('fillStyle=#ffffff');
+    source.calls.length=0; renderer.draw(frame([{...chunk,lightEncoding:undefined,light:new Uint8Array(1024)}]));expect(source.calls).toContain('fillStyle=#ffffff');
+    source.calls.length=0;tiles[0]=1023;renderer.draw(frame([chunk]));expect(source.calls).toContain('fillStyle=#888888');
+    light[0]=16;expect(()=>renderer.draw(frame([chunk]))).toThrow('0..15');
+    renderer.features.tilePalettes!.register('strict', ['#00000000', '#11223380']);
+    source.calls.length=0;tiles[0]=1;light[0]=15;renderer.draw(frame([chunk]));expect(source.calls).toContain('fillStyle=#11223380');
+    expect(()=>renderer.features.tilePalettes!.register('bad',['red'])).toThrow('Invalid tile palette');
+    renderer.dispose();expect(()=>renderer.features.tilePalettes!.register('x',colors)).toThrow('disposed');
+  });
   it('hides celestial names in both renderers while retaining the body scene and other annotations', () => {
     for (const visible of [true, false]) {
       const scene: RenderFrame = { ...frame(), bodies: [{ id: 'home', name: 'Home', position: {x:0,y:0}, radius: 20 }], showBodyLabels: visible };

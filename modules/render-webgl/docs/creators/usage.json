@@ -112,6 +112,10 @@
     {
       "type": "paragraph",
       "text": "Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices."
+    },
+    {
+      "type": "paragraph",
+      "text": "Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim."
     }
   ]
 }

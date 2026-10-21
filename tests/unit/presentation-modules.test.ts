@@ -158,6 +158,20 @@ describe('presentation hook output', () => {
       expect(() => validateOverlay([chunk])).toThrow();
     }
   });
+  it('validates supplied nibble light and reconciled walls without taking byte ownership', () => {
+    const tiles = new Uint16Array(1024), walls = new Uint16Array(1024), light = new Uint8Array(1024);
+    const chunk = {kind:'tile-chunk',space:'world',origin:{x:0,y:0},size:32,tileMetres:.5,tiles,walls,light,lightEncoding:'nibble'};
+    const captured=validateOverlay([chunk])[0];
+    if(captured?.kind!=='tile-chunk') throw new Error('Lost tile');
+    expect(captured.walls).toBe(walls);expect(captured.light).toBe(light);expect(captured.lightEncoding).toBe('nibble');
+    light[10]=16;expect(()=>validateOverlay([chunk])).toThrow('0..15');
+    light[10]=15;tiles[500]=1024;expect(()=>validateOverlay([chunk])).toThrow('0..1023');
+    tiles[500]=1023;walls[2]=65535;expect(()=>validateOverlay([chunk])).toThrow('0..1023');
+    expect(()=>validateOverlay([{...chunk,lightEncoding:'unknown'}])).toThrow('lightEncoding');
+    expect(()=>validateOverlay([{...chunk,lightEncoding:undefined,walls:new Uint16Array(2)}])).toThrow('walls');
+    // Legacy byte-light and full uint16 IDs remain accepted by the runtime adapter.
+    expect(()=>validateOverlay([{...chunk,lightEncoding:undefined,light:new Uint8Array(1024).fill(255)}])).not.toThrow();
+  });
   it('captures rotated clipped tile layers and enforces the shared point budget', () => {
     const polygon = [{x:0,y:0}, {x:1,y:0}, {x:1,y:1}, {x:.5,y:.5}, {x:0,y:1}];
     const chunk = { kind: 'tile-chunk', space: 'world', origin: {x:10,y:20}, size:32,

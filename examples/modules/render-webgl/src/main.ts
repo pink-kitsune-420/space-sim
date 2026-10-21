@@ -1,3 +1,4 @@
+import { requireTileChunkFeatures } from '@space-sim/game-api';
 import { WEBGL_DRAWING, type BodyPreview, type ModuleInitializationV2, type Render2DOptions, type SceneRenderer, type ServiceKey, type ShaderPack, type WebGLRendererFactory } from '@space-sim/game-api';
 
 export interface WebGLRendererResult {
@@ -63,4 +64,14 @@ export function clippedTileExample(): import('@space-sim/game-api').OverlayPrimi
   return { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, size: 32,
     tileMetres: .5, rotationRadians: Math.PI / 4, tiles,
     clipPolygon: [{ x: 0, y: 0 }, { x: .5, y: 0 }, { x: .5, y: .25 }, { x: 0, y: .5 }] };
+}
+
+/** Preflight an essential supplied-light consumer before play; optional appearance
+ * consumers can keep their vector fallback instead. No light calculation here. */
+export function suppliedLightTileExample(features: import('@space-sim/game-api').RendererFeatures): import('@space-sim/game-api').OverlayPrimitive {
+  requireTileChunkFeatures(features, {lightEncoding:'nibble',walls:true});
+  const tiles = new Uint16Array(1024); tiles[0]=1;
+  const walls = new Uint16Array(1024); walls[1]=2;
+  const light = new Uint8Array(1024).fill(15); light[0]=0;
+  return {kind:'tile-chunk',space:'world',origin:{x:0,y:0},size:32,tileMetres:.5,tiles,walls,light,lightEncoding:'nibble'};
 }

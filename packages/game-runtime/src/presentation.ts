@@ -1,3 +1,4 @@
+import { validateTileChunkProfile } from '../../game-api/src/index';
 /** Host-only (`packages/game-runtime`): presentation hook capture, output limits and fault isolation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeLayer`, `contributePanel` and `contributeCamera`. */
 import type {
   CameraExtension, CameraHook, CameraInput, CameraTarget, LayerExtension, LayerHook, MultiViewportCameraFrame, OverlayPrimitive, PanelExtension,
@@ -80,7 +81,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
     const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed', 'fill']
       : kind === 'circle' ? ['kind', 'space', 'center', 'radius', 'color', 'width', 'fill']
       : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align']
-      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'light', 'paletteId', 'color', 'rotationRadians', 'clipPolygon'] : undefined;
+      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'walls', 'light', 'lightEncoding', 'paletteId', 'color', 'rotationRadians', 'clipPolygon'] : undefined;
     if (!fields) throw new Error(`${label}: kind must be line, circle, text or tile-chunk`);
     const p = record(value, fields, label);
     if (p.space !== 'world' && p.space !== 'screen') throw new Error(`${label}: space must be world or screen`);
@@ -94,6 +95,8 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
       if (!(p.tiles instanceof Uint16Array) || p.tiles.length !== 1024) {
         throw new Error(`${label}: tiles must be a Uint16Array of length 1024`);
       }
+      if (p.walls !== undefined && (!(p.walls instanceof Uint16Array) || p.walls.length !== 1024)) throw new Error(`${label}: walls must be a Uint16Array of length 1024`);
+      if (p.lightEncoding !== undefined && p.lightEncoding !== 'nibble') throw new Error(`${label}: lightEncoding must be nibble`);
       if (p.light !== undefined && (!(p.light instanceof Uint8Array) || p.light.length !== 1024)) {
         throw new Error(`${label}: light must be a Uint8Array of length 1024`);
       }
@@ -110,6 +113,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
         if (points > MAX_OVERLAY_POINTS) throw new Error(`layers return at most ${MAX_OVERLAY_POINTS} points`);
         clipPolygon = Object.freeze(p.clipPolygon.map((q, j) => point(q, 'world', `${label} clip point ${j}`)));
       }
+      validateTileChunkProfile(p as unknown as Extract<OverlayPrimitive, { kind: 'tile-chunk' }>);
       const c = p.color !== undefined ? color(p.color, label) : undefined;
       return Object.freeze({
         kind,
@@ -120,6 +124,8 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
         ...(clipPolygon !== undefined ? { clipPolygon } : {}),
         size: 32 as const,
         tiles: p.tiles,
+        ...(p.walls !== undefined ? { walls: p.walls } : {}),
+        ...(p.lightEncoding !== undefined ? { lightEncoding: p.lightEncoding } : {}),
         ...(p.light !== undefined ? { light: p.light } : {}),
         ...(p.paletteId !== undefined ? { paletteId: p.paletteId } : {}),
         ...(c !== undefined ? { color: c } : {}),

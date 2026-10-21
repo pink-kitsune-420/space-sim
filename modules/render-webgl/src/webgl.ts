@@ -1,3 +1,4 @@
+import { validateTileChunkProfile } from '@space-sim/game-api';
 import { trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import { Effects } from './effects';
 import type { State, Vec, SceneFrame, RenderMaterial, RenderPostEffect } from '@space-sim/game-api';
@@ -16,6 +17,8 @@ import { createNoiseTexture } from './noise-texture';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
 import { createTilePaletteTexture, hexToRgb01, themeBackdropToShaderIndex, themeGridToShaderIndex } from './palette';
 
+const DEFAULT_ZERO_WALLS = new Uint16Array(1024);
+const DEFAULT_NIBBLE_LIGHT = new Uint8Array(1024).fill(15);
 const DEFAULT_FULL_LIGHT = new Uint8Array(1024).fill(255);
 
 /** Unit circle vertex tables, built once per segment count. */
@@ -139,6 +142,10 @@ export class WebGLRenderer implements Renderer {
     readonly vao: WebGLVertexArrayObject;
     readonly quadBuffer: WebGLBuffer;
     readonly tilesBuffer: WebGLBuffer;
+    readonly wallsBuffer: WebGLBuffer;
+    wallsActive: boolean;
+    readonly paletteSizeLoc: WebGLUniformLocation | null;
+    readonly strictLightLoc: WebGLUniformLocation | null;
     readonly lightBuffer: WebGLBuffer;
     readonly resolutionLoc: WebGLUniformLocation | null;
     readonly cameraOffsetLoc: WebGLUniformLocation | null;
@@ -149,6 +156,7 @@ export class WebGLRenderer implements Renderer {
     readonly paletteLoc: WebGLUniformLocation | null;
     readonly defaultPalette: WebGLTexture;
   };
+  private readonly tilePaletteSizes = new Map<string, number>();
   private readonly tilePalettes = new Map<string, WebGLTexture>();
   private readonly stencilAvailable: boolean;
   /** Shader packs are this renderer's optional feature; callers never check its class. */
@@ -178,7 +186,7 @@ export class WebGLRenderer implements Renderer {
         get pack(): ShaderPack { return renderer.activeShaders; },
         set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
       }),
-      ...(this.stencilAvailable ? { tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const }) } : {}),
+      ...(this.stencilAvailable ? { tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }) } : {}),
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
       }),
@@ -366,11 +374,12 @@ export class WebGLRenderer implements Renderer {
       gl.deleteBuffer(this.tileChunkState.quadBuffer);
       gl.deleteBuffer(this.tileChunkState.tilesBuffer);
       gl.deleteBuffer(this.tileChunkState.lightBuffer);
+      gl.deleteBuffer(this.tileChunkState.wallsBuffer);
       gl.deleteTexture(this.tileChunkState.defaultPalette);
       this.tileChunkState = undefined;
     }
     for (const tex of this.tilePalettes.values()) gl.deleteTexture(tex);
-    this.tilePalettes.clear();
+    this.tilePalettes.clear(); this.tilePaletteSizes.clear();
     for (const vao of [this.quadVao, this.vectorVao, this.textVao, this.terrainVao, this.colorVao]) gl.deleteVertexArray(vao);
     for (const buffer of [this.quadBuffer, this.vectorBuffer, this.textBuffer, this.terrainBuffer, this.colorBuffer]) gl.deleteBuffer(buffer);
     for (const entry of this.labelCache.values()) gl.deleteTexture(entry.texture);
@@ -1069,13 +1078,16 @@ export class WebGLRenderer implements Renderer {
 
   registerTilePalette(paletteId: string, colors: readonly string[]): void {
     if (this.disposed) throw new Error('Renderer is disposed.');
+    if (!paletteId || paletteId.length > 64 || colors.length < 1 || colors.length > 1024
+      || colors.some(color => !/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color))) throw new Error('Invalid tile palette.');
     const state = this.ensureTileChunkResources();
     const existing = this.tilePalettes.get(paletteId);
+    const tex = createTilePaletteTexture(this.gl, colors);
     if (existing && existing !== state.defaultPalette) {
       this.gl.deleteTexture(existing);
     }
-    const tex = createTilePaletteTexture(this.gl, colors);
     this.tilePalettes.set(paletteId, tex);
+    this.tilePaletteSizes.set(paletteId, colors.length);
   }
 
   private ensureTileChunkResources(): NonNullable<typeof this.tileChunkState> {
@@ -1089,6 +1101,8 @@ export class WebGLRenderer implements Renderer {
     const tileMetresLoc = gl.getUniformLocation(program, 'u_tile_metres');
     const chunkRotationLoc = gl.getUniformLocation(program, 'u_chunk_rotation');
     const paletteLoc = gl.getUniformLocation(program, 'u_palette');
+    const paletteSizeLoc = gl.getUniformLocation(program, 'u_palette_size');
+    const strictLightLoc = gl.getUniformLocation(program, 'u_strict_light');
 
     const vao = gl.createVertexArray()!;
     gl.bindVertexArray(vao);
@@ -1117,6 +1131,10 @@ export class WebGLRenderer implements Renderer {
     gl.vertexAttribIPointer(2, 1, gl.UNSIGNED_BYTE, 0, 0);
     gl.vertexAttribDivisor(2, 1);
 
+    const wallsBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, wallsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, DEFAULT_ZERO_WALLS, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(3); gl.vertexAttribIPointer(3, 1, gl.UNSIGNED_SHORT, 0, 0); gl.vertexAttribDivisor(3, 1);
     gl.bindVertexArray(null);
 
     const defaultPalette = createTilePaletteTexture(gl);
@@ -1127,6 +1145,7 @@ export class WebGLRenderer implements Renderer {
       vao,
       quadBuffer,
       tilesBuffer,
+      wallsBuffer, wallsActive: false, strictLightLoc, paletteSizeLoc,
       lightBuffer,
       resolutionLoc,
       cameraOffsetLoc,
@@ -1166,10 +1185,13 @@ export class WebGLRenderer implements Renderer {
     for (const p of overlays) {
       if (p.kind !== 'tile-chunk') continue;
 
+      validateTileChunkProfile(p);
+      gl.uniform1i(state.strictLightLoc, p.lightEncoding === 'nibble' ? 1 : 0);
       const paletteId = p.paletteId ?? 'default';
       if (paletteId !== boundPaletteId) {
-        const tex = this.tilePalettes.get(paletteId) ?? state.defaultPalette;
+        const tex = this.tilePalettes.get(paletteId) ?? this.tilePalettes.get('default') ?? state.defaultPalette;
         gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniform1i(state.paletteSizeLoc, this.tilePaletteSizes.get(paletteId) ?? this.tilePaletteSizes.get('default') ?? 27);
         boundPaletteId = paletteId;
       }
 
@@ -1219,8 +1241,13 @@ export class WebGLRenderer implements Renderer {
       gl.bindBuffer(gl.ARRAY_BUFFER, state.tilesBuffer);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.tiles);
 
+      if (p.walls || state.wallsActive) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, state.wallsBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.walls ?? DEFAULT_ZERO_WALLS);
+        state.wallsActive = p.walls !== undefined;
+      }
       gl.bindBuffer(gl.ARRAY_BUFFER, state.lightBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? DEFAULT_FULL_LIGHT);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? (p.lightEncoding === 'nibble' ? DEFAULT_NIBBLE_LIGHT : DEFAULT_FULL_LIGHT));
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 1024);
       if (p.clipPolygon) { gl.disable(gl.STENCIL_TEST); gl.disable(gl.SCISSOR_TEST); }

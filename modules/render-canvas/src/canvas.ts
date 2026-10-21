@@ -1,4 +1,4 @@
-import { DEFAULT_TILE_PALETTE_HEX, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { DEFAULT_TILE_PALETTE_HEX, validateTileChunkProfile, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -341,9 +341,31 @@ export function drawPlanetHorizon(
   ctx.restore();
 }
 
+/** Hex palette shading outside the per-cell loop. */
+function shadeTile(color: string, brightness: number): string {
+  let hex = color.slice(1);
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  return '#' + [0, 2, 4].map(offset => Math.round(parseInt(hex.slice(offset, offset + 2), 16) * brightness)
+    .toString(16).padStart(2, '0')).join('') + hex.slice(6);
+}
+
+/** Prepared once per palette, outside tile drawing. Preserve any authored alpha. */
+function wallPalette(colors: readonly string[]): readonly string[] {
+  return colors.map(color => {
+    let hex = color.trim().replace(/^#/, '');
+    if (hex.length === 3) hex = hex.split('').map(digit => digit + digit).join('');
+    if (!/^[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(hex)) hex = '888888';
+    return '#' + [0, 2, 4].map(offset =>
+      Math.round(parseInt(hex.slice(offset, offset + 2), 16) * .55).toString(16).padStart(2, '0'),
+    ).join('') + hex.slice(6);
+  });
+}
+
 export class CanvasRenderer implements Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly tilePalettes = new Map<string, readonly string[]>();
+  private readonly wallPalettes = new Map<string, readonly string[]>([['default', wallPalette(DEFAULT_TILE_PALETTE_HEX)]]);
+  private readonly litPalettes = new Map<string, readonly (readonly string[])[]>();
   /** No shader packs. Reading one pixel back makes the browser finish deferred drawing. */
   readonly features: RendererFeatures;
   private disposed = false;
@@ -355,7 +377,7 @@ export class CanvasRenderer implements Renderer {
     this.ctx = ctx;
     const renderer = this;
     this.features = Object.freeze({
-      tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const }),
+      tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }),
       flush: () => { ctx.getImageData(0, 0, 1, 1); },
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
@@ -364,9 +386,14 @@ export class CanvasRenderer implements Renderer {
   }
   registerTilePalette(paletteId: string, colors: readonly string[]): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
-    this.tilePalettes.set(paletteId, colors);
+    if (!paletteId || paletteId.length > 64 || colors.length < 1 || colors.length > 1024
+      || colors.some(color => !/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color))) throw new Error('Invalid tile palette.');
+    const copy = Object.freeze([...colors]);
+    this.tilePalettes.set(paletteId, copy);
+    this.wallPalettes.set(paletteId, wallPalette(copy));
+    this.litPalettes.delete(paletteId);
   }
-  dispose(): void { this.disposed = true; }
+  dispose(): void { this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); this.litPalettes.clear(); }
   drawScene(frame: SceneFrame, timer?: RenderTimer): void { this.draw(sceneFrame(frame), timer); }
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
@@ -616,6 +643,7 @@ export class CanvasRenderer implements Renderer {
     const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation);
     for (const p of overlays) {
       if (p.kind !== 'tile-chunk') continue;
+      validateTileChunkProfile(p);
       const { origin, tileMetres, tiles } = p;
       const angle = camera.rotation + (p.rotationRadians ?? 0);
       const c = Math.cos(angle) * camera.scale, s = Math.sin(angle) * camera.scale;
@@ -643,12 +671,26 @@ export class CanvasRenderer implements Renderer {
         }
         ctx.closePath(); ctx.clip('evenodd');
       }
-      const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? DEFAULT_TILE_PALETTE_HEX;
+      const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? this.tilePalettes.get('default') ?? DEFAULT_TILE_PALETTE_HEX;
+      const wallColors = this.wallPalettes.get(p.paletteId ?? 'default') ?? this.wallPalettes.get('default')!;
+      let lit: readonly (readonly string[])[] | undefined;
+      if (p.lightEncoding === 'nibble') {
+        const key = this.tilePalettes.has(p.paletteId ?? 'default') ? p.paletteId ?? 'default' : 'default';
+        lit = this.litPalettes.get(key);
+        if (!lit) {
+          // Bounded by registered palette size; built only on first explicit-light use.
+          lit = [1, .55].flatMap(wall => Array.from({ length: 16 }, (_, level) =>
+            [...palette, '#888888'].map(color => shadeTile(color, wall * (.2 + .8 * level / 15)))));
+          this.litPalettes.set(key, lit);
+        }
+      }
       for (let y = y0; y < y1; y++) {
         for (let x = x0; x < x1; x++) {
-          const tileId = tiles[(y << 5) | x] ?? 0;
-          if (tileId === 0) continue;
-          ctx.fillStyle = palette[tileId] ?? '#888888';
+          const index = (y << 5) | x, tileId = tiles[index] ?? 0;
+          const wallId = tileId === 0 ? p.walls?.[index] ?? 0 : 0;
+          if (tileId === 0 && wallId === 0) continue;
+          ctx.fillStyle = lit ? lit[(wallId ? 16 : 0) + (p.light?.[index] ?? 15)]![Math.min(tileId || wallId, palette.length)]!
+            : wallId ? wallColors[wallId] ?? '#4b4b4b' : palette[tileId] ?? '#888888';
           ctx.fillRect(x * tileMetres, y * tileMetres, tileMetres, tileMetres);
         }
       }

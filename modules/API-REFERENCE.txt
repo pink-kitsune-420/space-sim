@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 3c2f3eaf643b5d6a
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f39111a2b9273614
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -1769,7 +1769,7 @@ Public render.canvas@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers, vehicleArtworkScale
+CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
@@ -1811,7 +1811,7 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition, vehicleArtworkScale
+AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
@@ -6405,8 +6405,17 @@ Optional features of a renderer instance. Applications discover them here, never
       readonly effects?: ShaderEffects;
       /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
        * Absence means unsupported. This does not qualify underground light/wall parity. */
-      readonly tileChunks?: { readonly version: 1; readonly rotation: true; readonly clipPolygon: true };
-      /** Custom tile palette registration for instanced tile-chunk primitives. */
+      readonly tileChunks?: {
+        readonly version: 1; readonly rotation: true; readonly clipPolygon: true;
+        /** Optional supplied-light profile, separate from unlit version-1 geometry. */
+        readonly lightEncoding?: 'nibble';
+        readonly paletteEntries?: 1024;
+        /** Cosmetic backing for air cells only; does not qualify underground gameplay. */
+        readonly walls?: true;
+        readonly buffers?: 'borrowed-through-draw';
+      };
+      /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,
+       * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */
       readonly tilePalettes?: {
         register(paletteId: string, colors: readonly string[]): void;
       };
@@ -6505,11 +6514,31 @@ Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'ti
           readonly clipPolygon?: readonly Vec[];
           readonly size: 32;
           readonly tiles: Uint16Array;
+          /** Optional 1,024 background palette IDs, shown through air at 55% brightness.
+           * Cosmetic main-compatible walls only; the foreground masks its backing. */
+          readonly walls?: Uint16Array;
+          /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.
+           * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.
+           * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */
+          readonly lightEncoding?: 'nibble';
+          /** Arrays are borrowed unchanged through all synchronous draw consumers. They may
+           * change between completed draws. No ownership transfer or persistent identity. */
           readonly light?: Uint8Array;
           readonly paletteId?: string;
           readonly color?: string;
         };
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+
+## requireTileChunkFeatures
+Preflight essential tile requirements on the actual renderer before beginning play. Missing or incompatible metadata is unsupported. Optional visuals may instead use a declared vector fallback. Geometry-only version-1 providers remain compatible.
+    export function requireTileChunkFeatures(features: RendererFeatures | undefined,
+      required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## validateTileChunkProfile
+Validate the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers.
+    export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## DEFAULT_TILE_PALETTE_HEX
 Default 27 first-party Space Sim tile material colors.
@@ -11330,6 +11359,7 @@ examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to cre
 -> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
 VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hull/flame/details scale by the camera pixels per metre; sub-eight-pixel hulls become navigation markers. Match artwork to authoritative contactRadiusMetres; optional geometry never changes collision authority.
 Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
+Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11372,6 +11402,7 @@ examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initi
 -> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
 VehicleAppearance may declare metresPerUnit and local detail paths. Single and fleet vessels use physical world scale up close and navigation markers below eight projected CSS pixels. Match circular hull artwork with authoritative contactRadiusMetres; rendering does not define collision geometry.
 Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
+Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.

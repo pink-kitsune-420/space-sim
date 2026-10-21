@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 3c2f3eaf643b5d6a",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f39111a2b9273614",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 3c2f3eaf643b5d6a"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f39111a2b9273614"
         },
         {
           "type": "paragraph",
@@ -5127,7 +5127,7 @@
         },
         {
           "type": "paragraph",
-          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers, vehicleArtworkScale"
+          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5256,7 +5256,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition, vehicleArtworkScale"
+          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -13263,7 +13263,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: { readonly version: 1; readonly rotation: true; readonly clipPolygon: true };\n  /** Custom tile palette registration for instanced tile-chunk primitives. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
         },
         {
           "type": "paragraph",
@@ -13391,11 +13391,43 @@
         },
         {
           "type": "code",
-          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      /** Counterclockwise local-to-world rotation about origin; omitted means zero. */\n      readonly rotationRadians?: number;\n      /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;\n       * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.\n       * Module layers include these vertices in their existing 4,096-point output budget.\n       * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */\n      readonly clipPolygon?: readonly Vec[];\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
+          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      /** Counterclockwise local-to-world rotation about origin; omitted means zero. */\n      readonly rotationRadians?: number;\n      /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;\n       * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.\n       * Module layers include these vertices in their existing 4,096-point output budget.\n       * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */\n      readonly clipPolygon?: readonly Vec[];\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      /** Optional 1,024 background palette IDs, shown through air at 55% brightness.\n       * Cosmetic main-compatible walls only; the foreground masks its backing. */\n      readonly walls?: Uint16Array;\n      /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.\n       * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.\n       * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */\n      readonly lightEncoding?: 'nibble';\n      /** Arrays are borrowed unchanged through all synchronous draw consumers. They may\n       * change between completed draws. No ownership transfer or persistent identity. */\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
         },
         {
           "type": "paragraph",
           "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "requireTileChunkFeatures"
+        },
+        {
+          "type": "paragraph",
+          "text": "Preflight essential tile requirements on the actual renderer before beginning play. Missing or incompatible metadata is unsupported. Optional visuals may instead use a declared vector fallback. Geometry-only version-1 providers remain compatible."
+        },
+        {
+          "type": "code",
+          "text": "export function requireTileChunkFeatures(features: RendererFeatures | undefined,\n  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "validateTileChunkProfile"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers."
+        },
+        {
+          "type": "code",
+          "text": "export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",

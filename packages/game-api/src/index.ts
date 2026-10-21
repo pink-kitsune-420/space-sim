@@ -13,7 +13,7 @@ export { MOTION_CONTEXTS, ORBITAL_MOTION, BODY_FRAMES, SURFACE_GEOMETRY, RAILS_P
 export type * from './rules';
 export type * from './commands';
 export type * from './presentation';
-export { DEFAULT_TILE_PALETTE_HEX } from './presentation';
+export { DEFAULT_TILE_PALETTE_HEX, requireTileChunkFeatures, validateTileChunkProfile } from './presentation';
 export * as deterministicMath from './math';
 export * from './platform';
 export type * from './modules-v2';
