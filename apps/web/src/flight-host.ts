@@ -1,3 +1,4 @@
+import { SuccessorTiles } from './successor-tiles';
 import { successorReferences } from './successor-comparison';
 import { assertGameProgress, gamePreferenceKey, SUCCESSOR_GAME_ID } from '../../../packages/game-library/src/game-progress';
 import './warp-approval.css';
@@ -294,6 +295,7 @@ function preparePads(world: import('../../../packages/game-api/src/index').World
 const prediction = hostFeatures.providedService(PREDICTIONS).create(pass => profiler.event('prediction', { ...pass }));
 const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
+const successorTiles = new SuccessorTiles();
 const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id, startupGame.info.id);
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
@@ -4509,6 +4511,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
       body: activeFlightSlingshot.dominantBody.id,
       camera: activeFlightSlingshot.sourceCanvas === canvas ? cameraControl.last : splitScreen.guests.get(activeFlightSlingshot.slot ?? 0)?.camera.last,
       width: activeFlightSlingshot.sourceCanvas?.clientWidth, height: activeFlightSlingshot.sourceCanvas?.clientHeight } : null,
+    successorTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? successorTiles.stats : undefined,
     vehicleId: selectedShip()?.vehicleId, vehicleArtwork: presentationProviders.vehicleArtwork.get(selectedShip()?.vehicleId),
     vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
     model: MODEL, body: activeBody.id, system: world.systemId, universe: world.universe.id,
@@ -4874,10 +4877,14 @@ function frame(now: number): void {
     const profile = world.surface(activeBody.id);
     if (profile) {
       const origin = world.system.getBodyPosition(activeBody.id, view.time);
+      if (activeBody.id === 'planet' || activeBody.id === 'moon') {
+        overlays.push(...successorTiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
+          presentation.rendering.renderer!, origin, spinView.angle(activeBody, view.time), camera, width, height));
+      } else successorTiles.clear();
       overlays.push(...successorReferences(profile, angle => querySurface(profile, angle).groundRadius,
         point => { const p = spinView.point(activeBody, view.time, point); return { x: origin.x + p.x, y: origin.y + p.y }; }, camera.scale));
-    }
-  }
+    } else successorTiles.clear();
+  } else successorTiles.clear();
   if (academy) {
     try { overlays.push(...academy.draw({ ...base(), camera })); }
     catch (error) { releaseAcademy(); notify(`Academy preview stopped: ${message(error)}`); }
@@ -5138,7 +5145,18 @@ if (startupGame.info.id === 'builtin.space-sim-successor') {
   const hint = document.createElement('p');
   hint.id = 'successor-trial-help'; hint.className = 'control-note';
   hint.textContent = 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
-  systemSelect.closest('.setup-fields')?.after(hint);
+  const label = document.createElement('label');
+  label.textContent = 'Surface prototype ';
+  const tiles = document.createElement('select'); tiles.id = 'successor-tile-size';
+  for (const [value, text] of [['0.25', '0.25 m tiles'], ['0.5', '0.5 m tiles (trial)'], ['1', '1 m tiles'], ['0', 'Vector baseline']]) {
+    const option = document.createElement('option'); option.value = value!; option.textContent = text!; tiles.append(option);
+  }
+  tiles.value = '0.5';
+  tiles.addEventListener('change', () => { successorTiles.size = Number(tiles.value) as .25 | .5 | 1 | 0; });
+  label.append(tiles);
+  const coverage = document.createElement('p'); coverage.id = 'successor-tile-help'; coverage.className = 'control-note';
+  coverage.textContent = 'Tile review prototype: landing sector only (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
+  systemSelect.closest('.setup-fields')?.after(hint, label, coverage);
 }
 
 // Start: a solo world with one ship at the first scenario.

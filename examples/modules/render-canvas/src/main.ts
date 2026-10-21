@@ -30,3 +30,13 @@ export default function initialize(context: ModuleInitializationV2): void {
 export function withPhysicalArtwork(options: Render2DOptions, vehicles: NonNullable<Render2DOptions['vehicles']>): Render2DOptions {
   return { ...options, vehicles };
 }
+
+/** A rotated, clipped foreground cell using the version 1 tile subset.
+ * Call only after checking renderer.features?.tileChunks?.version === 1.
+ * Buffers and vertices remain immutable until drawing finishes. */
+export function clippedTileExample(): import('@space-sim/game-api').OverlayPrimitive {
+  const tiles = new Uint16Array(1024); tiles[0] = 1;
+  return { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, size: 32,
+    tileMetres: .5, rotationRadians: Math.PI / 4, tiles,
+    clipPolygon: [{ x: 0, y: 0 }, { x: .5, y: 0 }, { x: .5, y: .25 }, { x: 0, y: .5 }] };
+}

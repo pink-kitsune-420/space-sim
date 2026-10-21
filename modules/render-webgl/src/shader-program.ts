@@ -245,6 +245,7 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
     uniform float u_camera_scale;
     uniform float u_camera_rotation;
     uniform float u_tile_metres;
+    uniform float u_chunk_rotation;
     uniform sampler2D u_palette;
 
     out vec4 v_color;
@@ -260,7 +261,9 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
       float lx = float(instance & 31);
       float ly = float(instance >> 5);
 
-      vec2 local_pos = u_camera_offset + (vec2(lx, ly) + a_quad_pos) * u_tile_metres;
+      vec2 cell = (vec2(lx, ly) + a_quad_pos) * u_tile_metres;
+      float bc = cos(u_chunk_rotation), bs = sin(u_chunk_rotation);
+      vec2 local_pos = u_camera_offset + vec2(cell.x * bc - cell.y * bs, cell.x * bs + cell.y * bc);
       float c = cos(u_camera_rotation);
       float s = sin(u_camera_rotation);
       vec2 rotated = vec2(local_pos.x * c - local_pos.y * s, local_pos.x * s + local_pos.y * c);

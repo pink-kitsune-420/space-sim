@@ -29,7 +29,7 @@ function fake2d() {
   return { calls, canvas: { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => ctx } as unknown as HTMLCanvasElement };
 }
 
-function fakeGl() {
+function fakeGl(stencil = true) {
   const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[] };
   let program: unknown, linked = 0;
   const gl = new Proxy({} as Record<string, unknown>, {
@@ -46,6 +46,7 @@ function fakeGl() {
         case 'drawArrays': return (mode: number, _first: number, count: number) => { stats.draws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}`); };
         case 'drawArraysInstanced': return (mode: number, _first: number, count: number, primcount: number) => { stats.instancedDraws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}:${primcount}`); };
         case 'getExtension': return () => null;
+        case 'getContextAttributes': return () => ({ stencil });
         case 'getError': return () => 0;
         default: return () => ({});
       }
@@ -153,6 +154,58 @@ describe('renderer features', () => {
     renderer.dispose(); renderer.dispose();
     expect(stats.programs).toBe(0);
   });
+  it('withholds clipped-tile capability when WebGL did not provide a stencil buffer', () => {
+    const gl = fakeGl(false), renderer = new WebGLRenderer(gl.canvas);
+    expect(renderer.features.tileChunks).toBeUndefined();
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 1, size: 32, tiles };
+    renderer.draw(frame([chunk])); expect(gl.stats.instancedDraws).toHaveLength(1);
+    expect(() => renderer.draw(frame([{ ...chunk, clipPolygon: [{x:0,y:0}, {x:1,y:0}, {x:0,y:1}] }]))).toThrow('stencil buffer');
+    renderer.dispose();
+  });
+
+  it('culls offscreen Canvas cells before raster work, including rotated chunk footprints', () => {
+    const tiles = new Uint16Array(1024).fill(1);
+    for (const angle of [0, Math.PI / 4, Math.PI / 2]) {
+      const canvas = fake2d(), renderer = new CanvasRenderer(canvas.canvas);
+      renderer.draw(frame([{ kind: 'tile-chunk', space: 'world', origin: {x:0,y:0}, tileMetres:100, size:32, tiles,
+        rotationRadians: angle }]));
+      const calls = canvas.calls.filter(call => call.startsWith('fillRect(') && call.endsWith(',100,100)'));
+      expect(calls.length).toBeGreaterThan(0); expect(calls.length).toBeLessThan(20);
+      renderer.dispose();
+    }
+    const canvas = fake2d(), renderer = new CanvasRenderer(canvas.canvas);
+    renderer.draw(frame([{ kind: 'tile-chunk', space: 'world', origin: {x:1e9,y:1e9}, tileMetres:100, size:32, tiles }]));
+    expect(canvas.calls.filter(call => call.startsWith('fillRect(') && call.endsWith(',100,100)'))).toHaveLength(0);
+    renderer.dispose();
+  });
+
+  it('transforms whole tile footprints and applies a concave clipping polygon before drawing', () => {
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: { x: 2, y: 3 },
+      size: 32, tileMetres: .5, tiles, rotationRadians: Math.PI / 4,
+      clipPolygon: [{x:0,y:0}, {x:.5,y:0}, {x:.5,y:.5}, {x:.25,y:.25}, {x:0,y:.5}] };
+    for (const rotation of [0, Math.PI / 4, Math.PI / 2]) {
+      const f = { ...frame([chunk]), camera: { ...frame().camera, rotation } };
+      const canvas = fake2d(), cr = new CanvasRenderer(canvas.canvas);
+      expect(cr.features.tileChunks?.version).toBe(1);
+      cr.draw(f);
+      const c = +(2 * Math.cos(rotation + Math.PI / 4)).toFixed(2);
+      const s = +(2 * Math.sin(rotation + Math.PI / 4)).toFixed(2);
+      expect(canvas.calls.some(call => call.startsWith(`transform(${c},${-s},${-s},${-c},`))).toBe(true);
+      expect(canvas.calls).toContain('clip(evenodd)');
+      expect(canvas.calls).toContain('fillRect(0,0,0.5,0.5)');
+      expect(canvas.calls.indexOf('clip(evenodd)')).toBeLessThan(canvas.calls.indexOf('fillRect(0,0,0.5,0.5)'));
+      cr.dispose();
+      const gl = fakeGl(), wr = new WebGLRenderer(gl.canvas);
+      expect(wr.features.tileChunks?.version).toBe(1);
+      wr.draw(f);
+      expect(gl.stats.instancedDraws).toHaveLength(1);
+      expect(gl.stats.draws.some(draw => draw.endsWith(`:${'TRIANGLE_FAN'.length}:5`))).toBe(true);
+      wr.dispose(); expect(gl.stats.programs).toBe(0);
+    }
+  });
+
   it('renders 32x32 tile chunks with instanced draw calls in WebGL 2 and fillRect in Canvas 2D', () => {
     const tiles1 = new Uint16Array(1024);
     tiles1[0] = 1; // Stone

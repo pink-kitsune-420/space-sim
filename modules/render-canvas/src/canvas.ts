@@ -355,6 +355,7 @@ export class CanvasRenderer implements Renderer {
     this.ctx = ctx;
     const renderer = this;
     this.features = Object.freeze({
+      tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const }),
       flush: () => { ctx.getImageData(0, 0, 1, 1); },
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
@@ -611,27 +612,47 @@ export class CanvasRenderer implements Renderer {
   }
 
   private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {
-    const toScreen = createProjector(camera, width, height);
     const { ctx } = this;
+    const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation);
     for (const p of overlays) {
       if (p.kind !== 'tile-chunk') continue;
       const { origin, tileMetres, tiles } = p;
-      const stepScreen = tileMetres * camera.scale;
+      const angle = camera.rotation + (p.rotationRadians ?? 0);
+      const c = Math.cos(angle) * camera.scale, s = Math.sin(angle) * camera.scale;
+      const dx = origin.x - camera.center.x, dy = origin.y - camera.center.y;
+      const ox = width / 2 + (dx * cc - dy * cs) * camera.scale;
+      const oy = height / 2 - (dx * cs + dy * cc) * camera.scale;
+      // Inverse-project the viewport into chunk coordinates, once per chunk.
+      // Conservative cell bounds work for arbitrary camera/body rotation and DPR.
+      const inverseScale2 = 1 / (camera.scale * camera.scale);
+      const vx = (c * (width / 2 - ox) - s * (height / 2 - oy)) * inverseScale2;
+      const vy = (-s * (width / 2 - ox) - c * (height / 2 - oy)) * inverseScale2;
+      const ex = (Math.abs(c) * width + Math.abs(s) * height) * .5 * inverseScale2;
+      const ey = (Math.abs(s) * width + Math.abs(c) * height) * .5 * inverseScale2;
+      const x0 = Math.max(0, Math.floor((vx - ex) / tileMetres)), x1 = Math.min(32, Math.ceil((vx + ex) / tileMetres));
+      const y0 = Math.max(0, Math.floor((vy - ey) / tileMetres)), y1 = Math.min(32, Math.ceil((vy + ey) / tileMetres));
+      if (x0 >= x1 || y0 >= y1) continue;
+      ctx.save();
+      // Transform cells, rather than only their origins. No ceil overlap at seams.
+      ctx.transform(c, -s, -s, -c, ox, oy);
+      if (p.clipPolygon) {
+        ctx.beginPath();
+        for (let i = 0; i < p.clipPolygon.length; i++) {
+          const v = p.clipPolygon[i]!;
+          if (i === 0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y);
+        }
+        ctx.closePath(); ctx.clip('evenodd');
+      }
       const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? DEFAULT_TILE_PALETTE_HEX;
-      for (let y = 0; y < 32; y++) {
-        for (let x = 0; x < 32; x++) {
-          const idx = (y << 5) | x;
-          const tileId = tiles[idx] ?? 0;
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const tileId = tiles[(y << 5) | x] ?? 0;
           if (tileId === 0) continue;
-          const worldPos = { x: origin.x + x * tileMetres, y: origin.y + y * tileMetres };
-          const screenPos = toScreen(worldPos);
-          if (screenPos.x < -stepScreen || screenPos.x > width + stepScreen ||
-              screenPos.y < -stepScreen || screenPos.y > height + stepScreen) continue;
-          const hex = palette[tileId] ?? '#888888';
-          ctx.fillStyle = hex;
-          ctx.fillRect(screenPos.x, screenPos.y - stepScreen, Math.ceil(stepScreen), Math.ceil(stepScreen));
+          ctx.fillStyle = palette[tileId] ?? '#888888';
+          ctx.fillRect(x * tileMetres, y * tileMetres, tileMetres, tileMetres);
         }
       }
+      ctx.restore();
     }
   }
 

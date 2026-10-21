@@ -157,6 +157,9 @@ export interface ShaderControl {
 export interface RendererFeatures {
   readonly shaders?: ShaderControl;
   readonly effects?: import('./platform').ShaderEffects;
+  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
+   * Absence means unsupported. This does not qualify underground light/wall parity. */
+  readonly tileChunks?: { readonly version: 1; readonly rotation: true; readonly clipPolygon: true };
   /** Custom tile palette registration for instanced tile-chunk primitives. */
   readonly tilePalettes?: {
     register(paletteId: string, colors: readonly string[]): void;
@@ -224,12 +227,19 @@ export type OverlayPrimitive =
       readonly color: string; readonly width?: number; readonly fill?: boolean }
   | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
       readonly align?: 'left' | 'center' | 'right' }
-  /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */
+  /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */
   | {
       readonly kind: 'tile-chunk';
       readonly space: 'world';
       readonly origin: Vec;
       readonly tileMetres: number;
+      /** Counterclockwise local-to-world rotation about origin; omitted means zero. */
+      readonly rotationRadians?: number;
+      /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;
+       * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.
+       * Module layers include these vertices in their existing 4,096-point output budget.
+       * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */
+      readonly clipPolygon?: readonly Vec[];
       readonly size: 32;
       readonly tiles: Uint16Array;
       readonly light?: Uint8Array;

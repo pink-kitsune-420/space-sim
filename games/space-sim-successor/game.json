@@ -592,6 +592,38 @@
                         ],
                         "headingRadians": 1.5707963267948966,
                         "zoom": 30
+                      },
+                      {
+                        "id": "planet-ridge-lookout",
+                        "name": "Primus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.4995072642948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-basin-station",
+                        "name": "Primus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.6752885142948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-ridge-lookout",
+                        "name": "Parvus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.2856400767948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-basin-station",
+                        "name": "Parvus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.9887650767948966,
+                        "zoom": 30
                       }
                     ]
                   },
@@ -1269,6 +1301,38 @@
                         ],
                         "headingRadians": 1.5707963267948966,
                         "zoom": 30
+                      },
+                      {
+                        "id": "planet-ridge-lookout",
+                        "name": "Primus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.4282182017948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-basin-station",
+                        "name": "Primus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.7797807017948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-ridge-lookout",
+                        "name": "Parvus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.0004838267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-basin-station",
+                        "name": "Parvus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 2.4067338267948966,
+                        "zoom": 30
                       }
                     ]
                   },
@@ -1945,6 +2009,38 @@
                           0.0
                         ],
                         "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-ridge-lookout",
+                        "name": "Primus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.5351517955448966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-basin-station",
+                        "name": "Primus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.6230424205448966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-ridge-lookout",
+                        "name": "Parvus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.4282182017948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-basin-station",
+                        "name": "Parvus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.7797807017948966,
                         "zoom": 30
                       }
                     ]

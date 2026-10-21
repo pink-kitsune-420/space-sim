@@ -155,7 +155,7 @@ export class Effects implements ShaderEffects {
     const gl = this.gl;
     let target = this.targets.get(index);
     if (!target) {
-      const framebuffer = gl.createFramebuffer(), texture = gl.createTexture(), stencil = index === 0 && this.materials.length ? gl.createRenderbuffer() : undefined;
+      const framebuffer = gl.createFramebuffer(), texture = gl.createTexture(), stencil = index === 0 ? gl.createRenderbuffer() : undefined;
       if (!framebuffer || !texture || stencil === null) { if (framebuffer) gl.deleteFramebuffer(framebuffer); if (texture) gl.deleteTexture(texture); throw new Error('Cannot allocate effect framebuffer'); }
       target = { framebuffer, texture, ...(stencil ? { stencil } : {}), width: 0, height: 0 }; this.targets.set(index, target);
     }

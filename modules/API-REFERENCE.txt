@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest a0ba0eb81a54888e
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 3c2f3eaf643b5d6a
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -6403,6 +6403,9 @@ Optional features of a renderer instance. Applications discover them here, never
     export interface RendererFeatures {
       readonly shaders?: ShaderControl;
       readonly effects?: ShaderEffects;
+      /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
+       * Absence means unsupported. This does not qualify underground light/wall parity. */
+      readonly tileChunks?: { readonly version: 1; readonly rotation: true; readonly clipPolygon: true };
       /** Custom tile palette registration for instanced tile-chunk primitives. */
       readonly tilePalettes?: {
         register(paletteId: string, colors: readonly string[]): void;
@@ -6487,12 +6490,19 @@ Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'ti
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' }
-      /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */
+      /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */
       | {
           readonly kind: 'tile-chunk';
           readonly space: 'world';
           readonly origin: Vec;
           readonly tileMetres: number;
+          /** Counterclockwise local-to-world rotation about origin; omitted means zero. */
+          readonly rotationRadians?: number;
+          /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;
+           * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.
+           * Module layers include these vertices in their existing 4,096-point output budget.
+           * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */
+          readonly clipPolygon?: readonly Vec[];
           readonly size: 32;
           readonly tiles: Uint16Array;
           readonly light?: Uint8Array;
@@ -11319,6 +11329,7 @@ examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to cre
 -> API reference: Canvas 2D [api-reference/module/spacelab.render-canvas]
 -> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
 VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hull/flame/details scale by the camera pixels per metre; sub-eight-pixel hulls become navigation markers. Match artwork to authoritative contactRadiusMetres; optional geometry never changes collision authority.
+Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11360,6 +11371,7 @@ examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initi
 -> Canvas 2D: CPU fallback rendering [spacelab.render-canvas/usage]
 -> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
 VehicleAppearance may declare metresPerUnit and local detail paths. Single and fleet vessels use physical world scale up close and navigation markers below eight projected CSS pixels. Match circular hull artwork with authoritative contactRadiusMetres; rendering does not define collision geometry.
+Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.

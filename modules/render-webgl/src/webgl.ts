@@ -144,17 +144,19 @@ export class WebGLRenderer implements Renderer {
     readonly cameraOffsetLoc: WebGLUniformLocation | null;
     readonly cameraScaleLoc: WebGLUniformLocation | null;
     readonly cameraRotationLoc: WebGLUniformLocation | null;
+    readonly chunkRotationLoc: WebGLUniformLocation | null;
     readonly tileMetresLoc: WebGLUniformLocation | null;
     readonly paletteLoc: WebGLUniformLocation | null;
     readonly defaultPalette: WebGLTexture;
   };
   private readonly tilePalettes = new Map<string, WebGLTexture>();
+  private readonly stencilAvailable: boolean;
   /** Shader packs are this renderer's optional feature; callers never check its class. */
   readonly features: RendererFeatures;
 
   static isSupported(canvas: HTMLCanvasElement): boolean {
     try {
-      const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false });
+      const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false, stencil: true });
       return !!gl;
     } catch {
       return false;
@@ -166,19 +168,21 @@ export class WebGLRenderer implements Renderer {
     this.activeShaders = defaults;
     const shaders = defaults;
     const renderer = this;
+    const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false, stencil: true });
+    if (!gl) throw new Error('WebGL 2 is unavailable in this browser.');
+    this.gl = gl;
+    this.stencilAvailable = gl.getContextAttributes()?.stencil !== false;
     this.features = Object.freeze({
       effects: Object.freeze({ configure: (materials: readonly RenderMaterial[], post: readonly RenderPostEffect[]) => renderer.configureEffects(materials, post) }),
       shaders: Object.freeze({
         get pack(): ShaderPack { return renderer.activeShaders; },
         set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
       }),
+      ...(this.stencilAvailable ? { tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const }) } : {}),
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
       }),
     });
-    const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false });
-    if (!gl) throw new Error('WebGL 2 is unavailable in this browser.');
-    this.gl = gl;
     this.effects = new Effects(gl);
     try {
     this.terrainProgram = compileTerrainProgram(gl);
@@ -1083,6 +1087,7 @@ export class WebGLRenderer implements Renderer {
     const cameraScaleLoc = gl.getUniformLocation(program, 'u_camera_scale');
     const cameraRotationLoc = gl.getUniformLocation(program, 'u_camera_rotation');
     const tileMetresLoc = gl.getUniformLocation(program, 'u_tile_metres');
+    const chunkRotationLoc = gl.getUniformLocation(program, 'u_chunk_rotation');
     const paletteLoc = gl.getUniformLocation(program, 'u_palette');
 
     const vao = gl.createVertexArray()!;
@@ -1128,6 +1133,7 @@ export class WebGLRenderer implements Renderer {
       cameraScaleLoc,
       cameraRotationLoc,
       tileMetresLoc,
+      chunkRotationLoc,
       paletteLoc,
       defaultPalette,
     };
@@ -1167,6 +1173,46 @@ export class WebGLRenderer implements Renderer {
         boundPaletteId = paletteId;
       }
 
+      if (p.clipPolygon) {
+        if (!this.stencilAvailable) throw new Error('Clipped tile chunks require a stencil buffer.');
+        // Even-odd parity of a triangle fan handles a simple concave polygon.
+        // Stencil is private to this pass; restore write masks before other overlays.
+        gl.enable(gl.STENCIL_TEST); gl.stencilMask(0xff);
+        gl.colorMask(false, false, false, false);
+        gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INVERT);
+        const verts = this.ensureCapacity(p.clipPolygon.length * 6);
+        const a = camera.rotation + (p.rotationRadians ?? 0), c = Math.cos(a), s = Math.sin(a);
+        const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation);
+        const dx = p.origin.x - camera.center.x, dy = p.origin.y - camera.center.y;
+        const ox = width / 2 + (dx * cc - dy * cs) * camera.scale;
+        const oy = height / 2 - (dx * cs + dy * cc) * camera.scale;
+        let minX = width, minY = height, maxX = 0, maxY = 0;
+        for (let i = 0; i < p.clipPolygon.length; i++) {
+          const v = p.clipPolygon[i]!;
+          verts[i * 6] = ox + (v.x * c - v.y * s) * camera.scale;
+          verts[i * 6 + 1] = oy - (v.x * s + v.y * c) * camera.scale;
+          minX = Math.min(minX, verts[i * 6]!); maxX = Math.max(maxX, verts[i * 6]!);
+          minY = Math.min(minY, verts[i * 6 + 1]!); maxY = Math.max(maxY, verts[i * 6 + 1]!);
+          verts.fill(1, i * 6 + 2, i * 6 + 6);
+        }
+        // Clear only this chunk's screen footprint, including device-pixel coverage.
+        const px = this.canvas.width / width, py = this.canvas.height / height;
+        const left = Math.max(0, Math.floor(minX * px)), right = Math.min(this.canvas.width, Math.ceil(maxX * px));
+        const bottom = Math.max(0, Math.floor((height - maxY) * py)), top = Math.min(this.canvas.height, Math.ceil((height - minY) * py));
+        gl.enable(gl.SCISSOR_TEST); gl.scissor(left, bottom, Math.max(0, right - left), Math.max(0, top - bottom));
+        gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+        gl.useProgram(this.terrainProgram); gl.uniform2f(this.terrainResolution, width, height);
+        gl.bindVertexArray(this.colorVao); gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+        if (this.colorBufferFloats < verts.length) {
+          gl.bufferData(gl.ARRAY_BUFFER, verts.byteLength, gl.DYNAMIC_DRAW); this.colorBufferFloats = verts.length;
+        }
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts, 0, p.clipPolygon.length * 6);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, p.clipPolygon.length);
+        gl.colorMask(true, true, true, true);
+        gl.stencilFunc(gl.EQUAL, 1, 1); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+        gl.useProgram(state.program); gl.bindVertexArray(state.vao);
+      }
+      gl.uniform1f(state.chunkRotationLoc, p.rotationRadians ?? 0);
       gl.uniform2f(state.cameraOffsetLoc, p.origin.x - camera.center.x, p.origin.y - camera.center.y);
       gl.uniform1f(state.tileMetresLoc, p.tileMetres);
 
@@ -1177,6 +1223,7 @@ export class WebGLRenderer implements Renderer {
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? DEFAULT_FULL_LIGHT);
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 1024);
+      if (p.clipPolygon) { gl.disable(gl.STENCIL_TEST); gl.disable(gl.SCISSOR_TEST); }
     }
 
     gl.bindVertexArray(null);

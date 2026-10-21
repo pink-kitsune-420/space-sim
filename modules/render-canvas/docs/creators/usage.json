@@ -102,6 +102,10 @@
     {
       "type": "paragraph",
       "text": "VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hull/flame/details scale by the camera pixels per metre; sub-eight-pixel hulls become navigation markers. Match artwork to authoritative contactRadiusMetres; optional geometry never changes collision authority."
+    },
+    {
+      "type": "paragraph",
+      "text": "Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices."
     }
   ]
 }
