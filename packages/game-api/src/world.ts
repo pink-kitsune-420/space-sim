@@ -46,7 +46,7 @@ export interface AvatarControls {
   readonly turn: number;
 }
 
-/** Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event. */
+/** Authoritative event emitted during a fixed world step: surface contact, SOI transition, celestial body collision, per-ship motion fault, world rule fault, or module domain event. */
 export type WorldEvent =
   | { readonly type: 'world-fault'; readonly message: string }
   | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
@@ -55,6 +55,19 @@ export type WorldEvent =
   | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } }
   | { readonly type: 'avatar-contact'; readonly avatarId: string; readonly bodyId: string; readonly fraction: number }
   | { readonly type: 'avatar-board'; readonly avatarId: string; readonly shipId: string }
-  | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string };
+  | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string }
+  | {
+      readonly type: 'body-collision';
+      readonly collisionType: 'merge' | 'bounce';
+      readonly survivorId?: string;
+      readonly absorbedId?: string;
+      readonly bodyAId?: string;
+      readonly bodyBId?: string;
+      readonly newMass?: number;
+      readonly newRadius?: number;
+      readonly newMu?: number;
+      readonly impulse?: number;
+      readonly time: number;
+    };
 
 

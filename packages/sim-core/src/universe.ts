@@ -572,6 +572,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     });
   }
 
+  const initialBodiesMap = new Map(bodiesMap);
   const allBodies: readonly ResolvedBody[] = Object.freeze([...bodiesMap.values()]);
   const emptyBodies: readonly ResolvedBody[] = Object.freeze([]);
   for (const [parentId, list] of moonsMap.entries()) {
@@ -588,9 +589,84 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
 
   let cachedStateTime = NaN;
   const stateAtTimeCache = new Map<string, { position: Vec; velocity: Vec }>();
+  let hasDynamicStates = false;
+  const dynamicStates = new Map<string, { position: Vec; velocity: Vec }>();
+  const removedBodies = new Set<string>();
+
+  function setDynamicBodyState(
+    bodyId: string,
+    position: Vec,
+    velocity: Vec,
+    physical?: {
+      readonly mass: number;
+      readonly mu: number;
+      readonly radius: number;
+      readonly spinPeriod?: number;
+      readonly spinDirection?: number;
+    },
+  ): void {
+    hasDynamicStates = true;
+    dynamicStates.set(bodyId, { position, velocity });
+    cachedStateTime = NaN;
+    stateAtTimeCache.clear();
+    if (physical) {
+      const existing = bodiesMap.get(bodyId);
+      if (
+        existing &&
+        (existing.mass !== physical.mass ||
+          existing.mu !== physical.mu ||
+          existing.radius !== physical.radius ||
+          (physical.spinPeriod !== undefined && existing.rotation && existing.rotation.period !== physical.spinPeriod))
+      ) {
+        bodiesMap.set(
+          bodyId,
+          Object.freeze({
+            ...existing,
+            mass: physical.mass,
+            mu: physical.mu,
+            radius: physical.radius,
+            ...(existing.rotation && physical.spinPeriod !== undefined
+              ? {
+                  rotation: Object.freeze({
+                    ...existing.rotation,
+                    period: physical.spinPeriod,
+                    ...(physical.spinDirection !== undefined
+                      ? { direction: physical.spinDirection === 1 ? 1 : -1 }
+                      : {}),
+                  }),
+                }
+              : {}),
+          }),
+        );
+      }
+    }
+  }
+
+  function removeDynamicBody(bodyId: string): void {
+    removedBodies.add(bodyId);
+    dynamicStates.delete(bodyId);
+    cachedStateTime = NaN;
+    stateAtTimeCache.clear();
+  }
+
+  function clearDynamicBodies(): void {
+    hasDynamicStates = false;
+    dynamicStates.clear();
+    removedBodies.clear();
+    cachedStateTime = NaN;
+    stateAtTimeCache.clear();
+    for (const [id, b] of initialBodiesMap) {
+      bodiesMap.set(id, b);
+    }
+  }
 
   // Calculate body absolute position and velocity relative to central body at time t
   function getBodyStateAt(bodyId: string, time: number): { position: Vec; velocity: Vec } {
+    if (hasDynamicStates) {
+      const dyn = dynamicStates.get(bodyId);
+      if (dyn) return dyn;
+    }
+
     const kin = kinematicsMap.get(bodyId);
     if (!kin) throw new Error(`Unknown body: ${bodyId}`);
 
@@ -705,7 +781,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     time: number
   ): { switched: boolean; newBody: ResolvedBody; newState: State } {
     const currentKin = kinematicsMap.get(currentBodyId) ?? kinematicsMap.get(rootBody.id)!;
-    const currentBody = currentKin.body;
+    const currentBody = bodiesMap.get(currentKin.body.id) ?? currentKin.body;
 
     // Check if exiting current body SOI to parent
     if (currentBody.parentId && currentKin.exitMetresSq < Infinity) {
@@ -753,24 +829,31 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
       let best: ResolvedBody | undefined, bestOrder = Infinity, bestX = 0, bestY = 0;
       let bestState: { position: Vec; velocity: Vec } | undefined;
       const consider = (moon: ResolvedBody, order: number, entryMetresSq: number): void => {
-        if (order >= bestOrder) return;
+        if (order >= bestOrder || removedBodies.has(moon.id)) return;
         currentBodyState ??= getBodyStateAt(currentBody.id, time);
         const moonState = getBodyStateAt(moon.id, time);
         const deltaX = state.position.x - (moonState.position.x - currentBodyState.position.x);
         const deltaY = state.position.y - (moonState.position.y - currentBodyState.position.y);
         if (deltaX * deltaX + deltaY * deltaY <= entryMetresSq) {
-          best = moon; bestOrder = order; bestX = deltaX; bestY = deltaY; bestState = moonState;
+          best = bodiesMap.get(moon.id) ?? moon; bestOrder = order; bestX = deltaX; bestY = deltaY; bestState = moonState;
         }
       };
       const { radii, moons, order, entries, maxEntry } = index;
-      let lo = 0, hi = radii.length;
-      const from = r - maxEntry;
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (radii[mid]! < from) lo = mid + 1; else hi = mid; }
-      for (let i = lo; i < radii.length && radii[i]! <= r + maxEntry; i++) {
-        const entry = entries[i]!;
-        // Slack covers rounding in the absolute body positions the exact test subtracts.
-        if (Math.abs(r - radii[i]!) > entry + 1 + radii[i]! * 1e-9) continue;
-        consider(moons[i]!, order[i]!, entry * entry);
+      if (hasDynamicStates) {
+        for (let i = 0; i < moons.length; i++) {
+          const entry = entries[i]!;
+          consider(moons[i]!, order[i]!, entry * entry);
+        }
+      } else {
+        let lo = 0, hi = radii.length;
+        const from = r - maxEntry;
+        while (lo < hi) { const mid = (lo + hi) >> 1; if (radii[mid]! < from) lo = mid + 1; else hi = mid; }
+        for (let i = lo; i < radii.length && radii[i]! <= r + maxEntry; i++) {
+          const entry = entries[i]!;
+          // Slack covers rounding in the absolute body positions the exact test subtracts.
+          if (Math.abs(r - radii[i]!) > entry + 1 + radii[i]! * 1e-9) continue;
+          consider(moons[i]!, order[i]!, entry * entry);
+        }
       }
       for (const other of index.others) consider(other.moon, other.order, other.entryMetresSq);
       if (best && bestState && currentBodyState) {
@@ -799,7 +882,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     return { switched: false, newBody: currentBody, newState: state };
   }
 
-  return {
+  const loaded: HostLoadedSystem = {
     universeId: universe.id,
     universeName: universe.name,
     system,
@@ -807,13 +890,35 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     vehicleDefaults,
     presets: system.presets,
     getResolvedBody: id => bodiesMap.get(id) ?? rootBody,
-    getAllBodies: () => allBodies,
+    getAllBodies: () => (hasDynamicStates ? [...bodiesMap.values()].filter(b => !removedBodies.has(b.id)) : allBodies),
     getMoonsOf: parentId => moonsMap.get(parentId) ?? emptyBodies,
     getBodyPosition,
     getBodyVelocity,
     initialState,
     checkSOI,
+    setDynamicBodyState,
+    removeDynamicBody,
+    clearDynamicBodies,
   };
+  return loaded;
+}
+
+/** Host-internal extension of `LoadedSystem` supporting dynamic celestial body coordinate and physical parameter updates. */
+export interface HostLoadedSystem extends LoadedSystem {
+  setDynamicBodyState?(
+    bodyId: string,
+    position: Vec,
+    velocity: Vec,
+    physical?: {
+      readonly mass: number;
+      readonly mu: number;
+      readonly radius: number;
+      readonly spinPeriod?: number;
+      readonly spinDirection?: number;
+    },
+  ): void;
+  removeDynamicBody?(bodyId: string): void;
+  clearDynamicBodies?(): void;
 }
 
 /**

@@ -24,9 +24,17 @@ export function checkWarpSafety(world: WorldRead): WarpSafety {
   if (world.paused) {
     return { maxGranted: 1, reason: world.fault ? `World fault: ${world.fault}` : 'Simulation is paused', railsEligible: false };
   }
+  const physicsMode = world.universe.physics?.mode ?? 'rails';
+  const configuredMaxWarp = world.universe.physics?.maxWarp;
   let numerical: WarpSafety | undefined = world.rules.length > 0
     ? { maxGranted: PHYSICAL_WARP_MAX, reason: 'Custom world rules active (per-step execution required)', railsEligible: false }
-    : undefined;
+    : physicsMode !== 'rails'
+      ? {
+          maxGranted: configuredMaxWarp !== undefined ? Math.min(configuredMaxWarp, PHYSICAL_WARP_MAX) : PHYSICAL_WARP_MAX,
+          reason: 'Numerical N-body simulation active (analytic rails warp unavailable)',
+          railsEligible: false,
+        }
+      : undefined;
 
   // Check if any ship is actively under pilot control (engine firing or turning)
   for (const ship of world.records()) {
@@ -53,7 +61,8 @@ export function checkWarpSafety(world: WorldRead): WarpSafety {
   if (numerical) return numerical;
 
   // All ships are idle coasts on rails, landed, or crashed
-  return { maxGranted: MAX_WARP, railsEligible: true };
+  const maxRailsWarp = configuredMaxWarp !== undefined ? Math.min(configuredMaxWarp, MAX_WARP) : MAX_WARP;
+  return { maxGranted: maxRailsWarp, railsEligible: true };
 }
 
 /** Selects the next standard warp factor up (+1) or down (-1) from the ladder. */

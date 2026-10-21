@@ -397,6 +397,9 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
     }
     world.tick = tick;
     world.time = time;
+    if (validatedBodies) {
+      world.bodyStates = validatedBodies;
+    }
     if (ruleState) {
       world.setModuleState(ruleState);
     }
@@ -415,9 +418,6 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
         if (world.avatar(avatar.id)) fail('Save', `duplicate avatar id ${avatar.id}`);
         world.putAvatar(avatar);
       }
-    }
-    if (validatedBodies) {
-      world.bodyStates = validatedBodies;
     }
     world.nextShipNumber = Math.max(count(save.nextShipNumber, 'Save nextShipNumber'), highest + 1, 1);
     return { world, players, ...(hostId ? { hostId } : {}), paused: save.paused === true };

@@ -33,7 +33,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "2372c21db5e000f7b26b9cca204e801c90408f2f7872ea80dc8b16998799f3f5"
+    "inputsDigest": "db0ccdc7235b10053c356eac7f1af3b0610af7576cada33aab5edbf89bd55ec2"
   },
   "compatibility": {
     "deterministic": true,
@@ -365,7 +365,7 @@
     },
     {
       "path": "game-api/world.ts",
-      "sha256": "00cdf583994789934d51fc7780967fbf2fb0996d72e0cf8511eb79f219a75598",
+      "sha256": "1a680360228e45e0f60e42f8f7ee05245653b939363d858165e154059a62aa3f",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },

@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 1a75b7459c4f3971",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0c3dd2e9fc39d71f",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 1a75b7459c4f3971"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0c3dd2e9fc39d71f"
         },
         {
           "type": "paragraph",
@@ -18063,11 +18063,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event."
+          "text": "Authoritative event emitted during a fixed world step: surface contact, SOI transition, celestial body collision, per-ship motion fault, world rule fault, or module domain event."
         },
         {
           "type": "code",
-          "text": "export type WorldEvent =\n  | { readonly type: 'world-fault'; readonly message: string }\n  | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }\n  | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }\n  | { readonly type: 'fault'; readonly shipId: string; readonly message: string }\n  | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } }\n  | { readonly type: 'avatar-contact'; readonly avatarId: string; readonly bodyId: string; readonly fraction: number }\n  | { readonly type: 'avatar-board'; readonly avatarId: string; readonly shipId: string }\n  | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string };"
+          "text": "export type WorldEvent =\n  | { readonly type: 'world-fault'; readonly message: string }\n  | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }\n  | { readonly type: 'soi'; readonly shipId: string; readonly from: string; readonly to: string }\n  | { readonly type: 'fault'; readonly shipId: string; readonly message: string }\n  | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } }\n  | { readonly type: 'avatar-contact'; readonly avatarId: string; readonly bodyId: string; readonly fraction: number }\n  | { readonly type: 'avatar-board'; readonly avatarId: string; readonly shipId: string }\n  | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string }\n  | {\n      readonly type: 'body-collision';\n      readonly collisionType: 'merge' | 'bounce';\n      readonly survivorId?: string;\n      readonly absorbedId?: string;\n      readonly bodyAId?: string;\n      readonly bodyBId?: string;\n      readonly newMass?: number;\n      readonly newRadius?: number;\n      readonly newMu?: number;\n      readonly impulse?: number;\n      readonly time: number;\n    };"
         },
         {
           "type": "paragraph",

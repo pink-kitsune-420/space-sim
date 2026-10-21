@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 1a75b7459c4f3971
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0c3dd2e9fc39d71f
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -9598,7 +9598,7 @@ Controls input for advancing an avatar.
 Used by: host or creator modules (not imported by shipped modules).
 
 ## WorldEvent
-Authoritative event emitted during a fixed world step: surface contact, SOI transition, per-ship motion fault, world rule fault, or module domain event.
+Authoritative event emitted during a fixed world step: surface contact, SOI transition, celestial body collision, per-ship motion fault, world rule fault, or module domain event.
     export type WorldEvent =
       | { readonly type: 'world-fault'; readonly message: string }
       | { readonly type: 'contact'; readonly shipId: string; readonly contact: SurfaceContactEvent; readonly status: State['status'] }
@@ -9607,7 +9607,20 @@ Authoritative event emitted during a fixed world step: surface contact, SOI tran
       | { readonly type: 'module'; readonly shipId: string; readonly moduleEvent: { readonly type: string; readonly payload: ModuleValue }; readonly event: { readonly type: string; readonly payload: ModuleValue } }
       | { readonly type: 'avatar-contact'; readonly avatarId: string; readonly bodyId: string; readonly fraction: number }
       | { readonly type: 'avatar-board'; readonly avatarId: string; readonly shipId: string }
-      | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string };
+      | { readonly type: 'avatar-exit'; readonly avatarId: string; readonly shipId: string }
+      | {
+          readonly type: 'body-collision';
+          readonly collisionType: 'merge' | 'bounce';
+          readonly survivorId?: string;
+          readonly absorbedId?: string;
+          readonly bodyAId?: string;
+          readonly bodyBId?: string;
+          readonly newMass?: number;
+          readonly newRadius?: number;
+          readonly newMu?: number;
+          readonly impulse?: number;
+          readonly time: number;
+        };
 Used by: spacelab.audio-controls, spacelab.session-flight.
 -> API reference index [api-reference]
 

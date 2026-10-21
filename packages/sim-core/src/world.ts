@@ -16,7 +16,8 @@ import { evaluateSafeRadialGravity, querySurface, surfaceIdentity, type SurfaceP
 import { WakeQueue } from './rails';
 import { frameSample, predictTrajectory } from './trajectory';
 import { groundPreset, groundVelocity, spinAngle, spinRate } from './spin';
-import { type LoadedSystem, type ResolvedBody, type UniverseDefinition } from './universe';
+import { PhysicsSolver, type BodyPhysicalState } from './physics/index';
+import { resolveUniversePhysics, type HostLoadedSystem, type LoadedSystem, type ResolvedBody, type UniverseDefinition } from './universe';
 
 export type { AvatarControls, AvatarMode, AvatarState, Ship, WorldEvent } from '../../game-api/src/index';
 
@@ -79,11 +80,21 @@ export class World implements WorldControl {
   readonly lock?: AuthoritativeLock | ModuleLock;
   readonly simulationFingerprint: string;
   saveVersion?: number;
-  /** Validated dynamic body snapshot (system-inertial, `m`, `m/s`) restored by `loadWorld` from a simulated-universe save.
-   * Phase 1 only persists it (save, load, prediction clone); bodies still follow authored ephemerides. Host-assigned only. */
-  bodyStates?: readonly SavedBodyState[];
+  private physicsSolver?: PhysicsSolver;
+  private _bodyStates?: readonly SavedBodyState[];
+  /** Validated dynamic body snapshot (system-inertial, `m`, `m/s`) restored by `loadWorld` or updated during numerical simulation. Host-assigned only. */
+  get bodyStates(): readonly SavedBodyState[] | undefined { return this._bodyStates; }
+  set bodyStates(value: readonly SavedBodyState[] | undefined) {
+    this._bodyStates = value;
+    if (this.physicsSolver && value) {
+      this.initPhysicsSolver(value);
+    }
+  }
+  get solver(): PhysicsSolver | undefined { return this.physicsSolver; }
   private ruleState: Readonly<Record<string, WorldRuleState>>;
-  get requiresWorldPrediction(): boolean { return this.rules.length > 0 || this.customFrames; }
+  get requiresWorldPrediction(): boolean {
+    return this.rules.length > 0 || this.customFrames || (this.universe.physics?.mode !== undefined && this.universe.physics.mode !== 'rails');
+  }
   get moduleState(): Readonly<Record<string, WorldRuleState>> { return this.ruleState; }
   get tickFingerprint(): string {
     const dirtyHashes: string[] = [];
@@ -230,10 +241,167 @@ export class World implements WorldControl {
       this.bodyIds = new Set(this.system.getAllBodies().map(b => b.id));
       // Validate every start before the world is used, so a bad universe fails on load.
       for (const p of this.system.presets) this.system.initialState(p.id, profiles.get(p.bodyId));
+      const physics = resolveUniversePhysics(universe);
+      if (physics.mode !== 'rails') {
+        this.initPhysicsSolver(this._bodyStates);
+      }
     } catch (error) {
       try { this.dispose(); }
       catch (cleanup) { throw new AggregateError([error, cleanup], 'World construction and cleanup failed'); }
       throw error;
+    }
+  }
+
+  private initPhysicsSolver(savedStates?: readonly SavedBodyState[]): void {
+    const physics = resolveUniversePhysics(this.universe);
+    if (physics.mode === 'rails') {
+      this.physicsSolver = undefined;
+      return;
+    }
+    (this.system as HostLoadedSystem).clearDynamicBodies?.();
+    const savedMap = new Map<string, SavedBodyState>();
+    if (savedStates) {
+      for (const s of savedStates) savedMap.set(s.id, s);
+    }
+    const solverBodies: BodyPhysicalState[] = [];
+    for (const b of this.system.getAllBodies()) {
+      const saved = savedMap.get(b.id);
+      let pos: readonly [number, number];
+      let vel: readonly [number, number];
+      if (saved) {
+        pos = [saved.position[0], saved.position[1]];
+        vel = [saved.velocity[0], saved.velocity[1]];
+      } else {
+        const p = this.system.getBodyPosition(b.id, this.time);
+        const v = this.system.getBodyVelocity(b.id, this.time);
+        pos = [p.x, p.y];
+        vel = [v.x, v.y];
+      }
+      const isFixed =
+        !b.parentId &&
+        b.ephemeris.kind === 'fixed-inertial' &&
+        pos[0] === 0 &&
+        pos[1] === 0 &&
+        vel[0] === 0 &&
+        vel[1] === 0;
+      solverBodies.push({
+        id: b.id,
+        mass: b.mass,
+        mu: b.mu,
+        radius: b.radius,
+        position: pos,
+        velocity: vel,
+        spinPeriod: b.rotation?.period,
+        spinDirection: b.rotation?.direction,
+        isFixed,
+        parentId: b.parentId ?? undefined,
+      });
+    }
+    this.physicsSolver = new PhysicsSolver(solverBodies, {
+      mode: physics.mode,
+      substeps: physics.substeps,
+      softeningRatio: physics.softeningRatio,
+      enableJ2: physics.enableJ2,
+      enableTidalTorque: physics.enableTidalTorque,
+      collisionMode: physics.collisionMode,
+      restitution: physics.restitution,
+    });
+    this.syncDynamicBodiesFromSolver(savedStates !== undefined);
+  }
+
+  private syncDynamicBodiesFromSolver(updateBodyStatesSnapshot: boolean): void {
+    if (!this.physicsSolver) return;
+    const bodies = this.physicsSolver.getBodies();
+    const hostSystem = this.system as HostLoadedSystem;
+    const nextSaved: SavedBodyState[] | undefined = updateBodyStatesSnapshot ? [] : undefined;
+    for (const b of bodies) {
+      hostSystem.setDynamicBodyState?.(
+        b.id,
+        { x: b.position[0], y: b.position[1] },
+        { x: b.velocity[0], y: b.velocity[1] },
+        {
+          mass: b.mass,
+          mu: b.mu,
+          radius: b.radius,
+          spinPeriod: b.spinPeriod,
+          spinDirection: b.spinDirection,
+        },
+      );
+      if (nextSaved) {
+        nextSaved.push(
+          Object.freeze({
+            id: b.id,
+            position: Object.freeze([b.position[0], b.position[1]] as const),
+            velocity: Object.freeze([b.velocity[0], b.velocity[1]] as const),
+          }),
+        );
+      }
+    }
+    if (nextSaved) {
+      this._bodyStates = Object.freeze(nextSaved);
+    }
+  }
+
+  private stepCelestialPhysics(time: number, events: WorldEvent[]): void {
+    if (!this.physicsSolver) return;
+    const stepResult = this.physicsSolver.step(STEP);
+    this.syncDynamicBodiesFromSolver(true);
+    if (stepResult.collisions.length > 0) {
+      const hostSystem = this.system as HostLoadedSystem;
+      for (const c of stepResult.collisions) {
+        if (c.type === 'merge') {
+          const absorbedPos = this.system.getBodyPosition(c.absorbedId, time);
+          const absorbedVel = this.system.getBodyVelocity(c.absorbedId, time);
+          const survivorPos = this.system.getBodyPosition(c.survivorId, time);
+          const survivorVel = this.system.getBodyVelocity(c.survivorId, time);
+          hostSystem.removeDynamicBody?.(c.absorbedId);
+          for (const [shipId, ship] of this.fleet) {
+            if (ship.bodyId === c.absorbedId) {
+              const nextPos = {
+                x: ship.state.position.x + (absorbedPos.x - survivorPos.x),
+                y: ship.state.position.y + (absorbedPos.y - survivorPos.y),
+              };
+              const nextVel = {
+                x: ship.state.velocity.x + (absorbedVel.x - survivorVel.x),
+                y: ship.state.velocity.y + (absorbedVel.y - survivorVel.y),
+              };
+              this.fleet.set(shipId, {
+                ...ship,
+                bodyId: c.survivorId,
+                state: {
+                  ...ship.state,
+                  position: nextPos,
+                  velocity: nextVel,
+                  coast: undefined,
+                  revision: ship.state.revision + 1,
+                },
+              });
+              events.push({ type: 'soi', shipId, from: c.absorbedId, to: c.survivorId });
+            }
+          }
+          events.push({
+            type: 'body-collision',
+            collisionType: 'merge',
+            survivorId: c.survivorId,
+            absorbedId: c.absorbedId,
+            bodyAId: c.survivorId,
+            bodyBId: c.absorbedId,
+            newMass: c.newMass,
+            newRadius: c.newRadius,
+            newMu: c.newMu,
+            time,
+          });
+        } else {
+          events.push({
+            type: 'body-collision',
+            collisionType: 'bounce',
+            bodyAId: c.bodyAId,
+            bodyBId: c.bodyBId,
+            impulse: c.impulse,
+            time,
+          });
+        }
+      }
     }
   }
 
@@ -298,6 +466,7 @@ export class World implements WorldControl {
   /** An awake landed ship or wreck the next step puts to sleep without advancing it: every
    * idle step from it only moves its clock, so time warp may treat it as on rails already. */
   settles(id: string): boolean {
+    if (this.physicsSolver) return false;
     const ship = this.fleet.get(id);
     return !!ship && this.awake.has(id) && this.rails && !this.rules.length && this.contextFor(ship).capabilities.rails
       && this.restingState(ship) !== undefined;
@@ -554,6 +723,10 @@ export class World implements WorldControl {
     this.tick = 0; this.time = 0; this.nextShipNumber = 1;
     this.ruleState = initialRuleState(this.rules); this.paused = false; this.fault = undefined;
     this.pendingModuleEvents.length = 0;
+    this._bodyStates = undefined;
+    if (this.physicsSolver) {
+      this.initPhysicsSolver();
+    }
   }
 
   setControls(shipId: string, controls: Controls): void {
@@ -637,19 +810,22 @@ export class World implements WorldControl {
     const time = this.time + STEP;
     const tick = this.tick + 1;
     this.prior.clear();
+    if (this.physicsSolver) {
+      this.stepCelestialPhysics(time, events);
+    }
     while (this.wakeQueue.peekTick() <= tick) {
       const due = this.wakeQueue.pop()!;
       // Due at a possible event: advance it normally (no early sleep).
       if (this.asleepRails.get(due.id)?.generation === due.generation) { this.wake(due.id); this.fresh.delete(due.id); }
     }
-    if (this.rails) for (const id of this.fresh) if (this.awake.has(id)) this.sleepNow(this.fleet.get(id)!, this.tick, 1);
+    if (this.rails && !this.physicsSolver) for (const id of this.fresh) if (this.awake.has(id)) this.sleepNow(this.fleet.get(id)!, this.tick, 1);
     this.fresh.clear();
     for (const id of this.awake) {
       const ship = this.fleet.get(id)!;
       this.prior.set(id, ship);
       const next = this.stepShip(ship, events);
       this.fleet.set(id, next);
-      if (next.fault) { this.awake.delete(id); this.touched(id); } else if (this.rails) this.sleep(next, tick);
+      if (next.fault) { this.awake.delete(id); this.touched(id); } else if (this.rails && !this.physicsSolver) this.sleep(next, tick);
     }
     this.stepAvatars(events);
     this.tick = tick;
@@ -669,7 +845,7 @@ export class World implements WorldControl {
     if (this.paused || targetTick <= this.tick) return [];
     const events: WorldEvent[] = [];
 
-    if (this.rules.length || !this.rails) {
+    if (this.rules.length || !this.rails || this.physicsSolver) {
       let stepsTaken = 0;
       while (this.tick < targetTick && !this.paused && stepsTaken < maxSteps) {
         events.push(...this.step());
@@ -725,6 +901,9 @@ export class World implements WorldControl {
   private stepWithRules(): WorldEvent[] {
     const events: WorldEvent[] = [...this.pendingModuleEvents];
     this.pendingModuleEvents.length = 0;
+    if (this.physicsSolver) {
+      this.stepCelestialPhysics(this.time + STEP, events);
+    }
     const prior = [...this.fleet.values()];
     const candidates = prior.map(ship => ship.fault ? ship : this.stepShip(ship, events));
     try {
@@ -938,7 +1117,25 @@ export class World implements WorldControl {
       vehicles: this.vehicles, createContext: this.createContext, dataAdapters: this.dataAdapters, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
       lock: this.lock, simulationFingerprint: this.simulationFingerprint, saveVersion: this.saveVersion });
     clone.tick = this.tick; clone.time = this.time; clone.nextShipNumber = this.nextShipNumber;
-    clone.bodyStates = this.bodyStates;
+    if (this.physicsSolver) {
+      clone.physicsSolver = this.physicsSolver.clone();
+      clone._bodyStates = this._bodyStates
+        ? Object.freeze(this._bodyStates.map(s => Object.freeze({
+            id: s.id,
+            position: Object.freeze([s.position[0], s.position[1]] as const),
+            velocity: Object.freeze([s.velocity[0], s.velocity[1]] as const),
+          })))
+        : undefined;
+      const hostSystem = clone.system as HostLoadedSystem;
+      for (const b of clone.system.getAllBodies()) {
+        if (!clone.physicsSolver.getBody(b.id)) {
+          hostSystem.removeDynamicBody?.(b.id);
+        }
+      }
+      clone.syncDynamicBodiesFromSolver(false);
+    } else {
+      clone.bodyStates = this.bodyStates;
+    }
     clone.rails = false;
     for (const ship of this.ships()) clone.put(structuredClone(ship));
     for (const avatar of this.avatars()) clone.putAvatar(structuredClone(avatar));
@@ -997,7 +1194,59 @@ export class World implements WorldControl {
    * failure returns the ship stopped with a fault. */
   private stepShip(ship: Ship, events: WorldEvent[]): Ship {
     try {
-      let state = this.contextFor(ship).advance(ship.state, ship.controls, STEP, this.body(ship.bodyId), this.surfaces.get(ship.bodyId));
+      const body = this.body(ship.bodyId);
+      const rawSurface = this.surfaces.get(ship.bodyId);
+      const surface = rawSurface && rawSurface.referenceRadius === body.radius ? rawSurface : undefined;
+      let state: State;
+      if (this.physicsSolver) {
+        state = this.contextFor(ship).step(ship.state, ship.controls, STEP, body, surface);
+        if (state.status === 'flying') {
+          const bodyPos = this.system.getBodyPosition(body.id, state.time);
+          const absX = bodyPos.x + state.position.x;
+          const absY = bodyPos.y + state.position.y;
+          const [axTotal, ayTotal] = this.physicsSolver.computeAccelerationAt(absX, absY);
+          const solverBody = this.physicsSolver.getBody(body.id);
+          let axBody = 0;
+          let ayBody = 0;
+          if (solverBody && !solverBody.isFixed) {
+            [axBody, ayBody] = this.physicsSolver.computeAccelerationAt(bodyPos.x, bodyPos.y, body.id);
+          }
+          const rx = state.position.x;
+          const ry = state.position.y;
+          const r2 = rx * rx + ry * ry;
+          const r = Math.sqrt(r2);
+          let axPrimary = 0;
+          let ayPrimary = 0;
+          if (r > 0) {
+            const invR3 = 1 / (r2 * r);
+            axPrimary = -body.mu * rx * invR3;
+            ayPrimary = -body.mu * ry * invR3;
+          }
+          const dax = (axTotal - axBody) - axPrimary;
+          const day = (ayTotal - ayBody) - ayPrimary;
+          if (dax !== 0 || day !== 0) {
+            const nextPos = {
+              x: state.position.x + 0.5 * dax * STEP * STEP,
+              y: state.position.y + 0.5 * day * STEP * STEP,
+            };
+            const minSafeRadius = surface ? surface.bounds.maxRadius + 1e-6 : body.radius + 1e-6;
+            if (Math.hypot(nextPos.x, nextPos.y) >= minSafeRadius) {
+              state = {
+                ...state,
+                position: nextPos,
+                velocity: {
+                  x: state.velocity.x + dax * STEP,
+                  y: state.velocity.y + day * STEP,
+                },
+                coast: undefined,
+                dynamics: 'numerical',
+              };
+            }
+          }
+        }
+      } else {
+        state = this.contextFor(ship).advance(ship.state, ship.controls, STEP, body, surface);
+      }
       let bodyId = ship.bodyId;
       const contact = state.contact, status = state.status;
       const soi = this.system.checkSOI(this.customFrames ? motionRuleStateCopy(state) : state, bodyId, state.time);
@@ -1061,7 +1310,7 @@ export class World implements WorldControl {
   /** Put a just-stepped ship to sleep when its next steps are known in closed form and no
    * event can interrupt them before a provable horizon. */
   private sleep(ship: Ship, tick: number): void {
-    if (this.rules.length || !this.contextFor(ship).capabilities.rails) return;
+    if (this.physicsSolver || this.rules.length || !this.contextFor(ship).capabilities.rails) return;
     const { state, controls } = ship;
     if (state.contact || state.waterEntry) return;
     let horizon: number;
@@ -1108,7 +1357,7 @@ export class World implements WorldControl {
    * (spawns, saves, snapshots, engine cuts) skip their first step. `tick` is the record's.
    * The stored record gets the coast its steps evaluate (the one `advance` would make). */
   private sleepNow(ship: Ship, tick: number, need: number): boolean {
-    if (this.rules.length || !this.contextFor(ship).capabilities.rails) return false;
+    if (this.physicsSolver || this.rules.length || !this.contextFor(ship).capabilities.rails) return false;
     const { state, controls } = ship;
     if (state.status !== 'flying') {
       // Resting on the ground: asleep until a command wakes it.
