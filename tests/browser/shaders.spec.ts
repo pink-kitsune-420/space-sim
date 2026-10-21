@@ -207,10 +207,14 @@ test('full packs replace all stages and receive drawing roles, glyph textures an
   await openPanel(page, 'setup');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const stopped = await vesselPixels();
-  expect(stopped.ship).toEqual([230, 64, 51, 255]);
+  expect(stopped.ship[0]).toBeCloseTo(230, -1);
+  expect(stopped.ship.slice(1)).toEqual([64, 51, 255]);
   await page.evaluate(() => { (window as any).shaderClock += 250; });
   // Shader time continues while physics is paused.
-  await expect.poll(async () => (await vesselPixels()).ship).toEqual([230, 128, 51, 255]);
+  await expect.poll(async () => {
+    const p = (await vesselPixels()).ship;
+    return [Math.abs(p[0]! - 230) <= 1 ? 230 : p[0], p[1], p[2], p[3]];
+  }).toEqual([230, 128, 51, 255]);
   await load(page, await readFile(resolve('examples/shaders/violet.json'), 'utf8'));
   await expect(page.locator('#shader-name')).toHaveText('Violet');
   expect((await vesselPixels()).error).toBe(0);

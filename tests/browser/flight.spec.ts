@@ -356,7 +356,7 @@ test('suborbital coast on Earth finishes tracing to impact without restarting ev
   // the arc coasts on its conic and only its last metre is a new numerical pass.
   await page.waitForTimeout(300);
   await page.keyboard.up('ArrowRight');
-  await page.waitForTimeout(1200);
+  await expect.poll(async () => Number((await diagnostics(page)).groundClearance)).toBeGreaterThan(40);
   await page.keyboard.up('Space');
   // Diagnostics refresh at 4 Hz. A burning preview can already say "impact";
   // wait for the completed coast result before checking that its pass stays cached.

@@ -229,6 +229,21 @@ export interface PanelOutput { readonly extension: PanelExtension; readonly rows
  * so it avoids structuredClone, which costs several times more for small object graphs. */
 export function frozenSnapshot<T>(value: T): T {
   if (value === null || typeof value !== 'object') return value;
+  if (ArrayBuffer.isView(value)) return value;
+  if (typeof (value as { getPage?: unknown }).getPage === 'function') {
+    const store = value as unknown as {
+      readonly pageSizeBytes: 1024 | 2048 | 4096;
+      getPage(key: string): Uint8Array | undefined;
+      hasPage?(key: string): boolean;
+      keys?(): IterableIterator<string>;
+    };
+    return Object.freeze({
+      pageSizeBytes: store.pageSizeBytes,
+      getPage: (key: string) => store.getPage(key),
+      hasPage: (key: string) => (typeof store.hasPage === 'function' ? store.hasPage(key) : store.getPage(key) !== undefined),
+      keys: () => (typeof store.keys === 'function' ? store.keys() : [][Symbol.iterator]()),
+    }) as unknown as T;
+  }
   if (Array.isArray(value)) return Object.freeze(value.map(frozenSnapshot)) as T;
   const copy: Record<string, unknown> = {};
   for (const key of Object.keys(value)) copy[key] = frozenSnapshot((value as Record<string, unknown>)[key]);

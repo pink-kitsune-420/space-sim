@@ -397,6 +397,7 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
       try { this.preview.invalidate(); } catch (error) { errors.push(error); }
     }
     this.lastUi = -Infinity;
+    if (!this.disposed) { try { this.updateUi(this.options.flight()); } catch (error) { errors.push(error); } }
     if (reason) { try { this.options.notify(reason); } catch (error) { errors.push(error); } }
     if(reason)this.executionNotices.set(execution.node.shipId,reason);
     if (errors.length) throw new AggregateError(errors, 'Maneuver execution cleanup failed');
@@ -438,7 +439,8 @@ export class ManeuverPlanner implements ManeuverPlannerControl {
     this.stopWarp();
     this.executionNotices.delete(node.shipId);
     this.execution = { node, burn: this.services.burns.create(node.time, plan!.deltaVelocity, flightMotion(flight).vehicle), initialThrottle: flight.ship!.state.throttle };
-    this.warping = true; this.lastRequest = flight.requestedWarp; this.lastUi = -Infinity;
+    this.warping = true; this.lastRequest = flight.requestedWarp; this.lastUi = performance.now();
+    this.updateUi(flight);
     this.event('maneuver-execute', { ship: node.shipId, time: node.time });
   }
   private canExecute(flight: Flight, node: Node | undefined, plan: ManeuverPreview | undefined): boolean {

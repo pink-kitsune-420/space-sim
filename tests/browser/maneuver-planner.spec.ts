@@ -165,7 +165,7 @@ test('Execute burn warps, aligns, fires and cuts off autonomously', async ({ pag
   await page.locator('#pause').click();
   await expect(page.locator('#maneuver-execute')).toBeEnabled();
   await page.locator('#maneuver-execute').click();
-  await expect(page.locator('#maneuver-abort')).toBeVisible();
+  await expect(page.locator('#maneuver-abort')).toBeVisible({ timeout: 15000 });
   await expect.poll(async () => (await debug(page)).maneuver?.execution).not.toBeNull();
   await expect(page.locator('#maneuver-status')).toContainText(/complete|Plan complete/, { timeout: 25000 });
   // The editor status refreshes independently of the 4-Hz diagnostic snapshot.

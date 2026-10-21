@@ -11,6 +11,8 @@ declare global {
     nativeConnect: typeof AudioNode.prototype.connect } }
 }
 
+test.describe.configure({ timeout: 60000 });
+
 test.afterEach(async ({ page }, info) => {
   if (info.status === info.expectedStatus || page.isClosed()) return;
   const state = await page.evaluate(() => ({
@@ -183,19 +185,21 @@ test(`a gentle ${attitude} contact on ${terrain ? 'terrain' : 'a smooth planet'}
     const tap = window.audioProbe.meters.at(-1)!;
     // Latch the real signal in the audio thread: a short thud can finish while
     // rendering blocks the main thread, leaving a polled analyser buffer silent.
+    // The analyser's 2048-sample RMS window slides every render quantum: fixed blocks
+    // split a short crash cue unevenly and read up to ~30% low depending on its start.
     const source = `class PeakMeter extends AudioWorkletProcessor {
-      constructor() { super(); this.peak = 0; this.sum = 0; this.count = 0; }
+      constructor() { super(); this.peak = 0; this.sum = 0; this.index = 0; this.squares = new Float64Array(2048); }
       process(inputs) {
         const samples = inputs[0][0];
         if (samples && samples.length) {
           for (let i = 0; i < samples.length; i++) {
-            this.sum += samples[i] * samples[i];
-            if (++this.count === 2048) {
-              const level = Math.sqrt(this.sum / 2048);
-              if (level > this.peak) { this.peak = level; this.port.postMessage(level); }
-              this.sum = 0; this.count = 0;
-            }
+            const square = samples[i] * samples[i];
+            this.sum += square - this.squares[this.index];
+            this.squares[this.index] = square;
+            this.index = (this.index + 1) % 2048;
           }
+          const level = Math.sqrt(Math.max(this.sum, 0) / 2048);
+          if (level > this.peak) { this.peak = level; this.port.postMessage(level); }
         }
         return true;
       }

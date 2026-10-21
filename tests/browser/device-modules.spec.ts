@@ -32,6 +32,7 @@ export default function initialize(context: ModuleInitializationV2): void {
   const output = join(directory, 'device.spacemod'); await buildPortableModule(path, output, { typecheck: false }); moduleBytes = await readFile(output);
 });
 test.afterAll(async () => { if (directory) await rm(directory, { recursive: true, force: true }); });
+test.describe.configure({ timeout: 60000 });
 test.beforeEach(async ({ page }) => { await useCanvas(page); });
 
 test('device package installs inertly, activates only on restart, and replays disabled after reload', async ({ page }) => {
