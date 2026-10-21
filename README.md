@@ -6,6 +6,8 @@ A free, open-source toolkit for modular 2D space games. **Space Sim**, the bundl
 
 Spacelab is in alpha. Module contracts and file tooling are still evolving.
 
+**Official accounts:** Outside GitHub, the developer currently has an official account only on itch.io. Accounts on other platforms are not affiliated with the developer.
+
 ## Play and learn
 
 Open **Manual** in the game's dock. The **Players** tab covers your first orbit, live controls, maneuver planning, transfers, landing, saves and multiplayer. Controls support keyboard, touch and gamepad; remap them under **Settings → Controls & keybindings…**.
