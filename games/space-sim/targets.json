@@ -97,6 +97,10 @@
           {
             "id": "spacelab.alarm-panel",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-controller",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -123,7 +127,8 @@
           "flight.transfers": "spacelab.transfer-planner",
           "flight.alarms": "spacelab.orbital-alarms",
           "flight.alarm-catalogue": "spacelab.orbital-alarms",
-          "view.alarms": "spacelab.alarm-panel"
+          "view.alarms": "spacelab.alarm-panel",
+          "input.controller": "spacelab.player-controller"
         },
         "capabilities": {},
         "settings": {}
@@ -143,7 +148,8 @@
         "ui.view-hud",
         "input.flight-profiles",
         "hud.throttle",
-        "ui.player-view"
+        "ui.player-view",
+        "input.controller"
       ]
     },
     "offline": {
@@ -242,6 +248,10 @@
           {
             "id": "spacelab.alarm-panel",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.player-controller",
+            "version": "0.1.0"
           }
         ],
         "providers": {
@@ -268,7 +278,8 @@
           "flight.transfers": "spacelab.transfer-planner",
           "flight.alarms": "spacelab.orbital-alarms",
           "flight.alarm-catalogue": "spacelab.orbital-alarms",
-          "view.alarms": "spacelab.alarm-panel"
+          "view.alarms": "spacelab.alarm-panel",
+          "input.controller": "spacelab.player-controller"
         },
         "capabilities": {},
         "settings": {}
@@ -288,7 +299,8 @@
         "ui.view-hud",
         "input.flight-profiles",
         "hud.throttle",
-        "ui.player-view"
+        "ui.player-view",
+        "input.controller"
       ]
     },
     "node": {

@@ -232,6 +232,9 @@ export type OverlayPrimitive =
       readonly tileMetres: number;
       readonly size: 32;
       readonly tiles: Uint16Array;
+      /** Optional 1,024 background palette IDs (0 is empty), drawn behind air at
+       * 55% material brightness. Cosmetic only; no contact/state effect. */
+      readonly walls?: Uint16Array;
       readonly light?: Uint8Array;
       readonly paletteId?: string;
       readonly color?: string;
@@ -332,10 +335,21 @@ export interface ManeuverPreview {
   readonly valid: boolean;
   readonly path: readonly GhostSample[];
 }
+/** A host-supplied command port bound to one view's player and controlled ship.
+ * No caller-supplied entity/player IDs. The host checks ownership and command parameters.
+ * Ports expire with their view; do not retain them between frames or sessions. */
+export interface PresentationCommandSender {
+  /** Request a registered command. False means the view is inactive, input is suppressed,
+   * ownership changed, or the local host refused it. True means submitted; remote
+   * acceptance is delivered through ordinary snapshots/notices, not this return value. */
+  issue(commandId: string, args?: Readonly<Record<string, number>>): boolean;
+}
 /** Frozen per-frame presentation snapshot extended with the active viewport `Camera`, passed to `LayerHook` and `PanelHook`. */
 export interface PresentationView extends PresentationSnapshot {
   /** The camera this frame is drawn with. */
   readonly camera: Camera;
+  /** Optional view-bound input capability. Absent in read-only hosts/previews. */
+  readonly commands?: PresentationCommandSender;
 }
 /** Frozen per-frame presentation snapshot extended with the pilot's zoom `scale` (CSS pixels per metre), passed to `CameraHook.frame`. */
 export interface CameraInput extends PresentationSnapshot {
@@ -350,8 +364,19 @@ export interface LayerHook {
   /** Local name; the contribution ID is `<module id>/<name>`. */
   readonly name: string;
   readonly label: string;
+  /** Optional pure input selection, read before advancing physics. Omitted/undefined
+   * retains ordinary ship input. A claim routes this view's held controls exclusively
+   * through a registered command for its owned ship; it never grants world access. */
+  controlTarget?(snapshot: PresentationSnapshot): PresentationControlTarget | undefined;
   /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */
   draw(view: PresentationView): readonly OverlayPrimitive[];
+}
+/** Game-owned input target identity and authoritative command accepting numeric
+ * turn/throttle in [-1,1] and engine in [0,1]. The command remains bound to the view's
+ * owned ship; entityId identifies its game avatar/controller, not another ship. */
+export interface PresentationControlTarget {
+  readonly entityId: string;
+  readonly commandId: string;
 }
 /** Single telemetry row (`label`, `value`, and optional `unit`) returned by a `PanelHook`. */
 export interface PanelRow { readonly label: string; readonly value: string; readonly unit?: string }

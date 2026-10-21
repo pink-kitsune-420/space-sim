@@ -9,6 +9,9 @@ import { Game } from '../helpers/net-harness';
 import { checkCommandKeys, CommandBar } from '../../apps/web/src/commands';
 import { createFlightSessions } from '../../modules/session-flight/src/index';
 import { flightSessionServices } from '../../packages/net/src/session-services';
+import { presentationCommands } from '../../apps/web/src/presentation-commands';
+import { createPresentationControls } from '../../apps/web/src/presentation-controls';
+import { createPlayerController } from '../../modules/player-controller/src/index';
 
 const TOKEN = '0123456789abcdef0123456789abcdef';
 const BASE = [{ id: 'builtin.content', version: '0.1.0' }, { id: 'builtin.motion', version: '0.1.0' }];
@@ -25,6 +28,75 @@ function worldWith(code: readonly RegisteredModule[], ids: readonly string[], so
   return prepared.world;
 }
 const examples = (soloPreview?: boolean) => worldWith(GAME_EXAMPLES, ['example.maneuvers'], soloPreview);
+
+describe('view-bound presentation commands', () => {
+  it('routes repeated held input through PlayerController before stepping and releases it on handoff', () => {
+    const controls: RegisteredModule = { manifest: manifest('test.pilot'), initialize(c) {
+      c.contributeCommand({ name: 'eva-input', label: 'EVA input', parameters: {
+        turn: { type: 'number', default: 0, minimum: -1, maximum: 1 },
+        throttle: { type: 'number', default: 0, minimum: -1, maximum: 1 },
+        engine: { type: 'number', default: 0, minimum: 0, maximum: 1, integer: true },
+      }, resolve: ({ args }) => ({ moduleEvent: { type: 'eva-input', payload: { ...args } } }) });
+      c.contributeWorldRule({ modelIdentity: 'owned-input/test', seed: 7, initialState: { version: 1, value: {} },
+        evaluate({ state, events }) {
+          const input = events.filter(e => e.type === 'module').at(-1);
+          return { state: input?.type === 'module' ? { version: 1, value: input.moduleEvent.payload } : state };
+        } });
+    } };
+    const world = worldWith([controls], ['test.pilot'], false), provider = createFlightSessions(flightSessionServices());
+    const session = provider.local(world, { name: 'Pilot' });
+    const router = createPresentationControls({ create: createPlayerController });
+    try {
+      const ship = session.spawn('pad', false)!, heading = world.ship(ship)!.state.heading;
+      const target = { entityId: `${ship}/astronaut`, commandId: 'test.pilot/eva-input' };
+      const held = { turn: -1, throttle: 0, engine: false };
+      for (let i = 0; i < 60; i++) session.update(.016, ship, router.route(session, session.playerId, ship, held, target, true));
+      expect(world.ship(ship)!.state.heading).toBe(heading);
+      expect(world.moduleState['test.pilot']!.state.value).toEqual({ turn: -1, throttle: 0, engine: 0 });
+      session.update(.02, ship, router.route(session, session.playerId, ship, held, target, false));
+      expect(world.moduleState['test.pilot']!.state.value).toEqual({ turn: 0, throttle: 0, engine: 0 });
+      // Returning to the ship first releases the astronaut and requires neutral intent.
+      session.update(.02, ship, router.route(session, session.playerId, ship, held, undefined, true));
+      expect(world.ship(ship)!.state.heading).toBe(heading);
+      router.route(session, session.playerId, ship, { turn: 0, throttle: 0, engine: false }, undefined, true);
+      session.update(.02, ship, router.route(session, session.playerId, ship, held, undefined, true));
+      expect(world.ship(ship)!.state.heading).not.toBe(heading);
+      // A failed selector consumes controls; it never falls through to flight.
+      expect(router.route(session, session.playerId, ship, held, null, true)).toEqual({ turn: 0, throttle: 0, engine: false });
+    } finally { router.dispose(); session.dispose(); provider.dispose(); world.dispose(); }
+  });
+  it('uses real host validation and refuses foreign ships even in a local multi-seat session', () => {
+    const world = examples();
+    const sessions = createFlightSessions(flightSessionServices());
+    const session = sessions.local(world, { name: 'Ada', token: TOKEN });
+    try {
+      const own = session.spawn('pad', false)!;
+      const guest = session.local.seatGuest('Bo', 'fedcba9876543210fedcba9876543210');
+      const other = session.local.spawnGuest(guest, 'pad', false);
+      session.setThrottle(own, 1);
+      session.local.setGuestThrottle(guest, other, 1);
+      const sender = presentationCommands(session, session.playerId, own, () => true);
+      expect(sender.issue('example.maneuvers/trim-throttle', { step: -.25 })).toBe(true);
+      expect(world.ship(own)!.state.throttle).toBe(.75);
+      expect(sender.issue('example.maneuvers/trim-throttle', { step: NaN })).toBe(false);
+      expect(sender.issue('example.maneuvers/trim-throttle', { step: 2 })).toBe(false);
+      expect(sender.issue('example.maneuvers/unknown')).toBe(false);
+      expect(world.ship(own)!.state.throttle).toBe(.75);
+      expect(presentationCommands(session, session.playerId, other, () => true).issue('example.maneuvers/cut-throttle')).toBe(false);
+      expect(world.ship(other)!.state.throttle).toBe(1);
+      expect(presentationCommands(session, guest, other, () => true).issue('example.maneuvers/cut-throttle')).toBe(true);
+      expect(world.ship(other)!.state.throttle).toBe(0);
+      let current = true;
+      const oldView = presentationCommands(session, session.playerId, own, () => current);
+      current = false;
+      expect(oldView.issue('example.maneuvers/cut-throttle')).toBe(false);
+      expect(world.ship(own)!.state.throttle).toBe(.75);
+      session.spawn('pad', false);
+      session.remove(own);
+      expect(sender.issue('example.maneuvers/cut-throttle')).toBe(false);
+    } finally { session.dispose(); sessions.dispose(); world.dispose(); }
+  });
+});
 
 describe('command registration', () => {
   it('validates names, labels, keys and parameter schemas once, then freezes them', () => {

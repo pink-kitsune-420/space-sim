@@ -2974,3 +2974,39 @@ it('generates reference pages for all 53 public game-api stems, enforces JSDoc o
 }, 30000);
 
 
+
+it('keeps reference provenance stable across derived SDK inventory refreshes while tracking authored inputs', () => {
+  const original = generateReference();
+  const readInput = (path: string) => readFileSync(path, 'utf8');
+  let refreshedInventory = 0;
+  const refreshed = generateReference(original.state, { readInput: (path: string) => {
+    if (!path.endsWith('/module.json')) return readInput(path);
+    const descriptor = JSON.parse(readInput(path));
+    if (descriptor.build) descriptor.build.inputsDigest = 'f'.repeat(64);
+    for (const source of descriptor.inputs ?? []) {
+      if (source.path.startsWith('game-api/')) { source.sha256 = 'e'.repeat(64); refreshedInventory++; }
+    }
+    return JSON.stringify(descriptor);
+  } });
+  expect(refreshed.bundle.provenance).toBe(original.bundle.provenance);
+  expect(refreshedInventory).toBeGreaterThan(0);
+  const manifestChanged = generateReference(original.state, { readInput: (path: string) => {
+    if (!path.endsWith('/module.json')) return readInput(path);
+    const descriptor = JSON.parse(readInput(path));
+    descriptor.manifest.name += ' changed';
+    return JSON.stringify(descriptor);
+  } });
+  expect(manifestChanged.bundle.provenance).not.toBe(original.bundle.provenance);
+  const declarationsChanged = generateReference(original.state, { readInput: (path: string) =>
+    readInput(path) + (path === 'packages/game-api/src/presentation.ts' ? '\n// Changed SDK source\n' : '') });
+  expect(declarationsChanged.bundle.provenance).not.toBe(original.bundle.provenance);
+  const attributionChanged = generateReference(original.state, { readInput: (path: string) => {
+    if (!path.endsWith('/module.json')) return readInput(path);
+    const descriptor = JSON.parse(readInput(path));
+    for (const source of descriptor.inputs ?? []) source.attribution += ' changed';
+    return JSON.stringify(descriptor);
+  } });
+  expect(attributionChanged.bundle.provenance).not.toBe(original.bundle.provenance);
+}, 30000);
+
+

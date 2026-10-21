@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b120fec8a6925933
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -1861,7 +1861,7 @@ Explicit flight protocol using privileged public engine ports and replaceable tr
 None.
 
 ## Game API used
-AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, SparsePageDelta, SparsePageStore, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId
+AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, PresentationControlTarget, PresentationView, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, SparsePageDelta, SparsePageStore, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId
 -> game-api commands.ts [api-reference/game-api/commands]
 -> game-api context.ts [api-reference/game-api/context]
 -> game-api engine.ts [api-reference/game-api/engine]
@@ -1871,6 +1871,7 @@ AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api motion.ts [api-reference/game-api/motion]
 -> game-api platform.ts [api-reference/game-api/platform]
+-> game-api presentation.ts [api-reference/game-api/presentation]
 -> game-api rules.ts [api-reference/game-api/rules]
 -> game-api session.ts [api-reference/game-api/session]
 -> game-api state.ts [api-reference/game-api/state]
@@ -2369,7 +2370,7 @@ Cancellable save/load over engine validation and independently selected storage.
 None.
 
 ## Game API used
-CORE_SAVE, CORE_UNIVERSE_FORMAT, ModuleInitializationV2, SaveCodec, ServiceKey, UNIVERSE_SAVES, UniverseSaveCommands, UniverseSaveFactory, UniverseSaveFormat, UniverseSaveOptions
+CORE_SAVE, CORE_UNIVERSE_FORMAT, ModuleInitializationV2, SaveCodec, ServiceKey, UNIVERSE_SAVES, UniverseSaveCommands, UniverseSaveFactory, UniverseSaveFormat, UniverseSaveOptions, WorldSave
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api universe-saving.ts [api-reference/game-api/universe-saving]
@@ -2975,8 +2976,32 @@ Saved module profile and per-environment v2 runtime package selections (`spacela
     }
 Used by: host or creator modules (not imported by shipped modules).
 
+## SavedRulePages
+Versioned exact page contents for JSON world saves; ZIP codecs store the bytes separately.
+    export interface SavedRulePages {
+      readonly format: 'space-sim-rule-pages/1';
+      readonly pageSizeBytes: 1024 | 2048 | 4096;
+      /** Sorted unique keys and canonical base64 bytes for JSON saves. ZIP saves store the
+       * same bytes in binary entries, outside JSON metadata. At most 32 MiB per store. */
+      readonly entries: readonly { readonly key: string; readonly data: string }[];
+      /** Pending initial-page commits, if saved before their first authoritative tick.
+       * Sorted subset of entries; retained so continuation hashes match exactly. */
+      readonly dirtyKeys?: readonly string[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SavedWorldRuleState
+JSON-safe authoritative rule state. World version 5 is required when pages are present.
+    export interface SavedWorldRuleState {
+      readonly state: ModuleState;
+      readonly randomState: number;
+      readonly pages?: SavedRulePages;
+      readonly dirtyHash?: string;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## WorldSave
-Portable `space-sim-world` save document containing the full `UniverseDefinition`, SI state (`m`, `s`, `rad`) at `tick`/`time`, ships, players, and optional locks/plans.
+Portable complete-world document; version 5 adds exact sparse-page persistence. Previous valid versions remain readable. Runtime SparsePageStore objects are never JSON-serialized directly; they are captured as SavedWorldRuleState.
     export interface WorldSave {
       readonly vehicles?: VehicleCatalog;
       readonly data?: ModuleDataSnapshot;
@@ -3006,9 +3031,9 @@ Portable `space-sim-world` save document containing the full `UniverseDefinition
       readonly bodies?: readonly SavedBodyState[];
       readonly lock?: AuthoritativeLock | ModuleLock;
       readonly simulationFingerprint?: string;
-      readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
+      readonly moduleState?: Readonly<Record<string, SavedWorldRuleState>>;
     }
-Used by: spacelab.universe-server-storage.
+Used by: spacelab.universe-saves, spacelab.universe-server-storage.
 
 ## WorldRead
 Body-relative SI state. Read operations retain the world's established rails semantics.
@@ -3110,7 +3135,7 @@ Optional metadata and session state included when serializing a `WorldRead` into
 Used by: host or creator modules (not imported by shipped modules).
 
 ## SaveCodec
-Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `space-sim-world` JSON archives.
+Authoritative world/entity codec (`core.save@1.0.0`). Reads valid world versions 1–5; sparse pages require version 5. Save values are detached and JSON-safe. Legacy lost terrain-map data is refused explicitly; a rejected load never changes live state.
     export interface SaveCodec {
       /** Exact legacy authority identity used for worlds predating explicit locks. */
       readonly defaultLock: AuthoritativeLock;
@@ -6495,6 +6520,9 @@ Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'ti
           readonly tileMetres: number;
           readonly size: 32;
           readonly tiles: Uint16Array;
+          /** Optional 1,024 background palette IDs (0 is empty), drawn behind air at
+           * 55% material brightness. Cosmetic only; no contact/state effect. */
+          readonly walls?: Uint16Array;
           readonly light?: Uint8Array;
           readonly paletteId?: string;
           readonly color?: string;
@@ -6610,13 +6638,25 @@ Read-only body-relative SI preview of the active maneuver node and planned traje
     }
 Used by: builtin.maneuver-planner, spacelab.maneuver-editor.
 
+## PresentationCommandSender
+A host-supplied command port bound to one view's player and controlled ship. No caller-supplied entity/player IDs. The host checks ownership and command parameters. Ports expire with their view; do not retain them between frames or sessions.
+    export interface PresentationCommandSender {
+      /** Request a registered command. False means the view is inactive, input is suppressed,
+       * ownership changed, or the local host refused it. True means submitted; remote
+       * acceptance is delivered through ordinary snapshots/notices, not this return value. */
+      issue(commandId: string, args?: Readonly<Record<string, number>>): boolean;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## PresentationView
 Frozen per-frame presentation snapshot extended with the active viewport `Camera`, passed to `LayerHook` and `PanelHook`.
     export interface PresentationView extends PresentationSnapshot {
       /** The camera this frame is drawn with. */
       readonly camera: Camera;
+      /** Optional view-bound input capability. Absent in read-only hosts/previews. */
+      readonly commands?: PresentationCommandSender;
     }
-Used by: builtin.maneuver-planner, builtin.navball.
+Used by: builtin.maneuver-planner, builtin.navball, spacelab.session-flight.
 
 ## CameraInput
 Frozen per-frame presentation snapshot extended with the pilot's zoom `scale` (CSS pixels per metre), passed to `CameraHook.frame`.
@@ -6632,10 +6672,22 @@ Hooks below are synchronous presentation code. Each receives a frozen snapshot a
       /** Local name; the contribution ID is `<module id>/<name>`. */
       readonly name: string;
       readonly label: string;
+      /** Optional pure input selection, read before advancing physics. Omitted/undefined
+       * retains ordinary ship input. A claim routes this view's held controls exclusively
+       * through a registered command for its owned ship; it never grants world access. */
+      controlTarget?(snapshot: PresentationSnapshot): PresentationControlTarget | undefined;
       /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */
       draw(view: PresentationView): readonly OverlayPrimitive[];
     }
 Used by: host or creator modules (not imported by shipped modules).
+
+## PresentationControlTarget
+Game-owned input target identity and authoritative command accepting numeric turn/throttle in [-1,1] and engine in [0,1]. The command remains bound to the view's owned ship; entityId identifies its game avatar/controller, not another ship.
+    export interface PresentationControlTarget {
+      readonly entityId: string;
+      readonly commandId: string;
+    }
+Used by: spacelab.session-flight.
 
 ## PanelRow
 Single telemetry row (`label`, `value`, and optional `unit`) returned by a `PanelHook`.
@@ -7096,7 +7148,7 @@ Resolved authoritative world-rule contribution bound to its owning module identi
 Used by: spacelab.session-flight.
 
 ## WorldRuleState
-Persisted authoritative world-rule namespace combining module state, deterministic PRNG uint32 state, and optional sparse pages.
+Live authoritative rule namespace with deterministic PRNG state and optional sparse pages. Persistence captures pages as SavedWorldRuleState; never JSON-stringify this runtime store directly.
     export interface WorldRuleState {
       readonly state: ModuleState;
       readonly randomState: number;
@@ -7690,6 +7742,12 @@ Used by: spacelab.session-flight.
 Versioned copy-on-write sparse binary page store for high-capacity state (e.g. voxel chunks, tile grids).
     export interface SparsePageStore {
       readonly pageSizeBytes: 1024 | 2048 | 4096;
+      /** Enumerate all committed and pending page keys. Required for saving page contents;
+       * older non-enumerable implementations cannot be persisted safely. */
+      keys?(): IterableIterator<string>;
+      /** Independent copy-on-write transaction used when capturing saves. Required for
+       * safe persistence of pending initial edits without committing the live store. */
+      clone?(): SparsePageStore;
       getPage(key: string): Uint8Array | undefined;
       setPage(key: string, data: Uint8Array): void;
       markDirty(key: string): void;
@@ -11159,6 +11217,7 @@ This module has no settings.
 - bindInput accepts at most 16 distinct sources for pilot 0–3, clearing prior device state.
 - sample runs synchronously across bound sources, enforcing a limit of 256 writes per source with last-write-wins semantics, and forwards changed values to adapter.setAction.
 - dispose releases target and device state. Provider disposal releases all created controllers, throwing an AggregateError if cleanup fails.
+The compatible flight presentation adapter can select a game-owned astronaut through LayerHook.controlTarget before stepping. PlayerController releases prior intent on avatar/ship or session changes; the adapter validates the owning player/ship and dispatches one registered input command. Returning to ship input requires neutral intent. Tile locomotion remains authoritative in the owning game; this adapter does not change global landed turning or implement engine AvatarState terrain contact.
 
 ## Remove or replace
 Included in survey-fixture target plans. Games implementing custom input routing pipelines or networked client prediction can replace this module with another provider of input.controller@1.0.0.
@@ -11263,6 +11322,7 @@ Public render.canvas@1.0.0 service and lifecycle.
 
 ## What it does
 This module provides 2D scene and flight rendering using standard HTML5 Canvas 2D contexts. It projects double-precision celestial body positions, orbits, planetary surfaces, day and night lighting, craters, latitude parallels, trajectory lines, ship chevrons and throttle flames to screen coordinates using an independent camera transform. Render quality and pixel ratio caps never modify physical celestial bodies or collision geometry.
+A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources.
 
 ## Provides and requires
 - Provides render.canvas@1.0.0 through the CANVAS_DRAWING key: a CanvasRendererFactory that creates SceneRenderer instances.
@@ -11301,6 +11361,7 @@ Public render.webgl@1.0.0 service and lifecycle.
 
 ## What it does
 This module provides GPU-accelerated WebGL 2 rendering for flight scenes, celestial bodies and planet designer previews. It compiles multi-pass GLSL shader packs (scene, vector and text stages) and procedural planet materials. Shader u_time follows real presentation seconds even while physics is paused. Presentation options allow independently toggling orbit guides and body labels without altering celestial bodies or trajectory physics.
+A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources.
 
 ## Provides and requires
 - Provides render.webgl@1.0.0 through the WEBGL_DRAWING key: a WebGLRendererFactory that creates SceneRenderer and BodyPreview instances.
@@ -11360,6 +11421,8 @@ This module has no settings.
 - join(peer, options, signal) performs client-side handshake over a TextConnection, synchronizing entities into a local mirror world.
 - step() and advance(seconds) execute discrete ticks or wall-clock durations, returning world simulation events.
 - Disposing the factory or provider closes all active sessions and disconnects peers.
+A browser presentation LayerHook or PanelHook may receive view.commands. Call view.commands?.issue(commandId, numericArgs) for a registered authoritative command. The port is bound to this view’s player and controlled ship, expires with the frame and is absent in read-only hosts. Do not cache it or use window/session globals. False means locally refused or inactive; true means submitted, with remote acceptance arriving through snapshots/notices. Ownership, modal suppression and authoritative argument validation still apply.
+A LayerHook may declare controlTarget(snapshot) to select a game-owned controller identity and an existing registered command accepting turn/throttle [-1,1] and engine [0,1]. The host selects this before physics, uses PlayerController to release old intent and sends input through the checked command path for the view’s owned ship. A claim consumes ship controls; selector failure or conflicts suppress input. Existing ship controls are unchanged without a claim. Use this for a game’s existing tile astronaut; it does not migrate that astronaut to engine AvatarState.
 
 ## Remove or replace
 This module is essential for flight multiplayer sessions and standard flight gameplay. Standalone non-flight tools like planet viewers do not require it. To replace it, author a network-tier module providing session.flight@1.0.0 implementing FlightSessionFactory.
@@ -11872,6 +11935,8 @@ This module has no settings.
 - save(write, signal) captures session snapshot identity, invokes core.save, encodes container bytes, verifies identity guard, and writes formatted .spaceuniverse files.
 - load(read, signal) invokes read, enforces the 64 MiB limit, decodes container data via format.decode, checks identity guard, and restores the world.
 - dispose cancels pending save or load tasks and disassociates active controllers.
+World saves with sparse authoritative rule pages use world schema 5 and ZIP layout spacelab-universe-save/3. Binary page chunks are at most 1 MiB; a versioned inventory preserves namespace, page size, sorted unique keys and exact bytes. JSON saves use the same versioned pages encoded as canonical base64. Both retain RNG state and keep earlier valid saves readable. Downversioning pages is refused. Older damaged terrain saves containing serialized empty Map objects are refused with an explanation, because missing edits cannot be recovered. Archive limits remain 1,000 entries and 64 MiB expanded, with at most 32 MiB per sparse store. Loaded avatars and dynamic-body snapshots are retained by the ZIP container.
+Persistence requires an enumerable store with an independent clone. Capturing a save never commits the live transaction. Pending initial-page keys are preserved so the first continued tick produces the same deterministic hash after restoration.
 
 ## Remove or replace
 To customize save orchestration, permissions checking, or session migration rules, provide an alternative universe.saves@1.0.0 implementation in the universe.saves slot. Removing this module leaves universe save and load workflows without coordinated session guards and format delegation.

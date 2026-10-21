@@ -17,6 +17,7 @@ import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
 import { createTilePaletteTexture, hexToRgb01, themeBackdropToShaderIndex, themeGridToShaderIndex } from './palette';
 
 const DEFAULT_FULL_LIGHT = new Uint8Array(1024).fill(255);
+const DEFAULT_ZERO_WALLS = new Uint16Array(1024);
 
 /** Unit circle vertex tables, built once per segment count. */
 const UNIT_CIRCLES = new Map<number, Float64Array>();
@@ -139,6 +140,8 @@ export class WebGLRenderer implements Renderer {
     readonly vao: WebGLVertexArrayObject;
     readonly quadBuffer: WebGLBuffer;
     readonly tilesBuffer: WebGLBuffer;
+    readonly wallsBuffer: WebGLBuffer;
+    wallsActive: boolean;
     readonly lightBuffer: WebGLBuffer;
     readonly resolutionLoc: WebGLUniformLocation | null;
     readonly cameraOffsetLoc: WebGLUniformLocation | null;
@@ -361,6 +364,7 @@ export class WebGLRenderer implements Renderer {
       gl.deleteVertexArray(this.tileChunkState.vao);
       gl.deleteBuffer(this.tileChunkState.quadBuffer);
       gl.deleteBuffer(this.tileChunkState.tilesBuffer);
+      gl.deleteBuffer(this.tileChunkState.wallsBuffer);
       gl.deleteBuffer(this.tileChunkState.lightBuffer);
       gl.deleteTexture(this.tileChunkState.defaultPalette);
       this.tileChunkState = undefined;
@@ -1086,6 +1090,13 @@ export class WebGLRenderer implements Renderer {
     gl.vertexAttribIPointer(2, 1, gl.UNSIGNED_BYTE, 0, 0);
     gl.vertexAttribDivisor(2, 1);
 
+    const wallsBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, wallsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, DEFAULT_ZERO_WALLS, gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribIPointer(3, 1, gl.UNSIGNED_SHORT, 0, 0);
+    gl.vertexAttribDivisor(3, 1);
+
     gl.bindVertexArray(null);
 
     const defaultPalette = createTilePaletteTexture(gl);
@@ -1096,6 +1107,8 @@ export class WebGLRenderer implements Renderer {
       vao,
       quadBuffer,
       tilesBuffer,
+      wallsBuffer,
+      wallsActive: false,
       lightBuffer,
       resolutionLoc,
       cameraOffsetLoc,
@@ -1146,6 +1159,12 @@ export class WebGLRenderer implements Renderer {
 
       gl.bindBuffer(gl.ARRAY_BUFFER, state.tilesBuffer);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.tiles);
+
+      if (p.walls || state.wallsActive) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, state.wallsBuffer);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.walls ?? DEFAULT_ZERO_WALLS);
+        state.wallsActive = p.walls !== undefined;
+      }
 
       gl.bindBuffer(gl.ARRAY_BUFFER, state.lightBuffer);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? DEFAULT_FULL_LIGHT);

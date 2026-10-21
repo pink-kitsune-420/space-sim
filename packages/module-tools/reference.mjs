@@ -289,7 +289,21 @@ export function generate(state = collect(), options = {}) {
     for (const file of ['module.json', 'src/main.ts']) if (existsSync(join(ROOT, example, file))) state.inputs.add(`${example}/${file}`);
   }
   const digest = createHash('sha256').update(`version\0${state.version}\0`);
-  for (const path of [...state.inputs].sort()) digest.update(`${path}\0${read(path)}\0`);
+  const readInput = options.readInput ?? read;
+  for (const path of [...state.inputs].sort()) {
+    let input = readInput(path);
+    if (path.endsWith('/module.json')) {
+      const descriptor = JSON.parse(input);
+      // SDK declarations are hashed directly. Derived package inventories change
+      // during builds and must not invalidate that build's generated reference.
+      if (descriptor.build) delete descriptor.build.inputsDigest;
+      for (const source of descriptor.inputs ?? []) {
+        if (source.path.startsWith('game-api/')) delete source.sha256;
+      }
+      input = JSON.stringify(descriptor);
+    }
+    digest.update(`${path}\0${input}\0`);
+  }
   const apiVersions = [...new Set(documented.map(module => module.manifest.apiVersion))].sort().join(', ') || 'none';
   const formats = [...new Set(documented.map(module => module.manifest.format))].sort().join(', ') || 'none';
   const provenance = `Spacelab package ${state.version} · API ${apiVersions} · manifest ${formats} · source digest ${digest.digest('hex').slice(0, 16)}`;

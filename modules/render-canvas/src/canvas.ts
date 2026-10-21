@@ -341,9 +341,22 @@ export function drawPlanetHorizon(
   ctx.restore();
 }
 
+/** Prepared once per palette, outside tile drawing. Preserve any authored alpha. */
+function wallPalette(colors: readonly string[]): readonly string[] {
+  return colors.map(color => {
+    let hex = color.trim().replace(/^#/, '');
+    if (hex.length === 3) hex = hex.split('').map(digit => digit + digit).join('');
+    if (!/^[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(hex)) hex = '888888';
+    return '#' + [0, 2, 4].map(offset =>
+      Math.round(parseInt(hex.slice(offset, offset + 2), 16) * .55).toString(16).padStart(2, '0'),
+    ).join('') + hex.slice(6);
+  });
+}
+
 export class CanvasRenderer implements Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly tilePalettes = new Map<string, readonly string[]>();
+  private readonly wallPalettes = new Map<string, readonly string[]>([['default', wallPalette(DEFAULT_TILE_PALETTE_HEX)]]);
   /** No shader packs. Reading one pixel back makes the browser finish deferred drawing. */
   readonly features: RendererFeatures;
   private disposed = false;
@@ -364,8 +377,9 @@ export class CanvasRenderer implements Renderer {
   registerTilePalette(paletteId: string, colors: readonly string[]): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
     this.tilePalettes.set(paletteId, colors);
+    this.wallPalettes.set(paletteId, wallPalette(colors));
   }
-  dispose(): void { this.disposed = true; }
+  dispose(): void { this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); }
   drawScene(frame: SceneFrame, timer?: RenderTimer): void { this.draw(sceneFrame(frame), timer); }
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
@@ -598,16 +612,18 @@ export class CanvasRenderer implements Renderer {
       const { origin, tileMetres, tiles } = p;
       const stepScreen = tileMetres * camera.scale;
       const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? DEFAULT_TILE_PALETTE_HEX;
+      const walls = this.wallPalettes.get(p.paletteId ?? 'default') ?? this.wallPalettes.get('default')!;
       for (let y = 0; y < 32; y++) {
         for (let x = 0; x < 32; x++) {
           const idx = (y << 5) | x;
           const tileId = tiles[idx] ?? 0;
-          if (tileId === 0) continue;
+          const wallId = tileId === 0 ? p.walls?.[idx] ?? 0 : 0;
+          if (tileId === 0 && wallId === 0) continue;
           const worldPos = { x: origin.x + x * tileMetres, y: origin.y + y * tileMetres };
           const screenPos = toScreen(worldPos);
           if (screenPos.x < -stepScreen || screenPos.x > width + stepScreen ||
               screenPos.y < -stepScreen || screenPos.y > height + stepScreen) continue;
-          const hex = palette[tileId] ?? '#888888';
+          const hex = wallId > 0 ? walls[wallId] ?? '#4b4b4b' : palette[tileId] ?? '#888888';
           ctx.fillStyle = hex;
           ctx.fillRect(screenPos.x, screenPos.y - stepScreen, Math.ceil(stepScreen), Math.ceil(stepScreen));
         }

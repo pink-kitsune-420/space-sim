@@ -5,6 +5,7 @@ import {
   type UniverseSaveCommands,
   type UniverseSaveFactory,
   type UniverseSaveOptions,
+  type WorldSave,
 } from '@space-sim/game-api';
 
 export interface UniverseSavesHelper {
@@ -27,4 +28,10 @@ export function createUniverseSavesHelper(factory: UniverseSaveFactory): Univers
 export default function initialize(context: ModuleInitializationV2): void {
   const factory = context.use(UNIVERSE_SAVES);
   context.provide(UNIVERSE_SAVES_HELPER, createUniverseSavesHelper(factory));
+}
+
+/** Inspect saved terrain identity without accessing live stores or discarding bytes.
+ * Pass the complete WorldSave to the selected format/storage, including these pages. */
+export function savedTerrainKeys(save: WorldSave, moduleId: string): readonly string[] {
+  return save.moduleState?.[moduleId]?.pages?.entries.map(entry => entry.key) ?? [];
 }

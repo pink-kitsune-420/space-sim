@@ -56,6 +56,9 @@ import { VIEW_HUD, FLIGHT_HUD_STATE, THROTTLE_HUD, PLAYER_VIEWS, type PlayerView
 import { navballInstrument } from '../../../modules/navball/src/index';
 import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
+import { presentationCommands } from './presentation-commands';
+import { createPresentationControls } from './presentation-controls';
+import { PLAYER_CONTROLLERS } from '../../../packages/game-api/src/index';
 import type { SmartCandidate } from './camera';
 import { CommandBar, checkCommandKeys } from './commands';
 import { cache, shown, element, show, download, downloadBytes, message } from './ui';
@@ -106,11 +109,16 @@ registerModuleGuides(hostFeatures, DOCUMENTED_MODULES);
 try {
 const presentationProviders = browserPresentationProviders(hostFeatures);
 const smartCameraPolicy = hostFeatures.lock.providers[SMART_CAMERAS.slot] ? hostFeatures.providedService(SMART_CAMERAS) : undefined;
+const presentationControls = createPresentationControls(hostFeatures.lock.providers[PLAYER_CONTROLLERS.slot] ? hostFeatures.providedService(PLAYER_CONTROLLERS) : undefined);
+const startupCode = artifactModules(startupGame.plugins, environment());
+const startupAuthoritative = [...GAME_EXAMPLES, ...startupCode.filter(module => module.manifest.authority === 'authoritative')];
+const startupDisplay = startupCode.filter(module => module.manifest.authority === 'presentation');
+if (startupGame.plugins.length) moduleLibrary.replace(startupGame.plugins);
 let activeGameInfo = { ...startupGame.info };
 let orbitSandboxInstance: OrbitSandboxInstance | undefined;
 /** Renderer provider, presentation modules and their hooks; started below once input exists. */
 const presentation = new Presentation(canvas, {
-  gameId: startupGame.info.id, profile: startupGame.bundle.presentation ?? DEFAULT_PRESENTATION_PROFILE,
+  gameId: startupGame.info.id, profile: startupGame.bundle.presentation ?? DEFAULT_PRESENTATION_PROFILE, modules: startupDisplay,
   audio: hostFeatures.lock.providers[FLIGHT_SOUND.slot] ? hostFeatures.providedService(FLIGHT_SOUND) : undefined, providers: presentationProviders,
   perViewInstruments: ['builtin.navball'],
   onCanvas: next => { canvas = next; cache.set('flight-view', next); attachCanvasListeners(next); },
@@ -1015,6 +1023,7 @@ function controls(elapsed = 0): Controls {
   return withThrottleLever(0, { turn, throttle, engine }, elapsed);
 }
 function release(): void {
+  presentationControls.release();
   pilotThrottles.forEach(control => control.release());
   gamepadManager.release(); touchControls.release();
   moduleManager?.devices.release(); releaseJoinModules();
@@ -3976,7 +3985,7 @@ const universeSaveControl = universeSaveUi.mount({
 });
 window.addEventListener('pagehide', event => {
   if (event.persisted) return;
-  releaseAcademy(); universeSaveControl.dispose(); hostFeatures.dispose();
+  releaseAcademy(); universeSaveControl.dispose(); presentationControls.dispose(); hostFeatures.dispose();
 });
 
 function executeAction(action: ActionId): void {
@@ -4664,16 +4673,16 @@ function otherShips(
 }
 
 /** What the pilot sees, for presentation modules: interpolated, detached and frozen. */
-function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnapshot {
+function presentationView(elapsed: number, bodyPosition: Vec, sample: State = view ?? state): PresentationSnapshot {
   const world = session.world, ship = selectedShip(), last = prediction.path.at(-1);
   const analyticOrbits = activeMotion().capabilities.orbitalDiagnostics;
   return presentationSnapshot({
-    time: view.time, tick: world.tick, paused: session.paused, elapsed,
+    time: sample.time, tick: world.tick, paused: session.paused, elapsed,
     viewport: { width: canvas.clientWidth, height: canvas.clientHeight, pixelRatio: window.devicePixelRatio || 1 },
     body: { id: activeBody.id, name: activeBody.name, radius: activeBody.radius, mu: activeBody.mu, position: bodyPosition,
       ...(activeBody.rotation ? { spin: spinRate(activeBody) } : {}) },
-    ...(ship ? { ship: { id: ship.id, name: ship.name, bodyId: activeBody.id, state: view, controls: ship.controls,
-      position: { x: bodyPosition.x + view.position.x, y: bodyPosition.y + view.position.y }, ...(ship.fault ? { fault: ship.fault } : {}) } } : {}),
+    ...(ship ? { ship: { id: ship.id, name: ship.name, bodyId: activeBody.id, state: sample, controls: ship.controls,
+      position: { x: bodyPosition.x + sample.position.x, y: bodyPosition.y + sample.position.y }, ...(ship.fault ? { fault: ship.fault } : {}) } } : {}),
     vehicle: activeMotion().vehicle, analyticOrbits,
     orbit: analyticOrbits && ship && state.status === 'flying' ? activeMotion().services.orbits.elements(activeOrbitSource(), activeBody.mu) : null,
     groundClearance: ship ? groundClearance() : null,
@@ -4684,7 +4693,9 @@ function presentationView(elapsed: number, bodyPosition: Vec): PresentationSnaps
   });
 }
 
+let presentationInputEpoch = 0;
 function frame(now: number): void {
+  const inputEpoch = ++presentationInputEpoch;
   const elapsed = lastWall === undefined ? 0 : (now - lastWall) / 1000;
   lastWall = now;
   profiler.begin(elapsed * 1000);
@@ -4694,7 +4705,11 @@ function frame(now: number): void {
   splitScreen.sync();
   if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) pilotThrottles.forEach(control => control.release());
   splitScreen.applyInput(elapsed);
-  const command = session.paused ? IDLE : controls(elapsed);
+  const rawCommand = session.paused ? IDLE : controls(elapsed);
+  const controlTarget = presentation.hooks.controlsInput ? presentation.hooks.controlTarget(
+    presentationView(elapsed, session.world.system.getBodyPosition(activeBody.id, session.world.time), spinView.state(selectedShip()?.state ?? state, activeBody))) : undefined;
+  const command = presentationControls.route(session, session.playerId, selectedShipId, rawCommand, controlTarget,
+    !session.paused && !workspace.isOpen && !controlsDialog.open && !hudLayout.editing && !document.hidden);
   if(session.world!==warpApprovalWorld||session!==local||!local.hosting){warpApproval.clear();warpApprovalWorld=session.world;}
   maneuver.beforeAdvance(command);
   warpApproval.retain(shipId=>maneuver.isAutomatic(shipId));
@@ -4859,7 +4874,12 @@ function frame(now: number): void {
   updateControllerCursors(elapsed);
   syncViewHuds(elapsed,presentation.isEnabled('builtin.navball')||presentation.isEnabled('builtin.throttle')?base():undefined,camera);
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
-  const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
+  const inputSession = session, inputWorld = session.world, inputShipId = selectedShipId;
+  const commands = inputShipId ? presentationCommands(inputSession, session.playerId, inputShipId,
+    () => presentationInputEpoch === inputEpoch && session === inputSession && session.world === inputWorld
+      && selectedShipId === inputShipId && !workspace.isOpen && !controlsDialog.open && !hudLayout.editing && !document.hidden) : undefined;
+  const toolView = () => Object.freeze({ ...base(), camera, ...(commands ? { commands } : {}) });
+  const baseOverlays = presentation.overlays(toolView);
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
   if (academy) {
     try { overlays.push(...academy.draw({ ...base(), camera })); }
@@ -5107,7 +5127,7 @@ function frame(now: number): void {
   }
   if (now - lastLists > 250) {
     updateLists(); lastLists = now;
-    presentation.updatePanels(() => Object.freeze({ ...base(), camera }));
+    presentation.updatePanels(toolView);
   }
   if (!profilerPanel.hidden && now - lastPanel > 250) { profilerPanelUpdate(); lastPanel = now; }
   const size = `${canvas.width}×${canvas.height}@${window.devicePixelRatio}`;
@@ -5121,6 +5141,7 @@ function frame(now: number): void {
 const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, startupGame.bundle.selection.system, {
   data: startupGame.bundle.modules, profile: requested.example ? exampleProfile(requested.example) : startupGame.bundle.profile,
   universeKey: startupGame.bundle.selection.universe,
+  code: startupAuthoritative,
 });
 initialGame.runtime.activate(initialGame.candidate);
 local = new LocalSession(initialGame.world, { name: pilotName() });

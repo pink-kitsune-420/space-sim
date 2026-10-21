@@ -105,6 +105,12 @@ export interface SparsePageDelta {
 /** Versioned copy-on-write sparse binary page store for high-capacity state (e.g. voxel chunks, tile grids). */
 export interface SparsePageStore {
   readonly pageSizeBytes: 1024 | 2048 | 4096;
+  /** Enumerate all committed and pending page keys. Required for saving page contents;
+   * older non-enumerable implementations cannot be persisted safely. */
+  keys?(): IterableIterator<string>;
+  /** Independent copy-on-write transaction used when capturing saves. Required for
+   * safe persistence of pending initial edits without committing the live store. */
+  clone?(): SparsePageStore;
   getPage(key: string): Uint8Array | undefined;
   setPage(key: string, data: Uint8Array): void;
   markDirty(key: string): void;

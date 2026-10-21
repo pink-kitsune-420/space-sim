@@ -38,7 +38,9 @@ export interface WorldRuleExtension {
   readonly version: string;
   readonly hook: WorldRuleHook;
 }
-/** Persisted authoritative world-rule namespace combining module state, deterministic PRNG uint32 state, and optional sparse pages. */
+/** Live authoritative rule namespace with deterministic PRNG state and optional sparse
+ * pages. Persistence captures pages as SavedWorldRuleState; never JSON-stringify this
+ * runtime store directly. */
 export interface WorldRuleState {
   readonly state: ModuleState;
   readonly randomState: number;

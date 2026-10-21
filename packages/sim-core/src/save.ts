@@ -4,6 +4,7 @@ import { canonicalJson } from '../../game-runtime/src/authoritative';
 import type { AuthoritativeLock, AvatarState, Coast, ModuleLock, ModuleState, SavedAvatar, SavedBodyState, SavedPlayer, SavedShip, State, WorldRead, WorldRuleState, WorldSave } from '../../game-api/src/index';
 import { validateModuleState } from '../../game-runtime/src/motion';
 import { DEFAULT_BUILTIN_LOCK, migrateModuleState } from '../../game-runtime/src/authoritative';
+import { captureSavedPages, restoreSavedPages } from '../../game-runtime/src/saved-pages';
 /** Default built-in authoritative module lock re-exported for `CORE_SAVE` (`SaveCodec.defaultLock`). Host-only (`packages/sim-core`). */
 export { DEFAULT_BUILTIN_LOCK };
 import { IDLE, MODEL, READABLE_MODELS, STEP } from './constants';
@@ -209,7 +210,7 @@ export function playerFromSaved(raw: unknown, context = 'Player'): SavedPlayer {
   return { id: playerId, name, ...(p.tokenHash ? { tokenHash: p.tokenHash as string } : {}) };
 }
 
-/** Serializes a `WorldRead` state at its shared simulation epoch (`tick`, `time` in `s`) into a complete `WorldSave` archive (`space-sim-world` versions 1–4) in SI units. Rejects solo-preview custom authoritative worlds. Exposed to modules via `CORE_SAVE` (`SaveCodec.save`). Host-only (`packages/sim-core`). */
+/** Serializes a `WorldRead` state at its shared simulation epoch (`tick`, `time` in `s`) into a complete JSON-safe `WorldSave` (versions 1–5). Sparse pages require version 5. Rejects solo-preview custom authoritative worlds. Exposed via `CORE_SAVE`. Host-only. */
 export function saveWorld(world: WorldRead, extra: {
   readonly flightPlans?: import('../../game-api/src/index').FlightPlanArchive;
   readonly players?: readonly SavedPlayer[]; readonly hostId?: string; readonly paused?: boolean; readonly savedAt?: string;
@@ -218,9 +219,12 @@ export function saveWorld(world: WorldRead, extra: {
 } = {}): WorldSave {
   if (world.soloPreview) throw new Error('Custom authoritative module profiles are solo previews; world saves require declared deterministic multiplayer support. Export the module/profile instead.');
   const hasData = world.data.schemas.length > 0;
-  const version = extra.version ?? (world.vehicles ? 4 : hasData ? 3 : world.saveVersion === 1 ? 1 : SAVE_VERSION);
-  if (![1, 2, 3, 4].includes(version)) throw new Error('Unsupported save version');
-  if (world.vehicles && version !== 4) throw new Error('Vehicle definitions require save version 4');
+  const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
+  const hasPages = Object.values(ruleState ?? {}).some(entry => entry.pages !== undefined);
+  const version = extra.version ?? (hasPages || world.saveVersion === 5 ? 5 : world.vehicles ? 4 : hasData ? 3 : world.saveVersion === 1 ? 1 : SAVE_VERSION);
+  if (![1, 2, 3, 4, 5].includes(version)) throw new Error('Unsupported save version');
+  if (hasPages && version < 5) throw new Error('Sparse pages require save version 5');
+  if (world.vehicles && version < 4) throw new Error('Vehicle definitions require save version 4');
   if (version === 4 && !world.vehicles) throw new Error('Save version 4 requires vehicle definitions');
   if (hasData && version < 3) throw new Error('Module-data adapters require save version 3');
   if (version === 1) {
@@ -241,7 +245,6 @@ export function saveWorld(world: WorldRead, extra: {
   }
   const lock = extra.lock ?? world.lock ?? DEFAULT_BUILTIN_LOCK;
   const simulationFingerprint = extra.simulationFingerprint ?? world.simulationFingerprint;
-  const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
   const physics = resolveUniversePhysics(world.universe);
   const saveBodies = physics.mode !== 'rails' && world.bodyStates?.length ? world.bodyStates.map(b => ({
     id: b.id,
@@ -267,7 +270,11 @@ export function saveWorld(world: WorldRead, extra: {
     ...(world.vehicles ? { vehicles: world.vehicles } : {}),
     ...(lock ? { lock } : {}),
     ...(simulationFingerprint ? { simulationFingerprint } : {}),
-    ...(ruleState ? { moduleState: ruleState } : {}),
+    ...(ruleState ? { moduleState: Object.fromEntries(Object.entries(ruleState).map(([id, entry]) => [id, {
+      state: validateModuleState(entry.state), randomState: entry.randomState,
+      ...(entry.pages ? { pages: captureSavedPages(entry.pages) } : {}),
+      ...(entry.dirtyHash !== undefined ? { dirtyHash: entry.dirtyHash } : {}),
+    }])) } : {}),
     ...(hasData ? { data: world.data.snapshot() } : {}),
   };
 }
@@ -282,8 +289,8 @@ export function migrateSave(raw: Record<string, unknown>): Record<string, unknow
       moduleState: {},
     };
   }
-  if (raw.version === SAVE_VERSION || raw.version === 3 || raw.version === 4) return raw;
-  throw new Error(`Unsupported save version ${String(raw.version)}; this game reads version ${SAVE_VERSION}`);
+  if (raw.version === SAVE_VERSION || raw.version === 3 || raw.version === 4 || raw.version === 5) return raw;
+  throw new Error(`Unsupported save version ${String(raw.version)}; this game reads versions 1–5`);
 }
 
 /** Validate everything before building a world; a rejected save never touches live state. */
@@ -359,6 +366,8 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
   let ruleState: Record<string, WorldRuleState> | undefined;
   if (save.moduleState !== undefined) {
     const ms = record(save.moduleState, 'Save moduleState');
+    if (Object.keys(ms).length > 256) fail('Save moduleState', 'at most 256 rule namespaces');
+    let totalPageBytes = 0;
     ruleState = Object.create(null);
     for (const [modId, rawVal] of Object.entries(ms)) {
       const entry = record(rawVal, `Save moduleState ${modId}`);
@@ -369,11 +378,23 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
       }
       const randomState = count(entry.randomState, `Save moduleState ${modId} randomState`);
       if (randomState === 0 || randomState > 0xffffffff) fail(`Save moduleState ${modId}`, 'invalid randomState');
-      ruleState![modId] = { state: st, randomState };
+      if (entry.pages !== undefined && save.version !== 5) fail(`Save moduleState ${modId}`,
+        'This older terrain save lost its binary page contents. The terrain edits cannot be restored. Keep the original file; loading was refused to prevent silent terrain regeneration.');
+      if (entry.pages !== undefined) {
+        const inventory = record(entry.pages, `Save moduleState ${modId} pages`);
+        if (!Array.isArray(inventory.entries) || ![1024, 2048, 4096].includes(inventory.pageSizeBytes as number)) fail('Save pages', 'invalid inventory');
+        totalPageBytes += inventory.entries.length * (inventory.pageSizeBytes as number);
+        if (totalPageBytes > 64 * 1024 * 1024) fail('Save pages', 'aggregate page contents exceed 64 MiB');
+      }
+      const pages = entry.pages === undefined ? undefined : restoreSavedPages(entry.pages);
+      if (save.version === 5 && rule?.hook.pageSizeBytes !== undefined && !pages) fail(`Save moduleState ${modId}`, 'missing authoritative sparse pages');
+      if (pages && rule?.hook.pageSizeBytes !== undefined && pages.pageSizeBytes !== rule.hook.pageSizeBytes) fail(`Save moduleState ${modId}`, 'saved page size differs from the installed rule');
+      if (entry.dirtyHash !== undefined && (typeof entry.dirtyHash !== 'string' || !/^[0-9a-f]{64}$/.test(entry.dirtyHash))) fail(`Save moduleState ${modId}`, 'invalid dirtyHash');
+      ruleState![modId] = { state: st, randomState, ...(pages ? { pages } : {}), ...(entry.dirtyHash !== undefined ? { dirtyHash: entry.dirtyHash as string } : {}) };
     }
   }
 
-  if (save.version === 4) {
+  if (save.version === 4 || save.version === 5 && save.vehicles !== undefined) {
     if (!options.vehicles) throw new VehicleConfigurationError('Save: Missing required vehicle packages. Enable the exact gameplay packages listed by this save.');
     const expected = captureVehicleCatalog(options.vehicles), saved = captureVehicleCatalog(save.vehicles);
     if (canonicalJson(expected) !== canonicalJson(saved)) throw new VehicleConfigurationError('Save: Required vehicle definitions differ. Enable the exact gameplay packages used by this save.');
@@ -392,7 +413,7 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
   try {
     if ((save.version === 3 || world.data.schemas.length) && save.data === undefined) throw new Error('Save version 3 requires module-data state');
     if (save.data !== undefined) {
-      if (save.version !== 3 && save.version !== 4) throw new Error('Module-data state requires save version 3 or 4');
+      if (save.version !== 3 && save.version !== 4 && save.version !== 5) throw new Error('Module-data state requires save version 3, 4 or 5');
       world.data.restore(save.data);
     }
     world.tick = tick;

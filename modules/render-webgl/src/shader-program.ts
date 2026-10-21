@@ -239,6 +239,7 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
     layout(location=0) in vec2 a_quad_pos;
     layout(location=1) in uint a_tile_id;
     layout(location=2) in uint a_tile_light;
+    layout(location=3) in uint a_wall_id;
 
     uniform vec2 u_resolution;
     uniform vec2 u_camera_offset;
@@ -250,7 +251,8 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
     out vec4 v_color;
 
     void main() {
-      if (a_tile_id == 0u) {
+      bool is_wall = a_tile_id == 0u && a_wall_id > 0u;
+      if (a_tile_id == 0u && !is_wall) {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         v_color = vec4(0.0);
         return;
@@ -268,10 +270,11 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
       vec2 clip = rotated * u_camera_scale * 2.0 / u_resolution;
       gl_Position = vec4(clip.x, clip.y, 0.0, 1.0);
 
-      vec4 base_color = texelFetch(u_palette, ivec2(int(a_tile_id), 0), 0);
+      uint material_id = is_wall ? a_wall_id : a_tile_id;
+      vec4 base_color = texelFetch(u_palette, ivec2(int(material_id), 0), 0);
       float light_val = float(a_tile_light);
       float light_factor = light_val > 15.0 ? (light_val / 255.0) : (0.2 + 0.8 * (light_val / 15.0));
-      v_color = vec4(base_color.rgb * light_factor, base_color.a);
+      v_color = vec4(base_color.rgb * light_factor * (is_wall ? 0.55 : 1.0), base_color.a);
     }`, `#version 300 es
       precision highp float;
       in vec4 v_color;

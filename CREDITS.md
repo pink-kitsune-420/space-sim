@@ -8,6 +8,8 @@ The name is inspired by the joint ESA/NASA orbital laboratory missions. This pro
 
 All simulation physics, orbital mechanics, Kepler propagators, Canvas 2D and WebGL 2 GPU shader renderers, flight HUDs, multiplayer networking, and application plumbing are first-party code authored specifically for this project.
 
+The bundled Next-Gen tile terrain, excavation, avatar and vector HUD modules are original first-party MIT code. Their editable source and notices are included in their module packages; they contain no third-party artwork, audio or datasets.
+
 Engine rumble and flight sound effects are synthesized by original first-party code under the project's MIT license, using generated noise and oscillators. No third-party sound recordings, samples or instrument libraries are bundled.
 
 Solar system astronomical and ephemeris parameters are derived from publicly available NASA / JPL Solar System Dynamics data ([ssd.jpl.nasa.gov](https://ssd.jpl.nasa.gov/)): planetary satellite mean orbital elements and physical parameters, *Keplerian Elements for Approximate Positions of the Major Planets* (E. M. Standish, JPL), and the JPL Horizons system. Courtesy NASA/JPL-Caltech. NASA and JPL do not endorse this software.

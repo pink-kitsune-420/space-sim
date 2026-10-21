@@ -13,6 +13,10 @@
       "text": "This module provides GPU-accelerated WebGL 2 rendering for flight scenes, celestial bodies and planet designer previews. It compiles multi-pass GLSL shader packs (scene, vector and text stages) and procedural planet materials. Shader u_time follows real presentation seconds even while physics is paused. Presentation options allow independently toggling orbit guides and body labels without altering celestial bodies or trajectory physics."
     },
     {
+      "type": "paragraph",
+      "text": "A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources."
+    },
+    {
       "type": "heading",
       "text": "Provides and requires"
     },

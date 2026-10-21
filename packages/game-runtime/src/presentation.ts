@@ -1,7 +1,7 @@
 /** Host-only (`packages/game-runtime`): presentation hook capture, output limits and fault isolation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeLayer`, `contributePanel` and `contributeCamera`. */
 import type {
   CameraExtension, CameraHook, CameraInput, CameraTarget, LayerExtension, LayerHook, MultiViewportCameraFrame, OverlayPrimitive, PanelExtension,
-  PanelHook, PanelRow, PresentationContribution, PresentationFault, PresentationView, SubViewportCameraTarget, Vec,
+  PanelHook, PanelRow, PresentationContribution, PresentationControlTarget, PresentationFault, PresentationSnapshot, PresentationView, SubViewportCameraTarget, Vec,
 } from '../../game-api/src/index';
 
 /** Most layer, panel or camera hooks per module, for each kind (`8`; `Module <id>: at most 8 <kind> hooks`). Host-only (`packages/game-runtime`). */
@@ -42,12 +42,14 @@ export function capturePresentation<T extends LayerHook | PanelHook | CameraHook
   raw: T): PresentationContribution<T> {
   if (!MODULE.test(moduleId)) throw new Error(`Module ${moduleId}: invalid ${kind} namespace`);
   const [labelField, method] = FIELDS[kind];
-  const hook = record(raw, ['name', labelField, method], `Module ${moduleId} ${kind}`);
+  const hook = record(raw, ['name', labelField, method, ...(kind === 'layer' ? ['controlTarget'] : [])], `Module ${moduleId} ${kind}`);
   if (typeof hook.name !== 'string' || !NAME.test(hook.name)) throw new Error(`Module ${moduleId} ${kind}: name must be 1–32 lowercase letters, digits or hyphens`);
   const id = `${moduleId}/${hook.name}`;
   const label = text(hook[labelField], 32, `${kind} ${id} ${labelField}`).trim();
   if (typeof hook[method] !== 'function') throw new Error(`${kind} ${id}: ${method} must be a function`);
-  return Object.freeze({ moduleId, version, id, hook: Object.freeze({ name: hook.name, [labelField]: label, [method]: hook[method] }) as unknown as T });
+  if (hook.controlTarget !== undefined && typeof hook.controlTarget !== 'function') throw new Error(`layer ${id}: controlTarget must be a function`);
+  return Object.freeze({ moduleId, version, id, hook: Object.freeze({ name: hook.name, [labelField]: label, [method]: hook[method],
+    ...(hook.controlTarget ? { controlTarget: hook.controlTarget } : {}) }) as unknown as T });
 }
 
 function point(raw: unknown, space: 'world' | 'screen', label: string): Vec {
@@ -80,7 +82,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
     const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed', 'fill']
       : kind === 'circle' ? ['kind', 'space', 'center', 'radius', 'color', 'width', 'fill']
       : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align']
-      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'light', 'paletteId', 'color'] : undefined;
+      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'walls', 'light', 'paletteId', 'color'] : undefined;
     if (!fields) throw new Error(`${label}: kind must be line, circle, text or tile-chunk`);
     const p = record(value, fields, label);
     if (p.space !== 'world' && p.space !== 'screen') throw new Error(`${label}: space must be world or screen`);
@@ -93,6 +95,9 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
       if (p.size !== 32) throw new Error(`${label}: size must be 32`);
       if (!(p.tiles instanceof Uint16Array) || p.tiles.length !== 1024) {
         throw new Error(`${label}: tiles must be a Uint16Array of length 1024`);
+      }
+      if (p.walls !== undefined && (!(p.walls instanceof Uint16Array) || p.walls.length !== 1024)) {
+        throw new Error(`${label}: walls must be a Uint16Array of length 1024`);
       }
       if (p.light !== undefined && (!(p.light instanceof Uint8Array) || p.light.length !== 1024)) {
         throw new Error(`${label}: light must be a Uint8Array of length 1024`);
@@ -108,6 +113,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
         tileMetres: p.tileMetres,
         size: 32 as const,
         tiles: p.tiles,
+        ...(p.walls !== undefined ? { walls: p.walls } : {}),
         ...(p.light !== undefined ? { light: p.light } : {}),
         ...(p.paletteId !== undefined ? { paletteId: p.paletteId } : {}),
         ...(c !== undefined ? { color: c } : {}),
@@ -263,6 +269,27 @@ export class PresentationHooks {
   /** Whether any layer still draws, so callers can skip building a snapshot. */
   get drawsLayers(): boolean { return this.layers.some(l => !this.disabled.has(l.id)); }
   get updatesPanels(): boolean { return this.panels.some(p => !this.disabled.has(p.id)); }
+  get controlsInput(): boolean { return this.layers.some(l => !!l.hook.controlTarget); }
+  /** Exclusive game input selection before physics. Null suppresses input after a
+   * selector failure/conflict; falling back to ship controls could move the wrong entity. */
+  controlTarget(snapshot: PresentationSnapshot): PresentationControlTarget | null | undefined {
+    let target: PresentationControlTarget | undefined;
+    for (const layer of this.layers) {
+      if (!layer.hook.controlTarget) continue;
+      if (this.disabled.has(layer.id)) return null;
+      try {
+        const raw = layer.hook.controlTarget(snapshot);
+        if (raw === undefined) continue;
+        const value = record(raw, ['entityId', 'commandId'], 'control target');
+        const entityId = text(value.entityId, 128, 'control entity');
+        const commandId = text(value.commandId, 128, 'control command');
+        if (!/^[a-z][a-z0-9-]*(?:\.[a-z0-9-]+)+\/[a-z][a-z0-9-]{0,31}$/.test(commandId)) throw new Error('Invalid control command ID');
+        if (target) throw new Error('Only one layer may claim held controls for a view');
+        target = Object.freeze({ entityId, commandId });
+      } catch (error) { this.fail('layer', layer, error); return null; }
+    }
+    return target;
+  }
   overlays(view: PresentationView): readonly OverlayPrimitive[] {
     const output: OverlayPrimitive[] = [];
     for (const layer of this.layers) {

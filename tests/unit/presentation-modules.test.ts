@@ -32,6 +32,24 @@ function snapshot(state: State | undefined, extra: Partial<PresentationSnapshot>
 const pointsOf = (primitive: unknown): readonly Vec[] => (primitive as { readonly points: readonly Vec[] }).points;
 const viewOf = (s: PresentationSnapshot, scale = .5): PresentationView =>
   Object.freeze({ ...s, camera: Object.freeze({ center: s.ship?.position ?? BODY.position, rotation: 0, scale }) });
+
+it('validates exclusive pre-step controller selection and suppresses flight after selector failures', () => {
+  const target = { entityId: 'ship-1/astronaut', commandId: 'test.game/eva-input' };
+  const layer = (id: string, select: LayerHook['controlTarget']) => capturePresentation('layer', id, '1.0.0', {
+    name: 'tools', label: 'Tools', draw: () => [], controlTarget: select,
+  });
+  const base = snapshot(undefined);
+  const good = layer('test.good', () => target), absent = layer('test.absent', () => undefined);
+  const runner = new PresentationHooks([absent, good], [], []);
+  expect(runner.controlTarget(base)).toEqual(target);
+  const conflict = new PresentationHooks([good, layer('test.other', () => target)], [], []);
+  expect(conflict.controlTarget(base)).toBeNull();
+  expect(conflict.controlTarget(base)).toBeNull();
+  const invalid = new PresentationHooks([layer('test.invalid', () => ({ ...target, commandId: 'window.world' }))], [], []);
+  expect(invalid.controlTarget(base)).toBeNull();
+  expect(invalid.faults[0]!.message).toContain('Invalid control command');
+  expect(new PresentationHooks([absent], [], []).controlTarget(base)).toBeUndefined();
+});
 function manifest(id: string, extra: Partial<ModuleManifest> = {}): ModuleManifest {
   return { format: 'space-sim-module/1', apiVersion: 'space-sim-game-api/1', id, name: id, version: '1.0.0', kind: 'provider',
     authority: 'presentation', environments: ['browser', 'offline'], dependencies: [], slots: [], provides: [], requires: [],
@@ -128,6 +146,7 @@ describe('presentation hook output', () => {
     const tiles = new Uint16Array(1024);
     tiles[0] = 1; tiles[100] = 15;
     const light = new Uint8Array(1024).fill(15);
+    const walls = new Uint16Array(1024).fill(1);
     const validChunk = {
       kind: 'tile-chunk' as const,
       space: 'world' as const,
@@ -135,6 +154,7 @@ describe('presentation hook output', () => {
       tileMetres: 0.5,
       size: 32 as const,
       tiles,
+      walls,
       light,
       paletteId: 'spacelab-terrain',
     };
@@ -143,6 +163,9 @@ describe('presentation hook output', () => {
     expect(out[0]).toEqual(validChunk);
     expect(Object.isFrozen(out[0])).toBe(true);
     expect((out[0] as typeof validChunk).tiles).toBe(tiles);
+    expect((out[0] as typeof validChunk).walls).toBe(walls);
+    const { walls: _walls, ...legacyChunk } = validChunk;
+    expect(validateOverlay([legacyChunk])[0]).toEqual(legacyChunk);
 
     const badChunks: unknown[] = [
       { kind: 'tile-chunk', space: 'screen', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles },
@@ -150,6 +173,9 @@ describe('presentation hook output', () => {
       { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 16, tiles },
       { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles: new Uint16Array(512) },
       { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles, light: new Uint8Array(512) },
+      { ...validChunk, walls: new Uint16Array(512) },
+      { ...validChunk, walls: new Uint8Array(1024) },
+      { ...validChunk, walls: Array(1024).fill(1) },
       { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles, paletteId: '' },
       { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 0.5, size: 32, tiles, paletteId: 'x'.repeat(65) },
       { kind: 'tile-chunk', space: 'world', origin: { x: NaN, y: 0 }, tileMetres: 0.5, size: 32, tiles },

@@ -13,6 +13,10 @@
       "text": "This module provides 2D scene and flight rendering using standard HTML5 Canvas 2D contexts. It projects double-precision celestial body positions, orbits, planetary surfaces, day and night lighting, craters, latitude parallels, trajectory lines, ship chevrons and throttle flames to screen coordinates using an independent camera transform. Render quality and pixel ratio caps never modify physical celestial bodies or collision geometry."
     },
     {
+      "type": "paragraph",
+      "text": "A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources."
+    },
+    {
       "type": "heading",
       "text": "Provides and requires"
     },

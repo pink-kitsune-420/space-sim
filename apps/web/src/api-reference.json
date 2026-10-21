@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b120fec8a6925933",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b120fec8a6925933"
         },
         {
           "type": "paragraph",
@@ -5405,7 +5405,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, SparsePageDelta, SparsePageStore, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId"
+          "text": "AuthoritativeLock, CORE_CLOCK, CORE_COMMANDS, CORE_MOTION, CORE_SAVE, CORE_WORLD, ChatLine, CommandEffect, CommandExtension, Controls, Disposable, FLIGHT_SESSIONS, FixedClock, FlightHost, FlightHostSettings, FlightSessionFactory, FlightSessionServices, ForceExtension, JoinOptions, LocalSessionControl, LocalSessionOptions, ModuleDataCommand, ModuleDataExtension, ModuleDataSchema, ModuleInitializationV2, ModuleLock, PresentationControlTarget, PresentationView, SavedPlayer, SavedShip, ServiceKey, SessionFactory, SessionHandle, SessionRead, Ship, SimulationContextFactory, SparsePageDelta, SparsePageStore, TextConnection, UniverseDefinition, Vec, VehicleCatalog, WorldChanges, WorldControl, WorldEvent, WorldFactory, WorldRead, WorldRuleExtension, WorldRuleState, captureVehicleCatalog, vehicleId"
         },
         {
           "type": "link",
@@ -5451,6 +5451,11 @@
           "type": "link",
           "text": "game-api platform.ts",
           "page": "api-reference/game-api/platform"
+        },
+        {
+          "type": "link",
+          "text": "game-api presentation.ts",
+          "page": "api-reference/game-api/presentation"
         },
         {
           "type": "link",
@@ -6822,7 +6827,7 @@
         },
         {
           "type": "paragraph",
-          "text": "CORE_SAVE, CORE_UNIVERSE_FORMAT, ModuleInitializationV2, SaveCodec, ServiceKey, UNIVERSE_SAVES, UniverseSaveCommands, UniverseSaveFactory, UniverseSaveFormat, UniverseSaveOptions"
+          "text": "CORE_SAVE, CORE_UNIVERSE_FORMAT, ModuleInitializationV2, SaveCodec, ServiceKey, UNIVERSE_SAVES, UniverseSaveCommands, UniverseSaveFactory, UniverseSaveFormat, UniverseSaveOptions, WorldSave"
         },
         {
           "type": "link",
@@ -7909,19 +7914,51 @@
         },
         {
           "type": "heading",
+          "text": "SavedRulePages"
+        },
+        {
+          "type": "paragraph",
+          "text": "Versioned exact page contents for JSON world saves; ZIP codecs store the bytes separately."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedRulePages {\n  readonly format: 'space-sim-rule-pages/1';\n  readonly pageSizeBytes: 1024 | 2048 | 4096;\n  /** Sorted unique keys and canonical base64 bytes for JSON saves. ZIP saves store the\n   * same bytes in binary entries, outside JSON metadata. At most 32 MiB per store. */\n  readonly entries: readonly { readonly key: string; readonly data: string }[];\n  /** Pending initial-page commits, if saved before their first authoritative tick.\n   * Sorted subset of entries; retained so continuation hashes match exactly. */\n  readonly dirtyKeys?: readonly string[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SavedWorldRuleState"
+        },
+        {
+          "type": "paragraph",
+          "text": "JSON-safe authoritative rule state. World version 5 is required when pages are present."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedWorldRuleState {\n  readonly state: ModuleState;\n  readonly randomState: number;\n  readonly pages?: SavedRulePages;\n  readonly dirtyHash?: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "WorldSave"
         },
         {
           "type": "paragraph",
-          "text": "Portable `space-sim-world` save document containing the full `UniverseDefinition`, SI state (`m`, `s`, `rad`) at `tick`/`time`, ships, players, and optional locks/plans."
+          "text": "Portable complete-world document; version 5 adds exact sparse-page persistence. Previous valid versions remain readable. Runtime SparsePageStore objects are never JSON-serialized directly; they are captured as SavedWorldRuleState."
         },
         {
           "type": "code",
-          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly avatars?: readonly SavedAvatar[];\n  /** Dynamic celestial body states; only for universes whose `physics.mode` is not `'rails'`.\n   * Absent means bodies start from their authored ephemerides at `time`. */\n  readonly bodies?: readonly SavedBodyState[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
+          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly avatars?: readonly SavedAvatar[];\n  /** Dynamic celestial body states; only for universes whose `physics.mode` is not `'rails'`.\n   * Absent means bodies start from their authored ephemerides at `time`. */\n  readonly bodies?: readonly SavedBodyState[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, SavedWorldRuleState>>;\n}"
         },
         {
           "type": "paragraph",
-          "text": "Used by: spacelab.universe-server-storage."
+          "text": "Used by: spacelab.universe-saves, spacelab.universe-server-storage."
         },
         {
           "type": "heading",
@@ -8025,7 +8062,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `space-sim-world` JSON archives."
+          "text": "Authoritative world/entity codec (`core.save@1.0.0`). Reads valid world versions 1–5; sparse pages require version 5. Save values are detached and JSON-safe. Legacy lost terrain-map data is refused explicitly; a rejected load never changes live state."
         },
         {
           "type": "code",
@@ -13389,7 +13426,7 @@
         },
         {
           "type": "code",
-          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
+          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      /** Optional 1,024 background palette IDs (0 is empty), drawn behind air at\n       * 55% material brightness. Cosmetic only; no contact/state effect. */\n      readonly walls?: Uint16Array;\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
         },
         {
           "type": "paragraph",
@@ -13477,6 +13514,22 @@
         },
         {
           "type": "heading",
+          "text": "PresentationCommandSender"
+        },
+        {
+          "type": "paragraph",
+          "text": "A host-supplied command port bound to one view's player and controlled ship. No caller-supplied entity/player IDs. The host checks ownership and command parameters. Ports expire with their view; do not retain them between frames or sessions."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationCommandSender {\n  /** Request a registered command. False means the view is inactive, input is suppressed,\n   * ownership changed, or the local host refused it. True means submitted; remote\n   * acceptance is delivered through ordinary snapshots/notices, not this return value. */\n  issue(commandId: string, args?: Readonly<Record<string, number>>): boolean;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "PresentationView"
         },
         {
@@ -13485,11 +13538,11 @@
         },
         {
           "type": "code",
-          "text": "export interface PresentationView extends PresentationSnapshot {\n  /** The camera this frame is drawn with. */\n  readonly camera: Camera;\n}"
+          "text": "export interface PresentationView extends PresentationSnapshot {\n  /** The camera this frame is drawn with. */\n  readonly camera: Camera;\n  /** Optional view-bound input capability. Absent in read-only hosts/previews. */\n  readonly commands?: PresentationCommandSender;\n}"
         },
         {
           "type": "paragraph",
-          "text": "Used by: builtin.maneuver-planner, builtin.navball."
+          "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -13517,11 +13570,27 @@
         },
         {
           "type": "code",
-          "text": "export interface LayerHook {\n  /** Local name; the contribution ID is `<module id>/<name>`. */\n  readonly name: string;\n  readonly label: string;\n  /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */\n  draw(view: PresentationView): readonly OverlayPrimitive[];\n}"
+          "text": "export interface LayerHook {\n  /** Local name; the contribution ID is `<module id>/<name>`. */\n  readonly name: string;\n  readonly label: string;\n  /** Optional pure input selection, read before advancing physics. Omitted/undefined\n   * retains ordinary ship input. A claim routes this view's held controls exclusively\n   * through a registered command for its owned ship; it never grants world access. */\n  controlTarget?(snapshot: PresentationSnapshot): PresentationControlTarget | undefined;\n  /** Once per drawn frame. At most 256 primitives and 4,096 points per call. */\n  draw(view: PresentationView): readonly OverlayPrimitive[];\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PresentationControlTarget"
+        },
+        {
+          "type": "paragraph",
+          "text": "Game-owned input target identity and authoritative command accepting numeric turn/throttle in [-1,1] and engine in [0,1]. The command remains bound to the view's owned ship; entityId identifies its game avatar/controller, not another ship."
+        },
+        {
+          "type": "code",
+          "text": "export interface PresentationControlTarget {\n  readonly entityId: string;\n  readonly commandId: string;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.session-flight."
         },
         {
           "type": "heading",
@@ -14377,7 +14446,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Persisted authoritative world-rule namespace combining module state, deterministic PRNG uint32 state, and optional sparse pages."
+          "text": "Live authoritative rule namespace with deterministic PRNG state and optional sparse pages. Persistence captures pages as SavedWorldRuleState; never JSON-stringify this runtime store directly."
         },
         {
           "type": "code",
@@ -15341,7 +15410,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SparsePageStore {\n  readonly pageSizeBytes: 1024 | 2048 | 4096;\n  getPage(key: string): Uint8Array | undefined;\n  setPage(key: string, data: Uint8Array): void;\n  markDirty(key: string): void;\n  commitDirtyPages(): readonly SparsePageDelta[];\n}"
+          "text": "export interface SparsePageStore {\n  readonly pageSizeBytes: 1024 | 2048 | 4096;\n  /** Enumerate all committed and pending page keys. Required for saving page contents;\n   * older non-enumerable implementations cannot be persisted safely. */\n  keys?(): IterableIterator<string>;\n  /** Independent copy-on-write transaction used when capturing saves. Required for\n   * safe persistence of pending initial edits without committing the live store. */\n  clone?(): SparsePageStore;\n  getPage(key: string): Uint8Array | undefined;\n  setPage(key: string, data: Uint8Array): void;\n  markDirty(key: string): void;\n  commitDirtyPages(): readonly SparsePageDelta[];\n}"
         },
         {
           "type": "paragraph",

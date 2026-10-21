@@ -52,6 +52,24 @@ async function play(page: Page, name: string) {
 test.beforeEach(async ({ page }) => { await useCanvas(page); });
 
 for (const target of ['hosted', 'offline'] as const) {
+  test(`the ${target} Next-Gen game starts its bundled code modules directly`, async ({ page }) => {
+    const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    if (target === 'offline') await disableNetwork(page.context());
+    const url = target === 'offline'
+      ? `${pathToFileURL(resolve('dist/space-lab-offline.html')).href}?game=space-sim-nextgen`
+      : '/?game=space-sim-nextgen';
+    await page.goto(url);
+    await expect(page.locator('#active-game')).toHaveText('Space Sim Next-Gen: Spherical Tile Planets');
+    const current = await debug(page);
+    expect(current.commands).toContain('nextgen.planet-tiles-sim/laser-drill-pulse');
+    expect(current.presentation.modules).toContain('nextgen.planet-tiles-hud');
+    expect(current.presentation.layers).toContain('nextgen.planet-tiles-hud/planet-tile-overlay');
+    expect(current.presentation.faults).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+}
+
+for (const target of ['hosted', 'offline'] as const) {
   test(`the ${target} flight starter boots directly from its manifest and remembers its own display choices`, async ({ page }) => {
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
     const url = target === 'offline' ? `${pathToFileURL(resolve('dist/space-lab-offline.html')).href}?game=flight-starter` : '/?game=flight-starter';

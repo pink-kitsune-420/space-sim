@@ -56,10 +56,13 @@ export class Presentation {
 
   constructor(canvas: HTMLCanvasElement, private readonly options: {
     readonly gameId: string; readonly profile: ModuleProfile; readonly audio?: FlightAudioFactory; readonly providers: import('../../../packages/modules/src/browser').PresentationProviders;
+    /** Startup game's presentation artifacts, resolved with the initial profile before activation. */
+    readonly modules?: readonly RegisteredModule[];
     readonly perViewInstruments?: readonly string[];
     readonly onCanvas: (canvas: HTMLCanvasElement) => void; readonly release: () => void; readonly event: EventSink;
   }) {
-    this.registry = createPresentationRegistry(PRESENTATION_EXAMPLES, options.providers);
+    this.imported = [...(options.modules ?? [])];
+    this.registry = createPresentationRegistry([...PRESENTATION_EXAMPLES, ...this.imported], options.providers);
     this.runtime = new ModuleRuntime(this.registry, environment());
     this.renderers = options.providers.renderers ?? BUILTIN_RENDERERS;
     this.audio = mountFlightAudio(element('sound-settings'), options.audio);

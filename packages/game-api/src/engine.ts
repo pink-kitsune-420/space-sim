@@ -83,7 +83,27 @@ export interface SavedGameConfiguration {
   readonly data: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
   readonly code: readonly { readonly id: string; readonly version: string; readonly digest: string }[];
 }
-/** Portable `space-sim-world` save document containing the full `UniverseDefinition`, SI state (`m`, `s`, `rad`) at `tick`/`time`, ships, players, and optional locks/plans. */
+/** Versioned exact page contents for JSON world saves; ZIP codecs store the bytes separately. */
+export interface SavedRulePages {
+  readonly format: 'space-sim-rule-pages/1';
+  readonly pageSizeBytes: 1024 | 2048 | 4096;
+  /** Sorted unique keys and canonical base64 bytes for JSON saves. ZIP saves store the
+   * same bytes in binary entries, outside JSON metadata. At most 32 MiB per store. */
+  readonly entries: readonly { readonly key: string; readonly data: string }[];
+  /** Pending initial-page commits, if saved before their first authoritative tick.
+   * Sorted subset of entries; retained so continuation hashes match exactly. */
+  readonly dirtyKeys?: readonly string[];
+}
+/** JSON-safe authoritative rule state. World version 5 is required when pages are present. */
+export interface SavedWorldRuleState {
+  readonly state: ModuleState;
+  readonly randomState: number;
+  readonly pages?: SavedRulePages;
+  readonly dirtyHash?: string;
+}
+/** Portable complete-world document; version 5 adds exact sparse-page persistence.
+ * Previous valid versions remain readable. Runtime SparsePageStore objects are never
+ * JSON-serialized directly; they are captured as SavedWorldRuleState. */
 export interface WorldSave {
   readonly vehicles?: VehicleCatalog;
   readonly data?: ModuleDataSnapshot;
@@ -113,7 +133,7 @@ export interface WorldSave {
   readonly bodies?: readonly SavedBodyState[];
   readonly lock?: AuthoritativeLock | ModuleLock;
   readonly simulationFingerprint?: string;
-  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
+  readonly moduleState?: Readonly<Record<string, SavedWorldRuleState>>;
 }
 
 /** Body-relative SI state. Read operations retain the world's established rails semantics. */
@@ -197,7 +217,9 @@ export interface SavedWorldOptions {
   readonly version?: number; readonly lock?: AuthoritativeLock | ModuleLock; readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
 }
-/** Authoritative world and entity save/load codec (`core.save@1.0.0`) validating `space-sim-world` JSON archives. */
+/** Authoritative world/entity codec (`core.save@1.0.0`). Reads valid world versions 1–5;
+ * sparse pages require version 5. Save values are detached and JSON-safe. Legacy lost
+ * terrain-map data is refused explicitly; a rejected load never changes live state. */
 export interface SaveCodec {
   /** Exact legacy authority identity used for worlds predating explicit locks. */
   readonly defaultLock: AuthoritativeLock;

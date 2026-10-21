@@ -48,6 +48,14 @@
       ]
     },
     {
+      "type": "paragraph",
+      "text": "World saves with sparse authoritative rule pages use world schema 5 and ZIP layout spacelab-universe-save/3. Binary page chunks are at most 1 MiB; a versioned inventory preserves namespace, page size, sorted unique keys and exact bytes. JSON saves use the same versioned pages encoded as canonical base64. Both retain RNG state and keep earlier valid saves readable. Downversioning pages is refused. Older damaged terrain saves containing serialized empty Map objects are refused with an explanation, because missing edits cannot be recovered. Archive limits remain 1,000 entries and 64 MiB expanded, with at most 32 MiB per sparse store. Loaded avatars and dynamic-body snapshots are retained by the ZIP container."
+    },
+    {
+      "type": "paragraph",
+      "text": "Persistence requires an enumerable store with an independent clone. Capturing a save never commits the live transaction. Pending initial-page keys are preserved so the first continued tick produces the same deterministic hash after restoration."
+    },
+    {
       "type": "heading",
       "text": "Remove or replace"
     },

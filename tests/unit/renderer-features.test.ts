@@ -30,13 +30,19 @@ function fake2d() {
 }
 
 function fakeGl() {
-  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[] };
+  const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[],
+    buffers: new Set<object>(), tileUploads: [] as number[][] };
   let program: unknown, linked = 0;
   const gl = new Proxy({} as Record<string, unknown>, {
     get(_target, key) {
       if (typeof key !== 'string') return undefined;
       if (/^[A-Z_0-9]+$/.test(key)) return key.length; // Distinct enum stand-ins.
       switch (key) {
+        case 'createBuffer': return () => { const buffer = {}; stats.buffers.add(buffer); return buffer; };
+        case 'deleteBuffer': return (buffer: object) => { stats.buffers.delete(buffer); };
+        case 'bufferSubData': return (_target: unknown, _offset: unknown, data: unknown) => {
+          if (data instanceof Uint16Array && data.length === 1024) stats.tileUploads.push(Array.from(data));
+        };
         case 'createProgram': return () => { stats.programs++; stats.created++; return { id: ++linked }; };
         case 'deleteProgram': return (p: unknown) => { if (p) stats.programs--; };
         case 'getShaderParameter': case 'getProgramParameter': return (_: unknown, parameter: number) => parameter === 'LINK_STATUS'.length || parameter === 'COMPILE_STATUS'.length ? true : 0;
@@ -58,6 +64,35 @@ function fakeGl() {
 }
 
 describe('renderer features', () => {
+  it('draws cosmetic walls behind air, clears omitted GPU walls, and releases tile buffers', () => {
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const walls = new Uint16Array(1024); walls[0] = 2; walls[1] = 2;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 },
+      tileMetres: 1, size: 32, tiles, walls, paletteId: 'fixture' };
+    const palette = ['#00000000', '#112233', '#aabbcc'];
+    const canvas = fake2d(); const cpu = new CanvasRenderer(canvas.canvas);
+    cpu.features.tilePalettes?.register('fixture', palette);
+    cpu.draw(frame([chunk]));
+    expect(canvas.calls).toContain('fillStyle=#112233'); // Foreground masks its wall.
+    expect(canvas.calls).toContain('fillStyle=#5e6770'); // Air reveals the dim background.
+    expect(canvas.calls).not.toContain('fillStyle=#aabbcc');
+    cpu.features.tilePalettes?.register('fixture', ['#00000000', '#112233', '#ffffff']);
+    canvas.calls.length = 0; cpu.draw(frame([chunk]));
+    expect(canvas.calls).toContain('fillStyle=#8c8c8c'); // Palette replacement invalidates walls too.
+    cpu.dispose();
+
+    const webgl = fakeGl(); const gpu = new WebGLRenderer(webgl.canvas);
+    gpu.draw(frame([chunk, { ...chunk, walls: undefined }]));
+    expect(webgl.stats.tileUploads).toHaveLength(4);
+    expect(webgl.stats.tileUploads[1]).toEqual(Array.from(walls));
+    expect(webgl.stats.tileUploads[3]).toEqual(Array(1024).fill(0));
+    webgl.stats.tileUploads.length = 0;
+    gpu.draw(frame([{ ...chunk, walls: undefined }]));
+    expect(webgl.stats.tileUploads).toHaveLength(1); // Legacy chunks need no repeated wall upload.
+    gpu.dispose();
+    expect(webgl.stats.buffers.size).toBe(0);
+    expect(webgl.stats.programs).toBe(0);
+  });
   it('hides celestial names in both renderers while retaining the body scene and other annotations', () => {
     for (const visible of [true, false]) {
       const scene: RenderFrame = { ...frame(), bodies: [{ id: 'home', name: 'Home', position: {x:0,y:0}, radius: 20 }], showBodyLabels: visible };

@@ -51,6 +51,14 @@
       ]
     },
     {
+      "type": "paragraph",
+      "text": "A browser presentation LayerHook or PanelHook may receive view.commands. Call view.commands?.issue(commandId, numericArgs) for a registered authoritative command. The port is bound to this view\u2019s player and controlled ship, expires with the frame and is absent in read-only hosts. Do not cache it or use window/session globals. False means locally refused or inactive; true means submitted, with remote acceptance arriving through snapshots/notices. Ownership, modal suppression and authoritative argument validation still apply."
+    },
+    {
+      "type": "paragraph",
+      "text": "A LayerHook may declare controlTarget(snapshot) to select a game-owned controller identity and an existing registered command accepting turn/throttle [-1,1] and engine [0,1]. The host selects this before physics, uses PlayerController to release old intent and sends input through the checked command path for the view\u2019s owned ship. A claim consumes ship controls; selector failure or conflicts suppress input. Existing ship controls are unchanged without a claim. Use this for a game\u2019s existing tile astronaut; it does not migrate that astronaut to engine AvatarState."
+    },
+    {
       "type": "heading",
       "text": "Remove or replace"
     },
