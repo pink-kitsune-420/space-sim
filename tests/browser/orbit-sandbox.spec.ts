@@ -1,8 +1,45 @@
 import { test, expect } from '@playwright/test';
 import { useCanvas } from '../helpers/canvas';
 import { openPanel } from '../helpers/workspace';
+import { readFile } from 'node:fs/promises';
 
 test.beforeEach(async ({ page }) => { await useCanvas(page); });
+
+test('Figure-8 scenario retains three separated bodies through accelerated live simulation', async ({ page }) => {
+  test.setTimeout(60000);
+  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.clock.install({ time: 0 });
+  await page.goto('/?game=orbit-sandbox');
+  await expect(page.locator('#btn-play-pause')).toHaveText('Pause');
+  await page.clock.pauseAt(10000);
+  await page.locator('#btn-play-pause').click();
+  await page.locator('#btn-testing-open').click();
+  await page.locator('.scenario-card').filter({ has: page.getByRole('heading', { name: 'Figure-8 3-Body Choreography', exact: true }) }).click();
+  await expect(page.locator('#mode-nbody')).toHaveClass(/active/);
+  await page.locator('#sandbox-warp-factor').selectOption('50');
+  await page.locator('#btn-play-pause').click();
+  // 400 simulated seconds exceeds the preset's 316.3 s canonical cycle.
+  await page.clock.runFor(8000);
+  await page.locator('#btn-play-pause').click();
+  await expect(page.locator('#sandbox-warp-factor')).toHaveValue('50');
+  await page.locator('#btn-export-open').click();
+  await expect(page.locator('#export-summary')).toContainText('3 Bodies');
+  const downloaded = page.waitForEvent('download');
+  await page.locator('#btn-download-json').click();
+  const download = await downloaded;
+  const universe = JSON.parse(await readFile((await download.path())!, 'utf8'));
+  const bodies = universe.systems[0].bodies;
+  expect(bodies.map((body: { id: string }) => body.id).sort()).toEqual(['moore-1', 'moore-2', 'moore-3']);
+  for (let i = 0; i < bodies.length; i++) {
+    const position = bodies[i].ephemeris.position as [number, number];
+    expect(Math.hypot(...position)).toBeLessThan(10000);
+    for (let j = i + 1; j < bodies.length; j++) {
+      const other = bodies[j].ephemeris.position as [number, number];
+      expect(Math.hypot(position[0] - other[0], position[1] - other[1])).toBeGreaterThan(bodies[i].radius + bodies[j].radius);
+    }
+  }
+  expect(errors).toEqual([]);
+});
 
 test('sandbox warp and pause shortcuts stay in the active game and titles follow the loaded game', async ({ page }) => {
   test.setTimeout(60000);

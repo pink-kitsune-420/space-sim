@@ -14,20 +14,20 @@ export interface TestScenario {
 export const TEST_SCENARIOS: readonly TestScenario[] = [
   {
     id: 'figure-eight',
-    name: 'Figure-8 3-Body Choreography (Broken)',
-    description: 'Known issue: the bodies collide and fly away instead of following the intended Moore (1993) periodic figure-eight curve.',
+    name: 'Figure-8 3-Body Choreography',
+    description: 'Three equal masses approximate the Moore periodic figure-eight. Sandbox gravity softening introduces a small departure from exact closure.',
     camera: { center: { x: 0, y: 0 }, scale: 0.025 },
     mode: 'nbody',
     build: () => {
-      // Dimensionless Moore figure-8 initial conditions scaled to sandbox units
+      // Canonical G*m = 1 coordinates, also used by the shared solver benchmark.
+      // L is in metres and mu in m^3/s^2: T = sqrt(L^3/mu), V = L/T.
       const scalePos = 5000;
-      const scaleVel = 35;
-      const x1 = 0.97000436 * scalePos;
-      const y1 = -0.24308753 * scalePos;
-      const vx1 = (0.46620531) * scaleVel;
-      const vy1 = (0.43236573) * scaleVel;
-
       const mu = 50000000;
+      const scaleVel = Math.sqrt(mu / scalePos);
+      const x1 = 0.9700043603264696 * scalePos;
+      const y1 = -0.2430875308758332 * scalePos;
+      const vx1 = 0.46620368572052155 * scaleVel;
+      const vy1 = 0.4323657300685415 * scaleVel;
       const r = 180;
 
       const b1 = instantiateBody('oceanic', { x: x1, y: y1 }, { x: vx1, y: vy1 }, {
