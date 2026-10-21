@@ -36,6 +36,10 @@
       "text": "Lifecycle"
     },
     {
+      "type": "paragraph",
+      "text": "sample forwards optional InputFrame.captureId unchanged to borrowed input sources. A host can share one non-negative safe integer across controllers for one logical input frame, then change it next frame. Reusing the mutable frame object or elapsed seconds is not a capture identity. Omitting the hint preserves fresh source sampling; neutral-before-reassignment, ownership validation, press edges and release remain unchanged."
+    },
+    {
       "type": "list",
       "items": [
         "Initialization registers the PLAYER_CONTROLLERS service and sets up cleanup tracking for created controllers.",

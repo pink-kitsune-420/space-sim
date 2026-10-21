@@ -44,7 +44,8 @@ import {
   ACTION_DEFINITIONS, buildKeyLookup, formatKeyCode, isFlightAction, loadKeybindings, resolveKeybinding, shortcutBinding,
   resetKeybindings, saveKeybindings, type ActionId, type KeyBindings,
 } from './input-config';
-import { GamepadManager, isButtonDown } from './gamepad';
+import { GamepadManager, isButtonDown, readFlightDevices } from './gamepad';
+import type { GamepadDeviceState } from '../../../packages/game-api/src/index';
 import { TouchControlsManager, type TouchMode } from './touch-controls';
 import type { GuestPilot } from './split-screen';
 import { ControllerMenu } from './controller-menu';
@@ -460,7 +461,7 @@ const splitScreen = hostFeatures.providedService(FLIGHT_SPLIT).create(viewport, 
   isSlotThrowing: slot => isSlotThrowing(slot),
 });
 initFlightManual({
-  readControls: () => ({ keys: keybindings, players: splitScreen.config, pads: gamepadManager.getDiagnostics(), controllerEnabled: gamepadManager.getSettings().enabled }),
+  readControls: () => ({ keys: keybindings, players: splitScreen.config, pads: gamepadManager.getDiagnostics(gamepadManager.captureId), controllerEnabled: gamepadManager.getSettings().enabled }),
   openControls: () => controlsToggle.click(),
 });
 viewport.addEventListener('hud-layout-edit', () => { release(); workspace.close(); });
@@ -1938,6 +1939,12 @@ interface ControllerCursor {
   accentColor: string;
 }
 
+// Borrow the selected provider's numeric capture only for this synchronous host frame.
+let capturedGamepads: readonly GamepadDeviceState[] = [];
+function capturedPad(index: number): GamepadDeviceState | undefined {
+  for (let i = 0; i < capturedGamepads.length; i++) if (capturedGamepads[i]!.index === index) return capturedGamepads[i];
+  return undefined;
+}
 const controllerCursors = new Map<number, ControllerCursor>();
 const lastPadDpadUp = new Map<number, boolean>();
 const lastPadAButton = new Map<number, boolean>();
@@ -1963,7 +1970,7 @@ function controllerConsumesFlight(slot: number, padIndex: number): boolean {
   const cursor = controllerCursors.get(slot);
   if (!cursor) return false;
   if (cursor.isThrowing) return true;
-  const pad = navigator.getGamepads?.()[padIndex];
+  const pad = capturedPad(padIndex);
   if (!pad || (!isButtonDown(pad.buttons[0]) && !isButtonDown(pad.buttons[11]))) return false;
   if (cursor.interactingPad === padIndex) return true;
   const guest = slot > 0 && splitScreen.isSeparated(slot) ? splitScreen.guests.get(slot) : undefined;
@@ -1974,7 +1981,6 @@ function controllerConsumesFlight(slot: number, padIndex: number): boolean {
 
 function updateControllerCursors(elapsed: number): void {
   if (!gamepadManager.enabled || controlsDialog.open || hudLayout.editing || document.hidden) { cancelControllerCursors(); return; }
-  const gamepads = typeof navigator.getGamepads === 'function' ? navigator.getGamepads() : [];
   const maxSlot = splitScreen.active;
 
   for (const slot of controllerCursors.keys()) {
@@ -1987,7 +1993,7 @@ function updateControllerCursors(elapsed: number): void {
     }
   }
   for (const index of lastPadDpadUp.keys()) {
-    if (!gamepads[index]?.connected) { lastPadDpadUp.delete(index); lastPadAButton.delete(index); }
+    if (!capturedPad(index)?.connected) { lastPadDpadUp.delete(index); lastPadAButton.delete(index); }
   }
 
   for (let slot = 0; slot < maxSlot; slot++) {
@@ -2054,7 +2060,7 @@ function updateControllerCursors(elapsed: number): void {
     if (!throwCheatEnabled) cursor.isThrowing = false;
 
     for (const padIndex of padIndices) {
-      const pad = gamepads[padIndex];
+      const pad = capturedPad(padIndex);
       if (!pad) continue;
 
       // Right Stick: moves the virtual cursor for this viewport (or Left Stick while aiming a throw)
@@ -4696,14 +4702,18 @@ function presentationView(elapsed: number, bodyPosition: Vec, sample: State = vi
 }
 
 let presentationInputEpoch = 0;
+// Shared by all input consumers in this host frame; never derived from elapsed time.
+let inputCaptureId = 0;
 function frame(now: number): void {
   const inputEpoch = ++presentationInputEpoch;
+  inputCaptureId = inputCaptureId === Number.MAX_SAFE_INTEGER ? 0 : inputCaptureId + 1;
   const elapsed = lastWall === undefined ? 0 : (now - lastWall) / 1000;
   lastWall = now;
   profiler.begin(elapsed * 1000);
-  moduleManager?.devices.sample(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden);
-  sampleJoinModules(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden);
-  splitScreen.pollPads();
+  moduleManager?.devices.sample(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden, inputCaptureId);
+  sampleJoinModules(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden, inputCaptureId);
+  capturedGamepads = readFlightDevices(gamepadManager, inputCaptureId);
+  splitScreen.pollPads(inputCaptureId);
   splitScreen.sync();
   if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) pilotThrottles.forEach(control => control.release());
   splitScreen.applyInput(elapsed);
@@ -4711,7 +4721,7 @@ function frame(now: number): void {
   const controlTarget = presentation.hooks.controlsInput ? presentation.hooks.controlTarget(
     presentationView(elapsed, session.world.system.getBodyPosition(activeBody.id, session.world.time), spinView.state(selectedShip()?.state ?? state, activeBody))) : undefined;
   const command = presentationControls.route(session, session.playerId, selectedShipId, rawCommand, controlTarget,
-    !session.paused && (!controlTarget || !workspace.isOpen) && !controlsDialog.open && !hudLayout.editing && !document.hidden);
+    !session.paused && (!controlTarget || !workspace.isOpen) && !controlsDialog.open && !hudLayout.editing && !document.hidden, inputCaptureId);
   if(session.world!==warpApprovalWorld||session!==local||!local.hosting){warpApproval.clear();warpApprovalWorld=session.world;}
   maneuver.beforeAdvance(command);
   warpApproval.retain(shipId=>maneuver.isAutomatic(shipId));

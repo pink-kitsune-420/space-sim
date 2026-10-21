@@ -139,7 +139,8 @@ export interface FlightSplitScreen extends Disposable {
   config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;
   readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;
   isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];
-  pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
+  /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */
+  pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
   resetGuests(): void; layout(): void;
   updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };
   applyInput(elapsed: number): void;

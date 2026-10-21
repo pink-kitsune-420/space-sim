@@ -9,7 +9,7 @@ import {
 
 export interface FlightSplitHelper {
   createSplit(viewport: HTMLElement, host: FlightSplitScreenHost): FlightSplitScreen;
-  pollJoining(split: FlightSplitScreen): void;
+  pollJoining(split: FlightSplitScreen, captureId?: number): void;
 }
 
 export const FLIGHT_SPLIT_HELPER: ServiceKey<FlightSplitHelper> = Object.freeze({
@@ -22,8 +22,8 @@ export function createFlightSplitHelper(factory: FlightSplitFactory): FlightSpli
     createSplit(viewport: HTMLElement, host: FlightSplitScreenHost): FlightSplitScreen {
       return factory.create(viewport, host);
     },
-    pollJoining(split: FlightSplitScreen): void {
-      split.pollPads();
+    pollJoining(split: FlightSplitScreen, captureId?: number): void {
+      split.pollPads(captureId);
     },
   });
 }

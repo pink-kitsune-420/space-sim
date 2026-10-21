@@ -1,6 +1,9 @@
 import { LOCAL_PILOTS, type LocalPlayerPreferences, type LocalPlayersConfig,
   type ModuleInitializationV2, type ServiceKey } from '@space-sim/game-api';
 
+/** This menu intentionally uses preferences only: removing the gamepad backend keeps it usable.
+ * A full ControllerMenu may borrow FlightGamepad.captureId for same-frame diagnostics;
+ * that optional hint does not change device assignment or authoritative player ownership. */
 export interface MinimalMenuHelper {
   setPlayerCount(config: LocalPlayersConfig, count: number): LocalPlayersConfig;
   assignDevice(config: LocalPlayersConfig, slot: number, device: 'keyboard' | 'none'): LocalPlayersConfig;

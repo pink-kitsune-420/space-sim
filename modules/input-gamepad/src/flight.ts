@@ -1,3 +1,4 @@
+import { createGamepadCapture, validateCaptureId, type GamepadCapture, type GamepadState } from './capture';
 import type { FlightActionId as ActionId, ControllerFamily, ControllerProfile, GamepadSettings, GamepadFlightInput, GamepadDiagnostic, FlightControllerProfiles } from '@space-sim/game-api';
 export type { ControllerFamily, ControllerProfile, GamepadSettings, GamepadFlightInput, GamepadDiagnostic } from '@space-sim/game-api';
 
@@ -140,7 +141,7 @@ export function applyDeadzone(value: number, deadzone: number): number {
   return Math.sign(value) * Math.min(1, Math.max(0, scaled));
 }
 
-export const isButtonDown = (button: GamepadButton | undefined): boolean => !!button && (button.pressed || button.value > 0.25);
+export const isButtonDown = (button: Pick<GamepadButton, 'pressed' | 'value'> | undefined): boolean => !!button && (button.pressed || button.value > 0.25);
 const isDown = isButtonDown;
 
 /** Flight input from one pad under `profile`. Pure, for tests and the poller. */
@@ -165,6 +166,11 @@ export function readPad(pad: Pick<Gamepad, 'axes' | 'buttons'>, profile: Control
  * so a Start button can resume. */
 export class GamepadManager {
   enabled = true;
+  private disposed = false;
+  private readonly devices: GamepadCapture;
+  private readonly ownsCapture: boolean;
+  private sampledCaptureId: number | undefined;
+  get captureId(): number | undefined { return this.sampledCaptureId; }
   private readonly previous = new Map<number, boolean[]>();
   private readonly input = new Map<number, GamepadFlightInput>();
   /** A released device must return to neutral before it can drive another target. */
@@ -174,7 +180,8 @@ export class GamepadManager {
   private capture: ((pad: number, button: number) => void) | undefined;
   private readonly disconnect = (event: GamepadEvent): void => { this.release(event.gamepad.index); };
 
-  constructor(private readonly profiles: FlightControllerProfiles) {
+  constructor(private readonly profiles: FlightControllerProfiles, capture?: GamepadCapture) {
+    this.devices = capture ?? createGamepadCapture(); this.ownsCapture = !capture;
     this.loadSettings();
     if (typeof window !== 'undefined') {
       window.addEventListener('gamepaddisconnected', this.disconnect);
@@ -192,14 +199,15 @@ export class GamepadManager {
   }
 
   dispose(): void {
+    if (this.disposed) return; this.disposed = true;
     if (typeof window !== 'undefined') window.removeEventListener('gamepaddisconnected', this.disconnect);
     this.release(); this.capture = undefined; this.legacyShortcutHandler = undefined;
-    this.inhibited.clear();
+    this.inhibited.clear(); this.sampledCaptureId = undefined; if (this.ownsCapture) this.devices.dispose();
   }
 
   private loadSettings(): void {
-    if (typeof localStorage === 'undefined') return;
     try {
+      if (typeof localStorage === 'undefined') return;
       const raw = localStorage.getItem(ENABLED_KEY);
       if (raw) this.enabled = (JSON.parse(raw) as { enabled?: unknown }).enabled !== false;
     } catch {
@@ -210,36 +218,39 @@ export class GamepadManager {
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
     if (!enabled) this.release();
-    if (typeof localStorage === 'undefined') return;
     try {
+      if (typeof localStorage === 'undefined') return;
       localStorage.setItem(ENABLED_KEY, JSON.stringify({ enabled }));
     } catch {
       // Ignore
     }
   }
 
-  /** All connected pads from navigator. */
-  private pads(): Gamepad[] {
-    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return [];
-    try {
-      return Array.from(navigator.getGamepads() ?? []).filter((p): p is Gamepad => !!p && p.connected);
-    } catch {
-      return [];
-    }
+  /** Connected numeric copies from this input owner's capture. Native failure stays neutral. */
+  private pads(captureId?: number): readonly GamepadState[] {
+    validateCaptureId(captureId);
+    if (this.disposed) return [];
+    try { return this.devices.read(captureId).connected; } catch { return []; }
   }
 
-  /** Indices of connected pads, lowest first. */
-  connected(): number[] {
-    return this.pads().map(p => p.index).sort((a, b) => a - b);
+  /** Indices of connected pads, lowest first; the returned list remains detached. */
+  connected(captureId?: number): number[] {
+    return this.pads(captureId).map(p => p.index).sort((a, b) => a - b);
   }
 
   /** Call once per frame. `profileFor` gives each pad's layout (undefined: unassigned, which
    * still reports raw presses through `onPress`); `onAction` receives mapped presses. */
   update(profileFor: (pad: number) => ControllerProfile | undefined,
       onAction: (pad: number, action: ActionId) => void,
-      onPress?: (pad: number, button: number) => void): void {
+      onPress?: (pad: number, button: number) => void, captureId?: number): void {
+    if (this.disposed) return;
+    const pads = this.pads(captureId); this.sampledCaptureId = captureId;
+    this.updatePads(pads, profileFor, onAction, onPress);
+  }
+
+  private updatePads(pads: readonly GamepadState[], profileFor: (pad: number) => ControllerProfile | undefined,
+      onAction: (pad: number, action: ActionId) => void, onPress?: (pad: number, button: number) => void): void {
     const now = typeof performance !== 'undefined' ? performance.now() : 0;
-    const pads = this.pads();
     // Polling must release a missing pad even when the browser supplies no event.
     for (const index of this.previous.keys()) {
       let connected = false;
@@ -279,13 +290,17 @@ export class GamepadManager {
 
   /** The next newly pressed button on any pad goes to `listener` instead of the game. */
   captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void {
+    if (this.disposed) return;
     this.capture = listener;
   }
   get capturing(): boolean { return !!this.capture; }
 
+  /** Borrowed numeric copies for synchronous cursor/input consumers, valid until next capture. */
+  readDevices(captureId?: number): readonly GamepadState[] { return this.pads(captureId); }
+
   /** Diagnostic snapshot of all connected gamepads for the configuration UI. */
-  getDiagnostics(): GamepadDiagnostic[] {
-    return this.pads().map(pad => {
+  getDiagnostics(captureId?: number): GamepadDiagnostic[] {
+    return this.pads(captureId).map(pad => {
       const family = detectControllerFamily(pad.id);
       return {
         index: pad.index, id: pad.id, family, familyName: getControllerFamilyDisplayName(family), connected: pad.connected,
@@ -310,13 +325,15 @@ export class GamepadManager {
 
   private legacyShortcutHandler?: (action: ActionId) => void;
   onShortcut(handler: (action: ActionId) => void): void {
+    if (this.disposed) return;
     this.legacyShortcutHandler = handler;
   }
 
-  pollFlight(): GamepadFlightInput {
-    const pads = this.pads();
+  pollFlight(captureId?: number): GamepadFlightInput {
+    if (this.disposed) return NO_PAD_INPUT;
+    const pads = this.pads(captureId); this.sampledCaptureId = captureId;
     if (!pads.length || !this.enabled) return NO_PAD_INPUT;
-    this.update(() => this.profiles.defaultProfile, (_pad, action) => {
+    this.updatePads(pads, () => this.profiles.defaultProfile, (_pad, action) => {
       this.legacyShortcutHandler?.(action);
     });
     return this.flight(pads[0]!.index);

@@ -134,7 +134,7 @@ export class ControllerMenu {
     this.renderBindings();
   }
 
-  private connected(): GamepadDiagnostic[] { return this.pads?.getDiagnostics() ?? []; }
+  private connected(): GamepadDiagnostic[] { return this.pads?.getDiagnostics(this.pads.captureId) ?? []; }
 
   private deviceName(device: InputDevice, pads: readonly GamepadDiagnostic[]): string {
     if (device === 'auto') return 'Keyboard, mouse, touch + any free controller';

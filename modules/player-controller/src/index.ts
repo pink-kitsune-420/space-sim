@@ -79,7 +79,7 @@ export function createPlayerController(adapter: ControlTargetAdapter, initialInp
         try { release(); } finally { target = undefined; actions = []; indices.clear(); }
         throw new Error('Session ownership of this control target changed');
       }
-      frame.pilot = input.pilot; frame.elapsed = next.elapsed;
+      frame.pilot = input.pilot; frame.elapsed = next.elapsed; frame.captureId = next.captureId;
       frame.flightAllowed = next.flightAllowed; frame.shortcutsAllowed = next.shortcutsAllowed; values.fill(0);
       try {
         for (let i = 0; i < input.sources.length; i++) {

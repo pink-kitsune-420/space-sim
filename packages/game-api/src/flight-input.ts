@@ -76,6 +76,17 @@ export interface GamepadFlightInput {
   readonly zoom: number;
 }
 
+/** Provider-owned numeric device values. Axes are dimensionless in [-1,1]; button values
+ * are in [0,1]. No native browser objects. Read synchronously without mutation or retention:
+ * the provider may reuse these arrays/records on its next capture or disposal. */
+export interface GamepadDeviceState {
+  readonly index: number;
+  readonly id: string;
+  readonly connected: boolean;
+  readonly axes: readonly number[];
+  readonly buttons: readonly { readonly pressed: boolean; readonly value: number }[];
+}
+
 /** Diagnostic telemetry for a connected physical gamepad device. */
 export interface GamepadDiagnostic {
   readonly index: number;
@@ -103,15 +114,25 @@ export interface FlightGamepad extends Disposable {
   readonly activity: ReadonlyMap<number, number>;
   readonly capturing: boolean;
   setEnabled(enabled: boolean): void;
-  connected(): number[];
+  /** Last explicit update capture identity, if supplied. Optional for older providers.
+   * Diagnostics may reuse it while the host continues sampling input frames. */
+  readonly captureId?: number;
+  /** Connected indices from this capture; omission samples fresh. Returned list is detached. */
+  connected(captureId?: number): number[];
   update(profileFor: (pad: number) => ControllerProfile | undefined,
-    onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void): void;
+    onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void, captureId?: number): void;
   flight(pad: number): GamepadFlightInput;
   captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void;
-  getDiagnostics(): GamepadDiagnostic[];
+  /** Optional borrowed access to provider-owned copied numbers for this capture,
+   * avoiding detached diagnostic copies. Storage may grow when device/channel topology changes.
+   * Borrowed until the next provider capture/disposal; never mutate or retain. Older providers
+   * may omit this capability; hosts can use detached getDiagnostics results instead. */
+  readDevices?(captureId?: number): readonly GamepadDeviceState[];
+  /** Detached diagnostic values, optionally reusing numeric input capture for this frame. */
+  getDiagnostics(captureId?: number): GamepadDiagnostic[];
   getSettings(): GamepadSettings;
   onShortcut(handler: (action: FlightActionId) => void): void;
-  pollFlight(): GamepadFlightInput;
+  pollFlight(captureId?: number): GamepadFlightInput;
   release(pad?: number): void;
 }
 /** Flight mapping defaults and migration remain reusable without a gamepad device. */

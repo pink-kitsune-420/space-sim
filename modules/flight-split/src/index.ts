@@ -239,7 +239,8 @@ export class SplitScreen implements FlightSplitScreen {
     this.host.changed();
   }
 
-  private connectedPads(): number[] { return this.host.gamepads?.connected() ?? EMPTY_PADS; }
+  private captureId: number | undefined;
+  private connectedPads(): number[] { return this.host.gamepads?.connected(this.captureId) ?? EMPTY_PADS; }
 
   /** Player 1's controllers, for the console's own flight input. */
   padsOf(slot: number): number[] {
@@ -254,7 +255,8 @@ export class SplitScreen implements FlightSplitScreen {
 
   /** Read every controller once per frame and route presses to their players. Runs while
    * paused, so Start can resume. */
-  pollPads(): void {
+  pollPads(captureId?: number): void {
+    this.captureId = captureId;
     const connected = this.connectedPads();
     const config = this.activeConfig;
     this.host.gamepads?.update(
@@ -270,7 +272,7 @@ export class SplitScreen implements FlightSplitScreen {
         if (this.host.inputEnabled?.() === false) return;
         if (button !== (this.services.tuning?.joinButton ?? JOIN_BUTTON) || !this.split || this.services.preferences.padOwner(config, pad, connected) !== undefined) return;
         this.join(pad);
-      });
+      }, captureId);
   }
 
   /** An unclaimed controller takes the first free seat (Start in split screen, or from the menu). */

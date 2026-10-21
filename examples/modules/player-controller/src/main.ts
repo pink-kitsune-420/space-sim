@@ -29,6 +29,9 @@ export function createTurretAdapter(ownerPlayerId: string, state: TurretState): 
 }
 
 export interface TurretControllerHelper {
+  /** After binding sources, sample controllers with one shared captureId per input frame:
+   * controller.sample({elapsed: .016, flightAllowed: false, shortcutsAllowed: true, captureId}).
+   * Omit the optional hint for callers that need a fresh capture per sample. */
   createTurretSession(ownerPlayerId: string): { state: TurretState; controller: PlayerController; target: ControlTargetBinding };
 }
 

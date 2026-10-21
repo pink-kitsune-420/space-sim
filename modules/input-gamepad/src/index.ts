@@ -1,9 +1,11 @@
+import { createGamepadCapture, type GamepadCapture } from './capture';
 import { FLIGHT_PROFILES, GAMEPAD_INPUT, type GamepadInputOptions, type InputSource, type ModuleInitializationV2 } from '@space-sim/game-api';
 import { applyDeadzone, formatControllerButton, GamepadManager } from './flight';
 
 /** Raw sampling is independent of flight meaning, player ownership and world stepping. */
-export function createGamepadSource(options: GamepadInputOptions): InputSource {
+export function createGamepadSource(options: GamepadInputOptions, capture?: GamepadCapture): InputSource {
   if (!Number.isFinite(options.deadzone) || options.deadzone < 0 || options.deadzone > .5) throw new Error('Gamepad deadzone must be in [0, 0.5]');
+  const devices = capture ?? createGamepadCapture();
   const definitions = new Map(options.actions.map(action => [action.id, action]));
   if (options.bindings.length > 256) throw new Error('At most 256 gamepad bindings');
   const bindings = options.bindings.map(binding => {
@@ -32,7 +34,7 @@ export function createGamepadSource(options: GamepadInputOptions): InputSource {
     if (index !== undefined && (!Number.isInteger(index) || index < 0 || index > 31)) throw new Error('Invalid gamepad device index');
     const assigned = index ?? -1;
     if (assignments[pilot] !== assigned) { release(pilot); assignments[pilot] = assigned; }
-    const pads = typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function' ? undefined : navigator.getGamepads();
+    const pads = devices.read(frame.captureId).byIndex;
     const pad = index === undefined ? undefined : pads?.[index];
     if (!pad?.connected || options.capture?.() === false || !frame.flightAllowed && !frame.shortcutsAllowed) { release(pilot); return; }
     for (let i = 0; i < bindings.length; i++) {
@@ -44,25 +46,26 @@ export function createGamepadSource(options: GamepadInputOptions): InputSource {
       if (binding.mode !== 'press' ? value !== 0 : Math.abs(value) > .25 && Math.abs(previous[at]!) <= .25) into.set(binding.action, value);
       previous[at] = value;
     }
-  }, release, dispose() { if (disposed) return; disposed = true; release(); } };
+  }, release, dispose() { if (disposed) return; disposed = true; release(); if (!capture) devices.dispose(); } };
 }
 export default function initialize(context: ModuleInitializationV2): void {
   const profiles = context.tryUse(FLIGHT_PROFILES);
+  const devices = createGamepadCapture();
   context.contributeGuide({ id: 'usage', audience: 'creators', title: "Gamepad input", summary: "Samples generic namespaced actions from standard gamepad buttons and axes; retains editable flight mappings and diagnostics.", asset: 'docs/creators/usage.json' });
   const sources = new Set<InputSource>(), managers = new Set<GamepadManager>(); let disposed = false;
   context.own({ dispose() { if (disposed) return; disposed = true; const errors: unknown[] = [];
     for (const source of sources) { try { source.dispose(); } catch (error) { errors.push(error); } }
     sources.clear();
     for (const manager of managers) { try { manager.dispose(); } catch (error) { errors.push(error); } }
-    managers.clear(); if (errors.length) throw new AggregateError(errors, 'Gamepad provider cleanup failed'); } });
+    managers.clear(); devices.dispose(); if (errors.length) throw new AggregateError(errors, 'Gamepad provider cleanup failed'); } });
   context.provide(GAMEPAD_INPUT, Object.freeze({ formatButton: formatControllerButton, create(options: GamepadInputOptions) {
     if (disposed) throw new Error('Gamepad provider is disposed');
-    const source = createGamepadSource(options), dispose = source.dispose.bind(source);
+    const source = createGamepadSource(options, devices), dispose = source.dispose.bind(source);
     source.dispose = () => { try { dispose(); } finally { sources.delete(source); } }; sources.add(source); return source;
   }, createFlight() {
     if (disposed) throw new Error('Gamepad provider is disposed');
     if (!profiles) throw new Error('Flight gamepad controls require a compatible input.flight-profiles provider');
-    const manager = new GamepadManager(profiles), dispose = manager.dispose.bind(manager);
+    const manager = new GamepadManager(profiles, devices), dispose = manager.dispose.bind(manager);
     manager.dispose = () => { try { dispose(); } finally { managers.delete(manager); } }; managers.add(manager); return manager;
   } }));
 }

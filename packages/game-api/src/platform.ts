@@ -8,6 +8,10 @@ import type { WindowContentDefinition } from './window-content';
 /** Device-local input frame delivered to input sources. `elapsed` is wall-clock seconds
  * (never a simulation step dt). `pilot` is the local seat index (0–3). */
 export interface InputFrame {
+  /** Optional device capture identity (non-negative safe integer), shared across seats/sources
+   * in one logical input frame and changed for the next frame. Never use elapsed or mutable
+   * frame-object identity. Sources may ignore this hint; omission requests fresh sampling. */
+  readonly captureId?: number;
   /** Wall-clock seconds since the prior frame. Units: seconds. */
   readonly elapsed: number;
   /** Local seat index in [0, 3]. */
@@ -207,7 +211,9 @@ export interface GamepadInputOptions {
   capture?(): boolean;
 }
 
-/** Factory creating generic gamepad input sources and flight gamepad managers. */
+/** Factory creating generic gamepad input sources and flight gamepad managers.
+ * One provider owns copied numeric captures shared by its children for an explicit
+ * InputFrame.captureId; independently selected providers remain independent. */
 export interface GamepadInputFactory {
   /** Creates an InputSource sampling standard W3C Gamepad API devices. */
   create(options: GamepadInputOptions): InputSource;

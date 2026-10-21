@@ -24,7 +24,7 @@ export function createPresentationControls(factory: PlayerControllerFactory | un
   function reset(): void { controller?.select(undefined); context = undefined; }
   return {
     route(session: SessionRead, playerId: string, shipId: string | undefined, input: Controls,
-      target: PresentationControlTarget | null | undefined, allowed: boolean): Controls {
+      target: PresentationControlTarget | null | undefined, allowed: boolean, captureId?: number): Controls {
       raw = allowed ? input : IDLE;
       const same = context && context.session === session && context.world === session.world && context.playerId === playerId
         && context.shipId === shipId && context.target.entityId === target?.entityId && context.target.commandId === target?.commandId;
@@ -56,7 +56,7 @@ export function createPresentationControls(factory: PlayerControllerFactory | un
         release(); // A restored game may contain old held intent; require current input.
       }
       try {
-        controller.sample({ elapsed: 0, flightAllowed: allowed, shortcutsAllowed: false });
+        controller.sample({ elapsed: 0, flightAllowed: allowed, shortcutsAllowed: false, captureId });
         if (changed) { send(); changed = false; }
       } catch { reset(); }
       return IDLE;

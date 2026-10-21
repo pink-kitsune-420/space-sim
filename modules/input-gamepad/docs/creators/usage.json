@@ -36,6 +36,10 @@
       "text": "Lifecycle"
     },
     {
+      "type": "paragraph",
+      "text": "InputFrame.captureId is an optional non-negative safe integer: share it across seats and sources in one logical input frame and change it for the next. The provider reuses copied numeric device state within that capture, including createFlight managers; independent providers own independent buffers. Omission always samples fresh and invalidates the previous capture hint. Elapsed values and reused frame objects are not identities. Native Gamepad objects are never retained; disconnected records and removed channels are released. FlightGamepad connected/update/getDiagnostics/pollFlight accept the same optional hint. captureId reports the last explicit update, when supported, so diagnostic UI can reuse the input snapshot. Diagnostic results and connected lists remain detached copies. Optional readDevices(captureId) exposes borrowed provider-owned numeric values without creating detached diagnostic copies for synchronous host cursors; never mutate or retain them after the next provider capture or disposal. Older providers can omit it; hosts fall back to getDiagnostics(captureId). Optional preference storage denial keeps controls usable with defaults."
+    },
+    {
       "type": "list",
       "items": [
         "Initialization registers the GAMEPAD_INPUT service and tracks created sources and managers for automatic disposal. The module allocates no background polling loops until requested.",

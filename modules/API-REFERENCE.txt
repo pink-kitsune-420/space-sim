@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b120fec8a6925933
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 84abe63d5378aacc
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -3305,6 +3305,17 @@ Normalized per-frame flight control intent sampled from a physical gamepad (`[-1
     }
 Used by: spacelab.input-gamepad.
 
+## GamepadDeviceState
+Provider-owned numeric device values. Axes are dimensionless in [-1,1]; button values are in [0,1]. No native browser objects. Read synchronously without mutation or retention: the provider may reuse these arrays/records on its next capture or disposal.
+    export interface GamepadDeviceState {
+      readonly index: number;
+      readonly id: string;
+      readonly connected: boolean;
+      readonly axes: readonly number[];
+      readonly buttons: readonly { readonly pressed: boolean; readonly value: number }[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
 ## GamepadDiagnostic
 Diagnostic telemetry for a connected physical gamepad device.
     export interface GamepadDiagnostic {
@@ -3339,15 +3350,25 @@ Explicit compatibility adapter for Space Sim's existing flight mappings.
       readonly activity: ReadonlyMap<number, number>;
       readonly capturing: boolean;
       setEnabled(enabled: boolean): void;
-      connected(): number[];
+      /** Last explicit update capture identity, if supplied. Optional for older providers.
+       * Diagnostics may reuse it while the host continues sampling input frames. */
+      readonly captureId?: number;
+      /** Connected indices from this capture; omission samples fresh. Returned list is detached. */
+      connected(captureId?: number): number[];
       update(profileFor: (pad: number) => ControllerProfile | undefined,
-        onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void): void;
+        onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void, captureId?: number): void;
       flight(pad: number): GamepadFlightInput;
       captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void;
-      getDiagnostics(): GamepadDiagnostic[];
+      /** Optional borrowed access to provider-owned copied numbers for this capture,
+       * avoiding detached diagnostic copies. Storage may grow when device/channel topology changes.
+       * Borrowed until the next provider capture/disposal; never mutate or retain. Older providers
+       * may omit this capability; hosts can use detached getDiagnostics results instead. */
+      readDevices?(captureId?: number): readonly GamepadDeviceState[];
+      /** Detached diagnostic values, optionally reusing numeric input capture for this frame. */
+      getDiagnostics(captureId?: number): GamepadDiagnostic[];
       getSettings(): GamepadSettings;
       onShortcut(handler: (action: FlightActionId) => void): void;
-      pollFlight(): GamepadFlightInput;
+      pollFlight(captureId?: number): GamepadFlightInput;
       release(pad?: number): void;
     }
 Used by: spacelab.controller-menu.
@@ -3931,7 +3952,8 @@ Multi-seat flight splitscreen controller managing guest seats, viewports, and in
       config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;
       readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;
       isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];
-      pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
+      /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */
+      pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
       resetGuests(): void; layout(): void;
       updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };
       applyInput(elapsed: number): void;
@@ -5568,6 +5590,10 @@ Import these names from @space-sim/game-api. Units are SI unless a note says oth
 ## InputFrame
 Device-local input frame delivered to input sources. `elapsed` is wall-clock seconds (never a simulation step dt). `pilot` is the local seat index (0–3).
     export interface InputFrame {
+      /** Optional device capture identity (non-negative safe integer), shared across seats/sources
+       * in one logical input frame and changed for the next frame. Never use elapsed or mutable
+       * frame-object identity. Sources may ignore this hint; omission requests fresh sampling. */
+      readonly captureId?: number;
       /** Wall-clock seconds since the prior frame. Units: seconds. */
       readonly elapsed: number;
       /** Local seat index in [0, 3]. */
@@ -5809,7 +5835,7 @@ Options configuring a generic gamepad input source.
 Used by: spacelab.input-gamepad.
 
 ## GamepadInputFactory
-Factory creating generic gamepad input sources and flight gamepad managers.
+Factory creating generic gamepad input sources and flight gamepad managers. One provider owns copied numeric captures shared by its children for an explicit InputFrame.captureId; independently selected providers remain independent.
     export interface GamepadInputFactory {
       /** Creates an InputSource sampling standard W3C Gamepad API devices. */
       create(options: GamepadInputOptions): InputSource;
@@ -10018,6 +10044,7 @@ This module renders the Players and Controllers tabs in the flight controls dial
 This module has no settings.
 
 ## Lifecycle
+When a supplied FlightGamepad reports captureId, diagnostic reads reuse the most recently sampled input frame while the host continues updating controls. Older or standalone providers without that optional identity are read fresh. The menu does not create a global device cache or take over another owner’s sampling; removal still cancels its UI callbacks and disposes only resources it owns.
 - Initialization resolves local pilot, flight profile, and flight action services, then provides the CONTROLLER_MENUS factory.
 - create mounts into a caller-provided root element and injects scoped CSS styles. If no gamepads manager is supplied, it creates and owns an internal FlightGamepad when input.gamepad is present.
 - open initializes tab views, synchronizes player selection, and starts a requestAnimationFrame loop to update live axis meters and button activity indicators.
@@ -10235,6 +10262,7 @@ This module provides dynamic and fixed splitscreen flight views for up to four l
 - mergeDelayMs (default 600, from 0 to 10000, step 1): Keep a guest inside both merge thresholds for this long before returning to the shared view. Prevents rapid split/merge flicker.
 
 ## Lifecycle
+pollPads(captureId) accepts an optional non-negative safe integer identifying one logical device frame. Routing, pad lookup and held reads reuse that frame within the existing gamepad owner. Change the ID for the next input frame; omitted identity keeps fresh sampling for compatibility. This hint is wall-clock input bookkeeping and is not saved, replicated or used as simulation time.
 - Initialization validates separation and merge threshold constraints, binds required input and camera services, contributes this guide, and registers FLIGHT_SPLIT.
 - create(viewport, host) mounts the splitscreen container and wires session callbacks.
 - pollPads() checks for join button presses on unassigned controllers and seats new players.
@@ -10348,6 +10376,7 @@ This module samples standard W3C Gamepad API controllers into namespaced actions
 This module has no settings.
 
 ## Lifecycle
+InputFrame.captureId is an optional non-negative safe integer: share it across seats and sources in one logical input frame and change it for the next. The provider reuses copied numeric device state within that capture, including createFlight managers; independent providers own independent buffers. Omission always samples fresh and invalidates the previous capture hint. Elapsed values and reused frame objects are not identities. Native Gamepad objects are never retained; disconnected records and removed channels are released. FlightGamepad connected/update/getDiagnostics/pollFlight accept the same optional hint. captureId reports the last explicit update, when supported, so diagnostic UI can reuse the input snapshot. Diagnostic results and connected lists remain detached copies. Optional readDevices(captureId) exposes borrowed provider-owned numeric values without creating detached diagnostic copies for synchronous host cursors; never mutate or retain them after the next provider capture or disposal. Older providers can omit it; hosts fall back to getDiagnostics(captureId). Optional preference storage denial keeps controls usable with defaults.
 - Initialization registers the GAMEPAD_INPUT service and tracks created sources and managers for automatic disposal. The module allocates no background polling loops until requested.
 - create returns an InputSource with validated deadzone in [0, 0.5], pilot index in [0, 3], and at most 256 axis or button bindings.
 - sample reads navigator.getGamepads synchronously. Disconnecting or reassigning a pad clears held values and inhibits input until axes and buttons return within 0.25 of neutral. Press actions fire when crossing 0.25; continuous actions emit deadzone-filtered values.
@@ -11211,6 +11240,7 @@ This module routes player intent from borrowed input sources to a compatible con
 This module has no settings.
 
 ## Lifecycle
+sample forwards optional InputFrame.captureId unchanged to borrowed input sources. A host can share one non-negative safe integer across controllers for one logical input frame, then change it next frame. Reusing the mutable frame object or elapsed seconds is not a capture identity. Omitting the hint preserves fresh source sampling; neutral-before-reassignment, ownership validation, press edges and release remain unchanged.
 - Initialization registers the PLAYER_CONTROLLERS service and sets up cleanup tracking for created controllers.
 - create validates adapter.schema === 'spacelab-control-target/1' and binds optional initial input sources.
 - select verifies session ownership via adapter.canControl and caches up to 256 namespaced action identifiers matching namespace.name/action. Switching target clears all held intent.

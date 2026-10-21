@@ -39,6 +39,10 @@
       "text": "Lifecycle"
     },
     {
+      "type": "paragraph",
+      "text": "When a supplied FlightGamepad reports captureId, diagnostic reads reuse the most recently sampled input frame while the host continues updating controls. Older or standalone providers without that optional identity are read fresh. The menu does not create a global device cache or take over another owner’s sampling; removal still cancels its UI callbacks and disposes only resources it owns."
+    },
+    {
       "type": "list",
       "items": [
         "Initialization resolves local pilot, flight profile, and flight action services, then provides the CONTROLLER_MENUS factory.",

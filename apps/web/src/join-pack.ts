@@ -24,7 +24,7 @@ const store = new BrowserPackageStore(), review = createJoinReview();
 let activeHost: BrowserModuleHost | undefined;
 let activeArtwork: VehicleArtwork | undefined;
 export const joinVehicleArtwork = () => activeArtwork;
-export function sampleJoinModules(elapsed: number, flight: boolean, shortcuts: boolean): void { activeHost?.sample(elapsed, flight, shortcuts); }
+export function sampleJoinModules(elapsed: number, flight: boolean, shortcuts: boolean, captureId?: number): void { activeHost?.sample(elapsed, flight, shortcuts, captureId); }
 export function releaseJoinModules(pilot?: number): void { activeHost?.release(pilot); }
 export function joinSource(address: string): string {
   try { const url = new URL(address); return `${url.protocol}//${url.host}${url.pathname}`; }

@@ -214,9 +214,9 @@ export class DeviceModuleManager {
     } catch (error) { prepared?.candidate.dispose(); host.dispose(); throw error; }
     finally { if (this.generation === generation) { this.busy = false; this.draw(); } }
   }
-  sample(elapsed: number, flightAllowed: boolean, shortcutsAllowed: boolean): void {
+  sample(elapsed: number, flightAllowed: boolean, shortcutsAllowed: boolean, captureId?: number): void {
     if (this.mixed && !this.mixed.available) this.clear();
-    this.host?.sample(elapsed, flightAllowed, shortcutsAllowed);
+    this.host?.sample(elapsed, flightAllowed, shortcutsAllowed, captureId);
   }
   release(pilot?: number): void { this.host?.release(pilot); }
   verifyCandidate(candidate: Parameters<NonNullable<JoinOptions['verifyCandidate']>>[0]) {

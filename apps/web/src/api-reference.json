@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b120fec8a6925933",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 84abe63d5378aacc",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b120fec8a6925933"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 84abe63d5378aacc"
         },
         {
           "type": "paragraph",
@@ -8330,6 +8330,22 @@
         },
         {
           "type": "heading",
+          "text": "GamepadDeviceState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Provider-owned numeric device values. Axes are dimensionless in [-1,1]; button values are in [0,1]. No native browser objects. Read synchronously without mutation or retention: the provider may reuse these arrays/records on its next capture or disposal."
+        },
+        {
+          "type": "code",
+          "text": "export interface GamepadDeviceState {\n  readonly index: number;\n  readonly id: string;\n  readonly connected: boolean;\n  readonly axes: readonly number[];\n  readonly buttons: readonly { readonly pressed: boolean; readonly value: number }[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "GamepadDiagnostic"
         },
         {
@@ -8386,7 +8402,7 @@
         },
         {
           "type": "code",
-          "text": "export interface FlightGamepad extends Disposable {\n  readonly enabled: boolean;\n  readonly activity: ReadonlyMap<number, number>;\n  readonly capturing: boolean;\n  setEnabled(enabled: boolean): void;\n  connected(): number[];\n  update(profileFor: (pad: number) => ControllerProfile | undefined,\n    onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void): void;\n  flight(pad: number): GamepadFlightInput;\n  captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void;\n  getDiagnostics(): GamepadDiagnostic[];\n  getSettings(): GamepadSettings;\n  onShortcut(handler: (action: FlightActionId) => void): void;\n  pollFlight(): GamepadFlightInput;\n  release(pad?: number): void;\n}"
+          "text": "export interface FlightGamepad extends Disposable {\n  readonly enabled: boolean;\n  readonly activity: ReadonlyMap<number, number>;\n  readonly capturing: boolean;\n  setEnabled(enabled: boolean): void;\n  /** Last explicit update capture identity, if supplied. Optional for older providers.\n   * Diagnostics may reuse it while the host continues sampling input frames. */\n  readonly captureId?: number;\n  /** Connected indices from this capture; omission samples fresh. Returned list is detached. */\n  connected(captureId?: number): number[];\n  update(profileFor: (pad: number) => ControllerProfile | undefined,\n    onAction: (pad: number, action: FlightActionId) => void, onPress?: (pad: number, button: number) => void, captureId?: number): void;\n  flight(pad: number): GamepadFlightInput;\n  captureNextButton(listener: ((pad: number, button: number) => void) | undefined): void;\n  /** Optional borrowed access to provider-owned copied numbers for this capture,\n   * avoiding detached diagnostic copies. Storage may grow when device/channel topology changes.\n   * Borrowed until the next provider capture/disposal; never mutate or retain. Older providers\n   * may omit this capability; hosts can use detached getDiagnostics results instead. */\n  readDevices?(captureId?: number): readonly GamepadDeviceState[];\n  /** Detached diagnostic values, optionally reusing numeric input capture for this frame. */\n  getDiagnostics(captureId?: number): GamepadDiagnostic[];\n  getSettings(): GamepadSettings;\n  onShortcut(handler: (action: FlightActionId) => void): void;\n  pollFlight(captureId?: number): GamepadFlightInput;\n  release(pad?: number): void;\n}"
         },
         {
           "type": "paragraph",
@@ -9234,7 +9250,7 @@
         },
         {
           "type": "code",
-          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
+          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */\n  pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
         },
         {
           "type": "paragraph",
@@ -11906,7 +11922,7 @@
         },
         {
           "type": "code",
-          "text": "export interface InputFrame {\n  /** Wall-clock seconds since the prior frame. Units: seconds. */\n  readonly elapsed: number;\n  /** Local seat index in [0, 3]. */\n  readonly pilot: number;\n  /** True when continuous flight control inputs should be sampled. */\n  readonly flightAllowed: boolean;\n  /** True when global UI and view shortcut actions should be sampled. */\n  readonly shortcutsAllowed: boolean;\n}"
+          "text": "export interface InputFrame {\n  /** Optional device capture identity (non-negative safe integer), shared across seats/sources\n   * in one logical input frame and changed for the next frame. Never use elapsed or mutable\n   * frame-object identity. Sources may ignore this hint; omission requests fresh sampling. */\n  readonly captureId?: number;\n  /** Wall-clock seconds since the prior frame. Units: seconds. */\n  readonly elapsed: number;\n  /** Local seat index in [0, 3]. */\n  readonly pilot: number;\n  /** True when continuous flight control inputs should be sampled. */\n  readonly flightAllowed: boolean;\n  /** True when global UI and view shortcut actions should be sampled. */\n  readonly shortcutsAllowed: boolean;\n}"
         },
         {
           "type": "paragraph",
@@ -12254,7 +12270,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Factory creating generic gamepad input sources and flight gamepad managers."
+          "text": "Factory creating generic gamepad input sources and flight gamepad managers. One provider owns copied numeric captures shared by its children for an explicit InputFrame.captureId; independently selected providers remain independent."
         },
         {
           "type": "code",

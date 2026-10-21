@@ -8,6 +8,10 @@ export const CUSTOM_ACTIONS: readonly ActionDefinitionV2[] = Object.freeze([
 ]);
 
 export interface CustomGamepadHelper {
+  /** Sample returned sources with the same InputFrame.captureId across one host input frame.
+   * Change that non-negative safe integer next frame; omit it for fresh sampling.
+   * Flight cursor hosts can borrow manager.readDevices?.(captureId) during this frame,
+   * falling back to manager.getDiagnostics(captureId) for an older provider. */
   createSource(pilot: number, axisIndex?: number, buttonIndex?: number): InputSource;
   format(button: number, family: ControllerFamily): string;
 }

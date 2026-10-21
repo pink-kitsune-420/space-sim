@@ -146,10 +146,10 @@ export class BrowserModuleHost implements Disposable {
     }
   }
   /** All arrays/frame/sink are allocated at activation; no per-sample objects. */
-  sample(elapsed: number, flightAllowed: boolean, shortcutsAllowed: boolean): void {
+  sample(elapsed: number, flightAllowed: boolean, shortcutsAllowed: boolean, captureId?: number): void {
     if (this.disposed || !this.attached) return;
     if (!flightAllowed && !shortcutsAllowed) { this.release(); return; }
-    this.frame.elapsed = elapsed; this.frame.flightAllowed = flightAllowed; this.frame.shortcutsAllowed = shortcutsAllowed;
+    this.frame.captureId = captureId; this.frame.elapsed = elapsed; this.frame.flightAllowed = flightAllowed; this.frame.shortcutsAllowed = shortcutsAllowed;
     for (let pilot = 0; pilot < (this.pilots?.count ?? 1); pilot++) {
       this.frame.pilot = pilot;
       this.values.fill(0);

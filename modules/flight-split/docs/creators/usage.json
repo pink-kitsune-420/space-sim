@@ -52,6 +52,10 @@
       "text": "Lifecycle"
     },
     {
+      "type": "paragraph",
+      "text": "pollPads(captureId) accepts an optional non-negative safe integer identifying one logical device frame. Routing, pad lookup and held reads reuse that frame within the existing gamepad owner. Change the ID for the next input frame; omitted identity keeps fresh sampling for compatibility. This hint is wall-clock input bookkeeping and is not saved, replicated or used as simulation time."
+    },
+    {
       "type": "list",
       "items": [
         "Initialization validates separation and merge threshold constraints, binds required input and camera services, contributes this guide, and registers FLIGHT_SPLIT.",
