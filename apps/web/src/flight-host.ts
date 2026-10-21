@@ -28,7 +28,8 @@ import { HudVisibility } from './hud-visibility';
 import { createChatConsole } from '../../../modules/chat-console/src/index';
 import { attachWindowResize, raiseWindow, releaseWindow } from './window-resize';
 import { initFlightWindows } from './flight-windows';
-import { DOCUMENTED_MODULES, initManual, registerModuleGuides } from './manual';
+import { DOCUMENTED_MODULES, registerModuleGuides } from './manual';
+import { initFlightManual } from './flight-manual';
 import { artifactModules, type GamePackage } from '../../../packages/game-library/src/archive';
 import { createPresentationRegistry, presentationProfile, DEFAULT_PRESENTATION_PROFILE } from '../../../packages/modules/src/browser';
 import { bundledGames, bundledGameDefinition, bundledGameAdapters, defaultGame, orbitSandboxGame, requestedBuiltinGame } from './bundled-games';
@@ -450,7 +451,7 @@ const splitScreen = hostFeatures.providedService(FLIGHT_SPLIT).create(viewport, 
   onGuestPointer: (guest, action, event) => handleGuestPointer(guest, action, event),
   isSlotThrowing: slot => isSlotThrowing(slot),
 });
-initManual({
+initFlightManual({
   readControls: () => ({ keys: keybindings, players: splitScreen.config, pads: gamepadManager.getDiagnostics(), controllerEnabled: gamepadManager.getSettings().enabled }),
   openControls: () => controlsToggle.click(),
 });

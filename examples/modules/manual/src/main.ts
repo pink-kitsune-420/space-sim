@@ -2,13 +2,14 @@ import {
   MANUAL_READER,
   type Disposable,
   type ManualService,
+  type ManualAudience,
   type ModuleInitializationV2,
   type ServiceKey,
 } from '@space-sim/game-api';
 
 export interface GuidePublisher {
-  /** Adds one Creators page. Dispose the lease to remove it again. */
-  publish(id: string, title: string, text: string): Disposable;
+  /** Adds one game-owned guide (Creators by default). Dispose its lease to remove it. */
+  publish(id: string, title: string, text: string, audience?: ManualAudience): Disposable;
 }
 
 export const GUIDE_PUBLISHER: ServiceKey<GuidePublisher> = Object.freeze({
@@ -18,10 +19,10 @@ export const GUIDE_PUBLISHER: ServiceKey<GuidePublisher> = Object.freeze({
 
 export function createGuidePublisher(manual: ManualService): GuidePublisher {
   return Object.freeze<GuidePublisher>({
-    publish(id, title, text): Disposable {
+    publish(id, title, text, audience = 'creators'): Disposable {
       return manual.register([{
         id,
-        audience: 'creators',
+        audience,
         title,
         summary: title,
         document: { blocks: [{ type: 'paragraph', text }] },

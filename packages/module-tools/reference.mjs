@@ -237,7 +237,7 @@ function collect() {
     if (!existsSync(join(ROOT, path))) continue;
     for (const plan of Object.values(json(path).plans ?? {})) for (const ref of plan.profile?.modules ?? []) targets.add(ref.id);
   }
-  const manual = read('modules/manual/src/content.ts'), creators = manual.slice(manual.indexOf('const CREATORS'));
+  const manual = read('games/space-sim/manual.ts'), creators = manual.slice(manual.indexOf('const CREATORS'));
   const book = creators.slice(0, creators.indexOf('\n];'));
   const bookPages = new Set([...book.matchAll(/^\s*id: '([^']+)'/gm)].map(match => match[1]));
   const bookLinks = [...book.matchAll(/data-page="([^"]+)"/g)].map(match => match[1]);
@@ -386,7 +386,7 @@ export function check(result = generate()) {
       fail(where, `link "${block.text}" targets ${block.page}, which is not a visible Creators Manual page (book page, API reference, or the guide of a documented module in a game target)`);
   };
   for (const page of bundle.pages) links(OUTPUTS.pages, page.blocks);
-  links('modules/manual/src/content.ts (Creators)', state.bookLinks.map(page => ({ type: 'link', text: page, page })));
+  links('games/space-sim/manual.ts (Creators)', state.bookLinks.map(page => ({ type: 'link', text: page, page })));
   for (const module of documented) {
     const m = module.manifest, guide = module.usage, where = guide.path, parts = sections(guide);
     const headings = guide.blocks.filter(block => block.type === 'heading').map(block => block.text);

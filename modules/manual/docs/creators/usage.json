@@ -52,7 +52,7 @@
     },
     {
       "type": "paragraph",
-      "text": "Provide another ui.manual@1.0.0 implementation in the ui.manual slot to change how guides are presented. Removing the module removes the reader and guide catalog; other modules keep working, but contributed guides are no longer shown in game. The default Space Sim book lives in modules/manual/src/content.ts and is composed by the app."
+      "text": "Provide another ui.manual@1.0.0 implementation in the ui.manual slot to change how guides are presented. Removing the module removes the reader and guide catalog; other modules keep working, but contributed guides are no longer shown in game. The trusted default Space Sim book lives in games/space-sim/manual.ts and its control adapter composes it separately. Other games supply their own books and register structured guides through this same service; no flight chapters are added by the reader."
     },
     {
       "type": "heading",

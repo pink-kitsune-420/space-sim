@@ -132,7 +132,7 @@ test('BrowserModuleHost floats imported content outside settings and Manual sear
   const next=replacement.prepare(profile,'browser');staged.configure(next);staged.root.querySelector('.window-content-form button')!.click();
   const stagedWithoutReplacing=!staged.root.isConnected&&host.root.isConnected;staged.dispose();next.dispose();
   // Manual navigation/search reads the same captured document, with ordinary live controls.
-  api.initManual({readControls:()=>({keys:{},players:{count:1,slots:[{device:'none'}]},pads:[],controllerEnabled:false}),openControls(){}});
+  api.initManual();
   (window as any).hostFixture={host,candidate,calls:()=>calls};
   return {details:host.root.querySelectorAll('details').length,windows:host.root.querySelectorAll('.flight-window').length,calls,images:host.root.querySelectorAll('img').length,stagedWithoutReplacing};
  });

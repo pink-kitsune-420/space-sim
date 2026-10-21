@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0c3dd2e9fc39d71f
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -10723,7 +10723,7 @@ This module has no settings.
 - Disposing a reader aborts its handlers and restores borrowed root children and classes. Disposing the provider disposes readers and styles and rejects new creation. Use separate idPrefix and storageKey values for independent readers.
 
 ## Remove or replace
-Provide another ui.manual@1.0.0 implementation in the ui.manual slot to change how guides are presented. Removing the module removes the reader and guide catalog; other modules keep working, but contributed guides are no longer shown in game. The default Space Sim book lives in modules/manual/src/content.ts and is composed by the app.
+Provide another ui.manual@1.0.0 implementation in the ui.manual slot to change how guides are presented. Removing the module removes the reader and guide catalog; other modules keep working, but contributed guides are no longer shown in game. The trusted default Space Sim book lives in games/space-sim/manual.ts and its control adapter composes it separately. Other games supply their own books and register structured guides through this same service; no flight chapters are added by the reader.
 
 ## Stability
 Module version 0.1.2 uses API space-sim-game-api/2 and manifest format space-sim-module/2. Both are pre-freeze: details may change before the final freeze.
