@@ -1,4 +1,5 @@
 import type { Camera, OverlayPrimitive, Renderer, SurfaceProfile, Vec } from '../../../packages/game-api/src/index';
+import { appearanceAt, MATERIAL_DOMAINS, MATERIAL_PALETTES, MATERIAL_SLOTS, type MaterialDomain, type MaterialStyle } from './successor-materials';
 
 export type TileSize = .25 | .5 | 1;
 type Chunk = Extract<OverlayPrimitive, { kind: 'tile-chunk' }>;
@@ -15,6 +16,8 @@ export interface TilePatch {
   readonly boundary: readonly Vec[];
   readonly bytes: number;
   readonly buildMs: number;
+  readonly domain: MaterialDomain;
+  readonly style: MaterialStyle;
 }
 
 /** Axis-aligned half-plane clipping preserves concave simple polygons. */
@@ -35,7 +38,8 @@ function clip(points: readonly Vec[], axis: 'x' | 'y', limit: number, sign: numb
 /** Preserve every authoritative interval knot. Subdivision uses a conservative
  * curvature bound |p''| <= r + 2|dr/dtheta|, not just a midpoint-error heuristic.
  * The body-local tangent frame is rotated from the landing pad's radial direction. */
-export function buildTilePatch(profile: SurfaceProfile, size: TileSize, query: (angle: number) => number): TilePatch {
+export function buildTilePatch(profile: SurfaceProfile, size: TileSize, query: (angle: number) => number,
+  domain: MaterialDomain = MATERIAL_DOMAINS.planet, style: MaterialStyle = 'colored'): TilePatch {
   const started = performance.now();
   const radius = profile.referenceRadius;
   const pad = profile.pads.find(p => p.id === 'landing-area');
@@ -77,17 +81,23 @@ export function buildTilePatch(profile: SurfaceProfile, size: TileSize, query: (
       if (polygon.length < 3) continue;
       const origin = { x: cx * step, y: cy * step };
       const tiles = new Uint16Array(1024);
-      // Original muted first-party palette: subtle deterministic aggregate, no resources/geology claims.
       for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-        const hash = Math.imul(cx * 32 + x, 374761393) ^ Math.imul(cy * 32 + y, 668265263);
-        tiles[y * 32 + x] = 1 + ((hash ^ (hash >>> 13)) >>> 0) % 4;
+        if (style === 'muted') {
+          // Preserve the accepted prototype exactly as a selectable comparison.
+          const hash = Math.imul(cx * 32 + x, 374761393) ^ Math.imul(cy * 32 + y, 668265263);
+          tiles[y * 32 + x] = 1 + ((hash ^ (hash >>> 13)) >>> 0) % 4;
+        } else {
+          const id = appearanceAt(domain, origin.x + (x + .5) * size, origin.y + (y + .5) * size);
+          tiles[y * 32 + x] = 1 + MATERIAL_SLOTS.indexOf(id);
+        }
       }
       chunks.push({ kind: 'tile-chunk', space: 'world', origin, size: 32, tileMetres: size, tiles,
-        paletteId: TILE_PALETTE_ID, clipPolygon: polygon.map(p => ({ x: p.x - origin.x, y: p.y - origin.y })) });
+        paletteId: style === 'muted' ? TILE_PALETTE_ID : domain.id,
+        clipPolygon: polygon.map(p => ({ x: p.x - origin.x, y: p.y - origin.y })) });
     }
   }
   if (chunks.length > 512) throw new Error('Tile prototype exceeded its 512 resident chunk budget.');
-  return { profile, size, chunks, boundary,
+  return { profile, size, chunks, boundary, domain, style,
     bytes: chunks.reduce((n, p) => n + p.tiles.byteLength + (p.clipPolygon?.length ?? 0) * 16, boundary.length * 16),
     buildMs: performance.now() - started };
 }
@@ -96,29 +106,36 @@ export interface TileStats {
   mode: string; tileMetres: number; residentChunks: number; visibleChunks: number;
   tileDraws: number; clipDraws: number; submittedCells: number; bufferBytes: number; buildMs: number;
   coverage: string; boundaryToleranceMetres: number;
+  materialDomain: string; materialStyle: MaterialStyle;
 }
 
 /** Single active patch, no full-world cache or loader. Retired worlds/sizes are released.
  * Only per-visible-chunk transforms are touched each frame; cells/polygons stay immutable. */
 export class SuccessorTiles {
   size: TileSize | 0 = .5;
+  style: MaterialStyle = 'colored';
   private patch?: TilePatch;
   private renderer?: Renderer;
+  private palette?: readonly string[];
   private visible: Chunk[] = [];
   private readonly output: Chunk[] = [];
   readonly stats: TileStats = { mode: 'vector', tileMetres: .5, residentChunks: 0, visibleChunks: 0,
     tileDraws: 0, clipDraws: 0, submittedCells: 0, bufferBytes: 0, buildMs: 0,
-    coverage: 'Bounded landing sector only; macro terrain continues outside the patch.', boundaryToleranceMetres: TILE_PATCH.tolerance };
+    coverage: 'Bounded landing sector only; macro terrain continues outside the patch.', boundaryToleranceMetres: TILE_PATCH.tolerance,
+    materialDomain: '', materialStyle: 'colored' };
 
   clear(): void { this.patch = undefined; this.visible.length = this.output.length = 0; this.renderer = undefined;
+    this.palette = undefined; this.stats.materialDomain = '';
     this.stats.residentChunks = this.stats.visibleChunks = this.stats.tileDraws = this.stats.clipDraws = 0;
     this.stats.submittedCells = this.stats.bufferBytes = this.stats.buildMs = 0;
   }
 
   draw(profile: SurfaceProfile, query: (a: number) => number, renderer: Renderer,
-    bodyOrigin: Vec, spin: number, camera: Camera, width: number, height: number): readonly Chunk[] {
+    bodyOrigin: Vec, spin: number, camera: Camera, width: number, height: number,
+    body: 'planet' | 'moon' = 'planet'): readonly Chunk[] {
     this.stats.visibleChunks = this.stats.tileDraws = this.stats.clipDraws = this.stats.submittedCells = 0;
     this.stats.mode = 'vector';
+    this.stats.materialStyle = this.style;
     this.output.length = 0;
     if (!this.size) { this.clear(); return this.output; }
     this.stats.tileMetres = this.size;
@@ -130,11 +147,17 @@ export class SuccessorTiles {
       if (this.patch && this.patch.profile !== profile) this.clear();
       this.stats.mode = 'distant vector baseline'; return this.output;
     }
-    if (this.patch?.profile !== profile || this.patch.size !== this.size) {
-      this.patch = buildTilePatch(profile, this.size, query);
+    const domain = MATERIAL_DOMAINS[body];
+    if (this.patch?.profile !== profile || this.patch.size !== this.size || this.patch.domain !== domain || this.patch.style !== this.style) {
+      this.patch = buildTilePatch(profile, this.size, query, domain, this.style);
       this.visible = this.patch.chunks.map(p => ({ ...p, origin: { x: 0, y: 0 } }));
     }
-    if (this.renderer !== renderer) { renderer.features.tilePalettes.register(TILE_PALETTE_ID, TILE_PALETTE); this.renderer = renderer; }
+    const palette = this.style === 'muted' ? TILE_PALETTE : MATERIAL_PALETTES[body];
+    if (this.renderer !== renderer || this.palette !== palette) {
+      renderer.features.tilePalettes.register(this.style === 'muted' ? TILE_PALETTE_ID : domain.id, palette);
+      this.renderer = renderer; this.palette = palette;
+    }
+    this.stats.materialDomain = domain.id;
     const patch = this.patch;
     this.stats.residentChunks = patch.chunks.length; this.stats.bufferBytes = patch.bytes; this.stats.buildMs = patch.buildMs;
     const pad = profile.pads.find(p => p.id === 'landing-area')!;

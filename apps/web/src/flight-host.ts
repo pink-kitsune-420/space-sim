@@ -4880,7 +4880,7 @@ function frame(now: number): void {
       const origin = world.system.getBodyPosition(activeBody.id, view.time);
       if (activeBody.id === 'planet' || activeBody.id === 'moon') {
         overlays.push(...successorTiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
-          presentation.rendering.renderer!, origin, spinView.angle(activeBody, view.time), camera, width, height));
+          presentation.rendering.renderer!, origin, spinView.angle(activeBody, view.time), camera, width, height, activeBody.id));
       } else successorTiles.clear();
       overlays.push(...successorReferences(profile, angle => querySurface(profile, angle).groundRadius,
         point => { const p = spinView.point(activeBody, view.time, point); return { x: origin.x + p.x, y: origin.y + p.y }; }, camera.scale));
@@ -5155,9 +5155,17 @@ if (startupGame.info.id === 'builtin.space-sim-successor') {
   tiles.value = '0.5';
   tiles.addEventListener('change', () => { successorTiles.size = Number(tiles.value) as .25 | .5 | 1 | 0; });
   label.append(tiles);
+  const materialLabel = document.createElement('label'); materialLabel.textContent = 'Surface colors ';
+  const materials = document.createElement('select'); materials.id = 'successor-material-style';
+  for (const [value, text] of [['colored', 'Decorative materials (trial)'], ['muted', 'Muted prototype comparison']]) {
+    const option = document.createElement('option'); option.value = value!; option.textContent = text!; materials.append(option);
+  }
+  materials.addEventListener('change', () => { successorTiles.style = materials.value === 'muted' ? 'muted' : 'colored'; });
+  materialLabel.append(materials);
   const coverage = document.createElement('p'); coverage.id = 'successor-tile-help'; coverage.className = 'control-note';
   coverage.textContent = 'Tile review prototype: landing sector only (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
-  systemSelect.closest('.setup-fields')?.after(hint, label, coverage);
+  coverage.textContent += ' Colored regions are decorative, with no physical material properties. Surface colors compares the accepted muted treatment; Vector baseline disables tiles.';
+  systemSelect.closest('.setup-fields')?.after(hint, label, materialLabel, coverage);
 }
 
 // Start: a solo world with one ship at the first scenario.
