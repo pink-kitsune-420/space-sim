@@ -37,5 +37,7 @@
     target.scrollIntoView(); target.focus({ preventScroll: true });
   }
   window.addEventListener('hashchange', navigate);
+  // Reload/history restoration can replace parser-time focus, especially in Firefox.
+  window.addEventListener('pageshow', navigate);
   apply(); if (location.hash) navigate();
 })();
