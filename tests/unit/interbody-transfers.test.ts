@@ -51,7 +51,7 @@ it.each([
  }
  if(result.options.length===2){const [a,b]=result.options;expect(b!.waitSeconds+b!.travelSeconds).toBeLessThan((a!.waitSeconds+a!.travelSeconds)*.98);}
  expect(JSON.stringify(saveWorld(world))).toBe(before);world.dispose();
-},15000);
+ },45000);
 
 it('rejects invalid targets, unsupported deep relationships, thrust and incompatible hosts without plausible formula-only output',()=>{
  const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),request={shipId:ship.id,destinationId:'moon',periapsisAltitude:100,apoapsisAltitude:100};

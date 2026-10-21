@@ -388,4 +388,114 @@ export class PhysicsSolver {
   public getBodyCount(): number {
     return this.count;
   }
+
+  public updateConfig(config: Partial<PhysicsSolverConfig>): void {
+    this.config = {
+      mode: config.mode ?? this.config.mode,
+      substeps: config.substeps !== undefined
+        ? Math.max(1, Math.min(64, Math.floor(config.substeps)))
+        : this.config.substeps,
+      softeningRatio: config.softeningRatio !== undefined
+        ? Math.max(0, config.softeningRatio)
+        : this.config.softeningRatio,
+      enableJ2: config.enableJ2 ?? this.config.enableJ2,
+      enableTidalTorque: config.enableTidalTorque ?? this.config.enableTidalTorque,
+      collisionMode: config.collisionMode ?? this.config.collisionMode,
+      restitution: config.restitution !== undefined
+        ? Math.max(0, Math.min(1, config.restitution))
+        : this.config.restitution,
+    };
+  }
+
+  public getBodyId(index: number): string | undefined {
+    return this.bodyIds[index];
+  }
+
+  public getBodyIndex(id: string): number | undefined {
+    return this.idToIndex.get(id);
+  }
+
+  public getBodyX(index: number): number {
+    return this.positions[index * 2]!;
+  }
+
+  public getBodyY(index: number): number {
+    return this.positions[index * 2 + 1]!;
+  }
+
+  public getBodyVx(index: number): number {
+    return this.velocities[index * 2]!;
+  }
+
+  public getBodyVy(index: number): number {
+    return this.velocities[index * 2 + 1]!;
+  }
+
+  public getBodyMass(index: number): number {
+    return this.masses[index]!;
+  }
+
+  public getBodyMu(index: number): number {
+    return this.mus[index]!;
+  }
+
+  public getBodyRadius(index: number): number {
+    return this.radii[index]!;
+  }
+
+  public getBodySpinPeriod(index: number): number {
+    return this.spinPeriods[index]!;
+  }
+
+  public getBodySpinDirection(index: number): number {
+    return this.spinDirections[index]!;
+  }
+
+  public getBodyIsFixed(index: number): boolean {
+    return this.isFixed[index] === 1;
+  }
+
+  public setBodyPosition(index: number, x: number, y: number): void {
+    const i2 = index * 2;
+    this.positions[i2] = x;
+    this.positions[i2 + 1] = y;
+  }
+
+  public setBodyVelocity(index: number, vx: number, vy: number): void {
+    const i2 = index * 2;
+    this.velocities[i2] = vx;
+    this.velocities[i2 + 1] = vy;
+  }
+
+  public setBodyMass(index: number, mass: number): void {
+    this.masses[index] = mass;
+  }
+
+  public setBodyMu(index: number, mu: number): void {
+    this.mus[index] = mu;
+  }
+
+  public setBodyRadius(index: number, radius: number): void {
+    this.radii[index] = radius;
+  }
+
+  public setBodySpin(index: number, period: number, direction: number): void {
+    this.spinPeriods[index] = period;
+    this.spinDirections[index] = direction;
+  }
+
+  public resetBodies(bodies?: readonly BodyPhysicalState[]): void {
+    this.count = 0;
+    this.bodyIds.length = 0;
+    this.parentIds.length = 0;
+    this.idToIndex.clear();
+    this.currentTime = 0;
+    this.currentStepCount = 0;
+    if (bodies) {
+      for (const b of bodies) {
+        this.addBody(b);
+      }
+    }
+  }
 }
+

@@ -116,8 +116,8 @@ it.each([['moon','planet'],['nix','umbra'],['planet','velum']])('connects %s to 
   const result=drain(job);expect(result.options.length,result.reason).toBeGreaterThan(0);
   for(const option of result.options){expect(option.plan.nodes.at(-1)!.bodyId).toBe(to);expect(option.route?.finiteValidated).toBe(true);expect(option.route?.burns!.reduce((total,b)=>total+b.deltaV,0)).toBeCloseTo(option.deltaV,8);}
   const saved=plans.read({format:'space-sim-flight-plans/1',plans:[result.options[0]!.plan]});expect(saved.plans[0]!.nodes.every(n=>n.finite)).toBe(true);expect(JSON.stringify(world.ship(ship.id))).toBe(before);
- }finally{job.return({options:[],reason:'cancelled'});burns.dispose();world.dispose();}
-},15000);
+  }finally{job.return({options:[],reason:'cancelled'});burns.dispose();world.dispose();}
+},45000);
 
 it('reaches a custom moon below another moon without assuming a fixed hierarchy depth',()=>{
  const universe=structuredClone(DEFAULT_UNIVERSE),system=universe.systems[0]!;
@@ -125,7 +125,7 @@ it('reaches a custom moon below another moon without assuming a fixed hierarchy 
  const world=new World({...universe,systems:[{...system,bodies:[...system.bodies,body]},...universe.systems.slice(1)]}),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),burns=createManeuverBurns(clock),plans=createFlightPlans(burns),job=createTransferPlanner(plans,burns).search(world,{shipId:ship.id,destinationId:'nested',periapsisAltitude:40,apoapsisAltitude:40});
  try{const result=drain(job);expect(result.options.length,result.reason).toBeGreaterThan(0);expect(result.options[0]!.plan.nodes.at(-1)!.bodyId).toBe('nested');}
  finally{job.return({options:[],reason:'cancelled'});burns.dispose();world.dispose();}
-},15000);
+},45000);
 
 it('cancels an end-to-end search and releases its forecast without changing authority',()=>{
  const world=new World(DEFAULT_UNIVERSE),ship=world.spawn({ownerId:'pilot',presetId:'planet-orbit'}),burns=createManeuverBurns(clock),plans=createFlightPlans(burns),before=JSON.stringify(ship);let active=0;

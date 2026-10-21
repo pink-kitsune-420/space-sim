@@ -1,5 +1,18 @@
-import type { Vec } from './spacelab/sim-core';
-import type { CelestialBody, FullBodyOptions, MutableVec, OrbitElementsCache, OrbitGhostSample, SimulationMode } from './types';
+import {
+  type BodyPhysicalState,
+  type PhysicsMode,
+  PhysicsSolver,
+  type PhysicsSolverConfig,
+  type Vec,
+} from './spacelab/sim-core';
+import type {
+  CelestialBody,
+  FullBodyOptions,
+  MutableVec,
+  OrbitElementsCache,
+  OrbitGhostSample,
+  SimulationMode,
+} from './types';
 
 export const EPSILON = 1e-6;
 
@@ -14,7 +27,11 @@ export function distance(a: Vec, b: Vec): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
-export function findDominantBody(pos: Vec, bodies: readonly CelestialBody[], ignoreBodyId?: string): CelestialBody | null {
+export function findDominantBody(
+  pos: Vec,
+  bodies: readonly CelestialBody[],
+  ignoreBodyId?: string,
+): CelestialBody | null {
   let bestBody: CelestialBody | null = null;
   let maxGravity = -1;
 
@@ -180,6 +197,107 @@ export function getOrComputeOrbitElements(
   return cache;
 }
 
+function toBodyPhysicalState(
+  b: CelestialBody,
+  mode: SimulationMode,
+  bodies: readonly CelestialBody[],
+): BodyPhysicalState {
+  let parentId = b.parentId;
+  if (!parentId && !b.isFixed && mode === 'kepler') {
+    parentId = findDominantBody(b.position, bodies, b.id)?.id ?? null;
+  }
+  return {
+    id: b.id,
+    mass: b.mass,
+    mu: b.mu,
+    radius: b.radius,
+    position: [b.position.x, b.position.y],
+    velocity: [b.velocity.x, b.velocity.y],
+    spinPeriod: b.rotation.period,
+    spinDirection: b.rotation.direction,
+    isFixed: b.isFixed,
+    parentId: parentId ?? undefined,
+  };
+}
+
+let sandboxSolver: PhysicsSolver | null = null;
+
+function syncSandboxSolver(
+  bodies: readonly CelestialBody[],
+  mode: SimulationMode,
+  fullBodyOpts: FullBodyOptions,
+  substeps = 4,
+): PhysicsSolver {
+  const solverMode: PhysicsMode = mode === 'kepler' ? 'rails' : mode;
+  const config: Partial<PhysicsSolverConfig> = {
+    mode: solverMode,
+    substeps,
+    softeningRatio: Math.sqrt(0.05),
+    enableJ2: mode === 'full-body' && fullBodyOpts.enableJ2Oblateness,
+    enableTidalTorque: mode === 'full-body' && fullBodyOpts.enableTidalTorque,
+    collisionMode: mode === 'full-body' ? fullBodyOpts.collisionMode : 'merge',
+    restitution: fullBodyOpts.restitution,
+  };
+
+  if (!sandboxSolver) {
+    const physicalBodies = bodies.map(b => toBodyPhysicalState(b, mode, bodies));
+    sandboxSolver = new PhysicsSolver(physicalBodies, config, Math.max(64, bodies.length * 2));
+    return sandboxSolver;
+  }
+
+  let needsReset = sandboxSolver.getBodyCount() !== bodies.length;
+  if (!needsReset) {
+    for (let i = 0; i < bodies.length; i++) {
+      if (sandboxSolver.getBodyId(i) !== bodies[i]!.id) {
+        needsReset = true;
+        break;
+      }
+    }
+  }
+
+  if (needsReset) {
+    const physicalBodies = bodies.map(b => toBodyPhysicalState(b, mode, bodies));
+    sandboxSolver.resetBodies(physicalBodies);
+    sandboxSolver.updateConfig(config);
+    return sandboxSolver;
+  }
+
+  const solver = sandboxSolver;
+  solver.updateConfig(config);
+  for (let i = 0; i < bodies.length; i++) {
+    const b = bodies[i]!;
+    solver.setBodyPosition(i, b.position.x, b.position.y);
+    solver.setBodyVelocity(i, b.velocity.x, b.velocity.y);
+    if (solver.getBodyMass(i) !== b.mass) solver.setBodyMass(i, b.mass);
+    if (solver.getBodyMu(i) !== b.mu) solver.setBodyMu(i, b.mu);
+    if (solver.getBodyRadius(i) !== b.radius) solver.setBodyRadius(i, b.radius);
+    if (
+      solver.getBodySpinPeriod(i) !== b.rotation.period ||
+      solver.getBodySpinDirection(i) !== b.rotation.direction
+    ) {
+      solver.setBodySpin(i, b.rotation.period, b.rotation.direction);
+    }
+  }
+
+  return solver;
+}
+
+function computeTwoBodyAcceleration(
+  x: number,
+  y: number,
+  parent: CelestialBody,
+): readonly [number, number] {
+  const dx = parent.position.x - x;
+  const dy = parent.position.y - y;
+  const distSq = dx * dx + dy * dy;
+  const dist = Math.sqrt(distSq);
+  if (dist > parent.radius * 0.1) {
+    const factor = parent.mu / (distSq * dist);
+    return [dx * factor, dy * factor];
+  }
+  return [0, 0];
+}
+
 export function computeAcceleration(
   pos: Vec,
   bodies: readonly CelestialBody[],
@@ -187,50 +305,17 @@ export function computeAcceleration(
   currentBody?: CelestialBody,
   fullBodyOpts: FullBodyOptions = DEFAULT_FULL_BODY_OPTIONS,
 ): Vec {
-  let ax = 0;
-  let ay = 0;
-
   if (mode === 'kepler' && currentBody?.parentId) {
     const parent = bodies.find(b => b.id === currentBody.parentId);
     if (parent) {
-      const dx = parent.position.x - pos.x;
-      const dy = parent.position.y - pos.y;
-      const distSq = dx * dx + dy * dy;
-      const dist = Math.sqrt(distSq);
-      if (dist > parent.radius * 0.1) {
-        const factor = parent.mu / (distSq * dist);
-        ax += dx * factor;
-        ay += dy * factor;
-      }
+      const [ax, ay] = computeTwoBodyAcceleration(pos.x, pos.y, parent);
+      return { x: ax, y: ay };
     }
-    return { x: ax, y: ay };
+    return { x: 0, y: 0 };
   }
 
-  // N-Body gravity summation
-  for (const other of bodies) {
-    if (currentBody && other.id === currentBody.id) continue;
-    const dx = other.position.x - pos.x;
-    const dy = other.position.y - pos.y;
-    const distSq = dx * dx + dy * dy;
-    const dist = Math.sqrt(distSq);
-    // Softening avoids numerical blowup on near contact
-    const softDistSq = distSq + (other.radius * other.radius * 0.05);
-    const softDist = Math.sqrt(softDistSq);
-    const factor = other.mu / (softDistSq * softDist);
-    ax += dx * factor;
-    ay += dy * factor;
-
-    // Full body physics: J2 oblateness perturbation from spinning primary body
-    if (mode === 'full-body' && fullBodyOpts.enableJ2Oblateness && dist > other.radius * 0.8) {
-      const omega = (2 * Math.PI) / Math.max(60, other.rotation.period);
-      // Oblateness factor based on rotational speed vs surface gravity
-      const j2 = Math.min(0.04, Math.max(0.001, (omega * omega * Math.pow(other.radius, 3)) / (2 * other.mu)));
-      const j2Factor = (1.5 * other.mu * j2 * other.radius * other.radius) / (distSq * distSq * dist);
-      ax += dx * j2Factor;
-      ay += dy * j2Factor;
-    }
-  }
-
+  const solver = syncSandboxSolver(bodies, mode, fullBodyOpts);
+  const [ax, ay] = solver.computeAccelerationAt(pos.x, pos.y, currentBody?.id);
   return { x: ax, y: ay };
 }
 
@@ -291,10 +376,13 @@ export function predictGhostTrajectory(
     periapsisRadius = hSq / (parent.mu * (1 + eccentricity));
   }
 
-  // Predict ghost path forward numerically
+  // Predict ghost path forward numerically using PhysicsSolver force evaluation
+  const solver = syncSandboxSolver(bodies, mode, fullBodyOpts);
   const ghostPath: OrbitGhostSample[] = [];
-  let p = { x: candidatePos.x, y: candidatePos.y };
-  let v = { x: candidateVel.x, y: candidateVel.y };
+  let px = candidatePos.x;
+  let py = candidatePos.y;
+  let vx = candidateVel.x;
+  let vy = candidateVel.y;
   let t = 0;
 
   // Choose adaptive dt based on distance to parent and velocity
@@ -302,7 +390,7 @@ export function predictGhostTrajectory(
   const targetPeriod = orbitalPeriod ? Math.min(orbitalPeriod, 5000) : (2 * Math.PI * r0) / baseSpeed;
   const dt = Math.max(0.05, Math.min(10, targetPeriod / maxSteps));
 
-  ghostPath.push({ position: { ...p }, velocity: { ...v }, time: 0 });
+  ghostPath.push({ position: { x: px, y: py }, velocity: { x: vx, y: vy }, time: 0 });
 
   let minR = r0;
   let maxR = r0;
@@ -310,36 +398,38 @@ export function predictGhostTrajectory(
   let apoSampleIndex = 0;
 
   for (let step = 0; step < maxSteps; step++) {
-    // Verlet step for candidate
-    const a1 = computeAcceleration(p, bodies, mode, undefined, fullBodyOpts);
-    const pNext = {
-      x: p.x + v.x * dt + 0.5 * a1.x * dt * dt,
-      y: p.y + v.y * dt + 0.5 * a1.y * dt * dt,
-    };
-    const a2 = computeAcceleration(pNext, bodies, mode, undefined, fullBodyOpts);
-    const vNext = {
-      x: v.x + 0.5 * (a1.x + a2.x) * dt,
-      y: v.y + 0.5 * (a1.y + a2.y) * dt,
-    };
+    const [a1x, a1y] = mode === 'kepler' && parent
+      ? computeTwoBodyAcceleration(px, py, parent)
+      : solver.computeAccelerationAt(px, py);
 
-    p = pNext;
-    v = vNext;
+    const pNextX = px + vx * dt + 0.5 * a1x * dt * dt;
+    const pNextY = py + vy * dt + 0.5 * a1y * dt * dt;
+
+    const [a2x, a2y] = mode === 'kepler' && parent
+      ? computeTwoBodyAcceleration(pNextX, pNextY, parent)
+      : solver.computeAccelerationAt(pNextX, pNextY);
+
+    vx += 0.5 * (a1x + a2x) * dt;
+    vy += 0.5 * (a1y + a2y) * dt;
+    px = pNextX;
+    py = pNextY;
     t += dt;
 
     // Check collision with any body
     let collided = false;
-    for (const b of bodies) {
-      const d = distance(p, b.position);
+    for (let i = 0; i < bodies.length; i++) {
+      const b = bodies[i]!;
+      const d = Math.hypot(px - b.position.x, py - b.position.y);
       if (d <= b.radius) {
         collided = true;
-        ghostPath.push({ position: { ...p }, velocity: { ...v }, time: t, collided: true });
+        ghostPath.push({ position: { x: px, y: py }, velocity: { x: vx, y: vy }, time: t, collided: true });
         break;
       }
     }
     if (collided) break;
 
     // Check distance relative to parent
-    const currRelR = distance(p, parent.position);
+    const currRelR = Math.hypot(px - parent.position.x, py - parent.position.y);
     if (currRelR < minR) {
       minR = currRelR;
       periSampleIndex = ghostPath.length;
@@ -351,17 +441,17 @@ export function predictGhostTrajectory(
 
     // Check escape (distance > 10x initial radius and moving away)
     if (currRelR > r0 * 12 && currRelR > 500000) {
-      ghostPath.push({ position: { ...p }, velocity: { ...v }, time: t, escaped: true });
+      ghostPath.push({ position: { x: px, y: py }, velocity: { x: vx, y: vy }, time: t, escaped: true });
       break;
     }
 
     // Stop after closing loop (~ 1 full orbit)
-    if (step > 30 && distance(p, candidatePos) < (r0 * 0.05 + 100)) {
-      ghostPath.push({ position: { ...candidatePos }, velocity: { ...v }, time: t });
+    if (step > 30 && Math.hypot(px - candidatePos.x, py - candidatePos.y) < (r0 * 0.05 + 100)) {
+      ghostPath.push({ position: { x: candidatePos.x, y: candidatePos.y }, velocity: { x: vx, y: vy }, time: t });
       break;
     }
 
-    ghostPath.push({ position: { ...p }, velocity: { ...v }, time: t });
+    ghostPath.push({ position: { x: px, y: py }, velocity: { x: vx, y: vy }, time: t });
   }
 
   if (eccentricity >= 0.025) {
@@ -394,153 +484,59 @@ export function stepSimulation(
   fullBodyOpts: FullBodyOptions = DEFAULT_FULL_BODY_OPTIONS,
   recordTrail = true,
 ): { mergedEvents: { survivor: CelestialBody; absorbed: CelestialBody }[] } {
+  if (bodies.length === 0 || dt <= 0) {
+    return { mergedEvents: [] };
+  }
+
+  const solver = syncSandboxSolver(bodies, mode, fullBodyOpts, substeps);
+  const result = solver.step(dt);
   const mergedEvents: { survivor: CelestialBody; absorbed: CelestialBody }[] = [];
-  const subDt = dt / substeps;
 
-  for (let s = 0; s < substeps; s++) {
-    // 1. Compute initial accelerations
-    const accelerations: Vec[] = [];
-    for (let i = 0; i < bodies.length; i++) {
-      const b = bodies[i]!;
-      if (b.isFixed) {
-        accelerations.push({ x: 0, y: 0 });
-      } else {
-        accelerations.push(computeAcceleration(b.position, bodies, mode, b, fullBodyOpts));
+  // 1. Process merges if any occurred
+  if (result.collisions.length > 0) {
+    for (const c of result.collisions) {
+      if (c.type === 'merge') {
+        const survivor = bodies.find(b => b.id === c.survivorId);
+        const absorbed = bodies.find(b => b.id === c.absorbedId);
+        if (survivor && absorbed) {
+          mergedEvents.push({ survivor, absorbed });
+          const absIdx = bodies.indexOf(absorbed);
+          if (absIdx >= 0) {
+            bodies.splice(absIdx, 1);
+          }
+          survivor.mass = c.newMass;
+          survivor.mu = c.newMu;
+          survivor.radius = c.newRadius;
+        }
       }
     }
+  }
 
-    // 2. Update positions: r(t + dt) = r(t) + v(t)*dt + 0.5*a(t)*dt^2
-    for (let i = 0; i < bodies.length; i++) {
-      const b = bodies[i]!;
-      if (b.isFixed) continue;
-      const a = accelerations[i]!;
-      b.position.x += b.velocity.x * subDt + 0.5 * a.x * subDt * subDt;
-      b.position.y += b.velocity.y * subDt + 0.5 * a.y * subDt * subDt;
+  // 2. Update bodies in-place from flat solver buffers with zero allocations
+  const count = solver.getBodyCount();
+  for (let i = 0; i < count; i++) {
+    const id = solver.getBodyId(i)!;
+    let b = bodies[i];
+    if (!b || b.id !== id) {
+      b = bodies.find(item => item.id === id);
     }
-
-    // 3. Compute new accelerations at r(t + dt)
-    const nextAccelerations: Vec[] = [];
-    for (let i = 0; i < bodies.length; i++) {
-      const b = bodies[i]!;
-      if (b.isFixed) {
-        nextAccelerations.push({ x: 0, y: 0 });
-      } else {
-        nextAccelerations.push(computeAcceleration(b.position, bodies, mode, b, fullBodyOpts));
-      }
-    }
-
-    // 4. Update velocities: v(t + dt) = v(t) + 0.5*(a(t) + a(t+dt))*dt (Velocity Verlet)
-    for (let i = 0; i < bodies.length; i++) {
-      const b = bodies[i]!;
-      if (b.isFixed) continue;
-      const a1 = accelerations[i]!;
-      const a2 = nextAccelerations[i]!;
-      b.velocity.x += 0.5 * (a1.x + a2.x) * subDt;
-      b.velocity.y += 0.5 * (a1.y + a2.y) * subDt;
+    if (b) {
+      b.position.x = solver.getBodyX(i);
+      b.position.y = solver.getBodyY(i);
+      b.velocity.x = solver.getBodyVx(i);
+      b.velocity.y = solver.getBodyVy(i);
+      b.mass = solver.getBodyMass(i);
+      b.mu = solver.getBodyMu(i);
+      b.radius = solver.getBodyRadius(i);
+      b.rotation.period = solver.getBodySpinPeriod(i);
+      b.rotation.direction = (solver.getBodySpinDirection(i) >= 0 ? 1 : -1) as 1 | -1;
 
       // Update ring particles
       if (b.rings?.particles) {
         for (const p of b.rings.particles) {
-          p.angle += p.speed * subDt;
+          p.angle += p.speed * dt;
         }
       }
-
-      // Full body physics: tidal torque dissipation
-      if (mode === 'full-body' && fullBodyOpts.enableTidalTorque && !b.isFixed) {
-        const parent = findDominantBody(b.position, bodies, b.id);
-        if (parent && parent.mass > b.mass * 2) {
-          const dx = b.position.x - parent.position.x;
-          const dy = b.position.y - parent.position.y;
-          const r = Math.hypot(dx, dy);
-          if (r > parent.radius + b.radius) {
-            const vRelX = b.velocity.x - parent.velocity.x;
-            const vRelY = b.velocity.y - parent.velocity.y;
-            // Tangential speed: (v_rel . [-dy, dx]) / r
-            const vTan = (vRelX * (-dy) + vRelY * dx) / r;
-            const omegaOrbit = vTan / r;
-            const currentOmega = (2 * Math.PI / b.rotation.period) * b.rotation.direction;
-            const omegaDiff = currentOmega - omegaOrbit;
-            // Gradual tidal spin synchronization
-            const dampingFactor = Math.min(0.001, (parent.mu * Math.pow(b.radius, 3)) / (Math.pow(r, 6) * 1e5));
-            const newOmega = currentOmega - omegaDiff * dampingFactor * subDt;
-            if (Math.abs(newOmega) > 1e-6) {
-              b.rotation.direction = newOmega >= 0 ? 1 : -1;
-              b.rotation.period = Math.min(10000, Math.max(30, (2 * Math.PI) / Math.abs(newOmega)));
-            }
-          }
-        }
-      }
-    }
-
-    // 5. Collision & Merging / Bouncing Check
-    const removedIndices = new Set<number>();
-    for (let i = 0; i < bodies.length; i++) {
-      if (removedIndices.has(i)) continue;
-      const bi = bodies[i]!;
-      for (let j = i + 1; j < bodies.length; j++) {
-        if (removedIndices.has(j)) continue;
-        const bj = bodies[j]!;
-
-        const d = distance(bi.position, bj.position);
-        const minDist = (bi.radius + bj.radius) * 0.95;
-
-        if (d <= minDist) {
-          if (mode === 'full-body' && fullBodyOpts.collisionMode === 'bounce') {
-            // Elastic / semi-elastic collision with restitution
-            const nx = (bj.position.x - bi.position.x) / Math.max(1, d);
-            const ny = (bj.position.y - bi.position.y) / Math.max(1, d);
-
-            const vRelX = bi.velocity.x - bj.velocity.x;
-            const vRelY = bi.velocity.y - bj.velocity.y;
-            const vNorm = vRelX * nx + vRelY * ny;
-
-            if (vNorm > 0) {
-              const e = fullBodyOpts.restitution;
-              const impulse = ((1 + e) * vNorm) / ((1 / bi.mass) + (1 / bj.mass));
-              if (!bi.isFixed) {
-                bi.velocity.x -= (impulse / bi.mass) * nx;
-                bi.velocity.y -= (impulse / bi.mass) * ny;
-              }
-              if (!bj.isFixed) {
-                bj.velocity.x += (impulse / bj.mass) * nx;
-                bj.velocity.y += (impulse / bj.mass) * ny;
-              }
-
-              // Positional separation to prevent interpenetration
-              const overlap = (minDist - d) * 0.5 + 1;
-              if (!bi.isFixed) {
-                bi.position.x -= nx * overlap;
-                bi.position.y -= ny * overlap;
-              }
-              if (!bj.isFixed) {
-                bj.position.x += nx * overlap;
-                bj.position.y += ny * overlap;
-              }
-            }
-          } else {
-            // Inelastic Merge! The one with higher mass absorbs the other
-            const [survivor, absorbed, removeIdx] = bi.mass >= bj.mass
-              ? [bi, bj, j]
-              : [bj, bi, i];
-
-            const totalMass = survivor.mass + absorbed.mass;
-            survivor.velocity.x = (survivor.mass * survivor.velocity.x + absorbed.mass * absorbed.velocity.x) / totalMass;
-            survivor.velocity.y = (survivor.mass * survivor.velocity.y + absorbed.mass * absorbed.velocity.y) / totalMass;
-            survivor.mass = totalMass;
-            survivor.mu += absorbed.mu;
-            survivor.radius = Math.cbrt(Math.pow(survivor.radius, 3) + Math.pow(absorbed.radius, 3));
-
-            removedIndices.add(removeIdx);
-            mergedEvents.push({ survivor, absorbed });
-          }
-        }
-      }
-    }
-
-    if (removedIndices.size > 0) {
-      const remaining = bodies.filter((_, idx) => !removedIndices.has(idx));
-      bodies.length = 0;
-      bodies.push(...remaining);
     }
   }
 
