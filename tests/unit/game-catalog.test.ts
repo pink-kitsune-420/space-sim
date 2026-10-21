@@ -4,11 +4,41 @@ import { resolve } from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { validateGameCatalog, validatePackage, decodePackage, type GamePackage } from '../../packages/game-library/src/archive';
 import { requestedBuiltinGame, defaultGame } from '../../apps/web/src/bundled-games';
+import { prepareGame, loadInstalledWorld } from '../../packages/modules/src/index';
+import { saveWorld } from '../../packages/sim-core/src/save';
+import { DEFAULT_UNIVERSE } from '../../packages/sim-core/src/universe';
 
 const catalogPath = resolve('games/catalog.json');
 const catalogRaw = JSON.parse(readFileSync(catalogPath, 'utf8'));
 
 describe('Multi-Game Catalog Discovery & Offline Bundling (REC-11)', () => {
+  it('keeps Classic as default and composes an independently editable successor from shared modules', () => {
+    const successor = requestedBuiltinGame('?game=space-sim-successor');
+    expect(defaultGame.info).toMatchObject({ id: 'builtin.space-sim', name: 'Space Sim Classic' });
+    expect(requestedBuiltinGame('').info.id).toBe(defaultGame.info.id);
+    expect(successor.info.id).toBe('builtin.space-sim-successor');
+    expect(successor.plugins).toEqual([]);
+    expect(successor.bundle.profile.modules.slice(0, 2)).toEqual(defaultGame.bundle.profile.modules);
+    const classic = prepareGame({ environment: 'node', data: defaultGame.bundle.modules,
+      profile: defaultGame.bundle.profile, universeKey: defaultGame.bundle.selection.universe });
+    const next = prepareGame({ environment: 'node', data: successor.bundle.modules,
+      profile: successor.bundle.profile, universeKey: successor.bundle.selection.universe });
+    try {
+      expect(classic.world.universe).toEqual(DEFAULT_UNIVERSE);
+      expect(next.world.universe.id).toBe('successor-universe');
+      expect(next.world.universe.systems).toEqual(classic.world.universe.systems);
+      expect(next.world.context.vehicle).toEqual(classic.world.context.vehicle);
+      expect(next.world.soloPreview).toBe(false);
+      next.world.spawn({ ownerId: 'pilot', presetId: next.world.system.presets[0]!.id });
+      const saved = saveWorld(next.world);
+      const restored = loadInstalledWorld(saved, { environment: 'node', data: successor.bundle.modules });
+      try { expect(saveWorld(restored.world)).toEqual(saved); } finally { restored.world.dispose(); }
+    } finally { classic.candidate.dispose(); next.candidate.dispose(); }
+    const edited = JSON.parse(JSON.stringify(successor.bundle.modules));
+    edited[0]!.data.universes![0]!.definition.systems[0]!.bodies[0]!.radius = 999;
+    expect(defaultGame.bundle.modules).toEqual([]);
+    expect(DEFAULT_UNIVERSE.systems[0]!.bodies[0]!.radius).toBe(16384);
+  });
   it('validates games/catalog.json schema and rejects duplicate IDs or aliases', () => {
     const catalog = validateGameCatalog(catalogRaw);
     expect(catalog.format).toBe('space-lab-game-catalog/1');

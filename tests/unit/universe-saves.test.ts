@@ -13,8 +13,10 @@ import { prepareGame } from '../../packages/modules/src/index';
 import { startServer } from '../../apps/server/src/server';
 import { gzipSync } from 'node:zlib';
 import fixture from '../fixtures/world-save-v1.json' with { type: 'json' };
+import { assertGameProgress, gamePreferenceKey, gameProgressFormat, CLASSIC_GAME_ID, SUCCESSOR_GAME_ID } from '../../packages/game-library/src/game-progress';
 
 const directories: string[] = [];
+const signal = new AbortController().signal;
 afterAll(async () => { for (const directory of directories) await rm(directory, { recursive: true, force: true }); });
 function saved(): WorldSave {
   const game = prepareGame({ environment: 'node' });
@@ -24,6 +26,35 @@ function saved(): WorldSave {
   } finally { game.candidate.dispose(); }
 }
 describe('separate universe saves and reusable data files', () => {
+  it('keeps legacy progress associated with Classic and rejects foreign or malformed ownership', async () => {
+    const bytes = new TextEncoder().encode(JSON.stringify(fixture));
+    expect(await gameProgressFormat(() => CLASSIC_GAME_ID).decode(bytes, signal)).toEqual(fixture);
+    await expect(gameProgressFormat(() => SUCCESSOR_GAME_ID).decode(bytes, signal)).rejects.toThrow('Space Sim Classic');
+    expect(() => assertGameProgress({ ...fixture, gameId: 42 }, CLASSIC_GAME_ID)).toThrow('Invalid saved game identity');
+    const loaded = loadWorld(fixture);
+    try { expect(loaded.world.tick).toBe(fixture.tick); expect(loaded.world.ships().length).toBe(fixture.ships.length); }
+    finally { loaded.world.dispose(); }
+  });
+  it('round trips separate progress across game switches without changing physical saved bits', async () => {
+    let active = CLASSIC_GAME_ID;
+    const format = gameProgressFormat(() => active), classic = saved();
+    const classicBytes = await format.encode(classic, signal);
+    active = SUCCESSOR_GAME_ID;
+    const successor = { ...saved(), tick: 77, time: 77 / 60 };
+    const successorBytes = await format.encode(successor, signal);
+    await expect(format.decode(classicBytes, signal)).rejects.toThrow(CLASSIC_GAME_ID);
+    expect(await format.decode(successorBytes, signal)).toEqual({ ...successor, gameId: SUCCESSOR_GAME_ID });
+    active = CLASSIC_GAME_ID;
+    await expect(format.decode(successorBytes, signal)).rejects.toThrow(SUCCESSOR_GAME_ID);
+    expect(await format.decode(classicBytes, signal)).toEqual({ ...classic, gameId: CLASSIC_GAME_ID });
+    expect(await decodeUniverseSave(successorBytes)).toEqual({ ...successor, gameId: SUCCESSOR_GAME_ID });
+  });
+  it('preserves legacy gameplay preference keys and separates successor choices', () => {
+    for (const key of ['space-sim:god-mode:v1', 'space-sim:throw-cheat:v1', 'space-sim:activation-throttle:v1', 'space-sim.planet-looks/1']) {
+      expect(gamePreferenceKey(key, CLASSIC_GAME_ID)).toBe(key);
+      expect(gamePreferenceKey(key, SUCCESSOR_GAME_ID)).toBe(`${key}:${SUCCESSOR_GAME_ID}`);
+    }
+  });
   it('round trips every saved bit with organized state/data and no embedded modules', async () => {
     const save = saved(), bytes = await encodeUniverseSave(save), files = await readZip(bytes);
     expect([...files.keys()]).toEqual(expect.arrayContaining(['save.json', 'state/universe.json', 'state/pilots.json', 'state/modules.json', 'state/ships/0000.json', 'data/universe.json']));

@@ -2,6 +2,7 @@ import { canonicalJson } from '../../../packages/game-runtime/src/authoritative'
 import { validatePackage, validateGameCatalog, type GamePackage, type GameCatalog } from '../../../packages/game-library/src/archive';
 import catalogJson from '../../../games/catalog.json' with { type: 'json' };
 import spaceSim from '../../../games/space-sim/game.json' with { type: 'json' };
+import spaceSimSuccessor from '../../../games/space-sim-successor/game.json' with { type: 'json' };
 import spaceSimNextGen from '../../../games/space-sim-nextgen/game.json' with { type: 'json' };
 import orbitSandbox from '../../../games/orbit-sandbox/game.json' with { type: 'json' };
 import orbitAcademy from '../../../games/orbit-academy/game.json' with { type: 'json' };
@@ -12,6 +13,7 @@ import surveyFixture from '../../../games/survey-fixture/game.json' with { type:
 export const catalog: GameCatalog = validateGameCatalog(catalogJson);
 
 export const defaultGame = validatePackage(spaceSim) as GamePackage;
+export const spaceSimSuccessorGame = validatePackage(spaceSimSuccessor) as GamePackage;
 export const spaceSimNextGenGame = validatePackage(spaceSimNextGen) as GamePackage;
 export const orbitSandboxGame = validatePackage(orbitSandbox) as GamePackage;
 export const orbitAcademyGame = validatePackage(orbitAcademy) as GamePackage;
@@ -21,6 +23,7 @@ export const surveyFixtureGame = validatePackage(surveyFixture) as GamePackage;
 
 export const bundledGames: readonly GamePackage[] = Object.freeze([
   defaultGame,
+  spaceSimSuccessorGame,
   spaceSimNextGenGame,
   orbitSandboxGame,
   orbitAcademyGame,
@@ -48,6 +51,7 @@ export function requestedBuiltinGame(search: string): GamePackage {
  * model to the flight session protocol. Target plans separately select public services. */
 export const bundledGameAdapters = new Map<string, 'flight' | 'legacy-sandbox' | 'static-viewer' | 'bounded-survey'>([
   ['builtin.space-sim', 'flight'],
+  ['builtin.space-sim-successor', 'flight'],
   ['builtin.space-sim-nextgen', 'flight'],
   ['builtin.orbit-sandbox', 'legacy-sandbox'],
   ['builtin.orbit-academy', 'flight'],

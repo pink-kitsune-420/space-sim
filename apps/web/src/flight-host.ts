@@ -1,3 +1,4 @@
+import { assertGameProgress, gamePreferenceKey, SUCCESSOR_GAME_ID } from '../../../packages/game-library/src/game-progress';
 import './warp-approval.css';
 import { WarpApproval } from './warp-approval';
 import { FloatingWindow } from './floating-window';
@@ -100,13 +101,14 @@ let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
 // Presentation/platform composition is separate from legacy authoritative save/lock identity.
-const hostFeatures = prepareBrowserTarget(startupGame.info.id, environment());
+let activeGameInfo = { ...startupGame.info };
+let switchingGame = false;
+const hostFeatures = prepareBrowserTarget(startupGame.info.id, environment(), () => activeGameInfo.id);
 // Shipped target guides appear once their module's documentation is verified.
 registerModuleGuides(hostFeatures, DOCUMENTED_MODULES);
 try {
 const presentationProviders = browserPresentationProviders(hostFeatures);
 const smartCameraPolicy = hostFeatures.lock.providers[SMART_CAMERAS.slot] ? hostFeatures.providedService(SMART_CAMERAS) : undefined;
-let activeGameInfo = { ...startupGame.info };
 let orbitSandboxInstance: OrbitSandboxInstance | undefined;
 /** Renderer provider, presentation modules and their hooks; started below once input exists. */
 const presentation = new Presentation(canvas, {
@@ -168,7 +170,7 @@ graphicsButton.addEventListener('click', () => {
   profiler.event('graphics', { quality: graphicsQuality });
 });
 const godModeToggle = element<HTMLInputElement>('god-mode');
-const GOD_MODE_KEY = 'space-sim:god-mode:v1';
+const GOD_MODE_KEY = gamePreferenceKey('space-sim:god-mode:v1', startupGame.info.id);
 try {
   const savedGod = localStorage.getItem(GOD_MODE_KEY);
   if (savedGod !== null) godModeToggle.checked = savedGod === 'true';
@@ -180,7 +182,7 @@ try {
 } catch { /* ignore */ }
 const throwCheatToggle = document.getElementById('throw-cheat-toggle') as HTMLInputElement | null;
 const throwShipToggleBtn = document.getElementById('throw-ship-toggle') as HTMLButtonElement | null;
-const THROW_CHEAT_KEY = 'space-sim:throw-cheat:v1';
+const THROW_CHEAT_KEY = gamePreferenceKey('space-sim:throw-cheat:v1', startupGame.info.id);
 let throwCheatEnabled = false;
 try {
   throwCheatEnabled = localStorage.getItem(THROW_CHEAT_KEY) === 'true';
@@ -291,7 +293,7 @@ function preparePads(world: import('../../../packages/game-api/src/index').World
 const prediction = hostFeatures.providedService(PREDICTIONS).create(pass => profiler.event('prediction', { ...pass }));
 const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
-const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id);
+const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id, startupGame.info.id);
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
 const isHosting = (): boolean => session === local && local.hosting;
@@ -1599,7 +1601,7 @@ function throttleInputHeld(slot: number): boolean {
 /** Persist activation preferences by seat, independent of transient burns and ship resets. */
 function loadActivationThrottles(): (number | undefined)[] {
   try {
-    const values: unknown = JSON.parse(localStorage.getItem('space-sim:activation-throttle:v1') ?? '[]');
+    const values: unknown = JSON.parse(localStorage.getItem(gamePreferenceKey('space-sim:activation-throttle:v1', startupGame.info.id)) ?? '[]');
     if (Array.isArray(values)) return Array.from({ length: 4 }, (_, i) =>
       typeof values[i] === 'number' && Number.isFinite(values[i]) && values[i] >= 0 && values[i] <= 1 ? values[i] : undefined);
   } catch { /* Use the world's default activation throttle. */ }
@@ -1613,7 +1615,7 @@ function activationThrottle(slot: number): number {
 
 function rememberActivationThrottle(slot: number, value: number | undefined): void {
   activationThrottles[slot] = value;
-  try { localStorage.setItem('space-sim:activation-throttle:v1', JSON.stringify(activationThrottles)); } catch { /* Storage unavailable. */ }
+  try { localStorage.setItem(gamePreferenceKey('space-sim:activation-throttle:v1', startupGame.info.id), JSON.stringify(activationThrottles)); } catch { /* Storage unavailable. */ }
 }
 
 function throttlePilot(slot: number) {
@@ -3909,6 +3911,7 @@ const universeSaveCommands = universeSaveProvider.create({
     options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused, flightPlans: maneuver.savePlans() } }),
   async restore(saved, signal, guard) {
     guard();
+    assertGameProgress(saved, activeGameInfo.id);
     const savedPlans = (saved as { flightPlans?: unknown }).flightPlans;
     if (savedPlans !== undefined) {
       if (!hostFeatures.lock.providers[FLIGHT_PLANS.slot]) throw new Error('This save needs the optional shared flight-plan module.');
@@ -4434,7 +4437,7 @@ function ticker(tick: () => void, ms: number): { stop(): void } {
   return { stop: () => { worker?.terminate(); if (timer) clearInterval(timer); } };
 }
 function updateBackground(): void {
-  const wanted = document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
+  const wanted = !switchingGame && document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
   if (wanted && !background) {
     backgroundAt = performance.now();
     background = ticker(() => {
@@ -5238,12 +5241,16 @@ labManager = new LabManager({
     if (session !== local || local.hosting) throw new Error('Leave multiplayer before switching games');
     const bundled = bundledGameDefinition(game);
     const adapter = bundled && bundledGameAdapters.get(bundled.info.id);
-    if (bundled && (adapter === 'static-viewer' || adapter === 'bounded-survey'
+    if (bundled && ((game.info.id !== activeGameInfo.id && (game.info.id === SUCCESSOR_GAME_ID || activeGameInfo.id === SUCCESSOR_GAME_ID))
+      || adapter === 'static-viewer' || adapter === 'bounded-survey'
       || browserTargetSelection(bundled.info.id).plans[environment()]?.profile.id !== hostFeatures.lock.profileId)) {
       // Host services change only at game load. A fresh page releases every borrowed
       // device/view/window resource together, while installed packages stay in storage.
       const url = new URL(location.href); url.searchParams.set('game', game.info.id);
       url.searchParams.delete('example'); url.searchParams.delete('presentation'); url.searchParams.set('played', '1');
+      // Navigation hides the outgoing page. Retire its timer before that event can
+      // start a background worker for the world being left behind.
+      switchingGame = true; updateBackground();
       location.assign(url.href); return;
     }
     if (game.info.id === 'builtin.orbit-sandbox') {

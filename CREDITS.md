@@ -49,3 +49,5 @@ The following open-source tools and libraries are used during development, testi
 - **tauri-build** ([MIT](https://github.com/tauri-apps/tauri/blob/dev/LICENSE-MIT) OR [Apache-2.0](https://github.com/tauri-apps/tauri/blob/dev/LICENSE-APACHE-2.0)) — The Tauri Programme within The Commons Conservancy
 
 All npm development dependencies conform to permissive, commercially-friendly open-source licensing allowlists, verified statically by `npm run check:licenses`. Android (Gradle) and Rust (Cargo) dependencies are reviewed manually.
+
+The Space Sim Successor package (`games/space-sim-successor`) contains first-party Classic-derived composition and world/settings data under the project MIT license. It reuses the shared Space Sim engine and modules.

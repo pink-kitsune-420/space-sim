@@ -76,7 +76,8 @@ export function inspectSaveFiles(files: PackageFiles): WorldSave {
   const dataRecords = d.format === 'spacelab-universe-save/2' ? unchunk(d.data, 'data', 4096) : undefined;
   if ([...files.keys()].some(path => !paths.has(path))) throw new Error('Unexpected save entry; universe saves never contain executable modules');
   const state = object(parsePackageJson(requiredFile(files, d.state), 'Universe state'), 'Universe state');
-  keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId', 'vehicles'], 'Universe state');
+  keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId', 'vehicles', 'gameId'], 'Universe state');
+  if (state.gameId !== undefined && (typeof state.gameId !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,127}$/.test(state.gameId))) throw new Error('Invalid saved game identity');
   if (state.format !== 'space-sim-world') throw new Error('Unsupported saved state');
   const modules = object(parsePackageJson(requiredFile(files, d.modules), 'Saved module state'), 'Saved module state');
   keys(modules, ['lock', 'simulationFingerprint', 'moduleState', 'configuration', 'data', 'flightPlans'], 'Saved module state');

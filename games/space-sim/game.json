@@ -2,7 +2,7 @@
   "format": "space-lab-game/1",
   "info": {
     "id": "builtin.space-sim",
-    "name": "Space Sim",
+    "name": "Space Sim Classic",
     "description": "The original orbital flight sandbox. Fly solo, explore planetary systems, or host friends in one shared sky."
   },
   "bundle": {
