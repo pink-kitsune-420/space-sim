@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f39111a2b9273614
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6e4f8f68549524d3
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -101,6 +101,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> player-view.ts [api-reference/game-api/player-view]
 -> presentation.ts [api-reference/game-api/presentation]
 -> profiler.ts [api-reference/game-api/profiler]
+-> render-air.ts [api-reference/game-api/render-air]
 -> render-math.ts [api-reference/game-api/render-math]
 -> rendering.ts [api-reference/game-api/rendering]
 -> rotation.ts [api-reference/game-api/rotation]
@@ -1769,10 +1770,11 @@ Public render.canvas@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateTileChunkProfile, vehicleArtworkScale
+AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api state.ts [api-reference/game-api/state]
@@ -1811,12 +1813,13 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
+AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api platform.ts [api-reference/game-api/platform]
 -> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api shader-format.ts [api-reference/game-api/shader-format]
@@ -6227,6 +6230,8 @@ Celestial body descriptor for a rendered frame in system world coordinates (`pos
       readonly surface?: SurfaceProfile;
       readonly color?: string;
       readonly accentColor?: string;
+      /** Optional independent air; replaces legacy sky/glow including in off mode. */
+      readonly air?: RenderAir;
       readonly atmosphereColor?: string;
       readonly horizonColor?: string;
       readonly skyColor?: string;
@@ -6401,6 +6406,8 @@ Used by: host or creator modules (not imported by shipped modules).
 ## RendererFeatures
 Optional features of a renderer instance. Applications discover them here, never by class.
     export interface RendererFeatures {
+      /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */
+      readonly independentAir?: { readonly version: 1 };
       readonly shaders?: ShaderControl;
       readonly effects?: ShaderEffects;
       /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
@@ -6886,6 +6893,175 @@ Used by: spacelab.profiler.
 Service key for the frame-profiler provider (`diagnostics.profiler@1.0.0`).
     export const PROFILERS: ServiceKey<ProfilerFactory> = Object.freeze({slot:'diagnostics.profiler',version:'1.0.0'});
 Used by: spacelab.profiler.
+-> API reference index [api-reference]
+
+=== game-api: render-air.ts [api-reference/game-api/render-air]
+Declarations from render-air.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-air.ts.
+
+## RenderAir
+Independent decorative radial air. Heights are metres above the maximum canonical terrain radius (or body.radius). This replaces legacy sky/glow even in off mode. Near views include a lighting-based sky that fades to space with altitude and overview zoom; off keeps clear space. Phase is supplied in body-fixed radians; renderers never advance time. No weather, ground lighting, collision or shader-pack ABI is implied. Values must be finite; heights positive, colors/opacity in 0..1. Unsupported providers may omit this effect.
+    export interface RenderAir {
+      readonly mode: 'off' | 'air' | 'clouds';
+      readonly heightMetres: number;
+      readonly cloudAltitudeMetres: number;
+      readonly cloudThicknessMetres: number;
+      readonly color: readonly [number, number, number];
+      readonly opacity: number;
+      readonly phaseRadians: number;
+      /** Optional shared direction toward the star, in system coordinates.
+       * Kept separate from ground sunDirection so enabling air cannot relight tiles/terrain. */
+      readonly sunDirection?: Vec;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## AIR_SEGMENTS
+Maximum angular segments per body/pass, independent of world or fine-cell count.
+    export const AIR_SEGMENTS = 512;
+Used by: host or creator modules (not imported by shipped modules).
+
+## airCloudCoverage
+Seamless bounded periodic coverage, not a simulated or saved weather field. Body-fixed angle and supplied phase are the only inputs; camera/resolution are absent.
+    export function airCloudCoverage(angle: number, phase: number): number;
+Used by: host or creator modules (not imported by shipped modules).
+
+## AirMesh
+Reusable camera-relative triangle mesh (CSS x/y then straight RGBA per vertex). `length` counts floats valid until the next update; no buffers are retained by a draw consumer after draw returns. Four air bands plus two tapered cloud halves, <=512 view-limited segments, plus a near-view sky quad in the far layer. Storage is fixed, with no per-segment allocations. The consumer MUST mask outside all canonical ground silhouettes and draw gameplay cues later. The shell is a radial 2D section, with no far hemisphere projected onto ground.
+    export class AirMesh {
+      readonly vertices = new Float32Array(AIR_SEGMENTS * 6 * 36);
+      length = 0;
+      private cr = 1; private sr = 0; private ax = 0; private ay = 0;
+      private theta = 0; private anchor = 0; private scale = 1; private width = 0; private height = 0;
+      private vertex(angle: number, radius: number, r: number, g: number, b: number, alpha: number): void {
+        const d = angle - this.theta;
+        const radial = radius - this.anchor - 2 * radius * Math.sin(d / 2) ** 2;
+        const tangent = radius * Math.sin(d);
+        const c = Math.cos(this.theta), s = Math.sin(this.theta);
+        const x = this.ax + c * radial - s * tangent, y = this.ay + s * radial + c * tangent;
+        this.screenVertex(this.width / 2 + (x * this.cr - y * this.sr) * this.scale,
+          this.height / 2 - (x * this.sr + y * this.cr) * this.scale, r, g, b, alpha);
+      }
+      private screenVertex(x: number, y: number, r: number, g: number, b: number, alpha: number): void {
+        const out = this.vertices; let i = this.length;
+        out[i++] = x; out[i++] = y;
+        out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = alpha;
+        this.length = i;
+      }
+      /** Build only the requested layer. Off/invalid/culled bodies yield zero vertices.
+       * Air is presentation-only; profile extrema are read without sampling fine cells. */
+      update(body: RenderBody, camera: Camera, width: number, height: number, layer: 'far' | 'near'): void {
+        this.length = 0;
+        const air = body.air;
+        if (!air || !valid(air) || air.mode === 'off' || air.opacity === 0 || body.surfaceFeatures === 'star'
+          || !(camera.scale > 0) || !Number.isFinite(camera.scale)) return;
+        const min = body.surface?.bounds.minRadius ?? body.radius, max = body.surface?.bounds.maxRadius ?? body.radius;
+        const outer = max + Math.max(air.heightMetres, air.cloudAltitudeMetres + air.cloudThicknessMetres);
+        const x = camera.center.x - body.position.x, y = camera.center.y - body.position.y;
+        const distance = Math.hypot(x, y), view = Math.hypot(width, height) / (2 * camera.scale) + 2 / camera.scale;
+        if (distance - view > outer || distance + view < min) return;
+        this.theta = Math.atan2(y, x); this.anchor = max;
+        const c = Math.cos(this.theta), s = Math.sin(this.theta);
+        this.ax = max * c - x; this.ay = max * s - y;
+        this.cr = Math.cos(camera.rotation); this.sr = Math.sin(camera.rotation);
+        this.scale = camera.scale; this.width = width; this.height = height;
+        // The view's enclosing circle conservatively bounds every shell intersection.
+        const half = distance <= view ? Math.PI : Math.asin(Math.min(1, view / distance));
+        const start = this.theta - half, span = 2 * half;
+        const sun = air.sunDirection ?? body.sunDirection;
+        if (layer === 'far') {
+          // Camera centre is a view target, not a physical observer. Apparent-size
+          // fading keeps body-centred orbital maps in space, even with a landed ship.
+          const near = smoothstep(.6, 1.4, body.radius * camera.scale / Math.max(width, height));
+          const density = smoothstep(.1, .65, (max + air.heightMetres - distance) / air.heightMetres);
+          const alpha = near * density;
+          if (alpha > .0001) {
+            const cosSun = sun && distance > 0 ? (x * sun.x + y * sun.y) / distance : 1;
+            const day = (skyLight(cosSun) - .2) / .8, warm = twilight(cosSun) * .35;
+            const br = (.018 + (air.color[0] * .9 - .018) * day) * (1 - warm) + warm;
+            const bg = (.03 + (air.color[1] * .9 - .03) * day) * (1 - warm) + .45 * warm;
+            const bb = (.05 + (air.color[2] * .9 - .05) * day) * (1 - warm) + .2 * warm;
+            const tr = .006 + (air.color[0] * .55 - .006) * day;
+            const tg = .012 + (air.color[1] * .55 - .012) * day;
+            const tb = .026 + (air.color[2] * .55 - .026) * day;
+            const nx = distance ? (x * this.cr - y * this.sr) / distance : 0;
+            const ny = distance ? -(x * this.sr + y * this.cr) / distance : -1;
+            const tx = -ny, ty = nx, extent = Math.hypot(width, height) / 2 + 2;
+            const cx = width / 2, cy = height / 2;
+            this.screenVertex(cx - nx * extent - tx * extent, cy - ny * extent - ty * extent, br, bg, bb, alpha);
+            this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);
+            this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);
+            this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);
+            this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);
+            this.screenVertex(cx + nx * extent + tx * extent, cy + ny * extent + ty * extent, tr, tg, tb, alpha);
+          }
+        }
+        for (let band = layer === 'far' ? 2 : 0; band < (layer === 'far' ? 4 : air.mode === 'clouds' ? 6 : 2); band++) {
+          if (layer === 'near' && band >= 2 && band < 4) continue;
+          const cloud = band >= 4;
+          const segments = Math.min(AIR_SEGMENTS, Math.max(4, Math.ceil(span * (cloud ? 64 : 8)),
+            Math.ceil(span * Math.sqrt(outer * camera.scale / 1.6))));
+          const lo = cloud ? max + air.cloudAltitudeMetres : min + (max + air.heightMetres - min) * band / 4;
+          const hi = cloud ? lo + air.cloudThicknessMetres : min + (max + air.heightMetres - min) * (band + 1) / 4;
+          if (distance - view > hi || distance + view < lo) continue;
+          for (let j = 0; j < segments; j++) {
+            const a = start + span * j / segments, b = start + span * (j + 1) / segments;
+            const middle = (a + b) / 2;
+            const cosSun = sun ? Math.cos(middle) * sun.x + Math.sin(middle) * sun.y : 1;
+            const light = skyLight(cosSun), warm = twilight(cosSun) * .35;
+            const r = cloud ? .83 : air.color[0] * (1 - warm) + warm;
+            const g = cloud ? .87 : air.color[1] * (1 - warm) + .6 * warm;
+            const bl = cloud ? .9 : air.color[2] * (1 - warm) + .35 * warm;
+            const coverageA = cloud ? airCloudCoverage(a - (body.rotation ?? 0), air.phaseRadians) : 1;
+            const coverageB = cloud ? airCloudCoverage(b - (body.rotation ?? 0), air.phaseRadians) : 1;
+            const strength = cloud ? Math.min(1, air.opacity * 4) : air.opacity * (1 - band / 4);
+            const peakA = strength * light * coverageA, peakB = strength * light * coverageB;
+            const alphaA = band === 4 ? 0 : peakA, alphaB = band === 4 ? 0 : peakB;
+            const outerA = cloud ? band === 4 ? peakA : 0 : air.opacity * light * (1 - (band + 1) / 4);
+            const outerB = cloud ? band === 4 ? peakB : 0 : outerA;
+            // A lens within the fixed shell, with clear gaps and both radial edges fading.
+            const localA = a - (body.rotation ?? 0) - air.phaseRadians;
+            const localB = b - (body.rotation ?? 0) - air.phaseRadians;
+            const centerA = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localA));
+            const centerB = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localB));
+            const halfA = (hi - lo) * .35 * coverageA, halfB = (hi - lo) * .35 * coverageB;
+            const loA = cloud ? band === 4 ? centerA - halfA : centerA : lo;
+            const loB = cloud ? band === 4 ? centerB - halfB : centerB : lo;
+            const hiA = cloud ? band === 4 ? centerA : centerA + halfA : hi;
+            const hiB = cloud ? band === 4 ? centerB : centerB + halfB : hi;
+            if (Math.max(peakA, peakB) < .0001) continue;
+            this.vertex(a, loA, r, g, bl, alphaA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(a, hiA, r, g, bl, outerA);
+            this.vertex(a, hiA, r, g, bl, outerA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(b, hiB, r, g, bl, outerB);
+          }
+        }
+      }
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## NIGHT_LEVEL
+Brightness floor of the readable legacy night ground.
+    export const NIGHT_LEVEL = .35;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## TWILIGHT_COLOR
+Warm terminator tint in normalized RGB.
+    export const TWILIGHT_COLOR: readonly [number, number, number] = [1, .6, .35];
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## daylight
+Readable night ground floor, smoothly approaching daylight.
+    export const daylight = (cosSun: number): number => …;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## skyLight
+Faint night air; full strength in daylight.
+    export const skyLight = (cosSun: number): number => …;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## twilight
+Warmth at sunrise/sunset.
+    export const twilight = (cosSun: number): number => …;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
 === game-api: render-math.ts [api-reference/game-api/render-math]
@@ -11360,6 +11536,7 @@ examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to cre
 VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hull/flame/details scale by the camera pixels per metre; sub-eight-pixel hulls become navigation markers. Match artwork to authoritative contactRadiusMetres; optional geometry never changes collision authority.
 Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
 Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
+Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-canvas/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11403,6 +11580,7 @@ examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initi
 VehicleAppearance may declare metresPerUnit and local detail paths. Single and fleet vessels use physical world scale up close and navigation markers below eight projected CSS pixels. Match circular hull artwork with authoritative contactRadiusMetres; rendering does not define collision geometry.
 Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
 Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
+Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-webgl/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.

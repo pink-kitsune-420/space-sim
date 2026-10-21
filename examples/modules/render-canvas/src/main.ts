@@ -51,3 +51,14 @@ export function suppliedLightTileExample(features: import('@space-sim/game-api')
   const light = new Uint8Array(1024).fill(15); light[0]=0;
   return {kind:'tile-chunk',space:'world',origin:{x:0,y:0},size:32,tileMetres:.5,tiles,walls,light,lightEncoding:'nibble'};
 }
+
+/** Explicit cosmetic radial air, borrowed through drawing. A host supplies phase;
+ * this example stays static and never advances simulation or assumes shader ABI.
+ * Near sky follows the supplied sun and fades to space with altitude/overview zoom. */
+export function independentAirExample(body: import('@space-sim/game-api').RenderBody,
+  features: import('@space-sim/game-api').RendererFeatures): import('@space-sim/game-api').RenderBody {
+  if (!features.independentAir) return body;
+  return { ...body, air: { mode: 'clouds', heightMetres: body.radius * .06,
+    cloudAltitudeMetres: body.radius * .018, cloudThicknessMetres: body.radius * .004,
+    color: [.416, .706, .925], opacity: .12, phaseRadians: 0 } };
+}

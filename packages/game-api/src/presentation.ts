@@ -1,3 +1,4 @@
+import type { RenderAir } from './render-air';
 import type { Controls, GhostEnd, GhostSample, State, Vec } from './state';
 import type { SurfaceProfile } from './surface';
 import type { Elements } from './orbit';
@@ -20,6 +21,8 @@ export interface RenderBody {
   readonly surface?: SurfaceProfile;
   readonly color?: string;
   readonly accentColor?: string;
+  /** Optional independent air; replaces legacy sky/glow including in off mode. */
+  readonly air?: RenderAir;
   readonly atmosphereColor?: string;
   readonly horizonColor?: string;
   readonly skyColor?: string;
@@ -155,6 +158,8 @@ export interface ShaderControl {
 }
 /** Optional features of a renderer instance. Applications discover them here, never by class. */
 export interface RendererFeatures {
+  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */
+  readonly independentAir?: { readonly version: 1 };
   readonly shaders?: ShaderControl;
   readonly effects?: import('./platform').ShaderEffects;
   /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { requireTileChunkFeatures } from '../../packages/game-api/src/index';
 import type { OverlayPrimitive, RenderFrame } from '../../packages/game-api/src/index';
 import { CanvasRenderer, DEFAULT_SHADERS, WebGLRenderer } from '../../packages/render-2d/src/index';
+import { createSurfaceProfile } from '../../packages/sim-core/src/surface';
 import { initialState } from '../../packages/sim-core/src/index';
 
 const OVERLAYS: readonly OverlayPrimitive[] = [
@@ -66,6 +67,29 @@ function fakeGl(stencil = true) {
 }
 
 describe('renderer features', () => {
+  it('qualifies independent air and masks it before flight cues without changing ground on replacement', () => {
+    const surface = createSurfaceProfile(100, [0, 2, -1, 0, 1, -2, 0, 0]);
+    const body = { id: 'air', name: 'AIR', radius: 100, position: { x: 0, y: 0 }, surface,
+      atmosphereColor: '#6ab4ec80', air: { mode: 'clouds' as const, heightMetres: 20,
+        cloudAltitudeMetres: 10, cloudThicknessMetres: 2, color: [.4, .7, .9] as const, opacity: .12, phaseRadians: 0 } };
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: {x:0,y:0}, size:32, tileMetres:1, tiles };
+    const f = { ...frame([chunk]), bodies: [body], shipWorldPosition: { x: 0, y: 130 }, showScale: false };
+    const cpu = fake2d(), renderer = new CanvasRenderer(cpu.canvas);
+    expect(renderer.features.independentAir).toEqual({ version: 1 }); renderer.draw(f);
+    expect(cpu.calls).toContain('clip(evenodd)');
+    expect(cpu.calls.findIndex(c => c.startsWith('fillRect('))).toBeLessThan(cpu.calls.findIndex(c => c.includes('VESSEL 01')));
+    const gpu = fakeGl(), accelerated = new WebGLRenderer(gpu.canvas);
+    expect(accelerated.features.independentAir).toEqual({ version: 1 }); accelerated.draw(f);
+    expect(gpu.stats.instancedDraws).toHaveLength(1);
+    accelerated.draw({ ...f, bodies: [{ ...body, air: { ...body.air, mode: 'off' } }] });
+    expect(gpu.stats.instancedDraws).toHaveLength(2);
+    renderer.dispose(); accelerated.dispose(); expect(gpu.stats.buffers.size).toBe(0);
+    const unavailable = new WebGLRenderer(fakeGl(false).canvas);
+    expect(unavailable.features.independentAir).toBeUndefined(); unavailable.dispose();
+  });
+
+
   it('draws cosmetic walls behind air, clears omitted GPU walls, and releases tile buffers', () => {
     const tiles = new Uint16Array(1024); tiles[0] = 1;
     const walls = new Uint16Array(1024); walls[0] = 2; walls[1] = 2;

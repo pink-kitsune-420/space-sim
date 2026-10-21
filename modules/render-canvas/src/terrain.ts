@@ -154,7 +154,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const sun = sunDirection && { x: Math.cos(angle) * sunDirection.x + Math.sin(angle) * sunDirection.y,
     y: -Math.sin(angle) * sunDirection.x + Math.cos(angle) * sunDirection.y };
   const key = JSON.stringify([camera.center.x - body.position.x, camera.center.y - body.position.y,
-    camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor,
+    camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor, Boolean(body.air),
     sun ? [Math.round(sun.x * 1e3), Math.round(sun.y * 1e3)] : null]);
   const cached = LAST_GEOMETRY.get(profile);
   if (cached?.key === key && cached.querySurface === querySurface) return cached.geometry;
@@ -214,7 +214,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const accents: Array<readonly { x: number; y: number }[]> = [];
   const base = rgba(body.color ?? '#233c47'), dark = rgba('#101e2b');
   const accentColor = rgba(body.horizonColor ?? body.accentColor ?? '#659497');
-  const sky = rgba(body.skyColor ?? body.atmosphereColor ?? '#29495380');
+  const sky = rgba(body.air ? '#00000000' : body.skyColor ?? body.atmosphereColor ?? '#29495380');
   const center = project(0, 0);
   const depth = Math.min(profile.bounds.minRadius * .22, 220 / camera.scale);
   // Air is a share of the radius, so it stays as deep as the zoom shows it, however close.

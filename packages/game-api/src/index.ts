@@ -59,3 +59,5 @@ export * from './transfers';
 
 export * from './alarms';
 export * from './tutorials';
+
+export * from './render-air';

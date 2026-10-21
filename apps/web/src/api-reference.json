@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f39111a2b9273614",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6e4f8f68549524d3",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest f39111a2b9273614"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6e4f8f68549524d3"
         },
         {
           "type": "paragraph",
@@ -528,6 +528,11 @@
           "type": "link",
           "text": "profiler.ts",
           "page": "api-reference/game-api/profiler"
+        },
+        {
+          "type": "link",
+          "text": "render-air.ts",
+          "page": "api-reference/game-api/render-air"
         },
         {
           "type": "link",
@@ -5127,7 +5132,7 @@
         },
         {
           "type": "paragraph",
-          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5143,6 +5148,11 @@
           "type": "link",
           "text": "game-api presentation.ts",
           "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-air.ts",
+          "page": "api-reference/game-api/render-air"
         },
         {
           "type": "link",
@@ -5256,7 +5266,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, trajectoryMarkers, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5282,6 +5292,11 @@
           "type": "link",
           "text": "game-api presentation.ts",
           "page": "api-reference/game-api/presentation"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-air.ts",
+          "page": "api-reference/game-api/render-air"
         },
         {
           "type": "link",
@@ -13039,7 +13054,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
+          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  /** Optional independent air; replaces legacy sky/glow including in off mode. */\n  readonly air?: RenderAir;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
         },
         {
           "type": "paragraph",
@@ -13263,7 +13278,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+          "text": "export interface RendererFeatures {\n  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */\n  readonly independentAir?: { readonly version: 1 };\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
         },
         {
           "type": "paragraph",
@@ -13892,6 +13907,166 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.profiler."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/render-air",
+      "title": "game-api: render-air.ts",
+      "summary": "Declarations from render-air.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-air.ts."
+        },
+        {
+          "type": "heading",
+          "text": "RenderAir"
+        },
+        {
+          "type": "paragraph",
+          "text": "Independent decorative radial air. Heights are metres above the maximum canonical terrain radius (or body.radius). This replaces legacy sky/glow even in off mode. Near views include a lighting-based sky that fades to space with altitude and overview zoom; off keeps clear space. Phase is supplied in body-fixed radians; renderers never advance time. No weather, ground lighting, collision or shader-pack ABI is implied. Values must be finite; heights positive, colors/opacity in 0..1. Unsupported providers may omit this effect."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderAir {\n  readonly mode: 'off' | 'air' | 'clouds';\n  readonly heightMetres: number;\n  readonly cloudAltitudeMetres: number;\n  readonly cloudThicknessMetres: number;\n  readonly color: readonly [number, number, number];\n  readonly opacity: number;\n  readonly phaseRadians: number;\n  /** Optional shared direction toward the star, in system coordinates.\n   * Kept separate from ground sunDirection so enabling air cannot relight tiles/terrain. */\n  readonly sunDirection?: Vec;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "AIR_SEGMENTS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Maximum angular segments per body/pass, independent of world or fine-cell count."
+        },
+        {
+          "type": "code",
+          "text": "export const AIR_SEGMENTS = 512;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "airCloudCoverage"
+        },
+        {
+          "type": "paragraph",
+          "text": "Seamless bounded periodic coverage, not a simulated or saved weather field. Body-fixed angle and supplied phase are the only inputs; camera/resolution are absent."
+        },
+        {
+          "type": "code",
+          "text": "export function airCloudCoverage(angle: number, phase: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "AirMesh"
+        },
+        {
+          "type": "paragraph",
+          "text": "Reusable camera-relative triangle mesh (CSS x/y then straight RGBA per vertex). `length` counts floats valid until the next update; no buffers are retained by a draw consumer after draw returns. Four air bands plus two tapered cloud halves, <=512 view-limited segments, plus a near-view sky quad in the far layer. Storage is fixed, with no per-segment allocations. The consumer MUST mask outside all canonical ground silhouettes and draw gameplay cues later. The shell is a radial 2D section, with no far hemisphere projected onto ground."
+        },
+        {
+          "type": "code",
+          "text": "export class AirMesh {\n  readonly vertices = new Float32Array(AIR_SEGMENTS * 6 * 36);\n  length = 0;\n  private cr = 1; private sr = 0; private ax = 0; private ay = 0;\n  private theta = 0; private anchor = 0; private scale = 1; private width = 0; private height = 0;\n  private vertex(angle: number, radius: number, r: number, g: number, b: number, alpha: number): void {\n    const d = angle - this.theta;\n    const radial = radius - this.anchor - 2 * radius * Math.sin(d / 2) ** 2;\n    const tangent = radius * Math.sin(d);\n    const c = Math.cos(this.theta), s = Math.sin(this.theta);\n    const x = this.ax + c * radial - s * tangent, y = this.ay + s * radial + c * tangent;\n    this.screenVertex(this.width / 2 + (x * this.cr - y * this.sr) * this.scale,\n      this.height / 2 - (x * this.sr + y * this.cr) * this.scale, r, g, b, alpha);\n  }\n  private screenVertex(x: number, y: number, r: number, g: number, b: number, alpha: number): void {\n    const out = this.vertices; let i = this.length;\n    out[i++] = x; out[i++] = y;\n    out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = alpha;\n    this.length = i;\n  }\n  /** Build only the requested layer. Off/invalid/culled bodies yield zero vertices.\n   * Air is presentation-only; profile extrema are read without sampling fine cells. */\n  update(body: RenderBody, camera: Camera, width: number, height: number, layer: 'far' | 'near'): void {\n    this.length = 0;\n    const air = body.air;\n    if (!air || !valid(air) || air.mode === 'off' || air.opacity === 0 || body.surfaceFeatures === 'star'\n      || !(camera.scale > 0) || !Number.isFinite(camera.scale)) return;\n    const min = body.surface?.bounds.minRadius ?? body.radius, max = body.surface?.bounds.maxRadius ?? body.radius;\n    const outer = max + Math.max(air.heightMetres, air.cloudAltitudeMetres + air.cloudThicknessMetres);\n    const x = camera.center.x - body.position.x, y = camera.center.y - body.position.y;\n    const distance = Math.hypot(x, y), view = Math.hypot(width, height) / (2 * camera.scale) + 2 / camera.scale;\n    if (distance - view > outer || distance + view < min) return;\n    this.theta = Math.atan2(y, x); this.anchor = max;\n    const c = Math.cos(this.theta), s = Math.sin(this.theta);\n    this.ax = max * c - x; this.ay = max * s - y;\n    this.cr = Math.cos(camera.rotation); this.sr = Math.sin(camera.rotation);\n    this.scale = camera.scale; this.width = width; this.height = height;\n    // The view's enclosing circle conservatively bounds every shell intersection.\n    const half = distance <= view ? Math.PI : Math.asin(Math.min(1, view / distance));\n    const start = this.theta - half, span = 2 * half;\n    const sun = air.sunDirection ?? body.sunDirection;\n    if (layer === 'far') {\n      // Camera centre is a view target, not a physical observer. Apparent-size\n      // fading keeps body-centred orbital maps in space, even with a landed ship.\n      const near = smoothstep(.6, 1.4, body.radius * camera.scale / Math.max(width, height));\n      const density = smoothstep(.1, .65, (max + air.heightMetres - distance) / air.heightMetres);\n      const alpha = near * density;\n      if (alpha > .0001) {\n        const cosSun = sun && distance > 0 ? (x * sun.x + y * sun.y) / distance : 1;\n        const day = (skyLight(cosSun) - .2) / .8, warm = twilight(cosSun) * .35;\n        const br = (.018 + (air.color[0] * .9 - .018) * day) * (1 - warm) + warm;\n        const bg = (.03 + (air.color[1] * .9 - .03) * day) * (1 - warm) + .45 * warm;\n        const bb = (.05 + (air.color[2] * .9 - .05) * day) * (1 - warm) + .2 * warm;\n        const tr = .006 + (air.color[0] * .55 - .006) * day;\n        const tg = .012 + (air.color[1] * .55 - .012) * day;\n        const tb = .026 + (air.color[2] * .55 - .026) * day;\n        const nx = distance ? (x * this.cr - y * this.sr) / distance : 0;\n        const ny = distance ? -(x * this.sr + y * this.cr) / distance : -1;\n        const tx = -ny, ty = nx, extent = Math.hypot(width, height) / 2 + 2;\n        const cx = width / 2, cy = height / 2;\n        this.screenVertex(cx - nx * extent - tx * extent, cy - ny * extent - ty * extent, br, bg, bb, alpha);\n        this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);\n        this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);\n        this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);\n        this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);\n        this.screenVertex(cx + nx * extent + tx * extent, cy + ny * extent + ty * extent, tr, tg, tb, alpha);\n      }\n    }\n    for (let band = layer === 'far' ? 2 : 0; band < (layer === 'far' ? 4 : air.mode === 'clouds' ? 6 : 2); band++) {\n      if (layer === 'near' && band >= 2 && band < 4) continue;\n      const cloud = band >= 4;\n      const segments = Math.min(AIR_SEGMENTS, Math.max(4, Math.ceil(span * (cloud ? 64 : 8)),\n        Math.ceil(span * Math.sqrt(outer * camera.scale / 1.6))));\n      const lo = cloud ? max + air.cloudAltitudeMetres : min + (max + air.heightMetres - min) * band / 4;\n      const hi = cloud ? lo + air.cloudThicknessMetres : min + (max + air.heightMetres - min) * (band + 1) / 4;\n      if (distance - view > hi || distance + view < lo) continue;\n      for (let j = 0; j < segments; j++) {\n        const a = start + span * j / segments, b = start + span * (j + 1) / segments;\n        const middle = (a + b) / 2;\n        const cosSun = sun ? Math.cos(middle) * sun.x + Math.sin(middle) * sun.y : 1;\n        const light = skyLight(cosSun), warm = twilight(cosSun) * .35;\n        const r = cloud ? .83 : air.color[0] * (1 - warm) + warm;\n        const g = cloud ? .87 : air.color[1] * (1 - warm) + .6 * warm;\n        const bl = cloud ? .9 : air.color[2] * (1 - warm) + .35 * warm;\n        const coverageA = cloud ? airCloudCoverage(a - (body.rotation ?? 0), air.phaseRadians) : 1;\n        const coverageB = cloud ? airCloudCoverage(b - (body.rotation ?? 0), air.phaseRadians) : 1;\n        const strength = cloud ? Math.min(1, air.opacity * 4) : air.opacity * (1 - band / 4);\n        const peakA = strength * light * coverageA, peakB = strength * light * coverageB;\n        const alphaA = band === 4 ? 0 : peakA, alphaB = band === 4 ? 0 : peakB;\n        const outerA = cloud ? band === 4 ? peakA : 0 : air.opacity * light * (1 - (band + 1) / 4);\n        const outerB = cloud ? band === 4 ? peakB : 0 : outerA;\n        // A lens within the fixed shell, with clear gaps and both radial edges fading.\n        const localA = a - (body.rotation ?? 0) - air.phaseRadians;\n        const localB = b - (body.rotation ?? 0) - air.phaseRadians;\n        const centerA = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localA));\n        const centerB = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localB));\n        const halfA = (hi - lo) * .35 * coverageA, halfB = (hi - lo) * .35 * coverageB;\n        const loA = cloud ? band === 4 ? centerA - halfA : centerA : lo;\n        const loB = cloud ? band === 4 ? centerB - halfB : centerB : lo;\n        const hiA = cloud ? band === 4 ? centerA : centerA + halfA : hi;\n        const hiB = cloud ? band === 4 ? centerB : centerB + halfB : hi;\n        if (Math.max(peakA, peakB) < .0001) continue;\n        this.vertex(a, loA, r, g, bl, alphaA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(a, hiA, r, g, bl, outerA);\n        this.vertex(a, hiA, r, g, bl, outerA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(b, hiB, r, g, bl, outerB);\n      }\n    }\n  }\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "NIGHT_LEVEL"
+        },
+        {
+          "type": "paragraph",
+          "text": "Brightness floor of the readable legacy night ground."
+        },
+        {
+          "type": "code",
+          "text": "export const NIGHT_LEVEL = .35;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "TWILIGHT_COLOR"
+        },
+        {
+          "type": "paragraph",
+          "text": "Warm terminator tint in normalized RGB."
+        },
+        {
+          "type": "code",
+          "text": "export const TWILIGHT_COLOR: readonly [number, number, number] = [1, .6, .35];"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "daylight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Readable night ground floor, smoothly approaching daylight."
+        },
+        {
+          "type": "code",
+          "text": "export const daylight = (cosSun: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "skyLight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Faint night air; full strength in daylight."
+        },
+        {
+          "type": "code",
+          "text": "export const skyLight = (cosSun: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "twilight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Warmth at sunrise/sunset."
+        },
+        {
+          "type": "code",
+          "text": "export const twilight = (cosSun: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "link",

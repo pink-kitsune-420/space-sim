@@ -1,3 +1,4 @@
+import { SuccessorAir } from './successor-air';
 import { SuccessorTiles } from './successor-tiles';
 import { successorReferences } from './successor-comparison';
 import { assertGameProgress, gamePreferenceKey, SUCCESSOR_GAME_ID } from '../../../packages/game-library/src/game-progress';
@@ -296,6 +297,9 @@ const prediction = hostFeatures.providedService(PREDICTIONS).create(pass => prof
 const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
 const successorTiles = new SuccessorTiles();
+const successorAir = new SuccessorAir();
+if (new URLSearchParams(location.search).get('successorAir') === 'clouds') successorAir.mode = 'clouds';
+document.addEventListener('visibilitychange', () => successorAir.clock.suspend());
 const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id, startupGame.info.id);
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
@@ -4495,6 +4499,8 @@ function diagnostics(engine: boolean): Record<string, unknown> {
   const summary = profiler.summary();
   const world = session.world;
   return {
+    airCapabilities: presentation.rendering.renderer?.features?.independentAir ?? null,
+    successorAir: activeGameInfo.id === 'builtin.space-sim-successor' ? successorAir.stats : undefined,
     tileCapabilities: presentation.rendering.renderer?.features?.tileChunks ?? null,
     renderer: presentation.provider.id, shader: presentation.rendering.shaders.name,
     hostFeatures: { modules: hostFeatures.lock.modules, providers: hostFeatures.lock.providers, profile: hostFeatures.lock.profileId },
@@ -4762,8 +4768,10 @@ function frame(now: number): void {
   }
   // Resolved bodies for renderer
   const world = session.world;
+  const isSuccessor = activeGameInfo.id === 'builtin.space-sim-successor';
+  successorAir.clock.advance(elapsed, session.paused, document.hidden, world);
   // High quality lights every body from the system's star; starless systems stay unlit.
-  const star = graphicsQuality === 'high' ? world.system.getAllBodies().find(b => b.surfaceFeatures === 'star') : undefined;
+  const star = graphicsQuality === 'high' || isSuccessor ? world.system.getAllBodies().find(b => b.surfaceFeatures === 'star') : undefined;
   const starPos = star && world.system.getBodyPosition(star.id, view.time);
   const renderBodies = world.system.getAllBodies().map(b => {
     const pos = world.system.getBodyPosition(b.id, view.time);
@@ -4781,13 +4789,15 @@ function frame(now: number): void {
       color: b.color,
       accentColor: b.accentColor,
       atmosphereColor: b.atmosphereColor,
+      ...(isSuccessor && presentation.rendering.renderer?.features?.independentAir
+        ? { air: successorAir.forBody(b, graphicsQuality === 'low', toStar > 0 ? { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } : undefined) } : {}),
       horizonColor: b.horizonColor,
       skyColor: b.skyColor,
       surfaceFeatures: b.surfaceFeatures,
       parentPosition: parentPos,
       orbitRadius: orbitR,
       ...(b.rotation ? { rotation: spinView.angle(b, view.time) } : {}),
-      ...(toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
+      ...(graphicsQuality === 'high' && toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
       ...(graphicsQuality === 'high' ? { appearance: designer.appearanceFor(world, b) } : {}),
     };
   });
@@ -5162,10 +5172,20 @@ if (startupGame.info.id === 'builtin.space-sim-successor') {
   }
   materials.addEventListener('change', () => { successorTiles.style = materials.value === 'muted' ? 'muted' : 'colored'; });
   materialLabel.append(materials);
+  const airLabel = document.createElement('label'); airLabel.textContent = 'Clouds and air ';
+  const air = document.createElement('select'); air.id = 'successor-air-mode';
+  for (const [value, text] of [['off', 'Off (clear comparison)'], ['air', 'Air only'], ['clouds', 'Clouds + air (trial)']]) {
+    const option = document.createElement('option'); option.value = value!; option.textContent = text!; air.append(option);
+  }
+  air.value = successorAir.mode;
+  air.addEventListener('change', () => { successorAir.mode = air.value as 'off' | 'air' | 'clouds'; });
+  airLabel.append(air);
+  const airHelp = document.createElement('p'); airHelp.className = 'control-note';
+  airHelp.textContent = 'Primus: daylight, twilight and night sky near the surface, with a thin cloud layer. Space returns above the air or in orbital overview. Parvus is airless. Slow cosmetic motion freezes while paused or hidden and ignores time warp. Low graphics keeps sky and air only.';
   const coverage = document.createElement('p'); coverage.id = 'successor-tile-help'; coverage.className = 'control-note';
   coverage.textContent = 'Tile review prototype: landing sector only (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
   coverage.textContent += ' Colored regions are decorative, with no physical material properties. Surface colors compares the accepted muted treatment; Vector baseline disables tiles.';
-  systemSelect.closest('.setup-fields')?.after(hint, label, materialLabel, coverage);
+  systemSelect.closest('.setup-fields')?.after(hint, label, materialLabel, airLabel, airHelp, coverage);
 }
 
 // Start: a solo world with one ship at the first scenario.

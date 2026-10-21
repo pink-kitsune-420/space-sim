@@ -1,4 +1,4 @@
-import { DEFAULT_TILE_PALETTE_HEX, validateTileChunkProfile, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { AirMesh, DEFAULT_TILE_PALETTE_HEX, validateTileChunkProfile, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -363,6 +363,7 @@ function wallPalette(colors: readonly string[]): readonly string[] {
 
 export class CanvasRenderer implements Renderer {
   private readonly ctx: CanvasRenderingContext2D;
+  private airMesh?: AirMesh;
   private readonly tilePalettes = new Map<string, readonly string[]>();
   private readonly wallPalettes = new Map<string, readonly string[]>([['default', wallPalette(DEFAULT_TILE_PALETTE_HEX)]]);
   private readonly litPalettes = new Map<string, readonly (readonly string[])[]>();
@@ -377,6 +378,7 @@ export class CanvasRenderer implements Renderer {
     this.ctx = ctx;
     const renderer = this;
     this.features = Object.freeze({
+      independentAir: Object.freeze({ version: 1 as const }),
       tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }),
       flush: () => { ctx.getImageData(0, 0, 1, 1); },
       tilePalettes: Object.freeze({
@@ -393,7 +395,7 @@ export class CanvasRenderer implements Renderer {
     this.wallPalettes.set(paletteId, wallPalette(copy));
     this.litPalettes.delete(paletteId);
   }
-  dispose(): void { this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); this.litPalettes.clear(); }
+  dispose(): void { this.airMesh = undefined; this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); this.litPalettes.clear(); }
   drawScene(frame: SceneFrame, timer?: RenderTimer): void { this.draw(sceneFrame(frame), timer); }
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
@@ -489,6 +491,9 @@ export class CanvasRenderer implements Renderer {
       if (frame.showBodyLabels !== false && labels.tryPlace(labelRect(b.name.toUpperCase(), pos.x, labelY, 'center'))) labelled.add(b);
     }
 
+    const independentAir = bodyList.some(b => b.air);
+    if (independentAir) this.drawAir(bodyList, camera, width, height, 'far');
+
     // 2. Draw each celestial body
     for (const b of bodyList) {
       const pos = toScreen(b.position);
@@ -538,16 +543,16 @@ export class CanvasRenderer implements Renderer {
             r,
             b.color,
             b.accentColor,
-            b.skyColor ?? b.atmosphereColor,
+            b.air ? '#00000000' : b.skyColor ?? b.atmosphereColor,
             isStar,
             b.horizonColor,
-            b.skyColor,
+            b.air ? '#00000000' : b.skyColor,
             sun ? 1 - daylight((sun.x * (width / 2 - pos.x) + sun.y * (height / 2 - pos.y)) / (distToCenter || 1)) : 0,
           );
         } else if (isStar) {
           drawSun(ctx, pos.x, pos.y, r, b.color, b.accentColor, b.skyColor ?? b.atmosphereColor);
         } else {
-          drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.skyColor ?? b.atmosphereColor, sun);
+          drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.air ? '#00000000' : b.skyColor ?? b.atmosphereColor, sun);
           if (r >= 18) {
             if (b.surfaceFeatures === 'craters') {
               drawCraterLines(ctx, pos.x, pos.y, r, -camera.rotation - (b.rotation ?? 0));
@@ -567,6 +572,10 @@ export class CanvasRenderer implements Renderer {
           : (r > 30 ? pos.y - r - 8 : pos.y + Math.min(r + 14, 24));
         ctx.fillText(b.name.toUpperCase(), pos.x, labelY);
       }
+    }
+    if (independentAir) {
+      this.drawTileChunks(frame.overlays ?? [], camera, width, height);
+      this.drawAir(bodyList, camera, width, height, 'near');
     }
     timer?.lap('planet');
 
@@ -630,12 +639,64 @@ export class CanvasRenderer implements Renderer {
       ctx.fillText(`${metres} m`, width - 24, height - 36);
     }
     if (frame.overlays?.length) {
-      this.drawTileChunks(frame.overlays, camera, width, height);
+      if (!independentAir) this.drawTileChunks(frame.overlays, camera, width, height);
       this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
     }
     const encounters = trajectoryMarkers(frame);
     if (encounters.length) this.drawOverlays(screenOverlays(encounters, camera, width, height));
     timer?.lap('overlay');
+  }
+
+  /** Independent air uses successive inverse clips, forming the union of all ground masks. */
+  private drawAir(bodies: readonly RenderBody[], camera: Camera, width: number, height: number, layer: 'far' | 'near'): void {
+    const { ctx } = this;
+    if (!bodies.some(b => b.air && b.air.mode !== 'off')) return;
+    const airMesh = this.airMesh ??= new AirMesh();
+    for (const body of bodies) {
+      airMesh.update(body, camera, width, height, layer);
+      if (!airMesh.length) continue;
+      ctx.save();
+      for (const solid of bodies) {
+        ctx.beginPath(); ctx.rect(0, 0, width, height);
+        if (solid.surface) {
+          const clip = terrainGeometry({ ...solid, surface: solid.surface }, camera, width, height, this.ports.geometry).groundClip;
+          for (let i = 0; i < clip.length; i++) {
+            const p = clip[i]!; if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y);
+          }
+          ctx.closePath();
+        } else {
+          const p = createProjector(camera, width, height)(solid.position);
+          ctx.moveTo(p.x + solid.radius * camera.scale, p.y);
+          ctx.arc(p.x, p.y, solid.radius * camera.scale, 0, Math.PI * 2);
+        }
+        ctx.clip('evenodd');
+      }
+      const v = airMesh.vertices;
+      for (let i = 0; i < airMesh.length; i += 36) {
+        const rgb = `${v[i + 2]! * 255},${v[i + 3]! * 255},${v[i + 4]! * 255}`;
+        const outerRgb = `${v[i + 14]! * 255},${v[i + 15]! * 255},${v[i + 16]! * 255}`;
+        // Canvas has no vertex-alpha interpolation. Bound angular steps by opacity
+        // and projected footprint; constant-alpha sky/air quads remain one fill.
+        const alphaChange = Math.max(Math.abs(v[i + 5]! - v[i + 11]!), Math.abs(v[i + 17]! - v[i + 35]!));
+        const span = Math.max(Math.hypot(v[i + 6]! - v[i]!, v[i + 7]! - v[i + 1]!),
+          Math.hypot(v[i + 30]! - v[i + 12]!, v[i + 31]! - v[i + 13]!));
+        const slices = Math.max(1, Math.min(32, Math.ceil(span / 2), Math.ceil(alphaChange * 128)));
+        for (let j = 0; j < slices; j++) {
+          const a = j / slices, b = (j + 1) / slices, middle = (a + b) / 2;
+          const ax = v[i]! + (v[i + 6]! - v[i]!) * a, ay = v[i + 1]! + (v[i + 7]! - v[i + 1]!) * a;
+          const bx = v[i]! + (v[i + 6]! - v[i]!) * b, by = v[i + 1]! + (v[i + 7]! - v[i + 1]!) * b;
+          const cx = v[i + 12]! + (v[i + 30]! - v[i + 12]!) * a, cy = v[i + 13]! + (v[i + 31]! - v[i + 13]!) * a;
+          const dx = v[i + 12]! + (v[i + 30]! - v[i + 12]!) * b, dy = v[i + 13]! + (v[i + 31]! - v[i + 13]!) * b;
+          const gradient = ctx.createLinearGradient((ax + bx) / 2, (ay + by) / 2, (cx + dx) / 2, (cy + dy) / 2);
+          gradient.addColorStop(0, `rgba(${rgb},${v[i + 5]! + (v[i + 11]! - v[i + 5]!) * middle})`);
+          gradient.addColorStop(1, `rgba(${outerRgb},${v[i + 17]! + (v[i + 35]! - v[i + 17]!) * middle})`);
+          ctx.fillStyle = gradient; ctx.beginPath();
+          ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(dx, dy); ctx.lineTo(cx, cy);
+          ctx.closePath(); ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
   }
 
   private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {

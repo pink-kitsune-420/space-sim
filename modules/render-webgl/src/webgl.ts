@@ -1,4 +1,4 @@
-import { validateTileChunkProfile } from '@space-sim/game-api';
+import { AirMesh, validateTileChunkProfile } from '@space-sim/game-api';
 import { trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import { Effects } from './effects';
 import type { State, Vec, SceneFrame, RenderMaterial, RenderPostEffect } from '@space-sim/game-api';
@@ -128,6 +128,7 @@ export class WebGLRenderer implements Renderer {
   private readonly terrainResolution: WebGLUniformLocation | null;
   private readonly terrainVao: WebGLVertexArrayObject;
   private readonly terrainBuffer: WebGLBuffer;
+  private airMesh?: AirMesh;
   private terrainVerts = new Float32Array(4096);
   private readonly colorVao: WebGLVertexArrayObject;
   private readonly colorBuffer: WebGLBuffer;
@@ -186,7 +187,7 @@ export class WebGLRenderer implements Renderer {
         get pack(): ShaderPack { return renderer.activeShaders; },
         set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
       }),
-      ...(this.stencilAvailable ? { tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }) } : {}),
+      ...(this.stencilAvailable ? { independentAir: Object.freeze({ version: 1 as const }), tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }) } : {}),
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
       }),
@@ -361,6 +362,7 @@ export class WebGLRenderer implements Renderer {
     if (this.disposed) return;
     this.disposed = true;
     const { gl } = this;
+    this.airMesh = undefined;
     this.effects.dispose();
     gl.bindVertexArray(null);
     gl.useProgram(null);
@@ -518,10 +520,16 @@ export class WebGLRenderer implements Renderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+    const independentAir = bodyList.some(b => b.air);
+    if (independentAir) this.drawAir(bodyList, terrain, visible, camera, width, height, 'far');
     for (const geometry of terrain) this.drawTerrain(geometry, width, height);
     if (overflow.length) this.drawBodyBatch(overflow, width, height);
     this.effects.drawMaterials(bodyList, camera, width, height, realTimeSec, this.ports.geometry);
 
+    if (independentAir) {
+      this.drawTileChunks(frame.overlays ?? [], camera, width, height);
+      this.drawAir(bodyList, terrain, visible, camera, width, height, 'near');
+    }
     this.beginVectorPass(width, height);
     if (frame.showBodyOrbits !== false) this.drawOrbitRings(bodyList, toScreen, camera.scale, width, height);
 
@@ -606,7 +614,7 @@ export class WebGLRenderer implements Renderer {
     }
     if (frame.showScale === false) this.beginTextPass(width, height);
     if (frame.overlays?.length) {
-      this.drawTileChunks(frame.overlays, camera, width, height);
+      if (!independentAir) this.drawTileChunks(frame.overlays, camera, width, height);
       this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
     }
     const encounters = trajectoryMarkers(frame);
@@ -860,14 +868,47 @@ export class WebGLRenderer implements Renderer {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vectorBuffer);
   }
 
-  private drawTerrain(geometry: TerrainGeometry, width: number, height: number): void {
+  /** Canonical opaque-face union; no effect textures or shader-pack additions. */
+  private drawAir(bodies: readonly RenderBody[], terrain: readonly TerrainGeometry[],
+    visible: readonly { b: RenderBody; pos: Vec; r: number; isStar: boolean }[], camera: Camera,
+    width: number, height: number, layer: 'far' | 'near'): void {
+    if (!this.stencilAvailable) return;
+    if (!bodies.some(b => b.air && b.air.mode !== 'off')) return;
+    const { gl } = this;
+    const airMesh = this.airMesh ??= new AirMesh();
+    let masked = false;
+    for (const body of bodies) {
+      airMesh.update(body, camera, width, height, layer);
+      if (!airMesh.length) continue;
+      if (!masked) {
+        gl.enable(gl.STENCIL_TEST); gl.stencilMask(0xff); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+        gl.colorMask(false, false, false, false); gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+        for (const geometry of terrain) this.drawTerrain(geometry, width, height, true);
+        const discs = visible.filter(v => !v.b.surface);
+        if (discs.length) this.drawBodyBatch(discs, width, height);
+        gl.colorMask(true, true, true, true); gl.stencilMask(0); gl.stencilFunc(gl.EQUAL, 0, 0xff);
+        gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP); masked = true;
+      }
+      gl.useProgram(this.terrainProgram); gl.uniform2f(this.terrainResolution, width, height);
+      gl.bindVertexArray(this.terrainVao); gl.bindBuffer(gl.ARRAY_BUFFER, this.terrainBuffer);
+      if (this.terrainVerts.length < airMesh.vertices.length) {
+        this.terrainVerts = new Float32Array(airMesh.vertices.length);
+        gl.bufferData(gl.ARRAY_BUFFER, this.terrainVerts.byteLength, gl.DYNAMIC_DRAW);
+      }
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, airMesh.vertices, 0, airMesh.length);
+      gl.drawArrays(gl.TRIANGLES, 0, airMesh.length / 6);
+    }
+    if (masked) { gl.stencilMask(0xff); gl.disable(gl.STENCIL_TEST); }
+  }
+
+  private drawTerrain(geometry: TerrainGeometry, width: number, height: number, mask = false): void {
     const { gl } = this;
     gl.useProgram(this.terrainProgram);
     gl.uniform2f(this.terrainResolution, width, height);
     gl.bindVertexArray(this.terrainVao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.terrainBuffer);
-    const count = geometry.faces.reduce((sum, f) => sum + (f.points.length - 2) * 3, 0);
-    const lineCount = geometry.edge.length * 2 + geometry.accents.reduce((sum, line) => sum + (line.length - 1) * 2, 0);
+    const count = geometry.faces.reduce((sum, f) => sum + (mask && f.color[3] !== 1 ? 0 : (f.points.length - 2) * 3), 0);
+    const lineCount = mask ? 0 : geometry.edge.length * 2 + geometry.accents.reduce((sum, line) => sum + (line.length - 1) * 2, 0);
     const floats = (count + lineCount) * 6;
     if (floats > this.terrainVerts.length) {
       this.terrainVerts = new Float32Array(2 ** Math.ceil(Math.log2(floats)));
@@ -878,12 +919,12 @@ export class WebGLRenderer implements Renderer {
       this.terrainVerts[index++] = p.x; this.terrainVerts[index++] = p.y;
       for (const c of color) this.terrainVerts[index++] = c;
     };
-    for (const f of geometry.faces) for (let j = 1; j < f.points.length - 1; j++) {
+    for (const f of geometry.faces) if (!mask || f.color[3] === 1) for (let j = 1; j < f.points.length - 1; j++) {
       for (const p of [f.points[0]!, f.points[j]!, f.points[j + 1]!]) vertex(p, terrainFaceColor(f, p));
     }
-    for (const [a, b] of geometry.edge) { vertex(a, geometry.accentColor); vertex(b, geometry.accentColor); }
+    if (!mask) for (const [a, b] of geometry.edge) { vertex(a, geometry.accentColor); vertex(b, geometry.accentColor); }
     const faint = [...geometry.accentColor]; faint[3] = .24;
-    for (const line of geometry.accents) for (let j = 1; j < line.length; j++) {
+    if (!mask) for (const line of geometry.accents) for (let j = 1; j < line.length; j++) {
       vertex(line[j - 1]!, faint); vertex(line[j]!, faint);
     }
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.terrainVerts, 0, index);
