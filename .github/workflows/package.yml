@@ -245,12 +245,10 @@ jobs:
           BUILD_TAG: ${{ github.ref_name }}
         run: python3 scripts/verify_release_distribution.py release-files "$BUILD_TAG" --require-android
       - name: Publish verified downloads
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ needs.distribution.outputs.version }}
-          prerelease: true
-          files: release-files/*
-          fail_on_unmatched_files: true
+        uses: actions/github-script@v8
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_NAME: ${{ needs.distribution.outputs.version }}
+        with:
+          script: |
+            await require('./.github/scripts/finalize-release.cjs')({ github, context, core });
