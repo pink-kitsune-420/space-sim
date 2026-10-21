@@ -22,7 +22,7 @@ test('clean menu exposes real controls and the full searchable bundled-source ca
   await expect(page.locator('#presentation-list input[data-module="builtin.throttle"]')).toBeChecked();
   await expect(page.locator('#presentation-list input[data-module="builtin.navball"]')).toBeChecked();
   await expect(page.locator('#presentation-list')).toBeVisible();
-  await expect(page.locator('.game-card').filter({ hasText: 'Space Sim' })).not.toContainText('0 code plugins');
+  await expect(page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim', exact: true }) })).not.toContainText('0 code plugins');
   await page.locator('.code-module-settings > summary').click();
   await expect(page.locator('#installed-code-empty')).toBeVisible();
   await page.locator('.code-module-settings > details > summary').click();
@@ -67,7 +67,7 @@ test('simulation drafts survive display changes and only apply at an explicit ne
   await expect(example).toBeChecked();
   await page.locator('.module-settings > summary').click(); await page.locator('#reset-modules').click();
   await expect(example).not.toBeChecked();
-  expect((await debug(page)).fingerprint).toBe(before.fingerprint);
+  await expect.poll(async () => (await debug(page)).fingerprint).toBe(before.fingerprint);
 });
 
 test('offline release keeps the bundled catalogue and controls available without network access', async ({ page, context }, testInfo) => {

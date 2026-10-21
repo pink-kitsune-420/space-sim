@@ -15,7 +15,7 @@ async function load(page: Page, offline = false) {
   await openPanel(page, 'library');
   await page.locator('#lab-file').setInputFiles({ name: 'orbital-academy.spacegame', mimeType: 'application/zip', buffer: archive });
   await expect(page.locator('#lab-status')).toContainText('Added Orbital Academy');
-  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Orbital Academy', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
+  await page.locator('.game-card:not([data-game^="builtin"])').filter({ has: page.getByRole('heading', { name: 'Orbital Academy', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
   await expect(page.locator('#lab-status')).toContainText('Playing Orbital Academy');
   await expect(academy(page)).toBeVisible();
 }
@@ -56,7 +56,7 @@ test('completes a lesson with real engine-off orbit flight, checks knowledge and
   await academy(page).getByRole('button', { name: 'Gravity continually changes its velocity.', exact: true }).click();
   await expect(academy(page).locator('.academy-summary')).toContainText('1 / 24');
   await page.reload(); await openPanel(page, 'library');
-  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Orbital Academy', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
+  await page.locator('.game-card:not([data-game^="builtin"])').filter({ has: page.getByRole('heading', { name: 'Orbital Academy', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
   await expect(academy(page).locator('.academy-summary')).toContainText('1 / 24');
   await openPanel(page, 'library');
   await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
