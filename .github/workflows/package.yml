@@ -100,16 +100,20 @@ jobs:
           rm -rf android/app/src/main/assets/public
           mkdir -p android/app/src/main/assets/public
           cp -a dist/. android/app/src/main/assets/public/
+          cp LICENSE android/app/src/main/assets/public/LICENSE.txt
+          cp CREDITS.md android/app/src/main/assets/public/CREDITS.md
       - name: Build Android APK
         working-directory: android
         run: ./gradlew assembleDebug
-      - name: Verify Android embeds the tested offline player
+      - name: Verify Android embeds the tested player and project notices
         run: |
           python3 - <<'PY'
           from pathlib import Path
           from zipfile import ZipFile
           with ZipFile('android/app/build/outputs/apk/debug/app-debug.apk') as apk:
-              assert apk.read('assets/public/space-lab-offline.html') == Path('dist/space-lab-offline.html').read_bytes()
+              for embedded, source in [('space-lab-offline.html', 'dist/space-lab-offline.html'),
+                                       ('LICENSE.txt', 'LICENSE'), ('CREDITS.md', 'CREDITS.md')]:
+                  assert apk.read('assets/public/' + embedded) == Path(source).read_bytes(), embedded
           PY
       - uses: actions/upload-artifact@v4
         with:
