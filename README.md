@@ -70,7 +70,3 @@ See the [server README](apps/server/README.md) for persistent worlds, custom gam
 ## License and credits
 
 Spacelab's application code is first-party and [MIT-licensed](LICENSE), with no third-party runtime dependencies in the web player. Standalone desktop and server executables also bundle Node.js. Attribution and build-tool notices are in [CREDITS.md](CREDITS.md).
-
-### Next-Gen terrain progress
-
-The Next-Gen demo keeps its existing tile locomotion and uses player-owned command routes for mouse tools and astronaut input. Terrain progress uses versioned binary page entries in `.spaceuniverse` saves; valid older saves remain readable. Older terrain saves that already discarded page bytes are refused with an explanation because their excavations cannot be recovered. Loading progress does not resume remembered held input. This does not establish shared-terrain multiplayer or native-device acceptance.

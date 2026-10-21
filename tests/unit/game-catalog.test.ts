@@ -13,7 +13,7 @@ describe('Multi-Game Catalog Discovery & Offline Bundling (REC-11)', () => {
     const catalog = validateGameCatalog(catalogRaw);
     expect(catalog.format).toBe('space-lab-game-catalog/1');
     expect(catalog.defaultGame).toBe('builtin.space-sim');
-    expect(catalog.games.length).toBeGreaterThanOrEqual(7);
+    expect(catalog.games.length).toBeGreaterThanOrEqual(6);
 
     // Rejects duplicate IDs
     expect(() =>

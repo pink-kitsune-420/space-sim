@@ -14,15 +14,6 @@
       "defaultUniverse": "sandbox/default/universe.json"
     },
     {
-      "id": "builtin.space-sim-nextgen",
-      "alias": "space-sim-nextgen",
-      "name": "Space Sim Next-Gen: Spherical Tile Planets",
-      "description": "Next-generation planetary simulation with high-density spherical voxel terrain and EVA avatars.",
-      "category": "game",
-      "adapter": "flight",
-      "path": "space-sim-nextgen/game.json"
-    },
-    {
       "id": "builtin.orbit-sandbox",
       "alias": "orbit-sandbox",
       "name": "Orbit Sandbox",
