@@ -2,6 +2,7 @@
 import { querySurface, surfaceIdentity, type SurfaceDefinition, type SurfaceProfile } from './surface';
 import { surfaceContactTolerance, type SurfaceSweep } from './surface-contact';
 import * as dm from './dmath';
+import { discSupport } from './surface-disc';
 
 /** Maximum survivable terrain touchdown speed (`5` `m/s`) relative to the rotating ground; water entry uses `WATER_CRASH_SPEED`. Host-only (`packages/sim-core`). */
 export const MAX_LANDING_SPEED = 5;
@@ -34,7 +35,12 @@ export function validateMotionSurface(body: { readonly radius: number; readonly 
 /** Static point support with friction at body-fixed polar `angle` (in `rad`): no sliding model. Corners cannot hide an
  * unsafe adjacent face behind the outgoing-normal query convention.
  * Exposed via `CORE_MOTION.services.surfaces.support` and `SURFACE_GEOMETRY`. Host-only (`packages/sim-core`). */
-export function surfaceSupport(profile: SurfaceProfile, angle: number): SurfaceSupport {
+export function surfaceSupport(profile: SurfaceProfile, angle: number, radiusMetres = 0): SurfaceSupport {
+  if (radiusMetres) {
+    const contact = discSupport(profile, angle, radiusMetres);
+    const support = surfaceSupport(profile, contact.angle);
+    return { ...support, centerRadiusMetres: contact.radius };
+  }
   const query = querySurface(profile, angle);
   // This function supports solid ground, including submerged seabed.
   const surface = { ...query, normal: query.groundNormal };

@@ -43,3 +43,7 @@ export function motionExampleProfile(example: 'force' | 'numerical' | 'rule'): M
     { id: 'builtin.content', version: '0.1.0' }, { id: 'builtin.motion', version: '0.1.0' }, { id, version: '0.1.0' },
   ], providers: { content: 'builtin.content', motion: 'builtin.motion', ...(example === 'numerical' ? { dynamics: id } : {}) }, settings: {} };
 }
+
+/** Opt in via system.vehicleDefaults or a contributed vehicle's handling. The
+ * numerical kernel and the public surface provider then share circular contact. */
+export const surveyHandling = Object.freeze({ acceleration: 24, turnRate: .65, initialThrottle: .65, contactRadiusMetres: 2.5 });

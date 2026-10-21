@@ -25,6 +25,8 @@ export interface SurfaceSupport {
   readonly surface: SurfaceQuery;
   readonly normals: readonly Vec[];
   readonly maxSlopeRadians: number;
+  /** Hull-centre radial support distance in metres when a finite radius was requested. */
+  readonly centerRadiusMetres?: number;
 }
 /** All geometry uses the public radial SurfaceProfile contract. Query, contact and
  * generation must agree, including preset placement, water and prediction. */
@@ -33,7 +35,8 @@ export interface SurfaceProvider extends ProviderIdentity {
   identity(body: Body): string;
   validate(body: Body, profile: SurfaceProfile): void;
   query(profile: SurfaceProfile, angle: number): SurfaceQuery;
-  support(profile: SurfaceProfile, angle: number): SurfaceSupport;
+  /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */
+  support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;
   sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
   sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
 }

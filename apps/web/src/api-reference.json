@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest a0ba0eb81a54888e",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest a0ba0eb81a54888e"
         },
         {
           "type": "paragraph",
@@ -929,8 +929,10 @@
           "text": "Settings"
         },
         {
-          "type": "paragraph",
-          "text": "None."
+          "type": "list",
+          "items": [
+            "surveyLander: number, default 0, from 0 to 1, step 1. Physical survey lander artwork: 1 selects the five-metre lander (requires matching 2.5 m authoritative circular hull); 0 retains the Classic pixel chevron."
+          ]
         },
         {
           "type": "heading",
@@ -5125,7 +5127,7 @@
         },
         {
           "type": "paragraph",
-          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers"
+          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5254,7 +5256,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition"
+          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -14445,7 +14447,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceSupport {\n  readonly surface: SurfaceQuery;\n  readonly normals: readonly Vec[];\n  readonly maxSlopeRadians: number;\n}"
+          "text": "export interface SurfaceSupport {\n  readonly surface: SurfaceQuery;\n  readonly normals: readonly Vec[];\n  readonly maxSlopeRadians: number;\n  /** Hull-centre radial support distance in metres when a finite radius was requested. */\n  readonly centerRadiusMetres?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -14461,7 +14463,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  support(profile: SurfaceProfile, angle: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
+          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */\n  support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
         },
         {
           "type": "paragraph",
@@ -15517,7 +15519,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
+          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the\n   * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */\n  readonly radiusMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -15549,7 +15551,7 @@
         },
         {
           "type": "code",
-          "text": "export type SurfaceSweep =\n  | (SweepResult & { readonly status: 'clear' })\n  | (SweepResult & { readonly status: 'hit'; readonly fraction: number;\n    /** A bracket on the drift fraction, not a time-of-flight solution. */\n    readonly fractionBracket: readonly [number, number];\n    /** On the drift chord, within the reported tolerance of ground. */\n    readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;\n    readonly kind: 'crossing' | 'touching' })\n  | (SweepResult & { readonly status: 'failed';\n    readonly reason: 'work-limit' | 'precision' | 'initial-penetration';\n    /** Only the prefix through this fraction was verified; do not accept the endpoint. */\n    readonly verifiedFraction: number });"
+          "text": "export type SurfaceSweep =\n  | (SweepResult & { readonly status: 'clear' })\n  | (SweepResult & { readonly status: 'hit'; readonly fraction: number;\n    /** A bracket on the drift fraction, not a time-of-flight solution. */\n    readonly fractionBracket: readonly [number, number];\n    /** On the drift chord. For a finite footprint this is the hull centre;\n     * its hull-to-ground clearance is within the reported tolerance. */\n    readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;\n    readonly kind: 'crossing' | 'touching' })\n  | (SweepResult & { readonly status: 'failed';\n    readonly reason: 'work-limit' | 'precision' | 'initial-penetration';\n    /** Only the prefix through this fraction was verified; do not accept the endpoint. */\n    readonly verifiedFraction: number });"
         },
         {
           "type": "paragraph",
@@ -16541,7 +16543,7 @@
         },
         {
           "type": "code",
-          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n}"
+          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n  /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.\n   * The state position is the hull centre. Dry terrain and smooth bodies are supported;\n   * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */\n  readonly contactRadiusMetres?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -17081,11 +17083,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Screen-space vector artwork (+X forward), shared by Canvas and WebGL. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry."
+          "text": "Vector artwork (+X forward), shared by Canvas and WebGL. Units are CSS pixels unless metresPerUnit opts into world-space scaling. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry."
         },
         {
           "type": "code",
-          "text": "export interface VehicleAppearance {\n  /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */\n  readonly vehicleId: string;\n  /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */\n  readonly hull: readonly Vec[];\n  /** Optional thruster exhaust flame dimensions for active acceleration visuals. */\n  readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };\n}"
+          "text": "export interface VehicleAppearance {\n  /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */\n  readonly vehicleId: string;\n  /** Hull vertices in local artwork units relative to the craft centre (3 to 128 points). */\n  readonly hull: readonly Vec[];\n  /** Optional world metres per artwork unit. Close views use physical scale; below\n   * 8 CSS pixels across, renderers show a position marker. Omitted retains pixel art. */\n  readonly metresPerUnit?: number;\n  /** Optional open detail paths in the same local units, e.g. cockpit and hatch. */\n  readonly lines?: readonly (readonly Vec[])[];\n  /** Optional thruster exhaust flame dimensions for active acceleration visuals. */\n  readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };\n}"
         },
         {
           "type": "paragraph",
@@ -17186,6 +17188,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.trainer-appearance."
+        },
+        {
+          "type": "heading",
+          "text": "vehicleArtworkScale"
+        },
+        {
+          "type": "paragraph",
+          "text": "Scale for world-space artwork, or zero when its projected extent is below eight CSS pixels and the renderer should use a position marker. Pixel art uses 1."
+        },
+        {
+          "type": "code",
+          "text": "export function vehicleArtworkScale(artwork: VehicleAppearance, pixelsPerMetre: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "link",

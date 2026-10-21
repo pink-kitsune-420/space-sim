@@ -26,8 +26,9 @@ describe('Multi-Game Catalog Discovery & Offline Bundling (REC-11)', () => {
     try {
       expect(classic.world.universe).toEqual(DEFAULT_UNIVERSE);
       expect(next.world.universe.id).toBe('successor-universe');
-      expect(next.world.universe.systems).toEqual(classic.world.universe.systems);
-      expect(next.world.context.vehicle).toEqual(classic.world.context.vehicle);
+      expect(next.world.universe.systems).toHaveLength(6);
+      expect(next.world.context.vehicle).toMatchObject({ acceleration: 24, contactRadiusMetres: 2.5 });
+      expect(classic.world.context.vehicle.acceleration).toBe(125);
       expect(next.world.soloPreview).toBe(false);
       next.world.spawn({ ownerId: 'pilot', presetId: next.world.system.presets[0]!.id });
       const saved = saveWorld(next.world);

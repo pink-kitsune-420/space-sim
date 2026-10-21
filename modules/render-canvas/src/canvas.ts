@@ -1,4 +1,4 @@
-import { DEFAULT_TILE_PALETTE_HEX, trajectoryMarkers, VEHICLE_MARKER, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { DEFAULT_TILE_PALETTE_HEX, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -434,9 +434,17 @@ export class CanvasRenderer implements Renderer {
     const labels = new LabelPlacer();
     const shipPos = frame.shipWorldPosition ?? state.position;
     const ship = toScreen(shipPos);
-    const shipVisible = frame.showShip !== false && ship.x >= -40 && ship.x <= width + 40 && ship.y >= -40 && ship.y <= height + 40;
+    const physicalArt = this.ports.vehicles?.get(frame.vehicleId);
+    let shipExtent = 0;
+    if (physicalArt?.metresPerUnit) {
+      for (const point of physicalArt.hull) shipExtent = Math.max(shipExtent, Math.abs(point.x), Math.abs(point.y));
+      shipExtent *= physicalArt.metresPerUnit * camera.scale;
+    }
+    const shipMargin = Math.max(40, shipExtent);
+    const shipLabelX = ship.x + Math.max(16, shipExtent + 6), shipLabelY = ship.y - Math.max(13, shipExtent + 6);
+    const shipVisible = frame.showShip !== false && ship.x >= -shipMargin && ship.x <= width + shipMargin && ship.y >= -shipMargin && ship.y <= height + shipMargin;
     const shipLabel = state.status === 'crashed' ? 'SIGNAL LOST' : frame.shipLabel ?? 'VESSEL 01';
-    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, ship.x + 16, ship.y - 13, 'left'));
+    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, shipLabelX, shipLabelY, 'left'));
     // Body labels go to the biggest bodies first; crowded ones are left out.
     const labelOrder = bodyList.map((b, i) => ({ b, i, r: (b.surface?.bounds.maxRadius ?? b.radius) * camera.scale }))
       .sort((a, c) => ((a.b.surfaceFeatures === 'star') === (c.b.surfaceFeatures === 'star')
@@ -547,18 +555,30 @@ export class CanvasRenderer implements Renderer {
     }
 
     const drawShip = (at: Vec, heading: number, status: string, burning: boolean, throttle: number, size: number, fill: string): void => {
+      let artwork = this.ports.vehicles?.get(frame.vehicleId);
+      if (artwork?.metresPerUnit) {
+        const physical = vehicleArtworkScale(artwork, camera.scale);
+        if (physical === 0) { artwork = undefined; size = 1; } else size = physical;
+      }
       ctx.save(); ctx.translate(at.x, at.y); ctx.rotate(-heading - camera.rotation);
       if (size !== 1) ctx.scale(size, size);
-      const artwork = this.ports.vehicles?.get(frame.vehicleId), hull = artwork?.hull ?? VEHICLE_MARKER, flame = artwork?.flame;
+      if (artwork?.metresPerUnit) ctx.lineWidth = 1 / size;
+      const hull = artwork?.hull ?? VEHICLE_MARKER, flame = artwork?.flame;
       if (flame && burning && status === 'flying') {
         ctx.fillStyle = '#e0a665'; ctx.beginPath(); ctx.moveTo(flame.x, -flame.halfWidth); ctx.lineTo(flame.x - flame.length - throttle * flame.throttleLength, 0); ctx.lineTo(flame.x, flame.halfWidth); ctx.fill();
       }
       ctx.fillStyle = status === 'crashed' ? '#ef8c7a' : fill; ctx.strokeStyle = '#080f19';
-      ctx.beginPath(); ctx.moveTo(hull[0]!.x, hull[0]!.y); for (let i = 1; i < hull.length; i++) ctx.lineTo(hull[i]!.x, hull[i]!.y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(hull[0]!.x, hull[0]!.y); for (let i = 1; i < hull.length; i++) ctx.lineTo(hull[i]!.x, hull[i]!.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+      for (const line of artwork?.lines ?? []) {
+        ctx.beginPath(); ctx.moveTo(line[0]!.x, line[0]!.y);
+        for (let i = 1; i < line.length; i++) ctx.lineTo(line[i]!.x, line[i]!.y);
+        ctx.stroke();
+      }
+      ctx.restore();
     };
     ctx.font = '11px ui-monospace, monospace'; ctx.textAlign = 'left';
     this.drawRocks(frame.ships ?? [], toScreen, width, height);
-    this.drawShipBatch(frame.ships ?? [], toScreen, camera.rotation, width, height);
+    this.drawShipBatch(frame.ships ?? [], toScreen, camera.rotation, width, height, camera.scale);
     ctx.fillStyle = '#95a9b5';
     for (const other of frame.ships ?? []) {
       if (other.rock || frame.showShipLabels === false) continue;
@@ -570,7 +590,7 @@ export class CanvasRenderer implements Renderer {
     if (shipVisible) {
       drawShip(ship, state.heading, state.status, engine, state.throttle, 1, '#e8f8ef');
       ctx.fillStyle = '#95a9b5';
-      if (frame.showShipLabels !== false) ctx.fillText(shipLabel, ship.x + 16, ship.y - 13);
+      if (frame.showShipLabels !== false) ctx.fillText(shipLabel, shipLabelX, shipLabelY);
     }
     timer?.lap('ship');
     // Scale annotation is in world metres, independent of canvas device pixels.
@@ -661,15 +681,21 @@ export class CanvasRenderer implements Renderer {
 
   /** Other vessels as one path per fill (flames, three hull colors) plus one outline path. */
   private drawShipBatch(others: readonly RenderShip[], toScreen: (p: Vec) => Vec, rotation: number,
-    width: number, height: number): void {
+    width: number, height: number, worldScale = 1): void {
     const { ctx } = this;
     const placed: { readonly x: number; readonly y: number; readonly c: number; readonly s: number; readonly ship: RenderShip; readonly artwork?: VehicleAppearance }[] = [];
     for (const other of others) {
       if (other.rock) continue;
       const at = toScreen(other.position);
-      if (at.x < -40 || at.x > width + 40 || at.y < -40 || at.y > height + 40) continue;
+      const margin = Math.max(40, (this.ports.vehicles?.get(other.vehicleId)?.metresPerUnit ?? 0) * worldScale * 32);
+      if (at.x < -margin || at.x > width + margin || at.y < -margin || at.y > height + margin) continue;
       const angle = -other.heading - rotation;
-      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * 0.8, s: Math.sin(angle) * 0.8, ship: other, artwork: this.ports.vehicles?.get(other.vehicleId) });
+      let artwork = this.ports.vehicles?.get(other.vehicleId), size = .8;
+      if (artwork?.metresPerUnit) {
+        size = vehicleArtworkScale(artwork, worldScale);
+        if (size === 0) { artwork = undefined; size = 1; }
+      }
+      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * size, s: Math.sin(angle) * size, ship: other, artwork });
     }
     if (!placed.length) return;
     const hull = (p: typeof placed[number]): void => {
@@ -700,7 +726,13 @@ export class CanvasRenderer implements Renderer {
       if (any) { ctx.fillStyle = fill; ctx.fill(); }
     }
     ctx.beginPath();
-    for (const p of placed) hull(p);
+    for (const p of placed) {
+      hull(p);
+      for (const line of p.artwork?.lines ?? []) {
+        ctx.moveTo(p.x + line[0]!.x * p.c - line[0]!.y * p.s, p.y + line[0]!.x * p.s + line[0]!.y * p.c);
+        for (let j = 1; j < line.length; j++) { const v = line[j]!; ctx.lineTo(p.x + v.x * p.c - v.y * p.s, p.y + v.x * p.s + v.y * p.c); }
+      }
+    }
     ctx.strokeStyle = '#080f19'; ctx.lineWidth = 1; ctx.stroke();
   }
 

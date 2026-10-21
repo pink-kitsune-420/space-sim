@@ -1,4 +1,4 @@
-import { trajectoryMarkers, VEHICLE_MARKER, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import { Effects } from './effects';
 import type { State, Vec, SceneFrame, RenderMaterial, RenderPostEffect } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
@@ -405,9 +405,17 @@ export class WebGLRenderer implements Renderer {
     // The piloted ship's own label always shows; everything else avoids it.
     const shipPos = frame.shipWorldPosition ?? state.position;
     const ship = toScreen(shipPos);
-    const shipVisible = frame.showShip !== false && ship.x >= -40 && ship.x <= width + 40 && ship.y >= -40 && ship.y <= height + 40;
+    const physicalArt = this.ports.vehicles?.get(frame.vehicleId);
+    let shipExtent = 0;
+    if (physicalArt?.metresPerUnit) {
+      for (const point of physicalArt.hull) shipExtent = Math.max(shipExtent, Math.abs(point.x), Math.abs(point.y));
+      shipExtent *= physicalArt.metresPerUnit * camera.scale;
+    }
+    const shipMargin = Math.max(40, shipExtent);
+    const shipLabelX = ship.x + Math.max(16, shipExtent + 6), shipLabelY = ship.y - Math.max(13, shipExtent + 6);
+    const shipVisible = frame.showShip !== false && ship.x >= -shipMargin && ship.x <= width + shipMargin && ship.y >= -shipMargin && ship.y <= height + shipMargin;
     const shipLabel = state.status === 'crashed' ? 'SIGNAL LOST' : frame.shipLabel ?? 'VESSEL 01';
-    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, ship.x + 16, ship.y - 13, 'left'));
+    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, shipLabelX, shipLabelY, 'left'));
 
     // 1. Fullscreen Shader Pass (Stars + Celestial Bodies)
     gl.disable(gl.BLEND);
@@ -548,7 +556,7 @@ export class WebGLRenderer implements Renderer {
         this.drawRockBatch(others, toScreen, width, height);
         this.beginVectorPass(width, height);
       }
-      this.drawShipBatch(others, toScreen, camera.rotation, width, height);
+      this.drawShipBatch(others, toScreen, camera.rotation, width, height, camera.scale);
       for (const other of others) {
         if (other.rock || frame.showShipLabels === false) continue;
         const at = toScreen(other.position);
@@ -564,9 +572,9 @@ export class WebGLRenderer implements Renderer {
     }
     verts = this.dynamicVerts;
     if (shipVisible) {
-      this.drawShip(ship, -state.heading - camera.rotation, 1, state.status, engine, state.throttle, ShaderStyle.ship, frame.vehicleId);
+      this.drawShip(ship, -state.heading - camera.rotation, 1, state.status, engine, state.throttle, ShaderStyle.ship, frame.vehicleId, camera.scale);
       this.beginTextPass(width, height);
-      if (frame.showShipLabels !== false) this.drawLabel(shipLabel, ship.x + 16, ship.y - 13, ShaderStyle.telemetryLabel, 'left', dpr);
+      if (frame.showShipLabels !== false) this.drawLabel(shipLabel, shipLabelX, shipLabelY, ShaderStyle.telemetryLabel, 'left', dpr);
       this.beginVectorPass(width, height);
     }
     timer?.lap('ship');
@@ -731,18 +739,24 @@ export class WebGLRenderer implements Renderer {
 
   /** All other vessels in at most five draws (flames, three body styles, outlines). */
   private drawShipBatch(others: readonly RenderShip[], toScreen: (p: Vec) => Vec, rotation: number,
-    width: number, height: number): void {
+    width: number, height: number, worldScale = 1): void {
     const { gl } = this;
     let visible = 0, vertices = 0;
     const placed: { readonly x: number; readonly y: number; readonly c: number; readonly s: number; readonly ship: RenderShip; readonly artwork?: VehicleAppearance }[] = [];
     for (const other of others) {
       if (other.rock) continue;
       const at = toScreen(other.position);
-      if (at.x < -40 || at.x > width + 40 || at.y < -40 || at.y > height + 40) continue;
+      const margin = Math.max(40, (this.ports.vehicles?.get(other.vehicleId)?.metresPerUnit ?? 0) * worldScale * 32);
+      if (at.x < -margin || at.x > width + margin || at.y < -margin || at.y > height + margin) continue;
       const angle = -other.heading - rotation;
-      const artwork = this.ports.vehicles?.get(other.vehicleId), count = artwork?.hull.length ?? 4;
-      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * 0.8, s: Math.sin(angle) * 0.8, ship: other, artwork });
-      vertices += 3 + 3 * (count - 2) + 2 * count; visible++;
+      let artwork = this.ports.vehicles?.get(other.vehicleId), size = .8;
+      if (artwork?.metresPerUnit) {
+        size = vehicleArtworkScale(artwork, worldScale);
+        if (size === 0) { artwork = undefined; size = 1; }
+      }
+      const count = artwork?.hull.length ?? 4;
+      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * size, s: Math.sin(angle) * size, ship: other, artwork });
+      vertices += 3 + 3 * (count - 2) + 2 * count + (artwork?.lines?.reduce((n, line) => n + 2 * (line.length - 1), 0) ?? 0); visible++;
     }
     if (!visible) return;
     // Bound the shared vector buffer by the visible immutable hull sizes.
@@ -787,6 +801,9 @@ export class WebGLRenderer implements Renderer {
         const a = hull[j]!, b = hull[(j+1) % hull.length]!; point(p, a.x, a.y); point(p, b.x, b.y);
       }
     }
+    for (const p of placed) for (const line of p.artwork?.lines ?? []) for (let j = 1; j < line.length; j++) {
+      point(p, line[j-1]!.x, line[j-1]!.y); point(p, line[j]!.x, line[j]!.y);
+    }
     const outlineEnd = i;
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts, 0, i);
     draw(flameStart, flameEnd, gl.TRIANGLES, ShaderStyle.flame);
@@ -795,9 +812,14 @@ export class WebGLRenderer implements Renderer {
   }
 
   /** One vessel: optional flame, body and outline, at a screen position and angle. */
-  private drawShip(at: Vec, angle: number, size: number, status: State['status'], engine: boolean, throttle: number, style: number, vehicleId?: string): void {
+  private drawShip(at: Vec, angle: number, size: number, status: State['status'], engine: boolean, throttle: number, style: number, vehicleId?: string, worldScale = 1): void {
     const { gl } = this;
-    const artwork = this.ports.vehicles?.get(vehicleId), hull = artwork?.hull ?? VEHICLE_MARKER, f = artwork?.flame;
+    let artwork = this.ports.vehicles?.get(vehicleId);
+    if (artwork?.metresPerUnit) {
+      size = vehicleArtworkScale(artwork, worldScale);
+      if (size === 0) { artwork = undefined; size = 1; }
+    }
+    const hull = artwork?.hull ?? VEHICLE_MARKER, f = artwork?.flame;
     const verts = this.ensureCapacity(hull.length * 2);
     const cosA = Math.cos(angle) * size, sinA = Math.sin(angle) * size;
     const point = (i: number, x: number, y: number): void => {
@@ -811,6 +833,10 @@ export class WebGLRenderer implements Renderer {
     for (let j = 0; j < hull.length; j++) point(j, hull[j]!.x, hull[j]!.y);
     this.uploadAndDraw(hull.length, gl.TRIANGLE_FAN, status === 'crashed' ? ShaderStyle.crashedShip : style);
     this.uploadAndDraw(hull.length, gl.LINE_LOOP, ShaderStyle.outline);
+    for (const line of artwork?.lines ?? []) {
+      for (let j = 0; j < line.length; j++) point(j, line[j]!.x, line[j]!.y);
+      this.uploadAndDraw(line.length, gl.LINE_STRIP, ShaderStyle.outline);
+    }
   }
 
   private beginVectorPass(width: number, height: number): void {

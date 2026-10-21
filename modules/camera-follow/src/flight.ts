@@ -64,7 +64,7 @@ export class CameraController {
     this.live();
     this.manualRotation = undefined;
     this.mode = 'free'; this.pan = { x: 0, y: 0 }; this.dragged = false; this.stopFling(); this.clearFocus(); this.rotation = 0;
-    if (bodyRadius && bodyRadius > 0) this.setZoom(525 / bodyRadius);
+    if (bodyRadius && bodyRadius > 0) this.setZoom(.35 * this.options.referenceMetres / bodyRadius);
   }
   /** Recentre a view on the ship. */
   recenter(): void { this.followShip(); }

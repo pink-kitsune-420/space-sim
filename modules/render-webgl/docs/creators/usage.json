@@ -104,6 +104,10 @@
       "type": "link",
       "text": "API reference: Vector shader pack",
       "page": "api-reference/module/spacelab.vector-shaders"
+    },
+    {
+      "type": "paragraph",
+      "text": "VehicleAppearance may declare metresPerUnit and local detail paths. Single and fleet vessels use physical world scale up close and navigation markers below eight projected CSS pixels. Match circular hull artwork with authoritative contactRadiusMetres; rendering does not define collision geometry."
     }
   ]
 }

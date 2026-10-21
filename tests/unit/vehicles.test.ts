@@ -41,7 +41,7 @@ describe('per-craft vehicle authority', () => {
     expect(() => captureVehicleCatalog({ ...vehicles, defaultId: 'fixture.missing/craft' })).toThrow();
     expect(() => captureVehicleCatalog({ ...vehicles, definitions: [trainer, trainer] })).toThrow();
     expect(() => captureVehicleAppearance({ ...trainerAppearance, hull: [{ x: Infinity, y: 0 }, {x:0,y:0},{x:1,y:1}] })).toThrow();
-    expect(() => captureVehicleAppearance({ ...trainerAppearance, hull: Array(33).fill({x:1,y:1}) })).toThrow();
+    expect(() => captureVehicleAppearance({ ...trainerAppearance, hull: Array(129).fill({x:1,y:1}) })).toThrow();
     const art = createVehicleArtwork([trainerAppearance]); expect(art.get()).toEqual(trainerAppearance); expect(art.get(alternative.id)).toBeUndefined();
     expect(() => createVehicleArtwork([trainerAppearance, trainerAppearance])).toThrow('Duplicate');
   });

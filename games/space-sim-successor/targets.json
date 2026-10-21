@@ -126,7 +126,15 @@
           "view.alarms": "spacelab.alarm-panel"
         },
         "capabilities": {},
-        "settings": {}
+        "settings": {
+          "spacelab.trainer-appearance": {
+            "surveyLander": 1
+          },
+          "spacelab.camera-follow": {
+            "initialZoom": 30,
+            "referenceMetres": 750
+          }
+        }
       },
       "packages": [],
       "requiredSlots": [
@@ -271,7 +279,15 @@
           "view.alarms": "spacelab.alarm-panel"
         },
         "capabilities": {},
-        "settings": {}
+        "settings": {
+          "spacelab.trainer-appearance": {
+            "surveyLander": 1
+          },
+          "spacelab.camera-follow": {
+            "initialZoom": 30,
+            "referenceMetres": 750
+          }
+        }
       },
       "packages": [],
       "requiredSlots": [

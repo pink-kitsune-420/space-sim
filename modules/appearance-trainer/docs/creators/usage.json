@@ -30,7 +30,7 @@
     },
     {
       "type": "paragraph",
-      "text": "This module has no settings."
+      "text": "surveyLander (default 0, from 0 to 1, step 1): 0 keeps the Classic pixel chevron; 1 selects the physical survey lander artwork. See the physical artwork notes below."
     },
     {
       "type": "heading",
@@ -100,6 +100,14 @@
       "type": "link",
       "text": "WebGL 2: WebGL scene rendering",
       "page": "spacelab.render-webgl/usage"
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional surveyLander=1 selects a 5 m circular lander with SI geometry (metresPerUnit=1), cockpit and hatch detail paths; pair it with authoritative contactRadiusMetres=2.5. Default 0 preserves Classic artwork. World-space artwork becomes a generic navigation marker below eight projected CSS pixels; it never changes physics."
+    },
+    {
+      "type": "paragraph",
+      "text": "The survey lander uses original code-drawn vectors: a glazed cabin with a static seated suit silhouette, a recessed expanding main-engine bell, small attitude-control ports and a 2 m side hatch. All geometry remains within its 2.5 m circular protective hull. This is appearance only; the successor prototype uses existing unlimited propulsion and has no crew/interior gameplay yet."
     }
   ]
 }

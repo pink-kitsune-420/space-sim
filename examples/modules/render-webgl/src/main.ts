@@ -47,3 +47,10 @@ export default function initialize(context: ModuleInitializationV2): void {
   const factory = context.use(WEBGL_DRAWING);
   context.provide(WEBGL_RENDERER_HELPER, createWebGLRendererHelper(factory));
 }
+
+/** Pass a VehicleArtwork catalog through Render2DOptions.vehicles. Its optional
+ * metresPerUnit/detail paths work with the same world-space camera as terrain;
+ * the renderer supplies distant navigation markers automatically. */
+export function withPhysicalArtwork(options: Render2DOptions, vehicles: NonNullable<Render2DOptions['vehicles']>): Render2DOptions {
+  return { ...options, vehicles };
+}

@@ -139,7 +139,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
   const forces = options.forces!;
   const services = Object.freeze({ ...BUILTIN_SERVICES, ...options.services });
   const { elements, propagate, timeToRadius } = services.orbits;
-  const { query: querySurface, identity: surfaceIdentity, support: surfaceSupport,
+  const { query: querySurface, identity: surfaceIdentity, support: rawSupport,
     validate: validateMotionSurface, sweep: sweepSurface, sweepGround: sweepGroundSurface } = services.surfaces;
   for (const [slot, service] of Object.entries(services)) {
     if (!service.id || !service.version || !service.modelIdentity) throw new Error(`Invalid ${slot} provider identity`);
@@ -149,14 +149,27 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
   const analytic = !customMotion && !options.worldRules && services.orbits.analytic;
   const binding = { dynamics: 'builtin.kdk/v1', orbits: services.orbits.modelIdentity,
     bodies: services.bodies.modelIdentity, surfaces: services.surfaces.modelIdentity };
+  const hullRadius = settings.contactRadiusMetres ?? 0;
+  if (!Number.isFinite(hullRadius) || hullRadius < 0 || hullRadius > 32) throw new Error('Invalid hull radius');
+  const specializedIdentity = customServices || hullRadius > 0;
+  // One context-owned derived support cache: a parked circular ship repeats the
+  // same exact solve at 100 Hz. No cache is serialized or affects authority.
+  let lastSupport: { profile: SurfaceProfile; angle: number; value: ReturnType<typeof rawSupport> } | undefined;
+  const surfaceSupport: typeof rawSupport = (profile, angle, radius) => {
+    if (!radius) return rawSupport(profile, angle);
+    if (lastSupport?.profile === profile && lastSupport.angle === angle) return lastSupport.value;
+    const value = rawSupport(profile, angle, radius);
+    lastSupport = { profile, angle, value }; return value;
+  };
   const capabilities = Object.freeze({ analyticCoast: analytic,
     rails: analytic && services.rails.compatible.some(b => b.dynamics === binding.dynamics && b.orbits === binding.orbits
       && b.bodies === binding.bodies && b.surfaces === binding.surfaces),
-    orbitalDiagnostics: analytic, legacyCompatible: !customMotion && !customServices && !options.worldRules });
+    orbitalDiagnostics: analytic, legacyCompatible: !customMotion && !specializedIdentity && !options.worldRules });
   const vehicle = Object.freeze({
     acceleration: settings.acceleration ?? DEFAULT_VEHICLE.acceleration,
     turnRate: settings.turnRate ?? DEFAULT_VEHICLE.turnRate,
     initialThrottle: settings.initialThrottle ?? DEFAULT_VEHICLE.initialThrottle,
+    ...(settings.contactRadiusMetres === undefined ? {} : { contactRadiusMetres: hullRadius }),
   });
   if (!Number.isFinite(vehicle.acceleration) || vehicle.acceleration < 0
     || !Number.isFinite(vehicle.turnRate) || vehicle.turnRate < 0
@@ -165,6 +178,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
   }
 
   const modelIdentity = JSON.stringify([MODEL, vehicle.acceleration, vehicle.turnRate, vehicle.initialThrottle,
+      ...(hullRadius ? [hullRadius] : []),
       ...(customMotion ? [options.dynamics ? [options.dynamics.id, options.dynamics.version, options.dynamics.modelIdentity, options.dynamics.supportsForces] : null,
         forces.map(f => [f.moduleId, f.version, f.hook.modelIdentity, f.hook.initialState])] : []),
       ...(customServices || options.worldRules ? [Object.entries(services).map(([slot, s]) => [slot, s.id, s.version, s.modelIdentity]), options.worldRuleIdentity ?? !!options.worldRules] : [])]);
@@ -247,7 +261,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
   function freeFlightStep(state: State, controls: Controls, dt: number, body: Body): State | undefined {
     const turn = Math.max(-1, Math.min(1, controls.turn)) * vehicle.turnRate;
     const heading = normalizeAngle(state.heading + turn * dt);
-    const throttle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * 0.78125));
+    const throttle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * .78125));
     const midThrottle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * .78125 / 2));
     const thrust = controls.engine ? midThrottle * vehicle.acceleration : 0;
     const midHeading = state.heading + turn * dt / 2;
@@ -258,7 +272,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const hvx = state.velocity.x + (px * s0 * 1 + ex) * half;
     const hvy = state.velocity.y + (py * s0 * 1 + ey) * half;
     const position = { x: px + hvx * dt, y: py + hvy * dt };
-    if (contactFraction(state.position, position, body.radius) !== undefined) return undefined;
+    if (contactFraction(state.position, position, body.radius + hullRadius) !== undefined) return undefined;
     const r1 = dm.hypot(position.x, position.y), s1 = -body.mu / (r1 * r1 * r1);
     const next: { -readonly [K in keyof State]: State[K] } = { time: state.time + dt, position,
       velocity: { x: hvx + (position.x * s1 * 1 + ex) * half, y: hvy + (position.y * s1 * 1 + ey) * half },
@@ -278,6 +292,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     }
     if (state.status !== 'landed' && state.status !== 'flying' && state.status !== 'crashed') throw new Error('Invalid flight status');
     if (surface) validateMotionSurface(body, surface);
+    if (hullRadius && surface?.hasWater) throw new Error('Circular hulls require dry terrain');
     if (state.water !== undefined && (!surface?.seaRadiusMetres || (state.water !== 'submerged' && state.water !== 'floating'))) {
       throw new Error('Invalid water state: requires an ocean surface');
     }
@@ -285,7 +300,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const tolerance = surface ? surfaceContactTolerance(surface) : 1e-7;
     // Free flight above the highest terrain cannot be inside ground: skip the profile query.
     const clear = surface !== undefined && state.status === 'flying' && state.water === undefined
-      && radius >= surface.bounds.maxRadius + tolerance;
+      && radius >= surface.bounds.maxRadius + hullRadius + tolerance;
     // Terrain is body-fixed; a flying state is inertial, so find its point on the turning ground.
     const local = state.status === 'flying' ? rotate(state.position, -spinAngle(body, state.time)) : state.position;
     const ground = !surface ? body.radius : clear ? surface.bounds.maxRadius
@@ -294,10 +309,20 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       || (state.water === 'submerged') !== (state.status === 'flying'))) {
       throw new Error('Invalid water state: medium, support and position disagree');
     }
+    if (hullRadius) {
+      if (!surface) {
+        if (radius < body.radius + hullRadius - tolerance) throw new Error('Invalid state: hull inside ground');
+      } else if (!clear) {
+        const hull = sweepSurface(surface, local, local, { radiusMetres: hullRadius });
+        if (hull.status === 'failed') throw new SurfaceContactError(hull);
+        if (state.status !== 'flying' && hull.status !== 'hit') throw new Error('Invalid hull support state');
+      }
+      if (state.status !== 'flying' && magnitude(state.velocity) !== 0) throw new Error('Invalid hull support velocity');
+    }
     if (radius < ground - tolerance) throw new Error('Invalid state: inside ground');
     const supportRadius = surface && state.water === 'floating'
       ? state.status === 'crashed' ? surface.seaRadiusMetres ?? ground : waterFloatRadius(surface, dm.atan2(state.position.y, state.position.x)) : ground;
-    if (surface && state.status !== 'flying' && (Math.abs(radius - supportRadius) > tolerance || magnitude(state.velocity) !== 0)) {
+    if (!hullRadius && surface && state.status !== 'flying' && (Math.abs(radius - supportRadius) > tolerance || magnitude(state.velocity) !== 0)) {
       throw new Error('Invalid terrain support state: must rest on ground with zero velocity');
     }
   }
@@ -327,7 +352,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const wHalf = w0 + (a0 ? a0.angularAcceleration * dt / 2 : 0);
     const rate = wHalf === 0 ? turn : turn + wHalf;
     const heading = normalizeAngle(state.heading + rate * dt);
-    const throttle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * 0.78125));
+    const throttle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * .78125));
     const midThrottle = Math.max(0, Math.min(1, state.throttle + controls.throttle * dt * .78125 / 2));
     const thrust = controls.engine ? midThrottle * vehicle.acceleration : 0;
     const midHeading = state.heading + rate * dt / 2;
@@ -357,7 +382,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       if (state.water === 'floating') {
         if (thrust === 0 && !a0?.x && !a0?.y) return next;
       } else if (surface) {
-        const support = surfaceSupport(surface, dm.atan2(state.position.y, state.position.x));
+        const support = surfaceSupport(surface, dm.atan2(state.position.y, state.position.x), hullRadius);
         // Static friction holds tangent forces. Liftoff requires positive net
         // acceleration out of every incident support face; sweep checks recontact.
         if (!support.normals.every(n => (engine0.x + g0.x * f0.gravityFactor + spin * state.position.x) * n.x
@@ -376,10 +401,10 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const theta1 = spinAngle(body, state.time + dt);
     // Terrain is swept in the body-fixed frame, from where the ground was to where it is.
     const local0 = rotate(state.position, -theta0), local1 = rotate(position, -theta1);
-    const sweep = surface ? (inWater ? sweepGroundSurface : sweepSurface)(surface, local0, local1) : undefined;
+    const sweep = surface ? (inWater ? sweepGroundSurface : sweepSurface)(surface, local0, local1, hullRadius ? { radiusMetres: hullRadius } : undefined) : undefined;
     if (sweep?.status === 'failed') throw new SurfaceContactError(sweep);
     const terrainHit = sweep?.status === 'hit' ? sweep : undefined;
-    const hit = surface ? terrainHit?.fraction : contactFraction(state.position, position, body.radius);
+    const hit = surface ? terrainHit?.fraction : contactFraction(state.position, position, body.radius + hullRadius);
     if (hit !== undefined) {
       const thetaHit = omega === 0 ? 0 : spinAngle(body, state.time + dt * hit);
       const point = surface ? {
@@ -393,7 +418,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       const waterHit = terrainHit?.surface.material === 'water' && !inWater;
       const groundRadius = (waterHit ? terrainHit.surface.firstContactRadius : terrainHit?.surface.groundRadius) ?? body.radius;
       // Body-fixed contact point, and where it is in the inertial frame at the contact epoch.
-      const local = { x: point.x * groundRadius / r, y: point.y * groundRadius / r };
+      const local = hullRadius ? point : { x: point.x * groundRadius / r, y: point.y * groundRadius / r };
       const contact = rotate(local, thetaHit);
       const gHit = gravity(contact, body);
       const fHit = surface && inWater ? waterForces(surface, local, querySurface) : { gravityFactor: 1, drag: 0 };
@@ -421,7 +446,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
         return { ...result, time: next.time, revision: next.revision, waterEntry: entry,
           ...(result.contact ? { contact: { ...result.contact, fraction: (result.contact.time - state.time) / dt } } : {}) };
       }
-      const safe = surface ? safeSurfaceLanding(surfaceSupport(surface, angle),
+      const safe = surface ? safeSurfaceLanding(surfaceSupport(surface, angle, hullRadius),
         state.heading + rate * dt * hit - thetaHit, magnitude(groundImpact))
         : magnitude(groundImpact) <= 5 && Math.abs(normalizeAngle(heading - thetaHit - angle)) <= Math.PI / 9;
       return { ...next, position: local, velocity: { x: 0, y: 0 },
@@ -494,7 +519,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
    * ground (its final approach). */
   function keplerCoast(state: State, body: Body, surface?: SurfaceProfile, dt = STEP): Coast | undefined {
     if (!capabilities.analyticCoast) return undefined;
-    const top = surface?.bounds.maxRadius ?? body.radius;
+    const top = (surface?.bounds.maxRadius ?? body.radius) + hullRadius;
     // At/below the highest terrain, periapsis cannot clear that envelope and
     // clearOfGround is always false. Reject before allocating a frozen epoch
     // and solving elements on every numerical terrain tick (live and preview).
@@ -502,7 +527,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const identity = surfaceIdentity(body);
     const own = state.coast;
     if (own?.bodyId === body.id && own.mu === body.mu && own.surfaceRadius === body.radius
-      && own.modelIdentity === (customServices ? modelIdentity : undefined)
+      && own.modelIdentity === (specializedIdentity ? modelIdentity : undefined)
       && own.surfaceIdentity === identity && own.contactSurfaceIdentity === surface?.identity) {
       return elements(own, body.mu).periapsis <= top + .01 && !clearOfGround(state, top, dt) ? undefined : own;
     }
@@ -510,7 +535,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       position: Object.freeze({ ...state.position }), velocity: Object.freeze({ ...state.velocity }),
       mu: body.mu, revision: state.revision, surfaceRadius: body.radius, surfaceIdentity: identity,
       ...(surface ? { contactSurfaceIdentity: surface.identity } : {}),
-      ...(customServices ? { modelIdentity } : {}) });
+      ...(specializedIdentity ? { modelIdentity } : {}) });
     // The state's own elements, computed once and cached with the frozen epoch for its evaluation.
     const orbit = elements(coast, body.mu);
     // An arc that reaches the ground coasts only while no step can touch it.
@@ -530,12 +555,12 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
 
   function evaluateCoast(coast: Coast, time: number, body: Body, surface: SurfaceProfile | undefined, store: boolean): Propagation {
     if (surface) validateMotionSurface(body, surface);
-    if (coast.modelIdentity !== (customServices ? modelIdentity : undefined) || coast.bodyId !== body.id || coast.mu !== body.mu || coast.surfaceRadius !== body.radius
+    if (coast.modelIdentity !== (specializedIdentity ? modelIdentity : undefined) || coast.bodyId !== body.id || coast.mu !== body.mu || coast.surfaceRadius !== body.radius
       || coast.surfaceIdentity !== surfaceIdentity(body) || coast.contactSurfaceIdentity !== surface?.identity
       || !Number.isFinite(coast.epochSeconds)
       || !Number.isFinite(time) || !Number.isSafeInteger(coast.revision) || coast.revision < 0
       || !(body.radius > 0) || !Number.isFinite(body.radius)
-      || magnitude(coast.position) < (surface?.bounds.maxRadius ?? body.radius)) {
+      || magnitude(coast.position) < ((surface?.bounds.maxRadius ?? body.radius) + hullRadius)) {
       return { ok: false, diagnostics: { converged: false, iterations: 0, bracketIterations: 0,
         residualSeconds: null, usedBisection: false, reason: 'Invalid coast epoch, surface state or body frame' } };
     }
@@ -546,7 +571,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       return { ok: false, diagnostics: { converged: false, iterations: 0, bracketIterations: 0,
         residualSeconds: null, usedBisection: false, reason: 'Coast is radial or invalid' } };
     }
-    const top = surface?.bounds.maxRadius ?? body.radius;
+    const top = (surface?.bounds.maxRadius ?? body.radius) + hullRadius;
     // An arc that reaches the ground is valid only between its crossings of the highest ground.
     const window = groundWindow(coast, top), elapsed = time - coast.epochSeconds;
     if (elapsed > window.after || -elapsed > window.before) {
@@ -624,7 +649,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       try {
         validateStep(start, IDLE, STEP, body, surface);
         const orbit = elements(start, body.mu);
-        if (orbit.radial || orbit.periapsis <= surface.bounds.maxRadius + .01) {
+        if (orbit.radial || orbit.periapsis <= surface.bounds.maxRadius + hullRadius + .01) {
           return yield* terrainGhost(start, body, surface);
         }
       } catch { return 'failed'; }
@@ -639,8 +664,8 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       const orbit = elements(epoch, body.mu);
       const descending = epoch.position.x * epoch.velocity.x + epoch.position.y * epoch.velocity.y < 0;
       // Already at the surface and descending: contact is now, not one revolution later.
-      if (!surface && descending && magnitude(epoch.position) <= body.radius) impact = 0;
-      else if (!surface && orbit.periapsis < body.radius) impact = timeToRadius(epoch, body.mu, body.radius, 'inbound');
+      if (!surface && descending && magnitude(epoch.position) <= body.radius + hullRadius) impact = 0;
+      else if (!surface && orbit.periapsis < body.radius + hullRadius) impact = timeToRadius(epoch, body.mu, body.radius + hullRadius, 'inbound');
       if (impact === null && orbit.apoapsis !== null) period = orbit.period;
     } catch { return 'failed'; }
     const end = impact ?? period ?? Infinity;

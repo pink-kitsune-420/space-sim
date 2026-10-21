@@ -101,6 +101,10 @@
       "type": "link",
       "text": "game-api flight-view.ts: flight camera interfaces and controllers",
       "page": "api-reference/game-api/flight-view"
+    },
+    {
+      "type": "paragraph",
+      "text": "Planet view derives its framing from referenceMetres: zoom is 0.35*referenceMetres/bodyRadius. Both the legacy 1500 m span and close-up spans therefore frame a full planet consistently. Choose referenceMetres=750 and initialZoom=30 for a human-scale landing view; scroll can zoom out to orbit."
     }
   ]
 }

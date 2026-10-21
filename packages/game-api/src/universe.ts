@@ -108,6 +108,10 @@ export interface VehicleDefaults {
   readonly acceleration: number;
   readonly turnRate: number;
   readonly initialThrottle: number;
+  /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.
+   * The state position is the hull centre. Dry terrain and smooth bodies are supported;
+   * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */
+  readonly contactRadiusMetres?: number;
 }
 
 /** Authored star or planetary system definition containing hierarchical bodies, default vehicle handling, and spawn presets. */

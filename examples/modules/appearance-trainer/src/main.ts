@@ -48,3 +48,11 @@ export default function initialize(context: ModuleInitializationV2): void {
   context.contributeVehicleAppearance(scoutAppearance);
   context.provide(VEHICLE_ARTWORK_HELPER, createVehicleArtworkCatalogHelper());
 }
+
+/** A physical artwork variant: its authoritative vehicle must use a matching
+ * circular contact radius. Optional detail paths share these local metre units. */
+export const metreProbeAppearance = captureVehicleAppearance({
+  vehicleId: 'example.probe/metre-probe', metresPerUnit: 1,
+  hull: Array.from({ length: 64 }, (_, i) => ({ x: 2 * Math.cos(i * Math.PI / 32), y: 2 * Math.sin(i * Math.PI / 32) })),
+  lines: [[{ x: .5, y: -.5 }, { x: 1.5, y: 0 }, { x: .5, y: .5 }]],
+});

@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ab34ae50bb325593
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest a0ba0eb81a54888e
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -230,7 +230,7 @@ Nothing.
 - Initialize before: none; after: none
 
 ## Settings
-None.
+- surveyLander: number, default 0, from 0 to 1, step 1. Physical survey lander artwork: 1 selects the five-metre lander (requires matching 2.5 m authoritative circular hull); 0 retains the Classic pixel chevron.
 
 ## Game API used
 ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleAppearance, VehicleArtwork, captureVehicleAppearance, createVehicleArtwork
@@ -1769,7 +1769,7 @@ Public render.canvas@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers
+CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
@@ -1811,7 +1811,7 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition
+AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
@@ -7137,6 +7137,8 @@ Local terrain contact support at a polar angle (radians): query sample, outward 
       readonly surface: SurfaceQuery;
       readonly normals: readonly Vec[];
       readonly maxSlopeRadians: number;
+      /** Hull-centre radial support distance in metres when a finite radius was requested. */
+      readonly centerRadiusMetres?: number;
     }
 Used by: host or creator modules (not imported by shipped modules).
 
@@ -7147,7 +7149,8 @@ All geometry uses the public radial SurfaceProfile contract. Query, contact and 
       identity(body: Body): string;
       validate(body: Body, profile: SurfaceProfile): void;
       query(profile: SurfaceProfile, angle: number): SurfaceQuery;
-      support(profile: SurfaceProfile, angle: number): SurfaceSupport;
+      /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */
+      support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;
       sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
       sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
     }
@@ -7927,6 +7930,9 @@ Geometric tolerance (`m`) and work budget options for continuous chord-vs-terrai
     export interface SurfaceSweepOptions {
       /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
       readonly toleranceMetres?: number;
+      /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the
+       * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */
+      readonly radiusMetres?: number;
       /** Interval visits plus clearance evaluations, including root refinement. */
       readonly maxWork?: number;
     }
@@ -7949,7 +7955,8 @@ Outcome of sweeping a body-fixed linear segment from `start` to `end` against a 
       | (SweepResult & { readonly status: 'hit'; readonly fraction: number;
         /** A bracket on the drift fraction, not a time-of-flight solution. */
         readonly fractionBracket: readonly [number, number];
-        /** On the drift chord, within the reported tolerance of ground. */
+        /** On the drift chord. For a finite footprint this is the hull centre;
+         * its hull-to-ground clearance is within the reported tolerance. */
         readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;
         readonly kind: 'crossing' | 'touching' })
       | (SweepResult & { readonly status: 'failed';
@@ -8745,6 +8752,10 @@ Authoritative spacecraft handling parameters in SI units: full-thrust `accelerat
       readonly acceleration: number;
       readonly turnRate: number;
       readonly initialThrottle: number;
+      /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.
+       * The state position is the hull centre. Dry terrain and smooth bodies are supported;
+       * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */
+      readonly contactRadiusMetres?: number;
     }
 Used by: builtin.motion, spacelab.maneuver-burn.
 
@@ -9054,12 +9065,17 @@ Explicit opt-in for mixed-vehicle saves/sessions. Definitions come from enabled,
 Used by: spacelab.session-flight.
 
 ## VehicleAppearance
-Screen-space vector artwork (+X forward), shared by Canvas and WebGL. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry.
+Vector artwork (+X forward), shared by Canvas and WebGL. Units are CSS pixels unless metresPerUnit opts into world-space scaling. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry.
     export interface VehicleAppearance {
       /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */
       readonly vehicleId: string;
-      /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */
+      /** Hull vertices in local artwork units relative to the craft centre (3 to 128 points). */
       readonly hull: readonly Vec[];
+      /** Optional world metres per artwork unit. Close views use physical scale; below
+       * 8 CSS pixels across, renderers show a position marker. Omitted retains pixel art. */
+      readonly metresPerUnit?: number;
+      /** Optional open detail paths in the same local units, e.g. cockpit and hatch. */
+      readonly lines?: readonly (readonly Vec[])[];
       /** Optional thruster exhaust flame dimensions for active acceleration visuals. */
       readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };
     }
@@ -9097,6 +9113,11 @@ Used by: spacelab.trainer-appearance.
 Capture once at composition, then read without allocating during drawing. Unknown vehicles have no artwork; renderers retain their generic position marker.
     export function createVehicleArtwork(values: readonly VehicleAppearance[]): VehicleArtwork;
 Used by: spacelab.trainer-appearance.
+
+## vehicleArtworkScale
+Scale for world-space artwork, or zero when its projected extent is below eight CSS pixels and the renderer should use a position marker. Pixel art uses 1.
+    export function vehicleArtworkScale(artwork: VehicleAppearance, pixelsPerMetre: number): number;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
 === game-api: view-hud.ts [api-reference/game-api/view-hud]
@@ -9718,7 +9739,7 @@ This module contributes the standard vector appearance for the orbital trainer s
 - Contributes this usage guide for creators and the flight guide for players.
 
 ## Settings
-This module has no settings.
+surveyLander (default 0, from 0 to 1, step 1): 0 keeps the Classic pixel chevron; 1 selects the physical survey lander artwork. See the physical artwork notes below.
 
 ## Lifecycle
 - Initialization contributes trainerAppearance to the module context and registers creator and player documentation guides.
@@ -9742,6 +9763,8 @@ examples/modules/appearance-trainer demonstrates contributing custom vehicle vec
 -> API reference: Trainer vector appearance [api-reference/module/spacelab.trainer-appearance]
 -> Canvas 2D: Canvas scene rendering [spacelab.render-canvas/usage]
 -> WebGL 2: WebGL scene rendering [spacelab.render-webgl/usage]
+Optional surveyLander=1 selects a 5 m circular lander with SI geometry (metresPerUnit=1), cockpit and hatch detail paths; pair it with authoritative contactRadiusMetres=2.5. Default 0 preserves Classic artwork. World-space artwork becomes a generic navigation marker below eight projected CSS pixels; it never changes physics.
+The survey lander uses original code-drawn vectors: a glazed cabin with a static seated suit silhouette, a recessed expanding main-engine bell, small attitude-control ports and a 2 m side hatch. All geometry remains within its 2.5 m circular protective hull. This is appearance only; the successor prototype uses existing unlimited propulsion and has no crew/interior gameplay yet.
 
 === Flight sound controls [spacelab.audio-controls/usage]
 Public audio.flight-controls@1.0.0 service and lifecycle.
@@ -9864,6 +9887,7 @@ examples/modules/camera-follow demonstrates instantiating a flight camera, adjus
 -> API reference: Independent follow cameras [api-reference/module/spacelab.camera-follow]
 -> Smart camera add-on: target search and guided arrival [spacelab.camera-smart/usage]
 -> game-api flight-view.ts: flight camera interfaces and controllers [api-reference/game-api/flight-view]
+Planet view derives its framing from referenceMetres: zoom is 0.35*referenceMetres/bodyRadius. Both the legacy 1500 m span and close-up spans therefore frame a full planet consistently. Choose referenceMetres=750 and initialZoom=30 for a human-scale landing view; scroll can zoom out to orbit.
 
 === Smart camera add-on [spacelab.camera-smart/usage]
 Optional target search, guided arrival and focus tracking for compatible cameras.
@@ -11294,6 +11318,7 @@ examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to cre
 -> game-api rendering.ts: canvas renderer and scene frame contracts [api-reference/game-api/rendering]
 -> API reference: Canvas 2D [api-reference/module/spacelab.render-canvas]
 -> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
+VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hull/flame/details scale by the camera pixels per metre; sub-eight-pixel hulls become navigation markers. Match artwork to authoritative contactRadiusMetres; optional geometry never changes collision authority.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11334,6 +11359,7 @@ examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initi
 -> API reference: WebGL 2 [api-reference/module/spacelab.render-webgl]
 -> Canvas 2D: CPU fallback rendering [spacelab.render-canvas/usage]
 -> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
+VehicleAppearance may declare metresPerUnit and local detail paths. Single and fleet vessels use physical world scale up close and navigation markers below eight projected CSS pixels. Match circular hull artwork with authoritative contactRadiusMetres; rendering does not define collision geometry.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.
@@ -11966,6 +11992,7 @@ examples/modules/vehicle-trainer demonstrates registering a vehicle definition a
 -> API reference: Orbit trainer [api-reference/module/spacelab.trainer]
 -> game-api: vehicles.ts [api-reference/game-api/vehicles]
 -> game-api: engine.ts [api-reference/game-api/engine]
+VehicleDefaults and per-vehicle handling accept optional contactRadiusMetres (0–32 m). Omitted/zero preserves point contact; finite hulls use a circular footprint with centre-based state, bounded continuous dry-terrain contact, radius-aware spawn/support/prediction/analytic guards and a distinct motion identity. Ocean combinations fail explicitly. Footprint authority must agree with metre-based artwork; legacy saves/settings remain unchanged.
 
 === Shared view HUD lifecycle [spacelab.view-hud/usage]
 Optional instruments with independent per-view lifetimes.

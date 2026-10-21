@@ -1,3 +1,4 @@
+import { successorReferences } from './successor-comparison';
 import { assertGameProgress, gamePreferenceKey, SUCCESSOR_GAME_ID } from '../../../packages/game-library/src/game-progress';
 import './warp-approval.css';
 import { WarpApproval } from './warp-approval';
@@ -4481,7 +4482,11 @@ function groundClearance(): number {
   // Terrain turns with the body; a flying state is inertial.
   const local = state.status === 'flying' ? rotate(state.position, -spinAngle(activeBody, state.time)) : state.position;
   const ground = surface ? querySurface(surface, Math.atan2(local.y, local.x)).firstContactRadius : activeBody.radius;
-  return magnitude(state.position) - ground;
+  const hullRadius = activeMotion().vehicle.contactRadiusMetres ?? 0;
+  const support = hullRadius && surface
+    ? activeMotion().services.surfaces.support(surface, Math.atan2(local.y, local.x), hullRadius).centerRadiusMetres!
+    : ground + hullRadius;
+  return magnitude(state.position) - support;
 }
 
 function diagnostics(engine: boolean): Record<string, unknown> {
@@ -4549,6 +4554,7 @@ function hud(engine: boolean): void {
   commandBar.sync(session.world.commands, id => keybindings[id]);
   const terrainNotice = element('terrain-notice');
   terrainNotice.hidden = session.world.surfaces.size === 0;
+  if (activeMotion().vehicle.contactRadiusMetres) terrainNotice.textContent = 'Physical terrain · Clearance is measured from the hull. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less. Hold arrows to adjust thrust; release keeps the setting; X cuts the engine.';
   const ship = selectedShip();
   const paused = session.paused;
   const r = magnitude(state.position);
@@ -4864,6 +4870,14 @@ function frame(now: number): void {
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
+  if (activeGameInfo.id === 'builtin.space-sim-successor') {
+    const profile = world.surface(activeBody.id);
+    if (profile) {
+      const origin = world.system.getBodyPosition(activeBody.id, view.time);
+      overlays.push(...successorReferences(profile, angle => querySurface(profile, angle).groundRadius,
+        point => { const p = spinView.point(activeBody, view.time, point); return { x: origin.x + p.x, y: origin.y + p.y }; }, camera.scale));
+    }
+  }
   if (academy) {
     try { overlays.push(...academy.draw({ ...base(), camera })); }
     catch (error) { releaseAcademy(); notify(`Academy preview stopped: ${message(error)}`); }
@@ -5118,6 +5132,13 @@ function frame(now: number): void {
   profiler.lap('hud');
   profiler.end();
   requestAnimationFrame(frame);
+}
+
+if (startupGame.info.id === 'builtin.space-sim-successor') {
+  const hint = document.createElement('p');
+  hint.id = 'successor-trial-help'; hint.className = 'control-note';
+  hint.textContent = 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
+  systemSelect.closest('.setup-fields')?.after(hint);
 }
 
 // Start: a solo world with one ship at the first scenario.
