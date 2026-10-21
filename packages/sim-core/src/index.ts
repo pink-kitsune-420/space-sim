@@ -15,6 +15,7 @@ export * from './surface-flight';
 export * from './water';
 export * from './spin';
 export * from './warp';
+export * from './physics/index';
 export * as dmath from './dmath';
 
 let legacyContext = createSimulationContext();
