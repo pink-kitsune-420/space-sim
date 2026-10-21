@@ -64,6 +64,7 @@ test('manual shows player and creator docs with live keys', async ({ page }) => 
     'game-api: transfers.ts',
     'Procedural sound',
     'Progressive flight prediction',
+    'Universe save commands',
   ]);
   await manual.locator('#manual-search').fill('zzzz');
   await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');

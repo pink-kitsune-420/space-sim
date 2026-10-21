@@ -1059,6 +1059,8 @@ function setPaused(value: boolean, reason = ''): void {
   release(); lastWall = undefined;
   lastHud = lastDebug = -Infinity;
   syncPauseButton();
+  // Synchronize warp buttons before the next frame so Resume permits an immediate click.
+  syncWarpUI();
 }
 function syncPauseButton(): void {
   const paused = session.paused;
@@ -4709,7 +4711,7 @@ function frame(now: number): void {
   const controlTarget = presentation.hooks.controlsInput ? presentation.hooks.controlTarget(
     presentationView(elapsed, session.world.system.getBodyPosition(activeBody.id, session.world.time), spinView.state(selectedShip()?.state ?? state, activeBody))) : undefined;
   const command = presentationControls.route(session, session.playerId, selectedShipId, rawCommand, controlTarget,
-    !session.paused && !workspace.isOpen && !controlsDialog.open && !hudLayout.editing && !document.hidden);
+    !session.paused && (!controlTarget || !workspace.isOpen) && !controlsDialog.open && !hudLayout.editing && !document.hidden);
   if(session.world!==warpApprovalWorld||session!==local||!local.hosting){warpApproval.clear();warpApprovalWorld=session.world;}
   maneuver.beforeAdvance(command);
   warpApproval.retain(shipId=>maneuver.isAutomatic(shipId));
