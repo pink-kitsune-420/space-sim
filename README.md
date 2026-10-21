@@ -2,7 +2,7 @@
 
 A free, open-source toolkit for modular 2D space games. **Space Sim**, the bundled orbital flight game, combines double-precision Keplerian mechanics, terrain and ocean landings, and multiplayer in a minimalist vector world.
 
-**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[MIT license](LICENSE)**
+**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[MIT license](LICENSE)** · **[API reference](modules/API-REFERENCE.html)**
 
 Spacelab is in alpha. Module contracts and file tooling are still evolving.
 
