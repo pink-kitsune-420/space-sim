@@ -2,7 +2,7 @@
 import { captureVehicleCatalog, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
 import { canonicalJson, sha256Hex } from '../../game-runtime/src/authoritative';
 import { ModuleDataStore } from '../../game-runtime/src/module-data';
-import type { AvatarControls, AvatarMode, AvatarState, Coast, CommandExtension, Controls, ForceExtension, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
+import type { AvatarControls, AvatarMode, AvatarState, Coast, CommandExtension, Controls, ForceExtension, SavedBodyState, Ship, SimulationContext, SimulationContextFactory, State, Vec, WorldEvent, WorldRuleExtension, WorldRuleState, GhostSample, GhostEnd, AuthoritativeLock, ModuleLock, WorldControl, WorldChanges, WorldCreationOptions as WorldOptions } from '../../game-api/src/index';
 export type { WorldRuleState } from '../../game-api/src/index';
 import { IDLE, STEP } from './constants';
 import { createSimulationContext, ghostSample, magnitude, normalizeAngle, setGodMode } from './context';
@@ -79,6 +79,9 @@ export class World implements WorldControl {
   readonly lock?: AuthoritativeLock | ModuleLock;
   readonly simulationFingerprint: string;
   saveVersion?: number;
+  /** Validated dynamic body snapshot (system-inertial, `m`, `m/s`) restored by `loadWorld` from a simulated-universe save.
+   * Phase 1 only persists it (save, load, prediction clone); bodies still follow authored ephemerides. Host-assigned only. */
+  bodyStates?: readonly SavedBodyState[];
   private ruleState: Readonly<Record<string, WorldRuleState>>;
   get requiresWorldPrediction(): boolean { return this.rules.length > 0 || this.customFrames; }
   get moduleState(): Readonly<Record<string, WorldRuleState>> { return this.ruleState; }
@@ -935,6 +938,7 @@ export class World implements WorldControl {
       vehicles: this.vehicles, createContext: this.createContext, dataAdapters: this.dataAdapters, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
       lock: this.lock, simulationFingerprint: this.simulationFingerprint, saveVersion: this.saveVersion });
     clone.tick = this.tick; clone.time = this.time; clone.nextShipNumber = this.nextShipNumber;
+    clone.bodyStates = this.bodyStates;
     clone.rails = false;
     for (const ship of this.ships()) clone.put(structuredClone(ship));
     for (const avatar of this.avatars()) clone.putAvatar(structuredClone(avatar));

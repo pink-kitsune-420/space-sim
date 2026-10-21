@@ -40,7 +40,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/1",
-    "inputsDigest": "dc6d3af0da168c2b4c97f4148a92120aba77e174b4c0a9896f90b3324b06a36e"
+    "inputsDigest": "2bb5a8b89acaceb2e8fee14c5b57aa57ead41f56b1a7873b5d7178051ed90224"
   },
   "compatibility": {
     "deterministic": true,
@@ -70,7 +70,7 @@
     },
     {
       "path": "game-api/commands.ts",
-      "sha256": "204e14d6c2e51d24a791135750a0cd1ea8ed5c63e7a52fd5a7380456526fd4bd",
+      "sha256": "253600bfcdd7cb86d75abc78a6baf5ddeb39659bf8f0f981a2775cf196319a3e",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -82,7 +82,7 @@
     },
     {
       "path": "game-api/engine.ts",
-      "sha256": "1d6f8d90183be595d356b401ae61cba258b080c1d7a273b33f8f01adc2153994",
+      "sha256": "4fceb6bff63876ff0fa94f5111bd201617fd94c6184f902ddb6b2471ca46c863",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -166,13 +166,13 @@
     },
     {
       "path": "game-api/modules-v2.ts",
-      "sha256": "c02c7f854c94f77d58f7b0c32812a5933f2b5e3edd214a54ea3145bce18fb5fb",
+      "sha256": "6d8bec62241a404bb137f6ab36aeb3c5674cd82500fabf808179fe77c212d7a2",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
     {
       "path": "game-api/modules.ts",
-      "sha256": "f7855b2738b934bb29f6a4b047bc384fe730a5508b95286b0894ba1d36ab124d",
+      "sha256": "6fa11e0bfd2943e6b85ea3f22319cbf898d90629656eb4698d2f3340eba7f41f",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },
@@ -328,7 +328,7 @@
     },
     {
       "path": "game-api/universe.ts",
-      "sha256": "eb0ddbf59bb095ef0694318d681172aedb783942c950e43cfdd3d6066ad3302a",
+      "sha256": "6ff883c05ad8034dde17b28e3cae1d03d5d038219fb32d850691ed58e0b25700",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },

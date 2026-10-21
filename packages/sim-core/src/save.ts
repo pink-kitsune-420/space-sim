@@ -1,7 +1,7 @@
 /** Host-only world save/load codec and validation (`packages/sim-core`). Modules access world persistence through `@space-sim/game-api` `CORE_SAVE` (`SaveCodec`: `save`, `load`, `shipToSaved`, `shipFromSaved`, `playerFromSaved`, `defaultLock`). */
 import { captureVehicleCatalog, vehicleId, TRAINER_VEHICLE_ID, VehicleConfigurationError } from '../../game-api/src/index';
 import { canonicalJson } from '../../game-runtime/src/authoritative';
-import type { AuthoritativeLock, AvatarState, Coast, ModuleLock, ModuleState, SavedAvatar, SavedPlayer, SavedShip, State, WorldRead, WorldRuleState, WorldSave } from '../../game-api/src/index';
+import type { AuthoritativeLock, AvatarState, Coast, ModuleLock, ModuleState, SavedAvatar, SavedBodyState, SavedPlayer, SavedShip, State, WorldRead, WorldRuleState, WorldSave } from '../../game-api/src/index';
 import { validateModuleState } from '../../game-runtime/src/motion';
 import { DEFAULT_BUILTIN_LOCK, migrateModuleState } from '../../game-runtime/src/authoritative';
 /** Default built-in authoritative module lock re-exported for `CORE_SAVE` (`SaveCodec.defaultLock`). Host-only (`packages/sim-core`). */
@@ -9,7 +9,7 @@ export { DEFAULT_BUILTIN_LOCK };
 import { IDLE, MODEL, READABLE_MODELS, STEP } from './constants';
 import { magnitude } from './context';
 import { surfaceIdentity } from './surface';
-import { validateUniverse } from './universe';
+import { resolveUniversePhysics, validateUniverse } from './universe';
 import { MAX_SHIP_NAME, SHIP_ID_PATTERN, World, cleanName, type Ship, type WorldOptions } from './world';
 
 /** Complete-world save format discriminator (`'space-sim-world'`): every ship at one shared simulation epoch. Host-only (`packages/sim-core`). */
@@ -26,7 +26,7 @@ export const MAX_SAVE_PLAYERS = 512;
 export const MAX_PLAYER_NAME = 24;
 const TOKEN_HASH = /^[0-9a-f]{64}$/;
 
-export type { SavedCoast, SavedShip, SavedAvatar, SavedPlayer, WorldSave } from '../../game-api/src/index';
+export type { SavedCoast, SavedShip, SavedAvatar, SavedPlayer, SavedBodyState, WorldSave } from '../../game-api/src/index';
 /** Validated result of `loadWorld`, bundling the reconstructed `World` instance, sanitized `SavedPlayer` records, optional `hostId`, and `paused` state. Host-only (`packages/sim-core`; `CORE_SAVE.load` wraps `world` in `worldFacade(world).control`). */
 export interface LoadedWorld {
   readonly world: World;
@@ -242,6 +242,12 @@ export function saveWorld(world: WorldRead, extra: {
   const lock = extra.lock ?? world.lock ?? DEFAULT_BUILTIN_LOCK;
   const simulationFingerprint = extra.simulationFingerprint ?? world.simulationFingerprint;
   const ruleState = extra.moduleState ?? (Object.keys(world.moduleState).length ? world.moduleState : undefined);
+  const physics = resolveUniversePhysics(world.universe);
+  const saveBodies = physics.mode !== 'rails' && world.bodyStates?.length ? world.bodyStates.map(b => ({
+    id: b.id,
+    position: [b.position[0], b.position[1]] as const,
+    velocity: [b.velocity[0], b.velocity[1]] as const,
+  })) : undefined;
   return {
     ...(world.configuration ? { configuration: world.configuration } : {}),
     ...(extra.flightPlans?.plans.length ? { flightPlans: structuredClone(extra.flightPlans) } : {}),
@@ -257,6 +263,7 @@ export function saveWorld(world: WorldRead, extra: {
       return world.vehicles ? { ...saved, vehicleId: ship.vehicleId ?? TRAINER_VEHICLE_ID } : saved;
     }),
     ...(world.avatars().length ? { avatars: world.avatars().map(avatarToSaved) } : {}),
+    ...(saveBodies ? { bodies: saveBodies } : {}),
     ...(world.vehicles ? { vehicles: world.vehicles } : {}),
     ...(lock ? { lock } : {}),
     ...(simulationFingerprint ? { simulationFingerprint } : {}),
@@ -294,6 +301,36 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
   const universe = validateUniverse(save.universe);
   if (typeof save.systemId !== 'string' || !universe.systems.some(s => s.id === save.systemId)) {
     fail('Save', `unknown system ${String(save.systemId)}`);
+  }
+  const physics = resolveUniversePhysics(universe);
+  let validatedBodies: readonly SavedBodyState[] | undefined;
+  if (save.bodies !== undefined) {
+    if (physics.mode === 'rails') {
+      fail('Save', 'body snapshots are not supported in rails physics mode');
+    }
+    if (!Array.isArray(save.bodies)) fail('Save', 'bodies must be a list');
+    const system = universe.systems.find(s => s.id === save.systemId)!;
+    const systemBodyIds = new Set(system.bodies.map(b => b.id));
+    if (save.bodies.length > systemBodyIds.size) {
+      fail('Save', `bodies list cannot exceed system body count (${systemBodyIds.size})`);
+    }
+    const seenBodyIds = new Set<string>();
+    const list: SavedBodyState[] = [];
+    for (const [i, rawBody] of (save.bodies as unknown[]).entries()) {
+      const b = record(rawBody, `Body ${i + 1}`);
+      const bodyId = typeof b.id === 'string' && b.id.length > 0 ? b.id : fail(`Body ${i + 1}`, 'id must be a nonempty string');
+      if (!systemBodyIds.has(bodyId)) fail('Save', `unknown body id ${bodyId} in system ${system.id}`);
+      if (seenBodyIds.has(bodyId)) fail('Save', `duplicate body id ${bodyId}`);
+      seenBodyIds.add(bodyId);
+      const pos = vec(b.position, `Body ${bodyId} position`);
+      const vel = vec(b.velocity, `Body ${bodyId} velocity`);
+      list.push(Object.freeze({
+        id: bodyId,
+        position: pair(pos),
+        velocity: pair(vel),
+      }));
+    }
+    validatedBodies = Object.freeze(list);
   }
   const tick = count(save.tick, 'Save tick');
   const time = finite(save.time, 'Save time');
@@ -378,6 +415,9 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
         if (world.avatar(avatar.id)) fail('Save', `duplicate avatar id ${avatar.id}`);
         world.putAvatar(avatar);
       }
+    }
+    if (validatedBodies) {
+      world.bodyStates = validatedBodies;
     }
     world.nextShipNumber = Math.max(count(save.nextShipNumber, 'Save nextShipNumber'), highest + 1, 1);
     return { world, players, ...(hostId ? { hostId } : {}), paused: save.paused === true };

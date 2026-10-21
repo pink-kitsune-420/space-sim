@@ -2,8 +2,8 @@
  * Modules access universe validation and system loading through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.validateUniverse`, `CoreMotion.services.bodies.load`), `BODY_FRAMES` (`BodyProvider.load`), and `WorldRead.system` (`LoadedSystem`).
  * Uses SI units (`radius` and positions in `m`, velocities in `m/s`, `mass` in `kg`, `mu = GM` in `m³/s²`, angles in `rad`, `period` and `time` in `s`) and deterministic IEEE-754 float64 `dmath`. */
 import { APPEARANCE_TUNING } from '../../game-api/src/index';
-import type { AppearanceStyle, AppearanceTuning, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
-export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem } from '../../game-api/src/index';
+import type { AppearanceStyle, AppearanceTuning, BodyAppearance, Ephemeris, CelestialBodyDefinition, RotationDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem, PhysicsMode, CollisionMode, UniversePhysicsConfig, ResolvedUniversePhysics } from '../../game-api/src/index';
+export type { SOI, Ephemeris, CelestialBodyDefinition, PresetDefinition, VehicleDefaults, SystemDefinition, UniverseDefinition, ResolvedBody, LoadedSystem, PhysicsMode, CollisionMode, UniversePhysicsConfig, ResolvedUniversePhysics } from '../../game-api/src/index';
 import defaultUniverseJson from '../../../games/space-sim/universes/sandbox/default/universe.json';
 import type { State, Vec } from '../../game-api/src/index';
 import { SURFACE_LIMITS, querySurface, surfaceIdentity, validateSurfaceDefinition, type SurfaceDefinition, type SurfaceProfile } from './surface';
@@ -90,6 +90,107 @@ function validateRotation(raw: unknown, radius: number, mu: number, where: strin
   return { period, direction, phaseRadiansAtEpoch: phase };
 }
 
+/** Allowed keys for UniversePhysicsConfig. Any additional keys are rejected for typo safety. */
+const ALLOWED_PHYSICS_KEYS = new Set([
+  'mode',
+  'substeps',
+  'softeningRatio',
+  'enableJ2',
+  'enableTidalTorque',
+  'collisionMode',
+  'restitution',
+  'maxWarp',
+]);
+
+/** Default universe physics settings when omitted or resolving a rails universe. */
+export const DEFAULT_UNIVERSE_PHYSICS: ResolvedUniversePhysics = Object.freeze({
+  mode: 'rails',
+  substeps: 1,
+  softeningRatio: Math.sqrt(0.05),
+  enableJ2: false,
+  enableTidalTorque: false,
+  collisionMode: 'merge',
+  restitution: 0.5,
+  maxWarp: 100_000,
+});
+
+/** Fully resolves universe physics settings with canonical defaults for any omitted fields. */
+export function resolveUniversePhysics(universe: UniverseDefinition): ResolvedUniversePhysics {
+  const p = universe.physics;
+  if (!p) return DEFAULT_UNIVERSE_PHYSICS;
+  const mode: PhysicsMode = p.mode ?? 'rails';
+  const defaultMaxWarp = mode === 'rails' ? 100_000 : 4;
+  return Object.freeze({
+    mode,
+    substeps: p.substeps ?? 1,
+    softeningRatio: p.softeningRatio ?? Math.sqrt(0.05),
+    enableJ2: p.enableJ2 ?? false,
+    enableTidalTorque: p.enableTidalTorque ?? false,
+    collisionMode: p.collisionMode ?? 'merge',
+    restitution: p.restitution ?? 0.5,
+    maxWarp: p.maxWarp ?? defaultMaxWarp,
+  });
+}
+
+/** Validates authored universe physics configuration. Rejects unknown keys or out-of-bounds numerical values. */
+export function validatePhysics(raw: unknown, where = 'Universe physics'): UniversePhysicsConfig | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== 'object' || Array.isArray(raw)) throw new Error(`${where} must be an object`);
+  const p = raw as Record<string, unknown>;
+  for (const key of Object.keys(p)) {
+    if (!ALLOWED_PHYSICS_KEYS.has(key)) {
+      throw new Error(`${where}: unknown setting "${key}"`);
+    }
+  }
+  if (p.mode !== undefined) {
+    if (p.mode !== 'rails' && p.mode !== 'nbody' && p.mode !== 'full-body') {
+      throw new Error(`${where}: mode must be 'rails', 'nbody' or 'full-body'`);
+    }
+  }
+  if (p.substeps !== undefined) {
+    if (typeof p.substeps !== 'number' || !Number.isInteger(p.substeps) || p.substeps < 1 || p.substeps > 64) {
+      throw new Error(`${where}: substeps must be an integer from 1 to 64`);
+    }
+  }
+  if (p.softeningRatio !== undefined) {
+    if (typeof p.softeningRatio !== 'number' || !Number.isFinite(p.softeningRatio) || p.softeningRatio < 0) {
+      throw new Error(`${where}: softeningRatio must be a non-negative finite number`);
+    }
+  }
+  if (p.enableJ2 !== undefined && typeof p.enableJ2 !== 'boolean') {
+    throw new Error(`${where}: enableJ2 must be boolean`);
+  }
+  if (p.enableTidalTorque !== undefined && typeof p.enableTidalTorque !== 'boolean') {
+    throw new Error(`${where}: enableTidalTorque must be boolean`);
+  }
+  if (p.collisionMode !== undefined) {
+    if (p.collisionMode !== 'merge' && p.collisionMode !== 'bounce' && p.collisionMode !== 'none') {
+      throw new Error(`${where}: collisionMode must be 'merge', 'bounce' or 'none'`);
+    }
+  }
+  if (p.restitution !== undefined) {
+    if (typeof p.restitution !== 'number' || !Number.isFinite(p.restitution) || p.restitution < 0 || p.restitution > 1) {
+      throw new Error(`${where}: restitution must be a number from 0 to 1`);
+    }
+  }
+  if (p.maxWarp !== undefined) {
+    if (typeof p.maxWarp !== 'number' || !Number.isFinite(p.maxWarp) || p.maxWarp < 1 || p.maxWarp > 100_000) {
+      throw new Error(`${where}: maxWarp must be a finite number from 1 to 100000`);
+    }
+  }
+  const validated: UniversePhysicsConfig = Object.freeze({
+    ...(p.mode !== undefined ? { mode: p.mode as PhysicsMode } : {}),
+    ...(p.substeps !== undefined ? { substeps: p.substeps as number } : {}),
+    ...(p.softeningRatio !== undefined ? { softeningRatio: p.softeningRatio as number } : {}),
+    ...(p.enableJ2 !== undefined ? { enableJ2: p.enableJ2 as boolean } : {}),
+    ...(p.enableTidalTorque !== undefined ? { enableTidalTorque: p.enableTidalTorque as boolean } : {}),
+    ...(p.collisionMode !== undefined ? { collisionMode: p.collisionMode as CollisionMode } : {}),
+    ...(p.restitution !== undefined ? { restitution: p.restitution as number } : {}),
+    ...(p.maxWarp !== undefined ? { maxWarp: p.maxWarp as number } : {}),
+  });
+  return Object.keys(validated).length > 0 ? validated : undefined;
+}
+
 /** Validate and normalize a universe definition */
 export function validateUniverse(raw: unknown): UniverseDefinition {
   if (!raw || typeof raw !== 'object') throw new Error('Universe data must be a JSON object');
@@ -104,6 +205,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
       description: u.description ?? 'Wrapped single system universe',
       defaultSystemId: u.id,
       systems: [u],
+      ...(u.physics !== undefined ? { physics: u.physics } : {}),
     });
   }
 
@@ -261,6 +363,8 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
     throw new Error(`defaultSystemId "${u.defaultSystemId}" not found in universe systems`);
   }
 
+  const physics = u.physics === undefined ? undefined : validatePhysics(u.physics, 'Universe physics');
+
   return {
     schemaVersion: 1,
     id: u.id,
@@ -269,6 +373,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
     author: typeof u.author === 'string' ? u.author : undefined,
     defaultSystemId: u.defaultSystemId,
     systems: validatedSystems,
+    ...(physics ? { physics } : {}),
   };
 }
 

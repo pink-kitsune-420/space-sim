@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ebe25da7793d4882",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 1a75b7459c4f3971",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest ebe25da7793d4882"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 1a75b7459c4f3971"
         },
         {
           "type": "paragraph",
@@ -7867,6 +7867,22 @@
         },
         {
           "type": "heading",
+          "text": "SavedBodyState"
+        },
+        {
+          "type": "paragraph",
+          "text": "Dynamic celestial body snapshot for simulated (non-`'rails'`) universes: system-inertial `position` (`m`) and `velocity` (`m/s`) at the save's `time`, independent of the authored parent."
+        },
+        {
+          "type": "code",
+          "text": "export interface SavedBodyState {\n  readonly id: string;\n  readonly position: Pair;\n  readonly velocity: Pair;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "SavedGameConfiguration"
         },
         {
@@ -7891,7 +7907,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly avatars?: readonly SavedAvatar[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
+          "text": "export interface WorldSave {\n  readonly vehicles?: VehicleCatalog;\n  readonly data?: ModuleDataSnapshot;\n  readonly format: 'space-sim-world';\n  /** Optional inert local planning intent. Older saves omit it; loading never arms execution. */\n  readonly flightPlans?: FlightPlanArchive;\n  readonly configuration?: SavedGameConfiguration;\n  readonly version: number;\n  readonly model: string;\n  readonly units: { readonly length: 'metre'; readonly time: 'second'; readonly angle: 'radian' };\n  readonly worldId: string;\n  readonly savedAt?: string;\n  /** The full universe, so a save is portable between browsers and servers. */\n  readonly universe: UniverseDefinition;\n  readonly systemId: string;\n  readonly tick: number;\n  readonly time: number;\n  readonly paused?: boolean;\n  readonly nextShipNumber: number;\n  /** The player who hosted this world in a browser; whoever loads it there takes that seat. */\n  readonly hostId?: string;\n  readonly players: readonly SavedPlayer[];\n  readonly ships: readonly SavedShip[];\n  readonly avatars?: readonly SavedAvatar[];\n  /** Dynamic celestial body states; only for universes whose `physics.mode` is not `'rails'`.\n   * Absent means bodies start from their authored ephemerides at `time`. */\n  readonly bodies?: readonly SavedBodyState[];\n  readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly simulationFingerprint?: string;\n  readonly moduleState?: Readonly<Record<string, WorldRuleState>>;\n}"
         },
         {
           "type": "paragraph",
@@ -7907,7 +7923,7 @@
         },
         {
           "type": "code",
-          "text": "export interface WorldRead {\n  readonly vehicles?: VehicleCatalog;\n  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext;\n  readonly data: ModuleDataRead;\n  readonly dataAdapters: readonly ModuleDataExtension[];\n  readonly configuration?: SavedGameConfiguration;\n  /** Absent on older hosts; planners must not assume optional seed arguments are understood. */\n  readonly predictionFeatures?: { readonly futureSeeds: boolean; readonly endTime?: boolean };\n  readonly id: string; readonly tick: number; readonly time: number;\n  readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;\n  readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;\n  readonly simulationFingerprint: string; readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly rules: readonly WorldRuleExtension[]; readonly forces: readonly ForceExtension[]; readonly commands: readonly CommandExtension[];\n  readonly moduleState: Readonly<Record<string, WorldRuleState>>;\n  readonly soloPreview: boolean; readonly paused: boolean; readonly fault?: string;\n  readonly rails: boolean; readonly nextWakeTick: number; readonly requiresWorldPrediction: boolean;\n  readonly version: number; readonly nextShipNumber: number; readonly saveVersion?: number;\n  readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;\n  readonly surfaces: ReadonlyMap<string, SurfaceProfile>;\n  record(id: string): Ship | undefined; records(): IterableIterator<Ship>;\n  ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;\n  avatar(id: string): AvatarState | undefined; avatars(): readonly AvatarState[];\n  awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;\n  ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;\n  stateAt(id: string, time: number): State | undefined;\n  hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;\n  presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };\n  /** Optional inert future seed is supported by independent analytic flight only;\n   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most\n   * 100 Julian years after the seed), disabling orbit closure; requires predictionFeatures.endTime. */\n  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;\n  cloneForPrediction(): WorldControl;\n}"
+          "text": "export interface WorldRead {\n  readonly vehicles?: VehicleCatalog;\n  contextFor(ship: Pick<Ship, 'vehicleId'>): SimulationContext;\n  readonly data: ModuleDataRead;\n  readonly dataAdapters: readonly ModuleDataExtension[];\n  readonly configuration?: SavedGameConfiguration;\n  /** Absent on older hosts; planners must not assume optional seed arguments are understood. */\n  readonly predictionFeatures?: { readonly futureSeeds: boolean; readonly endTime?: boolean };\n  readonly id: string; readonly tick: number; readonly time: number;\n  readonly systemId: string; readonly size: number; readonly awakeCount: number; readonly asleepCount: number;\n  readonly universe: UniverseDefinition; readonly system: LoadedSystem; readonly context: SimulationContext;\n  readonly simulationFingerprint: string; readonly lock?: AuthoritativeLock | ModuleLock;\n  readonly rules: readonly WorldRuleExtension[]; readonly forces: readonly ForceExtension[]; readonly commands: readonly CommandExtension[];\n  readonly moduleState: Readonly<Record<string, WorldRuleState>>;\n  readonly soloPreview: boolean; readonly paused: boolean; readonly fault?: string;\n  readonly rails: boolean; readonly nextWakeTick: number; readonly requiresWorldPrediction: boolean;\n  readonly version: number; readonly nextShipNumber: number; readonly saveVersion?: number;\n  readonly bodyStates?: readonly SavedBodyState[];\n  readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;\n  readonly surfaces: ReadonlyMap<string, SurfaceProfile>;\n  record(id: string): Ship | undefined; records(): IterableIterator<Ship>;\n  ship(id: string): Ship | undefined; ships(): readonly Ship[]; has(id: string): boolean;\n  avatar(id: string): AvatarState | undefined; avatars(): readonly AvatarState[];\n  awakeShips(): IterableIterator<Ship>; previous(id: string): Ship | undefined;\n  ownedBy(id: string): ReadonlySet<string>; isAsleep(id: string): boolean; settles(id: string): boolean;\n  stateAt(id: string, time: number): State | undefined;\n  hasBody(id: string): boolean; body(id: string): ResolvedBody; surface(id: string): SurfaceProfile | undefined;\n  presetId(id?: string): string; presetState(id?: string): { readonly state: State; readonly bodyId: string };\n  /** Optional inert future seed is supported by independent analytic flight only;\n   * rule/custom-frame worlds reject it. Never edits a ship or arms controls. until requests an exact endpoint (at most\n   * 100 Julian years after the seed), disabling orbit closure; requires predictionFeatures.endTime. */\n  predictShip(id: string, coarse?: boolean, seed?: { readonly state: State; readonly bodyId: string; readonly until?: number }): Generator<GhostSample, GhostEnd>;\n  cloneForPrediction(): WorldControl;\n}"
         },
         {
           "type": "paragraph",
@@ -16539,15 +16555,79 @@
         },
         {
           "type": "heading",
+          "text": "PhysicsMode"
+        },
+        {
+          "type": "paragraph",
+          "text": "Celestial body motion model: analytic Keplerian `'rails'` (default), numerical mutual-gravity `'nbody'`, or `'full-body'` (N-body plus optional J2, tides and collisions)."
+        },
+        {
+          "type": "code",
+          "text": "export type PhysicsMode = 'rails' | 'nbody' | 'full-body';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "CollisionMode"
+        },
+        {
+          "type": "paragraph",
+          "text": "How touching celestial bodies interact in simulated universes: inelastic `'merge'`, impulse `'bounce'` (see `restitution`), or `'none'` (pass through)."
+        },
+        {
+          "type": "code",
+          "text": "export type CollisionMode = 'merge' | 'bounce' | 'none';"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "UniversePhysicsConfig"
+        },
+        {
+          "type": "paragraph",
+          "text": "Authored, optional universe physics settings. Omitted fields resolve to defaults (`resolveUniversePhysics` in `packages/sim-core`); an omitted or empty config means analytic rails, and is left out of the validated universe so legacy digests are unchanged. Settings other than `mode` and `maxWarp` are inert in `'rails'` mode."
+        },
+        {
+          "type": "code",
+          "text": "export interface UniversePhysicsConfig {\n  /** Body motion model; `'rails'` when absent. */\n  readonly mode?: PhysicsMode;\n  /** Integrator substeps per fixed simulation step, integer in `[1, 64]`. */\n  readonly substeps?: number;\n  /** Gravitational softening length as a fraction of the attracting body's radius (dimensionless, `>= 0`). */\n  readonly softeningRatio?: number;\n  /** Apply J2 oblateness of spinning bodies (`'full-body'` only). */\n  readonly enableJ2?: boolean;\n  /** Apply tidal spin dissipation (`'full-body'` only). */\n  readonly enableTidalTorque?: boolean;\n  /** Body–body contact response (`'full-body'` only). */\n  readonly collisionMode?: CollisionMode;\n  /** Coefficient of restitution for `'bounce'` collisions, in `[0, 1]`. */\n  readonly restitution?: number;\n  /** Highest permitted time-warp factor, in `[1, 100000]`. */\n  readonly maxWarp?: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "ResolvedUniversePhysics"
+        },
+        {
+          "type": "paragraph",
+          "text": "Universe physics settings with every default applied."
+        },
+        {
+          "type": "code",
+          "text": "export type ResolvedUniversePhysics = Required<UniversePhysicsConfig>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "UniverseDefinition"
         },
         {
           "type": "paragraph",
-          "text": "Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, and `systems`)."
+          "text": "Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, `systems`, and optional `physics`)."
         },
         {
           "type": "code",
-          "text": "export interface UniverseDefinition {\n  readonly schemaVersion: number;\n  readonly id: string;\n  readonly name: string;\n  readonly description?: string;\n  readonly author?: string;\n  readonly defaultSystemId: string;\n  readonly systems: readonly SystemDefinition[];\n}"
+          "text": "export interface UniverseDefinition {\n  readonly schemaVersion: number;\n  readonly id: string;\n  readonly name: string;\n  readonly description?: string;\n  readonly author?: string;\n  readonly defaultSystemId: string;\n  readonly systems: readonly SystemDefinition[];\n  /** Body motion settings; absent means analytic Keplerian rails. */\n  readonly physics?: UniversePhysicsConfig;\n}"
         },
         {
           "type": "paragraph",

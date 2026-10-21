@@ -121,7 +121,39 @@ export interface SystemDefinition {
   readonly presets: readonly PresetDefinition[];
 }
 
-/** Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, and `systems`). */
+/** Celestial body motion model: analytic Keplerian `'rails'` (default), numerical mutual-gravity `'nbody'`, or `'full-body'` (N-body plus optional J2, tides and collisions). */
+export type PhysicsMode = 'rails' | 'nbody' | 'full-body';
+
+/** How touching celestial bodies interact in simulated universes: inelastic `'merge'`, impulse `'bounce'` (see `restitution`), or `'none'` (pass through). */
+export type CollisionMode = 'merge' | 'bounce' | 'none';
+
+/** Authored, optional universe physics settings. Omitted fields resolve to defaults
+ * (`resolveUniversePhysics` in `packages/sim-core`); an omitted or empty config means analytic rails,
+ * and is left out of the validated universe so legacy digests are unchanged. Settings other than
+ * `mode` and `maxWarp` are inert in `'rails'` mode. */
+export interface UniversePhysicsConfig {
+  /** Body motion model; `'rails'` when absent. */
+  readonly mode?: PhysicsMode;
+  /** Integrator substeps per fixed simulation step, integer in `[1, 64]`. */
+  readonly substeps?: number;
+  /** Gravitational softening length as a fraction of the attracting body's radius (dimensionless, `>= 0`). */
+  readonly softeningRatio?: number;
+  /** Apply J2 oblateness of spinning bodies (`'full-body'` only). */
+  readonly enableJ2?: boolean;
+  /** Apply tidal spin dissipation (`'full-body'` only). */
+  readonly enableTidalTorque?: boolean;
+  /** Body–body contact response (`'full-body'` only). */
+  readonly collisionMode?: CollisionMode;
+  /** Coefficient of restitution for `'bounce'` collisions, in `[0, 1]`. */
+  readonly restitution?: number;
+  /** Highest permitted time-warp factor, in `[1, 100000]`. */
+  readonly maxWarp?: number;
+}
+
+/** Universe physics settings with every default applied. */
+export type ResolvedUniversePhysics = Required<UniversePhysicsConfig>;
+
+/** Portable multi-system universe definition (`schemaVersion`, metadata, `defaultSystemId`, `systems`, and optional `physics`). */
 export interface UniverseDefinition {
   readonly schemaVersion: number;
   readonly id: string;
@@ -130,6 +162,8 @@ export interface UniverseDefinition {
   readonly author?: string;
   readonly defaultSystemId: string;
   readonly systems: readonly SystemDefinition[];
+  /** Body motion settings; absent means analytic Keplerian rails. */
+  readonly physics?: UniversePhysicsConfig;
 }
 
 /** Fully validated celestial body with resolved SI physical constants (`radius` in `m`, `mass` in `kg`, `mu` in `m³/s²`), SOI hysteresis radii, surface identity, and 4-color appearance. */

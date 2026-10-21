@@ -64,6 +64,13 @@ export interface SavedPlayer {
   readonly name: string;
   readonly tokenHash?: string;
 }
+/** Dynamic celestial body snapshot for simulated (non-`'rails'`) universes: system-inertial
+ * `position` (`m`) and `velocity` (`m/s`) at the save's `time`, independent of the authored parent. */
+export interface SavedBodyState {
+  readonly id: string;
+  readonly position: Pair;
+  readonly velocity: Pair;
+}
 /** Saved module profile and per-environment v2 runtime package selections (`spacelab-progress-configuration/2`) embedded in a world save. */
 export interface SavedGameConfiguration {
   readonly format: 'spacelab-progress-configuration/2';
@@ -101,6 +108,9 @@ export interface WorldSave {
   readonly players: readonly SavedPlayer[];
   readonly ships: readonly SavedShip[];
   readonly avatars?: readonly SavedAvatar[];
+  /** Dynamic celestial body states; only for universes whose `physics.mode` is not `'rails'`.
+   * Absent means bodies start from their authored ephemerides at `time`. */
+  readonly bodies?: readonly SavedBodyState[];
   readonly lock?: AuthoritativeLock | ModuleLock;
   readonly simulationFingerprint?: string;
   readonly moduleState?: Readonly<Record<string, WorldRuleState>>;
@@ -124,6 +134,7 @@ export interface WorldRead {
   readonly soloPreview: boolean; readonly paused: boolean; readonly fault?: string;
   readonly rails: boolean; readonly nextWakeTick: number; readonly requiresWorldPrediction: boolean;
   readonly version: number; readonly nextShipNumber: number; readonly saveVersion?: number;
+  readonly bodyStates?: readonly SavedBodyState[];
   readonly migrateState?: (id: string, state: ModuleState, target: number) => ModuleState;
   readonly surfaces: ReadonlyMap<string, SurfaceProfile>;
   record(id: string): Ship | undefined; records(): IterableIterator<Ship>;

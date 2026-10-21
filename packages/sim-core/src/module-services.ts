@@ -34,6 +34,7 @@ export function worldFacade(world: WorldControl): { readonly read: WorldRead; re
     get nextWakeTick() { return world.nextWakeTick; }, get requiresWorldPrediction() { return world.requiresWorldPrediction; },
     get predictionFeatures() { return world.predictionFeatures; },
     get version() { return world.version; }, get nextShipNumber() { return world.nextShipNumber; }, get saveVersion() { return world.saveVersion; },
+    get bodyStates() { return world.bodyStates; },
     get migrateState() { return world.migrateState; }, get surfaces() { return world.surfaces; },
     record: world.record.bind(world), records: world.records.bind(world), ship: world.ship.bind(world), ships: world.ships.bind(world),
     avatar: world.avatar.bind(world), avatars: world.avatars.bind(world),
