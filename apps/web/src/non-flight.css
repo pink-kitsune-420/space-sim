@@ -35,3 +35,9 @@
   #starter-views { flex:none; height:55dvh; min-height:300px; order:1 }
   #fixture-status { flex:none; order:2 }
 }
+
+#survey-manual { margin-top:20px }
+#survey-manual > summary { cursor:pointer; margin-bottom:12px }
+#survey-manual .manual { height:480px; max-height:80dvh }
+#survey-manual .manual-layout { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) }
+#survey-manual .manual-topics { max-height:100px }

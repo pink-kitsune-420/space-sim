@@ -1240,6 +1240,7 @@ Disposable, MANUAL_READER, ManualAudience, ManualGuide, ManualReader, ManualRead
 
 ## Guide and example
 Example source: examples/modules/manual (build with npm run module:build -- examples/modules/manual/module.json out.spacemod).
+-> Manual reader and guide catalog: how to use, replace and remove it [spacelab.manual/usage]
 
 === ModMenu reference [api-reference/module/spacelab.mod-menu]
 Metadata browsing and explicit cancellable host commands without archive or world ownership.
@@ -2265,6 +2266,7 @@ Disposable, ModuleInitializationV2, ServiceKey, UiControl, WINDOWS, WINDOW_CONTE
 
 ## Guide and example
 Example source: examples/modules/ui-windows (build with npm run module:build -- examples/modules/ui-windows/module.json out.spacemod).
+-> Shared windows: how to use, replace and remove it [spacelab.ui-windows/usage]
 
 === Universe files reference [api-reference/module/spacelab.universe-files]
 Bounded browser files and owned downloads, independent of save validation.

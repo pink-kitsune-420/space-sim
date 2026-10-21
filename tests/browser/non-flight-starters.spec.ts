@@ -246,3 +246,32 @@ for (const name of ['Planet viewer', 'Survey fixture']) test(`${name} explains u
   await expect(page.locator('#starter-help li')).toHaveCount(name === 'Planet viewer' ? 2 : 4);
   await expect(page.locator('#flight-view')).toHaveCount(0);
 });
+
+for (const offline of [false, true]) test(`${offline ? 'offline' : 'hosted'} survey reuses the optional Manual with game-owned content and independent preferences`, async ({page, context}) => {
+  if (offline) await disableNetwork(context);
+  await page.addInitScript(() => localStorage.setItem('space-sim:manual:1', JSON.stringify({audience: 'creators', page: {creators: 'shaders'}})));
+  await page.goto(offline ? `${pathToFileURL(resolve('dist/space-lab-offline.html')).href}?game=survey-fixture` : '/?game=survey-fixture');
+  const manual = page.locator('#survey-manual');
+  await manual.locator('summary').click();
+  await expect(manual.locator('#manual-tab-players')).toHaveAttribute('aria-selected', 'true');
+  await expect(manual.locator('.manual-topic b')).toHaveText(['Survey field guide']);
+  await expect(manual.locator('#manual-page')).toContainText('Time advances only');
+  await expect(manual.locator('[data-page="first-orbit"]')).toHaveCount(0);
+  await expect(manual.getByRole('button', {name: 'Configure controls…'})).toHaveCount(0);
+  await manual.locator('#manual-search').fill('observation counter');
+  await expect(manual.locator('.manual-topic b')).toHaveText(['Survey field guide']);
+  await manual.locator('#manual-search').fill('Keplerian');
+  await expect(manual.locator('.manual-empty')).toHaveText('No pages match.');
+  await manual.locator('#manual-search').fill('');
+  await manual.locator('#manual-tab-creators').click();
+  await expect(manual.locator('#manual-page')).toHaveText('No pages available');
+  await page.locator('#survey-record').click();
+  expect((await debug(page)).state.observations[0]).toBe(1);
+  await page.locator('#survey-save').click();
+  await page.reload(); await page.locator('#survey-manual > summary').click();
+  await expect(manual.locator('#manual-tab-creators')).toHaveAttribute('aria-selected', 'true');
+  await manual.locator('#manual-tab-players').click();
+  await expect(manual.locator('#manual-page')).toContainText('Save survey state');
+  await page.locator('#survey-load').click(); expect((await debug(page)).state.observations[0]).toBe(1);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('space-sim:manual:1')!).page.creators)).toBe('shaders');
+});

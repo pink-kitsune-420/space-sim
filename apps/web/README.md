@@ -16,7 +16,7 @@ Try `?game=flight-starter`, `?game=planet-viewer`, `?game=survey-fixture` or `?g
 - [src/flight-host.ts](src/flight-host.ts) composes the flight application. [src/session.ts](src/session.ts) adapts local worlds and remote dedicated sessions for it.
 - [src/identity.ts](src/identity.ts) persists player identity and reconnect tokens locally.
 - [modules/](../../modules/) holds editable reusable packages, including input, camera, windows, Manual, saving, transports and flight tools. Some flight-host integration remains in the application.
-- [modules/manual/src/content.ts](../../modules/manual/src/content.ts) owns the default Players/Creators book; [src/manual.ts](src/manual.ts) expands live controls and mounts the reader. Update the matching page when a player-facing feature or button changes. Keep keybinding lists generated from live controls.
+- [games/space-sim/manual.ts](../../games/space-sim/manual.ts) owns the default Players/Creators book; [src/flight-manual.ts](src/flight-manual.ts) expands live controls, while [src/manual.ts](src/manual.ts) composes the shared reader. The survey fixture selects the same optional reader with its own structured guide data. Update the matching page when a player-facing feature or button changes. Keep keybinding lists generated from live controls.
 - [games/](../../games/) contains game definitions and explicit target plans. A package being present in the catalogue does not enable it.
 
 ## Verify changes

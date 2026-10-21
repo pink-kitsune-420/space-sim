@@ -3719,6 +3719,11 @@
         {
           "type": "paragraph",
           "text": "Example source: examples/modules/manual (build with npm run module:build -- examples/modules/manual/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Manual reader and guide catalog: how to use, replace and remove it",
+          "page": "spacelab.manual/usage"
         }
       ]
     },
@@ -6546,6 +6551,11 @@
         {
           "type": "paragraph",
           "text": "Example source: examples/modules/ui-windows (build with npm run module:build -- examples/modules/ui-windows/module.json out.spacemod)."
+        },
+        {
+          "type": "link",
+          "text": "Shared windows: how to use, replace and remove it",
+          "page": "spacelab.ui-windows/usage"
         }
       ]
     },

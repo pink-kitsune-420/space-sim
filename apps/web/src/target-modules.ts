@@ -1,8 +1,17 @@
+import manualInitialize from '../../../modules/manual/src/index';
+import manualDescriptor from '../../../modules/manual/module.json';
+import manualGuide from '../../../modules/manual/docs/creators/usage.json';
+import manualCss from '../../../modules/manual/assets/manual.css?raw';
+import windowsInitialize from '../../../modules/ui-windows/src/index';
+import windowsDescriptor from '../../../modules/ui-windows/module.json';
+import windowsGuide from '../../../modules/ui-windows/docs/creators/usage.json';
+import windowsCss from '../../../modules/ui-windows/assets/windows.css?raw';
 import viewHudInitialize from '../../../modules/view-hud/src/index';
 import { manifest as viewHudManifest, compatibility as viewHudCompatibility } from '../../../modules/view-hud/module.json';
 import viewHudGuide from '../../../modules/view-hud/docs/creators/usage.json';
 import { DEFAULT_SHADERS } from '../../../packages/render-2d/src/shaders';
 import { CANVAS_DRAWING, WEBGL_DRAWING, PROCEDURAL_SOUND, createVehicleArtwork, type VehicleArtwork, type RendererProvider } from '../../../packages/game-api/src/index';
+import { moduleAssets } from '../../../packages/game-runtime/src/modules-v2';
 import type { ModuleCandidateV2 } from '../../../packages/game-runtime/src/modules-v2';
 import { legacyTheme } from '../../../packages/render-2d/src/theme';
 import appearanceTrainerInitialize from '../../../modules/appearance-trainer/src/index';
@@ -97,6 +106,14 @@ import alarmPanelPlayersGuide from '../../../modules/alarm-panel/docs/players/al
 
 /** Inert registrations. Only the exact references selected by a target initialize. */
 export const browserTargetModules = Object.freeze([
+  ...([[manualDescriptor, manualInitialize, manualGuide, 'assets/manual.css', manualCss],
+      [windowsDescriptor, windowsInitialize, windowsGuide, 'assets/windows.css', windowsCss]] as const).map(([descriptor, initialize, guide, path, css]) => {
+    const record = bundledRegistration(descriptor, initialize, {});
+    return { ...record, assets: moduleAssets(new Map([
+      ['docs/creators/usage.json', new TextEncoder().encode(JSON.stringify(guide))],
+      [path, new TextEncoder().encode(css)],
+    ])) };
+  }),
   bundledRegistration({ manifest: alarmPanelManifest, compatibility: alarmPanelCompatibility }, alarmPanelInitialize, { 'docs/creators/usage.json': alarmPanelGuide, 'docs/players/alarms.json': alarmPanelPlayersGuide }),
   bundledRegistration({ manifest: alarmsManifest, compatibility: alarmsCompatibility }, alarmsInitialize, { 'docs/creators/usage.json': alarmsGuide, 'docs/players/burns.json': alarmsBurnsGuide }),
   bundledRegistration({ manifest: transfersManifest, compatibility: transfersCompatibility }, transfersInitialize, { 'docs/creators/usage.json': transfersGuide, 'docs/players/flight.json': transfersFlightGuide }),

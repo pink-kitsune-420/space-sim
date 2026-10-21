@@ -29,6 +29,14 @@
           {
             "id": "spacelab.player-view",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.ui-windows",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.manual",
+            "version": "0.1.2"
           }
         ],
         "providers": {
@@ -37,7 +45,10 @@
           "view.local": "spacelab.local-views",
           "input.controller": "spacelab.player-controller",
           "input.keyboard": "spacelab.input-keyboard",
-          "ui.player-view": "spacelab.player-view"
+          "ui.player-view": "spacelab.player-view",
+          "ui.window-content": "spacelab.ui-windows",
+          "ui.windows": "spacelab.ui-windows",
+          "ui.manual": "spacelab.manual"
         },
         "capabilities": {},
         "settings": {
@@ -85,6 +96,14 @@
           {
             "id": "spacelab.player-view",
             "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.ui-windows",
+            "version": "0.1.0"
+          },
+          {
+            "id": "spacelab.manual",
+            "version": "0.1.2"
           }
         ],
         "providers": {
@@ -93,7 +112,10 @@
           "view.local": "spacelab.local-views",
           "input.controller": "spacelab.player-controller",
           "input.keyboard": "spacelab.input-keyboard",
-          "ui.player-view": "spacelab.player-view"
+          "ui.player-view": "spacelab.player-view",
+          "ui.window-content": "spacelab.ui-windows",
+          "ui.windows": "spacelab.ui-windows",
+          "ui.manual": "spacelab.manual"
         },
         "capabilities": {},
         "settings": {

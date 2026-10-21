@@ -1,0 +1,41 @@
+{
+  "id": "survey",
+  "audience": "players",
+  "title": "Survey field guide",
+  "summary": "Move markers, record observations and keep a local survey.",
+  "blocks": [
+    {
+      "type": "paragraph",
+      "text": "This bounded survey is a small shared map. Each marker has its own observation counter. Time advances only when you choose an action or press Advance one tick."
+    },
+    {
+      "type": "heading",
+      "text": "Move and observe"
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Choose Seats to create one to four views. Choose Keyboard seat to select your marker.",
+        "Use Move left or Move right. To use the keyboard, click a view, hold Right/D or Space and press Advance one tick. Right/D moves; Space records an observation.",
+        "Record observation adds one to your selected marker\u2019s counter. Swapping the first two targets preserves their observations."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Keep your work"
+    },
+    {
+      "type": "paragraph",
+      "text": "Save survey state keeps positions, counters and tick on this device. Load survey state restores that save and releases held input. A page reload starts a fresh survey; choose Load survey state to return to your saved observations."
+    },
+    {
+      "type": "heading",
+      "text": "Inspect each view"
+    },
+    {
+      "type": "paragraph",
+      "text": "Zoom in this view and Zoom out this view affect the selected seat. Reset this view restores its initial scale. Split and Shared change how the views are arranged; they do not change the survey state."
+    }
+  ]
+}

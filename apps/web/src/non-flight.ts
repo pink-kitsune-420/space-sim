@@ -1,4 +1,6 @@
-import { CANVAS_DRAWING, WEBGL_DRAWING, KEYBOARD_INPUT, LOCAL_VIEWS, PLAYER_CONTROLLERS, VIEW_CAMERAS, PLAYER_VIEWS,
+import { initManual } from './manual';
+import { surveyGuide } from '../../../games/survey-fixture/manual';
+import { MANUAL_READER, CANVAS_DRAWING, WEBGL_DRAWING, KEYBOARD_INPUT, LOCAL_VIEWS, PLAYER_CONTROLLERS, VIEW_CAMERAS, PLAYER_VIEWS,
   type Disposable, type LocalViews, type PlayerController, type PlayerView, type RenderBody, type SceneRenderer } from '../../../packages/game-api/src/index';
 import type { GamePackage } from '../../../packages/game-library/src/archive';
 import { createBuiltinRegistry } from '../../../packages/modules/src/index';
@@ -79,6 +81,15 @@ export function startNonFlight(game: GamePackage): Disposable {
   };
   let draw: (elapsed: number) => void;
   try {
+    if (game.info.id === 'builtin.survey-fixture' && target.lock.providers[MANUAL_READER.slot]) {
+      const manuals = target.providedService(MANUAL_READER);
+      owned.push(manuals.register([surveyGuide]));
+      const guide = document.createElement('details'), summary = document.createElement('summary'), readerRoot = document.createElement('section');
+      guide.id = 'survey-manual'; summary.textContent = 'Manual'; readerRoot.id = 'game-manual';
+      guide.append(summary, readerRoot); sidebar.append(guide);
+      const reader = initManual({ root: readerRoot, service: manuals, storageKey: 'spacelab:survey-fixture:manual/1' })!;
+      owned.push(reader);
+    }
     if (game.info.id === 'builtin.planet-viewer') {
       const theme = { highQuality: loadGraphicsQuality() === 'high' };
       const content = createBuiltinRegistry(game.bundle.modules).prepare(game.bundle.profile, environment(), ['content']); owned.push(content);

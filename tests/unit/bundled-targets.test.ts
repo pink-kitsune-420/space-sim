@@ -1,6 +1,7 @@
+import { surveyGuide } from '../../games/survey-fixture/manual';
 import { describe, expect, it } from 'vitest';
 import { mountFlightAudio } from '../../apps/web/src/audio';
-import { FLIGHT_CAMERAS, SMART_CAMERAS, UNIVERSE_SAVES, VIEW_HUD } from '../../packages/game-api/src/index';
+import { MANUAL_READER, CANVAS_DRAWING, VIEW_CAMERAS, FLIGHT_CAMERAS, SMART_CAMERAS, UNIVERSE_SAVES, VIEW_HUD } from '../../packages/game-api/src/index';
 import { prepareBundledPlan } from '../../packages/game-runtime/src/bundled-plan';
 import { browserPresentationProviders, browserTargetModules, browserTargetSelection, prepareBrowserTarget } from '../../apps/web/src/target-modules';
 import { engineModuleServices } from '../../packages/sim-core/src/module-services';
@@ -82,4 +83,28 @@ describe('shipped target composition', () => {
     expect(initialized).toBe(0);
     expect(() => prepareBrowserTarget('builtin.space-sim', 'node')).toThrow('browser adapter');
   });
+});
+
+it.each(['browser', 'offline'] as const)('shares the real optional Manual provider with a non-flight %s consumer and rolls back replacement guides', environment => {
+  const target = prepareBrowserTarget('builtin.survey-fixture', environment);
+  const manuals = target.providedService(MANUAL_READER);
+  expect(manuals.guides('players')).toEqual([]);
+  const original = manuals.register([surveyGuide]);
+  expect(manuals.guides('players').map(page => page.id)).toEqual(['builtin.survey-fixture/survey']);
+  const candidate = manuals.register([{...surveyGuide, title: 'Candidate field guide'}], {replace: true});
+  expect(manuals.guides('players')[0]!.title).toBe('Candidate field guide');
+  candidate.dispose(); expect(manuals.guides('players')[0]!.title).toBe('Survey field guide');
+  original.dispose(); expect(manuals.guides('players')).toEqual([]);
+  target.dispose(); expect(() => manuals.register([surveyGuide])).toThrow('disposed');
+
+  const plan = browserTargetSelection('builtin.survey-fixture').plans[environment]!;
+  const removed = new Set(['spacelab.manual', 'spacelab.ui-windows']);
+  const withoutReader = prepareBundledPlan({...plan, profile: {...plan.profile,
+    modules: plan.profile.modules.filter(ref => !removed.has(ref.id)),
+    providers: Object.fromEntries(Object.entries(plan.profile.providers).filter(([, id]) => !removed.has(id))),
+  }}, environment, browserTargetModules, services);
+  expect(withoutReader.lock.providers[MANUAL_READER.slot]).toBeUndefined();
+  expect(withoutReader.providedService(CANVAS_DRAWING)).toBeDefined();
+  const camera = withoutReader.providedService(VIEW_CAMERAS).create('map-20'); camera.changeZoom(2);
+  withoutReader.dispose();
 });
