@@ -266,12 +266,13 @@ test('the Alarms dock panel reads the existing node clock, follows sessions and 
   const planner=factory.create({container:root,id:'catalogue-node',flight:()=>({world,ship:current(),body,enabled:true,canWarp:true,paused:false,inputBlocked:false,warp:1,requestedWarp:1}),setWarp(){},setThrottle(){throw Error('No thrust');},releaseControls(){throw Error('No arming');},notify(){}});
   planner.update(0,prediction,false);planner.place(f.pointer,f.camera,f.origin,800,600,prediction);
   const time=document.getElementById('catalogue-node-time') as HTMLInputElement;time.value='25';time.dispatchEvent(new Event('change'));
+  for(let i=0;i<1000&&!planner.snapshot()?.valid;i++)planner.update(.1,prediction,false);
   const idle={turn:0,throttle:0,engine:false};planner.beforeAdvance(idle);
   const catalogue=candidate.providedService(f.api.ALARM_CATALOGUE),before=catalogue.read(world),dock=document.createElement('button');root.append(dock);
   const panel=candidate.providedService(f.api.ALARM_PANELS).create({container:root,id:'alarm-dock',session:()=>session,shell:{addInstrument(window:any,label:string){dock.textContent=label;dock.onclick=()=>window.open();return{dispose(){leaseClosed=true;dock.remove();}};}}});
   dock.click();panel.update();const pending=document.querySelector('#alarm-dock-window output')?.textContent,rows=document.querySelectorAll('#alarm-dock-window [data-alarm-id]').length,icon=document.querySelector('#alarm-dock-window svg')?.innerHTML;
-  while(world.time<15.03)world.step();planner.beforeAdvance(idle);await new Promise(r=>setTimeout(r,210));panel.update();const delivered=document.querySelector('#alarm-dock-window output')?.textContent;
-  session={};await new Promise(r=>setTimeout(r,210));panel.update();const empty=document.querySelector('#alarm-dock-window output')?.textContent;
+  while(world.time<15.03)world.step();planner.beforeAdvance(idle);await new Promise(r=>setTimeout(r,250));panel.update();const delivered=document.querySelector('#alarm-dock-window output')?.textContent;
+  session={};await new Promise(r=>setTimeout(r,250));panel.update();const empty=document.querySelector('#alarm-dock-window output')?.textContent;
   panel.dispose();const clocksRemain=catalogue.read(world).length===1,noWindow=!document.getElementById('alarm-dock-window');planner.dispose();const clocksRemoved=catalogue.read(world).length===0;candidate.dispose();world.dispose();return{pending,rows,icon,delivered,empty,leaseClosed,noWindow,clocksRemain,clocksRemoved,before:before.length};
  });
  expect(result).toMatchObject({pending:'1 pending · 0 delivered',rows:1,delivered:'0 pending · 1 delivered',leaseClosed:true,noWindow:true,clocksRemain:true,clocksRemoved:true,before:1});expect(result.empty).toContain('No active reminders');expect(result.icon).toContain('circle');

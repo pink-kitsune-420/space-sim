@@ -95,6 +95,7 @@ modules/*/integrity.json
 /proposal/
 /orbital-sandbox-refactor.md
 /rocket-collision-research.md
+/audits/
 
 # Local credentials, agent state and private working notes.
 .aws/
