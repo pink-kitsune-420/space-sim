@@ -325,8 +325,8 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
         const landDepth = profile.hasWater ? Math.min(radius * .75, Math.max(0, radius - profile.seaRadiusMetres!) * 8) : radius;
         const water = profile.hasWater && (ground.material === 'water' || radius * fraction < radius - landDepth);
         overviewColor(body, angle, hi, 2 * Math.PI * profile.referenceRadius * camera.scale, outer);
-        const endColor: Color = water ? [outer[0]! * .20, outer[1]! * .55, outer[2]! * .85, amount] : [outer[0]!, outer[1]!, outer[2]!, amount];
-        const color: Color = water ? [sample[0]! * .20, sample[1]! * .55, sample[2]! * .85, amount] : [sample[0]!, sample[1]!, sample[2]!, amount];
+        const endColor: Color = water ? [outer[0]! * .20, outer[1]! * .55, outer[2]! * .85, amount * outer[3]!] : [outer[0]!, outer[1]!, outer[2]!, amount * outer[3]!];
+        const color: Color = water ? [sample[0]! * .20, sample[1]! * .55, sample[2]! * .85, amount * sample[3]!] : [sample[0]!, sample[1]!, sample[2]!, amount * sample[3]!];
         face([project(p.angle, p.radius * lo), project(q.angle, q.radius * lo),
           project(q.angle, q.radius * hi), project(p.angle, p.radius * hi)], color,
             { from: project(angle, radius * lo), to: project(angle, radius * hi), color: endColor }, true);

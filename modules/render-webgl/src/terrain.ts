@@ -227,6 +227,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const glow = glowPx / camera.scale;
   let overviewTriangles = 0, overviewOverflow = false;
   const overviewSample = new Float64Array(4);
+  let overviewOpacity = 0;
   const face = (vertices: readonly { x: number; y: number }[], color: Color, gradient?: TerrainFace['gradient'], overview = false) => {
     const clipped = clipPolygon(vertices, width, height);
     if (clipped.length >= 3) {
@@ -244,7 +245,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
         const query = querySurface(profile, angle), rim = query.firstContactRadius;
         const landDepth = profile.hasWater ? Math.min(rim * .75, Math.max(0, rim - profile.seaRadiusMetres!) * 8) : rim;
         const water = profile.hasWater && (query.material === 'water' || r < rim - landDepth);
-        return [sample[0]! * (water ? .20 : 1), sample[1]! * (water ? .55 : 1), sample[2]! * (water ? .85 : 1), color[3]] as Color;
+        return [sample[0]! * (water ? .20 : 1), sample[1]! * (water ? .55 : 1), sample[2]! * (water ? .85 : 1), overviewOpacity * sample[3]!] as Color;
       }) : undefined;
       faces.push({ points: clipped, color, gradient, ...(overview ? { overview: true, vertexColors } : {}) });
     }
@@ -328,6 +329,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   // authoritative. Keep the original complete ground underneath every fade/loading state.
   const originalFaceCount = faces.length;
   const amount = body.overview ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
+  overviewOpacity = amount;
   if (amount > 0 && boundary.length <= 513) {
     const rings = 4, sample = new Float64Array(4), outer = new Float64Array(4);
     for (let i = 1; i < boundary.length; i++) {
@@ -340,8 +342,8 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
         const landDepth = profile.hasWater ? Math.min(radius * .75, Math.max(0, radius - profile.seaRadiusMetres!) * 8) : radius;
         const water = profile.hasWater && (ground.material === 'water' || radius * fraction < radius - landDepth);
         overviewColor(body, angle, hi, 2 * Math.PI * profile.referenceRadius * camera.scale, outer);
-        const endColor: Color = water ? [outer[0]! * .20, outer[1]! * .55, outer[2]! * .85, amount] : [outer[0]!, outer[1]!, outer[2]!, amount];
-        const color: Color = water ? [sample[0]! * .20, sample[1]! * .55, sample[2]! * .85, amount] : [sample[0]!, sample[1]!, sample[2]!, amount];
+        const endColor: Color = water ? [outer[0]! * .20, outer[1]! * .55, outer[2]! * .85, amount * outer[3]!] : [outer[0]!, outer[1]!, outer[2]!, amount * outer[3]!];
+        const color: Color = water ? [sample[0]! * .20, sample[1]! * .55, sample[2]! * .85, amount * sample[3]!] : [sample[0]!, sample[1]!, sample[2]!, amount * sample[3]!];
         face([project(p.angle, p.radius * lo), project(q.angle, q.radius * lo),
           project(q.angle, q.radius * hi), project(p.angle, p.radius * hi)], color,
             { from: project(angle, radius * lo), to: project(angle, radius * hi), color: endColor }, true);

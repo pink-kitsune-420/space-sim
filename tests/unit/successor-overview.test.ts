@@ -133,3 +133,20 @@ it('separates body material domains even when callers share the same immutable p
     expect(o.stats.generatedBodies).toBe(2); expect(o.stats.descriptorSamples).toBe(65536);
   } finally { candidate.dispose(); }
 });
+
+it('composites transparent summary coverage over complete ground in both providers', async () => {
+  const { terrainGeometry: cg } = await import('../../modules/render-canvas/src/terrain');
+  const { terrainGeometry: wg } = await import('../../modules/render-webgl/src/terrain');
+  const { world, candidate } = setup();
+  try { const p = world.surface('moon')!, camera = { center: { x: 0, y: 0 }, rotation: 0, scale: 200 / p.referenceRadius };
+    const body = { id: 'moon', name: '', radius: p.referenceRadius, position: { x: 0, y: 0 }, surface: p };
+    for (const alpha of [0, .25, 1]) for (const geometry of [cg, wg]) {
+      const g = geometry({ ...body, overview: { levels: [{ sectors: 1, rings: 1, rgba: new Float32Array([.2 * alpha, .1 * alpha, .05 * alpha, alpha]) }] } }, camera, 1000, 800, { querySurface });
+      expect(g.faces.some(f => !f.overview && f.color[3] === 1)).toBe(true);
+      for (const f of g.faces.filter(f => f.overview)) {
+        expect(f.color[3]).toBeCloseTo(alpha, 6); expect(f.gradient?.color[3]).toBeCloseTo(alpha, 6);
+        for (const color of (f as { vertexColors?: readonly (readonly number[])[] }).vertexColors ?? []) expect(color[3]).toBeCloseTo(alpha, 6);
+      }
+    }
+  } finally { candidate.dispose(); }
+});
