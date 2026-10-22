@@ -110,6 +110,7 @@ test('successor Canvas suspends split views and WebGL and Classic restore the sa
   await page.locator('#controls-close').click();
   await page.locator('#renderer-toggle').click();
   await page.goto('/'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await openPanel(page, 'settings'); await page.locator('#renderer-toggle').click();
   await expect.poll(async () => (await debug(page)).renderer).toBe('builtin.canvas');
   await expect.poll(async () => (await debug(page)).localPlayers.count).toBe(2);
   expect(await page.evaluate(() => localStorage.getItem('space-sim:local-players:v1'))).toBe(saved);
