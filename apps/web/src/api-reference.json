@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 19f734114d1eed53",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2950da50eee8ad2f",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 19f734114d1eed53"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2950da50eee8ad2f"
         },
         {
           "type": "paragraph",
@@ -12045,11 +12045,27 @@
         },
         {
           "type": "heading",
+          "text": "planetMapWork"
+        },
+        {
+          "type": "paragraph",
+          "text": "@internal Cooperative cold construction for host loading; synchronous callers use buildPlanetMap."
+        },
+        {
+          "type": "code",
+          "text": "export function* planetMapWork(profile:SurfaceProfile):Generator<void,{planet:RenderPlanetMap;levels:RenderOverview['levels']}>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
           "text": "buildPlanetMap"
         },
         {
           "type": "paragraph",
-          "text": "Caller-owned bounded Cartesian colour projection from the actual v2 field, including its physical pads. Cold construction only, no fine terrain queries. Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body."
+          "text": "Caller-owned bounded Cartesian colour projection from the actual v2 field, including its physical pads. Cold construction only, no fine terrain queries. Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body. Synchronous compatibility construction, identical to cooperative host loading."
         },
         {
           "type": "code",

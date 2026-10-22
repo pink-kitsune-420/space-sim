@@ -293,8 +293,10 @@ export function migrateSave(raw: Record<string, unknown>): Record<string, unknow
   throw new Error(`Unsupported save version ${String(raw.version)}; this game reads versions 1–5`);
 }
 
-/** Validate everything before building a world; a rejected save never touches live state. */
-export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>> = {}): LoadedWorld {
+/** Validate everything before building a world; a rejected save never touches live state.
+ * Host-owned derivedPlanets may reuse exact immutable built-in profiles only;
+ * ordinary save validation, surface identities and fingerprints still apply. */
+export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'createContext' | 'rules' | 'forces' | 'commands' | 'soloPreview' | 'migrateState' | 'dataAdapters' | 'vehicles'>> = {}, derivedPlanets?: ReadonlyMap<string, import('../../game-api/src/index').SurfaceProfile>): LoadedWorld {
   const input = record(raw, 'Save');
   if (input.format !== SAVE_FORMAT) fail('Save', `not a ${SAVE_FORMAT} file`);
   const originalVersion = Number(input.version);
@@ -409,7 +411,7 @@ export function loadWorld(raw: unknown, options: Partial<Pick<WorldOptions, 'cre
     lock,
     simulationFingerprint,
     saveVersion: originalVersion,
-  });
+  }, derivedPlanets);
   try {
     if ((save.version === 3 || world.data.schemas.length) && save.data === undefined) throw new Error('Save version 3 requires module-data state');
     if (save.data !== undefined) {

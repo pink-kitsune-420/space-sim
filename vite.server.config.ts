@@ -6,6 +6,7 @@ import { buildDefines } from './scripts/build_info.mjs';
 const TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
+  '.bin': 'application/octet-stream',
   '.spacegame': 'application/gzip',
   '.spaceuniverse': 'application/gzip',
 };

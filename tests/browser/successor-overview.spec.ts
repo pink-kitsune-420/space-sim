@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import { test, expect } from '@playwright/test';
 import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import { openPanel, closePanel } from '../helpers/workspace';
@@ -7,7 +8,7 @@ for (const fallback of [false, true]) for (const [preset, body] of [['pad', 'pla
     test.setTimeout(120000); await page.setViewportSize({ width: 1280, height: 900 });
     if (fallback) await useCanvas(page); else await useLowGraphics(page);
     const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-    await page.goto('/?game=space-sim-successor&successorAir=clouds&successorLocalDelay=4000');
+    await page.goto('/?game=space-sim-successor&planetPreview=0&successorAir=clouds&successorLocalDelay=4000'); await waitForWorldReady(page);
     await expect(page.locator('#status')).toHaveText('LANDED');
     await openPanel(page, 'setup'); await page.locator('#preset').selectOption(preset!); await closePanel(page);
     await page.locator('#camera').click();
@@ -42,7 +43,7 @@ for (const fallback of [false, true]) test(`${fallback ? 'Canvas single view pre
   test.setTimeout(120000); await page.setViewportSize({ width: 1280, height: 900 });
   if (fallback) await useCanvas(page); else await useLowGraphics(page);
   if (fallback) await page.addInitScript(() => localStorage.setItem('space-sim:local-players:v1', JSON.stringify({ count: 4, screenMode: 'split' })));
-  await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
   if (fallback) {
     const saved = await page.evaluate(() => localStorage.getItem('space-sim:local-players:v1'));
     await expect.poll(async () => (await debug(page)).localPlayers.count).toBe(1);
@@ -71,7 +72,7 @@ for (const fallback of [false, true]) test(`${fallback ? 'Canvas single view pre
 
 for (const fallback of [false, true]) test(`${fallback ? 'Canvas' : 'WebGL'} Parvus inspection leaves the ship on Primus`, async ({ page }) => {
   test.setTimeout(90000); if (fallback) await useCanvas(page); else await useLowGraphics(page);
-  await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
   await page.locator('#camera').click(); await page.locator('#flight-view').focus(); await page.keyboard.press('KeyN');
   await page.waitForTimeout(900);
   const box = (await page.locator('#flight-view').boundingBox())!;
@@ -88,7 +89,7 @@ for (const fallback of [false, true]) test(`${fallback ? 'Canvas' : 'WebGL'} Par
 
 test('successor Canvas suspends split views and WebGL and Classic restore the saved seats', async ({ page }) => {
   test.setTimeout(120000); await useLowGraphics(page);
-  await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
   await openPanel(page, 'settings'); await page.locator('#players-toggle').click();
   await page.locator('.split-count [data-count="2"]').click();
   await expect.poll(async () => (await debug(page)).localPlayers.count).toBe(2);
@@ -107,7 +108,7 @@ test('successor Canvas suspends split views and WebGL and Classic restore the sa
   await expect(page.locator('.split-count [data-count="2"]')).toBeEnabled();
   await page.locator('#controls-close').click();
   await page.locator('#renderer-toggle').click();
-  await page.goto('/'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
   await openPanel(page, 'settings'); await page.locator('#renderer-toggle').click();
   await expect.poll(async () => (await debug(page)).renderer).toBe('builtin.canvas');
   await expect.poll(async () => (await debug(page)).localPlayers.count).toBe(2);

@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import { test, expect, type Page } from '@playwright/test';
 import { generateSurface, querySurface, validateSurfaceDefinition } from '../../packages/sim-core/src/surface';
 import game from '../../games/space-sim-successor/game.json' with { type: 'json' };
@@ -30,7 +31,7 @@ for (const fallback of [false, true]) for (const id of ['planet', 'moon'] as con
     test.setTimeout(120000); await page.emulateMedia({ reducedMotion: 'reduce' }); await page.setViewportSize(fallback ? { width: 1000, height: 760 } : { width: 640, height: 480 });
     if (fallback) await useCanvas(page); else await useLowGraphics(page);
     const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-    await page.goto('/?game=space-sim-successor&successorLocalDelay=4000');
+    await page.goto('/?game=space-sim-successor&planetPreview=0&successorLocalDelay=4000'); await waitForWorldReady(page);
     await expect(page.locator('#status')).toHaveText('LANDED');
     await openPanel(page, 'setup'); await page.locator('#preset').selectOption(id === 'planet' ? 'pad' : 'parvus-pad'); await closePanel(page);
     await page.evaluate(() => document.querySelector<HTMLButtonElement>('#pause')!.click());
@@ -79,7 +80,7 @@ test('WebGL shares CPU sectors across four local cameras and releases the last c
   test.setTimeout(180000); await page.setViewportSize({ width: 800, height: 600 }); await useLowGraphics(page);
   const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(() => localStorage.setItem('space-sim:local-players:v1', JSON.stringify({ count: 4, screenMode: 'split' })));
-  await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
   await expect.poll(async () => (await debug(page)).localPlayers.count, { timeout: 30000 }).toBe(4);
   await expect.poll(async () => (await debug(page)).successorGuestTiles.filter((v: { visibleChunks: number }) => v.visibleChunks > 0).length, { timeout: 30000 }).toBe(3);
   const all = await debug(page), views = [all.successorTiles, ...all.successorGuestTiles];
@@ -109,7 +110,7 @@ test('WebGL shares CPU sectors across four local cameras and releases the last c
 for (const fallback of [false, true]) test(`${fallback ? 'native Canvas' : 'WebGL'} terrain demand stays off-actor while the ship flies`, async ({ page }) => {
   test.setTimeout(120000); await page.setViewportSize({ width: 640, height: 480 }); await page.emulateMedia({ reducedMotion: 'reduce' });
   if (fallback) await useCanvas(page); else await useLowGraphics(page);
-  await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
   // LANDED can precede the first periodic diagnostics publication.
   await expect.poll(async () => (await debug(page)).successorTiles?.visibleChunks ?? 0).toBeGreaterThan(0);
   await page.evaluate(() => document.querySelector<HTMLButtonElement>('#pause')!.click());

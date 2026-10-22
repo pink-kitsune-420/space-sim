@@ -3,7 +3,8 @@
 import type { SurfacePadDefinition, SurfaceDefinition, SurfaceQuery, SurfaceFeature, SurfaceProfile, PlanetSurfaceMap } from '../../game-api/src/index';
 export type { SurfacePadDefinition, SurfaceDefinition, SurfaceBounds, SurfaceQuery, SurfaceFeature, SurfaceProfile } from '../../game-api/src/index';
 import * as dm from './dmath';
-import { validatePlanetSurface, planetSurfaceIdentity, bakePlanetSurface } from './planet-surface';
+import { createPlanetField } from '../../game-api/src/index';
+import { validatePlanetSurface, planetSurfaceIdentity, bakePlanetSurface, planetDefinitionForSamples } from './planet-surface';
 /** Frozen validation bounds on radial terrain sample counts, mountain ranges, craters, landing pads, and universe-wide terrain budgets. Host-only (`packages/sim-core`). */
 export const SURFACE_LIMITS = Object.freeze({
   minSamples: 32,
@@ -219,6 +220,27 @@ export function querySurface(profile: SurfaceProfile, angleRadians: number): Sur
   return { groundRadius: radius, firstContactRadius: Math.max(radius, profile.seaRadiusMetres ?? 0),
     waterDepth, elevation, intervalIndex: index, material: waterDepth > 0 ? 'water' : 'rock', groundNormal,
     normal: waterDepth > 0 ? { x, y } : groundNormal };
+}
+
+/** Host-only reconstruction of a digest-verified canonical bake. Does not generate
+ * fields, change surface identity or retain caller-mutable collision samples. */
+export function surfaceFromPlanetBake(body: { readonly radius: number; readonly surface?: SurfaceDefinition }, result: import('../../game-api/src/index').PlanetBakeResult): SurfaceProfile {
+  const s = validateSurfaceDefinition(body.surface, body.radius);
+  if (s.generatorVersion !== 2) throw Error('Prepared planet requires a version 2 surface');
+  const fieldIdentity = createPlanetField(planetDefinitionForSamples(s)).identity;
+  if (result.equator.length !== s.sampleCount
+    || result.definition.radiusMetres !== body.radius || result.definition.seed !== s.seed
+    || result.options.columns !== 512 || result.options.rows !== 256
+    || result.map.elevations.length !== 512 * 256 || result.map.attributes.length !== 512 * 256 * 2 || result.map.waterMask.length !== 512 * 256
+    || result.options.equatorSamples !== s.sampleCount || result.options.orientationRadians !== s.orientationRadians
+    || createPlanetField(result.definition).identity !== fieldIdentity
+    || result.identity !== 'space-sim-planet-bake/2:' + fieldIdentity + ':' + JSON.stringify({ columns: 512, rows: 256, equatorSamples: s.sampleCount, orientationRadians: s.orientationRadians }))
+    throw Error('Prepared planet does not match physical surface');
+  if (result.seaRadiusMetres !== undefined && (!(result.seaRadiusMetres > 0) || !Number.isFinite(result.seaRadiusMetres)
+    || s.pads?.some(p => body.radius + p.elevationMetres <= result.seaRadiusMetres!))) throw Error('Invalid prepared planet sea');
+  const { equator, ...map } = result;
+  return profileFromSamples(body.radius, s.orientationRadians, equator.slice(), surfaceIdentity(body), [], s.pads,
+    map.seaRadiusMetres, Object.freeze(map));
 }
 
 /** Version 1: Mulberry32 feature placement, periodic smooth value noise,

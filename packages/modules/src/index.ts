@@ -53,6 +53,8 @@ export function prepareGame(options: { readonly environment: ModuleEnvironment; 
   /** Explicitly enabled trusted code modules, including locally installed artifacts. */
   readonly code?: readonly RegisteredModule[];
   readonly universe?: UniverseDefinition; readonly universeKey?: string; readonly systemId?: string;
+  /** Host-owned, digest-verified immutable products; World ignores these for custom surface providers. */
+  readonly derivedPlanets?: ReadonlyMap<string, import('../../game-api/src/index').SurfaceProfile>;
   readonly soloPreview?: boolean; readonly resolvedUniverse?: boolean } ): PreparedGame {
   const installed = (options.data ?? []).map(validateDataModule);
   const profile = validateProfile(options.profile ?? profileWithData(installed));
@@ -105,7 +107,7 @@ export function prepareGame(options: { readonly environment: ModuleEnvironment; 
       forces,
       commands,
       lock,
-      soloPreview: options.soloPreview !== undefined ? options.soloPreview : customAuthority });
+      soloPreview: options.soloPreview !== undefined ? options.soloPreview : customAuthority }, options.derivedPlanets);
     const disposeWorld = world.dispose.bind(world);
     candidate.own({ dispose: disposeWorld });
     world.dispose = () => candidate.dispose();
@@ -125,9 +127,12 @@ export function universeDataModule(universe: UniverseDefinition): DataModule {
 }
 
 /** Restore only against already installed/enabled code. Saved source is never executed.
- * Build an isolated candidate and verify its exact lock before accepting ship state. */
+ * Build an isolated candidate and verify its exact lock before accepting ship state.
+ * Optional host-owned derivedPlanets reuse only verified built-in physical products;
+ * they never substitute for checking the saved profile, code or geometry lock. */
 export function loadInstalledWorld(raw: unknown, options: { readonly environment: ModuleEnvironment;
-  readonly data?: readonly DataModule[]; readonly code?: readonly RegisteredModule[] }): LoadedWorld & { readonly prepared?: PreparedGame } {
+  readonly data?: readonly DataModule[]; readonly code?: readonly RegisteredModule[];
+  readonly derivedPlanets?: ReadonlyMap<string, import('../../game-api/src/index').SurfaceProfile> }): LoadedWorld & { readonly prepared?: PreparedGame } {
   if (!raw || typeof raw !== 'object') throw new Error('Save: expected an object');
   const save = raw as Record<string, unknown>;
   if (save.version === 1) return loadWorld(raw, { createContext: builtinContextFactory(options.environment) });
@@ -142,7 +147,7 @@ export function loadInstalledWorld(raw: unknown, options: { readonly environment
       || prepared.world.simulationFingerprint !== save.simulationFingerprint) throw new Error('Save: installed module contents, settings or geometry differ from the required lock; install the exact required artifacts/profile');
     const loaded = loadWorld(raw, { createContext: prepared.createContext, rules: prepared.world.rules,
       forces: prepared.world.forces, commands: prepared.world.commands, soloPreview: prepared.world.soloPreview,
-      migrateState: prepared.candidate.migrateState });
+      migrateState: prepared.candidate.migrateState }, options.derivedPlanets);
     const dispose = loaded.world.dispose.bind(loaded.world);
     prepared.candidate.own({ dispose });
     loaded.world.dispose = () => prepared.candidate.dispose();

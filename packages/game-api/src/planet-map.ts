@@ -19,19 +19,21 @@ function cover(height:number,z:number,moisture:number,sea:number,rocky:boolean,o
  const t=Math.max(0,Math.min(1,(moisture-.42)/.4));out[0]=83-36*t;out[1]=125+14*t;out[2]=64+9*t;
 }
 
-/** Caller-owned bounded Cartesian colour projection from the actual v2 field,
- * including its physical pads. Cold construction only, no fine terrain queries.
- * Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body. */
-export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;levels:RenderOverview['levels']} {
+/** @internal Cooperative cold construction for host loading; synchronous callers use buildPlanetMap. */
+export function* planetMapWork(profile:SurfaceProfile):Generator<void,{planet:RenderPlanetMap;levels:RenderOverview['levels']}> {
  const data=profile.planet;if(!data)throw Error('Planet map requires a shared physical field');
  const field=createPlanetField(data.definition),size=512,rgba=new Uint8Array(size*size*4),equator=new Uint8Array(profile.sampleCount*4),out=new Float64Array(8),rgb=new Float64Array(3);
  const sea=(profile.seaRadiusMetres??-Infinity)-profile.referenceRadius,rocky=data.definition.recipe==='rocky';
- for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+ for(let y=0;y<size;y++){
+ if(y%4===0)yield;
+ for(let x=0;x<size;x++){
   const px=(x+.5)/size*2-1,py=(y+.5)/size*2-1,r2=px*px+py*py,i=(y*size+x)*4;if(r2>1)continue;
   const z=Math.sqrt(1-r2);field.evaluate(px,py,z,out);cover(out[0]!,z,out[7]!,sea,rocky,rgb);
   for(let c=0;c<3;c++)rgba[i+c]=Math.round(rgb[c]!);rgba[i+3]=255;
  }
+ }
  for(let i=0;i<profile.sampleCount;i++){
+  if(i%1024===0)yield;
   const a=profile.orientationRadians+i*TAU/profile.sampleCount;field.evaluate(dm.cos(a),dm.sin(a),0,out);
   const h=profile.sampleElevation(i);cover(h,0,out[7]!,sea,rocky,rgb);
   for(let c=0;c<3;c++)equator[i*4+c]=Math.round(rgb[c]!);equator[i*4+3]=h<sea?0:255;
@@ -44,6 +46,7 @@ export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;l
  }
  const levels:{sectors:number;rings:number;rgba:Float32Array}[]=[{sectors:128,rings:16,rgba:leaf}];
  while(levels[0]!.sectors>1||levels[0]!.rings>1){
+  yield;
   const child=levels[0]!,sectors=Math.max(1,child.sectors/2),rings=Math.max(1,child.rings/2),rgba=new Float32Array(sectors*rings*4);
   for(let y=0;y<rings;y++)for(let x=0;x<sectors;x++){
    let weight=0;for(let dy=0;dy<(child.rings>1?2:1);dy++)for(let dx=0;dx<(child.sectors>1?2:1);dx++){
@@ -52,6 +55,14 @@ export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;l
   }levels.unshift({sectors,rings,rgba});
  }
  return{planet,levels};
+}
+
+/** Caller-owned bounded Cartesian colour projection from the actual v2 field,
+ * including its physical pads. Cold construction only, no fine terrain queries.
+ * Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body.
+ * Synchronous compatibility construction, identical to cooperative host loading. */
+export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;levels:RenderOverview['levels']} {
+ const work=planetMapWork(profile);let step=work.next();while(!step.done)step=work.next();return step.value;
 }
 
 /** Bilinear unlit map sample in premultiplied linear RGBA. Body-fixed Cartesian

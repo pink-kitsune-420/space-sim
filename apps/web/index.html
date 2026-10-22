@@ -11,9 +11,19 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <title>Spacelab · Space Sim</title>
+    <style>
+      #startup-loading{position:fixed;inset:0;z-index:2147483647;display:grid;place-content:center;gap:18px;padding:32px;background:#080f19;color:#dbe7f0;font:16px/1.5 system-ui,sans-serif;text-align:center}#startup-loading[hidden]{display:none}#startup-loading h1{font-size:22px;font-weight:500;letter-spacing:.12em;margin:0}#startup-loading p{margin:0;max-width:40em}#loading-progress{width:min(320px,80vw);height:8px;justify-self:center;accent-color:#8baac4}#startup-loading a{color:#a7c8e3}#startup-loading button{font:inherit;padding:8px 20px;cursor:pointer}#startup-loading .loading-mark{width:50px;height:50px;justify-self:center;border:1px solid #829caf;border-radius:50%;position:relative}#startup-loading .loading-mark:after{content:'';position:absolute;inset:-9px 15px;border:1px solid #829caf;border-radius:50%;transform:rotate(40deg)}
+    </style>
   </head>
   <body>
-    <div id="app">
+    <section id="startup-loading" role="status" aria-live="polite" aria-label="Loading world" data-state="loading">
+      <span class="loading-mark" aria-hidden="true"></span><h1>SPACELAB</h1>
+      <p id="loading-stage">Loading application</p><progress id="loading-progress" aria-label="Loading progress"></progress>
+      <button id="loading-cancel" type="button" hidden>Cancel loading</button>
+      <button id="loading-retry" type="button" onclick="location.reload()" hidden>Retry</button>
+      <a href="?game=space-sim&amp;planetPreview=0">Open legacy Space Sim</a>
+    </section>
+    <div id="app" inert>
       <main>
         <div id="flight-console" class="workspace">
           <section class="flight-panel" aria-label="Flight view">

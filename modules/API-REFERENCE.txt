@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 19f734114d1eed53
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 2950da50eee8ad2f
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -5629,8 +5629,13 @@ Declarations from planet-map.ts used by documented modules.
 
 Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-map.ts.
 
+## planetMapWork
+@internal Cooperative cold construction for host loading; synchronous callers use buildPlanetMap.
+    export function* planetMapWork(profile:SurfaceProfile):Generator<void,{planet:RenderPlanetMap;levels:RenderOverview['levels']}>;
+Used by: host or creator modules (not imported by shipped modules).
+
 ## buildPlanetMap
-Caller-owned bounded Cartesian colour projection from the actual v2 field, including its physical pads. Cold construction only, no fine terrain queries. Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body.
+Caller-owned bounded Cartesian colour projection from the actual v2 field, including its physical pads. Cold construction only, no fine terrain queries. Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body. Synchronous compatibility construction, identical to cooperative host loading.
     export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;levels:RenderOverview['levels']};
 Used by: host or creator modules (not imported by shipped modules).
 

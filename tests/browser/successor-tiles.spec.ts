@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import { test, expect, type Page } from '@playwright/test';
 import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import { openPanel, closePanel } from '../helpers/workspace';
@@ -28,7 +29,7 @@ for (const renderer of ['Canvas', 'WebGL']) {
       const original = CanvasRenderingContext2D.prototype.fillRect;
       CanvasRenderingContext2D.prototype.fillRect = function (...args) { counts.fills++; return original.apply(this, args); };
     });
-    await page.goto('/?game=space-sim-successor');
+    await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);
     await expect(page.locator('#status')).toHaveText('LANDED');
     await expect.poll(async () => (await debug(page)).renderer).toBe(renderer === 'Canvas' ? 'builtin.canvas' : 'builtin.webgl');
     await mkdir(evidence, { recursive: true });
@@ -172,7 +173,7 @@ for (const renderer of ['Canvas']) {
     test.setTimeout(180000);
     await useLowGraphics(page); if (renderer === 'Canvas') await useCanvas(page);
     await page.setViewportSize(renderer === 'Canvas' ? { width: 1100, height: 800 } : { width: 640, height: 480 });
-    await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
+    await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page); await expect(page.locator('#status')).toHaveText('LANDED');
     for (const scale of [2, 4, 8]) for (const body of ['planet', 'moon']) for (const site of ['ridge-lookout', 'basin-station']) {
       await openPanel(page, 'setup');
       await page.locator('#system-select').selectOption(scale === 4 ? 'primus-system' : `primus-system-${scale}x`);
