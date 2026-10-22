@@ -58,7 +58,7 @@ for (const fallback of [false, true]) test(`${fallback ? 'Canvas' : 'WebGL'} ind
 for (const fallback of [false, true]) test(`${fallback ? 'Canvas' : 'WebGL'} Parvus inspection leaves the ship on Primus`, async ({ page }) => {
   test.setTimeout(90000); if (fallback) await useCanvas(page); else await useLowGraphics(page);
   await page.goto('/?game=space-sim-successor'); await expect(page.locator('#status')).toHaveText('LANDED');
-  await page.locator('#camera').click(); await page.keyboard.press('KeyN');
+  await page.locator('#camera').click(); await page.locator('#flight-view').focus(); await page.keyboard.press('KeyN');
   await page.waitForTimeout(900);
   const box = (await page.locator('#flight-view').boundingBox())!;
   await page.locator('#flight-view').click({ position: { x: box.width / 2 + 70, y: box.height / 2 - 80 }, modifiers: ['Shift'] });
