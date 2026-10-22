@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b56f3ea146792361",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 5969e862f7b18d12",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest b56f3ea146792361"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 5969e862f7b18d12"
         },
         {
           "type": "paragraph",
@@ -9181,7 +9181,7 @@
         },
         {
           "type": "code",
-          "text": "export interface FlightSplitScreenHost {\n  readonly gamepads?: FlightGamepad;\n  /** Renderer replacement may replace the element; resolve the current surface at use. */\n  primaryCanvas(): HTMLCanvasElement;\n  session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;\n  keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;\n  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;\n  releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;\n  /** Release this seat's held device intent when its target or device assignment changes. */\n  releaseInput?(slot: number): void;\n  execute(action: FlightActionId): void; notify(text: string): void; changed(): void;\n  onGuestPointer?(guest: FlightGuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void;\n  isSlotThrowing?(slot: number): boolean;\n  isSessionError(error: unknown): error is Error;\n}"
+          "text": "export interface FlightSplitScreenHost {\n  readonly gamepads?: FlightGamepad;\n  /** Renderer replacement may replace the element; resolve the current surface at use. */\n  primaryCanvas(): HTMLCanvasElement;\n  session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;\n  /** Temporary game/renderer policy: activate only the primary seat/view without\n   * rewriting saved player preferences. Re-evaluated by sync; absent means unrestricted. */\n  singleView?(): boolean;\n  keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;\n  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;\n  releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;\n  /** Release this seat's held device intent when its target or device assignment changes. */\n  releaseInput?(slot: number): void;\n  execute(action: FlightActionId): void; notify(text: string): void; changed(): void;\n  onGuestPointer?(guest: FlightGuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void;\n  isSlotThrowing?(slot: number): boolean;\n  isSessionError(error: unknown): error is Error;\n}"
         },
         {
           "type": "paragraph",
@@ -9229,7 +9229,7 @@
         },
         {
           "type": "code",
-          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
+          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  /** Current host single-view restriction, independent of the saved configuration. */\n  readonly singleView?: boolean;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  pollPads(): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
         },
         {
           "type": "paragraph",
@@ -9277,7 +9277,7 @@
         },
         {
           "type": "code",
-          "text": "export interface ControllerMenu extends Disposable {\n  /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */\n  open(): void;\n  /** Re-renders the Players tab (splitscreen seat list and device assignments). */\n  renderPlayers(): void;\n  /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */\n  renderPad(): void;\n}"
+          "text": "export interface ControllerMenu extends Disposable {\n  /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */\n  open(): void;\n  /** Re-renders the Players tab, honoring a temporary single-view policy without rewriting saved seats. */\n  renderPlayers(): void;\n  /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */\n  renderPad(): void;\n}"
         },
         {
           "type": "paragraph",
@@ -9293,7 +9293,7 @@
         },
         {
           "type": "code",
-          "text": "export interface ControllerMenuOptions {\n  /** DOM element container where the menu is mounted. */\n  readonly root: HTMLElement;\n  /** Handle to the active splitscreen configuration. */\n  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;\n  /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */\n  readonly gamepads?: FlightGamepad;\n  /** Returns the pilot name for player 1. */\n  pilotName(): string;\n  /** Returns true when the controls dialog window is currently visible. */\n  isOpen(): boolean;\n}"
+          "text": "export interface ControllerMenuOptions {\n  /** DOM element container where the menu is mounted. */\n  readonly root: HTMLElement;\n  /** Handle to the active splitscreen configuration. */\n  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig' | 'singleView'>;\n  /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */\n  readonly gamepads?: FlightGamepad;\n  /** Returns the pilot name for player 1. */\n  pilotName(): string;\n  /** Returns true when the controls dialog window is currently visible. */\n  isOpen(): boolean;\n}"
         },
         {
           "type": "paragraph",

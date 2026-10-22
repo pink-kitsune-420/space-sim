@@ -274,7 +274,7 @@ describe('split-screen configuration and dynamic viewports', () => {
   });
 
   describe('SplitScreen Dynamic Split Logic', () => {
-    function createMockSplitScreen(withGamepads = true): {
+    function createMockSplitScreen(withGamepads = true, singleView?: () => boolean): {
       split: SplitScreen;
       p1Camera: CameraController;
       container: any;
@@ -312,6 +312,7 @@ describe('split-screen configuration and dynamic viewports', () => {
         gamepads: withGamepads ? gamepads : undefined,
         session: () => mockSession as any,
         ownWorld: () => mockSession as any,
+        singleView,
         presetId: () => 'pad',
         isGodMode: () => false,
         keyboardFlight: () => withGamepads ? IDLE : { turn: 1, throttle: 0, engine: true },
@@ -326,6 +327,28 @@ describe('split-screen configuration and dynamic viewports', () => {
     function mockState(x: number, y: number, status: 'landed' | 'flying' | 'crashed' = 'landed'): State {
       return { time: 10, position: { x, y }, velocity: { x: 0, y: 0 }, heading: 0, throttle: 0, revision: 1, status };
     }
+
+    it('suspends all guest seats for a single-view policy and restores saved players without rewriting preferences', () => {
+      let restricted = false;
+      const { split, local } = createMockSplitScreen(true, () => restricted);
+      split.setConfig(setPlayerCount(split.config, 4)); split.sync();
+      const saved = JSON.stringify(loadLocalPlayers());
+      const config = split.config;
+      expect(split.active).toBe(4); expect(split.guests.size).toBe(3);
+      const guests = [...split.guests.values()], dispose = guests.map(g => vi.spyOn(g, 'dispose'));
+      const unseat = vi.spyOn(local, 'unseatGuest'), controls = vi.spyOn(local, 'guestControls');
+      restricted = true; split.sync();
+      expect(split.singleView).toBe(true); expect(split.active).toBe(1); expect(split.split).toBe(false);
+      expect(split.guests.size).toBe(0); expect(split.separatedGuests.size).toBe(0);
+      expect(unseat).toHaveBeenCalledTimes(3); expect(controls).toHaveBeenCalledTimes(3);
+      for (const d of dispose) expect(d).toHaveBeenCalledOnce();
+      expect(split.join(0)).toBe(false); expect(split.config).toBe(config);
+      expect(JSON.stringify(loadLocalPlayers())).toBe(saved);
+      restricted = false; split.sync();
+      expect(split.singleView).toBe(false); expect(split.active).toBe(4); expect(split.guests.size).toBe(3);
+      expect(split.config).toBe(config); expect(JSON.stringify(loadLocalPlayers())).toBe(saved);
+      split.dispose();
+    });
 
     it('routes a keyboard-owned guest without connected gamepad support', () => {
       const { split, local } = createMockSplitScreen(false);

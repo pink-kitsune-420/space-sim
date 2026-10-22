@@ -20,6 +20,7 @@ export const FLIGHT_SPLIT_HELPER: ServiceKey<FlightSplitHelper> = Object.freeze(
 export function createFlightSplitHelper(factory: FlightSplitFactory): FlightSplitHelper {
   return Object.freeze({
     createSplit(viewport: HTMLElement, host: FlightSplitScreenHost): FlightSplitScreen {
+      // host.singleView may temporarily restrict the active seat without changing split.config.
       return factory.create(viewport, host);
     },
     pollJoining(split: FlightSplitScreen): void {

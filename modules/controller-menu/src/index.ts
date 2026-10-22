@@ -147,18 +147,23 @@ export class ControllerMenu {
 
   renderPlayers(): void {
     this.liveInstance();
-    const config = this.config, pads = this.connected();
+    const config = this.config, pads = this.connected(), singleView = this.split.singleView === true;
+    const count = singleView ? 1 : config.count;
+    this.player = Math.min(this.player, count - 1);
     this.shownPads = pads.map(p => p.index).join(',');
     for (const button of this.root.querySelectorAll<HTMLButtonElement>('.split-count [data-count]')) {
-      const on = Number(button.dataset.count) === config.count;
+      const on = Number(button.dataset.count) === count;
+      button.disabled = singleView;
       button.classList.toggle('active', on);
       button.setAttribute('aria-checked', String(on));
     }
     this.element<HTMLSelectElement>('split-layout').value = config.twoPlayerLayout;
     this.element<HTMLSelectElement>('split-screen-mode').value = config.screenMode;
+    this.element<HTMLSelectElement>('split-layout').disabled = singleView;
+    this.element<HTMLSelectElement>('split-screen-mode').disabled = singleView;
     const list = this.element('split-players');
     list.innerHTML = '';
-    for (let slot = 0; slot < config.count; slot++) {
+    for (let slot = 0; slot < count; slot++) {
       const s = config.slots[slot]!;
       const row = document.createElement('div');
       row.className = 'split-player';
@@ -216,12 +221,13 @@ export class ControllerMenu {
       list.append(row);
     }
     if (!this.capture) {
-      this.note.textContent = !this.pads ? 'Gamepad support is not enabled. Keyboard-controlled players and saved profiles remain available.'
+      this.note.textContent = singleView ? 'One local view is available with this game and renderer. Your split-view settings are saved for when multiple views are available.'
+        : !this.pads ? 'Gamepad support is not enabled. Keyboard-controlled players and saved profiles remain available.'
         : pads.length ? `${pads.length} controller${pads.length === 1 ? '' : 's'} connected.`
         : 'No controllers detected yet: connect one and press any button.';
     }
     const select = this.element<HTMLSelectElement>('pad-player');
-    select.innerHTML = config.slots.slice(0, config.count)
+    select.innerHTML = config.slots.slice(0, count)
       .map((s, i) => `<option value="${i}">Player ${i + 1} · ${escapeHtml(i === 0 ? this.pilotName() : s.name || `Pilot ${i + 1}`)}</option>`).join('');
     select.value = String(this.player);
   }

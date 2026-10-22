@@ -33,7 +33,7 @@
   "build": {
     "bundle": "dist/module.js",
     "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
-    "inputsDigest": "fd64541306a735a01988aa99500ae04a17ad1adf01eb0e8659b6302db7b5d71c"
+    "inputsDigest": "b7e552b7ab2ee29dfe7a0b1ac53729fdcf35901a216942bfbf8760e68b4eb1c8"
   },
   "compatibility": {
     "deterministic": true,
@@ -102,7 +102,7 @@
     },
     {
       "path": "game-api/flight-view.ts",
-      "sha256": "cff2354fa153aef8b13e39382bb39f87cea7acb568799cd447b9fa09689f7a9a",
+      "sha256": "d21c23247dddc0bb8fd76484cc7f424cb7616da71567f98efef5cfed61ff8ea8",
       "license": "LicenseRef-Project",
       "attribution": "Space Sim first-party public API"
     },

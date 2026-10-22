@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "This module renders the Players and Controllers tabs in the flight controls dialog. It provides the input.controller-menu service through the CONTROLLER_MENUS key. The Players tab configures local splitscreen multiplayer (1 to 4 seats), player names, input device assignments, and per-seat HUD navball locations. The Controllers tab configures stick deadzones, axis assignments and inversions, button mappings, and live hardware diagnostic meters. It operates gracefully without gamepad hardware, disabling live button capture while keeping layout editing fully functional. It does not advance simulation time or step physics worlds."
+      "text": "This module renders the Players and Controllers tabs in the flight controls dialog. It provides the input.controller-menu service through the CONTROLLER_MENUS key. The Players tab configures local splitscreen multiplayer (1 to 4 seats), player names, input device assignments, and per-seat HUD navball locations. The Controllers tab configures stick deadzones, axis assignments and inversions, button mappings, and live hardware diagnostic meters. It operates gracefully without gamepad hardware, disabling live button capture while keeping layout editing fully functional. It does not advance simulation time or step physics worlds. When the split controller reports singleView, the Players tab shows one active seat and disables count/layout changes with an explanation. Saved split settings are retained for unrestricted game/renderer combinations."
     },
     {
       "type": "heading",

@@ -177,6 +177,7 @@ export class SplitScreen implements FlightSplitScreen {
   private seated: FlightLocalSession | undefined;
   private suspendedNotice = false;
   private dirty = true;
+  private lastSingleView = false;
   private readonly observer: ResizeObserver;
   private readonly style: HTMLStyleElement;
   private disposed = false;
@@ -201,7 +202,8 @@ export class SplitScreen implements FlightSplitScreen {
   }
 
   /** Players actually on screen: the configured count while this browser's world is played. */
-  get active(): number { return this.host.ownWorld() ? this.config.count : 1; }
+  get singleView(): boolean { return this.host.singleView?.() ?? false; }
+  get active(): number { return this.host.ownWorld() && !this.singleView ? this.config.count : 1; }
   get split(): boolean { return this.active > 1; }
 
   isSeparated(slot: number): boolean {
@@ -275,6 +277,7 @@ export class SplitScreen implements FlightSplitScreen {
 
   /** An unclaimed controller takes the first free seat (Start in split screen, or from the menu). */
   join(pad: number): boolean {
+    if (this.singleView) { this.host.notify('One local view is available with this game and renderer.'); return false; }
     if (!this.host.ownWorld()) { this.host.notify('Split screen works in your own world (solo or hosting).'); return false; }
     let config = this.config;
     const existing = config.slots.findIndex((s, i) => i < config.count && s.device === this.services.preferences.padDevice(pad));
@@ -374,6 +377,12 @@ export class SplitScreen implements FlightSplitScreen {
 
   /** Seat, unseat and lay out players to match the configuration and the current world. */
   sync(): void {
+    const singleView = this.singleView;
+    if (singleView !== this.lastSingleView) {
+      this.lastSingleView = singleView;
+      this.dirty = true;
+      this.host.changed();
+    }
     const local = this.host.ownWorld();
     if (local !== this.seated) {
       // A new world (or none): old seats went with the old one.
@@ -400,10 +409,12 @@ export class SplitScreen implements FlightSplitScreen {
     }
     this.dirty = false;
     const count = this.active;
+    const connected = this.connectedPads();
     for (const [slot, guest] of this.guests) {
       if (slot < count) continue;
-      if (local && guest.playerId) local.unseatGuest(guest.playerId);
+      for (const pad of connected) if (this.services.preferences.padOwner(this.config, pad, connected) === slot) this.host.gamepads?.release(pad);
       guest.dispose();
+      if (local && guest.playerId) local.unseatGuest(guest.playerId);
       this.guests.delete(slot);
       this.separatedGuests.delete(slot);
       this.candidateSeparation.delete(slot);
