@@ -403,7 +403,7 @@ export class CanvasRenderer implements Renderer {
     const { state, camera, engine, bodies } = frame;
     const width = canvas.clientWidth, height = canvas.clientHeight;
     const toScreen = createProjector(camera, width, height);
-    const dpr = Math.min(window.devicePixelRatio || 1, this.ports.maxPixelRatio ?? 3);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.ports.maxPixelRatio ?? 1);
     if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
       canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     }
@@ -653,7 +653,10 @@ export class CanvasRenderer implements Renderer {
     if (!bodies.some(b => b.air && b.air.mode !== 'off')) return;
     const airMesh = this.airMesh ??= new AirMesh();
     for (const body of bodies) {
-      airMesh.update(body, camera, width, height, layer);
+      // Canvas is a low-detail fallback: keep the canonical atmosphere/sky but
+      // omit the expensive decorative cloud layer. Never mutate borrowed data.
+      airMesh.update(body.air?.mode === 'clouds' ? { ...body, air: { ...body.air, mode: 'air' } } : body,
+        camera, width, height, layer);
       if (!airMesh.length) continue;
       ctx.save();
       for (const solid of bodies) {
@@ -869,7 +872,7 @@ export class CanvasRenderer implements Renderer {
   ): void {
     const artwork = this.ports.theme;
     if (!artwork) { this.ctx.fillStyle = '#080f19'; this.ctx.fillRect(0, 0, width, height); return; }
-    const fullTheme = theme ? { ...artwork.current(), ...theme } : artwork.current();
+    const fullTheme = { ...artwork.current(), ...theme, highQuality: false, nebulaVisible: false, galaxiesVisible: false };
     artwork.backdrop(this.ctx, width, height, camera ?? { center: { x: 0, y: 0 }, scale: 1, rotation: 0 }, fullTheme, timeSec);
   }
 

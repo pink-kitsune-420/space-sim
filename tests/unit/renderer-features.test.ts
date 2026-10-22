@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { CanvasRenderer as PortableCanvas } from '../../modules/render-canvas/src/canvas';
+import { legacyRenderPorts } from '../../packages/render-2d/src/compatibility';
 import { requireTileChunkFeatures } from '../../packages/game-api/src/index';
 import type { OverlayPrimitive, RenderFrame } from '../../packages/game-api/src/index';
 import { CanvasRenderer, DEFAULT_SHADERS, WebGLRenderer } from '../../packages/render-2d/src/index';
@@ -67,6 +69,35 @@ function fakeGl(stencil = true) {
 }
 
 describe('renderer features', () => {
+  it('caps the fallback backdrop while honoring an explicit creator resolution override', () => {
+    const source = fake2d(), themes: unknown[] = [];
+    const renderer = new PortableCanvas(source.canvas, { ...legacyRenderPorts, maxPixelRatio: 2,
+      theme: { current: () => ({ highQuality: true, nebulaVisible: true, galaxiesVisible: true }),
+        backdrop(_ctx, _width, _height, _camera, theme) { themes.push(theme); } } });
+    renderer.draw({ ...frame(), theme: { highQuality: true, starsVisible: false } });
+    expect(source.canvas.width).toBe(1600); expect(source.canvas.height).toBe(1200);
+    expect(themes).toEqual([expect.objectContaining({ highQuality: false, nebulaVisible: false, galaxiesVisible: false, starsVisible: false })]);
+    renderer.dispose();
+  });
+
+  it('keeps Canvas fallback low detail without mutating requested quality or air', () => {
+    const requested = Object.freeze({ mode: 'clouds' as const, heightMetres: 30,
+      cloudAltitudeMetres: 10, cloudThicknessMetres: 4, color: [.4, .7, .9] as const, opacity: .3, phaseRadians: .4 });
+    const body = { id: 'air', name: '', radius: 100, position: { x: 0, y: 0 }, air: requested };
+    const theme = Object.freeze({ highQuality: true, nebulaVisible: true, galaxiesVisible: true });
+    const source = fake2d(), canvas = new CanvasRenderer(source.canvas);
+    const scene = { ...frame(), presentationTime: 0, bodies: [body], theme };
+    canvas.draw(scene);
+    expect(source.canvas.width).toBe(800); expect(source.canvas.height).toBe(600);
+    const cloudRequest = source.calls.slice(); source.calls.length = 0;
+    canvas.draw({ ...scene, bodies: [{ ...body, air: { ...requested, mode: 'air' } }] });
+    expect(source.calls).toEqual(cloudRequest);
+    expect(requested.mode).toBe('clouds'); expect(theme.highQuality).toBe(true);
+    expect(theme.nebulaVisible).toBe(true); expect(theme.galaxiesVisible).toBe(true);
+    canvas.dispose();
+  });
+
+
   it('qualifies independent air and masks it before flight cues without changing ground on replacement', () => {
     const surface = createSurfaceProfile(100, [0, 2, -1, 0, 1, -2, 0, 0]);
     const body = { id: 'air', name: 'AIR', radius: 100, position: { x: 0, y: 0 }, surface,
@@ -193,7 +224,7 @@ describe('renderer features', () => {
     const { calls, canvas } = fake2d();
     const renderer = new CanvasRenderer(canvas);
     renderer.draw(frame(OVERLAYS));
-    expect(canvas.width).toBe(1600);
+    expect(canvas.width).toBe(800);
     const start = calls.lastIndexOf('save()');
     const overlay = calls.slice(start);
     // The red screen line, the world disc at the view centre (10 m at 2 px/m), then the label.

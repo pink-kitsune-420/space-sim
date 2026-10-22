@@ -318,32 +318,12 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const localBlend = body.overview?.surface && localDistance > profile.bounds.minRadius * .7
     ? Math.max(0, Math.min(1, (body.overview.surface.depthMetres * camera.scale - 2) / 6)) : 0;
   const amount = globeAmount * (1 - localBlend);
-  // Extra vertices refine only the color mesh. Every inserted rim vertex lies
-  // on the existing canonical chord, leaving the silhouette and air mask exact.
-  const overviewBoundary: TerrainPoint[] = [];
-  if (body.overview?.surface && amount > 0 && boundary.length > 1) {
-    const target = Math.min(96, Math.max(16, 8 * Math.ceil(TAU * profile.referenceRadius * camera.scale / 48)));
-    const extras = Math.max(0, target - (boundary.length - 1));
-    let length = 0, distance = 0, used = 0;
-    for (let i = 1; i < boundary.length; i++) length += Math.hypot(boundary[i]!.x - boundary[i - 1]!.x, boundary[i]!.y - boundary[i - 1]!.y);
-    overviewBoundary.push(boundary[0]!);
-    for (let i = 1; i < boundary.length; i++) {
-      const p = boundary[i - 1]!, q = boundary[i]!;
-      distance += Math.hypot(q.x - p.x, q.y - p.y);
-      const next = i === boundary.length - 1 ? extras : Math.floor(distance / length * extras);
-      const divisions = next - used + 1; used = next;
-      for (let j = 1; j < divisions; j++) {
-        const t = j / divisions, bx = p.radius * Math.cos(p.angle) * (1 - t) + q.radius * Math.cos(q.angle) * t;
-        const by = p.radius * Math.sin(p.angle) * (1 - t) + q.radius * Math.sin(q.angle) * t;
-        const a = Math.atan2(by, bx), expected = p.angle + (q.angle - p.angle) * t;
-        overviewBoundary.push({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t,
-          radius: Math.hypot(bx, by), angle: a + TAU * Math.round((expected - a) / TAU) });
-      }
-      overviewBoundary.push(q);
-    }
-  } else overviewBoundary.push(...boundary);
+  // Fallback keeps the original canonical chords and two broad gradients.
+  // WebGL owns the denser illustrative relief; the actual near ribbon below
+  // retains independent physical-depth filtering at either quality.
+  const overviewBoundary = boundary;
   if (amount > 0 && boundary.length <= 257) {
-    const rings = body.overview?.surface ? Math.max(1, Math.min(3, Math.floor((1024 - 32) / ((overviewBoundary.length - 1) * 2)))) : 2, sample = new Float64Array(4), outer = new Float64Array(4);
+    const rings = body.overview?.surface ? Math.max(1, Math.min(2, Math.floor((1024 - 32) / ((overviewBoundary.length - 1) * 2)))) : 2, sample = new Float64Array(4), outer = new Float64Array(4);
     for (let i = 1; i < overviewBoundary.length; i++) {
       const p = overviewBoundary[i - 1]!, q = overviewBoundary[i]!, angle = (p.angle + q.angle) / 2;
       const ground = querySurface(profile, angle), radius = (p.radius + q.radius) / 2;

@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7e14d3239542fcc6",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest e6ca21d1c7565a37",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7e14d3239542fcc6"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest e6ca21d1c7565a37"
         },
         {
           "type": "paragraph",
@@ -5128,7 +5128,7 @@
         {
           "type": "list",
           "items": [
-            "maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged."
+            "maxPixelRatio: number, default 1, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged."
           ]
         },
         {

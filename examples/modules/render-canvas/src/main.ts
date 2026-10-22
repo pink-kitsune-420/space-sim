@@ -82,3 +82,8 @@ export function surfaceOverviewExample(): import('@space-sim/game-api').RenderOv
 export function sampleSurfaceOverviewExample(body: import('@space-sim/game-api').RenderBody, out: Float64Array): boolean {
   return surfaceOverviewColor(body, Math.PI / 2, 2, 32, out, 2);
 }
+
+/** Canvas is a low-detail fallback: default 1x pixel cap, no decorative clouds,
+ * a light backdrop and two-band globes. Explicit resolution overrides do not
+ * change contact/terrain or the caller's saved graphics preferences. */
+export function fallbackResolutionExample(): Render2DOptions { return { maxPixelRatio: 1 }; }

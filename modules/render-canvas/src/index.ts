@@ -1,7 +1,10 @@
 import type { CanvasRendererFactory, ModuleInitializationV2, RenderGeometry, Render2DOptions } from '@space-sim/game-api';
 import { CORE_MOTION, CANVAS_DRAWING } from '@space-sim/game-api';
 import { CanvasRenderer } from './canvas';
-/** Create a Canvas 2D renderer factory providing scene renderers bound to physical terrain surface queries. */
+/** Create a low-detail Canvas fallback bound to physical terrain queries.
+ * Defaults to a 1x backing-pixel cap (explicit maxPixelRatio may override it),
+ * atmosphere without clouds, a light backdrop and two-band overview gradients.
+ * Borrowed scene preferences and physical terrain are never modified. */
 export function createCanvasDrawing(geometry: RenderGeometry, defaults: Pick<Render2DOptions,'maxPixelRatio'> = {}): CanvasRendererFactory {
   const resources = new Set<CanvasRenderer>(); let disposed = false;
   return Object.freeze<CanvasRendererFactory>({ create(canvas, options) {
@@ -18,5 +21,5 @@ export function createCanvasDrawing(geometry: RenderGeometry, defaults: Pick<Ren
 export default function initialize(context: ModuleInitializationV2): void {
   context.contributeGuide({id:'usage',audience:'creators',title:"Canvas 2D",summary:"Public render.canvas@1.0.0 service and lifecycle.",asset:'docs/creators/usage.json'});
   const surfaces = context.use(CORE_MOTION).services.surfaces;
-  context.provide(CANVAS_DRAWING, context.own(createCanvasDrawing({ querySurface: surfaces.query.bind(surfaces) },{maxPixelRatio:context.settings.maxPixelRatio??3})));
+  context.provide(CANVAS_DRAWING, context.own(createCanvasDrawing({ querySurface: surfaces.query.bind(surfaces) },{maxPixelRatio:context.settings.maxPixelRatio??1})));
 }
