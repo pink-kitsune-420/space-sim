@@ -72,6 +72,7 @@ import type { ThrottleLeverState } from './throttle-lever';
 import { VIEW_HUD, FLIGHT_HUD_STATE, THROTTLE_HUD, PLAYER_VIEWS, type PlayerView, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
 import { navballInstrument } from '../../../modules/navball/src/index';
 import { builtinUniverses, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
+import { prepareDefaultLaunch } from './default-launch';
 import { Presentation, presentationSnapshot } from './presentation';
 import { presentationCommands } from './presentation-commands';
 import { createPresentationControls } from './presentation-controls';
@@ -5471,6 +5472,8 @@ const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, fieldPreviewModule ? 'pr
   code: startupAuthoritative, derivedPlanets: initialStarterProducts?.profiles,
 });
 pendingInitialGame = initialGame;
+if (!requested.example) prepareDefaultLaunch(initialGame.world, startupGame.info.id,
+  planetPreviewEnabled ? new URLSearchParams(location.search).get('planetPreset') ?? 'pad' : 'pad');
 initialGame.runtime.activate(initialGame.candidate);
 await loadingStage('Preparing view');
 await prepareWorldViews(initialGame.world, startupLoading.signal, initialStarterProducts);
@@ -5637,6 +5640,7 @@ labManager = new LabManager({
       { data: game.bundle.modules, profile: game.bundle.profile, universeKey: game.bundle.selection.universe, code: authoritative });
     let next: LocalSession;
     try {
+      prepareDefaultLaunch(prepared.world, game.info.id);
       next = new LocalSession(prepared.world, { name: pilotName() });
       moduleManager!.devices.loadLegacyGame(() => {
         if (local.world !== previousWorld || session !== local || local.hosting) throw new Error('The active session changed while loading');

@@ -77,7 +77,7 @@ test('Classic legacy progress and successor progress stay separate through Libra
   await expect(page.locator('#planet-designer .designer-status')).toContainText('shows its own look');
   const successor = await exportProgress(page);
   expect(successor.saved.gameId).toBe('builtin.space-sim-successor');
-  expect(successor.saved.universe.id).toBe('successor-universe');
+  expect(successor.saved.universe.id).toBe('successor-field-v2');
   expect(successor.saved.worldId).not.toBe(classic.saved.worldId);
   await rejectProgress(page, classic.bytes, 'builtin.space-sim');
   await rejectProgress(page, Buffer.from(JSON.stringify(fixture)), 'Space Sim Classic');
