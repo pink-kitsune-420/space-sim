@@ -16,8 +16,8 @@
     {
       "id": "builtin.space-sim-successor",
       "alias": "space-sim-successor",
-      "name": "Space Sim Successor",
-      "description": "The Classic-based successor in development. A separate orbital sandbox with its own world, settings and progress.",
+      "name": "Space Sim Tiles Demo",
+      "description": "A tiled orbital-flight demo on Primus and Parvus, with separate progress from Space Sim Classic. WebGL is primary; Canvas is a basic single-view fallback.",
       "category": "game",
       "adapter": "flight",
       "path": "space-sim-successor/game.json"

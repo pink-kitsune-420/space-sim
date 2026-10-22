@@ -67,7 +67,7 @@ test('Classic legacy progress and successor progress stay separate through Libra
     localStorage.setItem('space-sim:activation-throttle:v1', '[0.8]');
     localStorage.setItem('space-sim:run-in-background:v1', 'true');
   });
-  await switchGame(page, 'builtin.space-sim-successor', 'Space Sim Successor');
+  await switchGame(page, 'builtin.space-sim-successor', 'Space Sim Tiles Demo');
   await expect(page).toHaveURL(/game=builtin.space-sim-successor/);
   expect(await page.locator('#throw-cheat-toggle').isChecked()).toBe(false);
   expect(await page.locator('#run-in-background').isChecked()).toBe(true);
@@ -91,7 +91,7 @@ test('Classic legacy progress and successor progress stay separate through Libra
   await loadProgress(page, classic.bytes);
   await expect(page.locator('#status')).toHaveText('PAUSED');
   expect((await exportProgress(page)).saved.worldId).toBe(classic.saved.worldId);
-  await switchGame(page, 'builtin.space-sim-successor', 'Space Sim Successor');
+  await switchGame(page, 'builtin.space-sim-successor', 'Space Sim Tiles Demo');
   await loadProgress(page, successor.bytes);
   await expect(page.locator('#status')).toHaveText('PAUSED');
   const resumed = await exportProgress(page);
@@ -101,7 +101,7 @@ test('Classic legacy progress and successor progress stay separate through Libra
   expect(errors).toEqual([]);
 });
 
-for (const [alias, name] of [['space-sim', 'Space Sim Classic'], ['space-sim-successor', 'Space Sim Successor']]) {
+for (const [alias, name] of [['space-sim', 'Space Sim Classic'], ['space-sim-successor', 'Space Sim Tiles Demo']]) {
   test(`${name} launches and flies from the offline file with networking disabled`, async ({ page, context }) => {
     const network: string[] = [], errors: string[] = [];
     page.on('request', request => { if (/^https?:/.test(request.url())) network.push(request.url()); });

@@ -16,7 +16,7 @@ describe('Multi-Game Catalog Discovery & Offline Bundling (REC-11)', () => {
     const successor = requestedBuiltinGame('?game=space-sim-successor');
     expect(defaultGame.info).toMatchObject({ id: 'builtin.space-sim', name: 'Space Sim Classic' });
     expect(requestedBuiltinGame('').info.id).toBe(defaultGame.info.id);
-    expect(successor.info.id).toBe('builtin.space-sim-successor');
+    expect(successor.info).toMatchObject({ id: 'builtin.space-sim-successor', name: 'Space Sim Tiles Demo' });
     expect(successor.plugins).toEqual([]);
     expect(successor.bundle.profile.modules.slice(0, 2)).toEqual(defaultGame.bundle.profile.modules);
     const classic = prepareGame({ environment: 'node', data: defaultGame.bundle.modules,

@@ -2,8 +2,8 @@
   "format": "space-lab-game/1",
   "info": {
     "id": "builtin.space-sim-successor",
-    "name": "Space Sim Successor",
-    "description": "Scale/handling comparison: 2\u00d7, 4\u00d7 and 8\u00d7 worlds with a physical 5 m survey lander, static human references and Primus/Parvus landing areas. Four times is provisional."
+    "name": "Space Sim Tiles Demo",
+    "description": "Tiled orbital-flight demo and scale/handling comparison: 2\u00d7, 4\u00d7 and 8\u00d7 worlds with a physical 5 m survey lander, static human references and Primus/Parvus landing areas. Four times is provisional."
   },
   "bundle": {
     "format": "space-sim-module-profile/1",

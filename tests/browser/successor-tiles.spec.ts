@@ -56,6 +56,7 @@ for (const renderer of ['Canvas', 'WebGL']) {
       const compareBoundary = scale === 4 && body === 'planet';
       const tiledImage = compareBoundary ? (await page.locator('#flight-view').screenshot()).toString('base64') : '';
       const boundaryCamera = compareBoundary ? (await debug(page)).camera : null;
+      const boundaryCssWidth = compareBoundary ? await page.locator('#flight-view').evaluate(canvas => canvas.clientWidth) : 0;
       // Selecting vector baseline retires derived buffers; physical contact is unchanged.
       await openPanel(page, 'setup');
       await page.locator('#successor-tile-size').selectOption('0'); await closePanel(page);
@@ -64,7 +65,7 @@ for (const renderer of ['Canvas', 'WebGL']) {
       if (renderer === 'Canvas' || scale === 4) await page.screenshot({ path: `${evidence}/${renderer}-${scale}x-${body}-vector-${info.project.name}.png` });
       if (compareBoundary) {
         const vectorImage = (await page.locator('#flight-view').screenshot()).toString('base64');
-        const comparison = await page.evaluate(async ({ tiledImage, vectorImage, scale }) => {
+        const comparison = await page.evaluate(async ({ tiledImage, vectorImage, scale, cssWidth }) => {
           const load = async (png: string) => {
             const image = new Image(); image.src = 'data:image/png;base64,' + png; await image.decode();
             const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
@@ -72,17 +73,19 @@ for (const renderer of ['Canvas', 'WebGL']) {
             return { data: ctx.getImageData(0, 0, canvas.width, canvas.height).data, width: canvas.width, height: canvas.height };
           };
           const a = await load(tiledImage), b = await load(vectorImage);
-          const boundary = a.height / 2 + 2.5 * scale;
+          // Locator screenshots use device pixels; the camera scale uses CSS pixels.
+          const pixelRatio = a.width / cssWidth;
+          const boundary = a.height / 2 + 2.5 * scale * pixelRatio;
           let changedSky = 0, changedGround = 0;
-          // Left of the ship/reference; exclude a 3px antialias band around the physical edge.
-          for (let y = 0; y < Math.min(a.height, boundary + 80); y++) for (let x = 30; x < a.width * .2; x++) {
+          // Left of the ship/reference; exclude a 3 CSS px antialias band around the physical edge.
+          for (let y = 0; y < Math.min(a.height, boundary + 80 * pixelRatio); y++) for (let x = Math.ceil(30 * pixelRatio); x < a.width * .2; x++) {
             const i = (y * a.width + x) * 4;
             const different = Math.max(Math.abs(a.data[i]! - b.data[i]!), Math.abs(a.data[i+1]! - b.data[i+1]!), Math.abs(a.data[i+2]! - b.data[i+2]!)) > 10;
-            if (different && y < boundary - 3) changedSky++;
-            if (different && y > boundary + 3) changedGround++;
+            if (different && y < boundary - 3 * pixelRatio) changedSky++;
+            if (different && y > boundary + 3 * pixelRatio) changedGround++;
           }
-          return { changedSky, changedGround };
-        }, { tiledImage, vectorImage, scale: boundaryCamera.scale });
+          return { changedSky, changedGround, pixelRatio };
+        }, { tiledImage, vectorImage, scale: boundaryCamera.scale, cssWidth: boundaryCssWidth });
         expect(comparison.changedSky).toBeLessThan(50);
         expect(comparison.changedGround).toBeGreaterThan(100);
         results.push({ pixelBoundaryComparison: comparison });
@@ -157,7 +160,7 @@ for (const renderer of ['Canvas', 'WebGL']) {
     }
     await writeFile(`${evidence}/${renderer}-${info.project.name}-measurements.json`, JSON.stringify({
       browser: info.project.name, userAgent: await page.evaluate(() => navigator.userAgent), renderer, cpu: cpus()[0]?.model,
-      platform: platform(), viewport: renderer === 'Canvas' ? '1100x800 DPR1' : '640x480 DPR1', graphics: 'low, void backdrop',
+      platform: platform(), viewport: { ...page.viewportSize(), devicePixelRatio: await page.evaluate(() => window.devicePixelRatio) }, graphics: 'low, void backdrop',
       caveat: 'Headless browser; Chromium heap collected after explicit GC. Hardware GPU not qualified. Fixed landing-sector prototype, not streaming. ssssas-pjs7 remains open.', results,
     }, null, 2));
     expect(errors).toEqual([]);

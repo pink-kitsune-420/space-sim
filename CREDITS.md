@@ -52,6 +52,6 @@ The following open-source tools and libraries are used during development, testi
 
 All npm development dependencies conform to permissive, commercially-friendly open-source licensing allowlists, verified statically by `npm run check:licenses`. Android (Gradle) and Rust (Cargo) dependencies are reviewed manually.
 
-The Space Sim Successor package (`games/space-sim-successor`) contains first-party Classic-derived composition and world/settings data under the project MIT license. It reuses the shared Space Sim engine and modules.
+The Space Sim Tiles Demo package (`games/space-sim-successor`) contains first-party Classic-derived composition and world/settings data under the project MIT license. It reuses the shared Space Sim engine and modules.
 
 The successor bounded surface tile prototype, muted aggregate palette, clipping geometry and comparison controls are original first-party MIT work.
