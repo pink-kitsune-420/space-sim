@@ -20,7 +20,7 @@ export function builtinUniverses(): Map<string, UniverseDefinition> {
 /** Statically linked examples are installed, never enabled, until a profile selects them.
  * Command keys are checked against the console's own controls before activation. */
 export function prepareLocalWorld(universe = DEFAULT_UNIVERSE, systemId: string | undefined = undefined,
-  options: { readonly data?: readonly DataModule[]; readonly profile?: ModuleProfile; readonly universeKey?: string; readonly code?: readonly RegisteredModule[] } = {}): PreparedGame {
+  options: { readonly data?: readonly DataModule[]; readonly profile?: ModuleProfile; readonly universeKey?: string; readonly code?: readonly RegisteredModule[]; readonly derivedPlanets?: ReadonlyMap<string, import('../../../packages/game-api/src/index').SurfaceProfile> } = {}): PreparedGame {
   const prepared = prepareGame({ environment: environment(), id: newWorldId(), universe, systemId, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative')], ...options });
   try { checkCommandKeys(prepared.world.commands); } catch (error) { prepared.candidate.dispose(); throw error; }
   modules.set(prepared.world, { data: options.data ?? [], profile: prepared.profile,

@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import { test, expect } from '@playwright/test';
 import { build } from 'vite';
 import { resolve } from 'node:path';
@@ -38,8 +39,9 @@ for (const dpr of [1,2]) test(`independent air canonical masks, overlap, cues an
 });
 for(const offline of [false,true])test(`cloud trial ${offline?'offline':'hosted'} Canvas fallback and pause clock`,async({page,context})=>{
   await useCanvas(page);await useLowGraphics(page);
-  if(offline){await context.route(/^https?:/,r=>r.abort());await page.goto('file://'+resolve('dist/space-lab-offline.html')+'?game=space-sim-successor');}
-  else await page.goto('/?game=space-sim-successor');
+  if(offline){await context.route(/^https?:/,r=>r.abort());await page.goto('file://'+resolve('dist/space-lab-offline.html')+'?game=space-sim-successor&planetPreview=0');}
+  else await page.goto('/?game=space-sim-successor&planetPreview=0');
+  await waitForWorldReady(page);
   await expect(page.locator('#status')).toHaveText('LANDED');
   const debug=async()=>JSON.parse(await page.locator('#debug').textContent()||'{}');
   await expect.poll(async()=>(await debug()).successorAir.mode).toBe('clouds');
@@ -52,6 +54,7 @@ for(const offline of [false,true])test(`cloud trial ${offline?'offline':'hosted'
 for (const offline of [false,true]) test(`demo defaults to clouds and air with fresh High graphics (${offline?'offline':'hosted'})`, async ({page,context},info) => {
   if(offline)await context.route(/^https?:/,route=>route.abort());
   await page.goto((offline?'file://'+resolve('dist/space-lab-offline.html'):'/')+'?game=builtin.space-sim-successor');
+  await waitForWorldReady(page);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect(page.locator('#graphics-toggle')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#successor-air-mode')).toHaveValue('clouds');
@@ -65,7 +68,8 @@ for (const offline of [false,true]) test(`demo defaults to clouds and air with f
 
 test('explicit cloud-review link selects the trial without changing graphics preferences', async ({page}) => {
   await useCanvas(page);
-  await page.goto('/?game=space-sim-successor&successorAir=clouds');
+  await page.goto('/?game=space-sim-successor&planetPreview=0&successorAir=clouds');
+  await waitForWorldReady(page);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect.poll(async()=>JSON.parse(await page.locator('#debug').textContent()||'{}').successorAir.mode).toBe('clouds');
   await expect(page.locator('#successor-air-mode')).toHaveValue('clouds');

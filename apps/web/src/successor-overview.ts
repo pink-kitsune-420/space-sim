@@ -1,4 +1,5 @@
-import { buildPlanetMap, linearColor, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
+import { planetMapWork } from '../../../packages/game-api/src/planet-map';
+import { linearColor, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
 import { querySurface } from '../../../packages/sim-core/src/surface';
 import { appearanceAt, MATERIAL_DOMAINS, MATERIAL_SLOTS, type MaterialDomain } from './successor-materials';
 
@@ -58,14 +59,16 @@ function diffuseFace(samples: Uint8Array, columns: number, rows: number, palette
  * fine cells. Original pad tangent X points clockwise; remote targets never reset
  * that frame. Two angular strata/bin, with 2m radial support, cost 131072 queries.
  * Packed identities and angular-only mixture mips keep both bodies below 512KiB. */
-export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): RenderOverview {
+export function* overviewWork(profile: SurfaceProfile, domain: MaterialDomain): Generator<void, RenderOverview> {
   const sectors = 8192, rows = 8, depthMetres = 16;
   const samples = new Uint8Array(sectors * rows);
   const pad = profile.pads.find(p => p.id === 'landing-area') ?? { angleRadians: Math.PI / 2 };
   const palette = MATERIAL_SLOTS.map(id => [1, 3, 5].map(i => linearColor(parseInt(domain.colors[id].slice(i, i + 2), 16) / 255)));
   const levels: { sectors: number; fractions: Uint8Array }[] = [];
   let childSectors = sectors, child: Uint8Array | undefined;
-  for (let x = 0; x < sectors; x++) for (let stratum = 0; stratum < 2; stratum++) {
+  for (let x = 0; x < sectors; x++) {
+    if (x % 128 === 0) yield;
+    for (let stratum = 0; stratum < 2; stratum++) {
     const a = (x + (stratum + .5) / 2) * 2 * Math.PI / sectors;
     const r = querySurface(profile, a).groundRadius, d = a - pad.angleRadians;
     const c = Math.cos(d), s = Math.sin(d);
@@ -75,7 +78,9 @@ export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): 
       samples[y * sectors + x] = samples[y * sectors + x]! | (MATERIAL_SLOTS.indexOf(id) << (stratum * 2));
     }
   }
+  }
   while (childSectors > 1) {
+    yield;
     const count = childSectors / 2, fractions = new Uint8Array(count * rows * 2);
     for (let y = 0; y < rows; y++) for (let x = 0; x < count; x++) {
       let first = 0, second = 0;
@@ -90,15 +95,28 @@ export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): 
     }
     levels.unshift({ sectors: count, fractions }); child = fractions; childSectors = count;
   }
-  const planet = profile.planet ? buildPlanetMap(profile) : undefined;
+  const planet = profile.planet ? yield* planetMapWork(profile) : undefined;
   return { levels: planet?.levels ?? diffuseFace(samples, sectors, rows, palette), surface: { sectors, rows, depthMetres, samples, levels, palette },
     ...(planet ? { planet: planet.planet } : {}) };
 }
 
+/** Synchronous callers retain the exact same quadrature and float32 mip rounding. */
+export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): RenderOverview {
+  const work = overviewWork(profile, domain); let step = work.next();
+  while (!step.done) step = work.next(); return step.value;
+}
+
 export class SuccessorOverview {
   private cache = new WeakMap<SurfaceProfile, Map<'planet' | 'moon', RenderOverview>>();
+  private counted = new WeakSet<RenderOverview>();
   readonly stats = { summaryBytes: 0, generatedBodies: 0, descriptorSamples: 0, mapBytes: 0, mapPixels: 0, fineRequests: 0, buildMs: 0 };
-  clear(): void { this.cache = new WeakMap(); this.stats.summaryBytes = this.stats.generatedBodies = this.stats.descriptorSamples = this.stats.mapBytes = this.stats.mapPixels = this.stats.buildMs = 0; }
+  clear(): void { this.counted = new WeakSet(); this.cache = new WeakMap(); this.stats.summaryBytes = this.stats.generatedBodies = this.stats.descriptorSamples = this.stats.mapBytes = this.stats.mapPixels = this.stats.buildMs = 0; }
+  /** Seed only candidate-owned products after physical identity validation. */
+  seed(profile: SurfaceProfile, body: 'planet' | 'moon', summary: RenderOverview): void {
+    let domains = this.cache.get(profile);
+    if (!domains) { domains = new Map(); this.cache.set(profile, domains); }
+    domains.set(body, summary);
+  }
   forBody(profile: SurfaceProfile, body: 'planet' | 'moon'): RenderOverview {
     let domains = this.cache.get(profile);
     if (!domains) { domains = new Map(); this.cache.set(profile, domains); }
@@ -106,6 +124,9 @@ export class SuccessorOverview {
     if (!summary) {
       const started = performance.now();
       summary = buildOverview(profile, MATERIAL_DOMAINS[body]); this.stats.buildMs += performance.now() - started; domains.set(body, summary);
+    }
+    if (!this.counted.has(summary)) {
+      this.counted.add(summary);
       this.stats.generatedBodies++; this.stats.descriptorSamples += 131072;
       this.stats.summaryBytes += summary.levels.reduce((sum, level) => sum + level.rgba.byteLength, 0)
         + summary.surface!.samples.byteLength + summary.surface!.levels.reduce((n, l) => n + l.fractions.byteLength, 0);

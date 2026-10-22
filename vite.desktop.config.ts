@@ -12,6 +12,7 @@ const TYPES: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.bin': 'application/octet-stream',
   '.spacegame': 'application/gzip',
   '.spaceuniverse': 'application/gzip',
 };

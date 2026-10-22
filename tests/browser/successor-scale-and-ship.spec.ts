@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import { test, expect, type Page } from '@playwright/test';
 import { useCanvas, useLowGraphics } from '../helpers/canvas';
 import successor from '../../games/space-sim-successor/game.json' with { type: 'json' };
@@ -14,7 +15,7 @@ for (const renderer of ['Canvas', 'WebGL']) {
     await page.setViewportSize(renderer === 'Canvas' ? { width: 1100, height: 800 } : { width: 640, height: 480 });
     const errors: string[] = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto('/?game=space-sim-successor');
+    await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);
     await expect(page.locator('#status')).toHaveText('LANDED');
     await expect.poll(async () => (await debug(page)).renderer).toBe(renderer === 'Canvas' ? 'builtin.canvas' : 'builtin.webgl');
     await expect.poll(async () => (await debug(page)).vehicleArtwork?.metresPerUnit).toBe(1);
@@ -84,7 +85,7 @@ for (const renderer of ['Canvas', 'WebGL']) {
 test('successor hold-to-adjust throttle keeps thrust on release and X cuts it', async ({ page }, info) => {
   if (info.project.name === 'webkit') test.slow();
   await useCanvas(page);
-  await page.goto('/?game=space-sim-successor');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await flightFocus(page);
   await page.keyboard.press('KeyX');

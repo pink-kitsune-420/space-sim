@@ -3,7 +3,9 @@ import { PLANET_GENERATOR, type PlanetBake, type PlanetFieldDefinition, type Ser
 
 /** Example creator boundary: the editor chooses a definition and schedules this
  * job's step between yields. The preview consumes transferred data; it never
- * derives a different geography from shader settings. */
+ * derives a different geography from shader settings. The host may ship prepared
+ * starter products; custom definitions still use this same bounded job and must
+ * cancel abandoned work before enabling flight. */
 export interface PlanetPreview { begin(definition: PlanetFieldDefinition): PlanetBake }
 export const PLANET_PREVIEW: ServiceKey<PlanetPreview> = Object.freeze({ slot: 'example.planet-preview', version: '1.0.0' });
 

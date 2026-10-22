@@ -8,7 +8,7 @@ The name is inspired by the joint ESA/NASA orbital laboratory missions. This pro
 
 All simulation physics, orbital mechanics, Kepler propagators, Canvas 2D and WebGL 2 GPU shader renderers, flight HUDs, multiplayer networking, and application plumbing are first-party code authored specifically for this project.
 
-The successor survey lander, static human reference and trial terrain recipes are original first-party vector/data assets under the project MIT license.
+The successor survey lander, static human reference, trial terrain recipes and prepared starter-world macro/profile/map products are original first-party vector/data assets under the project MIT license. Prepared products are generated solely by the project's deterministic field and map tools.
 
 Engine rumble and flight sound effects are synthesized by original first-party code under the project's MIT license, using generated noise and oscillators. No third-party sound recordings, samples or instrument libraries are bundled.
 

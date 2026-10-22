@@ -1,3 +1,9 @@
+import { validateUniverse } from '../../../packages/sim-core/src/universe';
+import { overviewWork } from './successor-overview';
+import { MATERIAL_DOMAINS } from './successor-materials';
+import starterProducts from 'virtual:starter-products';
+import { prepareStarterWorlds, type PreparedStarterWorlds } from './starter-products';
+import { loadingStage, loadingProgress, loadingComplete, loadingHistory, loadingYield, loadingFailure } from './loading';
 import { SuccessorAir } from './successor-air';
 import { SuccessorTiles } from './successor-tiles';
 import { SuccessorTileStore } from './successor-tile-store';
@@ -65,7 +71,7 @@ import { PilotThrottle } from './throttle-control';
 import type { ThrottleLeverState } from './throttle-lever';
 import { VIEW_HUD, FLIGHT_HUD_STATE, THROTTLE_HUD, PLAYER_VIEWS, type PlayerView, type FlightHudReadout, type ViewHud, type HudSurface } from '../../../packages/game-api/src/index';
 import { navballInstrument } from '../../../modules/navball/src/index';
-import { builtinUniverses, createLocalWorld, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
+import { builtinUniverses, prepareLocalWorld, requestedModules, worldModules, rememberWorldModules, environment } from './startup';
 import { Presentation, presentationSnapshot } from './presentation';
 import { presentationCommands } from './presentation-commands';
 import { createPresentationControls } from './presentation-controls';
@@ -109,9 +115,16 @@ import { desktopHostToken, hostOnComputer, type DesktopHost } from './desktop-ho
 
 /** Legacy flight host adapter. Feature services are selected by the game's target
  * plan; native DOM/session validation and trust/consent remain explicit here. */
-export function startFlight(startupGame: GamePackage = requestedBuiltinGame(location.search)): void {
+export async function startFlight(startupGame: GamePackage = requestedBuiltinGame(location.search)): Promise<void> {
+let launchReady = false;
+let localPreparationActive = false;
+let localPreparationWorld: object | undefined;
+let pendingInitialGame: ReturnType<typeof prepareLocalWorld> | undefined;
+const preparedViewProducts = new WeakMap<import('../../../packages/game-api/src/index').SurfaceProfile, import('../../../packages/game-api/src/index').RenderOverview>();
+const startupLoading = new AbortController();
+window.addEventListener('pagehide', () => startupLoading.abort(), { once: true });
 const planetPreviewEnabled = startupGame.info.id === 'builtin.space-sim-successor'
-  && new URLSearchParams(location.search).get('planetPreview') === '1';
+  && new URLSearchParams(location.search).get('planetPreview') !== '0';
 let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
@@ -337,9 +350,9 @@ document.addEventListener('visibilitychange', () => successorAir.clock.suspend()
 const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id, startupGame.info.id);
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
-const isHosting = (): boolean => session === local && local.hosting;
+const isHosting = (): boolean => !!local && session === local && local.hosting;
 /** Single player on this browser's own world: blur pauses and Reset restarts the clock. */
-const isSolo = (): boolean => session === local && !local.hosting;
+const isSolo = (): boolean => !!local && session === local && !local.hosting;
 /** Records only: a pilot's list never needs to evaluate sleeping ships. */
 const ownShips = (): Ship[] => [...session.world.records()].filter(s => s.ownerId === session.playerId);
 const selectedShip = (): Ship | undefined => selectedShipId ? session.world.ship(selectedShipId) : undefined;
@@ -873,6 +886,57 @@ function useSession(next: GameSession, recenter = true): void {
   updateMultiplayer();
 }
 
+/** Existing local world/session ownership remains authoritative. This UI scope
+ * rejects overlap, links cancellation, and restores the original pause on failure. */
+function beginLocalPreparation(parent?: AbortSignal) {
+  if (localPreparationActive || !isSolo()) throw Error('Finish the current world operation first');
+  const priorSession = session, priorWorld = session.world, priorPause = session.paused;
+  const controller = new AbortController();
+  const abortParent = () => controller.abort(parent?.reason), abortPage = () => controller.abort(startupLoading.signal.reason);
+  parent?.throwIfAborted(); startupLoading.signal.throwIfAborted();
+  parent?.addEventListener('abort', abortParent, { once: true });
+  startupLoading.signal.addEventListener('abort', abortPage, { once: true });
+  const cancel = element<HTMLButtonElement>('loading-cancel');
+  cancel.hidden = false; cancel.onclick = () => controller.abort(new DOMException('World loading cancelled', 'AbortError'));
+  localPreparationWorld = priorWorld; localPreparationActive = true; setPaused(true, 'Preparing world');
+  return {
+    signal: controller.signal,
+    guard() { controller.signal.throwIfAborted(); if (session !== priorSession || session.world !== priorWorld || !isSolo()) throw Error('The active session changed while preparing the world'); },
+    commit() { this.guard(); cancel.hidden = true; },
+    async finish() {
+      parent?.removeEventListener('abort', abortParent); startupLoading.signal.removeEventListener('abort', abortPage);
+      cancel.hidden = true; cancel.onclick = null;
+      if (session === priorSession && session.world === priorWorld && !priorPause) setPaused(false, 'Previous world retained');
+      await loadingComplete(); localPreparationWorld = undefined; localPreparationActive = false;
+    },
+  };
+}
+
+async function prepareUniversePlanets(universe: UniverseDefinition, systemId: string, signal: AbortSignal): Promise<PreparedStarterWorlds | undefined> {
+  const bodies = universe.systems.find(system => system.id === systemId)?.bodies.filter(body => body.surface?.generatorVersion === 2) ?? [];
+  return bodies.length ? prepareStarterWorlds(bodies.map(body => ({ id: body.id, name: body.name,
+    radius: body.radius ?? body.radiusMetres!, surface: body.surface as import('../../../packages/game-api/src/index').PlanetSurfaceDefinition })),
+    starterProducts, signal, loadingProgress) : undefined;
+}
+
+/** Prepare only immutable display summaries in candidate ownership, before publication. */
+async function prepareWorldViews(world: World, signal: AbortSignal, products?: PreparedStarterWorlds): Promise<void> {
+  if (activeGameInfo.id !== 'builtin.space-sim-successor' || !presentation.rendering.renderer?.features?.planetOverview) return;
+  for (const body of ['planet', 'moon'] as const) {
+    const profile = world.surface(body); if (!profile) continue;
+    const prepared = products?.overviews.get(body);
+    if (prepared && products?.profiles.get(body) === profile) { preparedViewProducts.set(profile, prepared); continue; }
+    await loadingStage(`Drawing ${body === 'planet' ? 'Primus' : 'Parvus'}`);
+    const work = overviewWork(profile, MATERIAL_DOMAINS[body]); let step = work.next();
+    while (!step.done) {
+      signal.throwIfAborted(); const start = performance.now();
+      do { step = work.next(); } while (!step.done && performance.now() - start < 6);
+      await loadingYield();
+    }
+    signal.throwIfAborted(); preparedViewProducts.set(profile, step.value);
+  }
+}
+
 /** Replace this browser's own world (new universe, loaded save). */
 function replaceLocalWorld(world: World, options: { readonly players?: readonly SavedPlayer[]; readonly hostId?: string } = {}): void {
   const token = tokenFor(world.id);
@@ -954,47 +1018,51 @@ function focusOnShipForNewWorld(): void {
   syncCameraButton();
 }
 
-function setUniverse(u: UniverseDefinition, preferredSystemId?: string): void {
-  const world = createLocalWorld(u, preferredSystemId);
-  universes.set(u.id, u);
-  replaceLocalWorld(world);
-  reset();
-  focusOnShipForNewWorld();
-  profiler.event('universe-load', { universe: u.id, system: world.systemId });
+async function setUniverse(u: UniverseDefinition, preferredSystemId = u.defaultSystemId): Promise<void> {
+  const operation = beginLocalPreparation(); let prepared: ReturnType<typeof prepareLocalWorld> | undefined, committed = false;
+  try {
+    await loadingStage('Reading world');
+    const products = await prepareUniversePlanets(u, preferredSystemId, operation.signal); operation.guard();
+    prepared = prepareLocalWorld(u, preferredSystemId, { derivedPlanets: products?.profiles });
+    await prepareWorldViews(prepared.world, operation.signal, products); operation.commit();
+    universes.set(u.id, u); replaceLocalWorld(prepared.world); prepared.runtime.activate(prepared.candidate); committed = true;
+    reset(); focusOnShipForNewWorld(); profiler.event('universe-load', { universe: u.id, system: prepared.world.systemId });
+  } finally { if (!committed) prepared?.candidate.dispose(); await operation.finish(); }
 }
 
-/** An imported universe becomes ordinary game content while retaining enabled plugins. */
-function importUniverse(universe: UniverseDefinition): void {
-  if (!isSolo()) throw new Error('Import a universe in your solo game');
-  const current = worldModules(local.world), adapter = universeDataModule(universe);
-  const data = [adapter, ...(current?.data ?? []).filter(m => m.manifest.id !== adapter.manifest.id)];
-  const profile = current?.profile ?? DEFAULT_PROFILE;
-  const prepared = prepareLocalWorld(DEFAULT_UNIVERSE, universe.defaultSystemId, {
-    data, universeKey: `${adapter.manifest.id}/${universe.id}`,
-    profile: { ...profile, modules: [...profile.modules.filter(m => m.id !== adapter.manifest.id),
-      { id: adapter.manifest.id, version: adapter.manifest.version }] },
-  });
-  replaceLocalWorld(prepared.world);
-  prepared.runtime.activate(prepared.candidate);
-  reset();
-  focusOnShipForNewWorld();
+/** Imported definitions retain enabled plugins and prepare their exact v2 data before publication. */
+async function importUniverse(universe: UniverseDefinition): Promise<void> {
+  const operation = beginLocalPreparation(); let prepared: ReturnType<typeof prepareLocalWorld> | undefined, committed = false;
+  try {
+    await loadingStage('Reading world');
+    const products = await prepareUniversePlanets(universe, universe.defaultSystemId, operation.signal); operation.guard();
+    const current = worldModules(local.world), adapter = universeDataModule(universe);
+    const data = [adapter, ...(current?.data ?? []).filter(m => m.manifest.id !== adapter.manifest.id)], profile = current?.profile ?? DEFAULT_PROFILE;
+    prepared = prepareLocalWorld(DEFAULT_UNIVERSE, universe.defaultSystemId, { data, derivedPlanets: products?.profiles,
+      universeKey: `${adapter.manifest.id}/${universe.id}`, profile: { ...profile, modules: [...profile.modules.filter(m => m.id !== adapter.manifest.id),
+        { id: adapter.manifest.id, version: adapter.manifest.version }] } });
+    await prepareWorldViews(prepared.world, operation.signal, products); operation.commit();
+    replaceLocalWorld(prepared.world); prepared.runtime.activate(prepared.candidate); committed = true;
+    reset(); focusOnShipForNewWorld();
+  } finally { if (!committed) prepared?.candidate.dispose(); await operation.finish(); }
 }
 
-function switchSystem(systemId: string): void {
-  const current = worldModules(local.world);
-  const prepared = prepareLocalWorld(current?.baseUniverse ?? local.world.universe, systemId, current ?? {});
-  const world = prepared.world;
-  replaceLocalWorld(world);
-  prepared.runtime.activate(prepared.candidate);
-  reset();
-  focusOnShipForNewWorld();
-  profiler.event('system-switch', { system: world.systemId });
+async function switchSystem(systemId: string): Promise<void> {
+  const operation = beginLocalPreparation(); let prepared: ReturnType<typeof prepareLocalWorld> | undefined, committed = false;
+  try {
+    await loadingStage('Reading system');
+    const products = await prepareUniversePlanets(local.world.universe, systemId, operation.signal); operation.guard();
+    const current = worldModules(local.world);
+    prepared = prepareLocalWorld(current?.baseUniverse ?? local.world.universe, systemId, { ...current, derivedPlanets: products?.profiles });
+    await prepareWorldViews(prepared.world, operation.signal, products); operation.commit();
+    replaceLocalWorld(prepared.world); prepared.runtime.activate(prepared.candidate); committed = true;
+    reset(); focusOnShipForNewWorld(); profiler.event('system-switch', { system: prepared.world.systemId });
+  } finally { if (!committed) prepared?.candidate.dispose(); await operation.finish(); }
 }
 
-/** Make the opt-in surface examples visible immediately on selection. */
-function showSurfaceWorld(u: UniverseDefinition): void {
-  setUniverse(u);
-  element('flight-console').scrollIntoView({ block: 'start' });
+/** Make the surface examples visible immediately after successful selection. */
+async function showSurfaceWorld(u: UniverseDefinition): Promise<void> {
+  await setUniverse(u); element('flight-console').scrollIntoView({ block: 'start' });
 }
 
 function keyboardFlight(): Controls {
@@ -1166,6 +1234,7 @@ function syncWarpUI(): void {
 }
 /** Losing focus pauses a solo flight (unless Run in background is enabled) and auto-resumes on focus; shared worlds keep running. */
 function autoPause(reason: string): void {
+  if (!launchReady || localPreparationActive) return;
   if (isSolo() && !runInBackgroundToggle.checked) {
     if (!local.paused) {
       autoPaused = true;
@@ -1179,6 +1248,7 @@ function autoPause(reason: string): void {
   handleEvents(session.update(0, selectedShipId, IDLE));
 }
 function autoResume(reason: string): void {
+  if (!launchReady || localPreparationActive) return;
   if (isSolo() && autoPaused && local.paused) {
     autoPaused = false;
     setPaused(false, reason);
@@ -2907,18 +2977,20 @@ preset.addEventListener('change', () => {
   reset();
   if (builtinSurface && state.status === 'landed') cameraControl.zoom = 12;
 });
-universeSelect.addEventListener('change', () => {
+universeSelect.addEventListener('change', async () => {
+  try {
   const chosen = universes.get(universeSelect.value);
   if (chosen) {
-    if (chosen === terrainUniverse || chosen === oceanUniverse) showSurfaceWorld(chosen);
-    else setUniverse(chosen);
+    if (chosen === terrainUniverse || chosen === oceanUniverse) await showSurfaceWorld(chosen);
+    else await setUniverse(chosen);
   }
+  } catch (error) { syncUniverseSelect(); alert(message(error)); }
 });
-element('try-terrain').addEventListener('click', () => showSurfaceWorld(terrainUniverse));
-element('try-ocean').addEventListener('click', () => showSurfaceWorld(oceanUniverse));
-systemSelect.addEventListener('change', () => {
+element('try-terrain').addEventListener('click', () => { void showSurfaceWorld(terrainUniverse).catch(error => alert(message(error))); });
+element('try-ocean').addEventListener('click', () => { void showSurfaceWorld(oceanUniverse).catch(error => alert(message(error))); });
+systemSelect.addEventListener('change', async () => {
   try {
-    switchSystem(systemSelect.value);
+    await switchSystem(systemSelect.value);
   }
   catch (error) { systemSelect.value = session.world.systemId; alert(String(error)); }
 });
@@ -2933,7 +3005,7 @@ universeFileInput.addEventListener('change', async () => {
     if (file.size > MAX_ARCHIVE_BYTES) throw new Error('Universe files must be at most 32 MiB');
     const validated = await decodeUniverse(new Uint8Array(await file.arrayBuffer()));
     if (session.world !== originalWorld || !isSolo()) throw new Error('The active session changed while importing');
-    importUniverse(validated);
+    await importUniverse(validated);
     show('universe-status', `Loaded ${validated.name} · ${validated.systems.length} systems. JSON and compressed universe files are supported.`);
     show('flight-message', `Loaded universe "${validated.name}" · ${session.world.system.system.name}`);
   } catch (err) {
@@ -3008,7 +3080,7 @@ function loadModuleText(text: string): void {
 }
 element('reset-modules').addEventListener('click', () => {
   if (session !== local || local.hosting) return;
-  setUniverse(DEFAULT_UNIVERSE);
+  void setUniverse(DEFAULT_UNIVERSE).catch(error => show('module-status', message(error)));
 });
 element('export-module').addEventListener('click', async () => {
   const data = worldModules(session.world)?.data;
@@ -3976,6 +4048,10 @@ const universeSaveCommands = universeSaveProvider.create({
     options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused, flightPlans: maneuver.savePlans() } }),
   async restore(saved, signal, guard) {
     guard();
+    const operation = beginLocalPreparation(signal);
+    try {
+    await loadingStage('Reading saved world');
+    guard();
     assertGameProgress(saved, activeGameInfo.id);
     const savedPlans = (saved as { flightPlans?: unknown }).flightPlans;
     if (savedPlans !== undefined) {
@@ -4003,7 +4079,7 @@ const universeSaveCommands = universeSaveProvider.create({
     if (installedProfile?.runtime) {
       await moduleManager!.devices.loadWorldGame(installedProfile.runtime, { profile: installedProfile.profile, data: installedProfile.data,
         code: restoredCode ?? [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative')], configuration, restore: saved }, prepared => {
-        guard();
+        guard(); operation.commit();
         checkCommandKeys(prepared.loaded.world.commands);
         rememberWorldModules(prepared.loaded.world, { ...installedProfile, createContext: prepared.createContext });
         const next = new LocalSession(prepared.loaded.world, { name: pilotName(), players: prepared.loaded.players,
@@ -4012,7 +4088,7 @@ const universeSaveCommands = universeSaveProvider.create({
         if (restoredArtifacts) moduleLibrary.replace([...moduleLibrary.artifacts.filter(m => m.manifest.authority === 'presentation'), ...restoredArtifacts]);
         moduleManager!.resetData(installedProfile!.data);
         local.dispose(); local = next; useSession(local, true); setPaused(true, 'Universe loaded');
-      }, signal);
+      }, operation.signal);
       maneuver.loadPlans(savedPlans);
       notify('Universe loaded.');
       return;
@@ -4026,9 +4102,17 @@ const universeSaveCommands = universeSaveProvider.create({
       && !availableData.some(module => module.manifest.id === planetPreviewData.manifest.id)) {
       availableData.push(validateDataModule(planetPreviewData));
     }
-    const loaded = loadInstalledWorld(saved, { environment: environment(),
+    const savedUniverse = validateUniverse((saved as { universe: unknown }).universe);
+    const savedSystem = (saved as { systemId?: string }).systemId ?? savedUniverse.defaultSystemId;
+    const productBodies = savedUniverse.systems.find(system => system.id === savedSystem)?.bodies.filter(body => body.surface?.generatorVersion === 2 && (body.id === 'planet' || body.id === 'moon')) ?? [];
+    const restoredProducts = productBodies.length ? await prepareStarterWorlds(productBodies.map(body => ({ id: body.id as 'planet' | 'moon',
+      radius: body.radius ?? body.radiusMetres!, surface: body.surface as import('../../../packages/game-api/src/index').PlanetSurfaceDefinition })), starterProducts, operation.signal, loadingProgress) : undefined;
+    guard(); operation.guard(); await loadingStage('Checking saved world'); guard(); operation.guard();
+    const loaded = loadInstalledWorld(saved, { environment: environment(), derivedPlanets: restoredProducts?.profiles,
       data: availableData, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative'
         && worldModules(local.world)?.profile.modules.some(ref => ref.id === m.manifest.id))] });
+    try { await prepareWorldViews(loaded.world, operation.signal, restoredProducts); guard(); operation.commit(); }
+    catch (error) { loaded.world.dispose(); throw error; }
     if (loaded.prepared) rememberWorldModules(loaded.world, { data: availableData, profile: loaded.prepared.profile,
       baseUniverse: installedProfile?.baseUniverse ?? loaded.world.universe,
       universeKey: installedProfile?.universeKey ?? `builtin.content/${loaded.world.universe.id}`, createContext: loaded.prepared.createContext });
@@ -4038,6 +4122,9 @@ const universeSaveCommands = universeSaveProvider.create({
     maneuver.loadPlans(savedPlans);
     notify('Universe loaded.');
     profiler.event('world-load', { world: loaded.world.id, ships: loaded.world.size });
+    } finally {
+      await operation.finish();
+    }
   },
 });
 const universeSaveControl = universeSaveUi.mount({
@@ -4056,6 +4143,7 @@ window.addEventListener('pagehide', event => {
 });
 
 function executeAction(action: ActionId): void {
+  if (!launchReady || localPreparationActive) return;
   if (orbitSandboxInstance?.isOpen() || controlsDialog.open || hudLayout.editing) return;
   if (isSlotThrowing(0)) {
     const cameraAlteringActions = new Set<ActionId>([
@@ -4148,6 +4236,7 @@ throwCheatToggle?.addEventListener('change', () => {
 });
 
 window.addEventListener('keydown', event => {
+  if (!launchReady || localPreparationActive) return;
   if (orbitSandboxInstance?.isOpen() || controlsDialog.open || hudLayout.editing) return;
   if (event.target && (event.target as HTMLElement).closest('input, select, textarea, [contenteditable]')) return;
   const actions = keyLookup.get(event.code);
@@ -4179,8 +4268,9 @@ window.addEventListener('keyup', event => {
 
 bindFlightInput({
   binding: event => resolveKeybinding(event, keyLookup),
-  keys, pointers, paused: () => session.paused, autoPause, autoResume, visibility: updateBackground,
+  keys, pointers, paused: () => !launchReady || localPreparationActive || session.paused, autoPause, autoResume, visibility: updateBackground,
   flightPress(code) {
+    if (!launchReady || localPreparationActive) return;
     const actions = keyLookup.get(code);
     const slot = splitScreen.keyboardSlot;
     if (slot !== undefined && actions?.some(action => action === 'throttleUp' || action === 'throttleDown')) {
@@ -4197,6 +4287,7 @@ bindFlightInput({
     return actions ? actions.some(a => !isFlightAction(a)) : false;
   },
   command(code) {
+    if (!launchReady || localPreparationActive) return false;
     if (orbitSandboxInstance?.isOpen()) return false;
     const command = commandBar.byKey(code);
     if (command) issueCommand(command);
@@ -4510,6 +4601,7 @@ function ticker(tick: () => void, ms: number): { stop(): void } {
   return { stop: () => { worker?.terminate(); if (timer) clearInterval(timer); } };
 }
 function updateBackground(): void {
+  if (!launchReady || localPreparationActive) return;
   const wanted = !switchingGame && document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
   if (wanted && !background) {
     backgroundAt = performance.now();
@@ -4591,6 +4683,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
       body: activeFlightSlingshot.dominantBody.id,
       camera: activeFlightSlingshot.sourceCanvas === canvas ? cameraControl.last : splitScreen.guests.get(activeFlightSlingshot.slot ?? 0)?.camera.last,
       width: activeFlightSlingshot.sourceCanvas?.clientWidth, height: activeFlightSlingshot.sourceCanvas?.clientHeight } : null,
+    startupLoading: { ready: launchReady, sources: startupProductSources, stages: loadingHistory },
     successorOverview: activeGameInfo.id === 'builtin.space-sim-successor' ? successorOverview.stats : undefined,
     successorGuestTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? [...successorGuestTiles].map(([slot, tiles]) => ({ slot, ...tiles.stats })) : undefined,
     successorFocus: activeGameInfo.id === 'builtin.space-sim-successor' ? { body: successorFocus.body, angle: successorFocus.angle, tracking: successorFocus.tracking } : undefined,
@@ -4785,9 +4878,15 @@ let presentationInputEpoch = 0;
 // Shared by all input consumers in this host frame; never derived from elapsed time.
 let inputCaptureId = 0;
 function frame(now: number): void {
+  // The loading shell covers the paused previous view. Retain its last usable
+  // image instead of rasterizing it at every cooperative preparation yield.
+  // A published candidate has a different world and draws before shell release.
+  if (localPreparationActive && session.world === localPreparationWorld) {
+    lastWall = now; requestAnimationFrame(frame); return;
+  }
   const inputEpoch = ++presentationInputEpoch;
   inputCaptureId = inputCaptureId === Number.MAX_SAFE_INTEGER ? 0 : inputCaptureId + 1;
-  const elapsed = lastWall === undefined ? 0 : (now - lastWall) / 1000;
+  const elapsed = !launchReady || lastWall === undefined ? 0 : (now - lastWall) / 1000;
   lastWall = now;
   profiler.begin(elapsed * 1000);
   moduleManager?.devices.sample(elapsed, !session.paused && !workspace.isOpen && !document.hidden, !workspace.isOpen && !document.hidden, inputCaptureId);
@@ -4797,7 +4896,7 @@ function frame(now: number): void {
   splitScreen.sync();
   if (session.paused || controlsDialog.open || hudLayout.editing || document.hidden) pilotThrottles.forEach(control => control.release());
   splitScreen.applyInput(elapsed);
-  const rawCommand = session.paused ? IDLE : controls(elapsed);
+  const rawCommand = !launchReady || localPreparationActive || session.paused ? IDLE : controls(elapsed);
   const controlTarget = presentation.hooks.controlsInput ? presentation.hooks.controlTarget(
     presentationView(elapsed, session.world.system.getBodyPosition(activeBody.id, session.world.time), spinView.state(selectedShip()?.state ?? state, activeBody))) : undefined;
   const command = presentationControls.route(session, session.playerId, selectedShipId, rawCommand, controlTarget,
@@ -4862,6 +4961,10 @@ function frame(now: number): void {
     successorWorld = world; successorWasActive = isSuccessor; successorFocus.clear(); successorOverview.clear(); successorTiles.clear();
     for (const tiles of successorGuestTiles.values()) tiles.clear(); successorGuestTiles.clear();
     successorTileStore.clear();
+    for (const body of ['planet', 'moon'] as const) {
+      const profile = world.surface(body), summary = profile && preparedViewProducts.get(profile);
+      if (profile && summary) successorOverview.seed(profile, body, summary);
+    }
   }
   successorAir.clock.advance(elapsed, session.paused, document.hidden, world);
   // High quality lights every body from the system's star; starless systems stay unlit.
@@ -5280,23 +5383,27 @@ function frame(now: number): void {
   successorTileStore.endFrame();
   profiler.lap('hud');
   profiler.end();
+  if (!launchReady) {
+    launchReady = true;
+    void loadingComplete().then(() => { lastWall = undefined; });
+  }
   requestAnimationFrame(frame);
 }
 
 if (startupGame.info.id === 'builtin.space-sim-successor') {
   const preview = document.createElement('button'); preview.id = 'successor-planet-preview';
-  preview.textContent = planetPreviewEnabled ? 'Return to legacy scale worlds' : 'Preview generated Primus and oceans';
+  preview.textContent = planetPreviewEnabled ? 'Return to legacy scale worlds' : 'Use generated Primus and oceans';
   preview.addEventListener('click', () => {
     const url = new URL(location.href); url.searchParams.set('game','space-sim-successor');
     for (const key of ['planetPreset','planetView','planetPaused']) url.searchParams.delete(key);
-    if (planetPreviewEnabled) { url.searchParams.delete('planetPreview'); url.searchParams.delete('successorAir'); }
+    if (planetPreviewEnabled) { url.searchParams.set('planetPreview','0'); url.searchParams.delete('successorAir'); }
     else { url.searchParams.set('planetPreview','1'); url.searchParams.set('successorAir','clouds'); }
     location.assign(url.href);
   });
   systemSelect.closest('.setup-fields')?.after(preview);
   const hint = document.createElement('p');
   hint.id = 'successor-trial-help'; hint.className = 'control-note';
-  hint.textContent = planetPreviewEnabled ? 'Generated planets preview: Primus has real oceans and shared orbital/ground geography; Parvus is airless. The playable ring is the equator around the globe rim. Choose Coast, Inland, Mountain, Gentle splash or Already floating in Scenario. Scroll to zoom; C compares the planet and ground. Space toggles the engine, A/D turns, arrows adjust throttle, X cuts thrust. Same 5 m survey lander and approved handling. Legacy scale worlds remain available through the button above.' : 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
+  hint.textContent = planetPreviewEnabled ? 'Generated starter worlds: Primus has real oceans and shared orbital/ground geography; Parvus is airless. The playable ring is the equator around the globe rim. Choose Coast, Inland, Mountain, Gentle splash or Already floating in Scenario. Scroll to zoom; C compares the planet and ground. Space toggles the engine, A/D turns, arrows adjust throttle, X cuts thrust. Same 5 m survey lander and approved handling. Legacy scale worlds remain available through the button above.' : 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
   const label = document.createElement('label');
   label.textContent = 'Surface prototype ';
   const tiles = document.createElement('select'); tiles.id = 'successor-tile-size';
@@ -5353,12 +5460,22 @@ const fieldPreviewModule = planetPreviewEnabled ? validateDataModule(planetPrevi
 const initialProfile = fieldPreviewModule ? { ...startupGame.bundle.profile,
   modules: [...startupGame.bundle.profile.modules, { id: fieldPreviewModule.manifest.id, version: fieldPreviewModule.manifest.version }] }
   : requested.example ? exampleProfile(requested.example) : startupGame.bundle.profile;
+let initialStarterProducts = fieldPreviewModule ? await prepareStarterWorlds(
+  planetPreviewData.data.universes[0]!.definition.systems[0]!.bodies.filter(b => b.surface?.generatorVersion === 2)
+    .map(b => ({ id: b.id as 'planet' | 'moon', radius: b.radius, surface: b.surface as import('../../../packages/game-api/src/index').PlanetSurfaceDefinition })),
+  starterProducts, startupLoading.signal, loadingProgress) : undefined;
+await loadingStage('Preparing physical world');
 const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, fieldPreviewModule ? 'primus-field-system' : startupGame.bundle.selection.system, {
   data: fieldPreviewModule ? [...startupGame.bundle.modules,fieldPreviewModule] : startupGame.bundle.modules, profile: initialProfile,
   universeKey: fieldPreviewModule ? `${fieldPreviewModule.manifest.id}/successor-field-v2` : startupGame.bundle.selection.universe,
-  code: startupAuthoritative,
+  code: startupAuthoritative, derivedPlanets: initialStarterProducts?.profiles,
 });
+pendingInitialGame = initialGame;
 initialGame.runtime.activate(initialGame.candidate);
+await loadingStage('Preparing view');
+await prepareWorldViews(initialGame.world, startupLoading.signal, initialStarterProducts);
+const startupProductSources = initialStarterProducts?.sources;
+initialStarterProducts = undefined;
 local = new LocalSession(initialGame.world, { name: pilotName() });
 session = local;
 syncPresetSelect();
@@ -5427,9 +5544,7 @@ function switchToOrbitSandbox(): void {
       },
       onLaunchInSpaceSim: (universe) => {
         switchToSpaceSim();
-        importUniverse(universe);
-        show('universe-status', `Loaded ${universe.name} from Orbit Sandbox. Ready to fly.`);
-        workspace.close(true, false);
+        void importUniverse(universe).then(() => { show('universe-status', `Loaded ${universe.name} from Orbit Sandbox. Ready to fly.`); workspace.close(true, false); }).catch(error => show('universe-status', message(error)));
       },
     });
   }
@@ -5459,7 +5574,7 @@ labManager = new LabManager({
   builtins: bundledGames,
   install: plugin => moduleManager!.install(plugin), legacy: loadModuleText,
   installDevicePackage: (bytes, source) => moduleManager!.installDevicePackage(bytes, source),
-  universe: universe => { importUniverse(universe); show('universe-status', `Loaded ${universe.name}. Export a compressed universe or save its setup as a game.`); },
+  universe: universe => { void importUniverse(universe).then(() => show('universe-status', `Loaded ${universe.name}. Export a compressed universe or save its setup as a game.`)).catch(error => show('universe-status', message(error))); },
   editable: () => session === local && !local.hosting,
   world: () => session.world,
   capture: async () => {
@@ -5597,6 +5712,16 @@ if (startupParameters.has('played')) {
   startupParameters.delete('played');
   history.replaceState(null, '', `${location.pathname}${startupParameters.size ? `?${startupParameters}` : ''}${location.hash}`);
 }
-requestAnimationFrame(frame);
-} catch (error) { hostFeatures.dispose(); throw error; }
+pendingInitialGame = undefined;
+// The first draw runs after startFlight resolves. Own its failure until a usable
+// frame exists; subsequent gameplay frames retain their ordinary diagnostics.
+requestAnimationFrame(now => {
+  try { frame(now); }
+  catch (error) {
+    launchReady = false;
+    try { local.dispose(); }
+    finally { try { hostFeatures.dispose(); } finally { loadingFailure(error); } }
+  }
+});
+} catch (error) { pendingInitialGame?.candidate.dispose(); hostFeatures.dispose(); throw error; }
 }

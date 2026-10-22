@@ -49,6 +49,14 @@
     {
       "type": "paragraph",
       "text": "See examples/modules/planet-generator for a small creator preview consumer. Frozen generator-v1 universes and saves are unaffected; this additive service and standalone definition do not migrate them. Future world designers can control the same field and bake products through this boundary."
+    },
+    {
+      "type": "heading",
+      "text": "Prepared starter worlds and loading"
+    },
+    {
+      "type": "paragraph",
+      "text": "The browser host can reuse digest-verified first-party macro/profile/map products for the default Primus and Parvus start. Hosted products are separate local-origin data files; the standalone offline HTML embeds identical compressed bytes. Missing or incompatible products use the same cooperative bake. Products do not include a live session, replace exact module/profile/save verification, or generate fine terrain for an entire planet. The public planet.generator service is unchanged; creator jobs still own their scheduling and cancellation."
     }
   ]
 }

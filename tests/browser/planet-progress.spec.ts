@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -23,6 +24,8 @@ async function saveProgress(page: Page) {
 async function loadProgress(page: Page, bytes: Buffer) {
   await openPanel(page, 'fleet');
   await page.locator('#world-file').setInputFiles({ name: 'generated.spaceuniverse', mimeType: 'application/zip', buffer: bytes });
+  await expect(page.locator('#world-file')).toHaveValue('', { timeout: 60000 });
+  await waitForWorldReady(page);
 }
 
 for (const offline of [false, true]) test(`generated and legacy progress restore exact worlds through actual controls (${offline ? 'offline Canvas' : 'hosted WebGL'})`, async ({ page, context }, info) => {
@@ -32,7 +35,7 @@ for (const offline of [false, true]) test(`generated and legacy progress restore
   page.on('dialog', async dialog => { dialogs.push(dialog.message()); await dialog.accept(); });
   if (offline) { await useCanvas(page); await context.route(/^https?:/, route => route.abort()); }
   const base = offline ? pathToFileURL(resolve('dist/space-lab-offline.html')).href : '/';
-  await page.goto(base + '?game=space-sim-successor&planetPreview=1&planetPreset=already-floating');
+  await page.goto(base + '?game=space-sim-successor&planetPreview=1&planetPreset=already-floating'); await waitForWorldReady(page);
   // Water classification is physical state established by the first simulation
   // step. Let it settle before pausing and exercising exact save restoration.
   await expect(page.locator('#status')).toHaveText('FLOATING');
@@ -44,13 +47,17 @@ for (const offline of [false, true]) test(`generated and legacy progress restore
   expect(generated.state.universe.id).toBe('successor-field-v2');
   expect(generated.state.gameId).toBe('builtin.space-sim-successor');
 
-  await page.goto(base + '?game=space-sim-successor');
+  await page.goto(base + '?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await page.locator('#pause').click();
   await expect(page.locator('#status')).toHaveText('PAUSED');
   const legacy = await saveProgress(page);
   expect(legacy.state.universe.id).toBe('successor-universe');
+  const stagesBeforeRestore = (await debug(page)).startupLoading.stages.length;
   await loadProgress(page, generated.bytes);
+  const restoredStages = (await debug(page)).startupLoading.stages.slice(stagesBeforeRestore).map((stage: {stage: string}) => stage.stage);
+  expect(restoredStages).not.toContain('Drawing Primus');
+  expect(restoredStages).not.toContain('Preparing Primus');
   await expect.poll(async () => ({ world: (await debug(page)).world, dialogs })).toEqual({ world: generated.state.worldId, dialogs: [] });
   await expect.poll(async () => (await debug(page)).successorOverview?.mapPixels).toBe(generatedDebug.successorOverview.mapPixels);
   expect((await debug(page)).fingerprint).toBe(generatedDebug.fingerprint);
@@ -64,7 +71,7 @@ for (const offline of [false, true]) test(`generated and legacy progress restore
   expect((await saveProgress(page)).state).toEqual(legacy.state);
   expect(dialogs).toEqual([]);
 
-  await page.goto(base + '?game=space-sim');
+  await page.goto(base + '?game=space-sim'); await waitForWorldReady(page);
   await expect(page.locator('#active-game')).toHaveText('Space Sim Classic');
   const classicWorld = (await debug(page)).world;
   await loadProgress(page, generated.bytes);

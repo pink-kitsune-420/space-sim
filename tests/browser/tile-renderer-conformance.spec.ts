@@ -1,3 +1,4 @@
+import { waitForWorldReady } from '../helpers/loading';
 import {test,expect} from '@playwright/test';
 import {build} from 'vite';
 import {resolve} from 'node:path';
@@ -16,7 +17,7 @@ for(const dpr of [1,2])test(`production dense pixels agree across body/camera ro
   const page=await context.newPage();
   test.setTimeout(180000);await page.setViewportSize({width:640,height:480});
   await page.route('**/fixture.html', route => route.fulfill({contentType:'text/html',body:'<html></html>'}));
-  await page.goto('/fixture.html');
+  await page.goto('/fixture.html'); await waitForWorldReady(page);
   await page.setContent('<canvas id="fixture" style="width:320px;height:240px" width="320" height="240"></canvas>');
   await page.addScriptTag({url:'/tile-conformance.js'});
   const results=[];
@@ -47,8 +48,8 @@ for(const dpr of [1,2])test(`production dense pixels agree across body/camera ro
 
 for(const offline of [false,true])test(`successor ${offline?'offline':'hosted'} no-WebGL startup and renderer replacement`,async({page,context})=>{
   await useCanvas(page);await useLowGraphics(page);
-  if(offline){await context.route(/^https?:/,route=>route.abort());await page.goto('file://'+resolve('dist/space-lab-offline.html')+'?game=space-sim-successor');}
-  else await page.goto('/?game=space-sim-successor');
+  if(offline){await context.route(/^https?:/,route=>route.abort());await page.goto('file://'+resolve('dist/space-lab-offline.html')+'?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);}
+  else await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);
   await expect(page.locator('#status')).toHaveText('LANDED');
   await expect.poll(async()=>JSON.parse(await page.locator('#debug').textContent()||'{}').renderer).toBe('builtin.canvas');
   const d=JSON.parse(await page.locator('#debug').textContent()||'{}');expect(d.tileCapabilities.lightEncoding).toBe('nibble');expect(d.successorTiles.visibleChunks).toBeGreaterThan(0);
@@ -56,7 +57,7 @@ for(const offline of [false,true])test(`successor ${offline?'offline':'hosted'} 
 
 test('production renderer replacement re-registers successor palettes and retains physical state',async({page})=>{
   test.setTimeout(120000);await useLowGraphics(page);await page.setViewportSize({width:640,height:480});
-  await page.goto('/?game=space-sim-successor');await expect(page.locator('#status')).toHaveText('LANDED');
+  await page.goto('/?game=space-sim-successor&planetPreview=0'); await waitForWorldReady(page);await expect(page.locator('#status')).toHaveText('LANDED');
   for(const renderer of ['builtin.webgl','builtin.canvas','builtin.webgl','builtin.canvas']){
     await expect.poll(async()=>JSON.parse(await page.locator('#debug').textContent()||'{}').renderer).toBe(renderer);
     const d=JSON.parse(await page.locator('#debug').textContent()||'{}');expect(d.tileCapabilities.lightEncoding).toBe('nibble');expect(d.successorTiles.visibleChunks).toBeGreaterThan(0);expect(Math.abs(d.groundClearance)).toBeLessThan(1e-6);

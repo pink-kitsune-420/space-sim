@@ -16,7 +16,7 @@ if (scripts.length !== 1) throw new Error('Offline build expects exactly one bun
 for (const match of scripts) {
   const js = await asset(match[1]);
   if (/\bimport\s*\(/.test(js)) throw new Error('Offline build cannot contain dynamic imports');
-  html = html.replace(match[0], () => `<script type="module">${js.replace(/<\/script/gi, '<\\/script')}</script>`);
+  html = html.replace(match[0], () => `<script type="application/x-space-lab-entry" data-space-lab-entry>${js.replace(/<\/script/gi, '<\\/script')}</script>`);
 }
 const styles = [...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/g)];
 if (styles.length !== 1) throw new Error('Offline build expects one bundled stylesheet');
@@ -35,6 +35,13 @@ if (gameCatalog.format !== 'space-lab-game-catalog/1' || !Array.isArray(gameCata
 }
 // Embed catalog metadata into offline HTML for client-side discovery without network
 html = html.replace('</head>', `<script id="space-lab-game-catalog" type="application/json">${JSON.stringify(gameCatalog)}</script>\n</head>`);
+// Include only the shipped starter products, byte-identical to hosted files.
+const products = JSON.parse(await readFile(resolve(root, 'starter-products/index.json'), 'utf8'));
+for (const product of products) {
+  const bytes = await readFile(resolve(root, product.path));
+  if (bytes.length !== product.compressedBytes) throw Error('Starter product size differs');
+  html = html.replace('</body>', `<script type="application/octet-stream" id="starter-product-${product.digest}">${bytes.toString('base64')}</script>\n</body>`);
+}
 const output = resolve(root, 'space-lab-offline.html');
 await writeFile(output, html);
 // Publish the standalone reference alongside the game on GitHub Pages.
