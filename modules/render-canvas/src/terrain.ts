@@ -359,8 +359,9 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
       for (let row = 0; row < rows; row++) {
         const lo = row * surface.depthMetres / rows, hi = (row + 1) * surface.depthMetres / rows;
         const footprint = Math.max(1 / camera.scale, surface.depthMetres / rows);
-        if (!surfaceOverviewColor(body, angle, lo, footprint, sample)) continue;
-        surfaceOverviewColor(body, angle, hi, footprint, outer);
+        const angular = Math.max(footprint, (q.angle - p.angle) * profile.referenceRadius);
+        if (!surfaceOverviewColor(body, angle, lo, angular, sample, footprint)) continue;
+        surfaceOverviewColor(body, angle, hi, angular, outer, footprint);
         const color: Color = [sample[0]!, sample[1]!, sample[2]!, 1 - amount];
         const endColor: Color = [outer[0]!, outer[1]!, outer[2]!, 1 - amount];
         face([project(p.angle, p.radius - lo), project(q.angle, q.radius - lo),

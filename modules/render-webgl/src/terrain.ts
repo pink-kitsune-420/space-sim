@@ -233,6 +233,8 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const colorQueries = new Map<number, ReturnType<RenderGeometry['querySurface']>>();
   const cr = Math.cos(camera.rotation), sr = Math.sin(camera.rotation);
   let overviewOpacity = 0, surfaceMode = false, surfaceFootprint = 0;
+  let surfaceFaceFootprint = 0;
+  let surfaceAngularFootprints: Map<number, number> | undefined;
   const face = (vertices: readonly { x: number; y: number }[], color: Color, gradient?: TerrainFace['gradient'], overview = false) => {
     const clipped = clipPolygon(vertices, width, height);
     if (clipped.length >= 3) {
@@ -251,7 +253,8 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
         if (!query) { query = querySurface(profile, angle); colorQueries.set(angle, query); }
         const rim = query.firstContactRadius;
         if (surfaceMode) {
-          surfaceOverviewColor(body, angle, query.groundRadius - r, surfaceFootprint, sample);
+          surfaceOverviewColor(body, angle, query.groundRadius - r,
+            surfaceAngularFootprints?.get(angle) ?? surfaceFaceFootprint, sample, surfaceFootprint);
           const color: Color = [sample[0]!, sample[1]!, sample[2]!, overviewOpacity];
           overviewColors.set(p, color); return color;
         }
@@ -410,18 +413,61 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   // Water/coasts keep their canonical pass; this ribbon only covers dry ground.
   const surface = body.overview?.surface;
   if (surface && amount < 1) {
-    const segments = boundary.length - 1;
-    const available = triangleCap - overviewTriangles - 32;
+    // Refine only the selected near-view summary. Columns are body-fixed atlas
+    // addresses, never camera-relative texture coordinates or generated cells.
+    // Insertions lie on the original canonical chords, preserving the mask.
+    const columns: TerrainPoint[] = boundary.length ? [boundary[0]!] : [];
+    const theta = Math.atan2(camera.center.y - body.position.y, camera.center.x - body.position.x);
+    const step = TAU / surface.sectors * Math.max(1, Math.ceil(1.5 / (TAU * profile.referenceRadius / surface.sectors)));
+    const half = 32 / profile.referenceRadius;
+    for (let i = 1; i < boundary.length; i++) {
+      const p = boundary[i - 1]!, q = boundary[i]!;
+      const focus = theta + TAU * Math.round(((p.angle + q.angle) / 2 - theta) / TAU);
+      const lo = Math.max(p.angle, focus - half), hi = Math.min(q.angle, focus + half);
+      for (let k = Math.ceil(lo / step); k * step < hi; k++) {
+        const a = k * step;
+        if (a <= p.angle + 1e-10 || a >= q.angle - 1e-10) continue;
+        const u = p.radius * Math.sin(a - p.angle), v = q.radius * Math.sin(q.angle - a), t = u / (u + v);
+        const x = p.radius * Math.cos(p.angle) * (1 - t) + q.radius * Math.cos(q.angle) * t;
+        const y = p.radius * Math.sin(p.angle) * (1 - t) + q.radius * Math.sin(q.angle) * t;
+        columns.push({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t, angle: a, radius: Math.hypot(x, y) });
+      }
+      columns.push(q);
+    }
+    surfaceAngularFootprints = new Map();
+    const visible = new Uint8Array(columns.length), margin = surface.depthMetres * camera.scale + 2;
+    let segments = 0;
+    for (let i = 1; i < columns.length; i++) {
+      const p = columns[i - 1]!, q = columns[i]!;
+      if (Math.max(p.x, q.x) < -margin || Math.min(p.x, q.x) > width + margin
+        || Math.max(p.y, q.y) < -margin || Math.min(p.y, q.y) > height + margin) continue;
+      visible[i] = 1; segments++;
+      const footprint = Math.max(1 / camera.scale, (q.angle - p.angle) * profile.referenceRadius);
+      for (let end = 0; end < 2; end++) {
+        const point = columns[i - 1 + end]!;
+        surfaceAngularFootprints.set(point.angle, Math.max(surfaceAngularFootprints.get(point.angle) ?? 0, footprint));
+      }
+    }
+    const available = Math.min(1280, triangleCap - overviewTriangles) - 64;
     const rows = Math.min(surface.rows, Math.floor(available / Math.max(1, segments * 2)));
     overviewColors = new WeakMap();
-    const ribbon = Array.from({ length: Math.max(0, rows) + 1 }, (_, row) => boundary.map(p => project(p.angle, p.radius - row * surface.depthMetres / Math.max(1, rows))));
+    const ribbon = new Map<TerrainPoint, TerrainPoint[]>();
+    if (rows > 0) for (let i = 1; i < columns.length; i++) if (visible[i]) {
+      for (let end = 0; end < 2; end++) {
+        const point = columns[i - 1 + end]!;
+        if (!ribbon.has(point)) ribbon.set(point, Array.from({ length: rows + 1 }, (_, row) => project(point.angle, point.radius - row * surface.depthMetres / rows)));
+      }
+    }
     surfaceMode = true; overviewOpacity = 1 - amount; surfaceFootprint = Math.max(1 / camera.scale, surface.depthMetres / Math.max(1, rows));
     const ribbonColor: Color = [0, 0, 0, 1 - amount];
-    for (let i = 1; i < boundary.length && rows > 0; i++) {
-      const p = boundary[i - 1]!, q = boundary[i]!, angle = (p.angle + q.angle) / 2;
+    for (let i = 1; i < columns.length && rows > 0; i++) {
+      if (!visible[i]) continue;
+      const p = columns[i - 1]!, q = columns[i]!, angle = (p.angle + q.angle) / 2;
       if (querySurface(profile, angle).material === 'water') continue;
+      surfaceFaceFootprint = Math.max(1 / camera.scale, (q.angle - p.angle) * profile.referenceRadius);
+      const a = ribbon.get(p)!, b = ribbon.get(q)!;
       for (let row = 0; row < rows; row++) {
-        face([ribbon[row]![i - 1]!, ribbon[row]![i]!, ribbon[row + 1]![i]!, ribbon[row + 1]![i - 1]!], ribbonColor, undefined, true);
+        face([a[row]!, b[row]!, b[row + 1]!, a[row + 1]!], ribbonColor, undefined, true);
       }
     }
   }

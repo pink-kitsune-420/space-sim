@@ -215,3 +215,36 @@ it('shows actual physical depth at a rim-focused intermediate view even on the s
     expect(Math.max(...depths)).toBeLessThan(16.6);
   } } finally { candidate.dispose(); }
 });
+
+it.each([{ id: 'planet', width: 512, height: 512 }, { id: 'moon', width: 512, height: 512 }, { id: 'planet', width: 1280, height: 900 }, { id: 'moon', width: 1280, height: 900 }] as const)('retains the independently addressed selected material through intermediate mesh interpolation on $id at $width', ({ id, width, height }) => {
+  const { world, candidate } = setup();
+  try {
+    const p = world.surface(id)!, domain = MATERIAL_DOMAINS[id], pad = p.pads.find(p => p.id === 'landing-area')!.angleRadians;
+    const angle = id === 'planet' ? Math.PI / 2 + .06982421875 : p.pads.find(p => p.id === 'ridge-lookout')!.angleRadians;
+    const depth = id === 'planet' ? 10 : 14, r = querySurface(p, angle).groundRadius;
+    const cx = width / 2, cy = height / 2;
+    const x = Math.floor(cx - depth * Math.cos(angle)) + .5, y = Math.floor(cy + depth * Math.sin(angle)) + .5;
+    const wx = r * Math.cos(angle) + x - cx, wy = r * Math.sin(angle) + cy - y;
+    // Independent world-coordinate oracle. These points have a uniform 2m
+    // canonical neighborhood, so a coarse vertex sampling another band is wrong.
+    const q = address(pad, Math.atan2(wy, wx), Math.hypot(wx, wy), p.referenceRadius);
+    const expected = domain.colors[appearanceAt(domain, q.x, q.y)];
+    const rgb = [1, 3, 5].map(i => parseInt(expected.slice(i, i + 2), 16) / 255);
+    const g = wg({ id, name: '', radius: p.referenceRadius, position: { x: 0, y: 0 }, surface: p, overview: buildOverview(p, domain) },
+      { center: { x: r * Math.cos(angle), y: r * Math.sin(angle) }, rotation: 0, scale: 1 }, width, height, { querySurface });
+    let actual: number[] | undefined;
+    outer: for (const f of g.faces) if (f.overview && f.vertexColors) for (let i = 1; i + 1 < f.points.length; i++) {
+      const a = f.points[0]!, b = f.points[i]!, c = f.points[i + 1]!;
+      const denominator = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
+      if (Math.abs(denominator) < 1e-12) continue;
+      const u = ((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / denominator;
+      const v = ((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / denominator, w = 1 - u - v;
+      if (Math.min(u, v, w) < -1e-9) continue;
+      actual = rgb.map((_, channel) => f.vertexColors![0]![channel]! * u + f.vertexColors![i]![channel]! * v + f.vertexColors![i + 1]![channel]! * w);
+      break outer;
+    }
+    expect(actual).toBeDefined();
+    expect(Math.max(...rgb.map((v, i) => Math.abs(v - actual![i]!)))).toBeLessThan(.065);
+    expect(g.faces.filter(f => f.overview).reduce((n, f) => n + f.points.length - 2, 0)).toBeLessThanOrEqual(1280);
+  } finally { candidate.dispose(); }
+});
