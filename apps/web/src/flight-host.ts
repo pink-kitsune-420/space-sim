@@ -1,5 +1,7 @@
 import { SuccessorAir } from './successor-air';
 import { SuccessorTiles } from './successor-tiles';
+import { SuccessorOverview } from './successor-overview';
+import { SuccessorFocus } from './successor-focus';
 import { successorReferences } from './successor-comparison';
 import { assertGameProgress, gamePreferenceKey, SUCCESSOR_GAME_ID } from '../../../packages/game-library/src/game-progress';
 import './warp-approval.css';
@@ -297,6 +299,13 @@ const prediction = hostFeatures.providedService(PREDICTIONS).create(pass => prof
 const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
 const successorTiles = new SuccessorTiles();
+const successorOverview = new SuccessorOverview();
+const successorFocus = new SuccessorFocus();
+const localDelay = Number(new URLSearchParams(location.search).get('successorLocalDelay') ?? 0);
+successorTiles.delayMs = Number.isFinite(localDelay) ? Math.max(0, Math.min(5000, localDelay)) : 0;
+const successorGuestTiles = new Map<number, SuccessorTiles>();
+let successorWorld: object | undefined;
+let successorOverviewEnabled = true;
 const successorAir = new SuccessorAir();
 if (new URLSearchParams(location.search).get('successorAir') === 'clouds') successorAir.mode = 'clouds';
 document.addEventListener('visibilitychange', () => successorAir.clock.suspend());
@@ -2505,6 +2514,21 @@ const endCameraDrag = (event: PointerEvent): void => {
 };
 
 function attachCanvasListeners(target: HTMLCanvasElement): void {
+  target.addEventListener('pointerdown', event => {
+    if (!event.shiftKey || event.button !== 0 || activeGameInfo.id !== 'builtin.space-sim-successor') return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    const rect = target.getBoundingClientRect(), c = cameraControl.last;
+    const sx = (event.clientX - rect.left - rect.width / 2) / c.scale, sy = -(event.clientY - rect.top - rect.height / 2) / c.scale;
+    const point = { x: c.center.x + sx * Math.cos(c.rotation) + sy * Math.sin(c.rotation), y: c.center.y - sx * Math.sin(c.rotation) + sy * Math.cos(c.rotation) };
+    let closest = Infinity;
+    for (const id of ['planet', 'moon'] as const) {
+      const body = session.world.body(id), profile = session.world.surface(id); if (!body || !profile) continue;
+      const origin = session.world.system.getBodyPosition(id, view?.time ?? session.world.time);
+      const relative = { x: point.x - origin.x, y: point.y - origin.y }, distance = Math.hypot(relative.x, relative.y) / profile.bounds.maxRadius;
+      if (distance > 1.15 || distance >= closest) continue;
+      if (successorFocus.acquire(id, profile, relative, spinView.angle(body, view?.time ?? session.world.time))) { closest = distance; successorFocus.tracking = false; }
+    }
+  }, true);
   // Wheel & Trackpad pinch zoom
   target.addEventListener('wheel', event => {
     if (!Number.isFinite(event.deltaY)) return;
@@ -4518,6 +4542,9 @@ function diagnostics(engine: boolean): Record<string, unknown> {
       body: activeFlightSlingshot.dominantBody.id,
       camera: activeFlightSlingshot.sourceCanvas === canvas ? cameraControl.last : splitScreen.guests.get(activeFlightSlingshot.slot ?? 0)?.camera.last,
       width: activeFlightSlingshot.sourceCanvas?.clientWidth, height: activeFlightSlingshot.sourceCanvas?.clientHeight } : null,
+    successorOverview: activeGameInfo.id === 'builtin.space-sim-successor' ? successorOverview.stats : undefined,
+    successorGuestTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? [...successorGuestTiles].map(([slot, tiles]) => ({ slot, ...tiles.stats })) : undefined,
+    successorFocus: activeGameInfo.id === 'builtin.space-sim-successor' ? { body: successorFocus.body, angle: successorFocus.angle, tracking: successorFocus.tracking } : undefined,
     successorTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? successorTiles.stats : undefined,
     vehicleId: selectedShip()?.vehicleId, vehicleArtwork: presentationProviders.vehicleArtwork.get(selectedShip()?.vehicleId),
     vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
@@ -4769,6 +4796,10 @@ function frame(now: number): void {
   // Resolved bodies for renderer
   const world = session.world;
   const isSuccessor = activeGameInfo.id === 'builtin.space-sim-successor';
+  if (successorWorld !== world || !isSuccessor) {
+    successorWorld = world; successorFocus.clear(); successorOverview.clear(); successorTiles.clear();
+    for (const tiles of successorGuestTiles.values()) tiles.clear(); successorGuestTiles.clear();
+  }
   successorAir.clock.advance(elapsed, session.paused, document.hidden, world);
   // High quality lights every body from the system's star; starless systems stay unlit.
   const star = graphicsQuality === 'high' || isSuccessor ? world.system.getAllBodies().find(b => b.surfaceFeatures === 'star') : undefined;
@@ -4786,6 +4817,9 @@ function frame(now: number): void {
       position: pos,
       radius: b.radius,
       surface: world.surface(b.id),
+      ...(isSuccessor && successorOverviewEnabled && (b.id === 'planet' || b.id === 'moon') && world.surface(b.id)
+        && presentation.rendering.renderer?.features?.planetOverview
+        ? { overview: successorOverview.forBody(world.surface(b.id)!, b.id) } : {}),
       color: b.color,
       accentColor: b.accentColor,
       atmosphereColor: b.atmosphereColor,
@@ -4878,22 +4912,35 @@ function frame(now: number): void {
     p1ThrowFrozenCamera = undefined;
   }
 
+  if (successorFocus.tracking && successorFocus.body && successorFocus.profile) {
+    const body = world.body(successorFocus.body);
+    if (cameraControl.mode !== 'free' || cameraControl.dragged || !body || world.surface(body.id) !== successorFocus.profile) successorFocus.tracking = false;
+    else {
+      const origin = world.system.getBodyPosition(body.id, view.time), spin = spinView.angle(body, view.time);
+      const point = successorFocus.point(querySurface(successorFocus.profile, successorFocus.angle!).groundRadius, spin, origin)!;
+      camera = { ...camera, center: point }; cameraControl.last = camera;
+      cameraControl.pan = { x: point.x - activeBodyPos.x, y: point.y - activeBodyPos.y };
+    }
+  }
   if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
   updateControllerCursors(elapsed);
   syncViewHuds(elapsed,presentation.isEnabled('builtin.navball')||presentation.isEnabled('builtin.throttle')?base():undefined,camera);
   const others = otherShips(view.time, session.alpha, camera, selectedShipId, width, height);
   const baseOverlays = presentation.overlays(() => Object.freeze({ ...base(), camera }));
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
-  if (activeGameInfo.id === 'builtin.space-sim-successor') {
-    const profile = world.surface(activeBody.id);
-    if (profile) {
-      const origin = world.system.getBodyPosition(activeBody.id, view.time);
-      if (activeBody.id === 'planet' || activeBody.id === 'moon') {
-        overlays.push(...successorTiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
-          presentation.rendering.renderer!, origin, spinView.angle(activeBody, view.time), camera, width, height, activeBody.id));
-      } else successorTiles.clear();
+  SuccessorTiles.beginFrame();
+  if (isSuccessor) {
+    const bodyId = successorFocus.body ?? (activeBody.id === 'planet' || activeBody.id === 'moon' ? activeBody.id : undefined);
+    const profile = bodyId && world.surface(bodyId), body = bodyId && world.body(bodyId);
+    if (bodyId && profile && body) {
+      const origin = world.system.getBodyPosition(bodyId, view.time), spin = spinView.angle(body, view.time);
+      successorTiles.targetAngle = successorFocus.body === bodyId ? successorFocus.angle : undefined;
+      overlays.push(...successorTiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
+        presentation.rendering.renderer!, origin, spin, camera, width, height, bodyId));
       overlays.push(...successorReferences(profile, angle => querySurface(profile, angle).groundRadius,
-        point => { const p = spinView.point(activeBody, view.time, point); return { x: origin.x + p.x, y: origin.y + p.y }; }, camera.scale));
+        point => { const c = Math.cos(spin), s = Math.sin(spin); return { x: origin.x + c * point.x - s * point.y, y: origin.y + s * point.x + c * point.y }; }, camera.scale));
+      const point = successorFocus.point(querySurface(profile, successorFocus.angle ?? 0).groundRadius, spin, origin);
+      if (point) overlays.push({ kind: 'circle', space: 'world', center: point, radius: 7 / camera.scale, color: '#f0dba4', width: 1 });
     } else successorTiles.clear();
   } else successorTiles.clear();
   if (academy) {
@@ -4913,6 +4960,7 @@ function frame(now: number): void {
   }
 
   seatHuds.get(0)?.hud.draw(overlays);
+  for (const [slot, tiles] of successorGuestTiles) if (!splitScreen.split || !splitScreen.isSeparated(slot)) { tiles.clear(); successorGuestTiles.delete(slot); }
   if (splitScreen.split) {
     for (const [slot, guest] of splitScreen.guests) {
       if (splitScreen.isSeparated(slot)) continue;
@@ -5000,6 +5048,7 @@ function frame(now: number): void {
     }
   }
 
+  for (const [slot, tiles] of successorGuestTiles) if (!splitScreen.split || !splitScreen.isSeparated(slot)) { tiles.clear(); successorGuestTiles.delete(slot); }
   if (splitScreen.split) {
     for (const [slot, guest] of splitScreen.guests) {
       if (!splitScreen.isSeparated(slot)) continue;
@@ -5073,6 +5122,14 @@ function frame(now: number): void {
       const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight, guest.fleetView, guest.playerId ?? session.playerId);
 
       const gOverlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, guest.view.time, guest.playerId ?? session.playerId, gCamera, gWidth, gHeight)];
+      if (isSuccessor && (guest.body.id === 'planet' || guest.body.id === 'moon')) {
+        let tiles = successorGuestTiles.get(slot);
+        if (!tiles) { tiles = new SuccessorTiles(); successorGuestTiles.set(slot, tiles); }
+        tiles.size = successorTiles.size; tiles.style = successorTiles.style;
+        const profile = world.surface(guest.body.id);
+        if (profile) gOverlays.push(...tiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
+          gRenderer, gBodyPos, spinView.angle(guest.body, guest.view.time), gCamera, gWidth, gHeight, guest.body.id));
+      }
       seatHuds.get(slot)?.hud.draw(gOverlays);
       if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
         refreshFlightSlingshot(activeFlightSlingshot, gCamera, guest.view.time, guest.canvas);
@@ -5183,9 +5240,28 @@ if (startupGame.info.id === 'builtin.space-sim-successor') {
   const airHelp = document.createElement('p'); airHelp.className = 'control-note';
   airHelp.textContent = 'Primus: daylight, twilight and night sky near the surface, with a thin cloud layer. Space returns above the air or in orbital overview. Parvus is airless. Slow cosmetic motion freezes while paused or hidden and ignores time warp. Low graphics keeps sky and air only.';
   const coverage = document.createElement('p'); coverage.id = 'successor-tile-help'; coverage.className = 'control-note';
-  coverage.textContent = 'Tile review prototype: landing sector only (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
+  coverage.textContent = 'Tile review prototype: selected sector, or landing sector by default (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
   coverage.textContent += ' Colored regions are decorative, with no physical material properties. Surface colors compares the accepted muted treatment; Vector baseline disables tiles.';
-  systemSelect.closest('.setup-fields')?.after(hint, label, materialLabel, airLabel, airHelp, coverage);
+  const overviewLabel = document.createElement('label'); overviewLabel.textContent = 'Planet overview ';
+  const overview = document.createElement('select'); overview.id = 'successor-overview';
+  for (const [value, text] of [['on', 'Shaded globe'], ['off', 'Vector comparison']]) { const o = document.createElement('option'); o.value = value!; o.textContent = text!; overview.append(o); }
+  overview.addEventListener('change', () => { successorOverviewEnabled = overview.value === 'on'; }); overviewLabel.append(overview);
+  const inspect = document.createElement('button'); inspect.id = 'successor-inspect'; inspect.textContent = 'Inspect selected surface';
+  inspect.addEventListener('click', () => {
+    if (!successorFocus.body) return;
+    cameraControl.mode = 'free'; cameraControl.dragged = false; cameraControl.clearFocus(); cameraControl.stopFling();
+    cameraControl.setZoom(10); successorFocus.tracking = true;
+  });
+  const returnOverview = document.createElement('button'); returnOverview.id = 'successor-return-overview'; returnOverview.textContent = 'View selected planet';
+  returnOverview.addEventListener('click', () => {
+    const id = successorFocus.body ?? activeBody.id, body = session.world.body(id);
+    successorFocus.tracking = false; cameraControl.planetView(body.radius);
+    cameraControl.focusTarget = { kind: 'body', id, name: body.name };
+  });
+  const selectHelp = document.createElement('p'); selectHelp.className = 'control-note';
+  selectHelp.textContent = 'Shift-click Primus or Parvus to mark a direction on its playable rim. Inspect selected surface zooms there while the ship stays put. The globe face is illustrative. Scroll out to return; drag to explore. Local tiles cover a bounded ribbon; coarse ground continues beyond it.';
+
+  systemSelect.closest('.setup-fields')?.after(hint, label, materialLabel, overviewLabel, inspect, returnOverview, selectHelp, airLabel, airHelp, coverage);
 }
 
 // Start: a solo world with one ship at the first scenario.

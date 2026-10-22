@@ -187,7 +187,7 @@ export class WebGLRenderer implements Renderer {
         get pack(): ShaderPack { return renderer.activeShaders; },
         set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
       }),
-      ...(this.stencilAvailable ? { independentAir: Object.freeze({ version: 1 as const }), tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }) } : {}),
+      ...(this.stencilAvailable ? { planetOverview: Object.freeze({ version: 1 as const }), independentAir: Object.freeze({ version: 1 as const }), tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }) } : {}),
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
       }),
@@ -907,7 +907,7 @@ export class WebGLRenderer implements Renderer {
     gl.uniform2f(this.terrainResolution, width, height);
     gl.bindVertexArray(this.terrainVao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.terrainBuffer);
-    const count = geometry.faces.reduce((sum, f) => sum + (mask && f.color[3] !== 1 ? 0 : (f.points.length - 2) * 3), 0);
+    const count = geometry.faces.reduce((sum, f) => sum + (mask && (f.color[3] !== 1 || f.overview) ? 0 : (f.points.length - 2) * 3), 0);
     const lineCount = mask ? 0 : geometry.edge.length * 2 + geometry.accents.reduce((sum, line) => sum + (line.length - 1) * 2, 0);
     const floats = (count + lineCount) * 6;
     if (floats > this.terrainVerts.length) {
@@ -919,7 +919,7 @@ export class WebGLRenderer implements Renderer {
       this.terrainVerts[index++] = p.x; this.terrainVerts[index++] = p.y;
       for (const c of color) this.terrainVerts[index++] = c;
     };
-    for (const f of geometry.faces) if (!mask || f.color[3] === 1) for (let j = 1; j < f.points.length - 1; j++) {
+    for (const f of geometry.faces) if (!mask || (f.color[3] === 1 && !f.overview)) for (let j = 1; j < f.points.length - 1; j++) {
       for (const p of [f.points[0]!, f.points[j]!, f.points[j + 1]!]) vertex(p, terrainFaceColor(f, p));
     }
     if (!mask) for (const [a, b] of geometry.edge) { vertex(a, geometry.accentColor); vertex(b, geometry.accentColor); }

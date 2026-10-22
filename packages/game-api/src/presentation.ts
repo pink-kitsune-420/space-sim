@@ -23,6 +23,8 @@ export interface RenderBody {
   readonly accentColor?: string;
   /** Optional independent air; replaces legacy sky/glow including in off mode. */
   readonly air?: RenderAir;
+  /** Optional filtered body-fixed pseudo-sphere illustration inside canonical terrain. */
+  readonly overview?: import('./render-overview').RenderOverview;
   readonly atmosphereColor?: string;
   readonly horizonColor?: string;
   readonly skyColor?: string;
@@ -160,6 +162,8 @@ export interface ShaderControl {
 export interface RendererFeatures {
   /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */
   readonly independentAir?: { readonly version: 1 };
+  /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */
+  readonly planetOverview?: { readonly version: 1 };
   readonly shaders?: ShaderControl;
   readonly effects?: import('./platform').ShaderEffects;
   /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.

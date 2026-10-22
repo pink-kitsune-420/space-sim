@@ -11,6 +11,7 @@ export const TILE_PATCH = Object.freeze({ west: -256, east: 192, depth: 16, tole
 
 export interface TilePatch {
   readonly profile: SurfaceProfile;
+  readonly centerAngle: number;
   readonly size: TileSize;
   readonly chunks: readonly Chunk[];
   readonly boundary: readonly Vec[];
@@ -39,12 +40,12 @@ function clip(points: readonly Vec[], axis: 'x' | 'y', limit: number, sign: numb
  * curvature bound |p''| <= r + 2|dr/dtheta|, not just a midpoint-error heuristic.
  * The body-local tangent frame is rotated from the landing pad's radial direction. */
 export function buildTilePatch(profile: SurfaceProfile, size: TileSize, query: (angle: number) => number,
-  domain: MaterialDomain = MATERIAL_DOMAINS.planet, style: MaterialStyle = 'colored'): TilePatch {
+  domain: MaterialDomain = MATERIAL_DOMAINS.planet, style: MaterialStyle = 'colored', centerAngle?: number): TilePatch {
   const started = performance.now();
   const radius = profile.referenceRadius;
   const pad = profile.pads.find(p => p.id === 'landing-area');
   if (!pad) throw new Error('Tile prototype needs an authored landing-area pad.');
-  const centre = pad.angleRadians;
+  const centre = centerAngle ?? pad.angleRadians;
   const start = centre - TILE_PATCH.east / radius, end = centre - TILE_PATCH.west / radius;
   const delta = 2 * Math.PI / profile.sampleCount;
   const point = (angle: number): Vec => {
@@ -87,7 +88,10 @@ export function buildTilePatch(profile: SurfaceProfile, size: TileSize, query: (
           const hash = Math.imul(cx * 32 + x, 374761393) ^ Math.imul(cy * 32 + y, 668265263);
           tiles[y * 32 + x] = 1 + ((hash ^ (hash >>> 13)) >>> 0) % 4;
         } else {
-          const id = appearanceAt(domain, origin.x + (x + .5) * size, origin.y + (y + .5) * size);
+          const lx = origin.x + (x + .5) * size, ly = origin.y + (y + .5) * size;
+          const d = centre - pad.angleRadians, c = Math.cos(d), s = Math.sin(d);
+          const id = appearanceAt(domain, lx * c - (ly + radius) * s,
+            lx * s + (ly + radius) * c - radius);
           tiles[y * 32 + x] = 1 + MATERIAL_SLOTS.indexOf(id);
         }
       }
@@ -97,12 +101,13 @@ export function buildTilePatch(profile: SurfaceProfile, size: TileSize, query: (
     }
   }
   if (chunks.length > 512) throw new Error('Tile prototype exceeded its 512 resident chunk budget.');
-  return { profile, size, chunks, boundary, domain, style,
+  return { profile, centerAngle: centre, size, chunks, boundary, domain, style,
     bytes: chunks.reduce((n, p) => n + p.tiles.byteLength + (p.clipPolygon?.length ?? 0) * 16, boundary.length * 16),
     buildMs: performance.now() - started };
 }
 
 export interface TileStats {
+  targetAngle?: number; pending?: boolean; fineRequests?: number;
   mode: string; tileMetres: number; residentChunks: number; visibleChunks: number;
   tileDraws: number; clipDraws: number; submittedCells: number; bufferBytes: number; buildMs: number;
   coverage: string; boundaryToleranceMetres: number;
@@ -112,7 +117,16 @@ export interface TileStats {
 /** Single active patch, no full-world cache or loader. Retired worlds/sizes are released.
  * Only per-visible-chunk transforms are touched each frame; cells/polygons stay immutable. */
 export class SuccessorTiles {
+  private static remainingBuilds = Infinity;
+  /** Host frame gate shared by at most four independent bounded proof presenters. */
+  static beginFrame(): void { SuccessorTiles.remainingBuilds = 1; }
   size: TileSize | 0 = .5;
+  targetAngle?: number;
+  /** Review-only deterministic readiness delay, milliseconds; no async world loader. */
+  delayMs = 0;
+  private readyAt = 0;
+  private pendingKey = '';
+  private detailed = false;
   style: MaterialStyle = 'colored';
   private patch?: TilePatch;
   private renderer?: Renderer;
@@ -125,7 +139,8 @@ export class SuccessorTiles {
     materialDomain: '', materialStyle: 'colored' };
 
   clear(): void { this.patch = undefined; this.visible.length = this.output.length = 0; this.renderer = undefined;
-    this.palette = undefined; this.stats.materialDomain = '';
+    this.palette = undefined; this.pendingKey = ''; this.readyAt = 0; this.detailed = false;
+    this.stats.pending = false; this.stats.fineRequests = 0; this.stats.materialDomain = '';
     this.stats.residentChunks = this.stats.visibleChunks = this.stats.tileDraws = this.stats.clipDraws = 0;
     this.stats.submittedCells = this.stats.bufferBytes = this.stats.buildMs = 0;
   }
@@ -143,13 +158,37 @@ export class SuccessorTiles {
       this.clear(); this.stats.mode = 'unsupported renderer: vector baseline'; return this.output;
     }
     // Do not generate close-up terrain when starting directly in an orbital view.
-    if (camera.scale * this.size < 1.5) {
-      if (this.patch && this.patch.profile !== profile) this.clear();
-      this.stats.mode = 'distant vector baseline'; return this.output;
+    const distance = Math.hypot(camera.center.x - bodyOrigin.x, camera.center.y - bodyOrigin.y);
+    const viewRadius = Math.hypot(width, height) / (2 * camera.scale);
+    if (distance + viewRadius < profile.bounds.minRadius - TILE_PATCH.depth || distance - viewRadius > profile.bounds.maxRadius) {
+      this.clear(); this.stats.mode = 'coarse backing: no local surface in view'; return this.output;
     }
+    const cellPixels = camera.scale * this.size;
+    this.detailed = cellPixels >= (this.detailed ? 1.5 : 2);
+    if (!this.detailed) {
+      this.clear(); this.stats.mode = 'overview: zero fine demand'; return this.output;
+    }
+    this.stats.fineRequests = 1;
+    const center = this.targetAngle ?? profile.pads.find(p => p.id === 'landing-area')!.angleRadians;
+    this.stats.targetAngle = center;
+    const key = `${profile.identity}:${center}:${this.size}:${this.style}:${body}`;
+    if (key !== this.pendingKey) { this.pendingKey = key; this.readyAt = performance.now() + this.delayMs; }
+    if (performance.now() < this.readyAt) {
+      // Drop previous target immediately. Old completion cannot populate this target.
+      this.patch = undefined; this.visible.length = 0;
+      this.stats.residentChunks = this.stats.bufferBytes = 0;
+      this.stats.pending = true; this.stats.mode = 'waiting: complete coarse backing'; return this.output;
+    }
+    this.stats.pending = false;
     const domain = MATERIAL_DOMAINS[body];
-    if (this.patch?.profile !== profile || this.patch.size !== this.size || this.patch.domain !== domain || this.patch.style !== this.style) {
-      this.patch = buildTilePatch(profile, this.size, query, domain, this.style);
+    if (this.patch?.profile !== profile || this.patch.size !== this.size || this.patch.domain !== domain || this.patch.style !== this.style || this.patch.centerAngle !== center) {
+      if (SuccessorTiles.remainingBuilds <= 0) {
+        this.patch = undefined; this.visible.length = 0; this.stats.pending = true;
+        this.stats.residentChunks = this.stats.bufferBytes = 0;
+        this.stats.mode = 'generation budget: complete coarse backing'; return this.output;
+      }
+      SuccessorTiles.remainingBuilds--;
+      this.patch = buildTilePatch(profile, this.size, query, domain, this.style, center);
       this.visible = this.patch.chunks.map(p => ({ ...p, origin: { x: 0, y: 0 } }));
     }
     const palette = this.style === 'muted' ? TILE_PALETTE : MATERIAL_PALETTES[body];
@@ -160,8 +199,7 @@ export class SuccessorTiles {
     this.stats.materialDomain = domain.id;
     const patch = this.patch;
     this.stats.residentChunks = patch.chunks.length; this.stats.bufferBytes = patch.bytes; this.stats.buildMs = patch.buildMs;
-    const pad = profile.pads.find(p => p.id === 'landing-area')!;
-    const angle = spin + pad.angleRadians - Math.PI / 2, c = Math.cos(angle), s = Math.sin(angle);
+    const angle = spin + patch.centerAngle - Math.PI / 2, c = Math.cos(angle), s = Math.sin(angle);
     const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation), result = this.output;
     const projected = angle + camera.rotation;
     const margin = this.size * 16 * camera.scale * (Math.abs(Math.cos(projected)) + Math.abs(Math.sin(projected)));
@@ -179,7 +217,8 @@ export class SuccessorTiles {
       transformed.rotationRadians = angle;
       result.push(this.visible[i]!);
     }
-    this.stats.mode = 'bounded tile prototype';
+    if (result.length > 200) { result.length = 0; this.stats.mode = 'capacity: complete coarse backing'; }
+    else this.stats.mode = 'bounded tile prototype';
     this.stats.visibleChunks = this.stats.tileDraws = this.stats.clipDraws = result.length;
     this.stats.submittedCells = result.length * 1024;
     return result;

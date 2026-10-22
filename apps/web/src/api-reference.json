@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6e4f8f68549524d3",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6a35043e9d929915",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6e4f8f68549524d3"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6a35043e9d929915"
         },
         {
           "type": "paragraph",
@@ -538,6 +538,11 @@
           "type": "link",
           "text": "render-math.ts",
           "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "render-overview.ts",
+          "page": "api-reference/game-api/render-overview"
         },
         {
           "type": "link",
@@ -5132,7 +5137,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5158,6 +5163,11 @@
           "type": "link",
           "text": "game-api render-math.ts",
           "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-overview.ts",
+          "page": "api-reference/game-api/render-overview"
         },
         {
           "type": "link",
@@ -5266,7 +5276,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5302,6 +5312,11 @@
           "type": "link",
           "text": "game-api render-math.ts",
           "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-overview.ts",
+          "page": "api-reference/game-api/render-overview"
         },
         {
           "type": "link",
@@ -13054,7 +13069,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  /** Optional independent air; replaces legacy sky/glow including in off mode. */\n  readonly air?: RenderAir;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
+          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  /** Optional independent air; replaces legacy sky/glow including in off mode. */\n  readonly air?: RenderAir;\n  /** Optional filtered body-fixed pseudo-sphere illustration inside canonical terrain. */\n  readonly overview?: RenderOverview;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
         },
         {
           "type": "paragraph",
@@ -13278,7 +13293,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RendererFeatures {\n  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */\n  readonly independentAir?: { readonly version: 1 };\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+          "text": "export interface RendererFeatures {\n  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */\n  readonly independentAir?: { readonly version: 1 };\n  /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */\n  readonly planetOverview?: { readonly version: 1 };\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
         },
         {
           "type": "paragraph",
@@ -14239,6 +14254,102 @@
         {
           "type": "code",
           "text": "export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[];"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/render-overview",
+      "title": "game-api: render-overview.ts",
+      "summary": "Declarations from render-overview.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-overview.ts."
+        },
+        {
+          "type": "heading",
+          "text": "RenderOverview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Filtered illustrative ground only. Levels are coarse-to-fine, body-fixed polar bins, RGBA in premultiplied linear light. No collision, topology or fine cells. Treat the descriptor and arrays as immutable; replace the descriptor object on palette/content revision. Providers may use fewer rings; canonical terrain/coasts and cues retain authority."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderOverview {\n  readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "linearColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Convert an sRGB channel to linear light."
+        },
+        {
+          "type": "code",
+          "text": "export const linearColor = (v: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "displayColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Convert a linear-light channel to sRGB."
+        },
+        {
+          "type": "code",
+          "text": "export const displayColor = (v: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "averageOverview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Weight premultiplied linear samples by coverage/area. Transparent colors cannot bleed RGB into their neighbors. Output can be reused by a caller."
+        },
+        {
+          "type": "code",
+          "text": "export function averageOverview(colors: ArrayLike<number>, weights: ArrayLike<number>, out: Float32Array): void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "overviewColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Fixed body-local query. Camera changes select filtering only, never anchors. Output is straight display RGBA, multiplied by a low-frequency sphere light. The pseudo-normal has no relationship to contact or traversable latitude."
+        },
+        {
+          "type": "code",
+          "text": "export function overviewColor(body: RenderBody, angle: number, radiusFraction: number, footprintPixels: number,\n  out: Float64Array): boolean;"
         },
         {
           "type": "paragraph",

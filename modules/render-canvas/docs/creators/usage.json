@@ -114,6 +114,10 @@
     {
       "type": "paragraph",
       "text": "Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-canvas/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison."
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-canvas/src/main.ts."
     }
   ]
 }

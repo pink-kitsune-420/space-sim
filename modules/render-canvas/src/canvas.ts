@@ -378,7 +378,7 @@ export class CanvasRenderer implements Renderer {
     this.ctx = ctx;
     const renderer = this;
     this.features = Object.freeze({
-      independentAir: Object.freeze({ version: 1 as const }),
+      planetOverview: Object.freeze({ version: 1 as const }), independentAir: Object.freeze({ version: 1 as const }),
       tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }),
       flush: () => { ctx.getImageData(0, 0, 1, 1); },
       tilePalettes: Object.freeze({

@@ -2937,7 +2937,7 @@ it('creates procedural audio outputs, clamps levels and schedules Web Audio voic
   }
 });
 
-it('generates reference pages for all 54 public game-api stems, enforces JSDoc on public exports and splits oversized topics', () => {
+it('generates reference pages for all 55 public game-api stems, enforces JSDoc on public exports and splits oversized topics', () => {
   const result = generateReference();
   const { bundle, text, state } = result;
   expect(checkReference(result)).toEqual([]);
@@ -2945,7 +2945,8 @@ it('generates reference pages for all 54 public game-api stems, enforces JSDoc o
   expect(state.api.namespaces.get('deterministicMath')).toBe('math');
 
   const gameApiPages = bundle.pages.filter((page: { id: string }) => page.id.startsWith('api-reference/game-api/'));
-  expect(gameApiPages).toHaveLength(54);
+  expect(gameApiPages).toHaveLength(55);
+  expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/render-overview')).toBe(true);
   expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/render-air')).toBe(true);
   expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/math')).toBe(true);
   expect(text).toContain('deterministicMath.sin');

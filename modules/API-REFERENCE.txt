@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6e4f8f68549524d3
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6a35043e9d929915
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -103,6 +103,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> profiler.ts [api-reference/game-api/profiler]
 -> render-air.ts [api-reference/game-api/render-air]
 -> render-math.ts [api-reference/game-api/render-math]
+-> render-overview.ts [api-reference/game-api/render-overview]
 -> rendering.ts [api-reference/game-api/rendering]
 -> rotation.ts [api-reference/game-api/rotation]
 -> rules.ts [api-reference/game-api/rules]
@@ -1770,12 +1771,13 @@ Public render.canvas@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale
+AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
 -> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api render-overview.ts [api-reference/game-api/render-overview]
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api surface.ts [api-reference/game-api/surface]
@@ -1813,7 +1815,7 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
+AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
@@ -1821,6 +1823,7 @@ AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE
 -> game-api presentation.ts [api-reference/game-api/presentation]
 -> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api render-overview.ts [api-reference/game-api/render-overview]
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api shader-format.ts [api-reference/game-api/shader-format]
 -> game-api state.ts [api-reference/game-api/state]
@@ -6232,6 +6235,8 @@ Celestial body descriptor for a rendered frame in system world coordinates (`pos
       readonly accentColor?: string;
       /** Optional independent air; replaces legacy sky/glow including in off mode. */
       readonly air?: RenderAir;
+      /** Optional filtered body-fixed pseudo-sphere illustration inside canonical terrain. */
+      readonly overview?: RenderOverview;
       readonly atmosphereColor?: string;
       readonly horizonColor?: string;
       readonly skyColor?: string;
@@ -6408,6 +6413,8 @@ Optional features of a renderer instance. Applications discover them here, never
     export interface RendererFeatures {
       /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */
       readonly independentAir?: { readonly version: 1 };
+      /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */
+      readonly planetOverview?: { readonly version: 1 };
       readonly shaders?: ShaderControl;
       readonly effects?: ShaderEffects;
       /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
@@ -7118,6 +7125,40 @@ Used by: spacelab.render-canvas, spacelab.render-webgl.
 ## trajectoryMarkers
 Restrained timed SOI markers and future body outlines. All snapshots are in the path's translating reference frame, so apply pathOrigin exactly once. Old providers can omit encounterBody. No renderer-side physics/ephemeris queries.
     export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[];
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+-> API reference index [api-reference]
+
+=== game-api: render-overview.ts [api-reference/game-api/render-overview]
+Declarations from render-overview.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-overview.ts.
+
+## RenderOverview
+Filtered illustrative ground only. Levels are coarse-to-fine, body-fixed polar bins, RGBA in premultiplied linear light. No collision, topology or fine cells. Treat the descriptor and arrays as immutable; replace the descriptor object on palette/content revision. Providers may use fewer rings; canonical terrain/coasts and cues retain authority.
+    export interface RenderOverview {
+      readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## linearColor
+Convert an sRGB channel to linear light.
+    export const linearColor = (v: number): number => …;
+Used by: host or creator modules (not imported by shipped modules).
+
+## displayColor
+Convert a linear-light channel to sRGB.
+    export const displayColor = (v: number): number => …;
+Used by: host or creator modules (not imported by shipped modules).
+
+## averageOverview
+Weight premultiplied linear samples by coverage/area. Transparent colors cannot bleed RGB into their neighbors. Output can be reused by a caller.
+    export function averageOverview(colors: ArrayLike<number>, weights: ArrayLike<number>, out: Float32Array): void;
+Used by: host or creator modules (not imported by shipped modules).
+
+## overviewColor
+Fixed body-local query. Camera changes select filtering only, never anchors. Output is straight display RGBA, multiplied by a low-frequency sphere light. The pseudo-normal has no relationship to contact or traversable latitude.
+    export function overviewColor(body: RenderBody, angle: number, radiusFraction: number, footprintPixels: number,
+      out: Float64Array): boolean;
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
@@ -11537,6 +11578,7 @@ VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hu
 Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
 Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
 Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-canvas/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison.
+Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-canvas/src/main.ts.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11581,6 +11623,7 @@ VehicleAppearance may declare metresPerUnit and local detail paths. Single and f
 Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
 Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
 Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-webgl/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison.
+Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-webgl/src/main.ts.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.

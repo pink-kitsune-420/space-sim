@@ -62,3 +62,10 @@ export function independentAirExample(body: import('@space-sim/game-api').Render
     cloudAltitudeMetres: body.radius * .018, cloudThicknessMetres: body.radius * .004,
     color: [.416, .706, .925], opacity: .12, phaseRadians: 0 } };
 }
+
+/** Smallest constant linear summary; canonical radial terrain owns clipping. */
+export function planetOverviewExample(body: import('@space-sim/game-api').RenderBody,
+  features: import('@space-sim/game-api').RendererFeatures): import('@space-sim/game-api').RenderBody {
+  if (!features.planetOverview) return body;
+  return { ...body, overview: { levels: [{ sectors: 1, rings: 1, rgba: new Float32Array([.15, .12, .10, 1]) }] } };
+}
