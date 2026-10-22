@@ -53,7 +53,7 @@ export function setBodyUniforms(gl: WebGL2RenderingContext, u: BodyUniformLocati
   const look = appearanceUniforms(b, worldSeed);
   const col = look ? look.colors[0] : parseHex(b.color ?? '#233c47');
   const accent = parseHex(b.horizonColor ?? b.accentColor ?? '#659497');
-  const atmo = parseHexAlpha(b.skyColor ?? b.atmosphereColor ?? '#29495380');
+  const atmo = parseHexAlpha(b.air ? '#00000000' : b.skyColor ?? b.atmosphereColor ?? '#29495380');
   let hx = pos.x, hy = pos.y, nx = 0, ny = 0;
   const dx = center.x - pos.x, dy = center.y - pos.y;
   const distToCenter = Math.hypot(dx, dy);

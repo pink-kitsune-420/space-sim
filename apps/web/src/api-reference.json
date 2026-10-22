@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 09ba3dc4bf9d288e",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0cb56ce2ab72ba4d",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 09ba3dc4bf9d288e"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0cb56ce2ab72ba4d"
         },
         {
           "type": "paragraph",
@@ -531,8 +531,18 @@
         },
         {
           "type": "link",
+          "text": "render-air.ts",
+          "page": "api-reference/game-api/render-air"
+        },
+        {
+          "type": "link",
           "text": "render-math.ts",
           "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "render-overview.ts",
+          "page": "api-reference/game-api/render-overview"
         },
         {
           "type": "link",
@@ -929,8 +939,10 @@
           "text": "Settings"
         },
         {
-          "type": "paragraph",
-          "text": "None."
+          "type": "list",
+          "items": [
+            "surveyLander: number, default 0, from 0 to 1, step 1. Physical survey lander artwork: 1 selects the five-metre lander (requires matching 2.5 m authoritative circular hull); 0 retains the Classic pixel chevron."
+          ]
         },
         {
           "type": "heading",
@@ -5116,7 +5128,7 @@
         {
           "type": "list",
           "items": [
-            "maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged."
+            "maxPixelRatio: number, default 1, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged."
           ]
         },
         {
@@ -5125,7 +5137,7 @@
         },
         {
           "type": "paragraph",
-          "text": "CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers"
+          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5144,8 +5156,18 @@
         },
         {
           "type": "link",
+          "text": "game-api render-air.ts",
+          "page": "api-reference/game-api/render-air"
+        },
+        {
+          "type": "link",
           "text": "game-api render-math.ts",
           "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-overview.ts",
+          "page": "api-reference/game-api/render-overview"
         },
         {
           "type": "link",
@@ -5254,7 +5276,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition"
+          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5283,8 +5305,18 @@
         },
         {
           "type": "link",
+          "text": "game-api render-air.ts",
+          "page": "api-reference/game-api/render-air"
+        },
+        {
+          "type": "link",
           "text": "game-api render-math.ts",
           "page": "api-reference/game-api/render-math"
+        },
+        {
+          "type": "link",
+          "text": "game-api render-overview.ts",
+          "page": "api-reference/game-api/render-overview"
         },
         {
           "type": "link",
@@ -9202,7 +9234,7 @@
         },
         {
           "type": "code",
-          "text": "export interface FlightSplitScreenHost {\n  readonly gamepads?: FlightGamepad;\n  /** Renderer replacement may replace the element; resolve the current surface at use. */\n  primaryCanvas(): HTMLCanvasElement;\n  session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;\n  keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;\n  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;\n  releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;\n  /** Release this seat's held device intent when its target or device assignment changes. */\n  releaseInput?(slot: number): void;\n  execute(action: FlightActionId): void; notify(text: string): void; changed(): void;\n  onGuestPointer?(guest: FlightGuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void;\n  isSlotThrowing?(slot: number): boolean;\n  isSessionError(error: unknown): error is Error;\n}"
+          "text": "export interface FlightSplitScreenHost {\n  readonly gamepads?: FlightGamepad;\n  /** Renderer replacement may replace the element; resolve the current surface at use. */\n  primaryCanvas(): HTMLCanvasElement;\n  session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;\n  /** Temporary game/renderer policy: activate only the primary seat/view without\n   * rewriting saved player preferences. Re-evaluated by sync; absent means unrestricted. */\n  singleView?(): boolean;\n  keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;\n  throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;\n  releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;\n  /** Release this seat's held device intent when its target or device assignment changes. */\n  releaseInput?(slot: number): void;\n  execute(action: FlightActionId): void; notify(text: string): void; changed(): void;\n  onGuestPointer?(guest: FlightGuestPilot, action: 'down' | 'move' | 'up', event: PointerEvent): boolean | void;\n  isSlotThrowing?(slot: number): boolean;\n  isSessionError(error: unknown): error is Error;\n}"
         },
         {
           "type": "paragraph",
@@ -9250,7 +9282,7 @@
         },
         {
           "type": "code",
-          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */\n  pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
+          "text": "export interface FlightSplitScreen extends Disposable {\n  config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;\n  readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;\n  /** Current host single-view restriction, independent of the saved configuration. */\n  readonly singleView?: boolean;\n  isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];\n  /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */\n  pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;\n  resetGuests(): void; layout(): void;\n  updateDynamic(p1View: State | undefined, p1Body: ResolvedBody | undefined, camera: FlightCameraController, width: number, height: number, now?: number): { centroid?: Vec; zoomScale?: number };\n  applyInput(elapsed: number): void;\n  updateTags(player1: { readonly name: string; readonly text: string; readonly status: string }, describe: (guest: FlightGuestPilot) => { status: string; text: string }): void;\n  rendererFor(guest: FlightGuestPilot, provider: RendererProvider | undefined, shaders: ShaderPack): Renderer | undefined;\n}"
         },
         {
           "type": "paragraph",
@@ -9298,7 +9330,7 @@
         },
         {
           "type": "code",
-          "text": "export interface ControllerMenu extends Disposable {\n  /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */\n  open(): void;\n  /** Re-renders the Players tab (splitscreen seat list and device assignments). */\n  renderPlayers(): void;\n  /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */\n  renderPad(): void;\n}"
+          "text": "export interface ControllerMenu extends Disposable {\n  /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */\n  open(): void;\n  /** Re-renders the Players tab, honoring a temporary single-view policy without rewriting saved seats. */\n  renderPlayers(): void;\n  /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */\n  renderPad(): void;\n}"
         },
         {
           "type": "paragraph",
@@ -9314,7 +9346,7 @@
         },
         {
           "type": "code",
-          "text": "export interface ControllerMenuOptions {\n  /** DOM element container where the menu is mounted. */\n  readonly root: HTMLElement;\n  /** Handle to the active splitscreen configuration. */\n  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;\n  /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */\n  readonly gamepads?: FlightGamepad;\n  /** Returns the pilot name for player 1. */\n  pilotName(): string;\n  /** Returns true when the controls dialog window is currently visible. */\n  isOpen(): boolean;\n}"
+          "text": "export interface ControllerMenuOptions {\n  /** DOM element container where the menu is mounted. */\n  readonly root: HTMLElement;\n  /** Handle to the active splitscreen configuration. */\n  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig' | 'singleView'>;\n  /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */\n  readonly gamepads?: FlightGamepad;\n  /** Returns the pilot name for player 1. */\n  pilotName(): string;\n  /** Returns true when the controls dialog window is currently visible. */\n  isOpen(): boolean;\n}"
         },
         {
           "type": "paragraph",
@@ -13090,7 +13122,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
+          "text": "export interface RenderBody {\n  readonly id: string;\n  readonly name: string;\n  readonly position: Vec;\n  readonly radius: number;\n  /** Shared authoritative terrain geometry. */\n  readonly surface?: SurfaceProfile;\n  readonly color?: string;\n  readonly accentColor?: string;\n  /** Optional independent air; replaces legacy sky/glow including in off mode. */\n  readonly air?: RenderAir;\n  /** Optional filtered body-fixed pseudo-sphere illustration inside canonical terrain. */\n  readonly overview?: RenderOverview;\n  readonly atmosphereColor?: string;\n  readonly horizonColor?: string;\n  readonly skyColor?: string;\n  readonly surfaceFeatures?: 'globe-lines' | 'craters' | 'smooth' | 'star';\n  readonly parentPosition?: Vec;\n  readonly orbitRadius?: number;\n  /** Drawn angle of the body-fixed frame (terrain, markings) in radians; absent or 0 when it does not spin. */\n  readonly rotation?: number;\n  /** Unit vector from the body toward its star, in system coordinates. Absent: drawn unlit. */\n  readonly sunDirection?: Vec;\n  /** Procedural surface look; absent draws a plain disc (low graphics quality). */\n  readonly appearance?: BodyAppearance & { readonly colors: readonly string[] };\n}"
         },
         {
           "type": "paragraph",
@@ -13314,7 +13346,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RendererFeatures {\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Custom tile palette registration for instanced tile-chunk primitives. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+          "text": "export interface RendererFeatures {\n  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */\n  readonly independentAir?: { readonly version: 1 };\n  /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */\n  readonly planetOverview?: { readonly version: 1 };\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
         },
         {
           "type": "paragraph",
@@ -13442,11 +13474,43 @@
         },
         {
           "type": "code",
-          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      /** Optional 1,024 background palette IDs (0 is empty), drawn behind air at\n       * 55% material brightness. Cosmetic only; no contact/state effect. */\n      readonly walls?: Uint16Array;\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
+          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      /** Counterclockwise local-to-world rotation about origin; omitted means zero. */\n      readonly rotationRadians?: number;\n      /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;\n       * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.\n       * Module layers include these vertices in their existing 4,096-point output budget.\n       * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */\n      readonly clipPolygon?: readonly Vec[];\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      /** Optional 1,024 background palette IDs, shown through air at 55% brightness.\n       * Cosmetic main-compatible walls only; the foreground masks its backing. */\n      readonly walls?: Uint16Array;\n      /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.\n       * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.\n       * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */\n      readonly lightEncoding?: 'nibble';\n      /** Arrays are borrowed unchanged through all synchronous draw consumers. They may\n       * change between completed draws. No ownership transfer or persistent identity. */\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
         },
         {
           "type": "paragraph",
           "text": "Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud."
+        },
+        {
+          "type": "heading",
+          "text": "requireTileChunkFeatures"
+        },
+        {
+          "type": "paragraph",
+          "text": "Preflight essential tile requirements on the actual renderer before beginning play. Missing or incompatible metadata is unsupported. Optional visuals may instead use a declared vector fallback. Geometry-only version-1 providers remain compatible."
+        },
+        {
+          "type": "code",
+          "text": "export function requireTileChunkFeatures(features: RendererFeatures | undefined,\n  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "validateTileChunkProfile"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers."
+        },
+        {
+          "type": "code",
+          "text": "export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -13952,6 +14016,166 @@
       ]
     },
     {
+      "id": "api-reference/game-api/render-air",
+      "title": "game-api: render-air.ts",
+      "summary": "Declarations from render-air.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-air.ts."
+        },
+        {
+          "type": "heading",
+          "text": "RenderAir"
+        },
+        {
+          "type": "paragraph",
+          "text": "Independent decorative radial air. Heights are metres above the maximum canonical terrain radius (or body.radius). This replaces legacy sky/glow even in off mode. Near views include a lighting-based sky that fades to space with altitude and overview zoom; off keeps clear space. Phase is supplied in body-fixed radians; renderers never advance time. No weather, ground lighting, collision or shader-pack ABI is implied. Values must be finite; heights positive, colors/opacity in 0..1. Unsupported providers may omit this effect."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderAir {\n  readonly mode: 'off' | 'air' | 'clouds';\n  readonly heightMetres: number;\n  readonly cloudAltitudeMetres: number;\n  readonly cloudThicknessMetres: number;\n  readonly color: readonly [number, number, number];\n  readonly opacity: number;\n  readonly phaseRadians: number;\n  /** Optional shared direction toward the star, in system coordinates.\n   * Kept separate from ground sunDirection so enabling air cannot relight tiles/terrain. */\n  readonly sunDirection?: Vec;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "AIR_SEGMENTS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Maximum angular segments per body/pass, independent of world or fine-cell count."
+        },
+        {
+          "type": "code",
+          "text": "export const AIR_SEGMENTS = 512;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "airCloudCoverage"
+        },
+        {
+          "type": "paragraph",
+          "text": "Seamless bounded periodic coverage, not a simulated or saved weather field. Body-fixed angle and supplied phase are the only inputs; camera/resolution are absent."
+        },
+        {
+          "type": "code",
+          "text": "export function airCloudCoverage(angle: number, phase: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "AirMesh"
+        },
+        {
+          "type": "paragraph",
+          "text": "Reusable camera-relative triangle mesh (CSS x/y then straight RGBA per vertex). `length` counts floats valid until the next update; no buffers are retained by a draw consumer after draw returns. Four air bands plus two tapered cloud halves, <=512 view-limited segments, plus a near-view sky quad in the far layer. Storage is fixed, with no per-segment allocations. The consumer MUST mask outside all canonical ground silhouettes and draw gameplay cues later. The shell is a radial 2D section, with no far hemisphere projected onto ground."
+        },
+        {
+          "type": "code",
+          "text": "export class AirMesh {\n  readonly vertices = new Float32Array(AIR_SEGMENTS * 6 * 36);\n  length = 0;\n  private cr = 1; private sr = 0; private ax = 0; private ay = 0;\n  private theta = 0; private anchor = 0; private scale = 1; private width = 0; private height = 0;\n  private vertex(angle: number, radius: number, r: number, g: number, b: number, alpha: number): void {\n    const d = angle - this.theta;\n    const radial = radius - this.anchor - 2 * radius * Math.sin(d / 2) ** 2;\n    const tangent = radius * Math.sin(d);\n    const c = Math.cos(this.theta), s = Math.sin(this.theta);\n    const x = this.ax + c * radial - s * tangent, y = this.ay + s * radial + c * tangent;\n    this.screenVertex(this.width / 2 + (x * this.cr - y * this.sr) * this.scale,\n      this.height / 2 - (x * this.sr + y * this.cr) * this.scale, r, g, b, alpha);\n  }\n  private screenVertex(x: number, y: number, r: number, g: number, b: number, alpha: number): void {\n    const out = this.vertices; let i = this.length;\n    out[i++] = x; out[i++] = y;\n    out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = alpha;\n    this.length = i;\n  }\n  /** Build only the requested layer. Off/invalid/culled bodies yield zero vertices.\n   * Air is presentation-only; profile extrema are read without sampling fine cells. */\n  update(body: RenderBody, camera: Camera, width: number, height: number, layer: 'far' | 'near'): void {\n    this.length = 0;\n    const air = body.air;\n    if (!air || !valid(air) || air.mode === 'off' || air.opacity === 0 || body.surfaceFeatures === 'star'\n      || !(camera.scale > 0) || !Number.isFinite(camera.scale)) return;\n    const min = body.surface?.bounds.minRadius ?? body.radius, max = body.surface?.bounds.maxRadius ?? body.radius;\n    const outer = max + Math.max(air.heightMetres, air.cloudAltitudeMetres + air.cloudThicknessMetres);\n    const x = camera.center.x - body.position.x, y = camera.center.y - body.position.y;\n    const distance = Math.hypot(x, y), view = Math.hypot(width, height) / (2 * camera.scale) + 2 / camera.scale;\n    if (distance - view > outer || distance + view < min) return;\n    this.theta = Math.atan2(y, x); this.anchor = max;\n    const c = Math.cos(this.theta), s = Math.sin(this.theta);\n    this.ax = max * c - x; this.ay = max * s - y;\n    this.cr = Math.cos(camera.rotation); this.sr = Math.sin(camera.rotation);\n    this.scale = camera.scale; this.width = width; this.height = height;\n    // The view's enclosing circle conservatively bounds every shell intersection.\n    const half = distance <= view ? Math.PI : Math.asin(Math.min(1, view / distance));\n    const start = this.theta - half, span = 2 * half;\n    const sun = air.sunDirection ?? body.sunDirection;\n    if (layer === 'far') {\n      // Camera centre is a view target, not a physical observer. Apparent-size\n      // fading keeps body-centred orbital maps in space, even with a landed ship.\n      const near = smoothstep(.6, 1.4, body.radius * camera.scale / Math.max(width, height));\n      const density = smoothstep(.1, .65, (max + air.heightMetres - distance) / air.heightMetres);\n      const alpha = near * density;\n      if (alpha > .0001) {\n        const cosSun = sun && distance > 0 ? (x * sun.x + y * sun.y) / distance : 1;\n        const day = (skyLight(cosSun) - .2) / .8, warm = twilight(cosSun) * .35;\n        const br = (.018 + (air.color[0] * .9 - .018) * day) * (1 - warm) + warm;\n        const bg = (.03 + (air.color[1] * .9 - .03) * day) * (1 - warm) + .45 * warm;\n        const bb = (.05 + (air.color[2] * .9 - .05) * day) * (1 - warm) + .2 * warm;\n        const tr = .006 + (air.color[0] * .55 - .006) * day;\n        const tg = .012 + (air.color[1] * .55 - .012) * day;\n        const tb = .026 + (air.color[2] * .55 - .026) * day;\n        const nx = distance ? (x * this.cr - y * this.sr) / distance : 0;\n        const ny = distance ? -(x * this.sr + y * this.cr) / distance : -1;\n        const tx = -ny, ty = nx, extent = Math.hypot(width, height) / 2 + 2;\n        const cx = width / 2, cy = height / 2;\n        this.screenVertex(cx - nx * extent - tx * extent, cy - ny * extent - ty * extent, br, bg, bb, alpha);\n        this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);\n        this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);\n        this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);\n        this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);\n        this.screenVertex(cx + nx * extent + tx * extent, cy + ny * extent + ty * extent, tr, tg, tb, alpha);\n      }\n    }\n    for (let band = layer === 'far' ? 2 : 0; band < (layer === 'far' ? 4 : air.mode === 'clouds' ? 6 : 2); band++) {\n      if (layer === 'near' && band >= 2 && band < 4) continue;\n      const cloud = band >= 4;\n      const segments = Math.min(AIR_SEGMENTS, Math.max(4, Math.ceil(span * (cloud ? 64 : 8)),\n        Math.ceil(span * Math.sqrt(outer * camera.scale / 1.6))));\n      const lo = cloud ? max + air.cloudAltitudeMetres : min + (max + air.heightMetres - min) * band / 4;\n      const hi = cloud ? lo + air.cloudThicknessMetres : min + (max + air.heightMetres - min) * (band + 1) / 4;\n      if (distance - view > hi || distance + view < lo) continue;\n      for (let j = 0; j < segments; j++) {\n        const a = start + span * j / segments, b = start + span * (j + 1) / segments;\n        const middle = (a + b) / 2;\n        const cosSun = sun ? Math.cos(middle) * sun.x + Math.sin(middle) * sun.y : 1;\n        const light = skyLight(cosSun), warm = twilight(cosSun) * .35;\n        const r = cloud ? .83 : air.color[0] * (1 - warm) + warm;\n        const g = cloud ? .87 : air.color[1] * (1 - warm) + .6 * warm;\n        const bl = cloud ? .9 : air.color[2] * (1 - warm) + .35 * warm;\n        const coverageA = cloud ? airCloudCoverage(a - (body.rotation ?? 0), air.phaseRadians) : 1;\n        const coverageB = cloud ? airCloudCoverage(b - (body.rotation ?? 0), air.phaseRadians) : 1;\n        const strength = cloud ? Math.min(1, air.opacity * 4) : air.opacity * (1 - band / 4);\n        const peakA = strength * light * coverageA, peakB = strength * light * coverageB;\n        const alphaA = band === 4 ? 0 : peakA, alphaB = band === 4 ? 0 : peakB;\n        const outerA = cloud ? band === 4 ? peakA : 0 : air.opacity * light * (1 - (band + 1) / 4);\n        const outerB = cloud ? band === 4 ? peakB : 0 : outerA;\n        // A lens within the fixed shell, with clear gaps and both radial edges fading.\n        const localA = a - (body.rotation ?? 0) - air.phaseRadians;\n        const localB = b - (body.rotation ?? 0) - air.phaseRadians;\n        const centerA = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localA));\n        const centerB = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localB));\n        const halfA = (hi - lo) * .35 * coverageA, halfB = (hi - lo) * .35 * coverageB;\n        const loA = cloud ? band === 4 ? centerA - halfA : centerA : lo;\n        const loB = cloud ? band === 4 ? centerB - halfB : centerB : lo;\n        const hiA = cloud ? band === 4 ? centerA : centerA + halfA : hi;\n        const hiB = cloud ? band === 4 ? centerB : centerB + halfB : hi;\n        if (Math.max(peakA, peakB) < .0001) continue;\n        this.vertex(a, loA, r, g, bl, alphaA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(a, hiA, r, g, bl, outerA);\n        this.vertex(a, hiA, r, g, bl, outerA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(b, hiB, r, g, bl, outerB);\n      }\n    }\n  }\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "NIGHT_LEVEL"
+        },
+        {
+          "type": "paragraph",
+          "text": "Brightness floor of the readable legacy night ground."
+        },
+        {
+          "type": "code",
+          "text": "export const NIGHT_LEVEL = .35;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "TWILIGHT_COLOR"
+        },
+        {
+          "type": "paragraph",
+          "text": "Warm terminator tint in normalized RGB."
+        },
+        {
+          "type": "code",
+          "text": "export const TWILIGHT_COLOR: readonly [number, number, number] = [1, .6, .35];"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "daylight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Readable night ground floor, smoothly approaching daylight."
+        },
+        {
+          "type": "code",
+          "text": "export const daylight = (cosSun: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "skyLight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Faint night air; full strength in daylight."
+        },
+        {
+          "type": "code",
+          "text": "export const skyLight = (cosSun: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "twilight"
+        },
+        {
+          "type": "paragraph",
+          "text": "Warmth at sunrise/sunset."
+        },
+        {
+          "type": "code",
+          "text": "export const twilight = (cosSun: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/render-math",
       "title": "game-api: render-math.ts",
       "summary": "Declarations from render-math.ts used by documented modules.",
@@ -14115,6 +14339,134 @@
         {
           "type": "code",
           "text": "export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[];"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/render-overview",
+      "title": "game-api: render-overview.ts",
+      "summary": "Declarations from render-overview.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-overview.ts."
+        },
+        {
+          "type": "heading",
+          "text": "RenderOverview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Filtered illustrative ground only. Levels are coarse-to-fine, body-fixed polar bins, RGBA in premultiplied linear light. No collision, topology or fine cells. Treat the descriptor and arrays as immutable; replace the descriptor object on palette/content revision. Providers may use fewer rings; canonical terrain/coasts and cues retain authority."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderOverview {\n  readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];\n  /** Optional opaque, three-material canonical surface ribbon. The face is only a\n   * filtered continuation of this circumference; it adds no latitude or geology. */\n  readonly surface?: RenderOverviewSurface;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "RenderOverviewSurface"
+        },
+        {
+          "type": "paragraph",
+          "text": "Immutable compact surface quadrature. Packed samples hold two 2-bit palette indices (0..2) per angular/depth bin. Angular mips run coarse-to-fine, excluding the leaf; each pair of bytes holds material 0/1 coverage /255, with material 2 the residual. Depth rows remain independent for anisotropic physical filtering. Palette triples are linear RGB. <=8192 sectors, <=8 rows, <=13 mixture levels. All angles are body-fixed, depth is metres below canonical ground, not sea."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderOverviewSurface {\n  readonly sectors: number;\n  readonly rows: number;\n  readonly depthMetres: number;\n  readonly samples: Uint8Array;\n  readonly palette: readonly (readonly number[])[];\n  readonly levels: readonly { readonly sectors: number; readonly fractions: Uint8Array }[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "surfaceOverviewColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Sample a finite physical footprint of the canonical ribbon. Output is unlit, straight display RGB with alpha 1, matching unlit foreground palette identities. Zoom selects only filtering: no descriptor calls, allocations or fine demand. The optional radial footprint permits angular mesh filtering without washing unrelated depth bands into the visible skin. Angular/depth quantization is bounded by one leaf bin plus the filter support."
+        },
+        {
+          "type": "code",
+          "text": "export function surfaceOverviewColor(body: RenderBody, angle: number, depthMetres: number, footprintMetres: number,\n  out: Float64Array, radialFootprintMetres = footprintMetres): boolean;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "linearColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Convert an sRGB channel to linear light."
+        },
+        {
+          "type": "code",
+          "text": "export const linearColor = (v: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "displayColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Convert a linear-light channel to sRGB."
+        },
+        {
+          "type": "code",
+          "text": "export const displayColor = (v: number): number => …;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "averageOverview"
+        },
+        {
+          "type": "paragraph",
+          "text": "Weight premultiplied linear samples by coverage/area. Transparent colors cannot bleed RGB into their neighbors. Output can be reused by a caller."
+        },
+        {
+          "type": "code",
+          "text": "export function averageOverview(colors: ArrayLike<number>, weights: ArrayLike<number>, out: Float32Array): void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "overviewColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Fixed body-local query. Camera changes select filtering only, never anchors. Output is straight display RGBA with sphere and optional source-feature light. The pseudo-normal has no relationship to contact or traversable latitude."
+        },
+        {
+          "type": "code",
+          "text": "export function overviewColor(body: RenderBody, angle: number, radiusFraction: number, footprintPixels: number,\n  out: Float64Array): boolean;"
         },
         {
           "type": "paragraph",
@@ -14530,7 +14882,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceSupport {\n  readonly surface: SurfaceQuery;\n  readonly normals: readonly Vec[];\n  readonly maxSlopeRadians: number;\n}"
+          "text": "export interface SurfaceSupport {\n  readonly surface: SurfaceQuery;\n  readonly normals: readonly Vec[];\n  readonly maxSlopeRadians: number;\n  /** Hull-centre radial support distance in metres when a finite radius was requested. */\n  readonly centerRadiusMetres?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -14546,7 +14898,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  support(profile: SurfaceProfile, angle: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
+          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */\n  support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
         },
         {
           "type": "paragraph",
@@ -15602,7 +15954,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
+          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the\n   * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */\n  readonly radiusMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -15634,7 +15986,7 @@
         },
         {
           "type": "code",
-          "text": "export type SurfaceSweep =\n  | (SweepResult & { readonly status: 'clear' })\n  | (SweepResult & { readonly status: 'hit'; readonly fraction: number;\n    /** A bracket on the drift fraction, not a time-of-flight solution. */\n    readonly fractionBracket: readonly [number, number];\n    /** On the drift chord, within the reported tolerance of ground. */\n    readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;\n    readonly kind: 'crossing' | 'touching' })\n  | (SweepResult & { readonly status: 'failed';\n    readonly reason: 'work-limit' | 'precision' | 'initial-penetration';\n    /** Only the prefix through this fraction was verified; do not accept the endpoint. */\n    readonly verifiedFraction: number });"
+          "text": "export type SurfaceSweep =\n  | (SweepResult & { readonly status: 'clear' })\n  | (SweepResult & { readonly status: 'hit'; readonly fraction: number;\n    /** A bracket on the drift fraction, not a time-of-flight solution. */\n    readonly fractionBracket: readonly [number, number];\n    /** On the drift chord. For a finite footprint this is the hull centre;\n     * its hull-to-ground clearance is within the reported tolerance. */\n    readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;\n    readonly kind: 'crossing' | 'touching' })\n  | (SweepResult & { readonly status: 'failed';\n    readonly reason: 'work-limit' | 'precision' | 'initial-penetration';\n    /** Only the prefix through this fraction was verified; do not accept the endpoint. */\n    readonly verifiedFraction: number });"
         },
         {
           "type": "paragraph",
@@ -16626,7 +16978,7 @@
         },
         {
           "type": "code",
-          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n}"
+          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n  /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.\n   * The state position is the hull centre. Dry terrain and smooth bodies are supported;\n   * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */\n  readonly contactRadiusMetres?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -17166,11 +17518,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Screen-space vector artwork (+X forward), shared by Canvas and WebGL. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry."
+          "text": "Vector artwork (+X forward), shared by Canvas and WebGL. Units are CSS pixels unless metresPerUnit opts into world-space scaling. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry."
         },
         {
           "type": "code",
-          "text": "export interface VehicleAppearance {\n  /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */\n  readonly vehicleId: string;\n  /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */\n  readonly hull: readonly Vec[];\n  /** Optional thruster exhaust flame dimensions for active acceleration visuals. */\n  readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };\n}"
+          "text": "export interface VehicleAppearance {\n  /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */\n  readonly vehicleId: string;\n  /** Hull vertices in local artwork units relative to the craft centre (3 to 128 points). */\n  readonly hull: readonly Vec[];\n  /** Optional world metres per artwork unit. Close views use physical scale; below\n   * 8 CSS pixels across, renderers show a position marker. Omitted retains pixel art. */\n  readonly metresPerUnit?: number;\n  /** Optional open detail paths in the same local units, e.g. cockpit and hatch. */\n  readonly lines?: readonly (readonly Vec[])[];\n  /** Optional thruster exhaust flame dimensions for active acceleration visuals. */\n  readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };\n}"
         },
         {
           "type": "paragraph",
@@ -17271,6 +17623,22 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.trainer-appearance."
+        },
+        {
+          "type": "heading",
+          "text": "vehicleArtworkScale"
+        },
+        {
+          "type": "paragraph",
+          "text": "Scale for world-space artwork, or zero when its projected extent is below eight CSS pixels and the renderer should use a position marker. Pixel art uses 1."
+        },
+        {
+          "type": "code",
+          "text": "export function vehicleArtworkScale(artwork: VehicleAppearance, pixelsPerMetre: number): number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "link",

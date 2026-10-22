@@ -348,6 +348,14 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
       presets.push(p as unknown as PresetDefinition);
     }
 
+    if (sys.vehicleDefaults && typeof sys.vehicleDefaults === 'object') {
+      const handling = sys.vehicleDefaults as Record<string, unknown>;
+      for (const [key, min, max] of [['contactRadiusMetres', 0, 32]] as const) {
+        const value = handling[key];
+        if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)) throw new Error(`Invalid ${key}`);
+      }
+    }
+
     validatedSystems.push({
       id: sys.id,
       name: sys.name,
@@ -585,6 +593,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     acceleration: system.vehicleDefaults?.acceleration ?? 125,
     turnRate: system.vehicleDefaults?.turnRate ?? 1.227184630308513,
     initialThrottle: system.vehicleDefaults?.initialThrottle ?? 0.5,
+    ...(system.vehicleDefaults?.contactRadiusMetres === undefined ? {} : { contactRadiusMetres: system.vehicleDefaults.contactRadiusMetres }),
   });
 
   let cachedStateTime = NaN;

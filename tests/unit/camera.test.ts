@@ -369,6 +369,7 @@ it('renders consistent body and vessel labels with the scale bar at bottom right
     texImage3D: () => {},
     pixelStorei: () => {},
     getExtension: () => null,
+    getContextAttributes: () => ({ stencil: true }),
     texParameteri: () => {},
   } as unknown as WebGL2RenderingContext;
 

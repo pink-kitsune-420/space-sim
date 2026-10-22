@@ -88,6 +88,9 @@ export interface SurfaceProfile {
 export interface SurfaceSweepOptions {
   /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
   readonly toleranceMetres?: number;
+  /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the
+   * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */
+  readonly radiusMetres?: number;
   /** Interval visits plus clearance evaluations, including root refinement. */
   readonly maxWork?: number;
 }
@@ -108,7 +111,8 @@ export type SurfaceSweep =
   | (SweepResult & { readonly status: 'hit'; readonly fraction: number;
     /** A bracket on the drift fraction, not a time-of-flight solution. */
     readonly fractionBracket: readonly [number, number];
-    /** On the drift chord, within the reported tolerance of ground. */
+    /** On the drift chord. For a finite footprint this is the hull centre;
+     * its hull-to-ground clearance is within the reported tolerance. */
     readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;
     readonly kind: 'crossing' | 'touching' })
   | (SweepResult & { readonly status: 'failed';

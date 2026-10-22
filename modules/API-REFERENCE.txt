@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 09ba3dc4bf9d288e
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0cb56ce2ab72ba4d
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -101,7 +101,9 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> player-view.ts [api-reference/game-api/player-view]
 -> presentation.ts [api-reference/game-api/presentation]
 -> profiler.ts [api-reference/game-api/profiler]
+-> render-air.ts [api-reference/game-api/render-air]
 -> render-math.ts [api-reference/game-api/render-math]
+-> render-overview.ts [api-reference/game-api/render-overview]
 -> rendering.ts [api-reference/game-api/rendering]
 -> rotation.ts [api-reference/game-api/rotation]
 -> rules.ts [api-reference/game-api/rules]
@@ -230,7 +232,7 @@ Nothing.
 - Initialize before: none; after: none
 
 ## Settings
-None.
+- surveyLander: number, default 0, from 0 to 1, step 1. Physical survey lander artwork: 1 selects the five-metre lander (requires matching 2.5 m authoritative circular hull); 0 retains the Classic pixel chevron.
 
 ## Game API used
 ModuleInitializationV2, ServiceKey, TRAINER_VEHICLE_ID, VehicleAppearance, VehicleArtwork, captureVehicleAppearance, createVehicleArtwork
@@ -1766,14 +1768,16 @@ Public render.canvas@1.0.0 service and lifecycle.
 - Initialize before: none; after: none
 
 ## Settings
-- maxPixelRatio: number, default 3, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
+- maxPixelRatio: number, default 1, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, getPathGeometry, hermiteControls, pathFromShip, trajectoryMarkers
+AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api render-overview.ts [api-reference/game-api/render-overview]
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api surface.ts [api-reference/game-api/surface]
@@ -1811,13 +1815,15 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, getPathGeometry, hermiteControls, parseShaderDefinition, pathFromShip, trajectoryMarkers, validateShaderDefinition
+AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
 -> game-api platform.ts [api-reference/game-api/platform]
 -> game-api presentation.ts [api-reference/game-api/presentation]
+-> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
+-> game-api render-overview.ts [api-reference/game-api/render-overview]
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api shader-format.ts [api-reference/game-api/shader-format]
 -> game-api state.ts [api-reference/game-api/state]
@@ -3915,6 +3921,9 @@ Host callbacks and session access provided to the splitscreen flight manager.
       /** Renderer replacement may replace the element; resolve the current surface at use. */
       primaryCanvas(): HTMLCanvasElement;
       session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;
+      /** Temporary game/renderer policy: activate only the primary seat/view without
+       * rewriting saved player preferences. Re-evaluated by sync; absent means unrestricted. */
+      singleView?(): boolean;
       keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;
       throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;
       releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;
@@ -3951,6 +3960,8 @@ Multi-seat flight splitscreen controller managing guest seats, viewports, and in
     export interface FlightSplitScreen extends Disposable {
       config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;
       readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;
+      /** Current host single-view restriction, independent of the saved configuration. */
+      readonly singleView?: boolean;
       isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];
       /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */
       pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
@@ -3977,7 +3988,7 @@ Interactive UI controller managing the Players and Controllers tabs of the fligh
     export interface ControllerMenu extends Disposable {
       /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */
       open(): void;
-      /** Re-renders the Players tab (splitscreen seat list and device assignments). */
+      /** Re-renders the Players tab, honoring a temporary single-view policy without rewriting saved seats. */
       renderPlayers(): void;
       /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */
       renderPad(): void;
@@ -3990,7 +4001,7 @@ Options configuring a ControllerMenu instance.
       /** DOM element container where the menu is mounted. */
       readonly root: HTMLElement;
       /** Handle to the active splitscreen configuration. */
-      readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;
+      readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig' | 'singleView'>;
       /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */
       readonly gamepads?: FlightGamepad;
       /** Returns the pilot name for player 1. */
@@ -6278,6 +6289,10 @@ Celestial body descriptor for a rendered frame in system world coordinates (`pos
       readonly surface?: SurfaceProfile;
       readonly color?: string;
       readonly accentColor?: string;
+      /** Optional independent air; replaces legacy sky/glow including in off mode. */
+      readonly air?: RenderAir;
+      /** Optional filtered body-fixed pseudo-sphere illustration inside canonical terrain. */
+      readonly overview?: RenderOverview;
       readonly atmosphereColor?: string;
       readonly horizonColor?: string;
       readonly skyColor?: string;
@@ -6452,9 +6467,25 @@ Used by: host or creator modules (not imported by shipped modules).
 ## RendererFeatures
 Optional features of a renderer instance. Applications discover them here, never by class.
     export interface RendererFeatures {
+      /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */
+      readonly independentAir?: { readonly version: 1 };
+      /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */
+      readonly planetOverview?: { readonly version: 1 };
       readonly shaders?: ShaderControl;
       readonly effects?: ShaderEffects;
-      /** Custom tile palette registration for instanced tile-chunk primitives. */
+      /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
+       * Absence means unsupported. This does not qualify underground light/wall parity. */
+      readonly tileChunks?: {
+        readonly version: 1; readonly rotation: true; readonly clipPolygon: true;
+        /** Optional supplied-light profile, separate from unlit version-1 geometry. */
+        readonly lightEncoding?: 'nibble';
+        readonly paletteEntries?: 1024;
+        /** Cosmetic backing for air cells only; does not qualify underground gameplay. */
+        readonly walls?: true;
+        readonly buffers?: 'borrowed-through-draw';
+      };
+      /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,
+       * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */
       readonly tilePalettes?: {
         register(paletteId: string, colors: readonly string[]): void;
       };
@@ -6538,22 +6569,46 @@ Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'ti
           readonly color: string; readonly width?: number; readonly fill?: boolean }
       | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;
           readonly align?: 'left' | 'center' | 'right' }
-      /** Instanced 32x32 tile chunk drawn in world-space metres in 1 GPU draw call. */
+      /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */
       | {
           readonly kind: 'tile-chunk';
           readonly space: 'world';
           readonly origin: Vec;
           readonly tileMetres: number;
+          /** Counterclockwise local-to-world rotation about origin; omitted means zero. */
+          readonly rotationRadians?: number;
+          /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;
+           * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.
+           * Module layers include these vertices in their existing 4,096-point output budget.
+           * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */
+          readonly clipPolygon?: readonly Vec[];
           readonly size: 32;
           readonly tiles: Uint16Array;
-          /** Optional 1,024 background palette IDs (0 is empty), drawn behind air at
-           * 55% material brightness. Cosmetic only; no contact/state effect. */
+          /** Optional 1,024 background palette IDs, shown through air at 55% brightness.
+           * Cosmetic main-compatible walls only; the foreground masks its backing. */
           readonly walls?: Uint16Array;
+          /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.
+           * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.
+           * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */
+          readonly lightEncoding?: 'nibble';
+          /** Arrays are borrowed unchanged through all synchronous draw consumers. They may
+           * change between completed draws. No ownership transfer or persistent identity. */
           readonly light?: Uint8Array;
           readonly paletteId?: string;
           readonly color?: string;
         };
 Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacelab.render-canvas, spacelab.render-webgl, spacelab.throttle-hud, spacelab.view-hud.
+
+## requireTileChunkFeatures
+Preflight essential tile requirements on the actual renderer before beginning play. Missing or incompatible metadata is unsupported. Optional visuals may instead use a declared vector fallback. Geometry-only version-1 providers remain compatible.
+    export function requireTileChunkFeatures(features: RendererFeatures | undefined,
+      required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## validateTileChunkProfile
+Validate the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers.
+    export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## DEFAULT_TILE_PALETTE_HEX
 Default 27 first-party Space Sim tile material colors.
@@ -6927,6 +6982,175 @@ Service key for the frame-profiler provider (`diagnostics.profiler@1.0.0`).
 Used by: spacelab.profiler.
 -> API reference index [api-reference]
 
+=== game-api: render-air.ts [api-reference/game-api/render-air]
+Declarations from render-air.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-air.ts.
+
+## RenderAir
+Independent decorative radial air. Heights are metres above the maximum canonical terrain radius (or body.radius). This replaces legacy sky/glow even in off mode. Near views include a lighting-based sky that fades to space with altitude and overview zoom; off keeps clear space. Phase is supplied in body-fixed radians; renderers never advance time. No weather, ground lighting, collision or shader-pack ABI is implied. Values must be finite; heights positive, colors/opacity in 0..1. Unsupported providers may omit this effect.
+    export interface RenderAir {
+      readonly mode: 'off' | 'air' | 'clouds';
+      readonly heightMetres: number;
+      readonly cloudAltitudeMetres: number;
+      readonly cloudThicknessMetres: number;
+      readonly color: readonly [number, number, number];
+      readonly opacity: number;
+      readonly phaseRadians: number;
+      /** Optional shared direction toward the star, in system coordinates.
+       * Kept separate from ground sunDirection so enabling air cannot relight tiles/terrain. */
+      readonly sunDirection?: Vec;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## AIR_SEGMENTS
+Maximum angular segments per body/pass, independent of world or fine-cell count.
+    export const AIR_SEGMENTS = 512;
+Used by: host or creator modules (not imported by shipped modules).
+
+## airCloudCoverage
+Seamless bounded periodic coverage, not a simulated or saved weather field. Body-fixed angle and supplied phase are the only inputs; camera/resolution are absent.
+    export function airCloudCoverage(angle: number, phase: number): number;
+Used by: host or creator modules (not imported by shipped modules).
+
+## AirMesh
+Reusable camera-relative triangle mesh (CSS x/y then straight RGBA per vertex). `length` counts floats valid until the next update; no buffers are retained by a draw consumer after draw returns. Four air bands plus two tapered cloud halves, <=512 view-limited segments, plus a near-view sky quad in the far layer. Storage is fixed, with no per-segment allocations. The consumer MUST mask outside all canonical ground silhouettes and draw gameplay cues later. The shell is a radial 2D section, with no far hemisphere projected onto ground.
+    export class AirMesh {
+      readonly vertices = new Float32Array(AIR_SEGMENTS * 6 * 36);
+      length = 0;
+      private cr = 1; private sr = 0; private ax = 0; private ay = 0;
+      private theta = 0; private anchor = 0; private scale = 1; private width = 0; private height = 0;
+      private vertex(angle: number, radius: number, r: number, g: number, b: number, alpha: number): void {
+        const d = angle - this.theta;
+        const radial = radius - this.anchor - 2 * radius * Math.sin(d / 2) ** 2;
+        const tangent = radius * Math.sin(d);
+        const c = Math.cos(this.theta), s = Math.sin(this.theta);
+        const x = this.ax + c * radial - s * tangent, y = this.ay + s * radial + c * tangent;
+        this.screenVertex(this.width / 2 + (x * this.cr - y * this.sr) * this.scale,
+          this.height / 2 - (x * this.sr + y * this.cr) * this.scale, r, g, b, alpha);
+      }
+      private screenVertex(x: number, y: number, r: number, g: number, b: number, alpha: number): void {
+        const out = this.vertices; let i = this.length;
+        out[i++] = x; out[i++] = y;
+        out[i++] = r; out[i++] = g; out[i++] = b; out[i++] = alpha;
+        this.length = i;
+      }
+      /** Build only the requested layer. Off/invalid/culled bodies yield zero vertices.
+       * Air is presentation-only; profile extrema are read without sampling fine cells. */
+      update(body: RenderBody, camera: Camera, width: number, height: number, layer: 'far' | 'near'): void {
+        this.length = 0;
+        const air = body.air;
+        if (!air || !valid(air) || air.mode === 'off' || air.opacity === 0 || body.surfaceFeatures === 'star'
+          || !(camera.scale > 0) || !Number.isFinite(camera.scale)) return;
+        const min = body.surface?.bounds.minRadius ?? body.radius, max = body.surface?.bounds.maxRadius ?? body.radius;
+        const outer = max + Math.max(air.heightMetres, air.cloudAltitudeMetres + air.cloudThicknessMetres);
+        const x = camera.center.x - body.position.x, y = camera.center.y - body.position.y;
+        const distance = Math.hypot(x, y), view = Math.hypot(width, height) / (2 * camera.scale) + 2 / camera.scale;
+        if (distance - view > outer || distance + view < min) return;
+        this.theta = Math.atan2(y, x); this.anchor = max;
+        const c = Math.cos(this.theta), s = Math.sin(this.theta);
+        this.ax = max * c - x; this.ay = max * s - y;
+        this.cr = Math.cos(camera.rotation); this.sr = Math.sin(camera.rotation);
+        this.scale = camera.scale; this.width = width; this.height = height;
+        // The view's enclosing circle conservatively bounds every shell intersection.
+        const half = distance <= view ? Math.PI : Math.asin(Math.min(1, view / distance));
+        const start = this.theta - half, span = 2 * half;
+        const sun = air.sunDirection ?? body.sunDirection;
+        if (layer === 'far') {
+          // Camera centre is a view target, not a physical observer. Apparent-size
+          // fading keeps body-centred orbital maps in space, even with a landed ship.
+          const near = smoothstep(.6, 1.4, body.radius * camera.scale / Math.max(width, height));
+          const density = smoothstep(.1, .65, (max + air.heightMetres - distance) / air.heightMetres);
+          const alpha = near * density;
+          if (alpha > .0001) {
+            const cosSun = sun && distance > 0 ? (x * sun.x + y * sun.y) / distance : 1;
+            const day = (skyLight(cosSun) - .2) / .8, warm = twilight(cosSun) * .35;
+            const br = (.018 + (air.color[0] * .9 - .018) * day) * (1 - warm) + warm;
+            const bg = (.03 + (air.color[1] * .9 - .03) * day) * (1 - warm) + .45 * warm;
+            const bb = (.05 + (air.color[2] * .9 - .05) * day) * (1 - warm) + .2 * warm;
+            const tr = .006 + (air.color[0] * .55 - .006) * day;
+            const tg = .012 + (air.color[1] * .55 - .012) * day;
+            const tb = .026 + (air.color[2] * .55 - .026) * day;
+            const nx = distance ? (x * this.cr - y * this.sr) / distance : 0;
+            const ny = distance ? -(x * this.sr + y * this.cr) / distance : -1;
+            const tx = -ny, ty = nx, extent = Math.hypot(width, height) / 2 + 2;
+            const cx = width / 2, cy = height / 2;
+            this.screenVertex(cx - nx * extent - tx * extent, cy - ny * extent - ty * extent, br, bg, bb, alpha);
+            this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);
+            this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);
+            this.screenVertex(cx + nx * extent - tx * extent, cy + ny * extent - ty * extent, tr, tg, tb, alpha);
+            this.screenVertex(cx - nx * extent + tx * extent, cy - ny * extent + ty * extent, br, bg, bb, alpha);
+            this.screenVertex(cx + nx * extent + tx * extent, cy + ny * extent + ty * extent, tr, tg, tb, alpha);
+          }
+        }
+        for (let band = layer === 'far' ? 2 : 0; band < (layer === 'far' ? 4 : air.mode === 'clouds' ? 6 : 2); band++) {
+          if (layer === 'near' && band >= 2 && band < 4) continue;
+          const cloud = band >= 4;
+          const segments = Math.min(AIR_SEGMENTS, Math.max(4, Math.ceil(span * (cloud ? 64 : 8)),
+            Math.ceil(span * Math.sqrt(outer * camera.scale / 1.6))));
+          const lo = cloud ? max + air.cloudAltitudeMetres : min + (max + air.heightMetres - min) * band / 4;
+          const hi = cloud ? lo + air.cloudThicknessMetres : min + (max + air.heightMetres - min) * (band + 1) / 4;
+          if (distance - view > hi || distance + view < lo) continue;
+          for (let j = 0; j < segments; j++) {
+            const a = start + span * j / segments, b = start + span * (j + 1) / segments;
+            const middle = (a + b) / 2;
+            const cosSun = sun ? Math.cos(middle) * sun.x + Math.sin(middle) * sun.y : 1;
+            const light = skyLight(cosSun), warm = twilight(cosSun) * .35;
+            const r = cloud ? .83 : air.color[0] * (1 - warm) + warm;
+            const g = cloud ? .87 : air.color[1] * (1 - warm) + .6 * warm;
+            const bl = cloud ? .9 : air.color[2] * (1 - warm) + .35 * warm;
+            const coverageA = cloud ? airCloudCoverage(a - (body.rotation ?? 0), air.phaseRadians) : 1;
+            const coverageB = cloud ? airCloudCoverage(b - (body.rotation ?? 0), air.phaseRadians) : 1;
+            const strength = cloud ? Math.min(1, air.opacity * 4) : air.opacity * (1 - band / 4);
+            const peakA = strength * light * coverageA, peakB = strength * light * coverageB;
+            const alphaA = band === 4 ? 0 : peakA, alphaB = band === 4 ? 0 : peakB;
+            const outerA = cloud ? band === 4 ? peakA : 0 : air.opacity * light * (1 - (band + 1) / 4);
+            const outerB = cloud ? band === 4 ? peakB : 0 : outerA;
+            // A lens within the fixed shell, with clear gaps and both radial edges fading.
+            const localA = a - (body.rotation ?? 0) - air.phaseRadians;
+            const localB = b - (body.rotation ?? 0) - air.phaseRadians;
+            const centerA = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localA));
+            const centerB = lo + (hi - lo) * (.5 + .12 * Math.sin(9 * localB));
+            const halfA = (hi - lo) * .35 * coverageA, halfB = (hi - lo) * .35 * coverageB;
+            const loA = cloud ? band === 4 ? centerA - halfA : centerA : lo;
+            const loB = cloud ? band === 4 ? centerB - halfB : centerB : lo;
+            const hiA = cloud ? band === 4 ? centerA : centerA + halfA : hi;
+            const hiB = cloud ? band === 4 ? centerB : centerB + halfB : hi;
+            if (Math.max(peakA, peakB) < .0001) continue;
+            this.vertex(a, loA, r, g, bl, alphaA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(a, hiA, r, g, bl, outerA);
+            this.vertex(a, hiA, r, g, bl, outerA); this.vertex(b, loB, r, g, bl, alphaB); this.vertex(b, hiB, r, g, bl, outerB);
+          }
+        }
+      }
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## NIGHT_LEVEL
+Brightness floor of the readable legacy night ground.
+    export const NIGHT_LEVEL = .35;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## TWILIGHT_COLOR
+Warm terminator tint in normalized RGB.
+    export const TWILIGHT_COLOR: readonly [number, number, number] = [1, .6, .35];
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## daylight
+Readable night ground floor, smoothly approaching daylight.
+    export const daylight = (cosSun: number): number => …;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## skyLight
+Faint night air; full strength in daylight.
+    export const skyLight = (cosSun: number): number => …;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## twilight
+Warmth at sunrise/sunset.
+    export const twilight = (cosSun: number): number => …;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+-> API reference index [api-reference]
+
 === game-api: render-math.ts [api-reference/game-api/render-math]
 Declarations from render-math.ts used by documented modules.
 
@@ -6981,6 +7205,61 @@ Used by: spacelab.render-canvas, spacelab.render-webgl.
 ## trajectoryMarkers
 Restrained timed SOI markers and future body outlines. All snapshots are in the path's translating reference frame, so apply pathOrigin exactly once. Old providers can omit encounterBody. No renderer-side physics/ephemeris queries.
     export function trajectoryMarkers(frame: RenderFrame): OverlayPrimitive[];
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+-> API reference index [api-reference]
+
+=== game-api: render-overview.ts [api-reference/game-api/render-overview]
+Declarations from render-overview.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/render-overview.ts.
+
+## RenderOverview
+Filtered illustrative ground only. Levels are coarse-to-fine, body-fixed polar bins, RGBA in premultiplied linear light. No collision, topology or fine cells. Treat the descriptor and arrays as immutable; replace the descriptor object on palette/content revision. Providers may use fewer rings; canonical terrain/coasts and cues retain authority.
+    export interface RenderOverview {
+      readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];
+      /** Optional opaque, three-material canonical surface ribbon. The face is only a
+       * filtered continuation of this circumference; it adds no latitude or geology. */
+      readonly surface?: RenderOverviewSurface;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## RenderOverviewSurface
+Immutable compact surface quadrature. Packed samples hold two 2-bit palette indices (0..2) per angular/depth bin. Angular mips run coarse-to-fine, excluding the leaf; each pair of bytes holds material 0/1 coverage /255, with material 2 the residual. Depth rows remain independent for anisotropic physical filtering. Palette triples are linear RGB. <=8192 sectors, <=8 rows, <=13 mixture levels. All angles are body-fixed, depth is metres below canonical ground, not sea.
+    export interface RenderOverviewSurface {
+      readonly sectors: number;
+      readonly rows: number;
+      readonly depthMetres: number;
+      readonly samples: Uint8Array;
+      readonly palette: readonly (readonly number[])[];
+      readonly levels: readonly { readonly sectors: number; readonly fractions: Uint8Array }[];
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## surfaceOverviewColor
+Sample a finite physical footprint of the canonical ribbon. Output is unlit, straight display RGB with alpha 1, matching unlit foreground palette identities. Zoom selects only filtering: no descriptor calls, allocations or fine demand. The optional radial footprint permits angular mesh filtering without washing unrelated depth bands into the visible skin. Angular/depth quantization is bounded by one leaf bin plus the filter support.
+    export function surfaceOverviewColor(body: RenderBody, angle: number, depthMetres: number, footprintMetres: number,
+      out: Float64Array, radialFootprintMetres = footprintMetres): boolean;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## linearColor
+Convert an sRGB channel to linear light.
+    export const linearColor = (v: number): number => …;
+Used by: host or creator modules (not imported by shipped modules).
+
+## displayColor
+Convert a linear-light channel to sRGB.
+    export const displayColor = (v: number): number => …;
+Used by: host or creator modules (not imported by shipped modules).
+
+## averageOverview
+Weight premultiplied linear samples by coverage/area. Transparent colors cannot bleed RGB into their neighbors. Output can be reused by a caller.
+    export function averageOverview(colors: ArrayLike<number>, weights: ArrayLike<number>, out: Float32Array): void;
+Used by: host or creator modules (not imported by shipped modules).
+
+## overviewColor
+Fixed body-local query. Camera changes select filtering only, never anchors. Output is straight display RGBA with sphere and optional source-feature light. The pseudo-normal has no relationship to contact or traversable latitude.
+    export function overviewColor(body: RenderBody, angle: number, radiusFraction: number, footprintPixels: number,
+      out: Float64Array): boolean;
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
@@ -7215,6 +7494,8 @@ Local terrain contact support at a polar angle (radians): query sample, outward 
       readonly surface: SurfaceQuery;
       readonly normals: readonly Vec[];
       readonly maxSlopeRadians: number;
+      /** Hull-centre radial support distance in metres when a finite radius was requested. */
+      readonly centerRadiusMetres?: number;
     }
 Used by: host or creator modules (not imported by shipped modules).
 
@@ -7225,7 +7506,8 @@ All geometry uses the public radial SurfaceProfile contract. Query, contact and 
       identity(body: Body): string;
       validate(body: Body, profile: SurfaceProfile): void;
       query(profile: SurfaceProfile, angle: number): SurfaceQuery;
-      support(profile: SurfaceProfile, angle: number): SurfaceSupport;
+      /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */
+      support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;
       sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
       sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
     }
@@ -8011,6 +8293,9 @@ Geometric tolerance (`m`) and work budget options for continuous chord-vs-terrai
     export interface SurfaceSweepOptions {
       /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
       readonly toleranceMetres?: number;
+      /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the
+       * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */
+      readonly radiusMetres?: number;
       /** Interval visits plus clearance evaluations, including root refinement. */
       readonly maxWork?: number;
     }
@@ -8033,7 +8318,8 @@ Outcome of sweeping a body-fixed linear segment from `start` to `end` against a 
       | (SweepResult & { readonly status: 'hit'; readonly fraction: number;
         /** A bracket on the drift fraction, not a time-of-flight solution. */
         readonly fractionBracket: readonly [number, number];
-        /** On the drift chord, within the reported tolerance of ground. */
+        /** On the drift chord. For a finite footprint this is the hull centre;
+         * its hull-to-ground clearance is within the reported tolerance. */
         readonly position: Vec; readonly surface: SurfaceQuery; readonly clearanceMetres: number;
         readonly kind: 'crossing' | 'touching' })
       | (SweepResult & { readonly status: 'failed';
@@ -8829,6 +9115,10 @@ Authoritative spacecraft handling parameters in SI units: full-thrust `accelerat
       readonly acceleration: number;
       readonly turnRate: number;
       readonly initialThrottle: number;
+      /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.
+       * The state position is the hull centre. Dry terrain and smooth bodies are supported;
+       * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */
+      readonly contactRadiusMetres?: number;
     }
 Used by: builtin.motion, spacelab.maneuver-burn.
 
@@ -9138,12 +9428,17 @@ Explicit opt-in for mixed-vehicle saves/sessions. Definitions come from enabled,
 Used by: spacelab.session-flight.
 
 ## VehicleAppearance
-Screen-space vector artwork (+X forward), shared by Canvas and WebGL. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry.
+Vector artwork (+X forward), shared by Canvas and WebGL. Units are CSS pixels unless metresPerUnit opts into world-space scaling. The hull is a triangle fan and a closed outline. The flame tip extends with normalized throttle. This optional presentation data never changes authority or physical geometry.
     export interface VehicleAppearance {
       /** Namespaced vehicle identifier matching a declared VehicleDefinition id. */
       readonly vehicleId: string;
-      /** Hull vertices in screen coordinates relative to the craft center (3 to 32 points). */
+      /** Hull vertices in local artwork units relative to the craft centre (3 to 128 points). */
       readonly hull: readonly Vec[];
+      /** Optional world metres per artwork unit. Close views use physical scale; below
+       * 8 CSS pixels across, renderers show a position marker. Omitted retains pixel art. */
+      readonly metresPerUnit?: number;
+      /** Optional open detail paths in the same local units, e.g. cockpit and hatch. */
+      readonly lines?: readonly (readonly Vec[])[];
       /** Optional thruster exhaust flame dimensions for active acceleration visuals. */
       readonly flame?: { readonly x: number; readonly halfWidth: number; readonly length: number; readonly throttleLength: number };
     }
@@ -9181,6 +9476,11 @@ Used by: spacelab.trainer-appearance.
 Capture once at composition, then read without allocating during drawing. Unknown vehicles have no artwork; renderers retain their generic position marker.
     export function createVehicleArtwork(values: readonly VehicleAppearance[]): VehicleArtwork;
 Used by: spacelab.trainer-appearance.
+
+## vehicleArtworkScale
+Scale for world-space artwork, or zero when its projected extent is below eight CSS pixels and the renderer should use a position marker. Pixel art uses 1.
+    export function vehicleArtworkScale(artwork: VehicleAppearance, pixelsPerMetre: number): number;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
 === game-api: view-hud.ts [api-reference/game-api/view-hud]
@@ -9802,7 +10102,7 @@ This module contributes the standard vector appearance for the orbital trainer s
 - Contributes this usage guide for creators and the flight guide for players.
 
 ## Settings
-This module has no settings.
+surveyLander (default 0, from 0 to 1, step 1): 0 keeps the Classic pixel chevron; 1 selects the physical survey lander artwork. See the physical artwork notes below.
 
 ## Lifecycle
 - Initialization contributes trainerAppearance to the module context and registers creator and player documentation guides.
@@ -9826,6 +10126,8 @@ examples/modules/appearance-trainer demonstrates contributing custom vehicle vec
 -> API reference: Trainer vector appearance [api-reference/module/spacelab.trainer-appearance]
 -> Canvas 2D: Canvas scene rendering [spacelab.render-canvas/usage]
 -> WebGL 2: WebGL scene rendering [spacelab.render-webgl/usage]
+Optional surveyLander=1 selects a 5 m circular lander with SI geometry (metresPerUnit=1), cockpit and hatch detail paths; pair it with authoritative contactRadiusMetres=2.5. Default 0 preserves Classic artwork. World-space artwork becomes a generic navigation marker below eight projected CSS pixels; it never changes physics.
+The survey lander uses original code-drawn vectors: a glazed cabin with a static seated suit silhouette, a recessed expanding main-engine bell, small attitude-control ports and a 2 m side hatch. All geometry remains within its 2.5 m circular protective hull. This is appearance only; the successor prototype uses existing unlimited propulsion and has no crew/interior gameplay yet.
 
 === Flight sound controls [spacelab.audio-controls/usage]
 Public audio.flight-controls@1.0.0 service and lifecycle.
@@ -9948,6 +10250,7 @@ examples/modules/camera-follow demonstrates instantiating a flight camera, adjus
 -> API reference: Independent follow cameras [api-reference/module/spacelab.camera-follow]
 -> Smart camera add-on: target search and guided arrival [spacelab.camera-smart/usage]
 -> game-api flight-view.ts: flight camera interfaces and controllers [api-reference/game-api/flight-view]
+Planet view derives its framing from referenceMetres: zoom is 0.35*referenceMetres/bodyRadius. Both the legacy 1500 m span and close-up spans therefore frame a full planet consistently. Choose referenceMetres=750 and initialZoom=30 for a human-scale landing view; scroll can zoom out to orbit.
 
 === Smart camera add-on [spacelab.camera-smart/usage]
 Optional target search, guided arrival and focus tracking for compatible cameras.
@@ -10031,7 +10334,7 @@ Editable local-player and controller settings UI.
 
 
 ## What it does
-This module renders the Players and Controllers tabs in the flight controls dialog. It provides the input.controller-menu service through the CONTROLLER_MENUS key. The Players tab configures local splitscreen multiplayer (1 to 4 seats), player names, input device assignments, and per-seat HUD navball locations. The Controllers tab configures stick deadzones, axis assignments and inversions, button mappings, and live hardware diagnostic meters. It operates gracefully without gamepad hardware, disabling live button capture while keeping layout editing fully functional. It does not advance simulation time or step physics worlds.
+This module renders the Players and Controllers tabs in the flight controls dialog. It provides the input.controller-menu service through the CONTROLLER_MENUS key. The Players tab configures local splitscreen multiplayer (1 to 4 seats), player names, input device assignments, and per-seat HUD navball locations. The Controllers tab configures stick deadzones, axis assignments and inversions, button mappings, and live hardware diagnostic meters. It operates gracefully without gamepad hardware, disabling live button capture while keeping layout editing fully functional. It does not advance simulation time or step physics worlds. When the split controller reports singleView, the Players tab shows one active seat and disables count/layout changes with an explanation. Saved split settings are retained for unrestricted game/renderer combinations.
 
 ## Provides and requires
 - Provides input.controller-menu@1.0.0 through the CONTROLLER_MENUS key: factory creating controller and local-player settings menus.
@@ -10239,7 +10542,7 @@ Independent local flight seats and split/dynamic panes over a borrowed session.
 
 
 ## What it does
-This module provides dynamic and fixed splitscreen flight views for up to four local players. When players fly together, they share a single adaptive camera pane; as vessels diverge past distance or screen thresholds, the viewport splits smoothly into independent player panes with dedicated cameras, trajectory predictions, fleet culling, and gamepad assignments.
+This module provides dynamic and fixed splitscreen flight views for up to four local players. When players fly together, they share a single adaptive camera pane; as vessels diverge past distance or screen thresholds, the viewport splits smoothly into independent player panes with dedicated cameras, trajectory predictions, fleet culling, and gamepad assignments. Hosts may supply singleView() to temporarily suspend guest seats and panes while keeping the saved player configuration. sync() observes policy changes, releases guest input and resources, and restores configured seats when unrestricted. The successor demo uses this policy only with Canvas; WebGL and Classic retain split views.
 
 ## Provides and requires
 - Provides view.flight-split@1.0.0 through the FLIGHT_SPLIT service key: creates FlightSplitScreen controllers managing guest seating and viewports.
@@ -11361,7 +11664,7 @@ A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero 
 - Fills the render.canvas slot in presentation profiles.
 
 ## Settings
-- maxPixelRatio (default 3, from 0.5 to 4, step 0.1): Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
+- maxPixelRatio (default 1, from 0.5 to 4, step 0.1): Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Lifecycle
 - Initialization binds surface queries from CORE_MOTION, captures maxPixelRatio from settings, registers this guide, and provides CANVAS_DRAWING.
@@ -11385,6 +11688,13 @@ examples/modules/render-canvas demonstrates consuming render.canvas@1.0.0 to cre
 -> game-api rendering.ts: canvas renderer and scene frame contracts [api-reference/game-api/rendering]
 -> API reference: Canvas 2D [api-reference/module/spacelab.render-canvas]
 -> WebGL 2: GPU-accelerated rendering and custom shaders [spacelab.render-webgl/usage]
+VehicleAppearance may declare metresPerUnit and local detail paths. Near-view hull/flame/details scale by the camera pixels per metre; sub-eight-pixel hulls become navigation markers. Match artwork to authoritative contactRadiusMetres; optional geometry never changes collision authority.
+Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
+Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
+Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds request a bounded radial shell; Canvas renders atmosphere/sky only and WebGL also renders decorative clouds, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-canvas/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison. Canvas is a deliberately low-detail fallback: cloud requests render atmosphere/sky only. It does not mutate the requested air descriptor, masks, clock or WebGL quality.
+Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-canvas/src/main.ts. Optional overview.surface continues an opaque three-material, 16 m canonical ribbon: <=8192 angular columns, <=8 depth rows, two packed 2-bit identities/leaf byte, <=13 angular-only mips with two coverage bytes/bin (third residual), linear RGB palette. Both providers filter physical footprints before detail readiness, without descriptor calls or fine chunks. Exact accepted palette identities remain at resolved coverage. Canvas may use fewer depth bands within its triangle cap; the complete canonical backing remains on overflow. Immutable arrays are borrowed, never modified by the provider. The optional surface path uses up to seven WebGL radial bands with shared vertex colors and restrained filled relief at existing profile feature anchors; Canvas keeps two broad gradient bands on the original canonical chords. WebGL angular refinement inserts points on canonical chords only, targets up to96 angular segments, simplifying small bodies, and never changes the canonical mask or contact. Physical surface colors stay unlit, matching foreground identities; only the globe face receives sphere/feature lighting and filtered presentation contrast. The successor face diffuses the circumference material mixture inward harmonically, retaining the actual filtered ribbon at the rim; this avoids polar spokes without inventing interior geology. Shared mesh vertices/colors tighten its WebGL surface-path cap to1536 triangles, within the general4096 limit. Source profile features supply filled relief only, never physical displacement. Angular and radial physical footprints are independent; the visible skin does not average unrelated deep bands. A rim-focused view transitions to the actual16m ribbon as it spans2..8px, independently of global body size. Globe-only continuation derives from the actual upper4m, with2.2x filtered display contrast; unlit physical colors and canonical targets remain unchanged.
+Fallback quality: Canvas defaults to one backing pixel per CSS pixel, low-quality backdrop without nebula/galaxies, no decorative clouds and two broad planet gradient bands. Explicit creator maxPixelRatio overrides remain supported. Flight controls, canonical terrain/contact, selected circumference targets and local material data remain supported. WebGL quality/preferences are independent and unchanged.
+Near-view summary agreement: WebGL inserts body-fixed atlas-aligned columns (~1.5m minimum spacing) within32m either side of the view centre, on the existing canonical chords. A visible-segment budget limits the physical skin to1280 triangles inside the1536 total atlas cap, adapting depth rows. Shared columns/colors keep storage bounded. Both providers filter actual angular mesh support independently from radial depth; Canvas keeps its coarse two-band fallback. No fine cells/chunks, new terrain authority or shader ABI are introduced. Outside the selected region and at finite atlas leaf support, mixtures remain approximate until fine detail is ready.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11426,6 +11736,12 @@ examples/modules/render-webgl demonstrates consuming render.webgl@1.0.0 to initi
 -> API reference: WebGL 2 [api-reference/module/spacelab.render-webgl]
 -> Canvas 2D: CPU fallback rendering [spacelab.render-canvas/usage]
 -> API reference: Vector shader pack [api-reference/module/spacelab.vector-shaders]
+VehicleAppearance may declare metresPerUnit and local detail paths. Single and fleet vessels use physical world scale up close and navigation markers below eight projected CSS pixels. Match circular hull artwork with authoritative contactRadiusMetres; rendering does not define collision geometry.
+Tile chunks: features.tileChunks version 1 qualifies unlit 32x32 foreground tiles, optional rotationRadians about origin, and an optional simple clipPolygon in chunk-local metres before rotation (even-odd fill). Tiles, clip vertices and registered palettes are borrowed immutable data through drawing; dispose releases renderer resources. Check this feature before requesting clipping; absent support requires an explicit vector fallback or compatibility error. This subset does not qualify underground walls, light encoding or dense streaming. Canvas transforms full footprints; WebGL uses one instanced tile draw and one stencil mask draw per clipped chunk. Palette IDs used by the bounded successor profile are 0..4. Module layers validate finite rotation and detached clipping vertices; clip vertices share the existing 4,096-point layer budget with line vertices.
+Tile conformance: actual features.tileChunks version 1 declares body-local rotation and simple even-odd clipPolygon. Optional lightEncoding=nibble, paletteEntries=1024, walls=true and buffers=borrowed-through-draw declare the supplied-light profile; requireTileChunkFeatures preflights essential consumers. Primitive lightEncoding=nibble validates 0..1023 IDs and 0..15 light, with brightness 0.2+0.8*n/15 and omitted light full. Omitted encoding retains legacy renderer lighting. Palette registration copies 1..1024 hex entries (#RGB/#RRGGBB/#RRGGBBAA); zero is transparent, missing slots use grey in strict mode and unknown palettes use the registered default. Cosmetic walls show only through air at 55% brightness; no underground light propagation or terrain authority is implied. Chunks draw before vector overlays and labels, outside the v1 shader-pack ABI. Arrays stay caller-owned and unchanged until all draws complete, then may be reused. Re-register palettes on renderer replacement; dispose releases resources. Missing optional tile support uses a declared vector fallback; no hardware-performance claim.
+Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-webgl/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison.
+Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-webgl/src/main.ts. Optional overview.surface continues an opaque three-material, 16 m canonical ribbon: <=8192 angular columns, <=8 depth rows, two packed 2-bit identities/leaf byte, <=13 angular-only mips with two coverage bytes/bin (third residual), linear RGB palette. Both providers filter physical footprints before detail readiness, without descriptor calls or fine chunks. Exact accepted palette identities remain at resolved coverage. Canvas may use fewer depth bands within its triangle cap; the complete canonical backing remains on overflow. Immutable arrays are borrowed, never modified by the provider. The optional surface path uses up to seven WebGL radial bands with shared vertex colors and restrained filled relief at existing profile feature anchors; Canvas uses up to three broader gradient bands. Angular refinement inserts points on canonical chords only, targets up to96 angular segments, simplifying small bodies, and never changes the canonical mask or contact. Physical surface colors stay unlit, matching foreground identities; only the globe face receives sphere/feature lighting and filtered presentation contrast. The successor face diffuses the circumference material mixture inward harmonically, retaining the actual filtered ribbon at the rim; this avoids polar spokes without inventing interior geology. Shared mesh vertices/colors tighten its WebGL surface-path cap to1536 triangles, within the general4096 limit. Source profile features supply filled relief only, never physical displacement. Angular and radial physical footprints are independent; the visible skin does not average unrelated deep bands. A rim-focused view transitions to the actual16m ribbon as it spans2..8px, independently of global body size. Globe-only continuation derives from the actual upper4m, with2.2x filtered display contrast; unlit physical colors and canonical targets remain unchanged.
+Near-view summary agreement: WebGL inserts body-fixed atlas-aligned columns (~1.5m minimum spacing) within32m either side of the view centre, on the existing canonical chords. A visible-segment budget limits the physical skin to1280 triangles inside the1536 total atlas cap, adapting depth rows. Shared columns/colors keep storage bounded. Both providers filter actual angular mesh support independently from radial depth; Canvas keeps its coarse two-band fallback. No fine cells/chunks, new terrain authority or shader ABI are introduced. Outside the selected region and at finite atlas leaf support, mixtures remain approximate until fine detail is ready.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.
@@ -12062,6 +12378,7 @@ examples/modules/vehicle-trainer demonstrates registering a vehicle definition a
 -> API reference: Orbit trainer [api-reference/module/spacelab.trainer]
 -> game-api: vehicles.ts [api-reference/game-api/vehicles]
 -> game-api: engine.ts [api-reference/game-api/engine]
+VehicleDefaults and per-vehicle handling accept optional contactRadiusMetres (0–32 m). Omitted/zero preserves point contact; finite hulls use a circular footprint with centre-based state, bounded continuous dry-terrain contact, radius-aware spawn/support/prediction/analytic guards and a distinct motion identity. Ocean combinations fail explicitly. Footprint authority must agree with metre-based artwork; legacy saves/settings remain unchanged.
 
 === Shared view HUD lifecycle [spacelab.view-hud/usage]
 Optional instruments with independent per-view lifetimes.

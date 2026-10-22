@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { CanvasRenderer as PortableCanvas } from '../../modules/render-canvas/src/canvas';
+import { legacyRenderPorts } from '../../packages/render-2d/src/compatibility';
+import { requireTileChunkFeatures } from '../../packages/game-api/src/index';
 import type { OverlayPrimitive, RenderFrame } from '../../packages/game-api/src/index';
 import { CanvasRenderer, DEFAULT_SHADERS, WebGLRenderer } from '../../packages/render-2d/src/index';
+import { createSurfaceProfile } from '../../packages/sim-core/src/surface';
 import { initialState } from '../../packages/sim-core/src/index';
 
 const OVERLAYS: readonly OverlayPrimitive[] = [
@@ -29,7 +33,7 @@ function fake2d() {
   return { calls, canvas: { clientWidth: 800, clientHeight: 600, width: 0, height: 0, getContext: () => ctx } as unknown as HTMLCanvasElement };
 }
 
-function fakeGl() {
+function fakeGl(stencil = true) {
   const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[],
     buffers: new Set<object>(), tileUploads: [] as number[][] };
   let program: unknown, linked = 0;
@@ -51,6 +55,7 @@ function fakeGl() {
         case 'uniform4f': return (_: unknown, ...rgba: number[]) => { stats.colors.push(rgba.map(c => +c.toFixed(2))); };
         case 'drawArrays': return (mode: number, _first: number, count: number) => { stats.draws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}`); };
         case 'drawArraysInstanced': return (mode: number, _first: number, count: number, primcount: number) => { stats.instancedDraws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}:${primcount}`); };
+        case 'getContextAttributes': return () => ({ stencil });
         case 'getExtension': return () => null;
         case 'getError': return () => 0;
         default: return () => ({});
@@ -64,6 +69,58 @@ function fakeGl() {
 }
 
 describe('renderer features', () => {
+  it('caps the fallback backdrop while honoring an explicit creator resolution override', () => {
+    const source = fake2d(), themes: unknown[] = [];
+    const renderer = new PortableCanvas(source.canvas, { ...legacyRenderPorts, maxPixelRatio: 2,
+      theme: { current: () => ({ highQuality: true, nebulaVisible: true, galaxiesVisible: true }),
+        backdrop(_ctx, _width, _height, _camera, theme) { themes.push(theme); } } });
+    renderer.draw({ ...frame(), theme: { highQuality: true, starsVisible: false } });
+    expect(source.canvas.width).toBe(1600); expect(source.canvas.height).toBe(1200);
+    expect(themes).toEqual([expect.objectContaining({ highQuality: false, nebulaVisible: false, galaxiesVisible: false, starsVisible: false })]);
+    renderer.dispose();
+  });
+
+  it('keeps Canvas fallback low detail without mutating requested quality or air', () => {
+    const requested = Object.freeze({ mode: 'clouds' as const, heightMetres: 30,
+      cloudAltitudeMetres: 10, cloudThicknessMetres: 4, color: [.4, .7, .9] as const, opacity: .3, phaseRadians: .4 });
+    const body = { id: 'air', name: '', radius: 100, position: { x: 0, y: 0 }, air: requested };
+    const theme = Object.freeze({ highQuality: true, nebulaVisible: true, galaxiesVisible: true });
+    const source = fake2d(), canvas = new CanvasRenderer(source.canvas);
+    const scene = { ...frame(), presentationTime: 0, bodies: [body], theme };
+    canvas.draw(scene);
+    expect(source.canvas.width).toBe(800); expect(source.canvas.height).toBe(600);
+    const cloudRequest = source.calls.slice(); source.calls.length = 0;
+    canvas.draw({ ...scene, bodies: [{ ...body, air: { ...requested, mode: 'air' } }] });
+    expect(source.calls).toEqual(cloudRequest);
+    expect(requested.mode).toBe('clouds'); expect(theme.highQuality).toBe(true);
+    expect(theme.nebulaVisible).toBe(true); expect(theme.galaxiesVisible).toBe(true);
+    canvas.dispose();
+  });
+
+
+  it('qualifies independent air and masks it before flight cues without changing ground on replacement', () => {
+    const surface = createSurfaceProfile(100, [0, 2, -1, 0, 1, -2, 0, 0]);
+    const body = { id: 'air', name: 'AIR', radius: 100, position: { x: 0, y: 0 }, surface,
+      atmosphereColor: '#6ab4ec80', air: { mode: 'clouds' as const, heightMetres: 20,
+        cloudAltitudeMetres: 10, cloudThicknessMetres: 2, color: [.4, .7, .9] as const, opacity: .12, phaseRadians: 0 } };
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: {x:0,y:0}, size:32, tileMetres:1, tiles };
+    const f = { ...frame([chunk]), bodies: [body], shipWorldPosition: { x: 0, y: 130 }, showScale: false };
+    const cpu = fake2d(), renderer = new CanvasRenderer(cpu.canvas);
+    expect(renderer.features.independentAir).toEqual({ version: 1 }); renderer.draw(f);
+    expect(cpu.calls).toContain('clip(evenodd)');
+    expect(cpu.calls.findIndex(c => c.startsWith('fillRect('))).toBeLessThan(cpu.calls.findIndex(c => c.includes('VESSEL 01')));
+    const gpu = fakeGl(), accelerated = new WebGLRenderer(gpu.canvas);
+    expect(accelerated.features.independentAir).toEqual({ version: 1 }); accelerated.draw(f);
+    expect(gpu.stats.instancedDraws).toHaveLength(1);
+    accelerated.draw({ ...f, bodies: [{ ...body, air: { ...body.air, mode: 'off' } }] });
+    expect(gpu.stats.instancedDraws).toHaveLength(2);
+    renderer.dispose(); accelerated.dispose(); expect(gpu.stats.buffers.size).toBe(0);
+    const unavailable = new WebGLRenderer(fakeGl(false).canvas);
+    expect(unavailable.features.independentAir).toBeUndefined(); unavailable.dispose();
+  });
+
+
   it('draws cosmetic walls behind air, clears omitted GPU walls, and releases tile buffers', () => {
     const tiles = new Uint16Array(1024); tiles[0] = 1;
     const walls = new Uint16Array(1024); walls[0] = 2; walls[1] = 2;
@@ -92,6 +149,30 @@ describe('renderer features', () => {
     gpu.dispose();
     expect(webgl.stats.buffers.size).toBe(0);
     expect(webgl.stats.programs).toBe(0);
+  });
+
+
+  it('preflights essential profiles, copies palettes and observes borrowed arrays only through a draw', () => {
+    const source = fake2d(), renderer = new CanvasRenderer(source.canvas);
+    expect(() => requireTileChunkFeatures(undefined)).toThrow('required tile profile');
+    expect(() => requireTileChunkFeatures({ tileChunks: { version: 9 } } as never)).toThrow();
+    expect(() => requireTileChunkFeatures({ ...renderer.features, tileChunks: { version: 1, rotation: true, clipPolygon: true } }, {lightEncoding:'nibble'})).toThrow();
+    requireTileChunkFeatures(renderer.features, {lightEncoding:'nibble', walls:true});
+    const colors = ['#00000000', '#ffffff'];
+    renderer.features.tilePalettes!.register('strict', colors); colors[1] = '#ff0000';
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const light = new Uint8Array(1024);
+    const chunk: Extract<OverlayPrimitive, {kind:'tile-chunk'}> = {kind:'tile-chunk', space:'world', origin:{x:0,y:0},size:32,tileMetres:1,tiles,light,lightEncoding:'nibble',paletteId:'strict'};
+    renderer.draw(frame([chunk])); expect(source.calls).toContain('fillStyle=#333333');
+    source.calls.length=0;light[0]=15; renderer.draw(frame([chunk]));expect(source.calls).toContain('fillStyle=#ffffff');
+    source.calls.length=0; renderer.draw(frame([{...chunk,light:undefined}]));expect(source.calls).toContain('fillStyle=#ffffff');
+    source.calls.length=0; renderer.draw(frame([{...chunk,lightEncoding:undefined,light:new Uint8Array(1024)}]));expect(source.calls).toContain('fillStyle=#ffffff');
+    source.calls.length=0;tiles[0]=1023;renderer.draw(frame([chunk]));expect(source.calls).toContain('fillStyle=#888888');
+    light[0]=16;expect(()=>renderer.draw(frame([chunk]))).toThrow('0..15');
+    renderer.features.tilePalettes!.register('strict', ['#00000000', '#11223380']);
+    source.calls.length=0;tiles[0]=1;light[0]=15;renderer.draw(frame([chunk]));expect(source.calls).toContain('fillStyle=#11223380');
+    expect(()=>renderer.features.tilePalettes!.register('bad',['red'])).toThrow('Invalid tile palette');
+    renderer.dispose();expect(()=>renderer.features.tilePalettes!.register('x',colors)).toThrow('disposed');
   });
   it('hides celestial names in both renderers while retaining the body scene and other annotations', () => {
     for (const visible of [true, false]) {
@@ -143,7 +224,7 @@ describe('renderer features', () => {
     const { calls, canvas } = fake2d();
     const renderer = new CanvasRenderer(canvas);
     renderer.draw(frame(OVERLAYS));
-    expect(canvas.width).toBe(1600);
+    expect(canvas.width).toBe(800);
     const start = calls.lastIndexOf('save()');
     const overlay = calls.slice(start);
     // The red screen line, the world disc at the view centre (10 m at 2 px/m), then the label.
@@ -188,6 +269,58 @@ describe('renderer features', () => {
     renderer.dispose(); renderer.dispose();
     expect(stats.programs).toBe(0);
   });
+  it('withholds clipped-tile capability when WebGL did not provide a stencil buffer', () => {
+    const gl = fakeGl(false), renderer = new WebGLRenderer(gl.canvas);
+    expect(renderer.features.tileChunks).toBeUndefined();
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: { x: 0, y: 0 }, tileMetres: 1, size: 32, tiles };
+    renderer.draw(frame([chunk])); expect(gl.stats.instancedDraws).toHaveLength(1);
+    expect(() => renderer.draw(frame([{ ...chunk, clipPolygon: [{x:0,y:0}, {x:1,y:0}, {x:0,y:1}] }]))).toThrow('stencil buffer');
+    renderer.dispose();
+  });
+
+  it('culls offscreen Canvas cells before raster work, including rotated chunk footprints', () => {
+    const tiles = new Uint16Array(1024).fill(1);
+    for (const angle of [0, Math.PI / 4, Math.PI / 2]) {
+      const canvas = fake2d(), renderer = new CanvasRenderer(canvas.canvas);
+      renderer.draw(frame([{ kind: 'tile-chunk', space: 'world', origin: {x:0,y:0}, tileMetres:100, size:32, tiles,
+        rotationRadians: angle }]));
+      const calls = canvas.calls.filter(call => call.startsWith('fillRect(') && call.endsWith(',100,100)'));
+      expect(calls.length).toBeGreaterThan(0); expect(calls.length).toBeLessThan(20);
+      renderer.dispose();
+    }
+    const canvas = fake2d(), renderer = new CanvasRenderer(canvas.canvas);
+    renderer.draw(frame([{ kind: 'tile-chunk', space: 'world', origin: {x:1e9,y:1e9}, tileMetres:100, size:32, tiles }]));
+    expect(canvas.calls.filter(call => call.startsWith('fillRect(') && call.endsWith(',100,100)'))).toHaveLength(0);
+    renderer.dispose();
+  });
+
+  it('transforms whole tile footprints and applies a concave clipping polygon before drawing', () => {
+    const tiles = new Uint16Array(1024); tiles[0] = 1;
+    const chunk: OverlayPrimitive = { kind: 'tile-chunk', space: 'world', origin: { x: 2, y: 3 },
+      size: 32, tileMetres: .5, tiles, rotationRadians: Math.PI / 4,
+      clipPolygon: [{x:0,y:0}, {x:.5,y:0}, {x:.5,y:.5}, {x:.25,y:.25}, {x:0,y:.5}] };
+    for (const rotation of [0, Math.PI / 4, Math.PI / 2]) {
+      const f = { ...frame([chunk]), camera: { ...frame().camera, rotation } };
+      const canvas = fake2d(), cr = new CanvasRenderer(canvas.canvas);
+      expect(cr.features.tileChunks?.version).toBe(1);
+      cr.draw(f);
+      const c = +(2 * Math.cos(rotation + Math.PI / 4)).toFixed(2);
+      const s = +(2 * Math.sin(rotation + Math.PI / 4)).toFixed(2);
+      expect(canvas.calls.some(call => call.startsWith(`transform(${c},${-s},${-s},${-c},`))).toBe(true);
+      expect(canvas.calls).toContain('clip(evenodd)');
+      expect(canvas.calls).toContain('fillRect(0,0,0.5,0.5)');
+      expect(canvas.calls.indexOf('clip(evenodd)')).toBeLessThan(canvas.calls.indexOf('fillRect(0,0,0.5,0.5)'));
+      cr.dispose();
+      const gl = fakeGl(), wr = new WebGLRenderer(gl.canvas);
+      expect(wr.features.tileChunks?.version).toBe(1);
+      wr.draw(f);
+      expect(gl.stats.instancedDraws).toHaveLength(1);
+      expect(gl.stats.draws.some(draw => draw.endsWith(`:${'TRIANGLE_FAN'.length}:5`))).toBe(true);
+      wr.dispose(); expect(gl.stats.programs).toBe(0);
+    }
+  });
+
   it('renders 32x32 tile chunks with instanced draw calls in WebGL 2 and fillRect in Canvas 2D', () => {
     const tiles1 = new Uint16Array(1024);
     tiles1[0] = 1; // Stone

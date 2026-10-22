@@ -1,4 +1,4 @@
-import { DEFAULT_TILE_PALETTE_HEX, trajectoryMarkers, VEHICLE_MARKER, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { AirMesh, DEFAULT_TILE_PALETTE_HEX, validateTileChunkProfile, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
@@ -341,6 +341,14 @@ export function drawPlanetHorizon(
   ctx.restore();
 }
 
+/** Hex palette shading outside the per-cell loop. */
+function shadeTile(color: string, brightness: number): string {
+  let hex = color.slice(1);
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  return '#' + [0, 2, 4].map(offset => Math.round(parseInt(hex.slice(offset, offset + 2), 16) * brightness)
+    .toString(16).padStart(2, '0')).join('') + hex.slice(6);
+}
+
 /** Prepared once per palette, outside tile drawing. Preserve any authored alpha. */
 function wallPalette(colors: readonly string[]): readonly string[] {
   return colors.map(color => {
@@ -355,8 +363,10 @@ function wallPalette(colors: readonly string[]): readonly string[] {
 
 export class CanvasRenderer implements Renderer {
   private readonly ctx: CanvasRenderingContext2D;
+  private airMesh?: AirMesh;
   private readonly tilePalettes = new Map<string, readonly string[]>();
   private readonly wallPalettes = new Map<string, readonly string[]>([['default', wallPalette(DEFAULT_TILE_PALETTE_HEX)]]);
+  private readonly litPalettes = new Map<string, readonly (readonly string[])[]>();
   /** No shader packs. Reading one pixel back makes the browser finish deferred drawing. */
   readonly features: RendererFeatures;
   private disposed = false;
@@ -368,6 +378,8 @@ export class CanvasRenderer implements Renderer {
     this.ctx = ctx;
     const renderer = this;
     this.features = Object.freeze({
+      planetOverview: Object.freeze({ version: 1 as const }), independentAir: Object.freeze({ version: 1 as const }),
+      tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }),
       flush: () => { ctx.getImageData(0, 0, 1, 1); },
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
@@ -376,10 +388,14 @@ export class CanvasRenderer implements Renderer {
   }
   registerTilePalette(paletteId: string, colors: readonly string[]): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
-    this.tilePalettes.set(paletteId, colors);
-    this.wallPalettes.set(paletteId, wallPalette(colors));
+    if (!paletteId || paletteId.length > 64 || colors.length < 1 || colors.length > 1024
+      || colors.some(color => !/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color))) throw new Error('Invalid tile palette.');
+    const copy = Object.freeze([...colors]);
+    this.tilePalettes.set(paletteId, copy);
+    this.wallPalettes.set(paletteId, wallPalette(copy));
+    this.litPalettes.delete(paletteId);
   }
-  dispose(): void { this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); }
+  dispose(): void { this.airMesh = undefined; this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); this.litPalettes.clear(); }
   drawScene(frame: SceneFrame, timer?: RenderTimer): void { this.draw(sceneFrame(frame), timer); }
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
@@ -387,7 +403,7 @@ export class CanvasRenderer implements Renderer {
     const { state, camera, engine, bodies } = frame;
     const width = canvas.clientWidth, height = canvas.clientHeight;
     const toScreen = createProjector(camera, width, height);
-    const dpr = Math.min(window.devicePixelRatio || 1, this.ports.maxPixelRatio ?? 3);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.ports.maxPixelRatio ?? 1);
     if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
       canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     }
@@ -448,9 +464,17 @@ export class CanvasRenderer implements Renderer {
     const labels = new LabelPlacer();
     const shipPos = frame.shipWorldPosition ?? state.position;
     const ship = toScreen(shipPos);
-    const shipVisible = frame.showShip !== false && ship.x >= -40 && ship.x <= width + 40 && ship.y >= -40 && ship.y <= height + 40;
+    const physicalArt = this.ports.vehicles?.get(frame.vehicleId);
+    let shipExtent = 0;
+    if (physicalArt?.metresPerUnit) {
+      for (const point of physicalArt.hull) shipExtent = Math.max(shipExtent, Math.abs(point.x), Math.abs(point.y));
+      shipExtent *= physicalArt.metresPerUnit * camera.scale;
+    }
+    const shipMargin = Math.max(40, shipExtent);
+    const shipLabelX = ship.x + Math.max(16, shipExtent + 6), shipLabelY = ship.y - Math.max(13, shipExtent + 6);
+    const shipVisible = frame.showShip !== false && ship.x >= -shipMargin && ship.x <= width + shipMargin && ship.y >= -shipMargin && ship.y <= height + shipMargin;
     const shipLabel = state.status === 'crashed' ? 'SIGNAL LOST' : frame.shipLabel ?? 'VESSEL 01';
-    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, ship.x + 16, ship.y - 13, 'left'));
+    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, shipLabelX, shipLabelY, 'left'));
     // Body labels go to the biggest bodies first; crowded ones are left out.
     const labelOrder = bodyList.map((b, i) => ({ b, i, r: (b.surface?.bounds.maxRadius ?? b.radius) * camera.scale }))
       .sort((a, c) => ((a.b.surfaceFeatures === 'star') === (c.b.surfaceFeatures === 'star')
@@ -466,6 +490,9 @@ export class CanvasRenderer implements Renderer {
       const labelY = r < 2.5 ? (isStar ? pos.y - 10 : pos.y - 7) : (r > 30 ? pos.y - r - 8 : pos.y + Math.min(r + 14, 24));
       if (frame.showBodyLabels !== false && labels.tryPlace(labelRect(b.name.toUpperCase(), pos.x, labelY, 'center'))) labelled.add(b);
     }
+
+    const independentAir = bodyList.some(b => b.air);
+    if (independentAir) this.drawAir(bodyList, camera, width, height, 'far');
 
     // 2. Draw each celestial body
     for (const b of bodyList) {
@@ -516,16 +543,16 @@ export class CanvasRenderer implements Renderer {
             r,
             b.color,
             b.accentColor,
-            b.skyColor ?? b.atmosphereColor,
+            b.air ? '#00000000' : b.skyColor ?? b.atmosphereColor,
             isStar,
             b.horizonColor,
-            b.skyColor,
+            b.air ? '#00000000' : b.skyColor,
             sun ? 1 - daylight((sun.x * (width / 2 - pos.x) + sun.y * (height / 2 - pos.y)) / (distToCenter || 1)) : 0,
           );
         } else if (isStar) {
           drawSun(ctx, pos.x, pos.y, r, b.color, b.accentColor, b.skyColor ?? b.atmosphereColor);
         } else {
-          drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.skyColor ?? b.atmosphereColor, sun);
+          drawPlanetBase(ctx, pos.x, pos.y, r, b.color, b.horizonColor ?? b.accentColor, b.air ? '#00000000' : b.skyColor ?? b.atmosphereColor, sun);
           if (r >= 18) {
             if (b.surfaceFeatures === 'craters') {
               drawCraterLines(ctx, pos.x, pos.y, r, -camera.rotation - (b.rotation ?? 0));
@@ -546,6 +573,10 @@ export class CanvasRenderer implements Renderer {
         ctx.fillText(b.name.toUpperCase(), pos.x, labelY);
       }
     }
+    if (independentAir) {
+      this.drawTileChunks(frame.overlays ?? [], camera, width, height);
+      this.drawAir(bodyList, camera, width, height, 'near');
+    }
     timer?.lap('planet');
 
     this.drawPath(frame, toScreen, width, height);
@@ -561,18 +592,30 @@ export class CanvasRenderer implements Renderer {
     }
 
     const drawShip = (at: Vec, heading: number, status: string, burning: boolean, throttle: number, size: number, fill: string): void => {
+      let artwork = this.ports.vehicles?.get(frame.vehicleId);
+      if (artwork?.metresPerUnit) {
+        const physical = vehicleArtworkScale(artwork, camera.scale);
+        if (physical === 0) { artwork = undefined; size = 1; } else size = physical;
+      }
       ctx.save(); ctx.translate(at.x, at.y); ctx.rotate(-heading - camera.rotation);
       if (size !== 1) ctx.scale(size, size);
-      const artwork = this.ports.vehicles?.get(frame.vehicleId), hull = artwork?.hull ?? VEHICLE_MARKER, flame = artwork?.flame;
+      if (artwork?.metresPerUnit) ctx.lineWidth = 1 / size;
+      const hull = artwork?.hull ?? VEHICLE_MARKER, flame = artwork?.flame;
       if (flame && burning && status === 'flying') {
         ctx.fillStyle = '#e0a665'; ctx.beginPath(); ctx.moveTo(flame.x, -flame.halfWidth); ctx.lineTo(flame.x - flame.length - throttle * flame.throttleLength, 0); ctx.lineTo(flame.x, flame.halfWidth); ctx.fill();
       }
       ctx.fillStyle = status === 'crashed' ? '#ef8c7a' : fill; ctx.strokeStyle = '#080f19';
-      ctx.beginPath(); ctx.moveTo(hull[0]!.x, hull[0]!.y); for (let i = 1; i < hull.length; i++) ctx.lineTo(hull[i]!.x, hull[i]!.y); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(hull[0]!.x, hull[0]!.y); for (let i = 1; i < hull.length; i++) ctx.lineTo(hull[i]!.x, hull[i]!.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+      for (const line of artwork?.lines ?? []) {
+        ctx.beginPath(); ctx.moveTo(line[0]!.x, line[0]!.y);
+        for (let i = 1; i < line.length; i++) ctx.lineTo(line[i]!.x, line[i]!.y);
+        ctx.stroke();
+      }
+      ctx.restore();
     };
     ctx.font = '11px ui-monospace, monospace'; ctx.textAlign = 'left';
     this.drawRocks(frame.ships ?? [], toScreen, width, height);
-    this.drawShipBatch(frame.ships ?? [], toScreen, camera.rotation, width, height);
+    this.drawShipBatch(frame.ships ?? [], toScreen, camera.rotation, width, height, camera.scale);
     ctx.fillStyle = '#95a9b5';
     for (const other of frame.ships ?? []) {
       if (other.rock || frame.showShipLabels === false) continue;
@@ -584,7 +627,7 @@ export class CanvasRenderer implements Renderer {
     if (shipVisible) {
       drawShip(ship, state.heading, state.status, engine, state.throttle, 1, '#e8f8ef');
       ctx.fillStyle = '#95a9b5';
-      if (frame.showShipLabels !== false) ctx.fillText(shipLabel, ship.x + 16, ship.y - 13);
+      if (frame.showShipLabels !== false) ctx.fillText(shipLabel, shipLabelX, shipLabelY);
     }
     timer?.lap('ship');
     // Scale annotation is in world metres, independent of canvas device pixels.
@@ -596,7 +639,7 @@ export class CanvasRenderer implements Renderer {
       ctx.fillText(`${metres} m`, width - 24, height - 36);
     }
     if (frame.overlays?.length) {
-      this.drawTileChunks(frame.overlays, camera, width, height);
+      if (!independentAir) this.drawTileChunks(frame.overlays, camera, width, height);
       this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
     }
     const encounters = trajectoryMarkers(frame);
@@ -604,30 +647,118 @@ export class CanvasRenderer implements Renderer {
     timer?.lap('overlay');
   }
 
-  private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {
-    const toScreen = createProjector(camera, width, height);
+  /** Independent air uses successive inverse clips, forming the union of all ground masks. */
+  private drawAir(bodies: readonly RenderBody[], camera: Camera, width: number, height: number, layer: 'far' | 'near'): void {
     const { ctx } = this;
-    for (const p of overlays) {
-      if (p.kind !== 'tile-chunk') continue;
-      const { origin, tileMetres, tiles } = p;
-      const stepScreen = tileMetres * camera.scale;
-      const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? DEFAULT_TILE_PALETTE_HEX;
-      const walls = this.wallPalettes.get(p.paletteId ?? 'default') ?? this.wallPalettes.get('default')!;
-      for (let y = 0; y < 32; y++) {
-        for (let x = 0; x < 32; x++) {
-          const idx = (y << 5) | x;
-          const tileId = tiles[idx] ?? 0;
-          const wallId = tileId === 0 ? p.walls?.[idx] ?? 0 : 0;
-          if (tileId === 0 && wallId === 0) continue;
-          const worldPos = { x: origin.x + x * tileMetres, y: origin.y + y * tileMetres };
-          const screenPos = toScreen(worldPos);
-          if (screenPos.x < -stepScreen || screenPos.x > width + stepScreen ||
-              screenPos.y < -stepScreen || screenPos.y > height + stepScreen) continue;
-          const hex = wallId > 0 ? walls[wallId] ?? '#4b4b4b' : palette[tileId] ?? '#888888';
-          ctx.fillStyle = hex;
-          ctx.fillRect(screenPos.x, screenPos.y - stepScreen, Math.ceil(stepScreen), Math.ceil(stepScreen));
+    if (!bodies.some(b => b.air && b.air.mode !== 'off')) return;
+    const airMesh = this.airMesh ??= new AirMesh();
+    for (const body of bodies) {
+      // Canvas is a low-detail fallback: keep the canonical atmosphere/sky but
+      // omit the expensive decorative cloud layer. Never mutate borrowed data.
+      airMesh.update(body.air?.mode === 'clouds' ? { ...body, air: { ...body.air, mode: 'air' } } : body,
+        camera, width, height, layer);
+      if (!airMesh.length) continue;
+      ctx.save();
+      for (const solid of bodies) {
+        ctx.beginPath(); ctx.rect(0, 0, width, height);
+        if (solid.surface) {
+          const clip = terrainGeometry({ ...solid, surface: solid.surface }, camera, width, height, this.ports.geometry).groundClip;
+          for (let i = 0; i < clip.length; i++) {
+            const p = clip[i]!; if (i) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y);
+          }
+          ctx.closePath();
+        } else {
+          const p = createProjector(camera, width, height)(solid.position);
+          ctx.moveTo(p.x + solid.radius * camera.scale, p.y);
+          ctx.arc(p.x, p.y, solid.radius * camera.scale, 0, Math.PI * 2);
+        }
+        ctx.clip('evenodd');
+      }
+      const v = airMesh.vertices;
+      for (let i = 0; i < airMesh.length; i += 36) {
+        const rgb = `${v[i + 2]! * 255},${v[i + 3]! * 255},${v[i + 4]! * 255}`;
+        const outerRgb = `${v[i + 14]! * 255},${v[i + 15]! * 255},${v[i + 16]! * 255}`;
+        // Canvas has no vertex-alpha interpolation. Bound angular steps by opacity
+        // and projected footprint; constant-alpha sky/air quads remain one fill.
+        const alphaChange = Math.max(Math.abs(v[i + 5]! - v[i + 11]!), Math.abs(v[i + 17]! - v[i + 35]!));
+        const span = Math.max(Math.hypot(v[i + 6]! - v[i]!, v[i + 7]! - v[i + 1]!),
+          Math.hypot(v[i + 30]! - v[i + 12]!, v[i + 31]! - v[i + 13]!));
+        const slices = Math.max(1, Math.min(32, Math.ceil(span / 2), Math.ceil(alphaChange * 128)));
+        for (let j = 0; j < slices; j++) {
+          const a = j / slices, b = (j + 1) / slices, middle = (a + b) / 2;
+          const ax = v[i]! + (v[i + 6]! - v[i]!) * a, ay = v[i + 1]! + (v[i + 7]! - v[i + 1]!) * a;
+          const bx = v[i]! + (v[i + 6]! - v[i]!) * b, by = v[i + 1]! + (v[i + 7]! - v[i + 1]!) * b;
+          const cx = v[i + 12]! + (v[i + 30]! - v[i + 12]!) * a, cy = v[i + 13]! + (v[i + 31]! - v[i + 13]!) * a;
+          const dx = v[i + 12]! + (v[i + 30]! - v[i + 12]!) * b, dy = v[i + 13]! + (v[i + 31]! - v[i + 13]!) * b;
+          const gradient = ctx.createLinearGradient((ax + bx) / 2, (ay + by) / 2, (cx + dx) / 2, (cy + dy) / 2);
+          gradient.addColorStop(0, `rgba(${rgb},${v[i + 5]! + (v[i + 11]! - v[i + 5]!) * middle})`);
+          gradient.addColorStop(1, `rgba(${outerRgb},${v[i + 17]! + (v[i + 35]! - v[i + 17]!) * middle})`);
+          ctx.fillStyle = gradient; ctx.beginPath();
+          ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(dx, dy); ctx.lineTo(cx, cy);
+          ctx.closePath(); ctx.fill();
         }
       }
+      ctx.restore();
+    }
+  }
+
+  private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {
+    const { ctx } = this;
+    const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation);
+    for (const p of overlays) {
+      if (p.kind !== 'tile-chunk') continue;
+      validateTileChunkProfile(p);
+      const { origin, tileMetres, tiles } = p;
+      const angle = camera.rotation + (p.rotationRadians ?? 0);
+      const c = Math.cos(angle) * camera.scale, s = Math.sin(angle) * camera.scale;
+      const dx = origin.x - camera.center.x, dy = origin.y - camera.center.y;
+      const ox = width / 2 + (dx * cc - dy * cs) * camera.scale;
+      const oy = height / 2 - (dx * cs + dy * cc) * camera.scale;
+      // Inverse-project the viewport into chunk coordinates, once per chunk.
+      // Conservative cell bounds work for arbitrary camera/body rotation and DPR.
+      const inverseScale2 = 1 / (camera.scale * camera.scale);
+      const vx = (c * (width / 2 - ox) - s * (height / 2 - oy)) * inverseScale2;
+      const vy = (-s * (width / 2 - ox) - c * (height / 2 - oy)) * inverseScale2;
+      const ex = (Math.abs(c) * width + Math.abs(s) * height) * .5 * inverseScale2;
+      const ey = (Math.abs(s) * width + Math.abs(c) * height) * .5 * inverseScale2;
+      const x0 = Math.max(0, Math.floor((vx - ex) / tileMetres)), x1 = Math.min(32, Math.ceil((vx + ex) / tileMetres));
+      const y0 = Math.max(0, Math.floor((vy - ey) / tileMetres)), y1 = Math.min(32, Math.ceil((vy + ey) / tileMetres));
+      if (x0 >= x1 || y0 >= y1) continue;
+      ctx.save();
+      // Transform cells, rather than only their origins. No ceil overlap at seams.
+      ctx.transform(c, -s, -s, -c, ox, oy);
+      if (p.clipPolygon) {
+        ctx.beginPath();
+        for (let i = 0; i < p.clipPolygon.length; i++) {
+          const v = p.clipPolygon[i]!;
+          if (i === 0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y);
+        }
+        ctx.closePath(); ctx.clip('evenodd');
+      }
+      const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? this.tilePalettes.get('default') ?? DEFAULT_TILE_PALETTE_HEX;
+      const wallColors = this.wallPalettes.get(p.paletteId ?? 'default') ?? this.wallPalettes.get('default')!;
+      let lit: readonly (readonly string[])[] | undefined;
+      if (p.lightEncoding === 'nibble') {
+        const key = this.tilePalettes.has(p.paletteId ?? 'default') ? p.paletteId ?? 'default' : 'default';
+        lit = this.litPalettes.get(key);
+        if (!lit) {
+          // Bounded by registered palette size; built only on first explicit-light use.
+          lit = [1, .55].flatMap(wall => Array.from({ length: 16 }, (_, level) =>
+            [...palette, '#888888'].map(color => shadeTile(color, wall * (.2 + .8 * level / 15)))));
+          this.litPalettes.set(key, lit);
+        }
+      }
+      for (let y = y0; y < y1; y++) {
+        for (let x = x0; x < x1; x++) {
+          const index = (y << 5) | x, tileId = tiles[index] ?? 0;
+          const wallId = tileId === 0 ? p.walls?.[index] ?? 0 : 0;
+          if (tileId === 0 && wallId === 0) continue;
+          ctx.fillStyle = lit ? lit[(wallId ? 16 : 0) + (p.light?.[index] ?? 15)]![Math.min(tileId || wallId, palette.length)]!
+            : wallId ? wallColors[wallId] ?? '#4b4b4b' : palette[tileId] ?? '#888888';
+          ctx.fillRect(x * tileMetres, y * tileMetres, tileMetres, tileMetres);
+        }
+      }
+      ctx.restore();
     }
   }
 
@@ -677,15 +808,21 @@ export class CanvasRenderer implements Renderer {
 
   /** Other vessels as one path per fill (flames, three hull colors) plus one outline path. */
   private drawShipBatch(others: readonly RenderShip[], toScreen: (p: Vec) => Vec, rotation: number,
-    width: number, height: number): void {
+    width: number, height: number, worldScale = 1): void {
     const { ctx } = this;
     const placed: { readonly x: number; readonly y: number; readonly c: number; readonly s: number; readonly ship: RenderShip; readonly artwork?: VehicleAppearance }[] = [];
     for (const other of others) {
       if (other.rock) continue;
       const at = toScreen(other.position);
-      if (at.x < -40 || at.x > width + 40 || at.y < -40 || at.y > height + 40) continue;
+      const margin = Math.max(40, (this.ports.vehicles?.get(other.vehicleId)?.metresPerUnit ?? 0) * worldScale * 32);
+      if (at.x < -margin || at.x > width + margin || at.y < -margin || at.y > height + margin) continue;
       const angle = -other.heading - rotation;
-      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * 0.8, s: Math.sin(angle) * 0.8, ship: other, artwork: this.ports.vehicles?.get(other.vehicleId) });
+      let artwork = this.ports.vehicles?.get(other.vehicleId), size = .8;
+      if (artwork?.metresPerUnit) {
+        size = vehicleArtworkScale(artwork, worldScale);
+        if (size === 0) { artwork = undefined; size = 1; }
+      }
+      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * size, s: Math.sin(angle) * size, ship: other, artwork });
     }
     if (!placed.length) return;
     const hull = (p: typeof placed[number]): void => {
@@ -716,7 +853,13 @@ export class CanvasRenderer implements Renderer {
       if (any) { ctx.fillStyle = fill; ctx.fill(); }
     }
     ctx.beginPath();
-    for (const p of placed) hull(p);
+    for (const p of placed) {
+      hull(p);
+      for (const line of p.artwork?.lines ?? []) {
+        ctx.moveTo(p.x + line[0]!.x * p.c - line[0]!.y * p.s, p.y + line[0]!.x * p.s + line[0]!.y * p.c);
+        for (let j = 1; j < line.length; j++) { const v = line[j]!; ctx.lineTo(p.x + v.x * p.c - v.y * p.s, p.y + v.x * p.s + v.y * p.c); }
+      }
+    }
     ctx.strokeStyle = '#080f19'; ctx.lineWidth = 1; ctx.stroke();
   }
 
@@ -729,7 +872,7 @@ export class CanvasRenderer implements Renderer {
   ): void {
     const artwork = this.ports.theme;
     if (!artwork) { this.ctx.fillStyle = '#080f19'; this.ctx.fillRect(0, 0, width, height); return; }
-    const fullTheme = theme ? { ...artwork.current(), ...theme } : artwork.current();
+    const fullTheme = { ...artwork.current(), ...theme, highQuality: false, nebulaVisible: false, galaxiesVisible: false };
     artwork.backdrop(this.ctx, width, height, camera ?? { center: { x: 0, y: 0 }, scale: 1, rotation: 0 }, fullTheme, timeSec);
   }
 

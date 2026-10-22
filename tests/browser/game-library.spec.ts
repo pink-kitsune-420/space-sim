@@ -99,7 +99,7 @@ test('the flight starter composes optional displays, preserves settings, and kee
   expect(exported.bundle.presentation?.providers).toEqual({ renderer: 'builtin.canvas' });
   expect(exported.bundle.presentation?.modules.some(ref => ref.id === 'builtin.webgl' || ref.id === 'builtin.audio')).toBe(false);
   expect(exported.bundle.presentation?.settings['builtin.navball']).toEqual({ frame: 1, orientation: 1 });
-  await play(page, 'Space Sim');
+  await play(page, builtin.info.name);
   await expect.poll(async () => (await debug(page)).presentation.modules.includes('builtin.audio')).toBe(true);
   await play(page, 'Starter with telemetry');
   await expect.poll(async () => (await debug(page)).presentation.modules).toEqual(['builtin.flight-data', 'builtin.navball', 'builtin.telemetry', 'builtin.throttle']);
@@ -129,7 +129,7 @@ test('a data plugin installs inertly, applies with code controls, and saves/expo
   await page.goto('/');
   await openPanel(page, 'library');
   await expect(page.locator('[data-workspace="library"]')).toHaveAccessibleName('ModMenu');
-  await expect(card(page, 'Space Sim')).toBeVisible();
+  await expect(card(page, builtin.info.name)).toBeVisible();
   const before = await debug(page);
   await importPackage(page, { format: 'space-lab-plugin/1', info: { id: 'local.gentle-pack', name: 'Gentle pack', description: '' }, data: [gentle as DataModule], code: [] });
   await expect(page.locator('#lab-status')).toContainText('Installed Gentle pack');
@@ -212,7 +212,7 @@ test('self-contained code games switch versions, keep presentation settings, and
   await expect(page.locator('#lab-status')).toContainText('unknown universe');
   expect((await debug(page)).world).toBe(beforeFailure.world);
   await expect(page.locator('[data-panel="local.telemetry/telemetry"]')).toContainText('Time');
-  await play(page, 'Space Sim');
+  await play(page, builtin.info.name);
   await expect.poll(async () => (await debug(page)).fingerprint).toBe(original.fingerprint);
   await expect(page.locator('[data-panel="local.telemetry/telemetry"]')).toHaveCount(0);
   await page.reload();
@@ -236,7 +236,7 @@ test('presentation initialization failure restores the old registry and code sel
   await expect(page.locator('#lab-status')).toContainText('broken display initializer');
   expect((await debug(page)).world).toBe(before.world);
   await expect(page.locator('[data-panel="local.telemetry/telemetry"]')).toContainText('Time');
-  await play(page, 'Space Sim'); await play(page, 'Code flight');
+  await play(page, builtin.info.name); await play(page, 'Code flight');
 });
 
 test('copied Spacelab HTML plays compressed games and exports their code without network access', async ({ page, context }, testInfo) => {
@@ -272,7 +272,7 @@ test('an installed content pack exposes its starting universe/system and round t
   await expect(page.locator('#system-select')).toHaveValue('new-system');
   await page.locator('#game-name').fill('New sky game'); await page.locator('#lab-save').click();
   await expect(card(page, 'New sky game')).toBeVisible();
-  await play(page, 'Space Sim'); await play(page, 'New sky game');
+  await play(page, builtin.info.name); await play(page, 'New sky game');
   await expect(page.locator('#universe-select')).toHaveValue('new-sky');
   await expect(page.locator('#system-select')).toHaveValue('new-system');
 });

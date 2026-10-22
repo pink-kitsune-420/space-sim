@@ -246,7 +246,10 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
     uniform float u_camera_scale;
     uniform float u_camera_rotation;
     uniform float u_tile_metres;
+    uniform float u_chunk_rotation;
     uniform sampler2D u_palette;
+    uniform int u_strict_light;
+    uniform int u_palette_size;
 
     out vec4 v_color;
 
@@ -262,7 +265,9 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
       float lx = float(instance & 31);
       float ly = float(instance >> 5);
 
-      vec2 local_pos = u_camera_offset + (vec2(lx, ly) + a_quad_pos) * u_tile_metres;
+      vec2 cell = (vec2(lx, ly) + a_quad_pos) * u_tile_metres;
+      float bc = cos(u_chunk_rotation), bs = sin(u_chunk_rotation);
+      vec2 local_pos = u_camera_offset + vec2(cell.x * bc - cell.y * bs, cell.x * bs + cell.y * bc);
       float c = cos(u_camera_rotation);
       float s = sin(u_camera_rotation);
       vec2 rotated = vec2(local_pos.x * c - local_pos.y * s, local_pos.x * s + local_pos.y * c);
@@ -272,8 +277,10 @@ export function compileTileChunkProgram(gl: WebGL2RenderingContext): WebGLProgra
 
       uint material_id = is_wall ? a_wall_id : a_tile_id;
       vec4 base_color = texelFetch(u_palette, ivec2(int(material_id), 0), 0);
+      // Missing strict-profile slots use the same grey as Canvas.
+      if (u_strict_light != 0 && int(material_id) >= u_palette_size) base_color = vec4(vec3(136.0 / 255.0), 1.0);
       float light_val = float(a_tile_light);
-      float light_factor = light_val > 15.0 ? (light_val / 255.0) : (0.2 + 0.8 * (light_val / 15.0));
+      float light_factor = u_strict_light == 0 && light_val > 15.0 ? (light_val / 255.0) : (0.2 + 0.8 * (light_val / 15.0));
       v_color = vec4(base_color.rgb * light_factor * (is_wall ? 0.55 : 1.0), base_color.a);
     }`, `#version 300 es
       precision highp float;

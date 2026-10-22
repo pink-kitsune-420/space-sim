@@ -10,7 +10,7 @@
     },
     {
       "type": "paragraph",
-      "text": "This module provides dynamic and fixed splitscreen flight views for up to four local players. When players fly together, they share a single adaptive camera pane; as vessels diverge past distance or screen thresholds, the viewport splits smoothly into independent player panes with dedicated cameras, trajectory predictions, fleet culling, and gamepad assignments."
+      "text": "This module provides dynamic and fixed splitscreen flight views for up to four local players. When players fly together, they share a single adaptive camera pane; as vessels diverge past distance or screen thresholds, the viewport splits smoothly into independent player panes with dedicated cameras, trajectory predictions, fleet culling, and gamepad assignments. Hosts may supply singleView() to temporarily suspend guest seats and panes while keeping the saved player configuration. sync() observes policy changes, releases guest input and resources, and restores configured seats when unrestricted. The successor demo uses this policy only with Canvas; WebGL and Classic retain split views."
     },
     {
       "type": "heading",
@@ -40,7 +40,7 @@
         "joinButton (default 9, from 0 to 31, step 1): Standard gamepad button index that lets an unclaimed controller join local play. Default 9 is Start/Menu/Options; ownership rules still apply.",
         "guestPredictionMs (default 1.5, from 0.1 to 10, step 0.1): Wall-time prediction budget for each guest view. Higher budgets refine previews sooner; they do not advance or alter the shared world.",
         "wheelZoom (default 0.0015, from 0.0001 to 0.01, step 0.0001): Exponential zoom factor per mouse-wheel unit in guest panes. Each guest camera remains independent.",
-        "separateScreenRatio (default 0.55, from 0.1 to 1, step 0.01): Split a guest into its own pane when its screen distance exceeds this fraction of the viewport’s smaller dimension.",
+        "separateScreenRatio (default 0.55, from 0.1 to 1, step 0.01): Split a guest into its own pane when its screen distance exceeds this fraction of the viewport\u2019s smaller dimension.",
         "mergeScreenRatio (default 0.35, from 0.05 to 1, step 0.01): A separated guest must fall below this screen-distance fraction before merging. Must not exceed the separation threshold.",
         "separateDistance (default 5000, from 1 to 1000000, step 1): Split a guest when its body-relative distance from Player 1 exceeds this distance, even if the shared camera is zoomed far out.",
         "mergeDistance (default 3500, from 1 to 1000000, step 1): A guest must be closer than this distance before merging. Must not exceed the world separation threshold.",

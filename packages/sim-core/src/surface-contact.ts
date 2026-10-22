@@ -4,6 +4,7 @@ import type { SurfaceSweepOptions, SurfaceSweepDiagnostics, SurfaceSweep } from 
 export type { SurfaceSweepOptions, SurfaceSweepDiagnostics, SurfaceSweep } from '../../game-api/src/index';
 import { createSurfaceProfile, querySurface, type SurfaceProfile } from './surface';
 import * as dm from './dmath';
+import { sweepDisc } from './surface-disc';
 
 interface Point { readonly x: number; readonly y: number }
 /** Maximum combined interval-traversal and polar-query work budget (`262,144`) permitted in a single surface contact sweep before returning `status: 'failed'` with `reason: 'work-limit'`. Host-only (`packages/sim-core`). */
@@ -27,6 +28,7 @@ export function surfaceContactTolerance(profile: SurfaceProfile): number {
  */
 export function sweepSurface(profile: SurfaceProfile, start: Point, end: Point,
   options: SurfaceSweepOptions = {}): SurfaceSweep {
+  if (options.radiusMetres !== undefined && options.radiusMetres !== 0) return sweepDisc(profile, start, end, options);
   if (profile.seaRadiusMetres === undefined || !profile.hasWater) return sweepGroundSurface(profile, start, end, options);
   options = { ...options, toleranceMetres: options.toleranceMetres ?? surfaceContactTolerance(profile) };
   // The union of rock and a sea disc. Each solver retains its convex proof;
@@ -63,6 +65,7 @@ const SEA_PROFILES = new WeakMap<SurfaceProfile, SurfaceProfile>();
 /** Rock/seabed only, also used after a survivable water entry. */
 export function sweepGroundSurface(profile: SurfaceProfile, start: Point, end: Point,
   options: SurfaceSweepOptions = {}): SurfaceSweep {
+  if (options.radiusMetres !== undefined && options.radiusMetres !== 0) return sweepDisc(profile, start, end, options);
   if (![start.x, start.y, end.x, end.y].every(Number.isFinite)) {
     throw new Error('Surface sweep endpoints must be finite');
   }

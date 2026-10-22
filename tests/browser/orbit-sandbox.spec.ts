@@ -93,9 +93,9 @@ test('sandbox warp and pause shortcuts stay in the active game and titles follow
   await expect(page.locator('#btn-toggle-orbits')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#sandbox-labels')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#btn-sandbox-menu').click();
-  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim', exact: true }) })
+  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim Classic', exact: true }) })
     .getByRole('button', { name: 'Play · new world', exact: true }).click();
-  await expect(page).toHaveTitle('Spacelab · Space Sim');
+  await expect(page).toHaveTitle('Spacelab · Space Sim Classic');
   await expect(page.locator('#orbit-sandbox-workspace')).toBeHidden();
   await expect(page.locator('#flight-console #pause')).toHaveText('Pause');
   expect(errors).toEqual([]);

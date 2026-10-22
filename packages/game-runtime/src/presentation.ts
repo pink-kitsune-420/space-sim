@@ -1,3 +1,4 @@
+import { validateTileChunkProfile } from '../../game-api/src/index';
 /** Host-only (`packages/game-runtime`): presentation hook capture, output limits and fault isolation. Modules cannot import this package (`packages/module-tools/check-boundaries.mjs`); modules use `contributeLayer`, `contributePanel` and `contributeCamera`. */
 import type {
   CameraExtension, CameraHook, CameraInput, CameraTarget, LayerExtension, LayerHook, MultiViewportCameraFrame, OverlayPrimitive, PanelExtension,
@@ -8,7 +9,7 @@ import type {
 export const MAX_PRESENTATION_HOOKS_PER_MODULE = 8;
 /** Most primitives one layer may return per frame (`256`). Returning more disables that layer like a thrown error (`layers return at most 256 primitives`). Host-only (`packages/game-runtime`). */
 export const MAX_OVERLAY_PRIMITIVES = 256;
-/** Most line points one layer may return per frame, summed over its lines (`4096`). Host-only (`packages/game-runtime`). */
+/** Most line and clipping points one layer may return per frame, summed over its primitives (`4096`). Host-only (`packages/game-runtime`). */
 export const MAX_OVERLAY_POINTS = 4096;
 /** Most rows one panel may return per update (`16`). The browser host reads panels at most every 250 ms. Host-only (`packages/game-runtime`). */
 export const MAX_PANEL_ROWS = 16;
@@ -69,7 +70,7 @@ function color(raw: unknown, label: string): string {
   return raw;
 }
 
-/** One layer's output: a detached, frozen, bounded draw list. At most 256 primitives and 4,096 line points;
+/** One layer's output: a detached, frozen, bounded draw list. At most 256 primitives and 4,096 line/clipping points;
  * lines need two points (three when filled), widths are 0.5–8 CSS pixels, colours `#RRGGBB` or `#RRGGBBAA`,
  * text at most 80 printable characters, world coordinates within 1e18 m and screen coordinates within 1e6 px.
  * Host-only (`packages/game-runtime`). */
@@ -82,7 +83,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
     const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed', 'fill']
       : kind === 'circle' ? ['kind', 'space', 'center', 'radius', 'color', 'width', 'fill']
       : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align']
-      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'walls', 'light', 'paletteId', 'color'] : undefined;
+      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'walls', 'light', 'lightEncoding', 'paletteId', 'color', 'rotationRadians', 'clipPolygon'] : undefined;
     if (!fields) throw new Error(`${label}: kind must be line, circle, text or tile-chunk`);
     const p = record(value, fields, label);
     if (p.space !== 'world' && p.space !== 'screen') throw new Error(`${label}: space must be world or screen`);
@@ -96,24 +97,37 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
       if (!(p.tiles instanceof Uint16Array) || p.tiles.length !== 1024) {
         throw new Error(`${label}: tiles must be a Uint16Array of length 1024`);
       }
-      if (p.walls !== undefined && (!(p.walls instanceof Uint16Array) || p.walls.length !== 1024)) {
-        throw new Error(`${label}: walls must be a Uint16Array of length 1024`);
-      }
+      if (p.walls !== undefined && (!(p.walls instanceof Uint16Array) || p.walls.length !== 1024)) throw new Error(`${label}: walls must be a Uint16Array of length 1024`);
+      if (p.lightEncoding !== undefined && p.lightEncoding !== 'nibble') throw new Error(`${label}: lightEncoding must be nibble`);
       if (p.light !== undefined && (!(p.light instanceof Uint8Array) || p.light.length !== 1024)) {
         throw new Error(`${label}: light must be a Uint8Array of length 1024`);
       }
       if (p.paletteId !== undefined && (typeof p.paletteId !== 'string' || !p.paletteId.length || p.paletteId.length > 64)) {
         throw new Error(`${label}: paletteId must be 1–64 characters`);
       }
+      if (p.rotationRadians !== undefined && (typeof p.rotationRadians !== 'number' || !Number.isFinite(p.rotationRadians))) {
+        throw new Error(`${label}: rotationRadians must be finite`);
+      }
+      let clipPolygon: readonly Vec[] | undefined;
+      if (p.clipPolygon !== undefined) {
+        if (!Array.isArray(p.clipPolygon) || p.clipPolygon.length < 3) throw new Error(`${label}: clipPolygon needs at least three points`);
+        points += p.clipPolygon.length;
+        if (points > MAX_OVERLAY_POINTS) throw new Error(`layers return at most ${MAX_OVERLAY_POINTS} points`);
+        clipPolygon = Object.freeze(p.clipPolygon.map((q, j) => point(q, 'world', `${label} clip point ${j}`)));
+      }
+      validateTileChunkProfile(p as unknown as Extract<OverlayPrimitive, { kind: 'tile-chunk' }>);
       const c = p.color !== undefined ? color(p.color, label) : undefined;
       return Object.freeze({
         kind,
         space: 'world',
         origin: point(p.origin, 'world', `${label} origin`),
         tileMetres: p.tileMetres,
+        ...(p.rotationRadians !== undefined ? { rotationRadians: p.rotationRadians } : {}),
+        ...(clipPolygon !== undefined ? { clipPolygon } : {}),
         size: 32 as const,
         tiles: p.tiles,
         ...(p.walls !== undefined ? { walls: p.walls } : {}),
+        ...(p.lightEncoding !== undefined ? { lightEncoding: p.lightEncoding } : {}),
         ...(p.light !== undefined ? { light: p.light } : {}),
         ...(p.paletteId !== undefined ? { paletteId: p.paletteId } : {}),
         ...(c !== undefined ? { color: c } : {}),

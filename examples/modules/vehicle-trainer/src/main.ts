@@ -38,3 +38,6 @@ export default function initialize(context: ModuleInitializationV2): void {
   context.contributeVehicle(exampleTrainer);
   context.provide(VEHICLE_TRAINER_HELPER, createVehicleTrainerHelper());
 }
+
+/** Finite-radius handling for creators; match the hull artwork in metres. */
+export const surveyHandling = Object.freeze({ acceleration: 24, turnRate: .65, initialThrottle: .65, contactRadiusMetres: 2.5 });

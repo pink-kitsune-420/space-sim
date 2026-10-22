@@ -16,6 +16,7 @@ export const MINIMAL_MENU: ServiceKey<MinimalMenuHelper> = Object.freeze({
 
 export function createMinimalMenuHelper(preferences: LocalPlayerPreferences): MinimalMenuHelper {
   return Object.freeze({
+    // A mounted menu should honor split.singleView; keep saved preferences while restricted.
     setPlayerCount(config: LocalPlayersConfig, count: number) {
       return preferences.setPlayerCount(config, count);
     },

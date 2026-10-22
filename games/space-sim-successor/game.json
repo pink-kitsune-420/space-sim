@@ -1,0 +1,2268 @@
+{
+  "format": "space-lab-game/1",
+  "info": {
+    "id": "builtin.space-sim-successor",
+    "name": "Space Sim Tiles Demo",
+    "description": "Tiled orbital-flight demo and scale/handling comparison: 2\u00d7, 4\u00d7 and 8\u00d7 worlds with a physical 5 m survey lander, static human references and Primus/Parvus landing areas. Four times is provisional."
+  },
+  "bundle": {
+    "format": "space-sim-module-profile/1",
+    "profile": {
+      "format": "space-sim-profile/1",
+      "id": "builtin.successor",
+      "modules": [
+        {
+          "id": "builtin.content",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.motion",
+          "version": "0.1.0"
+        },
+        {
+          "id": "space-sim.successor-content",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "content": "builtin.content",
+        "motion": "builtin.motion"
+      },
+      "settings": {}
+    },
+    "modules": [
+      {
+        "format": "space-sim-data-module/1",
+        "manifest": {
+          "format": "space-sim-module/1",
+          "apiVersion": "space-sim-game-api/1",
+          "id": "space-sim.successor-content",
+          "name": "Successor world and flight settings",
+          "version": "0.1.0",
+          "kind": "data",
+          "authority": "authoritative",
+          "environments": [
+            "browser",
+            "offline",
+            "node"
+          ],
+          "dependencies": [
+            {
+              "id": "builtin.motion",
+              "version": "0.1.0"
+            },
+            {
+              "id": "builtin.content",
+              "version": "0.1.0"
+            }
+          ],
+          "provides": [],
+          "requires": [],
+          "slots": [],
+          "before": [],
+          "after": [],
+          "settings": {},
+          "license": "MIT"
+        },
+        "data": {
+          "universes": [
+            {
+              "definition": {
+                "schemaVersion": 1,
+                "id": "successor-universe",
+                "name": "Successor scale comparison",
+                "description": "Development comparison of 2\u00d7, 4\u00d7 and 8\u00d7 Classic celestial scale. Fixed-mu gravity, one human-scale lander and short surface routes. Choose final scale and handling after playtesting.",
+                "author": "Space Sim Team",
+                "defaultSystemId": "primus-system",
+                "systems": [
+                  {
+                    "id": "primus-system",
+                    "name": "4\u00d7 Classic \u00b7 Primus System (provisional)",
+                    "description": "4\u00d7 scale trial, unchanged mu and mass. Survey lander: 5 m across, 24 m/s\u00b2 maximum thrust. Arrow Up/Down for throttle (Ctrl for fine control), Space for engine; A/D to turn. Scroll to zoom; C for planet view. Compare launch, orbit and landing; 4\u00d7 is provisional. Primus and Parvus: 1.8 m static reference by the pad, Ridge Lookout 140 m east and Basin Station 220 m west. No EVA controls in this trial.",
+                    "centralBodyId": "star",
+                    "bodies": [
+                      {
+                        "id": "star",
+                        "name": "Lumen",
+                        "parentId": null,
+                        "radius": 65536,
+                        "radiusMetres": 65536,
+                        "mass": 1.9638314130320785e+20,
+                        "mu": 13107200000,
+                        "color": "#ffd27a",
+                        "accentColor": "#ff8a2a",
+                        "atmosphereColor": "#ffaa0060",
+                        "surfaceFeatures": "star",
+                        "ephemeris": {
+                          "kind": "fixed-inertial",
+                          "position": [
+                            0,
+                            0
+                          ],
+                          "velocity": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        "rotation": {
+                          "period": 16000.0,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "star",
+                          "colors": [
+                            "#fff8e6",
+                            "#ffd27a",
+                            "#ff8a2a",
+                            "#c8661c"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "ignis",
+                        "name": "Ignis",
+                        "parentId": "star",
+                        "radius": 256,
+                        "radiusMetres": 256,
+                        "mass": 613697316572524.5,
+                        "mu": 40960,
+                        "color": "#3d2b24",
+                        "accentColor": "#e0703a",
+                        "atmosphereColor": "#a0482830",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 5144,
+                          "entryMetres": 4988,
+                          "exitMetres": 5144
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 819200,
+                          "radiusMetres": 819200,
+                          "phaseRadiansAtEpoch": 2.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 1920.0,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "volcanic",
+                          "colors": [
+                            "#3d2b24",
+                            "#1e1613",
+                            "#ff6a1f",
+                            "#c9a83a"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "velum",
+                        "name": "Velum",
+                        "parentId": "star",
+                        "radius": 1536,
+                        "radiusMetres": 1536,
+                        "mass": 4.418620679322177e+16,
+                        "mu": 2949120,
+                        "color": "#c8a46e",
+                        "accentColor": "#ead2a2",
+                        "atmosphereColor": "#e3c08a55",
+                        "horizonColor": "#ead2a2",
+                        "skyColor": "#e3c08a55",
+                        "surfaceFeatures": "smooth",
+                        "soi": {
+                          "radius": 56924,
+                          "entryMetres": 55200,
+                          "exitMetres": 56924
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 1638400,
+                          "radiusMetres": 1638400,
+                          "phaseRadiansAtEpoch": 4.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 7200.0,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "arid",
+                          "colors": [
+                            "#c8a46e",
+                            "#7a5a3c",
+                            "#ece4d2",
+                            "#f4efe6"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "planet",
+                        "name": "Primus",
+                        "parentId": "star",
+                        "radius": 2048,
+                        "radiusMetres": 2048,
+                        "mass": 1.963829914747614e+17,
+                        "mu": 13107200,
+                        "color": "#1d5a8a",
+                        "accentColor": "#7cc3e6",
+                        "atmosphereColor": "#6ab4ec80",
+                        "horizonColor": "#7cc3e6",
+                        "skyColor": "#6ab4ec80",
+                        "surfaceFeatures": "globe-lines",
+                        "soi": {
+                          "radius": 206752,
+                          "entryMetres": 200000,
+                          "exitMetres": 206752
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 3276800,
+                          "radiusMetres": 3276800,
+                          "phaseRadiansAtEpoch": 4.71238898038469,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 4800.0,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "oceanic",
+                          "colors": [
+                            "#1d5a8a",
+                            "#4c7f3a",
+                            "#c9aa6e",
+                            "#f1f5f8"
+                          ]
+                        },
+                        "surface": {
+                          "kind": "radial",
+                          "generatorVersion": 1,
+                          "seed": 741,
+                          "sampleCount": 2048,
+                          "maxReliefMetres": 12,
+                          "minFeatureWidthMetres": 32,
+                          "orientationRadians": 0,
+                          "mountainRangeCount": 3,
+                          "craterCount": 3,
+                          "pads": [
+                            {
+                              "id": "landing-area",
+                              "angleRadians": 1.5707963267948966,
+                              "widthMetres": 48,
+                              "elevationMetres": 0
+                            },
+                            {
+                              "id": "ridge-lookout",
+                              "angleRadians": 1.5024369517948966,
+                              "widthMetres": 28,
+                              "elevationMetres": 8
+                            },
+                            {
+                              "id": "basin-station",
+                              "angleRadians": 1.6782182017948966,
+                              "widthMetres": 28,
+                              "elevationMetres": -4
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "moon",
+                        "name": "Parvus",
+                        "parentId": "planet",
+                        "radius": 512,
+                        "radiusMetres": 512,
+                        "mass": 3068484241793147.0,
+                        "mu": 204800,
+                        "color": "#8c8984",
+                        "accentColor": "#c4c0b8",
+                        "atmosphereColor": "#00000000",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 11640,
+                          "entryMetres": 11640,
+                          "exitMetres": 12000
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 61440,
+                          "radiusMetres": 61440,
+                          "phaseRadiansAtEpoch": 0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 26382.4072,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#8c8984",
+                            "#4d4b48",
+                            "#c4c0b8",
+                            "#8c8984"
+                          ]
+                        },
+                        "surface": {
+                          "kind": "radial",
+                          "generatorVersion": 1,
+                          "seed": 319,
+                          "sampleCount": 512,
+                          "maxReliefMetres": 12,
+                          "minFeatureWidthMetres": 32,
+                          "orientationRadians": 0,
+                          "mountainRangeCount": 3,
+                          "craterCount": 3,
+                          "pads": [
+                            {
+                              "id": "landing-area",
+                              "angleRadians": 1.5707963267948966,
+                              "widthMetres": 48,
+                              "elevationMetres": 0
+                            },
+                            {
+                              "id": "ridge-lookout",
+                              "angleRadians": 1.2973588267948966,
+                              "widthMetres": 28,
+                              "elevationMetres": 8
+                            },
+                            {
+                              "id": "basin-station",
+                              "angleRadians": 2.0004838267948966,
+                              "widthMetres": 28,
+                              "elevationMetres": -4
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "magnus",
+                        "name": "Magnus",
+                        "parentId": "star",
+                        "radius": 8192,
+                        "radiusMetres": 8192,
+                        "mass": 5.027408417362121e+18,
+                        "mu": 335544320,
+                        "color": "#3a6db0",
+                        "accentColor": "#9cc2ee",
+                        "atmosphereColor": "#7aa8e680",
+                        "horizonColor": "#9cc2ee",
+                        "skyColor": "#7aa8e680",
+                        "surfaceFeatures": "globe-lines",
+                        "soi": {
+                          "radius": 2269168,
+                          "entryMetres": 2201092,
+                          "exitMetres": 2269168
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 9830400,
+                          "radiusMetres": 9830400,
+                          "phaseRadiansAtEpoch": 0.6,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 3200.0,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "banded",
+                          "colors": [
+                            "#3a6db0",
+                            "#284f8a",
+                            "#a9c9ee",
+                            "#eef4ff"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "nix",
+                        "name": "Nix",
+                        "parentId": "magnus",
+                        "radius": 384,
+                        "radiusMetres": 384,
+                        "mass": 1726023702860225.2,
+                        "mu": 115200,
+                        "color": "#d6e3ee",
+                        "accentColor": "#f4f9ff",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 2020,
+                          "entryMetres": 1960,
+                          "exitMetres": 2020
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 49152,
+                          "radiusMetres": 49152,
+                          "phaseRadiansAtEpoch": 0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 3737.8056,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "icy",
+                          "colors": [
+                            "#d6e3ee",
+                            "#7f98ad",
+                            "#ffffff",
+                            "#d6e3ee"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "umbra",
+                        "name": "Umbra",
+                        "parentId": "magnus",
+                        "radius": 640,
+                        "radiusMetres": 640,
+                        "mass": 7671216457156556.0,
+                        "mu": 512000,
+                        "color": "#4a4448",
+                        "accentColor": "#7a7076",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 7344,
+                          "entryMetres": 7124,
+                          "exitMetres": 7344
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 98304,
+                          "radiusMetres": 98304,
+                          "phaseRadiansAtEpoch": 3.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 10572.1112,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#4a4448",
+                            "#2a2629",
+                            "#7a7076",
+                            "#4a4448"
+                          ]
+                        }
+                      }
+                    ],
+                    "vehicleDefaults": {
+                      "acceleration": 24,
+                      "turnRate": 0.65,
+                      "initialThrottle": 0.65,
+                      "contactRadiusMetres": 2.5
+                    },
+                    "presets": [
+                      {
+                        "id": "pad",
+                        "name": "Primus \u00b7 landing area & reference figure",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          2048
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "parvus-pad",
+                        "name": "Parvus \u00b7 landing area & reference figure",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          512
+                        ],
+                        "velocity": [
+                          0,
+                          0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "parvus-landing-approach",
+                        "name": "Parvus \u00b7 vertical landing approach, 30 m",
+                        "bodyId": "moon",
+                        "kind": "state",
+                        "position": [
+                          0,
+                          544.5
+                        ],
+                        "velocity": [
+                          0,
+                          -1
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 15
+                      },
+                      {
+                        "id": "primus-landing-approach",
+                        "name": "Primus \u00b7 vertical landing approach, 30 m",
+                        "bodyId": "planet",
+                        "kind": "state",
+                        "position": [
+                          0,
+                          2080.5
+                        ],
+                        "velocity": [
+                          0,
+                          -1
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 15
+                      },
+                      {
+                        "id": "planet-orbit",
+                        "name": "Circular orbit \u00b7 128 m altitude",
+                        "bodyId": "planet",
+                        "kind": "circular-orbit",
+                        "radius": 2560,
+                        "radiusMetres": 2560,
+                        "altitude": 512,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.128173828125
+                      },
+                      {
+                        "id": "moon-orbit",
+                        "name": "Parvus circular orbit \u00b7 128 m altitude",
+                        "bodyId": "moon",
+                        "kind": "circular-orbit",
+                        "radius": 1024,
+                        "radiusMetres": 1024,
+                        "altitude": 512,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.5126953125
+                      },
+                      {
+                        "id": "velum-pad",
+                        "name": "Velum \u00b7 low-gravity pad",
+                        "bodyId": "velum",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          1536
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "magnus-orbit",
+                        "name": "Magnus circular orbit \u00b7 256 m altitude",
+                        "bodyId": "magnus",
+                        "kind": "circular-orbit",
+                        "radius": 9216,
+                        "radiusMetres": 9216,
+                        "altitude": 1024,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.03204345703125
+                      },
+                      {
+                        "id": "umbra-pad",
+                        "name": "Umbra \u00b7 dark moon pad",
+                        "bodyId": "umbra",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          640
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-ridge-lookout",
+                        "name": "Primus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.4995072642948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-basin-station",
+                        "name": "Primus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.6752885142948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-ridge-lookout",
+                        "name": "Parvus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.2856400767948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-basin-station",
+                        "name": "Parvus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.9887650767948966,
+                        "zoom": 30
+                      }
+                    ]
+                  },
+                  {
+                    "id": "outer-reach-system",
+                    "name": "4\u00d7 Classic \u00b7 Outer Reach System (provisional)",
+                    "description": "4\u00d7 scale trial, unchanged mu and mass. Survey lander: 5 m across, 24 m/s\u00b2 maximum thrust. Arrow Up/Down for throttle (Ctrl for fine control), Space for engine; A/D to turn. Scroll to zoom; C for planet view. Compare launch, orbit and landing; 4\u00d7 is provisional. Primus and Parvus: 1.8 m static reference by the pad, Ridge Lookout 140 m east and Basin Station 220 m west. No EVA controls in this trial.",
+                    "centralBodyId": "kronos",
+                    "bodies": [
+                      {
+                        "id": "kronos",
+                        "name": "Kronos",
+                        "parentId": null,
+                        "radius": 4096,
+                        "radiusMetres": 4096,
+                        "mass": 7.855319658990456e+17,
+                        "mu": 52428800,
+                        "color": "#c99a5e",
+                        "accentColor": "#ecd6aa",
+                        "atmosphereColor": "#d9b07a60",
+                        "surfaceFeatures": "globe-lines",
+                        "ephemeris": {
+                          "kind": "fixed-inertial",
+                          "position": [
+                            0,
+                            0
+                          ],
+                          "velocity": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        "appearance": {
+                          "style": "banded",
+                          "colors": [
+                            "#c99a5e",
+                            "#8d6337",
+                            "#ecd6aa",
+                            "#b4513a"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "titan-alpha",
+                        "name": "Titan Alpha",
+                        "parentId": "kronos",
+                        "radius": 1024,
+                        "radiusMetres": 1024,
+                        "mass": 1.2273936967172588e+16,
+                        "mu": 819200,
+                        "color": "#9fd0df",
+                        "accentColor": "#e6f6fa",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 18000,
+                          "entryMetres": 18000,
+                          "exitMetres": 18800
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 96000,
+                          "radiusMetres": 96000,
+                          "phaseRadiansAtEpoch": 0.5,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "icy",
+                          "colors": [
+                            "#9fd0df",
+                            "#4f7f90",
+                            "#e6f6fa",
+                            "#9fd0df"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "titan-beta",
+                        "name": "Titan Beta",
+                        "parentId": "kronos",
+                        "radius": 640,
+                        "radiusMetres": 640,
+                        "mass": 4091312322394196.0,
+                        "mu": 273066.67,
+                        "color": "#8a5a50",
+                        "accentColor": "#c39286",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 12800,
+                          "entryMetres": 12800,
+                          "exitMetres": 13600
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 144000,
+                          "radiusMetres": 144000,
+                          "phaseRadiansAtEpoch": 3.14159,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#8a5a50",
+                            "#55372f",
+                            "#c39286",
+                            "#8a5a50"
+                          ]
+                        }
+                      }
+                    ],
+                    "vehicleDefaults": {
+                      "acceleration": 24,
+                      "turnRate": 0.65,
+                      "initialThrottle": 0.65,
+                      "contactRadiusMetres": 2.5
+                    },
+                    "presets": [
+                      {
+                        "id": "kronos-low-orbit",
+                        "name": "Kronos low orbit \u00b7 256 m altitude",
+                        "bodyId": "kronos",
+                        "kind": "circular-orbit",
+                        "radius": 5120,
+                        "radiusMetres": 5120,
+                        "altitude": 1024,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.0640869140625
+                      },
+                      {
+                        "id": "titan-alpha-pad",
+                        "name": "Titan Alpha surface \u00b7 landing outpost",
+                        "bodyId": "titan-alpha",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          1024
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "titan-alpha-orbit",
+                        "name": "Titan Alpha orbit \u00b7 128 m altitude",
+                        "bodyId": "titan-alpha",
+                        "kind": "circular-orbit",
+                        "radius": 1536,
+                        "radiusMetres": 1536,
+                        "altitude": 512,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.25634765625
+                      }
+                    ]
+                  },
+                  {
+                    "id": "primus-system-2x",
+                    "name": "2\u00d7 Classic \u00b7 Primus System",
+                    "description": "2\u00d7 scale trial, unchanged mu and mass. Survey lander: 5 m across, 24 m/s\u00b2 maximum thrust. Arrow Up/Down for throttle (Ctrl for fine control), Space for engine; A/D to turn. Scroll to zoom; C for planet view. Compare launch, orbit and landing; 4\u00d7 is provisional. Primus and Parvus: 1.8 m static reference by the pad, Ridge Lookout 140 m east and Basin Station 220 m west. No EVA controls in this trial.",
+                    "centralBodyId": "star",
+                    "bodies": [
+                      {
+                        "id": "star",
+                        "name": "Lumen",
+                        "parentId": null,
+                        "radius": 32768,
+                        "radiusMetres": 32768,
+                        "mass": 1.9638314130320785e+20,
+                        "mu": 13107200000,
+                        "color": "#ffd27a",
+                        "accentColor": "#ff8a2a",
+                        "atmosphereColor": "#ffaa0060",
+                        "surfaceFeatures": "star",
+                        "ephemeris": {
+                          "kind": "fixed-inertial",
+                          "position": [
+                            0,
+                            0
+                          ],
+                          "velocity": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        "rotation": {
+                          "period": 5656.85424949238,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "star",
+                          "colors": [
+                            "#fff8e6",
+                            "#ffd27a",
+                            "#ff8a2a",
+                            "#c8661c"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "ignis",
+                        "name": "Ignis",
+                        "parentId": "star",
+                        "radius": 128,
+                        "radiusMetres": 128,
+                        "mass": 613697316572524.5,
+                        "mu": 40960,
+                        "color": "#3d2b24",
+                        "accentColor": "#e0703a",
+                        "atmosphereColor": "#a0482830",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 2572,
+                          "entryMetres": 2494,
+                          "exitMetres": 2572
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 409600,
+                          "radiusMetres": 409600,
+                          "phaseRadiansAtEpoch": 2.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 678.8225099390856,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "volcanic",
+                          "colors": [
+                            "#3d2b24",
+                            "#1e1613",
+                            "#ff6a1f",
+                            "#c9a83a"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "velum",
+                        "name": "Velum",
+                        "parentId": "star",
+                        "radius": 768,
+                        "radiusMetres": 768,
+                        "mass": 4.418620679322177e+16,
+                        "mu": 2949120,
+                        "color": "#c8a46e",
+                        "accentColor": "#ead2a2",
+                        "atmosphereColor": "#e3c08a55",
+                        "horizonColor": "#ead2a2",
+                        "skyColor": "#e3c08a55",
+                        "surfaceFeatures": "smooth",
+                        "soi": {
+                          "radius": 28462,
+                          "entryMetres": 27600,
+                          "exitMetres": 28462
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 819200,
+                          "radiusMetres": 819200,
+                          "phaseRadiansAtEpoch": 4.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 2545.584412271571,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "arid",
+                          "colors": [
+                            "#c8a46e",
+                            "#7a5a3c",
+                            "#ece4d2",
+                            "#f4efe6"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "planet",
+                        "name": "Primus",
+                        "parentId": "star",
+                        "radius": 1024,
+                        "radiusMetres": 1024,
+                        "mass": 1.963829914747614e+17,
+                        "mu": 13107200,
+                        "color": "#1d5a8a",
+                        "accentColor": "#7cc3e6",
+                        "atmosphereColor": "#6ab4ec80",
+                        "horizonColor": "#7cc3e6",
+                        "skyColor": "#6ab4ec80",
+                        "surfaceFeatures": "globe-lines",
+                        "soi": {
+                          "radius": 103376,
+                          "entryMetres": 100000,
+                          "exitMetres": 103376
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 1638400,
+                          "radiusMetres": 1638400,
+                          "phaseRadiansAtEpoch": 4.71238898038469,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 1697.0562748477141,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "oceanic",
+                          "colors": [
+                            "#1d5a8a",
+                            "#4c7f3a",
+                            "#c9aa6e",
+                            "#f1f5f8"
+                          ]
+                        },
+                        "surface": {
+                          "kind": "radial",
+                          "generatorVersion": 1,
+                          "seed": 741,
+                          "sampleCount": 1024,
+                          "maxReliefMetres": 12,
+                          "minFeatureWidthMetres": 32,
+                          "orientationRadians": 0,
+                          "mountainRangeCount": 3,
+                          "craterCount": 3,
+                          "pads": [
+                            {
+                              "id": "landing-area",
+                              "angleRadians": 1.5707963267948966,
+                              "widthMetres": 48,
+                              "elevationMetres": 0
+                            },
+                            {
+                              "id": "ridge-lookout",
+                              "angleRadians": 1.4340775767948966,
+                              "widthMetres": 28,
+                              "elevationMetres": 8
+                            },
+                            {
+                              "id": "basin-station",
+                              "angleRadians": 1.7856400767948966,
+                              "widthMetres": 28,
+                              "elevationMetres": -4
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "moon",
+                        "name": "Parvus",
+                        "parentId": "planet",
+                        "radius": 256,
+                        "radiusMetres": 256,
+                        "mass": 3068484241793147.0,
+                        "mu": 204800,
+                        "color": "#8c8984",
+                        "accentColor": "#c4c0b8",
+                        "atmosphereColor": "#00000000",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 5820,
+                          "entryMetres": 5820,
+                          "exitMetres": 6000
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 30720,
+                          "radiusMetres": 30720,
+                          "phaseRadiansAtEpoch": 0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 9327.5895175724,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#8c8984",
+                            "#4d4b48",
+                            "#c4c0b8",
+                            "#8c8984"
+                          ]
+                        },
+                        "surface": {
+                          "kind": "radial",
+                          "generatorVersion": 1,
+                          "seed": 319,
+                          "sampleCount": 256,
+                          "maxReliefMetres": 12,
+                          "minFeatureWidthMetres": 32,
+                          "orientationRadians": 0,
+                          "mountainRangeCount": 3,
+                          "craterCount": 3,
+                          "pads": [
+                            {
+                              "id": "landing-area",
+                              "angleRadians": 1.5707963267948966,
+                              "widthMetres": 48,
+                              "elevationMetres": 0
+                            },
+                            {
+                              "id": "ridge-lookout",
+                              "angleRadians": 1.0239213267948966,
+                              "widthMetres": 28,
+                              "elevationMetres": 8
+                            },
+                            {
+                              "id": "basin-station",
+                              "angleRadians": 2.4301713267948966,
+                              "widthMetres": 28,
+                              "elevationMetres": -4
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "magnus",
+                        "name": "Magnus",
+                        "parentId": "star",
+                        "radius": 4096,
+                        "radiusMetres": 4096,
+                        "mass": 5.027408417362121e+18,
+                        "mu": 335544320,
+                        "color": "#3a6db0",
+                        "accentColor": "#9cc2ee",
+                        "atmosphereColor": "#7aa8e680",
+                        "horizonColor": "#9cc2ee",
+                        "skyColor": "#7aa8e680",
+                        "surfaceFeatures": "globe-lines",
+                        "soi": {
+                          "radius": 1134584,
+                          "entryMetres": 1100546,
+                          "exitMetres": 1134584
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 4915200,
+                          "radiusMetres": 4915200,
+                          "phaseRadiansAtEpoch": 0.6,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 1131.370849898476,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "banded",
+                          "colors": [
+                            "#3a6db0",
+                            "#284f8a",
+                            "#a9c9ee",
+                            "#eef4ff"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "nix",
+                        "name": "Nix",
+                        "parentId": "magnus",
+                        "radius": 192,
+                        "radiusMetres": 192,
+                        "mass": 1726023702860225.2,
+                        "mu": 115200,
+                        "color": "#d6e3ee",
+                        "accentColor": "#f4f9ff",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 1010,
+                          "entryMetres": 980,
+                          "exitMetres": 1010
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 24576,
+                          "radiusMetres": 24576,
+                          "phaseRadiansAtEpoch": 0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 1321.513843258526,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "icy",
+                          "colors": [
+                            "#d6e3ee",
+                            "#7f98ad",
+                            "#ffffff",
+                            "#d6e3ee"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "umbra",
+                        "name": "Umbra",
+                        "parentId": "magnus",
+                        "radius": 320,
+                        "radiusMetres": 320,
+                        "mass": 7671216457156556.0,
+                        "mu": 512000,
+                        "color": "#4a4448",
+                        "accentColor": "#7a7076",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 3672,
+                          "entryMetres": 3562,
+                          "exitMetres": 3672
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 49152,
+                          "radiusMetres": 49152,
+                          "phaseRadiansAtEpoch": 3.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 3737.805760489124,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#4a4448",
+                            "#2a2629",
+                            "#7a7076",
+                            "#4a4448"
+                          ]
+                        }
+                      }
+                    ],
+                    "vehicleDefaults": {
+                      "acceleration": 24,
+                      "turnRate": 0.65,
+                      "initialThrottle": 0.65,
+                      "contactRadiusMetres": 2.5
+                    },
+                    "presets": [
+                      {
+                        "id": "pad",
+                        "name": "Primus \u00b7 landing area & reference figure",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          1024
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "parvus-pad",
+                        "name": "Parvus \u00b7 landing area & reference figure",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          256
+                        ],
+                        "velocity": [
+                          0,
+                          0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "parvus-landing-approach",
+                        "name": "Parvus \u00b7 vertical landing approach, 30 m",
+                        "bodyId": "moon",
+                        "kind": "state",
+                        "position": [
+                          0,
+                          288.5
+                        ],
+                        "velocity": [
+                          0,
+                          -1
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 15
+                      },
+                      {
+                        "id": "primus-landing-approach",
+                        "name": "Primus \u00b7 vertical landing approach, 30 m",
+                        "bodyId": "planet",
+                        "kind": "state",
+                        "position": [
+                          0,
+                          1056.5
+                        ],
+                        "velocity": [
+                          0,
+                          -1
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 15
+                      },
+                      {
+                        "id": "planet-orbit",
+                        "name": "Circular orbit \u00b7 128 m altitude",
+                        "bodyId": "planet",
+                        "kind": "circular-orbit",
+                        "radius": 1280,
+                        "radiusMetres": 1280,
+                        "altitude": 256,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.25634765625
+                      },
+                      {
+                        "id": "moon-orbit",
+                        "name": "Parvus circular orbit \u00b7 128 m altitude",
+                        "bodyId": "moon",
+                        "kind": "circular-orbit",
+                        "radius": 512,
+                        "radiusMetres": 512,
+                        "altitude": 256,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 1.025390625
+                      },
+                      {
+                        "id": "velum-pad",
+                        "name": "Velum \u00b7 low-gravity pad",
+                        "bodyId": "velum",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          768
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "magnus-orbit",
+                        "name": "Magnus circular orbit \u00b7 256 m altitude",
+                        "bodyId": "magnus",
+                        "kind": "circular-orbit",
+                        "radius": 4608,
+                        "radiusMetres": 4608,
+                        "altitude": 512,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.0640869140625
+                      },
+                      {
+                        "id": "umbra-pad",
+                        "name": "Umbra \u00b7 dark moon pad",
+                        "bodyId": "umbra",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          320
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-ridge-lookout",
+                        "name": "Primus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.4282182017948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-basin-station",
+                        "name": "Primus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.7797807017948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-ridge-lookout",
+                        "name": "Parvus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.0004838267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-basin-station",
+                        "name": "Parvus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 2.4067338267948966,
+                        "zoom": 30
+                      }
+                    ]
+                  },
+                  {
+                    "id": "outer-reach-system-2x",
+                    "name": "2\u00d7 Classic \u00b7 Outer Reach System",
+                    "description": "2\u00d7 scale trial, unchanged mu and mass. Survey lander: 5 m across, 24 m/s\u00b2 maximum thrust. Arrow Up/Down for throttle (Ctrl for fine control), Space for engine; A/D to turn. Scroll to zoom; C for planet view. Compare launch, orbit and landing; 4\u00d7 is provisional. Primus and Parvus: 1.8 m static reference by the pad, Ridge Lookout 140 m east and Basin Station 220 m west. No EVA controls in this trial.",
+                    "centralBodyId": "kronos",
+                    "bodies": [
+                      {
+                        "id": "kronos",
+                        "name": "Kronos",
+                        "parentId": null,
+                        "radius": 2048,
+                        "radiusMetres": 2048,
+                        "mass": 7.855319658990456e+17,
+                        "mu": 52428800,
+                        "color": "#c99a5e",
+                        "accentColor": "#ecd6aa",
+                        "atmosphereColor": "#d9b07a60",
+                        "surfaceFeatures": "globe-lines",
+                        "ephemeris": {
+                          "kind": "fixed-inertial",
+                          "position": [
+                            0,
+                            0
+                          ],
+                          "velocity": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        "appearance": {
+                          "style": "banded",
+                          "colors": [
+                            "#c99a5e",
+                            "#8d6337",
+                            "#ecd6aa",
+                            "#b4513a"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "titan-alpha",
+                        "name": "Titan Alpha",
+                        "parentId": "kronos",
+                        "radius": 512,
+                        "radiusMetres": 512,
+                        "mass": 1.2273936967172588e+16,
+                        "mu": 819200,
+                        "color": "#9fd0df",
+                        "accentColor": "#e6f6fa",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 9000,
+                          "entryMetres": 9000,
+                          "exitMetres": 9400
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 48000,
+                          "radiusMetres": 48000,
+                          "phaseRadiansAtEpoch": 0.5,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "icy",
+                          "colors": [
+                            "#9fd0df",
+                            "#4f7f90",
+                            "#e6f6fa",
+                            "#9fd0df"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "titan-beta",
+                        "name": "Titan Beta",
+                        "parentId": "kronos",
+                        "radius": 320,
+                        "radiusMetres": 320,
+                        "mass": 4091312322394196.0,
+                        "mu": 273066.67,
+                        "color": "#8a5a50",
+                        "accentColor": "#c39286",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 6400,
+                          "entryMetres": 6400,
+                          "exitMetres": 6800
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 72000,
+                          "radiusMetres": 72000,
+                          "phaseRadiansAtEpoch": 3.14159,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#8a5a50",
+                            "#55372f",
+                            "#c39286",
+                            "#8a5a50"
+                          ]
+                        }
+                      }
+                    ],
+                    "vehicleDefaults": {
+                      "acceleration": 24,
+                      "turnRate": 0.65,
+                      "initialThrottle": 0.65,
+                      "contactRadiusMetres": 2.5
+                    },
+                    "presets": [
+                      {
+                        "id": "kronos-low-orbit",
+                        "name": "Kronos low orbit \u00b7 256 m altitude",
+                        "bodyId": "kronos",
+                        "kind": "circular-orbit",
+                        "radius": 2560,
+                        "radiusMetres": 2560,
+                        "altitude": 512,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.128173828125
+                      },
+                      {
+                        "id": "titan-alpha-pad",
+                        "name": "Titan Alpha surface \u00b7 landing outpost",
+                        "bodyId": "titan-alpha",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          512
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "titan-alpha-orbit",
+                        "name": "Titan Alpha orbit \u00b7 128 m altitude",
+                        "bodyId": "titan-alpha",
+                        "kind": "circular-orbit",
+                        "radius": 768,
+                        "radiusMetres": 768,
+                        "altitude": 256,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.5126953125
+                      }
+                    ]
+                  },
+                  {
+                    "id": "primus-system-8x",
+                    "name": "8\u00d7 Classic \u00b7 Primus System",
+                    "description": "8\u00d7 scale trial, unchanged mu and mass. Survey lander: 5 m across, 24 m/s\u00b2 maximum thrust. Arrow Up/Down for throttle (Ctrl for fine control), Space for engine; A/D to turn. Scroll to zoom; C for planet view. Compare launch, orbit and landing; 4\u00d7 is provisional. Primus and Parvus: 1.8 m static reference by the pad, Ridge Lookout 140 m east and Basin Station 220 m west. No EVA controls in this trial.",
+                    "centralBodyId": "star",
+                    "bodies": [
+                      {
+                        "id": "star",
+                        "name": "Lumen",
+                        "parentId": null,
+                        "radius": 131072,
+                        "radiusMetres": 131072,
+                        "mass": 1.9638314130320785e+20,
+                        "mu": 13107200000,
+                        "color": "#ffd27a",
+                        "accentColor": "#ff8a2a",
+                        "atmosphereColor": "#ffaa0060",
+                        "surfaceFeatures": "star",
+                        "ephemeris": {
+                          "kind": "fixed-inertial",
+                          "position": [
+                            0,
+                            0
+                          ],
+                          "velocity": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        "rotation": {
+                          "period": 45254.83399593904,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "star",
+                          "colors": [
+                            "#fff8e6",
+                            "#ffd27a",
+                            "#ff8a2a",
+                            "#c8661c"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "ignis",
+                        "name": "Ignis",
+                        "parentId": "star",
+                        "radius": 512,
+                        "radiusMetres": 512,
+                        "mass": 613697316572524.5,
+                        "mu": 40960,
+                        "color": "#3d2b24",
+                        "accentColor": "#e0703a",
+                        "atmosphereColor": "#a0482830",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 10288,
+                          "entryMetres": 9976,
+                          "exitMetres": 10288
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 1638400,
+                          "radiusMetres": 1638400,
+                          "phaseRadiansAtEpoch": 2.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 5430.580079512685,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "volcanic",
+                          "colors": [
+                            "#3d2b24",
+                            "#1e1613",
+                            "#ff6a1f",
+                            "#c9a83a"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "velum",
+                        "name": "Velum",
+                        "parentId": "star",
+                        "radius": 3072,
+                        "radiusMetres": 3072,
+                        "mass": 4.418620679322177e+16,
+                        "mu": 2949120,
+                        "color": "#c8a46e",
+                        "accentColor": "#ead2a2",
+                        "atmosphereColor": "#e3c08a55",
+                        "horizonColor": "#ead2a2",
+                        "skyColor": "#e3c08a55",
+                        "surfaceFeatures": "smooth",
+                        "soi": {
+                          "radius": 113848,
+                          "entryMetres": 110400,
+                          "exitMetres": 113848
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 3276800,
+                          "radiusMetres": 3276800,
+                          "phaseRadiansAtEpoch": 4.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 20364.67529817257,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "arid",
+                          "colors": [
+                            "#c8a46e",
+                            "#7a5a3c",
+                            "#ece4d2",
+                            "#f4efe6"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "planet",
+                        "name": "Primus",
+                        "parentId": "star",
+                        "radius": 4096,
+                        "radiusMetres": 4096,
+                        "mass": 1.963829914747614e+17,
+                        "mu": 13107200,
+                        "color": "#1d5a8a",
+                        "accentColor": "#7cc3e6",
+                        "atmosphereColor": "#6ab4ec80",
+                        "horizonColor": "#7cc3e6",
+                        "skyColor": "#6ab4ec80",
+                        "surfaceFeatures": "globe-lines",
+                        "soi": {
+                          "radius": 413504,
+                          "entryMetres": 400000,
+                          "exitMetres": 413504
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 6553600,
+                          "radiusMetres": 6553600,
+                          "phaseRadiansAtEpoch": 4.71238898038469,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 13576.450198781713,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "oceanic",
+                          "colors": [
+                            "#1d5a8a",
+                            "#4c7f3a",
+                            "#c9aa6e",
+                            "#f1f5f8"
+                          ]
+                        },
+                        "surface": {
+                          "kind": "radial",
+                          "generatorVersion": 1,
+                          "seed": 741,
+                          "sampleCount": 4096,
+                          "maxReliefMetres": 12,
+                          "minFeatureWidthMetres": 32,
+                          "orientationRadians": 0,
+                          "mountainRangeCount": 3,
+                          "craterCount": 3,
+                          "pads": [
+                            {
+                              "id": "landing-area",
+                              "angleRadians": 1.5707963267948966,
+                              "widthMetres": 48,
+                              "elevationMetres": 0
+                            },
+                            {
+                              "id": "ridge-lookout",
+                              "angleRadians": 1.5366166392948966,
+                              "widthMetres": 28,
+                              "elevationMetres": 8
+                            },
+                            {
+                              "id": "basin-station",
+                              "angleRadians": 1.6245072642948966,
+                              "widthMetres": 28,
+                              "elevationMetres": -4
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "moon",
+                        "name": "Parvus",
+                        "parentId": "planet",
+                        "radius": 1024,
+                        "radiusMetres": 1024,
+                        "mass": 3068484241793147.0,
+                        "mu": 204800,
+                        "color": "#8c8984",
+                        "accentColor": "#c4c0b8",
+                        "atmosphereColor": "#00000000",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 23280,
+                          "entryMetres": 23280,
+                          "exitMetres": 24000
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 122880,
+                          "radiusMetres": 122880,
+                          "phaseRadiansAtEpoch": 0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 74620.7161405792,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#8c8984",
+                            "#4d4b48",
+                            "#c4c0b8",
+                            "#8c8984"
+                          ]
+                        },
+                        "surface": {
+                          "kind": "radial",
+                          "generatorVersion": 1,
+                          "seed": 319,
+                          "sampleCount": 1024,
+                          "maxReliefMetres": 12,
+                          "minFeatureWidthMetres": 32,
+                          "orientationRadians": 0,
+                          "mountainRangeCount": 3,
+                          "craterCount": 3,
+                          "pads": [
+                            {
+                              "id": "landing-area",
+                              "angleRadians": 1.5707963267948966,
+                              "widthMetres": 48,
+                              "elevationMetres": 0
+                            },
+                            {
+                              "id": "ridge-lookout",
+                              "angleRadians": 1.4340775767948966,
+                              "widthMetres": 28,
+                              "elevationMetres": 8
+                            },
+                            {
+                              "id": "basin-station",
+                              "angleRadians": 1.7856400767948966,
+                              "widthMetres": 28,
+                              "elevationMetres": -4
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "id": "magnus",
+                        "name": "Magnus",
+                        "parentId": "star",
+                        "radius": 16384,
+                        "radiusMetres": 16384,
+                        "mass": 5.027408417362121e+18,
+                        "mu": 335544320,
+                        "color": "#3a6db0",
+                        "accentColor": "#9cc2ee",
+                        "atmosphereColor": "#7aa8e680",
+                        "horizonColor": "#9cc2ee",
+                        "skyColor": "#7aa8e680",
+                        "surfaceFeatures": "globe-lines",
+                        "soi": {
+                          "radius": 4538336,
+                          "entryMetres": 4402184,
+                          "exitMetres": 4538336
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 19660800,
+                          "radiusMetres": 19660800,
+                          "phaseRadiansAtEpoch": 0.6,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 9050.966799187809,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "banded",
+                          "colors": [
+                            "#3a6db0",
+                            "#284f8a",
+                            "#a9c9ee",
+                            "#eef4ff"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "nix",
+                        "name": "Nix",
+                        "parentId": "magnus",
+                        "radius": 768,
+                        "radiusMetres": 768,
+                        "mass": 1726023702860225.2,
+                        "mu": 115200,
+                        "color": "#d6e3ee",
+                        "accentColor": "#f4f9ff",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 4040,
+                          "entryMetres": 3920,
+                          "exitMetres": 4040
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 98304,
+                          "radiusMetres": 98304,
+                          "phaseRadiansAtEpoch": 0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 10572.110746068209,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "icy",
+                          "colors": [
+                            "#d6e3ee",
+                            "#7f98ad",
+                            "#ffffff",
+                            "#d6e3ee"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "umbra",
+                        "name": "Umbra",
+                        "parentId": "magnus",
+                        "radius": 1280,
+                        "radiusMetres": 1280,
+                        "mass": 7671216457156556.0,
+                        "mu": 512000,
+                        "color": "#4a4448",
+                        "accentColor": "#7a7076",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 14688,
+                          "entryMetres": 14248,
+                          "exitMetres": 14688
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 196608,
+                          "radiusMetres": 196608,
+                          "phaseRadiansAtEpoch": 3.0,
+                          "direction": -1
+                        },
+                        "rotation": {
+                          "period": 29902.446083912993,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#4a4448",
+                            "#2a2629",
+                            "#7a7076",
+                            "#4a4448"
+                          ]
+                        }
+                      }
+                    ],
+                    "vehicleDefaults": {
+                      "acceleration": 24,
+                      "turnRate": 0.65,
+                      "initialThrottle": 0.65,
+                      "contactRadiusMetres": 2.5
+                    },
+                    "presets": [
+                      {
+                        "id": "pad",
+                        "name": "Primus \u00b7 landing area & reference figure",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          4096
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "parvus-pad",
+                        "name": "Parvus \u00b7 landing area & reference figure",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          1024
+                        ],
+                        "velocity": [
+                          0,
+                          0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "parvus-landing-approach",
+                        "name": "Parvus \u00b7 vertical landing approach, 30 m",
+                        "bodyId": "moon",
+                        "kind": "state",
+                        "position": [
+                          0,
+                          1056.5
+                        ],
+                        "velocity": [
+                          0,
+                          -1
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 15
+                      },
+                      {
+                        "id": "primus-landing-approach",
+                        "name": "Primus \u00b7 vertical landing approach, 30 m",
+                        "bodyId": "planet",
+                        "kind": "state",
+                        "position": [
+                          0,
+                          4128.5
+                        ],
+                        "velocity": [
+                          0,
+                          -1
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 15
+                      },
+                      {
+                        "id": "planet-orbit",
+                        "name": "Circular orbit \u00b7 128 m altitude",
+                        "bodyId": "planet",
+                        "kind": "circular-orbit",
+                        "radius": 5120,
+                        "radiusMetres": 5120,
+                        "altitude": 1024,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.0640869140625
+                      },
+                      {
+                        "id": "moon-orbit",
+                        "name": "Parvus circular orbit \u00b7 128 m altitude",
+                        "bodyId": "moon",
+                        "kind": "circular-orbit",
+                        "radius": 2048,
+                        "radiusMetres": 2048,
+                        "altitude": 1024,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.25634765625
+                      },
+                      {
+                        "id": "velum-pad",
+                        "name": "Velum \u00b7 low-gravity pad",
+                        "bodyId": "velum",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          3072
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "magnus-orbit",
+                        "name": "Magnus circular orbit \u00b7 256 m altitude",
+                        "bodyId": "magnus",
+                        "kind": "circular-orbit",
+                        "radius": 18432,
+                        "radiusMetres": 18432,
+                        "altitude": 2048,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.016021728515625
+                      },
+                      {
+                        "id": "umbra-pad",
+                        "name": "Umbra \u00b7 dark moon pad",
+                        "bodyId": "umbra",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          1280
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-ridge-lookout",
+                        "name": "Primus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.5351517955448966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "planet-basin-station",
+                        "name": "Primus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "planet",
+                        "kind": "landed",
+                        "phaseRadians": 1.6230424205448966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-ridge-lookout",
+                        "name": "Parvus \u00b7 tile review \u00b7 Ridge Lookout",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.4282182017948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "moon-basin-station",
+                        "name": "Parvus \u00b7 tile review \u00b7 Basin Station",
+                        "bodyId": "moon",
+                        "kind": "landed",
+                        "phaseRadians": 1.7797807017948966,
+                        "zoom": 30
+                      }
+                    ]
+                  },
+                  {
+                    "id": "outer-reach-system-8x",
+                    "name": "8\u00d7 Classic \u00b7 Outer Reach System",
+                    "description": "8\u00d7 scale trial, unchanged mu and mass. Survey lander: 5 m across, 24 m/s\u00b2 maximum thrust. Arrow Up/Down for throttle (Ctrl for fine control), Space for engine; A/D to turn. Scroll to zoom; C for planet view. Compare launch, orbit and landing; 4\u00d7 is provisional. Primus and Parvus: 1.8 m static reference by the pad, Ridge Lookout 140 m east and Basin Station 220 m west. No EVA controls in this trial.",
+                    "centralBodyId": "kronos",
+                    "bodies": [
+                      {
+                        "id": "kronos",
+                        "name": "Kronos",
+                        "parentId": null,
+                        "radius": 8192,
+                        "radiusMetres": 8192,
+                        "mass": 7.855319658990456e+17,
+                        "mu": 52428800,
+                        "color": "#c99a5e",
+                        "accentColor": "#ecd6aa",
+                        "atmosphereColor": "#d9b07a60",
+                        "surfaceFeatures": "globe-lines",
+                        "ephemeris": {
+                          "kind": "fixed-inertial",
+                          "position": [
+                            0,
+                            0
+                          ],
+                          "velocity": [
+                            0.0,
+                            0.0
+                          ]
+                        },
+                        "appearance": {
+                          "style": "banded",
+                          "colors": [
+                            "#c99a5e",
+                            "#8d6337",
+                            "#ecd6aa",
+                            "#b4513a"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "titan-alpha",
+                        "name": "Titan Alpha",
+                        "parentId": "kronos",
+                        "radius": 2048,
+                        "radiusMetres": 2048,
+                        "mass": 1.2273936967172588e+16,
+                        "mu": 819200,
+                        "color": "#9fd0df",
+                        "accentColor": "#e6f6fa",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 36000,
+                          "entryMetres": 36000,
+                          "exitMetres": 37600
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 192000,
+                          "radiusMetres": 192000,
+                          "phaseRadiansAtEpoch": 0.5,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "icy",
+                          "colors": [
+                            "#9fd0df",
+                            "#4f7f90",
+                            "#e6f6fa",
+                            "#9fd0df"
+                          ]
+                        }
+                      },
+                      {
+                        "id": "titan-beta",
+                        "name": "Titan Beta",
+                        "parentId": "kronos",
+                        "radius": 1280,
+                        "radiusMetres": 1280,
+                        "mass": 4091312322394196.0,
+                        "mu": 273066.67,
+                        "color": "#8a5a50",
+                        "accentColor": "#c39286",
+                        "surfaceFeatures": "craters",
+                        "soi": {
+                          "radius": 25600,
+                          "entryMetres": 25600,
+                          "exitMetres": 27200
+                        },
+                        "ephemeris": {
+                          "kind": "circular-kepler",
+                          "radius": 288000,
+                          "radiusMetres": 288000,
+                          "phaseRadiansAtEpoch": 3.14159,
+                          "direction": -1
+                        },
+                        "appearance": {
+                          "style": "rocky",
+                          "colors": [
+                            "#8a5a50",
+                            "#55372f",
+                            "#c39286",
+                            "#8a5a50"
+                          ]
+                        }
+                      }
+                    ],
+                    "vehicleDefaults": {
+                      "acceleration": 24,
+                      "turnRate": 0.65,
+                      "initialThrottle": 0.65,
+                      "contactRadiusMetres": 2.5
+                    },
+                    "presets": [
+                      {
+                        "id": "kronos-low-orbit",
+                        "name": "Kronos low orbit \u00b7 256 m altitude",
+                        "bodyId": "kronos",
+                        "kind": "circular-orbit",
+                        "radius": 10240,
+                        "radiusMetres": 10240,
+                        "altitude": 2048,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.03204345703125
+                      },
+                      {
+                        "id": "titan-alpha-pad",
+                        "name": "Titan Alpha surface \u00b7 landing outpost",
+                        "bodyId": "titan-alpha",
+                        "kind": "landed",
+                        "position": [
+                          0,
+                          2048
+                        ],
+                        "velocity": [
+                          0.0,
+                          0.0
+                        ],
+                        "headingRadians": 1.5707963267948966,
+                        "zoom": 30
+                      },
+                      {
+                        "id": "titan-alpha-orbit",
+                        "name": "Titan Alpha orbit \u00b7 128 m altitude",
+                        "bodyId": "titan-alpha",
+                        "kind": "circular-orbit",
+                        "radius": 3072,
+                        "radiusMetres": 3072,
+                        "altitude": 1024,
+                        "phaseRadians": 1.5707963267948966,
+                        "direction": -1,
+                        "headingRadians": 0,
+                        "zoom": 0.128173828125
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "presentation": {
+      "format": "space-sim-profile/1",
+      "id": "builtin.successor-presentation",
+      "modules": [
+        {
+          "id": "builtin.webgl",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.canvas",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.flight-data",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.flight-vectors",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.orbit-markers",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.telemetry",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.navball",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.throttle",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.maneuver-planner",
+          "version": "0.1.0"
+        },
+        {
+          "id": "builtin.audio",
+          "version": "0.1.0"
+        }
+      ],
+      "providers": {
+        "renderer": "builtin.webgl",
+        "audio": "builtin.audio"
+      },
+      "settings": {}
+    },
+    "selection": {
+      "universe": "space-sim.successor-content/successor-universe"
+    }
+  },
+  "plugins": []
+}

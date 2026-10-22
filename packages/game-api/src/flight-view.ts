@@ -111,6 +111,9 @@ export interface FlightSplitScreenHost {
   /** Renderer replacement may replace the element; resolve the current surface at use. */
   primaryCanvas(): HTMLCanvasElement;
   session(): SessionRead; ownWorld(): FlightLocalSession | undefined; presetId(): string; isGodMode(): boolean;
+  /** Temporary game/renderer policy: activate only the primary seat/view without
+   * rewriting saved player preferences. Re-evaluated by sync; absent means unrestricted. */
+  singleView?(): boolean;
   keyboardFlight(): Controls; resolveFlight?(slot: number, controls: Controls, elapsed: number): Controls;
   throttleAction?(slot: number, action: 'throttleCut' | 'throttleRecall' | 'throttleRemember'): void;
   releaseFlight?(slot: number): void; inputEnabled?(): boolean; consumesPad?(slot: number, pad: number): boolean;
@@ -138,6 +141,8 @@ export interface FlightSplitServices {
 export interface FlightSplitScreen extends Disposable {
   config: LocalPlayersConfig; readonly guests: ReadonlyMap<number, FlightGuestPilot>; readonly separatedGuests: ReadonlySet<number>;
   readonly active: number; readonly split: boolean; readonly keyboardSlot: number | undefined;
+  /** Current host single-view restriction, independent of the saved configuration. */
+  readonly singleView?: boolean;
   isSeparated(slot: number): boolean; setConfig(next: LocalPlayersConfig): void; padsOf(slot: number): number[];
   /** Sample this logical device frame across routing and held reads; omitted identity samples fresh. */
   pollPads(captureId?: number): void; join(pad: number): boolean; action(slot: number, action: FlightActionId): void; sync(): void;
@@ -155,7 +160,7 @@ export const FLIGHT_SPLIT: ServiceKey<FlightSplitFactory> = Object.freeze({ slot
 export interface ControllerMenu extends Disposable {
   /** Opens the menu, re-rendering both tabs and beginning the live diagnostic animation loop. */
   open(): void;
-  /** Re-renders the Players tab (splitscreen seat list and device assignments). */
+  /** Re-renders the Players tab, honoring a temporary single-view policy without rewriting saved seats. */
   renderPlayers(): void;
   /** Re-renders the Controllers tab (axes, deadzones, and button bindings for the selected player). */
   renderPad(): void;
@@ -166,7 +171,7 @@ export interface ControllerMenuOptions {
   /** DOM element container where the menu is mounted. */
   readonly root: HTMLElement;
   /** Handle to the active splitscreen configuration. */
-  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig'>;
+  readonly split: Pick<FlightSplitScreen, 'config' | 'setConfig' | 'singleView'>;
   /** Optional FlightGamepad manager for live axis/button diagnostics and button capture. */
   readonly gamepads?: FlightGamepad;
   /** Returns the pilot name for player 1. */

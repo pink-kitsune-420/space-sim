@@ -184,6 +184,41 @@ describe('presentation hook output', () => {
       expect(() => validateOverlay([chunk])).toThrow();
     }
   });
+  it('validates supplied nibble light and reconciled walls without taking byte ownership', () => {
+    const tiles = new Uint16Array(1024), walls = new Uint16Array(1024), light = new Uint8Array(1024);
+    const chunk = {kind:'tile-chunk',space:'world',origin:{x:0,y:0},size:32,tileMetres:.5,tiles,walls,light,lightEncoding:'nibble'};
+    const captured=validateOverlay([chunk])[0];
+    if(captured?.kind!=='tile-chunk') throw new Error('Lost tile');
+    expect(captured.walls).toBe(walls);expect(captured.light).toBe(light);expect(captured.lightEncoding).toBe('nibble');
+    light[10]=16;expect(()=>validateOverlay([chunk])).toThrow('0..15');
+    light[10]=15;tiles[500]=1024;expect(()=>validateOverlay([chunk])).toThrow('0..1023');
+    tiles[500]=1023;walls[2]=65535;expect(()=>validateOverlay([chunk])).toThrow('0..1023');
+    expect(()=>validateOverlay([{...chunk,lightEncoding:'unknown'}])).toThrow('lightEncoding');
+    expect(()=>validateOverlay([{...chunk,lightEncoding:undefined,walls:new Uint16Array(2)}])).toThrow('walls');
+    // Legacy byte-light and full uint16 IDs remain accepted by the runtime adapter.
+    expect(()=>validateOverlay([{...chunk,lightEncoding:undefined,light:new Uint8Array(1024).fill(255)}])).not.toThrow();
+  });
+  it('captures rotated clipped tile layers and enforces the shared point budget', () => {
+    const polygon = [{x:0,y:0}, {x:1,y:0}, {x:1,y:1}, {x:.5,y:.5}, {x:0,y:1}];
+    const chunk = { kind: 'tile-chunk', space: 'world', origin: {x:10,y:20}, size:32,
+      tileMetres:.5, tiles:new Uint16Array(1024), rotationRadians:Math.PI / 4, clipPolygon:polygon };
+    const captured = validateOverlay([chunk])[0];
+    if (captured?.kind !== 'tile-chunk') throw new Error('Lost tile primitive');
+    expect(captured.rotationRadians).toBe(Math.PI / 4);
+    expect(captured.clipPolygon).toEqual(polygon);
+    expect(captured.clipPolygon).not.toBe(polygon);
+    expect(Object.isFrozen(captured.clipPolygon)).toBe(true);
+    expect(Object.isFrozen(captured.clipPolygon![0])).toBe(true);
+    polygon[0]!.x = 99; expect(captured.clipPolygon![0]!.x).toBe(0);
+    for (const value of [NaN, Infinity, 'bad', null]) expect(() => validateOverlay([{...chunk, rotationRadians:value}])).toThrow('rotationRadians');
+    for (const value of [[], [{x:0,y:0}], null, [{x:0,y:0}, {x:Infinity,y:1}, {x:1,y:1}]]) {
+      expect(() => validateOverlay([{...chunk, clipPolygon:value}])).toThrow();
+    }
+    const line = {kind:'line', space:'world', color:'#ffffff', points:Array.from({length:4092}, (_,i) => ({x:i,y:0}))};
+    expect(() => validateOverlay([line, chunk])).toThrow('at most 4096 points');
+    line.points.pop(); expect(validateOverlay([line, chunk])).toHaveLength(2);
+  });
+
   it('accepts bounded panel rows and finite camera targets', () => {
     expect(validatePanelRows([{ label: 'Speed', value: '12.0', unit: 'm/s' }, { label: 'Ship', value: '' }])).toHaveLength(2);
     for (const rows of [Array.from({ length: 17 }, () => ({ label: 'A', value: 'B' })), [{ label: '', value: 'x' }],

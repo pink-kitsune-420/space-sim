@@ -168,7 +168,8 @@ export class World implements WorldControl {
     if (!definition) throw new Error('Unknown system');
     this.context = this.createContext({ acceleration: definition.vehicleDefaults?.acceleration ?? 125,
       turnRate: definition.vehicleDefaults?.turnRate ?? 1.227184630308513,
-      initialThrottle: definition.vehicleDefaults?.initialThrottle ?? .5 }, {
+      initialThrottle: definition.vehicleDefaults?.initialThrottle ?? .5,
+      ...(definition.vehicleDefaults?.contactRadiusMetres === undefined ? {} : { contactRadiusMetres: definition.vehicleDefaults.contactRadiusMetres }) }, {
         worldRules: this.rules.length > 0,
         worldRuleIdentity: this.rules.length ? JSON.stringify(this.rules.map(r => [r.moduleId, r.version, r.hook.modelIdentity, r.hook.initialState, r.hook.seed])) : undefined,
       });
@@ -208,7 +209,8 @@ export class World implements WorldControl {
       : (this.data.schemas.length > 0 || this.rules.length > 0 || !this.context.capabilities.legacyCompatible);
     const settings = this.system.vehicleDefaults;
     if (this.context.stepSeconds !== STEP || this.context.vehicle.acceleration !== settings.acceleration
-      || this.context.vehicle.turnRate !== settings.turnRate || this.context.vehicle.initialThrottle !== settings.initialThrottle) {
+      || this.context.vehicle.turnRate !== settings.turnRate || this.context.vehicle.initialThrottle !== settings.initialThrottle
+      || this.context.vehicle.contactRadiusMetres !== settings.contactRadiusMetres) {
       this.context.dispose();
       throw new Error('World context must match the system vehicle settings and fixed step');
     }
@@ -216,13 +218,15 @@ export class World implements WorldControl {
       for (const definition of this.vehicles?.definitions ?? []) {
         const handling = definition.handling ?? settings;
         let context = this.context;
-        if (handling.acceleration !== settings.acceleration || handling.turnRate !== settings.turnRate || handling.initialThrottle !== settings.initialThrottle) {
+        if (handling.acceleration !== settings.acceleration || handling.turnRate !== settings.turnRate || handling.initialThrottle !== settings.initialThrottle
+          || handling.contactRadiusMetres !== settings.contactRadiusMetres) {
           context = this.createContext(handling, {
             worldRules: this.rules.length > 0,
             worldRuleIdentity: this.rules.length ? JSON.stringify(this.rules.map(r => [r.moduleId, r.version, r.hook.modelIdentity, r.hook.initialState, r.hook.seed])) : undefined,
           });
           if (context.stepSeconds !== STEP || context.vehicle.acceleration !== handling.acceleration
             || context.vehicle.turnRate !== handling.turnRate || context.vehicle.initialThrottle !== handling.initialThrottle
+            || context.vehicle.contactRadiusMetres !== handling.contactRadiusMetres
             || context.services.bodies !== this.context.services.bodies || context.services.surfaces !== this.context.services.surfaces
             || (this.rules.length && (context.capabilities.analyticCoast || context.capabilities.rails))) {
             context.dispose(); throw new Error(`Vehicle ${definition.id}: incompatible motion context`);
@@ -526,10 +530,15 @@ export class World implements WorldControl {
 
   /** A preset start on the shared clock. Presets are authored over the ground, so on a
    * rotating body a flying start is turned to where that ground is now. */
-  presetState(presetId?: string): { readonly state: State; readonly bodyId: string } {
+  presetState(presetId?: string, radiusMetres = 0): { readonly state: State; readonly bodyId: string } {
     const p = this.system.presets.find(p => p.id === presetId) ?? this.system.presets[0]!;
     const start = this.system.initialState(p.id, this.surfaces.get(p.bodyId));
-    const state = { ...start.state, time: this.time };
+    let state = { ...start.state, time: this.time };
+    if (radiusMetres && state.status !== 'flying') {
+      const angle = dm.atan2(state.position.y, state.position.x), surface = this.surfaces.get(start.body.id);
+      const radius = surface ? this.context.services.surfaces.support(surface, angle, radiusMetres).centerRadiusMetres! : start.body.radius + radiusMetres;
+      state = { ...state, position: { x: radius * dm.cos(angle), y: radius * dm.sin(angle) } };
+    }
     return { state: groundPreset(state, this.body(start.body.id), p.kind === 'state'), bodyId: start.body.id };
   }
 
@@ -539,7 +548,7 @@ export class World implements WorldControl {
     const vehicleId = this.vehicles ? selectedId : undefined;
     const fixedHandling = this.vehicles?.definitions.find(d => d.id === vehicleId)?.handling;
     const n = this.nextShipNumber++;
-    const start = this.presetState(options.presetId);
+    const start = this.presetState(options.presetId, context.vehicle.contactRadiusMetres);
     const ship: Ship = {
       id: `ship-${n}`, name: cleanName(options.name) || defaultName(n), ownerId: options.ownerId,
       bodyId: start.bodyId, controls: IDLE,
@@ -558,7 +567,7 @@ export class World implements WorldControl {
    * increasing so caches keyed by it can never mistake the new flight for the old one. */
   respawn(shipId: string, presetId?: string, godMode?: boolean): Ship {
     const ship = this.require(shipId);
-    const start = this.presetState(presetId);
+    const start = this.presetState(presetId, this.contextFor(ship).vehicle.contactRadiusMetres);
     const isGod = godMode !== undefined ? godMode : !!ship.state.godMode;
     const fixedHandling = this.vehicles?.definitions.find(d => d.id === ship.vehicleId)?.handling;
     const next: Ship = { id: ship.id, name: ship.name, ownerId: ship.ownerId, ...(ship.vehicleId ? { vehicleId: ship.vehicleId } : {}), bodyId: start.bodyId, controls: IDLE,
@@ -1229,7 +1238,7 @@ export class World implements WorldControl {
               x: state.position.x + 0.5 * dax * STEP * STEP,
               y: state.position.y + 0.5 * day * STEP * STEP,
             };
-            const minSafeRadius = surface ? surface.bounds.maxRadius + 1e-6 : body.radius + 1e-6;
+            const minSafeRadius = surface ? surface.bounds.maxRadius + (this.contextFor(ship).vehicle.contactRadiusMetres ?? 0) + 1e-6 : body.radius + (this.contextFor(ship).vehicle.contactRadiusMetres ?? 0) + 1e-6;
             if (Math.hypot(nextPos.x, nextPos.y) >= minSafeRadius) {
               state = {
                 ...state,
@@ -1330,7 +1339,7 @@ export class World implements WorldControl {
       } else if (state.dynamics === 'kepler' && state.coast && state.water === undefined) {
         const body = this.body(ship.bodyId);
         horizon = this.railsHorizon(this.contextFor(ship), this.system, body, state, state.coast, state.time,
-          this.surfaces.get(ship.bodyId)?.bounds.maxRadius ?? body.radius);
+          (this.surfaces.get(ship.bodyId)?.bounds.maxRadius ?? body.radius) + (this.contextFor(ship).vehicle.contactRadiusMetres ?? 0));
       } else return;
     }
     // Skipped steps end one step before the horizon, so the step that could first see an
@@ -1379,7 +1388,7 @@ export class World implements WorldControl {
     if (!coast) return false;
     // A new coast is this very state, frozen (its elements are already cached).
     const skip = Math.floor(this.railsHorizon(this.contextFor(ship), this.system, body, state.coast === coast ? state : coast, coast, state.time,
-      surface?.bounds.maxRadius ?? body.radius) / STEP) - 1;
+      (surface?.bounds.maxRadius ?? body.radius) + (this.contextFor(ship).vehicle.contactRadiusMetres ?? 0)) / STEP) - 1;
     if (!(skip >= need)) return false;
     const generation = ++this.generation;
     const wake = skip === Infinity ? Infinity : tick + 1 + skip;

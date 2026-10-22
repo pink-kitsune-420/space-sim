@@ -8,6 +8,8 @@ The name is inspired by the joint ESA/NASA orbital laboratory missions. This pro
 
 All simulation physics, orbital mechanics, Kepler propagators, Canvas 2D and WebGL 2 GPU shader renderers, flight HUDs, multiplayer networking, and application plumbing are first-party code authored specifically for this project.
 
+The successor survey lander, static human reference and trial terrain recipes are original first-party vector/data assets under the project MIT license.
+
 Engine rumble and flight sound effects are synthesized by original first-party code under the project's MIT license, using generated noise and oscillators. No third-party sound recordings, samples or instrument libraries are bundled.
 
 Solar system astronomical and ephemeris parameters are derived from publicly available NASA / JPL Solar System Dynamics data ([ssd.jpl.nasa.gov](https://ssd.jpl.nasa.gov/)): planetary satellite mean orbital elements and physical parameters, *Keplerian Elements for Approximate Positions of the Major Planets* (E. M. Standish, JPL), and the JPL Horizons system. Courtesy NASA/JPL-Caltech. NASA and JPL do not endorse this software.
@@ -49,3 +51,7 @@ The following open-source tools and libraries are used during development, testi
 - **tauri-build** ([MIT](https://github.com/tauri-apps/tauri/blob/dev/LICENSE-MIT) OR [Apache-2.0](https://github.com/tauri-apps/tauri/blob/dev/LICENSE-APACHE-2.0)) — The Tauri Programme within The Commons Conservancy
 
 All npm development dependencies conform to permissive, commercially-friendly open-source licensing allowlists, verified statically by `npm run check:licenses`. Android (Gradle) and Rust (Cargo) dependencies are reviewed manually.
+
+The Space Sim Tiles Demo package (`games/space-sim-successor`) contains first-party Classic-derived composition and world/settings data under the project MIT license. It reuses the shared Space Sim engine and modules.
+
+The successor bounded surface tile prototype, muted aggregate palette, clipping geometry and comparison controls are original first-party MIT work.

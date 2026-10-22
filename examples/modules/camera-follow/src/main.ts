@@ -59,3 +59,8 @@ export default function initialize(context: ModuleInitializationV2): void {
   const factory = context.use(FLIGHT_CAMERAS);
   context.provide(FLIGHT_CAMERA_HELPER, createFlightCameraHelper(factory));
 }
+
+/** Planet framing follows the provider's referenceMetres, including close-up profiles. */
+export function frameWholePlanet(camera: FlightCameraController, radiusMetres: number): void {
+  camera.planetView(radiusMetres);
+}

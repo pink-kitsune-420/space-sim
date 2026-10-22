@@ -1,6 +1,7 @@
 /** Licensed local renderer helper; first-party MIT source, see NOTICE. */
 import type { RenderGeometry, SurfaceProfile } from '@space-sim/game-api';
 import type { Camera, RenderBody } from './frame';
+import { overviewColor, surfaceOverviewColor } from '@space-sim/game-api';
 import { daylight, skyLight, twilight, TWILIGHT_COLOR } from './lighting';
 
 const TAU = 2 * Math.PI;
@@ -10,6 +11,8 @@ const CURVE_ERROR = 0.2, REDUCTION_ERROR = TERRAIN_ERROR - CURVE_ERROR;
 type Color = readonly [number, number, number, number];
 export interface TerrainPoint { readonly x: number; readonly y: number; readonly angle: number; readonly radius: number }
 export interface TerrainFace {
+  /** Illustration never contributes extra canonical air-mask geometry. */
+  readonly overview?: boolean;
   readonly points: readonly { x: number; y: number }[];
   readonly color: Color;
   readonly gradient?: { readonly from: { x: number; y: number }; readonly to: { x: number; y: number }; readonly color: Color };
@@ -144,7 +147,7 @@ function bodyFrameCamera(body: RenderBody, camera: Camera): Camera {
     rotation: camera.rotation + angle };
 }
 
-const LAST_GEOMETRY = new WeakMap<SurfaceProfile, { key: string; querySurface: RenderGeometry['querySurface']; geometry: TerrainGeometry }>();
+const LAST_GEOMETRY = new WeakMap<SurfaceProfile, { key: string; querySurface: RenderGeometry['querySurface']; overview: RenderBody['overview']; geometry: TerrainGeometry }>();
 /** One last view per immutable profile; no growing history of zoom levels or universes. */
 export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, view: Camera, width: number, height: number, geometryPort: RenderGeometry): TerrainGeometry {
   const { querySurface } = geometryPort;
@@ -154,10 +157,10 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const sun = sunDirection && { x: Math.cos(angle) * sunDirection.x + Math.sin(angle) * sunDirection.y,
     y: -Math.sin(angle) * sunDirection.x + Math.cos(angle) * sunDirection.y };
   const key = JSON.stringify([camera.center.x - body.position.x, camera.center.y - body.position.y,
-    camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor,
+    camera.scale, camera.rotation, width, height, body.color, body.accentColor, body.horizonColor, body.atmosphereColor, body.skyColor, Boolean(body.air), Boolean(body.overview),
     sun ? [Math.round(sun.x * 1e3), Math.round(sun.y * 1e3)] : null]);
   const cached = LAST_GEOMETRY.get(profile);
-  if (cached?.key === key && cached.querySurface === querySurface) return cached.geometry;
+  if (cached?.key === key && cached.querySurface === querySurface && cached.overview === body.overview) return cached.geometry;
   const localDistance = Math.hypot(camera.center.x - body.position.x, camera.center.y - body.position.y);
   const viewportRadius = Math.hypot(width / 2, height / 2) / camera.scale;
   // No surface direction is visible when the entire viewport is inside the
@@ -168,7 +171,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
     const geometry: TerrainGeometry = { boundary: [], groundClip, sourcePoints: 0, edge: [], accents: [],
       accentColor: rgba(body.horizonColor ?? body.accentColor ?? '#659497'),
       faces: [{ points: groundClip, color: rgba(profile.hasWater ? '#082b49' : '#101e2b') }] };
-    LAST_GEOMETRY.set(profile, { key, querySurface, geometry });
+    LAST_GEOMETRY.set(profile, { key, querySurface, overview: body.overview, geometry });
     return geometry;
   }
   const project = localProjector(profile, body, camera, width, height, querySurface);
@@ -214,15 +217,22 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const accents: Array<readonly { x: number; y: number }[]> = [];
   const base = rgba(body.color ?? '#233c47'), dark = rgba('#101e2b');
   const accentColor = rgba(body.horizonColor ?? body.accentColor ?? '#659497');
-  const sky = rgba(body.skyColor ?? body.atmosphereColor ?? '#29495380');
+  const sky = rgba(body.air ? '#00000000' : body.skyColor ?? body.atmosphereColor ?? '#29495380');
   const center = project(0, 0);
   const depth = Math.min(profile.bounds.minRadius * .22, 220 / camera.scale);
   // Air is a share of the radius, so it stays as deep as the zoom shows it, however close.
   const glowPx = Math.min(18, Math.max(2, profile.bounds.maxRadius * camera.scale * 0.05));
   const glow = glowPx / camera.scale;
-  const face = (vertices: readonly { x: number; y: number }[], color: Color, gradient?: TerrainFace['gradient']) => {
+  let overviewTriangles = 0, overviewOverflow = false;
+  const face = (vertices: readonly { x: number; y: number }[], color: Color, gradient?: TerrainFace['gradient'], overview = false) => {
     const clipped = clipPolygon(vertices, width, height);
-    if (clipped.length >= 3) faces.push({ points: clipped, color, gradient });
+    if (clipped.length >= 3) {
+      if (overview) {
+        overviewTriangles += clipped.length - 2;
+        if (overviewTriangles > 1024) { overviewOverflow = true; return; }
+      }
+      faces.push({ points: clipped, color, gradient, ...(overview ? { overview: true } : {}) });
+    }
   };
   for (let i = 1; i < boundary.length; i++) {
     const p = boundary[i - 1]!, q = boundary[i]!;
@@ -299,9 +309,71 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
       }
     }
   }
+  // Bounded pseudo-sphere color only; the exact canonical rim/coasts above remain
+  // authoritative. Keep the original complete ground underneath every fade/loading state.
+  const originalFaceCount = faces.length;
+  const globeAmount = body.overview ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
+  // A rim-focused camera resolves physical depth before a small body's global
+  // size threshold. Keep globe illustration out of that actual selected ground.
+  const localBlend = body.overview?.surface && localDistance > profile.bounds.minRadius * .7
+    ? Math.max(0, Math.min(1, (body.overview.surface.depthMetres * camera.scale - 2) / 6)) : 0;
+  const amount = globeAmount * (1 - localBlend);
+  // Fallback keeps the original canonical chords and two broad gradients.
+  // WebGL owns the denser illustrative relief; the actual near ribbon below
+  // retains independent physical-depth filtering at either quality.
+  const overviewBoundary = boundary;
+  if (amount > 0 && boundary.length <= 257) {
+    const rings = body.overview?.surface ? Math.max(1, Math.min(2, Math.floor((1024 - 32) / ((overviewBoundary.length - 1) * 2)))) : 2, sample = new Float64Array(4), outer = new Float64Array(4);
+    for (let i = 1; i < overviewBoundary.length; i++) {
+      const p = overviewBoundary[i - 1]!, q = overviewBoundary[i]!, angle = (p.angle + q.angle) / 2;
+      const ground = querySurface(profile, angle), radius = (p.radius + q.radius) / 2;
+      for (let ring = 0; ring < rings; ring++) {
+        const lo = ring / rings, hi = (ring + 1) / rings, fraction = (lo + hi) / 2;
+        if (!overviewColor(body, angle, body.overview?.surface ? lo * radius / profile.bounds.maxRadius : lo, 2 * Math.PI * profile.referenceRadius * camera.scale, sample)) continue;
+        // Same illustrative coast taper as the original terrain, never invented water.
+        const landDepth = profile.hasWater ? Math.min(radius * .75, Math.max(0, radius - profile.seaRadiusMetres!) * 8) : radius;
+        const water = profile.hasWater && (ground.material === 'water' || radius * fraction < radius - landDepth);
+        overviewColor(body, angle, body.overview?.surface ? hi * radius / profile.bounds.maxRadius : hi, 2 * Math.PI * profile.referenceRadius * camera.scale, outer);
+        const endColor: Color = water ? [outer[0]! * .20, outer[1]! * .55, outer[2]! * .85, amount * outer[3]!] : [outer[0]!, outer[1]!, outer[2]!, amount * outer[3]!];
+        const color: Color = water ? [sample[0]! * .20, sample[1]! * .55, sample[2]! * .85, amount * sample[3]!] : [sample[0]!, sample[1]!, sample[2]!, amount * sample[3]!];
+        face([project(p.angle, p.radius * lo), project(q.angle, q.radius * lo),
+          project(q.angle, q.radius * hi), project(p.angle, p.radius * hi)], color,
+            { from: project(angle, radius * lo), to: project(angle, radius * hi), color: endColor }, true);
+      }
+    }
+  }
+  // Continue the same material field in physical metres before foreground cells
+  // are ready. This is immutable summary sampling, never a fine-patch request.
+  // Water/coasts keep their canonical pass; this ribbon only covers dry ground.
+  const surface = body.overview?.surface;
+  if (surface && amount < 1) {
+    const segments = boundary.length - 1;
+    const available = 1024 - overviewTriangles - 32;
+    const rows = Math.min(surface.rows, Math.floor(available / Math.max(1, segments * 2)));
+    const sample = new Float64Array(4), outer = new Float64Array(4);
+
+    for (let i = 1; i < boundary.length && rows > 0; i++) {
+      const p = boundary[i - 1]!, q = boundary[i]!, angle = (p.angle + q.angle) / 2;
+      if (querySurface(profile, angle).material === 'water') continue;
+      const radius = (p.radius + q.radius) / 2;
+      for (let row = 0; row < rows; row++) {
+        const lo = row * surface.depthMetres / rows, hi = (row + 1) * surface.depthMetres / rows;
+        const footprint = Math.max(1 / camera.scale, surface.depthMetres / rows);
+        const angular = Math.max(footprint, (q.angle - p.angle) * profile.referenceRadius);
+        if (!surfaceOverviewColor(body, angle, lo, angular, sample, footprint)) continue;
+        surfaceOverviewColor(body, angle, hi, angular, outer, footprint);
+        const color: Color = [sample[0]!, sample[1]!, sample[2]!, 1 - amount];
+        const endColor: Color = [outer[0]!, outer[1]!, outer[2]!, 1 - amount];
+        face([project(p.angle, p.radius - lo), project(q.angle, q.radius - lo),
+          project(q.angle, q.radius - hi), project(p.angle, p.radius - hi)], color,
+          { from: project(angle, radius - lo), to: project(angle, radius - hi), color: endColor }, true);
+      }
+    }
+  }
+  if (overviewOverflow) faces.length = originalFaceCount;
   const groundClip = clipPolygon([center, ...boundary], width, height);
   const geometry = { boundary, groundClip, faces, edge, accents, accentColor, sourcePoints: points.length };
-  LAST_GEOMETRY.set(profile, { key, querySurface, geometry });
+  LAST_GEOMETRY.set(profile, { key, querySurface, overview: body.overview, geometry });
   return geometry;
 }
 

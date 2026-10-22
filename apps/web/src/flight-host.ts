@@ -1,3 +1,9 @@
+import { SuccessorAir } from './successor-air';
+import { SuccessorTiles } from './successor-tiles';
+import { SuccessorOverview } from './successor-overview';
+import { SuccessorFocus } from './successor-focus';
+import { successorReferences } from './successor-comparison';
+import { assertGameProgress, gamePreferenceKey, SUCCESSOR_GAME_ID } from '../../../packages/game-library/src/game-progress';
 import './warp-approval.css';
 import { WarpApproval } from './warp-approval';
 import { FloatingWindow } from './floating-window';
@@ -104,7 +110,9 @@ let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
 // Presentation/platform composition is separate from legacy authoritative save/lock identity.
-const hostFeatures = prepareBrowserTarget(startupGame.info.id, environment());
+let activeGameInfo = { ...startupGame.info };
+let switchingGame = false;
+const hostFeatures = prepareBrowserTarget(startupGame.info.id, environment(), () => activeGameInfo.id);
 // Shipped target guides appear once their module's documentation is verified.
 registerModuleGuides(hostFeatures, DOCUMENTED_MODULES);
 try {
@@ -115,7 +123,6 @@ const startupCode = artifactModules(startupGame.plugins, environment());
 const startupAuthoritative = [...GAME_EXAMPLES, ...startupCode.filter(module => module.manifest.authority === 'authoritative')];
 const startupDisplay = startupCode.filter(module => module.manifest.authority === 'presentation');
 if (startupGame.plugins.length) moduleLibrary.replace(startupGame.plugins);
-let activeGameInfo = { ...startupGame.info };
 let orbitSandboxInstance: OrbitSandboxInstance | undefined;
 /** Renderer provider, presentation modules and their hooks; started below once input exists. */
 const presentation = new Presentation(canvas, {
@@ -177,7 +184,7 @@ graphicsButton.addEventListener('click', () => {
   profiler.event('graphics', { quality: graphicsQuality });
 });
 const godModeToggle = element<HTMLInputElement>('god-mode');
-const GOD_MODE_KEY = 'space-sim:god-mode:v1';
+const GOD_MODE_KEY = gamePreferenceKey('space-sim:god-mode:v1', startupGame.info.id);
 try {
   const savedGod = localStorage.getItem(GOD_MODE_KEY);
   if (savedGod !== null) godModeToggle.checked = savedGod === 'true';
@@ -189,7 +196,7 @@ try {
 } catch { /* ignore */ }
 const throwCheatToggle = document.getElementById('throw-cheat-toggle') as HTMLInputElement | null;
 const throwShipToggleBtn = document.getElementById('throw-ship-toggle') as HTMLButtonElement | null;
-const THROW_CHEAT_KEY = 'space-sim:throw-cheat:v1';
+const THROW_CHEAT_KEY = gamePreferenceKey('space-sim:throw-cheat:v1', startupGame.info.id);
 let throwCheatEnabled = false;
 try {
   throwCheatEnabled = localStorage.getItem(THROW_CHEAT_KEY) === 'true';
@@ -300,7 +307,18 @@ function preparePads(world: import('../../../packages/game-api/src/index').World
 const prediction = hostFeatures.providedService(PREDICTIONS).create(pass => profiler.event('prediction', { ...pass }));
 const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
-const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id);
+const successorTiles = new SuccessorTiles();
+const successorOverview = new SuccessorOverview();
+const successorFocus = new SuccessorFocus();
+const localDelay = Number(new URLSearchParams(location.search).get('successorLocalDelay') ?? 0);
+successorTiles.delayMs = Number.isFinite(localDelay) ? Math.max(0, Math.min(5000, localDelay)) : 0;
+const successorGuestTiles = new Map<number, SuccessorTiles>();
+let successorWorld: object | undefined;
+let successorOverviewEnabled = true;
+const successorAir = new SuccessorAir();
+if (new URLSearchParams(location.search).get('successorAir') === 'clouds') successorAir.mode = 'clouds';
+document.addEventListener('visibilitychange', () => successorAir.clock.suspend());
+const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id, startupGame.info.id);
 
 const pilotName = (): string => cleanName(nameInput.value, MAX_PLAYER_NAME) || 'Pilot';
 const isHosting = (): boolean => session === local && local.hosting;
@@ -437,6 +455,7 @@ const splitScreen = hostFeatures.providedService(FLIGHT_SPLIT).create(viewport, 
   gamepads: gamepadManager,
   session: () => session,
   ownWorld: () => session === local ? local : undefined,
+  singleView: () => activeGameInfo.id === 'builtin.space-sim-successor' && presentation.provider.id === 'builtin.canvas',
   presetId: () => preset.value || 'pad',
   isGodMode: () => godModeToggle.checked,
   keyboardFlight: () => keyboardFlight(),
@@ -1611,7 +1630,7 @@ function throttleInputHeld(slot: number): boolean {
 /** Persist activation preferences by seat, independent of transient burns and ship resets. */
 function loadActivationThrottles(): (number | undefined)[] {
   try {
-    const values: unknown = JSON.parse(localStorage.getItem('space-sim:activation-throttle:v1') ?? '[]');
+    const values: unknown = JSON.parse(localStorage.getItem(gamePreferenceKey('space-sim:activation-throttle:v1', startupGame.info.id)) ?? '[]');
     if (Array.isArray(values)) return Array.from({ length: 4 }, (_, i) =>
       typeof values[i] === 'number' && Number.isFinite(values[i]) && values[i] >= 0 && values[i] <= 1 ? values[i] : undefined);
   } catch { /* Use the world's default activation throttle. */ }
@@ -1625,7 +1644,7 @@ function activationThrottle(slot: number): number {
 
 function rememberActivationThrottle(slot: number, value: number | undefined): void {
   activationThrottles[slot] = value;
-  try { localStorage.setItem('space-sim:activation-throttle:v1', JSON.stringify(activationThrottles)); } catch { /* Storage unavailable. */ }
+  try { localStorage.setItem(gamePreferenceKey('space-sim:activation-throttle:v1', startupGame.info.id), JSON.stringify(activationThrottles)); } catch { /* Storage unavailable. */ }
 }
 
 function throttlePilot(slot: number) {
@@ -2513,6 +2532,21 @@ const endCameraDrag = (event: PointerEvent): void => {
 };
 
 function attachCanvasListeners(target: HTMLCanvasElement): void {
+  target.addEventListener('pointerdown', event => {
+    if (!event.shiftKey || event.button !== 0 || activeGameInfo.id !== 'builtin.space-sim-successor') return;
+    event.preventDefault(); event.stopImmediatePropagation();
+    const rect = target.getBoundingClientRect(), c = cameraControl.last;
+    const sx = (event.clientX - rect.left - rect.width / 2) / c.scale, sy = -(event.clientY - rect.top - rect.height / 2) / c.scale;
+    const point = { x: c.center.x + sx * Math.cos(c.rotation) + sy * Math.sin(c.rotation), y: c.center.y - sx * Math.sin(c.rotation) + sy * Math.cos(c.rotation) };
+    let closest = Infinity;
+    for (const id of ['planet', 'moon'] as const) {
+      const body = session.world.body(id), profile = session.world.surface(id); if (!body || !profile) continue;
+      const origin = session.world.system.getBodyPosition(id, view?.time ?? session.world.time);
+      const relative = { x: point.x - origin.x, y: point.y - origin.y }, distance = Math.hypot(relative.x, relative.y) / profile.bounds.maxRadius;
+      if (distance > 1.15 || distance >= closest) continue;
+      if (successorFocus.acquire(id, profile, relative, spinView.angle(body, view?.time ?? session.world.time))) { closest = distance; successorFocus.tracking = false; }
+    }
+  }, true);
   // Wheel & Trackpad pinch zoom
   target.addEventListener('wheel', event => {
     if (!Number.isFinite(event.deltaY)) return;
@@ -3926,6 +3960,7 @@ const universeSaveCommands = universeSaveProvider.create({
     options: { players: local.host.roster(), hostId: local.playerId, paused: local.paused, flightPlans: maneuver.savePlans() } }),
   async restore(saved, signal, guard) {
     guard();
+    assertGameProgress(saved, activeGameInfo.id);
     const savedPlans = (saved as { flightPlans?: unknown }).flightPlans;
     if (savedPlans !== undefined) {
       if (!hostFeatures.lock.providers[FLIGHT_PLANS.slot]) throw new Error('This save needs the optional shared flight-plan module.');
@@ -4451,7 +4486,7 @@ function ticker(tick: () => void, ms: number): { stop(): void } {
   return { stop: () => { worker?.terminate(); if (timer) clearInterval(timer); } };
 }
 function updateBackground(): void {
-  const wanted = document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
+  const wanted = !switchingGame && document.hidden && (isHosting() || (isSolo() && runInBackgroundToggle.checked && !local.paused));
   if (wanted && !background) {
     backgroundAt = performance.now();
     background = ticker(() => {
@@ -4495,13 +4530,20 @@ function groundClearance(): number {
   // Terrain turns with the body; a flying state is inertial.
   const local = state.status === 'flying' ? rotate(state.position, -spinAngle(activeBody, state.time)) : state.position;
   const ground = surface ? querySurface(surface, Math.atan2(local.y, local.x)).firstContactRadius : activeBody.radius;
-  return magnitude(state.position) - ground;
+  const hullRadius = activeMotion().vehicle.contactRadiusMetres ?? 0;
+  const support = hullRadius && surface
+    ? activeMotion().services.surfaces.support(surface, Math.atan2(local.y, local.x), hullRadius).centerRadiusMetres!
+    : ground + hullRadius;
+  return magnitude(state.position) - support;
 }
 
 function diagnostics(engine: boolean): Record<string, unknown> {
   const summary = profiler.summary();
   const world = session.world;
   return {
+    airCapabilities: presentation.rendering.renderer?.features?.independentAir ?? null,
+    successorAir: activeGameInfo.id === 'builtin.space-sim-successor' ? successorAir.stats : undefined,
+    tileCapabilities: presentation.rendering.renderer?.features?.tileChunks ?? null,
     renderer: presentation.provider.id, shader: presentation.rendering.shaders.name,
     hostFeatures: { modules: hostFeatures.lock.modules, providers: hostFeatures.lock.providers, profile: hostFeatures.lock.profileId },
     presentation: presentation.diagnostics(), commands: world.commands.map(c => c.id),
@@ -4518,6 +4560,10 @@ function diagnostics(engine: boolean): Record<string, unknown> {
       body: activeFlightSlingshot.dominantBody.id,
       camera: activeFlightSlingshot.sourceCanvas === canvas ? cameraControl.last : splitScreen.guests.get(activeFlightSlingshot.slot ?? 0)?.camera.last,
       width: activeFlightSlingshot.sourceCanvas?.clientWidth, height: activeFlightSlingshot.sourceCanvas?.clientHeight } : null,
+    successorOverview: activeGameInfo.id === 'builtin.space-sim-successor' ? successorOverview.stats : undefined,
+    successorGuestTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? [...successorGuestTiles].map(([slot, tiles]) => ({ slot, ...tiles.stats })) : undefined,
+    successorFocus: activeGameInfo.id === 'builtin.space-sim-successor' ? { body: successorFocus.body, angle: successorFocus.angle, tracking: successorFocus.tracking } : undefined,
+    successorTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? successorTiles.stats : undefined,
     vehicleId: selectedShip()?.vehicleId, vehicleArtwork: presentationProviders.vehicleArtwork.get(selectedShip()?.vehicleId),
     vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
     model: MODEL, body: activeBody.id, system: world.systemId, universe: world.universe.id,
@@ -4563,6 +4609,7 @@ function hud(engine: boolean): void {
   commandBar.sync(session.world.commands, id => keybindings[id]);
   const terrainNotice = element('terrain-notice');
   terrainNotice.hidden = session.world.surfaces.size === 0;
+  if (activeMotion().vehicle.contactRadiusMetres) terrainNotice.textContent = 'Physical terrain · Clearance is measured from the hull. Land within 20° of the ground normal, on slopes up to 30°, at 5 m/s or less. Hold arrows to adjust thrust; release keeps the setting; X cuts the engine.';
   const ship = selectedShip();
   const paused = session.paused;
   const r = magnitude(state.position);
@@ -4776,8 +4823,14 @@ function frame(now: number): void {
   }
   // Resolved bodies for renderer
   const world = session.world;
+  const isSuccessor = activeGameInfo.id === 'builtin.space-sim-successor';
+  if (successorWorld !== world || !isSuccessor) {
+    successorWorld = world; successorFocus.clear(); successorOverview.clear(); successorTiles.clear();
+    for (const tiles of successorGuestTiles.values()) tiles.clear(); successorGuestTiles.clear();
+  }
+  successorAir.clock.advance(elapsed, session.paused, document.hidden, world);
   // High quality lights every body from the system's star; starless systems stay unlit.
-  const star = graphicsQuality === 'high' ? world.system.getAllBodies().find(b => b.surfaceFeatures === 'star') : undefined;
+  const star = graphicsQuality === 'high' || isSuccessor ? world.system.getAllBodies().find(b => b.surfaceFeatures === 'star') : undefined;
   const starPos = star && world.system.getBodyPosition(star.id, view.time);
   const renderBodies = world.system.getAllBodies().map(b => {
     const pos = world.system.getBodyPosition(b.id, view.time);
@@ -4792,16 +4845,21 @@ function frame(now: number): void {
       position: pos,
       radius: b.radius,
       surface: world.surface(b.id),
+      ...(isSuccessor && successorOverviewEnabled && (b.id === 'planet' || b.id === 'moon') && world.surface(b.id)
+        && presentation.rendering.renderer?.features?.planetOverview
+        ? { overview: successorOverview.forBody(world.surface(b.id)!, b.id) } : {}),
       color: b.color,
       accentColor: b.accentColor,
       atmosphereColor: b.atmosphereColor,
+      ...(isSuccessor && presentation.rendering.renderer?.features?.independentAir
+        ? { air: successorAir.forBody(b, graphicsQuality === 'low', toStar > 0 ? { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } : undefined) } : {}),
       horizonColor: b.horizonColor,
       skyColor: b.skyColor,
       surfaceFeatures: b.surfaceFeatures,
       parentPosition: parentPos,
       orbitRadius: orbitR,
       ...(b.rotation ? { rotation: spinView.angle(b, view.time) } : {}),
-      ...(toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
+      ...(graphicsQuality === 'high' && toStar > 0 ? { sunDirection: { x: (starPos!.x - pos.x) / toStar, y: (starPos!.y - pos.y) / toStar } } : {}),
       ...(graphicsQuality === 'high' ? { appearance: designer.appearanceFor(world, b) } : {}),
     };
   });
@@ -4882,6 +4940,16 @@ function frame(now: number): void {
     p1ThrowFrozenCamera = undefined;
   }
 
+  if (successorFocus.tracking && successorFocus.body && successorFocus.profile) {
+    const body = world.body(successorFocus.body);
+    if (cameraControl.mode !== 'free' || cameraControl.dragged || !body || world.surface(body.id) !== successorFocus.profile) successorFocus.tracking = false;
+    else {
+      const origin = world.system.getBodyPosition(body.id, view.time), spin = spinView.angle(body, view.time);
+      const point = successorFocus.point(querySurface(successorFocus.profile, successorFocus.angle!).groundRadius, spin, origin)!;
+      camera = { ...camera, center: point }; cameraControl.last = camera;
+      cameraControl.pan = { x: point.x - activeBodyPos.x, y: point.y - activeBodyPos.y };
+    }
+  }
   if (mode !== cameraControl.mode || cameraControl.focusTarget !== lastFocusTarget) syncCameraButton();
   updateControllerCursors(elapsed);
   syncViewHuds(elapsed,presentation.isEnabled('builtin.navball')||presentation.isEnabled('builtin.throttle')?base():undefined,camera);
@@ -4893,6 +4961,21 @@ function frame(now: number): void {
   const toolView = () => Object.freeze({ ...base(), camera, ...(commands ? { commands } : {}) });
   const baseOverlays = presentation.overlays(toolView);
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
+  SuccessorTiles.beginFrame();
+  if (isSuccessor) {
+    const bodyId = successorFocus.body ?? (activeBody.id === 'planet' || activeBody.id === 'moon' ? activeBody.id : undefined);
+    const profile = bodyId && world.surface(bodyId), body = bodyId && world.body(bodyId);
+    if (bodyId && profile && body) {
+      const origin = world.system.getBodyPosition(bodyId, view.time), spin = spinView.angle(body, view.time);
+      successorTiles.targetAngle = successorFocus.body === bodyId ? successorFocus.angle : undefined;
+      overlays.push(...successorTiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
+        presentation.rendering.renderer!, origin, spin, camera, width, height, bodyId));
+      overlays.push(...successorReferences(profile, angle => querySurface(profile, angle).groundRadius,
+        point => { const c = Math.cos(spin), s = Math.sin(spin); return { x: origin.x + c * point.x - s * point.y, y: origin.y + s * point.x + c * point.y }; }, camera.scale));
+      const point = successorFocus.point(querySurface(profile, successorFocus.angle ?? 0).groundRadius, spin, origin);
+      if (point) overlays.push({ kind: 'circle', space: 'world', center: point, radius: 7 / camera.scale, color: '#f0dba4', width: 1 });
+    } else successorTiles.clear();
+  } else successorTiles.clear();
   if (academy) {
     try { overlays.push(...academy.draw({ ...base(), camera })); }
     catch (error) { releaseAcademy(); notify(`Academy preview stopped: ${message(error)}`); }
@@ -4910,6 +4993,7 @@ function frame(now: number): void {
   }
 
   seatHuds.get(0)?.hud.draw(overlays);
+  for (const [slot, tiles] of successorGuestTiles) if (!splitScreen.split || !splitScreen.isSeparated(slot)) { tiles.clear(); successorGuestTiles.delete(slot); }
   if (splitScreen.split) {
     for (const [slot, guest] of splitScreen.guests) {
       if (splitScreen.isSeparated(slot)) continue;
@@ -4997,6 +5081,7 @@ function frame(now: number): void {
     }
   }
 
+  for (const [slot, tiles] of successorGuestTiles) if (!splitScreen.split || !splitScreen.isSeparated(slot)) { tiles.clear(); successorGuestTiles.delete(slot); }
   if (splitScreen.split) {
     for (const [slot, guest] of splitScreen.guests) {
       if (!splitScreen.isSeparated(slot)) continue;
@@ -5070,6 +5155,14 @@ function frame(now: number): void {
       const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight, guest.fleetView, guest.playerId ?? session.playerId);
 
       const gOverlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, guest.view.time, guest.playerId ?? session.playerId, gCamera, gWidth, gHeight)];
+      if (isSuccessor && (guest.body.id === 'planet' || guest.body.id === 'moon')) {
+        let tiles = successorGuestTiles.get(slot);
+        if (!tiles) { tiles = new SuccessorTiles(); successorGuestTiles.set(slot, tiles); }
+        tiles.size = successorTiles.size; tiles.style = successorTiles.style;
+        const profile = world.surface(guest.body.id);
+        if (profile) gOverlays.push(...tiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
+          gRenderer, gBodyPos, spinView.angle(guest.body, guest.view.time), gCamera, gWidth, gHeight, guest.body.id));
+      }
       seatHuds.get(slot)?.hud.draw(gOverlays);
       if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
         refreshFlightSlingshot(activeFlightSlingshot, gCamera, guest.view.time, guest.canvas);
@@ -5147,6 +5240,61 @@ function frame(now: number): void {
   profiler.lap('hud');
   profiler.end();
   requestAnimationFrame(frame);
+}
+
+if (startupGame.info.id === 'builtin.space-sim-successor') {
+  const hint = document.createElement('p');
+  hint.id = 'successor-trial-help'; hint.className = 'control-note';
+  hint.textContent = 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
+  const label = document.createElement('label');
+  label.textContent = 'Surface prototype ';
+  const tiles = document.createElement('select'); tiles.id = 'successor-tile-size';
+  for (const [value, text] of [['0.25', '0.25 m tiles'], ['0.5', '0.5 m tiles (trial)'], ['1', '1 m tiles'], ['0', 'Vector baseline']]) {
+    const option = document.createElement('option'); option.value = value!; option.textContent = text!; tiles.append(option);
+  }
+  tiles.value = '0.5';
+  tiles.addEventListener('change', () => { successorTiles.size = Number(tiles.value) as .25 | .5 | 1 | 0; });
+  label.append(tiles);
+  const materialLabel = document.createElement('label'); materialLabel.textContent = 'Surface colors ';
+  const materials = document.createElement('select'); materials.id = 'successor-material-style';
+  for (const [value, text] of [['colored', 'Decorative materials (trial)'], ['muted', 'Muted prototype comparison']]) {
+    const option = document.createElement('option'); option.value = value!; option.textContent = text!; materials.append(option);
+  }
+  materials.addEventListener('change', () => { successorTiles.style = materials.value === 'muted' ? 'muted' : 'colored'; });
+  materialLabel.append(materials);
+  const airLabel = document.createElement('label'); airLabel.textContent = 'Clouds and air ';
+  const air = document.createElement('select'); air.id = 'successor-air-mode';
+  for (const [value, text] of [['off', 'Off (clear comparison)'], ['air', 'Air only'], ['clouds', 'Clouds + air (trial)']]) {
+    const option = document.createElement('option'); option.value = value!; option.textContent = text!; air.append(option);
+  }
+  air.value = successorAir.mode;
+  air.addEventListener('change', () => { successorAir.mode = air.value as 'off' | 'air' | 'clouds'; });
+  airLabel.append(air);
+  const airHelp = document.createElement('p'); airHelp.className = 'control-note';
+  airHelp.textContent = 'Primus: daylight, twilight and night sky near the surface, with a thin cloud layer. Space returns above the air or in orbital overview. Parvus is airless. Slow cosmetic motion freezes while paused or hidden and ignores time warp. Low graphics keeps sky and air only.';
+  const coverage = document.createElement('p'); coverage.id = 'successor-tile-help'; coverage.className = 'control-note';
+  coverage.textContent = 'Tile review prototype: selected sector, or landing sector by default (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
+  coverage.textContent += ' Colored regions are decorative, with no physical material properties. Surface colors compares the accepted muted treatment; Vector baseline disables tiles.';
+  const overviewLabel = document.createElement('label'); overviewLabel.textContent = 'Planet overview ';
+  const overview = document.createElement('select'); overview.id = 'successor-overview';
+  for (const [value, text] of [['on', 'Shaded globe'], ['off', 'Vector comparison']]) { const o = document.createElement('option'); o.value = value!; o.textContent = text!; overview.append(o); }
+  overview.addEventListener('change', () => { successorOverviewEnabled = overview.value === 'on'; }); overviewLabel.append(overview);
+  const inspect = document.createElement('button'); inspect.id = 'successor-inspect'; inspect.textContent = 'Inspect selected surface';
+  inspect.addEventListener('click', () => {
+    if (!successorFocus.body) return;
+    cameraControl.mode = 'free'; cameraControl.dragged = false; cameraControl.clearFocus(); cameraControl.stopFling();
+    cameraControl.setZoom(10); successorFocus.tracking = true;
+  });
+  const returnOverview = document.createElement('button'); returnOverview.id = 'successor-return-overview'; returnOverview.textContent = 'View selected planet';
+  returnOverview.addEventListener('click', () => {
+    const id = successorFocus.body ?? activeBody.id, body = session.world.body(id);
+    successorFocus.tracking = false; cameraControl.planetView(body.radius);
+    cameraControl.focusTarget = { kind: 'body', id, name: body.name };
+  });
+  const selectHelp = document.createElement('p'); selectHelp.className = 'control-note';
+  selectHelp.textContent = 'Shift-click Primus or Parvus to mark a direction on its playable rim. Inspect selected surface zooms there while the ship stays put. The globe face is illustrative. Scroll out to return; drag to explore. Local tiles cover a bounded ribbon; coarse ground continues beyond it.';
+
+  systemSelect.closest('.setup-fields')?.after(hint, label, materialLabel, overviewLabel, inspect, returnOverview, selectHelp, airLabel, airHelp, coverage);
 }
 
 // Start: a solo world with one ship at the first scenario.
@@ -5271,12 +5419,16 @@ labManager = new LabManager({
     if (session !== local || local.hosting) throw new Error('Leave multiplayer before switching games');
     const bundled = bundledGameDefinition(game);
     const adapter = bundled && bundledGameAdapters.get(bundled.info.id);
-    if (bundled && (adapter === 'static-viewer' || adapter === 'bounded-survey'
+    if (bundled && ((game.info.id !== activeGameInfo.id && (game.info.id === SUCCESSOR_GAME_ID || activeGameInfo.id === SUCCESSOR_GAME_ID))
+      || adapter === 'static-viewer' || adapter === 'bounded-survey'
       || browserTargetSelection(bundled.info.id).plans[environment()]?.profile.id !== hostFeatures.lock.profileId)) {
       // Host services change only at game load. A fresh page releases every borrowed
       // device/view/window resource together, while installed packages stay in storage.
       const url = new URL(location.href); url.searchParams.set('game', game.info.id);
       url.searchParams.delete('example'); url.searchParams.delete('presentation'); url.searchParams.set('played', '1');
+      // Navigation hides the outgoing page. Retire its timer before that event can
+      // start a background worker for the world being left behind.
+      switchingGame = true; updateBackground();
       location.assign(url.href); return;
     }
     if (game.info.id === 'builtin.orbit-sandbox') {

@@ -39,6 +39,8 @@ import { bundledRegistration, prepareBundledPlan } from '../../../packages/game-
 import { validateRuntimeSelection } from '../../../packages/game-library/src/runtime-selection';
 import { engineModuleServices } from '../../../packages/sim-core/src/module-services';
 import { universeSaveFormatService } from '../../../packages/game-library/src/universe-save-services';
+import { gameProgressService } from '../../../packages/game-library/src/game-progress';
+import successorTargets from '../../../games/space-sim-successor/targets.json';
 import spaceSimTargets from '../../../games/space-sim/targets.json';
 import starterTargets from '../../../games/flight-starter/targets.json';
 import type { ModuleEnvironment } from '../../../packages/game-api/src/index';
@@ -141,12 +143,12 @@ export const browserTargetModules = Object.freeze([
   bundledRegistration({ manifest: audioControlsManifest, compatibility: audioControlsCompatibility }, audioControlsInitialize, { 'docs/creators/usage.json': audioControlsGuide }),
 ]);
 export function browserTargetSelection(gameId: string) {
-  return validateRuntimeSelection(gameId === 'builtin.planet-viewer' ? viewerTargets : gameId === 'builtin.survey-fixture' ? surveyTargets : gameId === 'builtin.flight-starter' ? starterTargets : spaceSimTargets);
+  return validateRuntimeSelection(gameId === 'builtin.space-sim-successor' ? successorTargets : gameId === 'builtin.planet-viewer' ? viewerTargets : gameId === 'builtin.survey-fixture' ? surveyTargets : gameId === 'builtin.flight-starter' ? starterTargets : spaceSimTargets);
 }
-export function prepareBrowserTarget(gameId: string, environment: ModuleEnvironment) {
+export function prepareBrowserTarget(gameId: string, environment: ModuleEnvironment, currentGameId?: () => string) {
   const selection = browserTargetSelection(gameId), plan = selection.plans[environment];
   if (!plan || environment === 'node') throw new Error(`This browser adapter does not support ${environment}`);
-  return prepareBundledPlan(plan, environment, browserTargetModules, [universeSaveFormatService, ...engineModuleServices()]);
+  return prepareBundledPlan(plan, environment, browserTargetModules, [currentGameId ? gameProgressService(currentGameId) : universeSaveFormatService, ...engineModuleServices()]);
 }
 
 /** Legacy display IDs retain their save/profile identity over selected public services. */

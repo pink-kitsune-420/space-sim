@@ -59,7 +59,7 @@ test('completes a lesson with real engine-off orbit flight, checks knowledge and
   await page.locator('.game-card:not([data-game^="builtin"])').filter({ has: page.getByRole('heading', { name: 'Orbital Academy', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
   await expect(academy(page).locator('.academy-summary')).toContainText('1 / 24');
   await openPanel(page, 'library');
-  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
+  await page.locator('.game-card').filter({ has: page.getByRole('heading', { name: 'Space Sim Classic', exact: true }) }).getByRole('button', { name: 'Play · new world' }).click();
   await expect(academy(page)).toHaveCount(0); await expect(page.locator('.academy-hud')).toHaveCount(0);
 });
 

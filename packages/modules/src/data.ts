@@ -5,7 +5,7 @@ import { validateUniverse } from '../../sim-core/src/universe';
 
 export const MAX_MODULE_BYTES = 4 * 1024 * 1024;
 export type { DataModule } from '../../game-api/src/index';
-const VEHICLE = { acceleration: [0, 10000], turnRate: [0, 100], initialThrottle: [0, 1] } as const;
+const VEHICLE = { acceleration: [0, 10000], turnRate: [0, 100], initialThrottle: [0, 1], contactRadiusMetres: [0, 32] } as const;
 const COLORS = ['color', 'accentColor', 'atmosphereColor', 'horizonColor', 'skyColor'];
 function validateVehicle(raw: unknown, label: string): void {
   for (const [key, value] of Object.entries(object(raw, `${label} vehicle settings`))) {

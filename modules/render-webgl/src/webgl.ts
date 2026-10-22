@@ -1,4 +1,5 @@
-import { trajectoryMarkers, VEHICLE_MARKER, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { AirMesh, validateTileChunkProfile } from '@space-sim/game-api';
+import { trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type Camera, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import { Effects } from './effects';
 import type { State, Vec, SceneFrame, RenderMaterial, RenderPostEffect } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
@@ -16,8 +17,9 @@ import { createNoiseTexture } from './noise-texture';
 import { BodyCrowd, LabelPlacer, circleSegments, labelRect } from './layout';
 import { createTilePaletteTexture, hexToRgb01, themeBackdropToShaderIndex, themeGridToShaderIndex } from './palette';
 
-const DEFAULT_FULL_LIGHT = new Uint8Array(1024).fill(255);
 const DEFAULT_ZERO_WALLS = new Uint16Array(1024);
+const DEFAULT_NIBBLE_LIGHT = new Uint8Array(1024).fill(15);
+const DEFAULT_FULL_LIGHT = new Uint8Array(1024).fill(255);
 
 /** Unit circle vertex tables, built once per segment count. */
 const UNIT_CIRCLES = new Map<number, Float64Array>();
@@ -126,6 +128,7 @@ export class WebGLRenderer implements Renderer {
   private readonly terrainResolution: WebGLUniformLocation | null;
   private readonly terrainVao: WebGLVertexArrayObject;
   private readonly terrainBuffer: WebGLBuffer;
+  private airMesh?: AirMesh;
   private terrainVerts = new Float32Array(4096);
   private readonly colorVao: WebGLVertexArrayObject;
   private readonly colorBuffer: WebGLBuffer;
@@ -142,22 +145,27 @@ export class WebGLRenderer implements Renderer {
     readonly tilesBuffer: WebGLBuffer;
     readonly wallsBuffer: WebGLBuffer;
     wallsActive: boolean;
+    readonly paletteSizeLoc: WebGLUniformLocation | null;
+    readonly strictLightLoc: WebGLUniformLocation | null;
     readonly lightBuffer: WebGLBuffer;
     readonly resolutionLoc: WebGLUniformLocation | null;
     readonly cameraOffsetLoc: WebGLUniformLocation | null;
     readonly cameraScaleLoc: WebGLUniformLocation | null;
     readonly cameraRotationLoc: WebGLUniformLocation | null;
+    readonly chunkRotationLoc: WebGLUniformLocation | null;
     readonly tileMetresLoc: WebGLUniformLocation | null;
     readonly paletteLoc: WebGLUniformLocation | null;
     readonly defaultPalette: WebGLTexture;
   };
+  private readonly tilePaletteSizes = new Map<string, number>();
   private readonly tilePalettes = new Map<string, WebGLTexture>();
+  private readonly stencilAvailable: boolean;
   /** Shader packs are this renderer's optional feature; callers never check its class. */
   readonly features: RendererFeatures;
 
   static isSupported(canvas: HTMLCanvasElement): boolean {
     try {
-      const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false });
+      const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false, stencil: true });
       return !!gl;
     } catch {
       return false;
@@ -169,19 +177,21 @@ export class WebGLRenderer implements Renderer {
     this.activeShaders = defaults;
     const shaders = defaults;
     const renderer = this;
+    const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false, stencil: true });
+    if (!gl) throw new Error('WebGL 2 is unavailable in this browser.');
+    this.gl = gl;
+    this.stencilAvailable = gl.getContextAttributes()?.stencil !== false;
     this.features = Object.freeze({
       effects: Object.freeze({ configure: (materials: readonly RenderMaterial[], post: readonly RenderPostEffect[]) => renderer.configureEffects(materials, post) }),
       shaders: Object.freeze({
         get pack(): ShaderPack { return renderer.activeShaders; },
         set: (pack: ShaderPack): void => renderer.setShaderPack(pack),
       }),
+      ...(this.stencilAvailable ? { planetOverview: Object.freeze({ version: 1 as const }), independentAir: Object.freeze({ version: 1 as const }), tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }) } : {}),
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
       }),
     });
-    const gl = canvas.getContext('webgl2', { alpha: false, antialias: true, depth: false });
-    if (!gl) throw new Error('WebGL 2 is unavailable in this browser.');
-    this.gl = gl;
     this.effects = new Effects(gl);
     try {
     this.terrainProgram = compileTerrainProgram(gl);
@@ -352,6 +362,7 @@ export class WebGLRenderer implements Renderer {
     if (this.disposed) return;
     this.disposed = true;
     const { gl } = this;
+    this.airMesh = undefined;
     this.effects.dispose();
     gl.bindVertexArray(null);
     gl.useProgram(null);
@@ -364,13 +375,13 @@ export class WebGLRenderer implements Renderer {
       gl.deleteVertexArray(this.tileChunkState.vao);
       gl.deleteBuffer(this.tileChunkState.quadBuffer);
       gl.deleteBuffer(this.tileChunkState.tilesBuffer);
-      gl.deleteBuffer(this.tileChunkState.wallsBuffer);
       gl.deleteBuffer(this.tileChunkState.lightBuffer);
+      gl.deleteBuffer(this.tileChunkState.wallsBuffer);
       gl.deleteTexture(this.tileChunkState.defaultPalette);
       this.tileChunkState = undefined;
     }
     for (const tex of this.tilePalettes.values()) gl.deleteTexture(tex);
-    this.tilePalettes.clear();
+    this.tilePalettes.clear(); this.tilePaletteSizes.clear();
     for (const vao of [this.quadVao, this.vectorVao, this.textVao, this.terrainVao, this.colorVao]) gl.deleteVertexArray(vao);
     for (const buffer of [this.quadBuffer, this.vectorBuffer, this.textBuffer, this.terrainBuffer, this.colorBuffer]) gl.deleteBuffer(buffer);
     for (const entry of this.labelCache.values()) gl.deleteTexture(entry.texture);
@@ -409,9 +420,17 @@ export class WebGLRenderer implements Renderer {
     // The piloted ship's own label always shows; everything else avoids it.
     const shipPos = frame.shipWorldPosition ?? state.position;
     const ship = toScreen(shipPos);
-    const shipVisible = frame.showShip !== false && ship.x >= -40 && ship.x <= width + 40 && ship.y >= -40 && ship.y <= height + 40;
+    const physicalArt = this.ports.vehicles?.get(frame.vehicleId);
+    let shipExtent = 0;
+    if (physicalArt?.metresPerUnit) {
+      for (const point of physicalArt.hull) shipExtent = Math.max(shipExtent, Math.abs(point.x), Math.abs(point.y));
+      shipExtent *= physicalArt.metresPerUnit * camera.scale;
+    }
+    const shipMargin = Math.max(40, shipExtent);
+    const shipLabelX = ship.x + Math.max(16, shipExtent + 6), shipLabelY = ship.y - Math.max(13, shipExtent + 6);
+    const shipVisible = frame.showShip !== false && ship.x >= -shipMargin && ship.x <= width + shipMargin && ship.y >= -shipMargin && ship.y <= height + shipMargin;
     const shipLabel = state.status === 'crashed' ? 'SIGNAL LOST' : frame.shipLabel ?? 'VESSEL 01';
-    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, ship.x + 16, ship.y - 13, 'left'));
+    if (shipVisible && frame.showShipLabels !== false) labels.reserve(labelRect(shipLabel, shipLabelX, shipLabelY, 'left'));
 
     // 1. Fullscreen Shader Pass (Stars + Celestial Bodies)
     gl.disable(gl.BLEND);
@@ -501,10 +520,16 @@ export class WebGLRenderer implements Renderer {
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
+    const independentAir = bodyList.some(b => b.air);
+    if (independentAir) this.drawAir(bodyList, terrain, visible, camera, width, height, 'far');
     for (const geometry of terrain) this.drawTerrain(geometry, width, height);
     if (overflow.length) this.drawBodyBatch(overflow, width, height);
     this.effects.drawMaterials(bodyList, camera, width, height, realTimeSec, this.ports.geometry);
 
+    if (independentAir) {
+      this.drawTileChunks(frame.overlays ?? [], camera, width, height);
+      this.drawAir(bodyList, terrain, visible, camera, width, height, 'near');
+    }
     this.beginVectorPass(width, height);
     if (frame.showBodyOrbits !== false) this.drawOrbitRings(bodyList, toScreen, camera.scale, width, height);
 
@@ -552,7 +577,7 @@ export class WebGLRenderer implements Renderer {
         this.drawRockBatch(others, toScreen, width, height);
         this.beginVectorPass(width, height);
       }
-      this.drawShipBatch(others, toScreen, camera.rotation, width, height);
+      this.drawShipBatch(others, toScreen, camera.rotation, width, height, camera.scale);
       for (const other of others) {
         if (other.rock || frame.showShipLabels === false) continue;
         const at = toScreen(other.position);
@@ -568,9 +593,9 @@ export class WebGLRenderer implements Renderer {
     }
     verts = this.dynamicVerts;
     if (shipVisible) {
-      this.drawShip(ship, -state.heading - camera.rotation, 1, state.status, engine, state.throttle, ShaderStyle.ship, frame.vehicleId);
+      this.drawShip(ship, -state.heading - camera.rotation, 1, state.status, engine, state.throttle, ShaderStyle.ship, frame.vehicleId, camera.scale);
       this.beginTextPass(width, height);
-      if (frame.showShipLabels !== false) this.drawLabel(shipLabel, ship.x + 16, ship.y - 13, ShaderStyle.telemetryLabel, 'left', dpr);
+      if (frame.showShipLabels !== false) this.drawLabel(shipLabel, shipLabelX, shipLabelY, ShaderStyle.telemetryLabel, 'left', dpr);
       this.beginVectorPass(width, height);
     }
     timer?.lap('ship');
@@ -589,7 +614,7 @@ export class WebGLRenderer implements Renderer {
     }
     if (frame.showScale === false) this.beginTextPass(width, height);
     if (frame.overlays?.length) {
-      this.drawTileChunks(frame.overlays, camera, width, height);
+      if (!independentAir) this.drawTileChunks(frame.overlays, camera, width, height);
       this.drawOverlays(screenOverlays(frame.overlays, camera, width, height), width, height, dpr);
     }
     const encounters = trajectoryMarkers(frame);
@@ -735,18 +760,24 @@ export class WebGLRenderer implements Renderer {
 
   /** All other vessels in at most five draws (flames, three body styles, outlines). */
   private drawShipBatch(others: readonly RenderShip[], toScreen: (p: Vec) => Vec, rotation: number,
-    width: number, height: number): void {
+    width: number, height: number, worldScale = 1): void {
     const { gl } = this;
     let visible = 0, vertices = 0;
     const placed: { readonly x: number; readonly y: number; readonly c: number; readonly s: number; readonly ship: RenderShip; readonly artwork?: VehicleAppearance }[] = [];
     for (const other of others) {
       if (other.rock) continue;
       const at = toScreen(other.position);
-      if (at.x < -40 || at.x > width + 40 || at.y < -40 || at.y > height + 40) continue;
+      const margin = Math.max(40, (this.ports.vehicles?.get(other.vehicleId)?.metresPerUnit ?? 0) * worldScale * 32);
+      if (at.x < -margin || at.x > width + margin || at.y < -margin || at.y > height + margin) continue;
       const angle = -other.heading - rotation;
-      const artwork = this.ports.vehicles?.get(other.vehicleId), count = artwork?.hull.length ?? 4;
-      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * 0.8, s: Math.sin(angle) * 0.8, ship: other, artwork });
-      vertices += 3 + 3 * (count - 2) + 2 * count; visible++;
+      let artwork = this.ports.vehicles?.get(other.vehicleId), size = .8;
+      if (artwork?.metresPerUnit) {
+        size = vehicleArtworkScale(artwork, worldScale);
+        if (size === 0) { artwork = undefined; size = 1; }
+      }
+      const count = artwork?.hull.length ?? 4;
+      placed.push({ x: at.x, y: at.y, c: Math.cos(angle) * size, s: Math.sin(angle) * size, ship: other, artwork });
+      vertices += 3 + 3 * (count - 2) + 2 * count + (artwork?.lines?.reduce((n, line) => n + 2 * (line.length - 1), 0) ?? 0); visible++;
     }
     if (!visible) return;
     // Bound the shared vector buffer by the visible immutable hull sizes.
@@ -791,6 +822,9 @@ export class WebGLRenderer implements Renderer {
         const a = hull[j]!, b = hull[(j+1) % hull.length]!; point(p, a.x, a.y); point(p, b.x, b.y);
       }
     }
+    for (const p of placed) for (const line of p.artwork?.lines ?? []) for (let j = 1; j < line.length; j++) {
+      point(p, line[j-1]!.x, line[j-1]!.y); point(p, line[j]!.x, line[j]!.y);
+    }
     const outlineEnd = i;
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts, 0, i);
     draw(flameStart, flameEnd, gl.TRIANGLES, ShaderStyle.flame);
@@ -799,9 +833,14 @@ export class WebGLRenderer implements Renderer {
   }
 
   /** One vessel: optional flame, body and outline, at a screen position and angle. */
-  private drawShip(at: Vec, angle: number, size: number, status: State['status'], engine: boolean, throttle: number, style: number, vehicleId?: string): void {
+  private drawShip(at: Vec, angle: number, size: number, status: State['status'], engine: boolean, throttle: number, style: number, vehicleId?: string, worldScale = 1): void {
     const { gl } = this;
-    const artwork = this.ports.vehicles?.get(vehicleId), hull = artwork?.hull ?? VEHICLE_MARKER, f = artwork?.flame;
+    let artwork = this.ports.vehicles?.get(vehicleId);
+    if (artwork?.metresPerUnit) {
+      size = vehicleArtworkScale(artwork, worldScale);
+      if (size === 0) { artwork = undefined; size = 1; }
+    }
+    const hull = artwork?.hull ?? VEHICLE_MARKER, f = artwork?.flame;
     const verts = this.ensureCapacity(hull.length * 2);
     const cosA = Math.cos(angle) * size, sinA = Math.sin(angle) * size;
     const point = (i: number, x: number, y: number): void => {
@@ -815,6 +854,10 @@ export class WebGLRenderer implements Renderer {
     for (let j = 0; j < hull.length; j++) point(j, hull[j]!.x, hull[j]!.y);
     this.uploadAndDraw(hull.length, gl.TRIANGLE_FAN, status === 'crashed' ? ShaderStyle.crashedShip : style);
     this.uploadAndDraw(hull.length, gl.LINE_LOOP, ShaderStyle.outline);
+    for (const line of artwork?.lines ?? []) {
+      for (let j = 0; j < line.length; j++) point(j, line[j]!.x, line[j]!.y);
+      this.uploadAndDraw(line.length, gl.LINE_STRIP, ShaderStyle.outline);
+    }
   }
 
   private beginVectorPass(width: number, height: number): void {
@@ -825,14 +868,47 @@ export class WebGLRenderer implements Renderer {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vectorBuffer);
   }
 
-  private drawTerrain(geometry: TerrainGeometry, width: number, height: number): void {
+  /** Canonical opaque-face union; no effect textures or shader-pack additions. */
+  private drawAir(bodies: readonly RenderBody[], terrain: readonly TerrainGeometry[],
+    visible: readonly { b: RenderBody; pos: Vec; r: number; isStar: boolean }[], camera: Camera,
+    width: number, height: number, layer: 'far' | 'near'): void {
+    if (!this.stencilAvailable) return;
+    if (!bodies.some(b => b.air && b.air.mode !== 'off')) return;
+    const { gl } = this;
+    const airMesh = this.airMesh ??= new AirMesh();
+    let masked = false;
+    for (const body of bodies) {
+      airMesh.update(body, camera, width, height, layer);
+      if (!airMesh.length) continue;
+      if (!masked) {
+        gl.enable(gl.STENCIL_TEST); gl.stencilMask(0xff); gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+        gl.colorMask(false, false, false, false); gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
+        for (const geometry of terrain) this.drawTerrain(geometry, width, height, true);
+        const discs = visible.filter(v => !v.b.surface);
+        if (discs.length) this.drawBodyBatch(discs, width, height);
+        gl.colorMask(true, true, true, true); gl.stencilMask(0); gl.stencilFunc(gl.EQUAL, 0, 0xff);
+        gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP); masked = true;
+      }
+      gl.useProgram(this.terrainProgram); gl.uniform2f(this.terrainResolution, width, height);
+      gl.bindVertexArray(this.terrainVao); gl.bindBuffer(gl.ARRAY_BUFFER, this.terrainBuffer);
+      if (this.terrainVerts.length < airMesh.vertices.length) {
+        this.terrainVerts = new Float32Array(airMesh.vertices.length);
+        gl.bufferData(gl.ARRAY_BUFFER, this.terrainVerts.byteLength, gl.DYNAMIC_DRAW);
+      }
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, airMesh.vertices, 0, airMesh.length);
+      gl.drawArrays(gl.TRIANGLES, 0, airMesh.length / 6);
+    }
+    if (masked) { gl.stencilMask(0xff); gl.disable(gl.STENCIL_TEST); }
+  }
+
+  private drawTerrain(geometry: TerrainGeometry, width: number, height: number, mask = false): void {
     const { gl } = this;
     gl.useProgram(this.terrainProgram);
     gl.uniform2f(this.terrainResolution, width, height);
     gl.bindVertexArray(this.terrainVao);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.terrainBuffer);
-    const count = geometry.faces.reduce((sum, f) => sum + (f.points.length - 2) * 3, 0);
-    const lineCount = geometry.edge.length * 2 + geometry.accents.reduce((sum, line) => sum + (line.length - 1) * 2, 0);
+    const count = geometry.faces.reduce((sum, f) => sum + (mask && (f.color[3] !== 1 || f.overview) ? 0 : (f.points.length - 2) * 3), 0);
+    const lineCount = mask ? 0 : geometry.edge.length * 2 + geometry.accents.reduce((sum, line) => sum + (line.length - 1) * 2, 0);
     const floats = (count + lineCount) * 6;
     if (floats > this.terrainVerts.length) {
       this.terrainVerts = new Float32Array(2 ** Math.ceil(Math.log2(floats)));
@@ -843,12 +919,12 @@ export class WebGLRenderer implements Renderer {
       this.terrainVerts[index++] = p.x; this.terrainVerts[index++] = p.y;
       for (const c of color) this.terrainVerts[index++] = c;
     };
-    for (const f of geometry.faces) for (let j = 1; j < f.points.length - 1; j++) {
+    for (const f of geometry.faces) if (!mask || (f.color[3] === 1 && !f.overview)) for (let j = 1; j < f.points.length - 1; j++) {
       for (const p of [f.points[0]!, f.points[j]!, f.points[j + 1]!]) vertex(p, terrainFaceColor(f, p));
     }
-    for (const [a, b] of geometry.edge) { vertex(a, geometry.accentColor); vertex(b, geometry.accentColor); }
+    if (!mask) for (const [a, b] of geometry.edge) { vertex(a, geometry.accentColor); vertex(b, geometry.accentColor); }
     const faint = [...geometry.accentColor]; faint[3] = .24;
-    for (const line of geometry.accents) for (let j = 1; j < line.length; j++) {
+    if (!mask) for (const line of geometry.accents) for (let j = 1; j < line.length; j++) {
       vertex(line[j - 1]!, faint); vertex(line[j]!, faint);
     }
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.terrainVerts, 0, index);
@@ -1043,13 +1119,16 @@ export class WebGLRenderer implements Renderer {
 
   registerTilePalette(paletteId: string, colors: readonly string[]): void {
     if (this.disposed) throw new Error('Renderer is disposed.');
+    if (!paletteId || paletteId.length > 64 || colors.length < 1 || colors.length > 1024
+      || colors.some(color => !/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(color))) throw new Error('Invalid tile palette.');
     const state = this.ensureTileChunkResources();
     const existing = this.tilePalettes.get(paletteId);
+    const tex = createTilePaletteTexture(this.gl, colors);
     if (existing && existing !== state.defaultPalette) {
       this.gl.deleteTexture(existing);
     }
-    const tex = createTilePaletteTexture(this.gl, colors);
     this.tilePalettes.set(paletteId, tex);
+    this.tilePaletteSizes.set(paletteId, colors.length);
   }
 
   private ensureTileChunkResources(): NonNullable<typeof this.tileChunkState> {
@@ -1061,7 +1140,10 @@ export class WebGLRenderer implements Renderer {
     const cameraScaleLoc = gl.getUniformLocation(program, 'u_camera_scale');
     const cameraRotationLoc = gl.getUniformLocation(program, 'u_camera_rotation');
     const tileMetresLoc = gl.getUniformLocation(program, 'u_tile_metres');
+    const chunkRotationLoc = gl.getUniformLocation(program, 'u_chunk_rotation');
     const paletteLoc = gl.getUniformLocation(program, 'u_palette');
+    const paletteSizeLoc = gl.getUniformLocation(program, 'u_palette_size');
+    const strictLightLoc = gl.getUniformLocation(program, 'u_strict_light');
 
     const vao = gl.createVertexArray()!;
     gl.bindVertexArray(vao);
@@ -1093,10 +1175,7 @@ export class WebGLRenderer implements Renderer {
     const wallsBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, wallsBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, DEFAULT_ZERO_WALLS, gl.DYNAMIC_DRAW);
-    gl.enableVertexAttribArray(3);
-    gl.vertexAttribIPointer(3, 1, gl.UNSIGNED_SHORT, 0, 0);
-    gl.vertexAttribDivisor(3, 1);
-
+    gl.enableVertexAttribArray(3); gl.vertexAttribIPointer(3, 1, gl.UNSIGNED_SHORT, 0, 0); gl.vertexAttribDivisor(3, 1);
     gl.bindVertexArray(null);
 
     const defaultPalette = createTilePaletteTexture(gl);
@@ -1107,14 +1186,14 @@ export class WebGLRenderer implements Renderer {
       vao,
       quadBuffer,
       tilesBuffer,
-      wallsBuffer,
-      wallsActive: false,
+      wallsBuffer, wallsActive: false, strictLightLoc, paletteSizeLoc,
       lightBuffer,
       resolutionLoc,
       cameraOffsetLoc,
       cameraScaleLoc,
       cameraRotationLoc,
       tileMetresLoc,
+      chunkRotationLoc,
       paletteLoc,
       defaultPalette,
     };
@@ -1147,13 +1226,56 @@ export class WebGLRenderer implements Renderer {
     for (const p of overlays) {
       if (p.kind !== 'tile-chunk') continue;
 
+      validateTileChunkProfile(p);
+      gl.uniform1i(state.strictLightLoc, p.lightEncoding === 'nibble' ? 1 : 0);
       const paletteId = p.paletteId ?? 'default';
       if (paletteId !== boundPaletteId) {
-        const tex = this.tilePalettes.get(paletteId) ?? state.defaultPalette;
+        const tex = this.tilePalettes.get(paletteId) ?? this.tilePalettes.get('default') ?? state.defaultPalette;
         gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniform1i(state.paletteSizeLoc, this.tilePaletteSizes.get(paletteId) ?? this.tilePaletteSizes.get('default') ?? 27);
         boundPaletteId = paletteId;
       }
 
+      if (p.clipPolygon) {
+        if (!this.stencilAvailable) throw new Error('Clipped tile chunks require a stencil buffer.');
+        // Even-odd parity of a triangle fan handles a simple concave polygon.
+        // Stencil is private to this pass; restore write masks before other overlays.
+        gl.enable(gl.STENCIL_TEST); gl.stencilMask(0xff);
+        gl.colorMask(false, false, false, false);
+        gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INVERT);
+        const verts = this.ensureCapacity(p.clipPolygon.length * 6);
+        const a = camera.rotation + (p.rotationRadians ?? 0), c = Math.cos(a), s = Math.sin(a);
+        const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation);
+        const dx = p.origin.x - camera.center.x, dy = p.origin.y - camera.center.y;
+        const ox = width / 2 + (dx * cc - dy * cs) * camera.scale;
+        const oy = height / 2 - (dx * cs + dy * cc) * camera.scale;
+        let minX = width, minY = height, maxX = 0, maxY = 0;
+        for (let i = 0; i < p.clipPolygon.length; i++) {
+          const v = p.clipPolygon[i]!;
+          verts[i * 6] = ox + (v.x * c - v.y * s) * camera.scale;
+          verts[i * 6 + 1] = oy - (v.x * s + v.y * c) * camera.scale;
+          minX = Math.min(minX, verts[i * 6]!); maxX = Math.max(maxX, verts[i * 6]!);
+          minY = Math.min(minY, verts[i * 6 + 1]!); maxY = Math.max(maxY, verts[i * 6 + 1]!);
+          verts.fill(1, i * 6 + 2, i * 6 + 6);
+        }
+        // Clear only this chunk's screen footprint, including device-pixel coverage.
+        const px = this.canvas.width / width, py = this.canvas.height / height;
+        const left = Math.max(0, Math.floor(minX * px)), right = Math.min(this.canvas.width, Math.ceil(maxX * px));
+        const bottom = Math.max(0, Math.floor((height - maxY) * py)), top = Math.min(this.canvas.height, Math.ceil((height - minY) * py));
+        gl.enable(gl.SCISSOR_TEST); gl.scissor(left, bottom, Math.max(0, right - left), Math.max(0, top - bottom));
+        gl.clearStencil(0); gl.clear(gl.STENCIL_BUFFER_BIT);
+        gl.useProgram(this.terrainProgram); gl.uniform2f(this.terrainResolution, width, height);
+        gl.bindVertexArray(this.colorVao); gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
+        if (this.colorBufferFloats < verts.length) {
+          gl.bufferData(gl.ARRAY_BUFFER, verts.byteLength, gl.DYNAMIC_DRAW); this.colorBufferFloats = verts.length;
+        }
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, verts, 0, p.clipPolygon.length * 6);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, p.clipPolygon.length);
+        gl.colorMask(true, true, true, true);
+        gl.stencilFunc(gl.EQUAL, 1, 1); gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
+        gl.useProgram(state.program); gl.bindVertexArray(state.vao);
+      }
+      gl.uniform1f(state.chunkRotationLoc, p.rotationRadians ?? 0);
       gl.uniform2f(state.cameraOffsetLoc, p.origin.x - camera.center.x, p.origin.y - camera.center.y);
       gl.uniform1f(state.tileMetresLoc, p.tileMetres);
 
@@ -1165,11 +1287,11 @@ export class WebGLRenderer implements Renderer {
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.walls ?? DEFAULT_ZERO_WALLS);
         state.wallsActive = p.walls !== undefined;
       }
-
       gl.bindBuffer(gl.ARRAY_BUFFER, state.lightBuffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? DEFAULT_FULL_LIGHT);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, p.light ?? (p.lightEncoding === 'nibble' ? DEFAULT_NIBBLE_LIGHT : DEFAULT_FULL_LIGHT));
 
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 1024);
+      if (p.clipPolygon) { gl.disable(gl.STENCIL_TEST); gl.disable(gl.SCISSOR_TEST); }
     }
 
     gl.bindVertexArray(null);

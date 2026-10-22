@@ -19,6 +19,8 @@ Open **Manual** in the game's dock. The **Players** tab covers your first orbit,
 
 For offline play, download the release's `space-lab-<tag>-offline.html` and open it locally. Desktop and dedicated server downloads are available for Windows, macOS and Linux; Android APKs are available for sideloading. The desktop executable uses an installed browser to display its embedded game. Keep the included `NODE-LICENSE.txt` with desktop and server executables.
 
+**Space Sim Tiles Demo** is available in the Library for tiled terrain and orbital-flight comparisons on Primus and Parvus. Its progress stays separate from **Space Sim Classic**. WebGL is the primary renderer; Canvas provides a basic fallback with one local view.
+
 ## Create and remix
 
 Open the Manual's **Creators** tab for universe authoring, shader packs, reusable modules and game composition. **ModMenu** manages games and plugins. **Orbit Sandbox** lets you create planetary systems; **Flight starter**, **Planet viewer** and **Survey fixture** demonstrate smaller compositions with different tools and host adapters.

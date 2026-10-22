@@ -87,7 +87,8 @@ export function inspectSaveFiles(files: PackageFiles): WorldSave {
   const dataRecords = d.format === 'spacelab-universe-save/2' || d.format === 'spacelab-universe-save/3' && d.data !== undefined ? unchunk(d.data, 'data', 4096) : undefined;
   if (d.pages !== undefined && (d.format !== 'spacelab-universe-save/3' || d.pages !== PAGE_INVENTORY)) throw new Error('Sparse pages require save layout version 3');
   const state = object(parsePackageJson(requiredFile(files, d.state), 'Universe state'), 'Universe state');
-  keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId', 'vehicles', 'avatars', 'bodies'], 'Universe state');
+  keys(state, ['format', 'version', 'model', 'units', 'worldId', 'savedAt', 'systemId', 'tick', 'time', 'paused', 'nextShipNumber', 'hostId', 'vehicles', 'avatars', 'bodies', 'gameId'], 'Universe state');
+  if (state.gameId !== undefined && (typeof state.gameId !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,127}$/.test(state.gameId))) throw new Error('Invalid saved game identity');
   if (state.format !== 'space-sim-world') throw new Error('Unsupported saved state');
   const modules = object(parsePackageJson(requiredFile(files, d.modules), 'Saved module state'), 'Saved module state');
   keys(modules, ['lock', 'simulationFingerprint', 'moduleState', 'configuration', 'data', 'flightPlans'], 'Saved module state');

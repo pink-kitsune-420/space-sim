@@ -96,6 +96,10 @@
       "type": "link",
       "text": "game-api: engine.ts",
       "page": "api-reference/game-api/engine"
+    },
+    {
+      "type": "paragraph",
+      "text": "VehicleDefaults and per-vehicle handling accept optional contactRadiusMetres (0\u201332 m). Omitted/zero preserves point contact; finite hulls use a circular footprint with centre-based state, bounded continuous dry-terrain contact, radius-aware spawn/support/prediction/analytic guards and a distinct motion identity. Ocean combinations fail explicitly. Footprint authority must agree with metre-based artwork; legacy saves/settings remain unchanged."
     }
   ]
 }
