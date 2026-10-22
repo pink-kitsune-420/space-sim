@@ -165,12 +165,12 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const viewportRadius = Math.hypot(width / 2, height / 2) / camera.scale;
   // No surface direction is visible when the entire viewport is inside the
   // minimum ground envelope. Avoid tessellating a huge, completely hidden disc.
-  if (localDistance + viewportRadius < profile.bounds.minRadius) {
+  if (localDistance + viewportRadius < (profile.groundBounds ?? profile.bounds).minRadius) {
     const groundClip = [{ x: -2, y: -2 }, { x: width + 2, y: -2 },
       { x: width + 2, y: height + 2 }, { x: -2, y: height + 2 }];
     const geometry: TerrainGeometry = { boundary: [], groundClip, sourcePoints: 0, edge: [], accents: [],
       accentColor: rgba(body.horizonColor ?? body.accentColor ?? '#659497'),
-      faces: [{ points: groundClip, color: rgba(profile.hasWater ? '#082b49' : '#101e2b') }] };
+      faces: [{ points: groundClip, color: rgba(profile.planet ? (profile.planet.definition.recipe === 'rocky' ? '#30343a' : '#453b2e') : profile.hasWater ? '#082b49' : '#101e2b') }] };
     LAST_GEOMETRY.set(profile, { key, querySurface, overview: body.overview, geometry });
     return geometry;
   }
@@ -200,7 +200,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
     }
     if (b === cuts[cutIndex]) preserved.push(points.length - 1);
     const waterDepth = querySurface(profile, b).waterDepth;
-    if (waterDepth > 0 && waterDepth < Math.max(.1, profile.referenceRadius * .005)) preserved.push(points.length - 1);
+    if (!profile.planet && waterDepth > 0 && waterDepth < Math.max(.1, profile.referenceRadius * .005)) preserved.push(points.length - 1);
     a = b;
   }
   // Keep quadrants before simplifying a closed circle (its first and last vertex coincide).
@@ -210,12 +210,20 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   for (let i = 1; i < sections.length; i++) {
     const lo = sections[i - 1]!, hi = sections[i]!;
     if (hi <= lo) continue;
-    const section = reduce(points.slice(lo, hi + 1));
+    let section = reduce(points.slice(lo, hi + 1));
+    if (profile.planet && profile.hasWater) {
+      // Retain both actual rock and first-contact sea curves. A flat sea must
+      // never simplify away a mountain or valley on the submerged floor.
+      const source = points.slice(lo, hi + 1);
+      const ground = source.map(p => project(p.angle, querySurface(profile, p.angle).groundRadius));
+      const keep = new Set([...section, ...reduce(ground)].map(p => p.angle));
+      section = source.filter(p => keep.has(p.angle));
+    }
     boundary.push(...(boundary.length ? section.slice(1) : section));
   }
   const faces: TerrainFace[] = [], edge: Array<readonly [{ x: number; y: number }, { x: number; y: number }]> = [];
   const accents: Array<readonly { x: number; y: number }[]> = [];
-  const base = rgba(body.color ?? '#233c47'), dark = rgba('#101e2b');
+  const base = rgba(body.color ?? '#233c47'), dark = rgba(profile.planet ? (profile.planet.definition.recipe === 'rocky' ? '#30343a' : '#453b2e') : '#101e2b');
   const accentColor = rgba(body.horizonColor ?? body.accentColor ?? '#659497');
   const sky = rgba(body.air ? '#00000000' : body.skyColor ?? body.atmosphereColor ?? '#29495380');
   const center = project(0, 0);
@@ -234,19 +242,27 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
       faces.push({ points: clipped, color, gradient, ...(overview ? { overview: true } : {}) });
     }
   };
+  // A single canonical rock polygon avoids moving antialias cracks between
+  // individually painted radial fans. Water strips retain their own layering.
+  if (profile.planet) face([center, ...boundary.map(p =>
+    project(p.angle, querySurface(profile, p.angle).groundRadius))], dark);
   for (let i = 1; i < boundary.length; i++) {
     const p = boundary[i - 1]!, q = boundary[i]!;
     const middle = (p.angle + q.angle) / 2, radius = (p.radius + q.radius) / 2;
     const query = querySurface(profile, middle), water = query.material === 'water';
     const ocean = profile.hasWater;
     const deep = water ? rgba('#082b49') : dark;
-    face([center, p, q], ocean ? rgba('#082b49') : dark);
+    if (profile.planet) {
+      const gp = project(p.angle, querySurface(profile, p.angle).groundRadius);
+      const gq = project(q.angle, querySurface(profile, q.angle).groundRadius);
+      if (water) face([p, q, gq, gp], rgba('#082b49'));
+    } else face([center, p, q], ocean ? rgba('#082b49') : dark);
     // Illustrative land extends inward from the same exact shore crossings.
     // Taper to zero at both coasts instead of painting radial pie sectors.
     const landDepth = (radius: number) => ocean ? Math.min(radius * .75, Math.max(0, radius - profile.seaRadiusMetres!) * 8) : depth;
-    const pDepth = water ? depth : Math.min(depth, landDepth(p.radius));
-    const qDepth = water ? depth : Math.min(depth, landDepth(q.radius));
-    if (ocean && !water) face([p, q, project(q.angle, q.radius - landDepth(q.radius)), project(p.angle, p.radius - landDepth(p.radius))], dark);
+    const pDepth = profile.planet ? (water ? Math.min(depth, querySurface(profile, p.angle).waterDepth) : depth) : water ? depth : Math.min(depth, landDepth(p.radius));
+    const qDepth = profile.planet ? (water ? Math.min(depth, querySurface(profile, q.angle).waterDepth) : depth) : water ? depth : Math.min(depth, landDepth(q.radius));
+    if (ocean && !water && !profile.planet) face([p, q, project(q.angle, q.radius - landDepth(q.radius)), project(p.angle, p.radius - landDepth(p.radius))], dark);
     const normal = query.normal;
     // Slopes facing the sun are brighter; without a sun, a fixed upper-left light.
     const light = .45 + .3 * (sun ? normal.x * sun.x + normal.y * sun.y : normal.x * -.6 + normal.y * .8);
@@ -255,7 +271,10 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
     const shallowScale = Math.max(.1, profile.referenceRadius * .005);
     const shade = dim(water ? mix(rgba('#53afad'), rgba('#155882'), Math.min(1, query.waterDepth / shallowScale))
       : mix(dark, base, light + .25), day);
-    face([p, q, project(q.angle, q.radius - qDepth), project(p.angle, p.radius - pDepth)], shade,
+    // V2 rock continues beneath the finite material band with the same coarse
+    // substrate on both sides of a coast. Legacy body-color land gradients can
+    // be ocean-blue and would create a radial seam below the detailed band.
+    if (!profile.planet || water) face([p, q, project(q.angle, q.radius - qDepth), project(p.angle, p.radius - pDepth)], shade,
       { from: project(middle, radius), to: project(middle, radius - Math.max(1e-12, (pDepth + qDepth) / 2)), color: deep });
     if (water) {
       const band = Math.min(query.waterDepth, 8 / camera.scale);
@@ -312,7 +331,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   // Bounded pseudo-sphere color only; the exact canonical rim/coasts above remain
   // authoritative. Keep the original complete ground underneath every fade/loading state.
   const originalFaceCount = faces.length;
-  const globeAmount = body.overview ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
+  const globeAmount = body.overview && !body.overview.planet ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
   // A rim-focused camera resolves physical depth before a small body's global
   // size threshold. Keep globe illustration out of that actual selected ground.
   const localBlend = body.overview?.surface && localDistance > profile.bounds.minRadius * .7
@@ -344,7 +363,8 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   }
   // Continue the same material field in physical metres before foreground cells
   // are ready. This is immutable summary sampling, never a fine-patch request.
-  // Water/coasts keep their canonical pass; this ribbon only covers dry ground.
+  // V2 rock materials continue below the actual seabed when fine tiles retire;
+  // the independent sea/contact curve and water strip remain unchanged.
   const surface = body.overview?.surface;
   if (surface && amount < 1) {
     const segments = boundary.length - 1;
@@ -353,8 +373,11 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
     const sample = new Float64Array(4), outer = new Float64Array(4);
 
     for (let i = 1; i < boundary.length && rows > 0; i++) {
-      const p = boundary[i - 1]!, q = boundary[i]!, angle = (p.angle + q.angle) / 2;
-      if (querySurface(profile, angle).material === 'water') continue;
+      const left = boundary[i - 1]!, right = boundary[i]!;
+      const p = profile.planet ? project(left.angle, querySurface(profile, left.angle).groundRadius) : left;
+      const q = profile.planet ? project(right.angle, querySurface(profile, right.angle).groundRadius) : right;
+      const angle = (p.angle + q.angle) / 2;
+      if (!profile.planet && querySurface(profile, angle).material === 'water') continue;
       const radius = (p.radius + q.radius) / 2;
       for (let row = 0; row < rows; row++) {
         const lo = row * surface.depthMetres / rows, hi = (row + 1) * surface.depthMetres / rows;

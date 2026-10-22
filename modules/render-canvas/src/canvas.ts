@@ -1,10 +1,11 @@
-import { AirMesh, DEFAULT_TILE_PALETTE_HEX, validateTileChunkProfile, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
+import { AirMesh, createTileChunkRevisions, DEFAULT_TILE_PALETTE_HEX, validateTileChunkProfile, trajectoryMarkers, VEHICLE_MARKER, vehicleArtworkScale, type OverlayPrimitive, type VehicleAppearance } from '@space-sim/game-api';
 import type { Vec, SceneFrame } from '@space-sim/game-api';
 import { sceneFrame, type RendererPorts } from './ports';
 import { createProjector, getPathGeometry, hermiteControls, type Camera, type RenderBody, type RenderFrame, type RenderShip, type Renderer,
   type RendererFeatures, type RenderTimer } from './frame';
 import { screenOverlays, type ScreenOverlay } from './overlay';
-import { drawCanvasTerrain, terrainGeometry } from './terrain';
+import { drawCanvasTerrain, terrainGeometry, type TerrainGeometry } from './terrain';
+import { PlanetMapPass } from './planet-map-pass';
 import { daylight, NIGHT_LEVEL, screenDirection } from './lighting';
 import { BodyCrowd, LabelPlacer, labelRect } from './layout';
 import type { RenderThemeOptions } from '@space-sim/game-api';
@@ -364,6 +365,9 @@ function wallPalette(colors: readonly string[]): readonly string[] {
 export class CanvasRenderer implements Renderer {
   private readonly ctx: CanvasRenderingContext2D;
   private airMesh?: AirMesh;
+  private planetMapPass?: PlanetMapPass;
+  private readonly mapBodies: RenderBody[] = [];
+  private readonly mapGeometries: TerrainGeometry[] = [];
   private readonly tilePalettes = new Map<string, readonly string[]>();
   private readonly wallPalettes = new Map<string, readonly string[]>([['default', wallPalette(DEFAULT_TILE_PALETTE_HEX)]]);
   private readonly litPalettes = new Map<string, readonly (readonly string[])[]>();
@@ -378,8 +382,8 @@ export class CanvasRenderer implements Renderer {
     this.ctx = ctx;
     const renderer = this;
     this.features = Object.freeze({
-      planetOverview: Object.freeze({ version: 1 as const }), independentAir: Object.freeze({ version: 1 as const }),
-      tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const }),
+      planetMap: Object.freeze({ version: 1 as const }), planetOverview: Object.freeze({ version: 1 as const }), independentAir: Object.freeze({ version: 1 as const }),
+      tileChunks: Object.freeze({ version: 1 as const, rotation: true as const, clipPolygon: true as const, lightEncoding: 'nibble' as const, paletteEntries: 1024 as const, walls: true as const, buffers: 'borrowed-through-draw' as const, revisions: createTileChunkRevisions() }),
       flush: () => { ctx.getImageData(0, 0, 1, 1); },
       tilePalettes: Object.freeze({
         register: (paletteId: string, colors: readonly string[]): void => renderer.registerTilePalette(paletteId, colors),
@@ -395,7 +399,7 @@ export class CanvasRenderer implements Renderer {
     this.wallPalettes.set(paletteId, wallPalette(copy));
     this.litPalettes.delete(paletteId);
   }
-  dispose(): void { this.airMesh = undefined; this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); this.litPalettes.clear(); }
+  dispose(): void { this.airMesh = undefined; this.planetMapPass = undefined; this.mapBodies.length = this.mapGeometries.length = 0; this.disposed = true; this.tilePalettes.clear(); this.wallPalettes.clear(); this.litPalettes.clear(); }
   drawScene(frame: SceneFrame, timer?: RenderTimer): void { this.draw(sceneFrame(frame), timer); }
   draw(frame: RenderFrame, timer?: RenderTimer): void {
     if (this.disposed) throw new Error('Renderer has been disposed.');
@@ -492,6 +496,8 @@ export class CanvasRenderer implements Renderer {
     }
 
     const independentAir = bodyList.some(b => b.air);
+    const earlyGroundOverlays = independentAir || bodyList.some(b => b.overview?.planet);
+    this.mapBodies.length = this.mapGeometries.length = 0;
     if (independentAir) this.drawAir(bodyList, camera, width, height, 'far');
 
     // 2. Draw each celestial body
@@ -511,7 +517,13 @@ export class CanvasRenderer implements Renderer {
       }
 
       if (b.surface && !isStar) {
-        drawCanvasTerrain(ctx, terrainGeometry({ ...b, surface: b.surface }, camera, width, height, this.ports.geometry));
+        const geometry = terrainGeometry({ ...b, surface: b.surface }, camera, width, height, this.ports.geometry);
+        drawCanvasTerrain(ctx, geometry);
+        if (b.overview?.planet) {
+          this.planetMapPass ??= new PlanetMapPass(this.canvas);
+          this.planetMapPass.drawMap(ctx,b,camera,geometry,width,height);
+          this.mapBodies.push(b); this.mapGeometries.push(geometry);
+        }
       } else if (r < 2.5) {
         if (isStar) {
           // Radiant star beacon with glowing corona halo even at extreme zoom-out
@@ -573,9 +585,10 @@ export class CanvasRenderer implements Renderer {
         ctx.fillText(b.name.toUpperCase(), pos.x, labelY);
       }
     }
-    if (independentAir) {
+    if (earlyGroundOverlays) {
       this.drawTileChunks(frame.overlays ?? [], camera, width, height);
-      this.drawAir(bodyList, camera, width, height, 'near');
+      for (let i=0;i<this.mapBodies.length;i++) this.planetMapPass!.drawCover(ctx,this.mapBodies[i]!,camera,this.mapGeometries[i]!,width,height);
+      if (independentAir) this.drawAir(bodyList, camera, width, height, 'near');
     }
     timer?.lap('planet');
 
@@ -639,7 +652,7 @@ export class CanvasRenderer implements Renderer {
       ctx.fillText(`${metres} m`, width - 24, height - 36);
     }
     if (frame.overlays?.length) {
-      if (!independentAir) this.drawTileChunks(frame.overlays, camera, width, height);
+      if (!earlyGroundOverlays) this.drawTileChunks(frame.overlays, camera, width, height);
       this.drawOverlays(screenOverlays(frame.overlays, camera, width, height));
     }
     const encounters = trajectoryMarkers(frame);
@@ -705,12 +718,14 @@ export class CanvasRenderer implements Renderer {
   private drawTileChunks(overlays: readonly OverlayPrimitive[], camera: Camera, width: number, height: number): void {
     const { ctx } = this;
     const cc = Math.cos(camera.rotation), cs = Math.sin(camera.rotation);
+    const marginX = Math.max(1, width / this.canvas.width), marginY = Math.max(1, height / this.canvas.height);
     for (const p of overlays) {
       if (p.kind !== 'tile-chunk') continue;
       validateTileChunkProfile(p);
       const { origin, tileMetres, tiles } = p;
       const angle = camera.rotation + (p.rotationRadians ?? 0);
       const c = Math.cos(angle) * camera.scale, s = Math.sin(angle) * camera.scale;
+      const absC = Math.abs(c), absS = Math.abs(s);
       const dx = origin.x - camera.center.x, dy = origin.y - camera.center.y;
       const ox = width / 2 + (dx * cc - dy * cs) * camera.scale;
       const oy = height / 2 - (dx * cs + dy * cc) * camera.scale;
@@ -719,8 +734,8 @@ export class CanvasRenderer implements Renderer {
       const inverseScale2 = 1 / (camera.scale * camera.scale);
       const vx = (c * (width / 2 - ox) - s * (height / 2 - oy)) * inverseScale2;
       const vy = (-s * (width / 2 - ox) - c * (height / 2 - oy)) * inverseScale2;
-      const ex = (Math.abs(c) * width + Math.abs(s) * height) * .5 * inverseScale2;
-      const ey = (Math.abs(s) * width + Math.abs(c) * height) * .5 * inverseScale2;
+      const ex = (absC * width + absS * height) * .5 * inverseScale2;
+      const ey = (absS * width + absC * height) * .5 * inverseScale2;
       const x0 = Math.max(0, Math.floor((vx - ex) / tileMetres)), x1 = Math.min(32, Math.ceil((vx + ex) / tileMetres));
       const y0 = Math.max(0, Math.floor((vy - ey) / tileMetres)), y1 = Math.min(32, Math.ceil((vy + ey) / tileMetres));
       if (x0 >= x1 || y0 >= y1) continue;
@@ -728,11 +743,22 @@ export class CanvasRenderer implements Renderer {
       // Transform cells, rather than only their origins. No ceil overlap at seams.
       ctx.transform(c, -s, -s, -c, ox, oy);
       if (p.clipPolygon) {
+        let clipMinX = Infinity, clipMinY = Infinity, clipMaxX = -Infinity, clipMaxY = -Infinity;
         ctx.beginPath();
         for (let i = 0; i < p.clipPolygon.length; i++) {
           const v = p.clipPolygon[i]!;
+          clipMinX = Math.min(clipMinX, v.x); clipMaxX = Math.max(clipMaxX, v.x);
+          clipMinY = Math.min(clipMinY, v.y); clipMaxY = Math.max(clipMaxY, v.y);
           if (i === 0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y);
         }
+        // Project one conservative local rectangle instead of every clip vertex.
+        const mx = (clipMinX + clipMaxX) * .5, my = (clipMinY + clipMaxY) * .5;
+        const hx = (clipMaxX - clipMinX) * .5, hy = (clipMaxY - clipMinY) * .5;
+        const x = ox + mx * c - my * s, y = oy - mx * s - my * c;
+        const extentX = absC * hx + absS * hy, extentY = absS * hx + absC * hy;
+        const minX = x - extentX, maxX = x + extentX, minY = y - extentY, maxY = y + extentY;
+        // Retain at least one CSS and physical pixel, including sub-1 backing scales.
+        if (maxX < -marginX || maxY < -marginY || minX > width + marginX || minY > height + marginY) { ctx.restore(); continue; }
         ctx.closePath(); ctx.clip('evenodd');
       }
       const palette = this.tilePalettes.get(p.paletteId ?? 'default') ?? this.tilePalettes.get('default') ?? DEFAULT_TILE_PALETTE_HEX;

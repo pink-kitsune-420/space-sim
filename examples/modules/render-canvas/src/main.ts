@@ -1,3 +1,7 @@
+/** Rich shared-field maps are optional: discover renderer.features.planetMap;
+ * keep RenderOverview arrays immutable and use SDK PlanetMapFrame/PlanetCoverMesh.
+ * CPU map sampling uses planetMapColor(map, x, y, out, matchingSurfaceProfile)
+ * to retain physical wet/dry agreement in the final equatorial atlas texels. */
 import { requireTileChunkFeatures, surfaceOverviewColor } from '@space-sim/game-api';
 import { CANVAS_DRAWING, type CanvasRendererFactory, type ModuleInitializationV2, type OverlayPrimitive, type Render2DOptions, type SceneFrame, type SceneRenderer, type ServiceKey } from '@space-sim/game-api';
 
@@ -94,3 +98,14 @@ export function sampleSurfaceOverviewExample(body: import('@space-sim/game-api')
  * a light backdrop and two-band globes. Explicit resolution overrides do not
  * change contact/terrain or the caller's saved graphics preferences. */
 export function fallbackResolutionExample(): Render2DOptions { return { maxPixelRatio: 1 }; }
+
+/** Allocate the owner once per world. Build a chunk once per content revision; move
+ * origin/rotation without changing it. Release locally on zoom-out; dispose the owner
+ * only after all views leave the world. Unsupported providers use explicit fallback. */
+export function revisionTileExample(features: import('@space-sim/game-api').RendererFeatures,
+  owner: import('@space-sim/game-api').TileChunkOwner, revision = 0): OverlayPrimitive {
+  if (features.tileChunks?.version !== 1) return {kind:'line',space:'world',points:[{x:0,y:0},{x:1,y:0}],color:'#8ddbc1'};
+  const chunk = clippedTileExample();
+  if (chunk.kind !== 'tile-chunk' || features.tileChunks.revisions?.version !== 1) return chunk;
+  return {...chunk,contentRevision:{owner,id:0,revision}};
+}

@@ -35,7 +35,8 @@ export interface SurfaceProvider extends ProviderIdentity {
   identity(body: Body): string;
   validate(body: Body, profile: SurfaceProfile): void;
   query(profile: SurfaceProfile, angle: number): SurfaceQuery;
-  /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */
+  /** Optional radiusMetres uses circular hull support on solid terrain, including seabed;
+   * omitted is legacy point support. Floating equilibrium belongs to motion, not rock support. */
   support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;
   sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
   sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;

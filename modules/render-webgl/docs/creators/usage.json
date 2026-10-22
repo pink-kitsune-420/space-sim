@@ -14,6 +14,10 @@
     },
     {
       "type": "paragraph",
+      "text": "Optional planetMap version1 consumes immutable north-pole Cartesian field atlases and equatorial skin colors from RenderOverview.planet. The equator stays the playable rim. PlanetMapFrame and PlanetCoverMesh are supported public SDK helpers shared across independently built renderers. Pass the matching SurfaceProfile as the optional fifth argument to planetMapColor to reconstruct the playable equator in the final atlas texels. The body-fixed band uses existing equatorial colors and physical sea heights without changing contact. WebGL uploads atlas, height and equator textures once per visible immutable map; its two-entry logical texture bound remains below4MiB. Map pixels and thin cover are appearance only; canonical SurfaceProfile geometry and ground contact remain authoritative. Unsupported renderers keep coarse overview levels."
+    },
+    {
+      "type": "paragraph",
       "text": "A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources."
     },
     {
@@ -132,6 +136,10 @@
     {
       "type": "paragraph",
       "text": "Near-view summary agreement: WebGL inserts body-fixed atlas-aligned columns (~1.5m minimum spacing) within32m either side of the view centre, on the existing canonical chords. A visible-segment budget limits the physical skin to1280 triangles inside the1536 total atlas cap, adapting depth rows. Shared columns/colors keep storage bounded. Both providers filter actual angular mesh support independently from radial depth; Canvas keeps its coarse two-band fallback. No fine cells/chunks, new terrain authority or shader ABI are introduced. Outside the selected region and at finite atlas leaf support, mixtures remain approximate until fine detail is ready."
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional features.tileChunks.revisions version 1 understands contentRevision={owner,id,revision}. Create a fresh owner with createTileChunkOwner() once per world/session; IDs and monotonically increasing revisions are nonnegative safe integers. For an opted-in identity, keep tiles/walls/light/encoding/clip/tileMetres/paletteId unchanged until advancing the whole-chunk revision after completed draws. Origin, body rotation and camera transforms need no content revision. This is a producer promise, not copied snapshots or mutation detection. Chunks without metadata retain borrowed mutable-between-draw behavior; omit metadata for providers without this optional capability, or use requireTileChunkFeatures(features,{revisions:true}) for an essential consumer. revisionTileExample shows both tile and vector fallbacks. Palette replacement is independently renderer-owned and must invalidate any future palette-dependent cache. The protocol does not itself cache cells or promise performance/residency. Its per-renderer revision-payload retention policy is at most512 entries/2MiB logical bytes (up to8MiB for four game views), not native GPU/VM peak or a bound on producer data/palettes/framebuffers. release(contentRevision) drops only this renderer/view's retained versions of(owner,id), is idempotent and permits drawing again. It never disposes another view or the shared owner. After all world consumers finish, owner.dispose() invalidates its descriptors; create a fresh owner instead of wrapping/restarting revisions. Renderer/provider/context replacement discards renderer-local state; reuse a live owner only with a new compatible instance and palette registration. No automatic in-place lost-context recovery, partial dirty regions, terrain edits, physics or save authority is introduced."
     }
   ]
 }

@@ -209,6 +209,72 @@ export function compileTerrainProgram(gl: WebGL2RenderingContext): WebGLProgram 
       void main() { fragColor = v_color; }`, 'Terrain');
 }
 
+/** Private material lookup over the existing canonical summary skin. */
+export function compileSurfaceAtlasProgram(gl: WebGL2RenderingContext): WebGLProgram {
+  return privateProgram(gl, `#version 300 es
+    precision highp float;
+    layout(location=0) in vec2 a_position;
+    layout(location=1) in vec4 a_color;
+    uniform vec2 u_resolution;
+    uniform float u_scale;
+    uniform vec2 u_axes;
+    out vec2 v_local;
+    out vec4 v_color;
+    void main() {
+      vec2 p=a_position/u_resolution*2.0-1.0;
+      gl_Position=vec4(p.x,-p.y,0.0,1.0);
+      vec2 world=vec2(a_position.x-u_resolution.x*.5,u_resolution.y*.5-a_position.y)/u_scale;
+      v_local=vec2(-u_axes.y*world.x+u_axes.x*world.y,dot(u_axes,world));
+      v_color=a_color;
+    }`, `#version 300 es
+    precision highp float;
+    precision highp int;
+    precision highp usampler2D;
+    uniform usampler2D u_atlas;
+    uniform sampler2D u_heights;
+    uniform int u_atlasWidth;
+    uniform int u_heightWidth;
+    uniform int u_sectors;
+    uniform int u_rows;
+    uniform int u_samples;
+    uniform float u_depth;
+    uniform vec3 u_palette[3];
+    uniform float u_cameraRadius;
+    uniform float u_referenceOffset;
+    uniform vec2 u_angles;
+    uniform float u_sharpness;
+    in vec2 v_local;
+    in vec4 v_color;
+    out vec4 fragColor;
+    const float TAU=6.283185307179586;
+    int wrapped(int value,int count) { return (value%count+count)%count; }
+    float heightAt(int i) {
+      i=wrapped(i,u_samples);
+      return texelFetch(u_heights,ivec2(i%u_heightWidth,i/u_heightWidth),0).r;
+    }
+    vec3 displayColor(vec3 c) {
+      return mix(12.92*c,1.055*pow(max(c,vec3(0.0)),vec3(1.0/2.4))-.055,step(vec3(.0031308),c));
+    }
+    void main() {
+      float radial=u_cameraRadius+v_local.y;
+      float lengthR=length(vec2(v_local.x,radial));
+      // Rationalized near-side radius delta retains metre-scale depth on large bodies.
+      float offset=radial>=0.0 ? v_local.y+v_local.x*v_local.x/max(1e-20,lengthR+radial)
+        : lengthR-u_cameraRadius;
+      float delta=atan(v_local.x,radial)/TAU;
+      float address=u_angles.y+delta*float(u_samples);
+      int interval=int(floor(address));
+      float elevation=mix(heightAt(interval),heightAt(interval+1),fract(address));
+      float depth=u_referenceOffset+elevation-offset;
+      int row=int(clamp(floor(depth/u_depth*float(u_rows)),0.0,float(u_rows-1)));
+      int column=wrapped(int(floor(u_angles.x+delta*float(u_sectors))),u_sectors);
+      int index=row*u_sectors+column;
+      uint pair=texelFetch(u_atlas,ivec2(index%u_atlasWidth,index/u_atlasWidth),0).r;
+      vec3 color=displayColor((u_palette[int(pair&3u)]+u_palette[int((pair>>2u)&3u)])*.5);
+      fragColor=vec4(mix(v_color.rgb,color,u_sharpness),v_color.a);
+    }`, 'Surface atlas');
+}
+
 /** Private text pass for module overlays: exact colors whatever shader pack is loaded.
  * Shares the text VAO layout (a_position at 0, a_uv at 1). Compiled on first use. */
 export function compileOverlayTextProgram(gl: WebGL2RenderingContext): WebGLProgram {

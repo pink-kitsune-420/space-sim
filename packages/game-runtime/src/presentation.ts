@@ -83,7 +83,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
     const fields = kind === 'line' ? ['kind', 'space', 'points', 'color', 'width', 'closed', 'fill']
       : kind === 'circle' ? ['kind', 'space', 'center', 'radius', 'color', 'width', 'fill']
       : kind === 'text' ? ['kind', 'space', 'at', 'text', 'color', 'align']
-      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'walls', 'light', 'lightEncoding', 'paletteId', 'color', 'rotationRadians', 'clipPolygon'] : undefined;
+      : kind === 'tile-chunk' ? ['kind', 'space', 'origin', 'tileMetres', 'size', 'tiles', 'walls', 'light', 'lightEncoding', 'paletteId', 'color', 'rotationRadians', 'clipPolygon', 'contentRevision'] : undefined;
     if (!fields) throw new Error(`${label}: kind must be line, circle, text or tile-chunk`);
     const p = record(value, fields, label);
     if (p.space !== 'world' && p.space !== 'screen') throw new Error(`${label}: space must be world or screen`);
@@ -116,6 +116,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
         clipPolygon = Object.freeze(p.clipPolygon.map((q, j) => point(q, 'world', `${label} clip point ${j}`)));
       }
       validateTileChunkProfile(p as unknown as Extract<OverlayPrimitive, { kind: 'tile-chunk' }>);
+      const revision = p.contentRevision as Extract<OverlayPrimitive, {kind:'tile-chunk'}>['contentRevision'];
       const c = p.color !== undefined ? color(p.color, label) : undefined;
       return Object.freeze({
         kind,
@@ -126,6 +127,7 @@ export function validateOverlay(raw: unknown): readonly OverlayPrimitive[] {
         ...(clipPolygon !== undefined ? { clipPolygon } : {}),
         size: 32 as const,
         tiles: p.tiles,
+        ...(revision !== undefined ? { contentRevision: Object.freeze({ owner: revision.owner, id: revision.id, revision: revision.revision }) } : {}),
         ...(p.walls !== undefined ? { walls: p.walls } : {}),
         ...(p.lightEncoding !== undefined ? { lightEncoding: p.lightEncoding } : {}),
         ...(p.light !== undefined ? { light: p.light } : {}),

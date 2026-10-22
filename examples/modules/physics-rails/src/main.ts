@@ -24,6 +24,8 @@ export interface MotionKernelDiagnostics {
 }
 
 export interface MotionKernelHelper {
+  /** For finite ocean/rock contact, pass e.g. { contactRadiusMetres: 2.5 }.
+   * The hull centre is the state position; omitting the radius keeps legacy points. */
   createContext(vehicle?: Partial<VehicleDefaults>): SimulationContext;
   computeElements(state: OrbitalState, mu: number): Elements;
   diagnose(): MotionKernelDiagnostics;
@@ -41,6 +43,8 @@ const DEFAULT_VEHICLE: VehicleDefaults = Object.freeze({
   initialThrottle: 0,
 });
 
+/** SurfaceProvider.generate accepts frozen radial v1 or shared planet v2 definitions.
+ * Consume profile.planet as immutable macro data; collision samples stay private. */
 export function createMotionKernelHelper(
   motion: SimulationContextFactory,
   orbits: OrbitalProvider,

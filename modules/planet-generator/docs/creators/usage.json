@@ -1,0 +1,54 @@
+{
+  "id": "usage",
+  "audience": "creators",
+  "title": "Shared planet generation",
+  "summary": "Deterministic sphere fields and bounded shared equatorial/map products for authored worlds.",
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "One geography authority"
+    },
+    {
+      "type": "paragraph",
+      "text": "Select spacelab.planet-generator for planet.generator@1.0.0 and use PLANET_GENERATOR. The service has no required providers, renderer, browser globals or physics implementation. Its field uses body-fixed unit-sphere coordinates, with z=0 the playable equator. A north-pole view places this equator around the rim."
+    },
+    {
+      "type": "paragraph",
+      "text": "Optional pads and padShoulderMetres alter the shared spherical field before map, sea histogram and equatorial baking. Pads have equatorial angle, radial elevation and core width in metres; nonoverlapping spherical caps use quintic shoulders. Their analytic gradients and storage are bounded. Host profile adapters must resolve widths against physical sample spacing. Omit pads to retain the original field exactly."
+    },
+    {
+      "type": "heading",
+      "text": "Field and bake"
+    },
+    {
+      "type": "list",
+      "items": [
+        "create(definition) returns a caller-owned deterministic float64 field. evaluate(x,y,z,out) writes elevation metres, three Cartesian derivatives, continent/range/hill attributes and moisture into eight Float64 slots.",
+        "bake(definition,options) creates a cooperative job. Call step() between yields or in a worker; a step defaults to256 and accepts at most1024 operations. It never schedules work itself.",
+        "Maps use wrapping longitude columns and equal-area body-fixed z rows over both hemispheres. Limits:512columns,256rows,65536equator samples, power-of-two dimensions. No fine tiles are generated.",
+        "At most two pending/untransferred jobs are allowed per service, each below2MiB typed storage. takeResult() transfers arrays once and frees producer references. Cancel stale jobs. Module disposal cancels remaining jobs.",
+        "Treat transferred data and its descriptor as immutable while consumers borrow it. Replace descriptors when changing data. Pure fields and transferred products remain caller-owned after service disposal."
+      ]
+    },
+    {
+      "type": "heading",
+      "text": "Sea, physics and appearance"
+    },
+    {
+      "type": "paragraph",
+      "text": "Definitions choose either absolute seaRadiusMetres or waterCoverage. Coverage uses a2048-bin global equal-area height histogram; sampledWaterCoverage and coverageBinFraction report the actual result and discretization. Flat fields may not realize intermediate fractions. Map waterMask uses exactly the same derived sea radius as equatorial products. The host must construct physical profile interval bounds and support water contact before enabling oceans; this module does not install physics or change current worlds."
+    },
+    {
+      "type": "paragraph",
+      "text": "Keep surface cover, substrate and cosmetic detail separate. Orbital macro features must consume this same baked data rather than independent shader noise. Current recipes are a shared-field foundation, not complete climate, erosion, geological or hydrodynamic simulation. Global analytic gradient bounds are conservative but are not qualified tight bounds for real-scale hierarchical terrain."
+    },
+    {
+      "type": "heading",
+      "text": "Example and compatibility"
+    },
+    {
+      "type": "paragraph",
+      "text": "See examples/modules/planet-generator for a small creator preview consumer. Frozen generator-v1 universes and saves are unaffected; this additive service and standalone definition do not migrate them. Future world designers can control the same field and bake products through this boundary."
+    }
+  ]
+}

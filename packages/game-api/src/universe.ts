@@ -109,8 +109,9 @@ export interface VehicleDefaults {
   readonly turnRate: number;
   readonly initialThrottle: number;
   /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.
-   * The state position is the hull centre. Dry terrain and smooth bodies are supported;
-   * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */
+   * The state position is the hull centre. Supports rock, seabed and ocean entry.
+   * Ocean buoyancy uses circular area beneath a local radial sea plane with half-density
+   * equilibrium; curvature is approximated to O(hull radius / sea radius). */
   readonly contactRadiusMetres?: number;
 }
 

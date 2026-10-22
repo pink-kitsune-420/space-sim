@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0cb56ce2ab72ba4d",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 19f734114d1eed53",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0cb56ce2ab72ba4d"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 19f734114d1eed53"
         },
         {
           "type": "paragraph",
@@ -511,6 +511,16 @@
         },
         {
           "type": "link",
+          "text": "planet-field.ts",
+          "page": "api-reference/game-api/planet-field"
+        },
+        {
+          "type": "link",
+          "text": "planet-map.ts",
+          "page": "api-reference/game-api/planet-map"
+        },
+        {
+          "type": "link",
           "text": "platform.ts",
           "page": "api-reference/game-api/platform"
         },
@@ -608,6 +618,11 @@
           "type": "link",
           "text": "theme-customizer.ts",
           "page": "api-reference/game-api/theme-customizer"
+        },
+        {
+          "type": "link",
+          "text": "tile-revisions.ts",
+          "page": "api-reference/game-api/tile-revisions"
         },
         {
           "type": "link",
@@ -5137,7 +5152,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, PlanetCoverMesh, PlanetMapFrame, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, createTileChunkRevisions, daylight, getPathGeometry, hermiteControls, linearColor, overviewColor, pathFromShip, planetDisplayChannel, planetMapColor, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5148,6 +5163,11 @@
           "type": "link",
           "text": "game-api modules-v2.ts",
           "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api planet-map.ts",
+          "page": "api-reference/game-api/planet-map"
         },
         {
           "type": "link",
@@ -5183,6 +5203,11 @@
           "type": "link",
           "text": "game-api surface.ts",
           "page": "api-reference/game-api/surface"
+        },
+        {
+          "type": "link",
+          "text": "game-api tile-revisions.ts",
+          "page": "api-reference/game-api/tile-revisions"
         },
         {
           "type": "link",
@@ -5276,7 +5301,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, PlanetCoverMesh, PlanetMapFrame, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderOverviewSurface, RenderPlanetMap, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, createTileChunkRevisions, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5292,6 +5317,11 @@
           "type": "link",
           "text": "game-api modules-v2.ts",
           "page": "api-reference/game-api/modules-v2"
+        },
+        {
+          "type": "link",
+          "text": "game-api planet-map.ts",
+          "page": "api-reference/game-api/planet-map"
         },
         {
           "type": "link",
@@ -5337,6 +5367,11 @@
           "type": "link",
           "text": "game-api surface.ts",
           "page": "api-reference/game-api/surface"
+        },
+        {
+          "type": "link",
+          "text": "game-api tile-revisions.ts",
+          "page": "api-reference/game-api/tile-revisions"
         },
         {
           "type": "link",
@@ -11936,6 +11971,182 @@
       ]
     },
     {
+      "id": "api-reference/game-api/planet-field",
+      "title": "game-api: planet-field.ts",
+      "summary": "Declarations from planet-field.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-field.ts."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetField"
+        },
+        {
+          "type": "paragraph",
+          "text": "Caller-owned deterministic body-fixed sphere field; query into eight float64 slots. Pure mathematical instances remain usable after the factory is disposed."
+        },
+        {
+          "type": "code",
+          "text": "export type PlanetField = ReturnType<typeof createPlanetField>;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetGenerator"
+        },
+        {
+          "type": "paragraph",
+          "text": "Reusable headless planet generator. At most two unfinished/untransferred bake jobs per service. Callers schedule job.step in a worker or between yields. Module disposal cancels owned jobs and rejects new calls; transferred data and pure fields remain caller-owned. It neither changes worlds nor installs physics."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlanetGenerator {\n  create(definition: PlanetFieldDefinition): PlanetField;\n  bake(definition: PlanetFieldDefinition, options: PlanetBakeOptions): PlanetBake;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PLANET_GENERATOR"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional authoritative world-generation service, supplied by an explicitly selected generator module. Renderer and climate consumers use its baked data."
+        },
+        {
+          "type": "code",
+          "text": "export const PLANET_GENERATOR: ServiceKey<PlanetGenerator> = Object.freeze({ slot: 'planet.generator', version: '1.0.0' });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/planet-map",
+      "title": "game-api: planet-map.ts",
+      "summary": "Declarations from planet-map.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-map.ts."
+        },
+        {
+          "type": "heading",
+          "text": "buildPlanetMap"
+        },
+        {
+          "type": "paragraph",
+          "text": "Caller-owned bounded Cartesian colour projection from the actual v2 field, including its physical pads. Cold construction only, no fine terrain queries. Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body."
+        },
+        {
+          "type": "code",
+          "text": "export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;levels:RenderOverview['levels']};"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "planetMapColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bilinear unlit map sample in premultiplied linear RGBA. Body-fixed Cartesian x/y are unit-disc coordinates; writes four caller-owned slots without allocation. An optional matching physical profile reconstructs the last atlas texels from its exact equator. The fixed body-space band preserves wet/dry class and cover while the camera zooms; it queries at most two profile samples, never a field."
+        },
+        {
+          "type": "code",
+          "text": "export function planetMapColor(map:RenderPlanetMap,x:number,y:number,out:Float64Array,profile?:SurfaceProfile):void;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetMapFrame"
+        },
+        {
+          "type": "paragraph",
+          "text": "Shared float64 camera frame for independently built renderers. All world differences are formed before projection; integer/fractional angular addresses keep fine cover stable at large zoom. update never samples a field or allocates."
+        },
+        {
+          "type": "code",
+          "text": "export class PlanetMapFrame {\n cameraRadius=0;referenceOffset=0;axisX=1;axisY=0;directionX=1;directionY=0;\n angleIndex=0;angleFraction=0;opacity=0;sunX=-.6;sunY=.8;cloudPhase=0;clouds=false;air=false;\n scale=1;rotation=0;visible=false;\n update(body:RenderBody,camera:Camera,width:number,height:number):boolean{\n  const p=body.surface,map=body.overview?.planet;this.visible=false;if(!p||!map)return false;\n  const x=camera.center.x-body.position.x,y=camera.center.y-body.position.y,spin=body.rotation??0,c=Math.cos(spin),s=Math.sin(spin),bx=c*x+s*y,by=-s*x+c*y;\n  const distance=Math.hypot(bx,by),view=Math.hypot(width,height)/(2*camera.scale);\n  if(distance-view>p.bounds.maxRadius+1)return false;\n  const angle=Math.atan2(by,bx),axes=angle+camera.rotation+spin,index=((angle-p.orientationRadians)/TAU*p.sampleCount%p.sampleCount+p.sampleCount)%p.sampleCount;\n  this.cameraRadius=distance;this.referenceOffset=p.referenceRadius-distance;this.scale=camera.scale;this.rotation=camera.rotation+spin;\n  this.axisX=Math.cos(axes);this.axisY=Math.sin(axes);this.directionX=Math.cos(angle);this.directionY=Math.sin(angle);\n  this.angleIndex=Math.floor(index);this.angleFraction=index-this.angleIndex;\n  const global=Math.max(0,Math.min(1,(1.4-p.referenceRadius*camera.scale/Math.max(width,height))/.55));\n  const local=distance>p.bounds.minRadius*.7?Math.max(0,Math.min(1,(16*camera.scale-2)/6)):0;\n  this.opacity=global*(1-local);\n  if(this.opacity===0&&distance+view<(p.groundBounds??p.bounds).minRadius-16)return false;\n  const sun=body.sunDirection??body.air?.sunDirection;\n  this.sunX=sun?c*sun.x+s*sun.y:-.6;this.sunY=sun?-s*sun.x+c*sun.y:.8;\n  this.air=!!body.air&&body.air.mode!=='off';this.clouds=body.air?.mode==='clouds';this.cloudPhase=body.air?.phaseRadians??0;\n  this.visible=this.opacity>0||map.coverMetres*camera.scale>=.2;return this.visible;\n }\n /** CSS sample into seven caller-owned float64 slots: angular index/fraction,\n  * ground depth(m), radius/rim ratio, map x/y, ground elevation(m). No field query. */\n sample(x:number,y:number,width:number,height:number,p:SurfaceProfile,out:Float64Array):void{\n  const sx=(x-width/2)/this.scale,sy=-(y-height/2)/this.scale,along=sx*this.axisX+sy*this.axisY,tangent=-sx*this.axisY+sy*this.axisX;\n  const radius=Math.hypot(this.cameraRadius+along,tangent),radial=this.cameraRadius>0?(2*this.cameraRadius*along+along*along+tangent*tangent)/(radius+this.cameraRadius):radius;\n  const local=this.angleFraction+Math.atan2(tangent,this.cameraRadius+along)*p.sampleCount/TAU,whole=Math.floor(local),fraction=local-whole;\n  const i=((this.angleIndex+whole)%p.sampleCount+p.sampleCount)%p.sampleCount,h=p.sampleElevation(i)*(1-fraction)+p.sampleElevation((i+1)%p.sampleCount)*fraction;\n  const ratio=radius/Math.max(p.referenceRadius+h,p.seaRadiusMetres??0),factor=radius>0?Math.min(1,ratio)/radius:0;\n  out[0]=i;out[1]=fraction;out[2]=this.referenceOffset+h-radial;out[3]=ratio;\n  out[4]=(this.directionX*(this.cameraRadius+along)-this.directionY*tangent)*factor;\n  out[5]=(this.directionY*(this.cameraRadius+along)+this.directionX*tangent)*factor;out[6]=h;\n }\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetBoundaryPoint"
+        },
+        {
+          "type": "paragraph",
+          "text": "Structural canonical-boundary point, in CSS pixels plus body-fixed polar metres/radians. Existing terrain geometry remains the silhouette authority."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlanetBoundaryPoint{readonly x:number;readonly y:number;readonly angle:number;readonly radius:number}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetCoverMesh"
+        },
+        {
+          "type": "paragraph",
+          "text": "Bounded visible skin bands shared by Canvas and WebGL. Borrow vertices until next update; zero warm allocation, max512 quads. Shader/sampler still clips to exact ground/cover depth. A configurable CSS-pixel margin covers canonical chord error."
+        },
+        {
+          "type": "code",
+          "text": "export class PlanetCoverMesh {\n readonly vertices=new Float32Array(512*12);length=0;\n update(map:RenderPlanetMap,frame:PlanetMapFrame,boundary:readonly PlanetBoundaryPoint[],width:number,height:number,marginPixels=1):void{\n  this.length=0;if(!frame.visible||map.coverMetres*frame.scale<.2)return;\n  const depth=map.coverMetres*frame.scale+marginPixels;\n  for(let i=1;i<boundary.length;i++){\n   const p=boundary[i-1]!,q=boundary[i]!;\n   if(Math.max(p.x,q.x)<-depth||Math.min(p.x,q.x)>width+depth||Math.max(p.y,q.y)<-depth||Math.min(p.y,q.y)>height+depth)continue;\n   if(this.length+12>this.vertices.length){this.length=0;return;}\n   const pa=p.angle+frame.rotation,qa=q.angle+frame.rotation,px=Math.cos(pa),py=-Math.sin(pa),qx=Math.cos(qa),qy=-Math.sin(qa);\n   const ax=p.x+px*marginPixels,ay=p.y+py*marginPixels,bx=q.x+qx*marginPixels,by=q.y+qy*marginPixels,cx=q.x-qx*depth,cy=q.y-qy*depth,dx=p.x-px*depth,dy=p.y-py*depth;\n   const v=this.vertices;let j=this.length;v[j++]=ax;v[j++]=ay;v[j++]=bx;v[j++]=by;v[j++]=cx;v[j++]=cy;v[j++]=ax;v[j++]=ay;v[j++]=cx;v[j++]=cy;v[j++]=dx;v[j++]=dy;this.length=j;\n  }\n }\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
+        },
+        {
+          "type": "heading",
+          "text": "planetDisplayChannel"
+        },
+        {
+          "type": "paragraph",
+          "text": "Shared low-cost display conversion for simplified Canvas map sampling."
+        },
+        {
+          "type": "code",
+          "text": "export function planetDisplayChannel(linear:number):number;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
       "id": "api-reference/game-api/platform",
       "title": "game-api: platform.ts",
       "summary": "Declarations from platform.ts used by documented modules.",
@@ -13346,7 +13557,7 @@
         },
         {
           "type": "code",
-          "text": "export interface RendererFeatures {\n  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */\n  readonly independentAir?: { readonly version: 1 };\n  /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */\n  readonly planetOverview?: { readonly version: 1 };\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
+          "text": "export interface RendererFeatures {\n  /** Qualified radial air/cloud mesh with canonical ground masking, before gameplay cues. */\n  readonly independentAir?: { readonly version: 1 };\n  /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */\n  readonly planetOverview?: { readonly version: 1 };\n  /** Body-fixed shared-field atlas and thin cover; Canvas may simplify sampling. */\n  readonly planetMap?: { readonly version: 1 };\n  readonly shaders?: ShaderControl;\n  readonly effects?: ShaderEffects;\n  /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.\n   * Absence means unsupported. This does not qualify underground light/wall parity. */\n  readonly tileChunks?: {\n    readonly version: 1; readonly rotation: true; readonly clipPolygon: true;\n    /** Optional supplied-light profile, separate from unlit version-1 geometry. */\n    readonly lightEncoding?: 'nibble';\n    readonly paletteEntries?: 1024;\n    /** Cosmetic backing for air cells only; does not qualify underground gameplay. */\n    readonly walls?: true;\n    readonly buffers?: 'borrowed-through-draw';\n    /** Opt-in content identity/lifetime protocol; absence requires the legacy path.\n     * Support does not promise cached cells, shared masks or GPU residency. */\n    readonly revisions?: TileChunkRevisions;\n  };\n  /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,\n   * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */\n  readonly tilePalettes?: {\n    register(paletteId: string, colors: readonly string[]): void;\n  };\n  /** Finish deferred raster work so profiler sections are attributed precisely. */\n  readonly flush?: () => void;\n}"
         },
         {
           "type": "paragraph",
@@ -13474,7 +13685,7 @@
         },
         {
           "type": "code",
-          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      /** Counterclockwise local-to-world rotation about origin; omitted means zero. */\n      readonly rotationRadians?: number;\n      /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;\n       * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.\n       * Module layers include these vertices in their existing 4,096-point output budget.\n       * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */\n      readonly clipPolygon?: readonly Vec[];\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      /** Optional 1,024 background palette IDs, shown through air at 55% brightness.\n       * Cosmetic main-compatible walls only; the foreground masks its backing. */\n      readonly walls?: Uint16Array;\n      /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.\n       * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.\n       * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */\n      readonly lightEncoding?: 'nibble';\n      /** Arrays are borrowed unchanged through all synchronous draw consumers. They may\n       * change between completed draws. No ownership transfer or persistent identity. */\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
+          "text": "export type OverlayPrimitive =\n  /** `fill` paints the closed outline instead of stroking it; the shape must be convex. */\n  | { readonly kind: 'line'; readonly space: OverlaySpace; readonly points: readonly Vec[]; readonly color: string;\n      readonly width?: number; readonly closed?: boolean; readonly fill?: boolean }\n  /** Radius is metres in world space and CSS pixels in screen space. */\n  | { readonly kind: 'circle'; readonly space: OverlaySpace; readonly center: Vec; readonly radius: number;\n      readonly color: string; readonly width?: number; readonly fill?: boolean }\n  | { readonly kind: 'text'; readonly space: OverlaySpace; readonly at: Vec; readonly text: string; readonly color: string;\n      readonly align?: 'left' | 'center' | 'right' }\n  /** 32x32 tile chunk in world-space metres. WebGL uses one instanced tile draw; clipping adds a mask pass. */\n  | {\n      readonly kind: 'tile-chunk';\n      readonly space: 'world';\n      readonly origin: Vec;\n      readonly tileMetres: number;\n      /** Counterclockwise local-to-world rotation about origin; omitted means zero. */\n      readonly rotationRadians?: number;\n      /** Simple clipping polygon in chunk-local metres, before rotation. Even-odd fill;\n       * at least 3 vertices. Retain immutable buffers through draw; no ownership transfer.\n       * Module layers include these vertices in their existing 4,096-point output budget.\n       * Requires RendererFeatures.tileChunks version 1; omitted means the whole chunk. */\n      readonly clipPolygon?: readonly Vec[];\n      readonly size: 32;\n      readonly tiles: Uint16Array;\n      /** Optional explicit immutable-revision promise; never infer it from array identity.\n       * Omit when revisions are unsupported. Legacy arrays remain mutable between draws. */\n      readonly contentRevision?: TileChunkRevision;\n      /** Optional 1,024 background palette IDs, shown through air at 55% brightness.\n       * Cosmetic main-compatible walls only; the foreground masks its backing. */\n      readonly walls?: Uint16Array;\n      /** Opt-in strict supplied-light profile. IDs must be 0..1023; light 0..15.\n       * Brightness = 0.2 + 0.8*n/15; omitted light is full. No sunlight calculation.\n       * Omitted encoding preserves legacy Canvas unlit / WebGL nibble-or-byte light. */\n      readonly lightEncoding?: 'nibble';\n      /** Arrays are borrowed unchanged through all synchronous draw consumers. They may\n       * change between completed draws. No ownership transfer or persistent identity. */\n      readonly light?: Uint8Array;\n      readonly paletteId?: string;\n      readonly color?: string;\n    };"
         },
         {
           "type": "paragraph",
@@ -13490,7 +13701,7 @@
         },
         {
           "type": "code",
-          "text": "export function requireTileChunkFeatures(features: RendererFeatures | undefined,\n  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void;"
+          "text": "export function requireTileChunkFeatures(features: RendererFeatures | undefined,\n  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean; readonly revisions?: boolean } = {}): void;"
         },
         {
           "type": "paragraph",
@@ -13502,7 +13713,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Validate the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers."
+          "text": "Validate optional content revisions and the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers."
         },
         {
           "type": "code",
@@ -14370,11 +14581,27 @@
         },
         {
           "type": "code",
-          "text": "export interface RenderOverview {\n  readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];\n  /** Optional opaque, three-material canonical surface ribbon. The face is only a\n   * filtered continuation of this circumference; it adds no latitude or geology. */\n  readonly surface?: RenderOverviewSurface;\n}"
+          "text": "export interface RenderOverview {\n  readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];\n  /** Optional opaque, three-material canonical surface ribbon. The face is only a\n   * filtered continuation of this circumference; it adds no latitude or geology. */\n  readonly surface?: RenderOverviewSurface;\n  /** Optional shared-field north-pole map. Unsupported renderers retain levels. */\n  readonly planet?: RenderPlanetMap;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "RenderPlanetMap"
+        },
+        {
+          "type": "paragraph",
+          "text": "Immutable appearance derived from one physical sphere field. Texture rows run from body-fixed y=-1 to+1; x likewise. Unit-disc centre is the north pole and its rim is the playable equator. No map pixel creates collision or geology."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderPlanetMap {\n  readonly identity: string;\n  readonly projection: 'north-pole-equator-rim/1';\n  readonly size: number;\n  /** Straight sRGB RGBA, transparent outside the unit disc. */\n  readonly rgba: Uint8Array;\n  /** Straight sRGB RGBA at the physical profile's angular samples; alpha0 at sea. */\n  readonly equator: Uint8Array;\n  /** Decorative cover inside solid ground, in metres; never extends collision. */\n  readonly coverMetres: number;\n  readonly storageBytes: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -14390,7 +14617,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: host or creator modules (not imported by shipped modules)."
+          "text": "Used by: spacelab.render-webgl."
         },
         {
           "type": "heading",
@@ -14422,7 +14649,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Used by: host or creator modules (not imported by shipped modules)."
+          "text": "Used by: spacelab.render-canvas."
         },
         {
           "type": "heading",
@@ -14898,7 +15125,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */\n  support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
+          "text": "export interface SurfaceProvider extends ProviderIdentity {\n  generate(body: Body): SurfaceProfile;\n  identity(body: Body): string;\n  validate(body: Body, profile: SurfaceProfile): void;\n  query(profile: SurfaceProfile, angle: number): SurfaceQuery;\n  /** Optional radiusMetres uses circular hull support on solid terrain, including seabed;\n   * omitted is legacy point support. Floating equilibrium belongs to motion, not rock support. */\n  support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;\n  sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n  sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;\n}"
         },
         {
           "type": "paragraph",
@@ -15866,7 +16093,7 @@
         },
         {
           "type": "heading",
-          "text": "SurfaceDefinition"
+          "text": "RadialSurfaceDefinition"
         },
         {
           "type": "paragraph",
@@ -15874,7 +16101,55 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceDefinition {\n  readonly kind: 'radial';\n  readonly generatorVersion: 1;\n  readonly seed: number;\n  readonly sampleCount: number;\n  readonly maxReliefMetres: number;\n  readonly minFeatureWidthMetres: number;\n  readonly orientationRadians: number;\n  readonly mountainRangeCount: number;\n  readonly craterCount: number;\n  /** Absolute body-local sea radius; waves never change this level. */\n  readonly seaRadiusMetres?: number;\n  readonly pads?: readonly SurfacePadDefinition[];\n}"
+          "text": "export interface RadialSurfaceDefinition {\n  readonly kind: 'radial';\n  readonly generatorVersion: 1;\n  readonly seed: number;\n  readonly sampleCount: number;\n  readonly maxReliefMetres: number;\n  readonly minFeatureWidthMetres: number;\n  readonly orientationRadians: number;\n  readonly mountainRangeCount: number;\n  readonly craterCount: number;\n  /** Absolute body-local sea radius; waves never change this level. */\n  readonly seaRadiusMetres?: number;\n  readonly pads?: readonly SurfacePadDefinition[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetSurfaceDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Version2 physical macro terrain: the same sphere field supplies the equatorial collision profile and a bounded whole-sphere map. Radius must match the body. The profile is polar-linear between fixed samples; this is not fine terrain."
+        },
+        {
+          "type": "code",
+          "text": "export interface PlanetSurfaceDefinition extends PlanetFieldDefinition {\n  readonly kind: 'planet';\n  readonly sampleCount: number;\n  readonly orientationRadians: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "SurfaceDefinition"
+        },
+        {
+          "type": "paragraph",
+          "text": "Frozen v1 radial recipes and shared-field v2 recipes have separate physical identities."
+        },
+        {
+          "type": "code",
+          "text": "export type SurfaceDefinition = RadialSurfaceDefinition | PlanetSurfaceDefinition;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "PlanetSurfaceMap"
+        },
+        {
+          "type": "paragraph",
+          "text": "World-owned macro map, immutable by contract. The private collision samples are deliberately omitted: mutating map arrays cannot change solid geometry."
+        },
+        {
+          "type": "code",
+          "text": "export type PlanetSurfaceMap = Omit<PlanetBakeResult, 'equator'>;"
         },
         {
           "type": "paragraph",
@@ -15938,7 +16213,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceProfile {\n  readonly identity: string;\n  readonly referenceRadius: number;\n  readonly orientationRadians: number;\n  readonly sampleCount: number;\n  readonly seaRadiusMetres?: number;\n  /** Exact polar-linear sea crossings, wrapped to [0, 2*pi). */\n  readonly coastAngles: readonly number[];\n  readonly hasWater: boolean;\n  readonly bounds: SurfaceBounds;\n  readonly features: readonly SurfaceFeature[];\n  readonly pads: readonly SurfacePadDefinition[];\n  /** Elevations plus three interval arrays; excludes JS objects and identity text. */\n  readonly storageBytes: number;\n  sampleElevation(index: number): number;\n  intervalBounds(index: number): SurfaceBounds;\n  copyElevations(): Float64Array;\n}"
+          "text": "export interface SurfaceProfile {\n  readonly identity: string;\n  readonly referenceRadius: number;\n  readonly orientationRadians: number;\n  readonly sampleCount: number;\n  readonly seaRadiusMetres?: number;\n  /** Exact polar-linear sea crossings, wrapped to [0, 2*pi). */\n  readonly coastAngles: readonly number[];\n  readonly hasWater: boolean;\n  readonly bounds: SurfaceBounds;\n  /** Optional v2 exact rock envelope before sea clamping. Visual culling uses this\n   * to retain submerged ground; contact continues to use bounds. */\n  readonly groundBounds?: SurfaceBounds;\n  readonly features: readonly SurfaceFeature[];\n  readonly pads: readonly SurfacePadDefinition[];\n  /** Optional v2 shared field/map data. No fine cells or render palette. */\n  readonly planet?: PlanetSurfaceMap;\n  /** Elevations plus three interval arrays and optional v2 macro map storage;\n   * excludes JS objects and identity text. */\n  readonly storageBytes: number;\n  sampleElevation(index: number): number;\n  intervalBounds(index: number): SurfaceBounds;\n  copyElevations(): Float64Array;\n}"
         },
         {
           "type": "paragraph",
@@ -15954,7 +16229,7 @@
         },
         {
           "type": "code",
-          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the\n   * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */\n  readonly radiusMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
+          "text": "export interface SurfaceSweepOptions {\n  /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */\n  readonly toleranceMetres?: number;\n  /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the\n   * hull centre; hit.surface describes the nearest rock or sea contact. Ground-only\n   * sweeps ignore sea level and report the nearest solid rock, including seabed. */\n  readonly radiusMetres?: number;\n  /** Interval visits plus clearance evaluations, including root refinement. */\n  readonly maxWork?: number;\n}"
         },
         {
           "type": "paragraph",
@@ -16359,6 +16634,134 @@
         {
           "type": "paragraph",
           "text": "Used by: spacelab.theme-customizer."
+        },
+        {
+          "type": "link",
+          "text": "API reference index",
+          "page": "api-reference"
+        }
+      ]
+    },
+    {
+      "id": "api-reference/game-api/tile-revisions",
+      "title": "game-api: tile-revisions.ts",
+      "summary": "Declarations from tile-revisions.ts used by documented modules.",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/tile-revisions.ts."
+        },
+        {
+          "type": "heading",
+          "text": "TileChunkOwner"
+        },
+        {
+          "type": "paragraph",
+          "text": "Caller-owned presentation epoch shared by a world's views. Create a fresh owner for a new world/session. Disposal is idempotent and invalidates all of its revisions; it never edits terrain, simulation or saves. Object identity survives SDK bundling."
+        },
+        {
+          "type": "code",
+          "text": "export interface TileChunkOwner {\n  readonly version: 1;\n  readonly disposed: boolean;\n  dispose(): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "TileChunkRevision"
+        },
+        {
+          "type": "paragraph",
+          "text": "Explicit opt-in immutable content identity. Arrays/clip points must stay unchanged for (owner,id,revision); advance revision after completed draws before reusing data. IDs/revisions are nonnegative safe integers. Revisions increase monotonically per ID; never wrap, restart or resubmit an older revision within the same owner. A revision covers the whole 32x32 chunk: IDs, walls, light/encoding, clip, tileMetres and paletteId. Origin/rotation/camera are transforms, not content. Palette registration has its own renderer invalidation. This is a producer promise, not mutation detection."
+        },
+        {
+          "type": "code",
+          "text": "export interface TileChunkRevision {\n  readonly owner: TileChunkOwner;\n  readonly id: number;\n  readonly revision: number;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "TileChunkRevisions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Optional revision protocol, not a caching/residency or performance guarantee. Future retained payload is bounded per renderer; native/GPU peak memory is separate. Different renderers/views own independent retention. Context/provider replacement discards local state; live owners may be reused with newly registered palettes."
+        },
+        {
+          "type": "code",
+          "text": "export interface TileChunkRevisions {\n  readonly version: 1;\n  readonly maxEntries: number;\n  readonly maxBytes: number;\n  /** Drop this (owner,id)'s renderer-local versions; idempotent, including after disposal.\n   * Never disposes the shared owner or another view. Released content may draw again. */\n  release(content: TileChunkRevision): void;\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "TILE_CHUNK_REVISION_LIMITS"
+        },
+        {
+          "type": "paragraph",
+          "text": "Upper policy limits for revision-keyed retained presentation payload per renderer. The protocol alone retains no content. Four existing game views permit at most 8 MiB."
+        },
+        {
+          "type": "code",
+          "text": "export const TILE_CHUNK_REVISION_LIMITS = Object.freeze({ maxEntries: 512, maxBytes: 2 * 1024 * 1024 });"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "createTileChunkOwner"
+        },
+        {
+          "type": "paragraph",
+          "text": "Allocate once per world/session, not once per frame or chunk. Drop producer references after all views finish; disposing one renderer must not dispose a shared owner."
+        },
+        {
+          "type": "code",
+          "text": "export function createTileChunkOwner(): TileChunkOwner;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "validateTileChunkRevision"
+        },
+        {
+          "type": "paragraph",
+          "text": "Validate metadata without copying, retaining, hashing or claiming array immutability. allowDisposed is only for renderer-local release/cleanup, never for drawing. Owners are structurally checked so separately bundled SDK copies interoperate; no authority or security token is granted by this presentation-only protocol."
+        },
+        {
+          "type": "code",
+          "text": "export function validateTileChunkRevision(raw: unknown, allowDisposed = false): asserts raw is TileChunkRevision;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "createTileChunkRevisions"
+        },
+        {
+          "type": "paragraph",
+          "text": "Renderer-author helper. release is local to this renderer; legacy draws retain no metadata/content. Actual caching, allocation and palette generations remain the renderer's responsibility under these caps. Cleanup callbacks must be idempotent."
+        },
+        {
+          "type": "code",
+          "text": "export function createTileChunkRevisions(release?: (content: TileChunkRevision) => void): TileChunkRevisions;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "link",
@@ -16978,7 +17381,7 @@
         },
         {
           "type": "code",
-          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n  /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.\n   * The state position is the hull centre. Dry terrain and smooth bodies are supported;\n   * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */\n  readonly contactRadiusMetres?: number;\n}"
+          "text": "export interface VehicleDefaults {\n  readonly acceleration: number;\n  readonly turnRate: number;\n  readonly initialThrottle: number;\n  /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.\n   * The state position is the hull centre. Supports rock, seabed and ocean entry.\n   * Ocean buoyancy uses circular area beneath a local radial sea plane with half-density\n   * equilibrium; curvature is approximated to O(hull radius / sea radius). */\n  readonly contactRadiusMetres?: number;\n}"
         },
         {
           "type": "paragraph",

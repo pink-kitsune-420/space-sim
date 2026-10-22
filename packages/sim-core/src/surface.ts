@@ -1,8 +1,9 @@
 /** Host-only radial terrain generation and body-fixed polar surface queries (`packages/sim-core`). Modules access surface geometry through `@space-sim/game-api` `CORE_MOTION` (`CoreMotion.services.surfaces`) and `SURFACE_GEOMETRY` (`SurfaceProvider`).
  * All lengths/radii/elevations are in `m` and body-fixed polar angles are in `rad` (`[0, 2π)`). Uses deterministic Mulberry32 PRNG and IEEE-754 float64 `dmath`. */
-import type { SurfacePadDefinition, SurfaceDefinition, SurfaceQuery, SurfaceFeature, SurfaceProfile } from '../../game-api/src/index';
+import type { SurfacePadDefinition, SurfaceDefinition, SurfaceQuery, SurfaceFeature, SurfaceProfile, PlanetSurfaceMap } from '../../game-api/src/index';
 export type { SurfacePadDefinition, SurfaceDefinition, SurfaceBounds, SurfaceQuery, SurfaceFeature, SurfaceProfile } from '../../game-api/src/index';
 import * as dm from './dmath';
+import { validatePlanetSurface, planetSurfaceIdentity, bakePlanetSurface } from './planet-surface';
 /** Frozen validation bounds on radial terrain sample counts, mountain ranges, craters, landing pads, and universe-wide terrain budgets. Host-only (`packages/sim-core`). */
 export const SURFACE_LIMITS = Object.freeze({
   minSamples: 32,
@@ -12,6 +13,7 @@ export const SURFACE_LIMITS = Object.freeze({
   maxPads: 64,
   maxUniverseSamples: 1_048_576,
   maxUniverseFeatures: 16_384,
+  maxPlanetBodies: 4,
 });
 
 /** Strict, detached and immutable: unknown fields cannot silently alter identity (`referenceRadius` in `m`). Host-only (`packages/sim-core`). */
@@ -19,6 +21,7 @@ export function validateSurfaceDefinition(raw: unknown, referenceRadius: number,
   const fail = (message: string): never => { throw new Error(`${context}: ${message}`); };
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('must be an object');
   const s = raw as Record<string, unknown>;
+  if (s.generatorVersion === 2) return validatePlanetSurface(raw, referenceRadius, context);
   const fields = ['kind', 'generatorVersion', 'seed', 'sampleCount', 'maxReliefMetres',
     'minFeatureWidthMetres', 'orientationRadians', 'mountainRangeCount', 'craterCount', 'pads', 'seaRadiusMetres'] as const;
   for (const key of Object.keys(s)) {
@@ -110,6 +113,7 @@ export function surfaceIdentity(body: { readonly radius: number; readonly surfac
 }
 function identityText(body: { readonly radius: number; readonly surface?: SurfaceDefinition }): string {
   const s = body.surface;
+  if (s?.generatorVersion === 2) return planetSurfaceIdentity(s);
   return JSON.stringify(s
     ? ['space-sim-surface/1', body.radius, s.kind, s.generatorVersion, s.seed, s.sampleCount,
       s.maxReliefMetres, s.minFeatureWidthMetres, s.orientationRadians, s.mountainRangeCount, s.craterCount,
@@ -135,7 +139,7 @@ const bump = (x: number): number => {
 };
 
 function profileFromSamples(referenceRadius: number, orientationRadians: number, elevations: Float64Array,
-  identity: string, features: readonly SurfaceFeature[] = [], pads: readonly SurfacePadDefinition[] = [], seaRadiusMetres?: number): SurfaceProfile {
+  identity: string, features: readonly SurfaceFeature[] = [], pads: readonly SurfacePadDefinition[] = [], seaRadiusMetres?: number, planet?: PlanetSurfaceMap): SurfaceProfile {
   const count = elevations.length, delta = TAU / count;
   const minimum = new Float64Array(count), maximum = new Float64Array(count), derivative = new Float64Array(count);
   let minRadius = Infinity, maxRadius = 0, maxAbsDerivative = 0, maxSlope = 0;
@@ -168,7 +172,8 @@ function profileFromSamples(referenceRadius: number, orientationRadians: number,
       maxRadius: Math.max(maxRadius, seaRadiusMetres ?? 0), maxAbsDerivative, maxSlope }),
     features: Object.freeze(features.map(f => Object.freeze({ ...f }))),
     pads: Object.freeze(pads.map(p => Object.freeze({ ...p }))),
-    storageBytes: 4 * elevations.byteLength,
+    ...(planet ? { planet, groundBounds: Object.freeze({ minRadius, maxRadius, maxAbsDerivative, maxSlope }) } : {}),
+    storageBytes: 4 * elevations.byteLength + (planet ? planet.storageBytes - elevations.byteLength : 0),
     sampleElevation(index: number) { checkIndex(index); return elevations[index]!; },
     intervalBounds(index: number) {
       checkIndex(index);
@@ -224,6 +229,11 @@ export function generateSurface(body: { readonly radius: number; readonly surfac
   if (!Number.isFinite(radius) || radius <= 0) throw new Error('Surface reference radius must be finite and positive');
   if (!body.surface) return profileFromSamples(radius, 0, new Float64Array(1), surfaceIdentity(body));
   const s = validateSurfaceDefinition(body.surface, radius);
+  if (s.generatorVersion === 2) {
+    const { equator, ...map } = bakePlanetSurface(s);
+    return profileFromSamples(radius, s.orientationRadians, equator, surfaceIdentity({ radius, surface: s }),
+      [], s.pads, map.seaRadiusMetres, Object.freeze(map));
+  }
   const elevations = new Float64Array(s.sampleCount), features: SurfaceFeature[] = [];
   let randomState = s.seed;
   const random = (): number => {
