@@ -331,7 +331,8 @@ let successorWorld: object | undefined;
 let successorWasActive = false;
 let successorOverviewEnabled = true;
 const successorAir = new SuccessorAir();
-if (new URLSearchParams(location.search).get('successorAir') === 'clouds') successorAir.mode = 'clouds';
+if (startupGame.info.id === 'builtin.space-sim-successor'
+  || new URLSearchParams(location.search).get('successorAir') === 'clouds') successorAir.mode = 'clouds';
 document.addEventListener('visibilitychange', () => successorAir.clock.suspend());
 const designer = new PlanetDesigner(element('planet-designer'), () => session.world, () => activeBody?.id, startupGame.info.id);
 

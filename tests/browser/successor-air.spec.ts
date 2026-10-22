@@ -41,13 +41,26 @@ for(const offline of [false,true])test(`cloud trial ${offline?'offline':'hosted'
   if(offline){await context.route(/^https?:/,r=>r.abort());await page.goto('file://'+resolve('dist/space-lab-offline.html')+'?game=space-sim-successor');}
   else await page.goto('/?game=space-sim-successor');
   await expect(page.locator('#status')).toHaveText('LANDED');
-  await page.evaluate(()=>{document.querySelector<HTMLButtonElement>('[data-workspace="setup"]')!.click();const e=document.querySelector<HTMLSelectElement>('#successor-air-mode')!;e.value='clouds';e.dispatchEvent(new Event('change',{bubbles:true}));for(const e of document.querySelectorAll<HTMLButtonElement>('.panel-window:not([hidden]) [data-window-close]'))e.click();});
   const debug=async()=>JSON.parse(await page.locator('#debug').textContent()||'{}');
   await expect.poll(async()=>(await debug()).successorAir.mode).toBe('clouds');
   expect((await debug()).renderer).toBe('builtin.canvas');expect(Math.abs((await debug()).groundClearance)).toBeLessThan(1e-6);
   await page.evaluate(()=>document.querySelector<HTMLButtonElement>('#pause')!.click());await expect(page.locator('#status')).toHaveText('PAUSED');
   await page.waitForTimeout(350);const seconds=(await debug()).successorAir.seconds;await page.waitForTimeout(600);
   expect((await debug()).successorAir.seconds).toBeCloseTo(seconds,2);
+});
+
+for (const offline of [false,true]) test(`demo defaults to clouds and air with fresh High graphics (${offline?'offline':'hosted'})`, async ({page,context},info) => {
+  if(offline)await context.route(/^https?:/,route=>route.abort());
+  await page.goto((offline?'file://'+resolve('dist/space-lab-offline.html'):'/')+'?game=builtin.space-sim-successor');
+  await expect(page.locator('#status')).toHaveText('LANDED');
+  await expect(page.locator('#graphics-toggle')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#successor-air-mode')).toHaveValue('clouds');
+  const debug=async()=>JSON.parse(await page.locator('#debug').textContent()||'{}');
+  await expect.poll(async()=>(await debug()).successorAir.mode).toBe('clouds');
+  expect((await debug()).renderer).toBe('builtin.webgl');
+  await page.evaluate(()=>{const air=document.querySelector<HTMLSelectElement>('#successor-air-mode')!;air.value='off';air.dispatchEvent(new Event('change',{bubbles:true}));});
+  await expect.poll(async()=>(await debug()).successorAir.mode).toBe('off');
+  await writeFile(info.outputPath('default-air.json'),JSON.stringify({offline,graphics:'high',defaultAir:'clouds',manualOff:true},null,2));
 });
 
 test('explicit cloud-review link selects the trial without changing graphics preferences', async ({page}) => {
