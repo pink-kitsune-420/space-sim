@@ -8,7 +8,7 @@ import { requestedBuiltinGame } from '../../apps/web/src/bundled-games';
 import { prepareGame } from '../../packages/modules/src/index';
 import { querySurface } from '../../packages/sim-core/src/surface';
 const game = requestedBuiltinGame('?game=space-sim-successor');
-const setup = () => prepareGame({ environment: 'node', data: game.bundle.modules, profile: game.bundle.profile, universeKey: game.bundle.selection.universe });
+const setup = (scale = 4) => prepareGame({ environment: 'node', data: game.bundle.modules, profile: game.bundle.profile, universeKey: game.bundle.selection.universe, systemId: scale === 4 ? 'primus-system' : `primus-system-${scale}x` });
 const renderer: Renderer = { draw() {}, features: { tileChunks: { version: 1, rotation: true, clipPolygon: true }, tilePalettes: { register() {} } } };
 
 describe('bounded pseudo-sphere overview and circumference inspection', () => {
@@ -47,15 +47,16 @@ describe('bounded pseudo-sphere overview and circumference inspection', () => {
       expect(f.acquire(id, p, { x: 0, y: 0 }, 0)).toBe(false); expect(f.angle).toBe(angle);
     } } finally { candidate.dispose(); }
   });
-  it('remote patches keep canonical ground and the original pad-based material frame', () => {
-    const { world, candidate } = setup(); try { for (const id of ['planet', 'moon'] as const) {
-      const p = world.surface(id)!, pad = p.pads.find(p => p.id === 'landing-area')!, angle = pad.angleRadians + 1.3;
-      const patch = buildTilePatch(p, 1, a => querySurface(p, a).groundRadius, MATERIAL_DOMAINS[id], 'colored', angle);
-      expect(patch.chunks.length).toBeLessThanOrEqual(512);
+  it.each([2, 4, 8])('remote patches preserve canonical ground and material anchors at %ix', scale => {
+    const { world, candidate } = setup(scale);
+    try { for (const id of ['planet', 'moon'] as const) for (const offset of [-2, -1, 0, 1, 2, 3]) for (const size of [.25, .5, 1] as const) {
+      const p = world.surface(id)!, pad = p.pads.find(p => p.id === 'landing-area')!, angle = pad.angleRadians + offset;
+      const patch = buildTilePatch(p, size, a => querySurface(p, a).groundRadius, MATERIAL_DOMAINS[id], 'colored', angle);
+      expect(patch.chunks.length).toBeLessThanOrEqual(512); expect(patch.bytes).toBeLessThan(2 * 1024 * 1024);
       for (const v of patch.boundary) { const a = angle + Math.atan2(-v.x, v.y + p.referenceRadius); expect(Math.hypot(v.x, v.y + p.referenceRadius)).toBeCloseTo(querySurface(p, a).groundRadius, 7); }
       const d = angle - pad.angleRadians;
       for (const chunk of patch.chunks) for (let y = 0; y < 32; y += 7) for (let x = 0; x < 32; x += 7) {
-        const lx = chunk.origin.x + x + .5, ly = chunk.origin.y + y + .5;
+        const lx = chunk.origin.x + (x + .5) * size, ly = chunk.origin.y + (y + .5) * size;
         const expected = appearanceAt(MATERIAL_DOMAINS[id], lx * Math.cos(d) - (ly + p.referenceRadius) * Math.sin(d), lx * Math.sin(d) + (ly + p.referenceRadius) * Math.cos(d) - p.referenceRadius);
         expect(MATERIAL_SLOTS[chunk.tiles[y * 32 + x]! - 1]).toBe(expected);
       }
