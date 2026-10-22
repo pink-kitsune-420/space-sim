@@ -118,7 +118,7 @@ function featureRelief(body: RenderBody, angle: number, u: number, circumference
       const visibility = Math.max(0, Math.min(1, (f[3]! * circumferencePixels / (2 * Math.PI) - 1) / 2));
       const q = Math.sqrt(q2), bowl = Math.max(0, 1 - q2), rim = Math.max(0, 1 - Math.abs(q - 1) / .3);
       // Filled bowl and sun-facing rim, with the actual source central peak only.
-      shade += visibility * f[4]! * (-.24 * bowl - .8 * bowl * (dx * sx + dy * sy) + .2 * rim);
+      shade += visibility * f[4]! * (-.5 * bowl - .85 * bowl * (dx * sx + dy * sy) + .35 * rim);
       if (q < .25) shade += visibility * f[5]! * .3 * (1 - q / .25);
     } else {
       const along = (y * f[1]! - x * f[2]!) / f[3]!;
@@ -129,36 +129,17 @@ function featureRelief(body: RenderBody, angle: number, u: number, circumference
       const across = (radial - crest) / .065;
       if (Math.abs(across) > 1) continue;
       const envelope = (1 - along * along) * (1 - across * across);
-      shade += f[4]! * envelope * (.12 + .55 * across * (f[1]! * sx + f[2]! * sy));
+      shade += f[4]! * envelope * (.18 + .8 * across * (f[1]! * sx + f[2]! * sy));
     }
   }
-  return 1 + (Math.max(.68, Math.min(1.28, shade)) - 1) * Math.min(1, (.94 - u) / .1);
+  return 1 + (Math.max(.55, Math.min(1.35, shade)) - 1) * Math.min(1, (.94 - u) / .1);
 }
 
 /** Fixed body-local query. Camera changes select filtering only, never anchors.
- * Output is straight display RGBA, multiplied by a low-frequency sphere light.
+ * Output is straight display RGBA with sphere and optional source-feature light.
  * The pseudo-normal has no relationship to contact or traversable latitude. */
 export function overviewColor(body: RenderBody, angle: number, radiusFraction: number, footprintPixels: number,
   out: Float64Array): boolean {
-  if (body.overview?.surface) {
-    const u = Math.max(0, Math.min(1, radiusFraction));
-    // A face pixel continues the selected circumference's visible crust. Deep
-    // Cartesian disc strata cannot stand in for the actual ground at that angle.
-    const footprint = 2 * Math.PI * body.radius * Math.max(3, footprintPixels / 96) / Math.max(1, footprintPixels * Math.max(.05, u));
-    if (!surfaceOverviewColor(body, angle, (1 - u) * body.overview.surface.depthMetres, footprint, out)) return false;
-    const z = Math.sqrt(Math.max(0, 1 - u * u)), spin = body.rotation ?? 0, sun = body.sunDirection;
-    const light = sun ? .22 + .78 * Math.max(0, (u * (Math.cos(angle + spin) * sun.x + Math.sin(angle + spin) * sun.y) + .55 * z) / 1.142) : .55 + .45 * z;
-    const relief = featureRelief(body, angle, u, footprintPixels), average = body.overview.levels[0]?.rgba;
-    // Restrained display contrast after linear filtering; physical ribbon colors
-    // remain exact. The center tends to the global mixture, avoiding polar spokes.
-    const detail = Math.min(1, u / .35);
-    for (let c = 0; c < 3; c++) {
-      const mean = average ? displayColor(average[c]!) : out[c]!;
-      const material = Math.max(0, Math.min(1, mean + (out[c]! - mean) * 1.8 * detail));
-      out[c] = material * light * relief;
-    }
-    return true;
-  }
   const levels = body.overview?.levels;
   if (!levels?.length || levels.length > 12) return false;
   out.fill(0);
@@ -181,11 +162,27 @@ export function overviewColor(body: RenderBody, angle: number, radiusFraction: n
     }
     if (t < 1) break;
   }
+  const surface = body.overview?.surface;
+  const u = Math.max(0, Math.min(1, radiusFraction));
+  if (surface && u > .88) {
+    const red = out[0]!, green = out[1]!, blue = out[2]!;
+    const footprint = 2 * Math.PI * body.radius * Math.max(3, footprintPixels / 128) / Math.max(1, footprintPixels * u);
+    if (!surfaceOverviewColor(body, angle, (1 - u) * surface.depthMetres, footprint, out)) return false;
+    const rim = Math.min(1, (u - .88) / .12), t = rim * rim * (3 - 2 * rim);
+    out[0] = red * (1 - t) + linearColor(out[0]!) * t;
+    out[1] = green * (1 - t) + linearColor(out[1]!) * t;
+    out[2] = blue * (1 - t) + linearColor(out[2]!) * t;
+  }
   const alpha = out[3]!;
   const spin = body.rotation ?? 0, sun = body.sunDirection;
-  const u = Math.max(0, Math.min(1, radiusFraction)), z = Math.sqrt(Math.max(0, 1 - u * u));
+  const z = Math.sqrt(Math.max(0, 1 - u * u));
   const light = sun ? .22 + .78 * Math.max(0, (u * (Math.cos(angle + spin) * sun.x + Math.sin(angle + spin) * sun.y) + .55 * z) / 1.142) : .55 + .45 * z;
-  for (let c = 0; c < 3; c++) out[c] = displayColor(alpha > 0 ? out[c]! / alpha : 0) * light;
+  const relief = surface ? featureRelief(body, angle, u, footprintPixels) : 1;
+  for (let c = 0; c < 3; c++) {
+    const color = displayColor(alpha > 0 ? out[c]! / alpha : 0);
+    const mean = displayColor(levels[0]!.rgba[c]!);
+    out[c] = (surface ? Math.max(0, Math.min(1, mean + (color - mean) * 1.8)) : color) * light * relief;
+  }
   out[3] = alpha;
   return out.every(Number.isFinite);
 }

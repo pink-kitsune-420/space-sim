@@ -2,6 +2,58 @@ import { linearColor, type RenderOverview, type SurfaceProfile } from '../../../
 import { querySurface } from '../../../packages/sim-core/src/surface';
 import { appearanceAt, MATERIAL_DOMAINS, MATERIAL_SLOTS, type MaterialDomain } from './successor-materials';
 
+/** Harmonic continuation of the actual circumference mixture. High angular
+ * frequencies decay inward as r^n instead of turning into polar spokes. This is
+ * an illustration of the same boundary, never a new interior geography authority.
+ * Integrate each polar bin by area before constructing its linear-light mips. */
+function diffuseFace(samples: Uint8Array, columns: number, rows: number, palette: readonly (readonly number[])[]): RenderOverview['levels'] {
+  const sectors = 64, rings = 8, modes = 31, edge = new Float64Array(sectors * 3);
+  for (let x = 0; x < sectors; x++) {
+    const count = [0, 0, 0], stride = columns / sectors;
+    for (let y = 0; y < rows; y++) for (let dx = 0; dx < stride; dx++) {
+      const pair = samples[y * columns + x * stride + dx]!;
+      count[pair & 3]!++; count[(pair >> 2) & 3]!++;
+    }
+    for (let c = 0; c < 3; c++) for (let material = 0; material < 3; material++)
+      edge[x * 3 + c] = edge[x * 3 + c]! + count[material]! * palette[material]![c]! / (rows * stride * 2);
+  }
+  const coefficients = new Float64Array((modes + 1) * 6);
+  for (let n = 0; n <= modes; n++) for (let x = 0; x < sectors; x++) {
+    const a = (x + .5) * 2 * Math.PI / sectors;
+    for (let c = 0; c < 3; c++) {
+      coefficients[n * 6 + c] = coefficients[n * 6 + c]! + edge[x * 3 + c]! * Math.cos(n * a) * (n ? 2 : 1) / sectors;
+      coefficients[n * 6 + 3 + c] = coefficients[n * 6 + 3 + c]! + edge[x * 3 + c]! * Math.sin(n * a) * 2 / sectors;
+    }
+  }
+  const rgba = new Float32Array(sectors * rings * 4);
+  for (let y = 0; y < rings; y++) for (let x = 0; x < sectors; x++) {
+    const lo = y / rings, hi = (y + 1) / rings, a = (x + .5) * 2 * Math.PI / sectors, i = (y * sectors + x) * 4;
+    for (let c = 0; c < 3; c++) rgba[i + c] = coefficients[c]!;
+    for (let n = 1; n <= modes; n++) {
+      const radial = 2 * (hi ** (n + 2) - lo ** (n + 2)) / ((n + 2) * (hi * hi - lo * lo));
+      const angular = Math.sin(n * Math.PI / sectors) / (n * Math.PI / sectors);
+      for (let c = 0; c < 3; c++) rgba[i + c] = rgba[i + c]! + radial * angular *
+        (coefficients[n * 6 + c]! * Math.cos(n * a) + coefficients[n * 6 + 3 + c]! * Math.sin(n * a));
+    }
+    rgba[i + 3] = 1;
+  }
+  const levels = [{ sectors, rings, rgba }];
+  while (levels[0]!.sectors > 1 || levels[0]!.rings > 1) {
+    const child = levels[0]!, sectors = child.sectors / 2, rings = Math.max(1, child.rings / 2), rgba = new Float32Array(sectors * rings * 4);
+    for (let y = 0; y < rings; y++) for (let x = 0; x < sectors; x++) {
+      let weight = 0;
+      for (let dy = 0; dy < (child.rings > 1 ? 2 : 1); dy++) for (let dx = 0; dx < 2; dx++) {
+        const cy = y * (child.rings > 1 ? 2 : 1) + dy, w = 2 * cy + 1, ci = (cy * child.sectors + x * 2 + dx) * 4;
+        weight += w;
+        for (let c = 0; c < 4; c++) rgba[(y * sectors + x) * 4 + c] = rgba[(y * sectors + x) * 4 + c]! + child.rgba[ci + c]! * w;
+      }
+      for (let c = 0; c < 4; c++) rgba[(y * sectors + x) * 4 + c] = rgba[(y * sectors + x) * 4 + c]! / weight;
+    }
+    levels.unshift({ sectors, rings, rgba });
+  }
+  return levels;
+}
+
 /** Bounded quadrature of the actual 16m surface ribbon, not the disc interior or
  * fine cells. Original pad tangent X points clockwise; remote targets never reset
  * that frame. Two angular strata/bin, with 2m radial support, cost 131072 queries.
@@ -38,13 +90,7 @@ export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): 
     }
     levels.unshift({ sectors: count, fractions }); child = fractions; childSectors = count;
   }
-  const rgba = new Float32Array(4);
-  for (let y = 0; y < rows; y++) {
-    const f = levels[0]!.fractions, a = f[y * 2]! / 255, b = f[y * 2 + 1]! / 255;
-    for (let c = 0; c < 3; c++) rgba[c] = rgba[c]! + (a * palette[0]![c]! + b * palette[1]![c]! + (1 - a - b) * palette[2]![c]!) / rows;
-  }
-  rgba[3] = 1;
-  return { levels: [{ sectors: 1, rings: 1, rgba }], surface: { sectors, rows, depthMetres, samples, levels, palette } };
+  return { levels: diffuseFace(samples, sectors, rows, palette), surface: { sectors, rows, depthMetres, samples, levels, palette } };
 }
 
 export class SuccessorOverview {

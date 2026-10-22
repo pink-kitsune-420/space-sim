@@ -55,7 +55,7 @@ describe('canonical circumference/material agreement', () => {
         const a = o.forBody(world.surface(id)!, id);
         expect(o.forBody(world.surface(id)!, id)).toBe(a);
       }
-      expect(o.stats.summaryBytes).toBe(393216); expect(o.stats.summaryBytes).toBeLessThanOrEqual(512 * 1024);
+      expect(o.stats.summaryBytes).toBe(415168); expect(o.stats.summaryBytes).toBeLessThanOrEqual(512 * 1024);
       expect(o.stats.descriptorSamples).toBe(262144); expect(o.stats.generatedBodies).toBe(2); expect(o.stats.fineRequests).toBe(0);
       o.clear(); expect(o.stats.summaryBytes).toBe(0);
     } finally { candidate.dispose(); }
@@ -144,7 +144,7 @@ it('anchors restrained filled relief to existing feature geometry while leaving 
     const withoutFeatures = { ...p, features: [] };
     overviewColor(body, feature.angleRadians, r, 600, actual);
     overviewColor({ ...body, surface: withoutFeatures }, feature.angleRadians, r, 600, plain);
-    expect(actual[0]).toBeLessThan(plain[0]!); expect(actual[0]! / plain[0]!).toBeGreaterThan(.68);
+    expect(actual[0]).toBeLessThan(plain[0]!); expect(actual[0]! / plain[0]!).toBeGreaterThanOrEqual(.55);
     surfaceOverviewColor(body, feature.angleRadians, 2, 4, actual);
     surfaceOverviewColor({ ...body, surface: withoutFeatures, rotation: 2, sunDirection: { x: 1, y: 0 } }, feature.angleRadians, 2, 4, plain);
     expect([...actual]).toEqual([...plain]);
@@ -153,5 +153,35 @@ it('anchors restrained filled relief to existing feature geometry while leaving 
     overviewColor(body, feature.angleRadians, r, 600, actual);
     overviewColor({ ...body, rotation: spin, sunDirection: { x: -.6 * c - .8 * s, y: -.6 * s + .8 * c } }, feature.angleRadians, r, 600, plain);
     [...actual].forEach((v, i) => expect(plain[i]).toBeCloseTo(v, 10));
+  } } finally { candidate.dispose(); }
+});
+
+it('diffuses circumference variation inward by area instead of painting polar spokes', () => {
+  const { world, candidate } = setup();
+  try { for (const id of ['planet', 'moon'] as const) {
+    const s = buildOverview(world.surface(id)!, MATERIAL_DOMAINS[id]), face = s.levels.at(-1)!;
+    expect(face.sectors).toBe(64); expect(face.rings).toBe(8);
+    const spread = (row: number, channel: number) => {
+      const values = Array.from({ length: face.sectors }, (_, x) => face.rgba[(row * face.sectors + x) * 4 + channel]!);
+      return Math.max(...values) - Math.min(...values);
+    };
+    for (let c = 0; c < 3; c++) {
+      expect(spread(7, c)).toBeGreaterThan(1e-5);
+      expect(spread(0, c)).toBeLessThan(spread(7, c) * .2);
+    }
+  } } finally { candidate.dispose(); }
+});
+
+it('shares overview mesh points and colors inside a tightened transport/storage budget', () => {
+  const { world, candidate } = setup();
+  try { for (const id of ['planet', 'moon'] as const) {
+    const p = world.surface(id)!, overview = buildOverview(p, MATERIAL_DOMAINS[id]);
+    const body = { id, name: '', radius: p.referenceRadius, surface: p, overview, position: { x: 0, y: 0 } };
+    const g = wg(body, { center: { x: 0, y: 0 }, rotation: .3, scale: 90 / p.referenceRadius }, 800, 600, { querySurface });
+    const faces = g.faces.filter(f => f.overview), points = faces.flatMap(f => f.points), colors = faces.flatMap(f => f.vertexColors ?? []);
+    expect(faces.length).toBeGreaterThan(0);
+    expect(faces.reduce((n, f) => n + f.points.length - 2, 0)).toBeLessThanOrEqual(2048);
+    expect(new Set(points).size).toBeLessThan(points.length * .4);
+    expect(new Set(colors).size).toBeLessThan(colors.length * .4);
   } } finally { candidate.dispose(); }
 });

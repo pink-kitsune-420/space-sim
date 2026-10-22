@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 487ed72f82458541",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d8c08ec813d0ae75",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 487ed72f82458541"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d8c08ec813d0ae75"
         },
         {
           "type": "paragraph",
@@ -14377,7 +14377,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Fixed body-local query. Camera changes select filtering only, never anchors. Output is straight display RGBA, multiplied by a low-frequency sphere light. The pseudo-normal has no relationship to contact or traversable latitude."
+          "text": "Fixed body-local query. Camera changes select filtering only, never anchors. Output is straight display RGBA with sphere and optional source-feature light. The pseudo-normal has no relationship to contact or traversable latitude."
         },
         {
           "type": "code",

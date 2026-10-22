@@ -8,7 +8,7 @@ const TAU = 2 * Math.PI;
 /** CSS pixels, independent of framebuffer DPI. Curve + simplification <= 0.5. */
 export const TERRAIN_ERROR = 0.5;
 const CURVE_ERROR = 0.2, REDUCTION_ERROR = TERRAIN_ERROR - CURVE_ERROR;
-const OVERVIEW_RADII = [0, .18, .32, .44, .53, .59, .65, .71, .78, .84, .90, .95, 1] as const;
+const OVERVIEW_RADII = [0, .35, .52, .62, .70, .78, .90, 1] as const;
 type Color = readonly [number, number, number, number];
 export interface TerrainPoint { readonly x: number; readonly y: number; readonly angle: number; readonly radius: number }
 export interface TerrainFace {
@@ -227,30 +227,39 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const glowPx = Math.min(18, Math.max(2, profile.bounds.maxRadius * camera.scale * 0.05));
   const glow = glowPx / camera.scale;
   let overviewTriangles = 0, overviewOverflow = false;
+  const triangleCap = body.overview?.surface ? 2048 : 4096;
+  let overviewColors = new WeakMap<object, Color>();
   const overviewSample = new Float64Array(4);
+  const colorQueries = new Map<number, ReturnType<RenderGeometry['querySurface']>>();
+  const cr = Math.cos(camera.rotation), sr = Math.sin(camera.rotation);
   let overviewOpacity = 0, surfaceMode = false, surfaceFootprint = 0;
   const face = (vertices: readonly { x: number; y: number }[], color: Color, gradient?: TerrainFace['gradient'], overview = false) => {
     const clipped = clipPolygon(vertices, width, height);
     if (clipped.length >= 3) {
       if (overview) {
         overviewTriangles += clipped.length - 2;
-        if (overviewTriangles > 4096) { overviewOverflow = true; return; }
+        if (overviewTriangles > triangleCap) { overviewOverflow = true; return; }
       }
       const vertexColors = overview ? clipped.map(p => {
+        const cached = overviewColors.get(p); if (cached) return cached;
         const sx = (p.x - width / 2) / camera.scale, sy = -(p.y - height / 2) / camera.scale;
-        const cr = Math.cos(camera.rotation), sr = Math.sin(camera.rotation);
         const bx = camera.center.x - body.position.x + sx * cr + sy * sr;
         const by = camera.center.y - body.position.y - sx * sr + sy * cr;
-        const angle = Math.atan2(by, bx), r = Math.hypot(bx, by), sample = overviewSample;
-        const query = querySurface(profile, angle), rim = query.firstContactRadius;
+        const metadata = p as Partial<TerrainPoint>;
+        const angle = metadata.angle ?? Math.atan2(by, bx), r = metadata.radius ?? Math.hypot(bx, by), sample = overviewSample;
+        let query = colorQueries.get(angle);
+        if (!query) { query = querySurface(profile, angle); colorQueries.set(angle, query); }
+        const rim = query.firstContactRadius;
         if (surfaceMode) {
           surfaceOverviewColor(body, angle, query.groundRadius - r, surfaceFootprint, sample);
-          return [sample[0]!, sample[1]!, sample[2]!, overviewOpacity] as Color;
+          const color: Color = [sample[0]!, sample[1]!, sample[2]!, overviewOpacity];
+          overviewColors.set(p, color); return color;
         }
         overviewColor(body, angle, r / profile.bounds.maxRadius, 2 * Math.PI * profile.referenceRadius * camera.scale, sample);
         const landDepth = profile.hasWater ? Math.min(rim * .75, Math.max(0, rim - profile.seaRadiusMetres!) * 8) : rim;
         const water = profile.hasWater && (query.material === 'water' || r < rim - landDepth);
-        return [sample[0]! * (water ? .20 : 1), sample[1]! * (water ? .55 : 1), sample[2]! * (water ? .85 : 1), overviewOpacity * sample[3]!] as Color;
+        const color: Color = [sample[0]! * (water ? .20 : 1), sample[1]! * (water ? .55 : 1), sample[2]! * (water ? .85 : 1), overviewOpacity * sample[3]!];
+        overviewColors.set(p, color); return color;
       }) : undefined;
       faces.push({ points: clipped, color, gradient, ...(overview ? { overview: true, vertexColors } : {}) });
     }
@@ -339,7 +348,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   // on the existing canonical chord, leaving the silhouette and air mask exact.
   const overviewBoundary: TerrainPoint[] = [];
   if (body.overview?.surface && amount > 0 && boundary.length > 1) {
-    const extras = Math.max(0, 96 - (boundary.length - 1));
+    const extras = Math.max(0, 128 - (boundary.length - 1));
     let length = 0, distance = 0, used = 0;
     for (let i = 1; i < boundary.length; i++) length += Math.hypot(boundary[i]!.x - boundary[i - 1]!.x, boundary[i]!.y - boundary[i - 1]!.y);
     overviewBoundary.push(boundary[0]!);
@@ -360,16 +369,21 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   } else overviewBoundary.push(...boundary);
   if (amount > 0 && boundary.length <= 513) {
     const meshColor: Color = [0, 0, 0, amount];
-    const rings = body.overview?.surface ? Math.max(1, Math.min(12, Math.floor((4096 - 32) / ((overviewBoundary.length - 1) * 2)))) : 4, sample = new Float64Array(4), outer = new Float64Array(4);
+    const rings = body.overview?.surface ? Math.max(1, Math.min(7, Math.floor((triangleCap - 32) / ((overviewBoundary.length - 1) * 2)))) : 4, sample = new Float64Array(4), outer = new Float64Array(4);
+    const mesh = body.overview?.surface ? Array.from({ length: rings + 1 }, (_, row) => {
+      const fraction = rings === 7 ? OVERVIEW_RADII[row]! : row / rings;
+      return overviewBoundary.map(p => row === 0 ? center : project(p.angle, p.radius * fraction));
+    }) : undefined;
     for (let i = 1; i < overviewBoundary.length; i++) {
       const p = overviewBoundary[i - 1]!, q = overviewBoundary[i]!, angle = (p.angle + q.angle) / 2;
       const ground = querySurface(profile, angle), radius = (p.radius + q.radius) / 2;
       for (let ring = 0; ring < rings; ring++) {
-        const radial = rings === 12 ? OVERVIEW_RADII : undefined;
+        const radial = rings === 7 ? OVERVIEW_RADII : undefined;
         const lo = radial?.[ring] ?? ring / rings, hi = radial?.[ring + 1] ?? (ring + 1) / rings, fraction = (lo + hi) / 2;
         if (body.overview?.surface) {
-          face([project(p.angle, p.radius * lo), project(q.angle, q.radius * lo),
-            project(q.angle, q.radius * hi), project(p.angle, p.radius * hi)], meshColor, undefined, true);
+          const outer = mesh![ring + 1]!;
+          face(ring === 0 ? [center, outer[i]!, outer[i - 1]!]
+            : [mesh![ring]![i - 1]!, mesh![ring]![i]!, outer[i]!, outer[i - 1]!], meshColor, undefined, true);
           continue;
         }
         if (!overviewColor(body, angle, body.overview?.surface ? lo * radius / profile.bounds.maxRadius : lo, 2 * Math.PI * profile.referenceRadius * camera.scale, sample)) continue;
@@ -391,17 +405,17 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const surface = body.overview?.surface;
   if (surface && amount < 1) {
     const segments = boundary.length - 1;
-    const available = 4096 - overviewTriangles - 32;
+    const available = triangleCap - overviewTriangles - 32;
     const rows = Math.min(surface.rows, Math.floor(available / Math.max(1, segments * 2)));
+    overviewColors = new WeakMap();
+    const ribbon = Array.from({ length: Math.max(0, rows) + 1 }, (_, row) => boundary.map(p => project(p.angle, p.radius - row * surface.depthMetres / Math.max(1, rows))));
     surfaceMode = true; overviewOpacity = 1 - amount; surfaceFootprint = Math.max(1 / camera.scale, surface.depthMetres / Math.max(1, rows));
     const ribbonColor: Color = [0, 0, 0, 1 - amount];
     for (let i = 1; i < boundary.length && rows > 0; i++) {
       const p = boundary[i - 1]!, q = boundary[i]!, angle = (p.angle + q.angle) / 2;
       if (querySurface(profile, angle).material === 'water') continue;
       for (let row = 0; row < rows; row++) {
-        const lo = row * surface.depthMetres / rows, hi = (row + 1) * surface.depthMetres / rows;
-        face([project(p.angle, p.radius - lo), project(q.angle, q.radius - lo),
-          project(q.angle, q.radius - hi), project(p.angle, p.radius - hi)], ribbonColor, undefined, true);
+        face([ribbon[row]![i - 1]!, ribbon[row]![i]!, ribbon[row + 1]![i]!, ribbon[row + 1]![i - 1]!], ribbonColor, undefined, true);
       }
     }
   }
