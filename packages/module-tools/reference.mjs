@@ -297,9 +297,15 @@ export function generate(state = collect(), options = {}) {
       // SDK declarations are hashed directly. Derived package inventories change
       // during builds and must not invalidate that build's generated reference.
       if (descriptor.build) delete descriptor.build.inputsDigest;
-      for (const source of descriptor.inputs ?? []) {
-        if (source.path.startsWith('game-api/')) delete source.sha256;
-      }
+      // Adding a public SDK stem also grows a derived bundle's input list. Hash
+      // authored inputs and distinct SDK notices, not that generated path inventory.
+      const sdkNotices = new Set();
+      if (descriptor.inputs) descriptor.inputs = descriptor.inputs.filter(source => {
+        if (!source.path.startsWith('game-api/')) return true;
+        sdkNotices.add(JSON.stringify({ license: source.license, attribution: source.attribution }));
+        return false;
+      });
+      if (sdkNotices.size) descriptor.gameApiNotices = [...sdkNotices].sort().map(value => JSON.parse(value));
       input = JSON.stringify(descriptor);
     }
     digest.update(`${path}\0${input}\0`);
@@ -449,7 +455,8 @@ export function check(result = generate()) {
   for (const [path, content] of Object.entries(expected)) {
     const current = existsSync(join(ROOT, path)) ? read(path) : undefined;
     if (current === content) continue;
-    const line = current === undefined ? 0 : current.split('\n').findIndex((value, index) => value !== content.split('\n')[index]) + 1;
+    const expectedLines = current === undefined ? [] : content.split('\n');
+    const line = current === undefined ? 0 : current.split('\n').findIndex((value, index) => value !== expectedLines[index]) + 1;
     fail(path, current === undefined ? 'missing; run node packages/module-tools/reference.mjs' : `stale from line ${line}; run node packages/module-tools/reference.mjs`);
   }
   return errors;

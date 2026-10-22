@@ -10,6 +10,23 @@ export interface RenderOverview {
   /** Optional opaque, three-material canonical surface ribbon. The face is only a
    * filtered continuation of this circumference; it adds no latitude or geology. */
   readonly surface?: RenderOverviewSurface;
+  /** Optional shared-field north-pole map. Unsupported renderers retain levels. */
+  readonly planet?: RenderPlanetMap;
+}
+/** Immutable appearance derived from one physical sphere field. Texture rows run
+ * from body-fixed y=-1 to+1; x likewise. Unit-disc centre is the north pole and
+ * its rim is the playable equator. No map pixel creates collision or geology. */
+export interface RenderPlanetMap {
+  readonly identity: string;
+  readonly projection: 'north-pole-equator-rim/1';
+  readonly size: number;
+  /** Straight sRGB RGBA, transparent outside the unit disc. */
+  readonly rgba: Uint8Array;
+  /** Straight sRGB RGBA at the physical profile's angular samples; alpha0 at sea. */
+  readonly equator: Uint8Array;
+  /** Decorative cover inside solid ground, in metres; never extends collision. */
+  readonly coverMetres: number;
+  readonly storageBytes: number;
 }
 /** Immutable compact surface quadrature. Packed samples hold two 2-bit palette
  * indices (0..2) per angular/depth bin. Angular mips run coarse-to-fine, excluding

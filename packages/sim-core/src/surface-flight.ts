@@ -39,7 +39,8 @@ export function surfaceSupport(profile: SurfaceProfile, angle: number, radiusMet
   if (radiusMetres) {
     const contact = discSupport(profile, angle, radiusMetres);
     const support = surfaceSupport(profile, contact.angle);
-    return { ...support, centerRadiusMetres: contact.radius };
+    return { ...support, ...(profile.hasWater ? { surface: { ...support.surface, material: 'rock' as const,
+      firstContactRadius: support.surface.groundRadius } } : {}), centerRadiusMetres: contact.radius };
   }
   const query = querySurface(profile, angle);
   // This function supports solid ground, including submerged seabed.

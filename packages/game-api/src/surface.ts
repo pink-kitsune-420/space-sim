@@ -1,4 +1,6 @@
 import type { Vec } from './state';
+import type { PlanetFieldDefinition } from './planet-field/definition';
+import type { PlanetBakeResult } from './planet-field/bake';
 
 /** Versioned surface authoring contract. */
 export interface SurfacePadDefinition {
@@ -9,7 +11,7 @@ export interface SurfacePadDefinition {
 }
 
 /** Deterministic radial terrain and sea generation recipe in SI metres and radians (`generatorVersion: 1`). */
-export interface SurfaceDefinition {
+export interface RadialSurfaceDefinition {
   readonly kind: 'radial';
   readonly generatorVersion: 1;
   readonly seed: number;
@@ -23,6 +25,21 @@ export interface SurfaceDefinition {
   readonly seaRadiusMetres?: number;
   readonly pads?: readonly SurfacePadDefinition[];
 }
+
+/** Version2 physical macro terrain: the same sphere field supplies the equatorial
+ * collision profile and a bounded whole-sphere map. Radius must match the body.
+ * The profile is polar-linear between fixed samples; this is not fine terrain. */
+export interface PlanetSurfaceDefinition extends PlanetFieldDefinition {
+  readonly kind: 'planet';
+  readonly sampleCount: number;
+  readonly orientationRadians: number;
+}
+/** Frozen v1 radial recipes and shared-field v2 recipes have separate physical identities. */
+export type SurfaceDefinition = RadialSurfaceDefinition | PlanetSurfaceDefinition;
+
+/** World-owned macro map, immutable by contract. The private collision samples
+ * are deliberately omitted: mutating map arrays cannot change solid geometry. */
+export type PlanetSurfaceMap = Omit<PlanetBakeResult, 'equator'>;
 
 /** Conservative radial bounds (`minRadius`/`maxRadius` in `m`), radial derivative (`m/rad`), and slope tangent over a terrain profile or interval. */
 export interface SurfaceBounds {
@@ -75,9 +92,15 @@ export interface SurfaceProfile {
   readonly coastAngles: readonly number[];
   readonly hasWater: boolean;
   readonly bounds: SurfaceBounds;
+  /** Optional v2 exact rock envelope before sea clamping. Visual culling uses this
+   * to retain submerged ground; contact continues to use bounds. */
+  readonly groundBounds?: SurfaceBounds;
   readonly features: readonly SurfaceFeature[];
   readonly pads: readonly SurfacePadDefinition[];
-  /** Elevations plus three interval arrays; excludes JS objects and identity text. */
+  /** Optional v2 shared field/map data. No fine cells or render palette. */
+  readonly planet?: PlanetSurfaceMap;
+  /** Elevations plus three interval arrays and optional v2 macro map storage;
+   * excludes JS objects and identity text. */
   readonly storageBytes: number;
   sampleElevation(index: number): number;
   intervalBounds(index: number): SurfaceBounds;
@@ -89,7 +112,8 @@ export interface SurfaceSweepOptions {
   /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
   readonly toleranceMetres?: number;
   /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the
-   * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */
+   * hull centre; hit.surface describes the nearest rock or sea contact. Ground-only
+   * sweeps ignore sea level and report the nearest solid rock, including seabed. */
   readonly radiusMetres?: number;
   /** Interval visits plus clearance evaluations, including root refinement. */
   readonly maxWork?: number;

@@ -93,7 +93,6 @@ export function sweepDisc(profile: SurfaceProfile, start: Vec, end: Vec, options
   if (!(radius > 0 && radius <= 32) || !Number.isFinite(radius) || !(tolerance > 0) || !Number.isFinite(tolerance)
     || !Number.isInteger(limit) || limit < 1 || limit > 262144
     || !Number.isFinite(start.x + start.y + end.x + end.y)) throw new Error('Invalid circular hull sweep');
-  if (profile.hasWater) throw new Error('Circular hulls require dry terrain');
   const budget = { work: 0, limit }, dx = end.x - start.x, dy = end.y - start.y, length = dm.hypot(dx, dy);
   let t = 0;
   const diagnostics = () => ({ toleranceMetres: tolerance, intervals: 0, evaluations: Math.min(budget.work, limit), work: Math.min(budget.work, limit) });
@@ -109,7 +108,7 @@ export function sweepDisc(profile: SurfaceProfile, start: Vec, end: Vec, options
       if (near.clearance <= tolerance && (length === 0 || near.normal.x * dx + near.normal.y * dy <= 0)) {
         const surface = querySurface(profile, near.angle);
         return { status: 'hit', fraction: t, fractionBracket: [t, t], position,
-          surface: { ...surface, normal: near.normal }, clearanceMetres: near.clearance, kind: t === 0 ? 'touching' : 'crossing',
+          surface: { ...surface, ...(profile.hasWater ? { material: 'rock' as const, firstContactRadius: surface.groundRadius } : {}), normal: near.normal }, clearanceMetres: near.clearance, kind: t === 0 ? 'touching' : 'crossing',
           surfaceIdentity: profile.identity, diagnostics: diagnostics() };
       }
       if (t === 1 || length === 0) return { status: 'clear', surfaceIdentity: profile.identity, diagnostics: diagnostics() };
@@ -127,7 +126,6 @@ export function sweepDisc(profile: SurfaceProfile, start: Vec, end: Vec, options
 /** Radial hull-centre support, solved against the same signed distance as sweeps. */
 export function discSupport(profile: SurfaceProfile, angle: number, radius: number) {
   if (!(radius > 0 && radius <= 32) || !Number.isFinite(radius)) throw new Error('Invalid circular hull radius');
-  if (profile.hasWater) throw new Error('Circular hulls require dry terrain');
   const x = dm.cos(angle), y = dm.sin(angle), tolerance = contactTolerance(profile);
   let lo = querySurface(profile, angle).groundRadius, hi = profile.bounds.maxRadius + radius + tolerance / 2;
   const budget = { work: 0, limit: 262144 };

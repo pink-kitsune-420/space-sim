@@ -1,5 +1,8 @@
 import { SuccessorAir } from './successor-air';
 import { SuccessorTiles } from './successor-tiles';
+import { SuccessorTileStore } from './successor-tile-store';
+import { successorTileBody } from './successor-tile-demand';
+import type { SurfaceProfile } from '../../../packages/game-api/src/index';
 import { SuccessorOverview } from './successor-overview';
 import { SuccessorFocus } from './successor-focus';
 import { successorReferences } from './successor-comparison';
@@ -41,6 +44,7 @@ import { createPresentationRegistry, presentationProfile, DEFAULT_PRESENTATION_P
 import { bundledGames, bundledGameDefinition, bundledGameAdapters, defaultGame, orbitSandboxGame, requestedBuiltinGame } from './bundled-games';
 import { initOrbitSandbox, type OrbitSandboxInstance } from '../../orbit-sandbox/src/main';
 import universeCatalog from '../../../games/space-sim/universes/catalog.json';
+import planetPreviewData from '../../../games/space-sim-successor/planet-preview.json';
 import { decodeDataFile, encodeDataFile } from '../../../packages/game-library/src/data-file';
 import { encodeUniverse, decodeUniverse } from '../../../packages/game-library/src/universe';
 import { MAX_ARCHIVE_BYTES } from '../../../packages/game-library/src/compression';
@@ -106,6 +110,8 @@ import { desktopHostToken, hostOnComputer, type DesktopHost } from './desktop-ho
 /** Legacy flight host adapter. Feature services are selected by the game's target
  * plan; native DOM/session validation and trust/consent remain explicit here. */
 export function startFlight(startupGame: GamePackage = requestedBuiltinGame(location.search)): void {
+const planetPreviewEnabled = startupGame.info.id === 'builtin.space-sim-successor'
+  && new URLSearchParams(location.search).get('planetPreview') === '1';
 let canvas = element<HTMLCanvasElement>('flight-view');
 let moduleManager: ModuleManager | undefined;
 let labManager: LabManager | undefined;
@@ -307,13 +313,22 @@ function preparePads(world: import('../../../packages/game-api/src/index').World
 const prediction = hostFeatures.providedService(PREDICTIONS).create(pass => profiler.event('prediction', { ...pass }));
 const otherOrbits = new OtherOrbits();
 const spinView = new SpinView();
-const successorTiles = new SuccessorTiles();
+const successorQueries = new WeakMap<SurfaceProfile, (angle: number) => number>();
+/** Reuse the immutable canonical query without allocating per-camera frame closures. */
+function successorQuery(profile: SurfaceProfile): (angle: number) => number {
+  let query = successorQueries.get(profile);
+  if (!query) { query = angle => querySurface(profile, angle).groundRadius; successorQueries.set(profile, query); }
+  return query;
+}
+const successorTileStore = new SuccessorTileStore();
+const successorTiles = new SuccessorTiles(successorTileStore);
 const successorOverview = new SuccessorOverview();
 const successorFocus = new SuccessorFocus();
 const localDelay = Number(new URLSearchParams(location.search).get('successorLocalDelay') ?? 0);
 successorTiles.delayMs = Number.isFinite(localDelay) ? Math.max(0, Math.min(5000, localDelay)) : 0;
 const successorGuestTiles = new Map<number, SuccessorTiles>();
 let successorWorld: object | undefined;
+let successorWasActive = false;
 let successorOverviewEnabled = true;
 const successorAir = new SuccessorAir();
 if (new URLSearchParams(location.search).get('successorAir') === 'clouds') successorAir.mode = 'clouds';
@@ -4002,10 +4017,18 @@ const universeSaveCommands = universeSaveProvider.create({
       return;
     }
     guard();
+    // Bundled data is available for reconstruction without selecting it in the
+    // active world. The saved profile and exact authoritative lock still choose
+    // which data applies, including generated-trial saves opened from legacy.
+    const availableData = [...(worldModules(local.world)?.data ?? [])];
+    if (activeGameInfo.id === 'builtin.space-sim-successor'
+      && !availableData.some(module => module.manifest.id === planetPreviewData.manifest.id)) {
+      availableData.push(validateDataModule(planetPreviewData));
+    }
     const loaded = loadInstalledWorld(saved, { environment: environment(),
-      data: worldModules(local.world)?.data, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative'
+      data: availableData, code: [...GAME_EXAMPLES, ...moduleLibrary.modules(environment()).filter(m => m.manifest.authority === 'authoritative'
         && worldModules(local.world)?.profile.modules.some(ref => ref.id === m.manifest.id))] });
-    if (loaded.prepared) rememberWorldModules(loaded.world, { data: worldModules(local.world)?.data ?? [], profile: loaded.prepared.profile,
+    if (loaded.prepared) rememberWorldModules(loaded.world, { data: availableData, profile: loaded.prepared.profile,
       baseUniverse: installedProfile?.baseUniverse ?? loaded.world.universe,
       universeKey: installedProfile?.universeKey ?? `builtin.content/${loaded.world.universe.id}`, createContext: loaded.prepared.createContext });
     if (!universes.has(loaded.world.universe.id)) universes.set(loaded.world.universe.id, loaded.world.universe);
@@ -4531,10 +4554,17 @@ function groundClearance(): number {
   const local = state.status === 'flying' ? rotate(state.position, -spinAngle(activeBody, state.time)) : state.position;
   const ground = surface ? querySurface(surface, Math.atan2(local.y, local.x)).firstContactRadius : activeBody.radius;
   const hullRadius = activeMotion().vehicle.contactRadiusMetres ?? 0;
-  const support = hullRadius && surface
+  let support = hullRadius && surface
     ? activeMotion().services.surfaces.support(surface, Math.atan2(local.y, local.x), hullRadius).centerRadiusMetres!
     : ground + hullRadius;
+  if (hullRadius && surface?.seaRadiusMetres !== undefined && !state.water)
+    support = Math.max(support, surface.seaRadiusMetres + hullRadius);
   return magnitude(state.position) - support;
+}
+
+function waterDraft(): number {
+  const sea = session.world.surface(activeBody.id)?.seaRadiusMetres;
+  return sea === undefined ? 0 : Math.max(0, sea + (activeMotion().vehicle.contactRadiusMetres ?? 0) - magnitude(state.position));
 }
 
 function diagnostics(engine: boolean): Record<string, unknown> {
@@ -4564,6 +4594,7 @@ function diagnostics(engine: boolean): Record<string, unknown> {
     successorGuestTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? [...successorGuestTiles].map(([slot, tiles]) => ({ slot, ...tiles.stats })) : undefined,
     successorFocus: activeGameInfo.id === 'builtin.space-sim-successor' ? { body: successorFocus.body, angle: successorFocus.angle, tracking: successorFocus.tracking } : undefined,
     successorTiles: activeGameInfo.id === 'builtin.space-sim-successor' ? successorTiles.stats : undefined,
+    successorTileStore: activeGameInfo.id === 'builtin.space-sim-successor' ? successorTileStore.stats : undefined,
     vehicleId: selectedShip()?.vehicleId, vehicleArtwork: presentationProviders.vehicleArtwork.get(selectedShip()?.vehicleId),
     vehicle: activeMotion().vehicle, soloPreview: world.soloPreview,
     model: MODEL, body: activeBody.id, system: world.systemId, universe: world.universe.id,
@@ -4615,6 +4646,7 @@ function hud(engine: boolean): void {
   const r = magnitude(state.position);
   const radial = (state.position.x * state.velocity.x + state.position.y * state.velocity.y) / r;
   show('altitude', ship ? Math.max(0, groundClearance()).toFixed(1) : '—');
+  show('clearance-kind', state.water && activeMotion().vehicle.contactRadiusMetres ? 'SEABED CLEARANCE' : 'GROUND / SEA CLEARANCE');
   show('speed', magnitude(state.velocity).toFixed(1));
   show('vertical', `${radial >= 0 ? '+' : ''}${radial.toFixed(1)}`);
   show('heading', ((state.heading * 180 / Math.PI + 360) % 360).toFixed(0));
@@ -4645,7 +4677,7 @@ function hud(engine: boolean): void {
     : ship.fault ? `Motion stopped: ${ship.fault} Reset flight to try again.`
     : state.status === 'crashed' ? `${state.water ? 'Heavy water impact' : 'Surface impact'} on ${activeBody.name}. Reset flight to try again.`
       : state.water === 'floating' ? 'Floating on water. Thrust outward to launch or inward to dive.'
-        : state.water === 'submerged' ? `Underwater · depth ${Math.max(0, -groundClearance()).toFixed(2)} m. Buoyancy and drag act on the ship.`
+        : state.water === 'submerged' ? `${activeMotion().vehicle.contactRadiusMetres ? 'In water · draft' : 'Underwater · depth'} ${waterDraft().toFixed(2)} m. Buoyancy and drag act on the ship.`
       : state.status === 'landed' ? `On the surface of ${activeBody.name}. Hold Space to launch.`
         : engine ? 'ENGINE ACTIVE · Coast preview assumes cutoff now' : 'COASTING · Let momentum do the work');
 }
@@ -4824,9 +4856,11 @@ function frame(now: number): void {
   // Resolved bodies for renderer
   const world = session.world;
   const isSuccessor = activeGameInfo.id === 'builtin.space-sim-successor';
-  if (successorWorld !== world || !isSuccessor) {
-    successorWorld = world; successorFocus.clear(); successorOverview.clear(); successorTiles.clear();
+  // Retire on lifecycle transitions; Classic frames must not reset/allocate successor caches.
+  if (successorWorld !== world || successorWasActive !== isSuccessor) {
+    successorWorld = world; successorWasActive = isSuccessor; successorFocus.clear(); successorOverview.clear(); successorTiles.clear();
     for (const tiles of successorGuestTiles.values()) tiles.clear(); successorGuestTiles.clear();
+    successorTileStore.clear();
   }
   successorAir.clock.advance(elapsed, session.paused, document.hidden, world);
   // High quality lights every body from the system's star; starless systems stay unlit.
@@ -4961,20 +4995,24 @@ function frame(now: number): void {
   const toolView = () => Object.freeze({ ...base(), camera, ...(commands ? { commands } : {}) });
   const baseOverlays = presentation.overlays(toolView);
   let overlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, view.time, session.playerId, camera, width, height), ...(baseOverlays ?? [])];
-  SuccessorTiles.beginFrame();
+  successorTileStore.beginFrame();
   if (isSuccessor) {
-    const bodyId = successorFocus.body ?? (activeBody.id === 'planet' || activeBody.id === 'moon' ? activeBody.id : undefined);
-    const profile = bodyId && world.surface(bodyId), body = bodyId && world.body(bodyId);
-    if (bodyId && profile && body) {
-      const origin = world.system.getBodyPosition(bodyId, view.time), spin = spinView.angle(body, view.time);
+    const localBody = successorTileBody(renderBodies, camera, width, height, successorFocus.body);
+    if (localBody) {
+      const { id: bodyId, surface: profile, position: origin } = localBody, spin = localBody.rotation ?? 0;
       successorTiles.targetAngle = successorFocus.body === bodyId ? successorFocus.angle : undefined;
-      overlays.push(...successorTiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
+      overlays.push(...successorTiles.draw(profile, successorQuery(profile),
         presentation.rendering.renderer!, origin, spin, camera, width, height, bodyId));
-      overlays.push(...successorReferences(profile, angle => querySurface(profile, angle).groundRadius,
+      overlays.push(...successorReferences(profile, successorQuery(profile),
         point => { const c = Math.cos(spin), s = Math.sin(spin); return { x: origin.x + c * point.x - s * point.y, y: origin.y + s * point.x + c * point.y }; }, camera.scale));
-      const point = successorFocus.point(querySurface(profile, successorFocus.angle ?? 0).groundRadius, spin, origin);
-      if (point) overlays.push({ kind: 'circle', space: 'world', center: point, radius: 7 / camera.scale, color: '#f0dba4', width: 1 });
     } else successorTiles.clear();
+    // Selection remains a navigation marker on its own body when the camera pans elsewhere.
+    const selected = renderBodies.find(body => body.id === successorFocus.body);
+    if (selected?.surface && successorFocus.angle !== undefined) {
+      const point = successorFocus.point(querySurface(selected.surface, successorFocus.angle).groundRadius,
+        selected.rotation ?? 0, selected.position);
+      if (point) overlays.push({ kind: 'circle', space: 'world', center: point, radius: 7 / camera.scale, color: '#f0dba4', width: 1 });
+    }
   } else successorTiles.clear();
   if (academy) {
     try { overlays.push(...academy.draw({ ...base(), camera })); }
@@ -5086,7 +5124,7 @@ function frame(now: number): void {
     for (const [slot, guest] of splitScreen.guests) {
       if (!splitScreen.isSeparated(slot)) continue;
       const guestShip = guest.ship(session);
-      if (!guestShip || !guest.body || !guest.view || !guest.state) continue;
+      if (!guestShip || !guest.body || !guest.view || !guest.state) { successorGuestTiles.get(slot)?.clear(); continue; }
 
       const gEngine = guest.controls.engine && !session.paused;
       guest.prediction.update(
@@ -5145,7 +5183,7 @@ function frame(now: number): void {
       }
 
       const gRenderer = splitScreen.rendererFor(guest, presentation.provider, presentation.rendering.shaders);
-      if (!gRenderer) continue;
+      if (!gRenderer) { successorGuestTiles.get(slot)?.clear(); continue; }
 
       const gShipWorld = bodyWorldPosition(guest.body.id, guest.view.time, guest.view.position);
       const gPad = padSites.get(world)?.get(guest.body.id);
@@ -5155,13 +5193,14 @@ function frame(now: number): void {
       const gOthers = otherShips(guest.view.time, session.alpha, gCamera, guest.shipId, gWidth, gHeight, guest.fleetView, guest.playerId ?? session.playerId);
 
       const gOverlays: OverlayPrimitive[] = [...otherOrbits.overlays(world, guest.view.time, guest.playerId ?? session.playerId, gCamera, gWidth, gHeight)];
-      if (isSuccessor && (guest.body.id === 'planet' || guest.body.id === 'moon')) {
+      if (isSuccessor) {
         let tiles = successorGuestTiles.get(slot);
-        if (!tiles) { tiles = new SuccessorTiles(); successorGuestTiles.set(slot, tiles); }
-        tiles.size = successorTiles.size; tiles.style = successorTiles.style;
-        const profile = world.surface(guest.body.id);
-        if (profile) gOverlays.push(...tiles.draw(profile, angle => querySurface(profile, angle).groundRadius,
-          gRenderer, gBodyPos, spinView.angle(guest.body, guest.view.time), gCamera, gWidth, gHeight, guest.body.id));
+        if (!tiles) { tiles = new SuccessorTiles(successorTileStore); successorGuestTiles.set(slot, tiles); }
+        tiles.size = successorTiles.size; tiles.style = successorTiles.style; tiles.delayMs = successorTiles.delayMs;
+        const localBody = successorTileBody(renderBodies, gCamera, gWidth, gHeight);
+        if (localBody) gOverlays.push(...tiles.draw(localBody.surface, successorQuery(localBody.surface),
+          gRenderer, localBody.position, localBody.rotation ?? 0, gCamera, gWidth, gHeight, localBody.id));
+        else tiles.clear();
       }
       seatHuds.get(slot)?.hud.draw(gOverlays);
       if (activeFlightSlingshot && activeFlightSlingshot.slot === slot) {
@@ -5237,15 +5276,26 @@ function frame(now: number): void {
   if (!profilerPanel.hidden && now - lastPanel > 250) { profilerPanelUpdate(); lastPanel = now; }
   const size = `${canvas.width}×${canvas.height}@${window.devicePixelRatio}`;
   if (size !== lastSize) { profiler.event('canvas', { size }); lastSize = size; }
+  successorTileStore.endFrame();
   profiler.lap('hud');
   profiler.end();
   requestAnimationFrame(frame);
 }
 
 if (startupGame.info.id === 'builtin.space-sim-successor') {
+  const preview = document.createElement('button'); preview.id = 'successor-planet-preview';
+  preview.textContent = planetPreviewEnabled ? 'Return to legacy scale worlds' : 'Preview generated Primus and oceans';
+  preview.addEventListener('click', () => {
+    const url = new URL(location.href); url.searchParams.set('game','space-sim-successor');
+    for (const key of ['planetPreset','planetView','planetPaused']) url.searchParams.delete(key);
+    if (planetPreviewEnabled) { url.searchParams.delete('planetPreview'); url.searchParams.delete('successorAir'); }
+    else { url.searchParams.set('planetPreview','1'); url.searchParams.set('successorAir','clouds'); }
+    location.assign(url.href);
+  });
+  systemSelect.closest('.setup-fields')?.after(preview);
   const hint = document.createElement('p');
   hint.id = 'successor-trial-help'; hint.className = 'control-note';
-  hint.textContent = 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
+  hint.textContent = planetPreviewEnabled ? 'Generated planets preview: Primus has real oceans and shared orbital/ground geography; Parvus is airless. The playable ring is the equator around the globe rim. Choose Coast, Inland, Mountain, Gentle splash or Already floating in Scenario. Scroll to zoom; C compares the planet and ground. Space toggles the engine, A/D turns, arrows adjust throttle, X cuts thrust. Same 5 m survey lander and approved handling. Legacy scale worlds remain available through the button above.' : 'Scale trial: choose 2×, 4× or 8× in System. 4× is provisional. Same 5 m lander, unlimited fuel and handling at every scale. Space: burn; A/D: turn; hold arrows: adjust throttle, release: keep thrust; Ctrl: fine throttle; X: cut; scroll: zoom; C: planet view. Try Primus/Parvus pads and landing approaches. The static figure is 1.8 m; Ridge Lookout is 140 m east, Basin Station 220 m west (about 1–3 minutes on foot). No EVA yet. Launch hint: 2× needs strong thrust and an early eastward turn; at 4×/8× use gentler ascent, coast toward the top, then burn east until the coast path clears the ground.';
   const label = document.createElement('label');
   label.textContent = 'Surface prototype ';
   const tiles = document.createElement('select'); tiles.id = 'successor-tile-size';
@@ -5273,7 +5323,7 @@ if (startupGame.info.id === 'builtin.space-sim-successor') {
   const airHelp = document.createElement('p'); airHelp.className = 'control-note';
   airHelp.textContent = 'Primus: daylight, twilight and night sky near the surface, with a thin cloud layer. Space returns above the air or in orbital overview. Parvus is airless. Slow cosmetic motion freezes while paused or hidden and ignores time warp. Low graphics keeps sky and air only.';
   const coverage = document.createElement('p'); coverage.id = 'successor-tile-help'; coverage.className = 'control-note';
-  coverage.textContent = 'Tile review prototype: selected sector, or landing sector by default (256 m west / 192 m east, 16 m crust). Tiles include the pad, slopes and both landmarks on Primus and Parvus. Choose a tile review landmark start in Scenario, or drag to pan. Zoom close for tiles; C compares the orbital silhouette. Outside this patch or at distant zoom, vector terrain continues. Tile size, style and scale are still open for review.';
+  coverage.textContent = 'Tile review prototype: zoom close for local terrain on Primus and Parvus, or drag to explore away from the ship. Detail follows the camera; vector terrain continues while detail loads and at distant zoom. C compares the orbital silhouette. Choose a landmark start in Scenario to compare slopes and contact. Tile size, style and scale are still open for review.';
   coverage.textContent += ' Colored regions are decorative, with no physical material properties. Surface colors compares the accepted muted treatment; Vector baseline disables tiles.';
   const overviewLabel = document.createElement('label'); overviewLabel.textContent = 'Planet overview ';
   const overview = document.createElement('select'); overview.id = 'successor-overview';
@@ -5298,9 +5348,13 @@ if (startupGame.info.id === 'builtin.space-sim-successor') {
 }
 
 // Start: a solo world with one ship at the first scenario.
-const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, startupGame.bundle.selection.system, {
-  data: startupGame.bundle.modules, profile: requested.example ? exampleProfile(requested.example) : startupGame.bundle.profile,
-  universeKey: startupGame.bundle.selection.universe,
+const fieldPreviewModule = planetPreviewEnabled ? validateDataModule(planetPreviewData) : undefined;
+const initialProfile = fieldPreviewModule ? { ...startupGame.bundle.profile,
+  modules: [...startupGame.bundle.profile.modules, { id: fieldPreviewModule.manifest.id, version: fieldPreviewModule.manifest.version }] }
+  : requested.example ? exampleProfile(requested.example) : startupGame.bundle.profile;
+const initialGame = prepareLocalWorld(DEFAULT_UNIVERSE, fieldPreviewModule ? 'primus-field-system' : startupGame.bundle.selection.system, {
+  data: fieldPreviewModule ? [...startupGame.bundle.modules,fieldPreviewModule] : startupGame.bundle.modules, profile: initialProfile,
+  universeKey: fieldPreviewModule ? `${fieldPreviewModule.manifest.id}/successor-field-v2` : startupGame.bundle.selection.universe,
   code: startupAuthoritative,
 });
 initialGame.runtime.activate(initialGame.candidate);
@@ -5518,6 +5572,25 @@ connectFromLink();
 updateMultiplayer();
 profiler.event('session', { model: MODEL, userAgent: navigator.userAgent });
 const startupParameters = new URLSearchParams(location.search);
+if (planetPreviewEnabled) {
+  const selected = startupParameters.get('planetPreset');
+  if (selected && session.world.system.presets.some(p => p.id === selected)) { preset.value = selected; reset(); }
+  const previewShip = selectedShip();
+  if (!previewShip) throw new Error('Planet preview requires a piloted ship');
+  const previewBody = session.world.body(previewShip.bodyId);
+  const previewState = previewShip.state;
+  const view = startupParameters.get('planetView') ?? 'ground';
+  if (view === 'orbit') {
+    cameraControl.planetView(previewBody.radius); cameraControl.focusTarget = { kind:'body',id:previewBody.id,name:previewBody.name };
+    cameraControl.mode = 'free'; cameraControl.rotation = 0; cameraControl.dragged = false; syncCameraButton();
+  } else {
+    cameraControl.followShip(); cameraControl.horizon = true;
+    cameraControl.rotation = Math.PI/2-Math.atan2(previewState.position.y,previewState.position.x);
+    if (view === 'intermediate') cameraControl.zoom = .25*750/Math.max(1,canvas.clientHeight);
+    syncCameraButton();
+  }
+  if (startupParameters.get('planetPaused') === '1') setPaused(true,'Planet preview');
+}
 if (startupParameters.has('played')) {
   show('lab-status', `Playing ${startupGame.info.name}. Its plugin selection is active in a new world.`);
   startupParameters.delete('played');

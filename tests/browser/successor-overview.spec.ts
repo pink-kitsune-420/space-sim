@@ -20,8 +20,7 @@ for (const fallback of [false, true]) for (const [preset, body] of [['pad', 'pla
     await expect.poll(async () => (await debug(page)).successorFocus.body).toBe(body);
     const angle = (await debug(page)).successorFocus.angle;
     await openPanel(page, 'setup'); await page.locator('#successor-inspect').click();
-    await expect.poll(async () => (await debug(page)).successorTiles.pending).toBe(true);
-    expect((await debug(page)).successorTiles.residentChunks).toBe(0);
+    await expect.poll(async () => { const s = (await debug(page)).successorTiles; return [s.pending, s.residentChunks]; }).toEqual([true, 0]);
     await closePanel(page);
     // The harness deliberately holds readiness for four seconds.
     await expect.poll(async () => (await debug(page)).successorTiles.visibleChunks, { timeout: 10000 }).toBeGreaterThan(0);
@@ -33,8 +32,7 @@ for (const fallback of [false, true]) for (const [preset, body] of [['pad', 'pla
     await canvas.hover(); await page.mouse.wheel(0, -200); await page.waitForTimeout(300); // continuous zoom does not move the body-fixed selection
     expect((await debug(page)).successorFocus.angle).toBe(angle);
     await openPanel(page, 'setup'); await page.locator('#successor-return-overview').click(); await closePanel(page);
-    await expect.poll(async () => (await debug(page)).successorTiles.residentChunks).toBe(0);
-    expect((await debug(page)).successorTiles.fineRequests).toBe(0);
+    await expect.poll(async () => { const s = (await debug(page)).successorTiles; return [s.residentChunks, s.fineRequests]; }).toEqual([0, 0]);
     await page.screenshot({ path: `private-docs/proposals/games/evidence/successor-orbital-material-lod/${info.project.name}-${fallback ? 'Canvas' : 'WebGL'}-${body}-overview.png` });
     expect(errors).toEqual([]);
   });

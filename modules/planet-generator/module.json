@@ -1,0 +1,441 @@
+{
+  "format": "spacelab-module-package/1",
+  "manifest": {
+    "format": "space-sim-module/2",
+    "apiVersion": "space-sim-game-api/2",
+    "id": "spacelab.planet-generator",
+    "name": "Shared planet generator",
+    "version": "0.1.0",
+    "kind": "provider",
+    "environments": [
+      "browser",
+      "offline",
+      "node"
+    ],
+    "dependencies": [],
+    "conflicts": [],
+    "provides": [
+      {
+        "name": "planet.generator",
+        "version": "1.0.0"
+      }
+    ],
+    "requires": [],
+    "slots": [
+      "planet.generator"
+    ],
+    "before": [],
+    "after": [],
+    "settings": {},
+    "license": "MIT",
+    "tier": "authoritative"
+  },
+  "entry": "src/index.ts",
+  "build": {
+    "bundle": "dist/module.js",
+    "toolchain": "rolldown/1.2.14;typescript/7.0.2;api/2",
+    "inputsDigest": "48ed5704b5f87c7880d4b49b44396d4796d0fc15de2a44b90bfd76356f9eb800"
+  },
+  "compatibility": {
+    "deterministic": true,
+    "multiplayer": true
+  },
+  "assets": [],
+  "data": [],
+  "guides": [
+    "docs/creators/usage.json"
+  ],
+  "inputs": [
+    {
+      "path": "game-api/alarms.ts",
+      "sha256": "b849a69de4da661b7e41a49767a32aaa6beac91ef1789a9eea6a86b627db1462",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/audio.ts",
+      "sha256": "00b0cb79f4c51b66b6903751aaf8f71a82426dbc2b3b86a14c33034f56a79a08",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/chat.ts",
+      "sha256": "28bbee3040af6ff2fbe47e8b90f7a23917f5544c00acbec0ea5cae1786d819b9",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/commands.ts",
+      "sha256": "253600bfcdd7cb86d75abc78a6baf5ddeb39659bf8f0f981a2775cf196319a3e",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/context.ts",
+      "sha256": "b3e85448f125efc0b8f8b9b74e595f9401d435ed0a97b11c5f6587d05ff19432",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/engine.ts",
+      "sha256": "ba97962030e695caf042024e13f700682838eee6bc29439795570fc52969bb65",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/flight-input.ts",
+      "sha256": "350eacff899fc8f7da1e067c7c65351f9bda7d054219115af34e09305ef0823c",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/flight-plans.ts",
+      "sha256": "ca23b010e6aa127d6bdc987f5c1f16a279ceb3e8ab2642ece35ed892264bb906",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/flight-session.ts",
+      "sha256": "bbeb8a72cfca62b298e72856121562296a351d7247fb555e8515bd29a5f197af",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/flight-view.ts",
+      "sha256": "6e2d10f5f246ae50ad8875d785e59efcc4cbb3eea1f886cd221dd51b9094083f",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/hud-layout.ts",
+      "sha256": "7ba7b7d93957b644988addea1d03e4b12e4c101ce1f873e72a0c5b4820fbe922",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/index.ts",
+      "sha256": "cd03dd424035ee0fa4cae005058df5a82e741685cb2d7f64f190742e25314d5a",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/join-pack.ts",
+      "sha256": "edd8825e307b229fd45a2c56751dce88730ea9784bf872029eb58ed38fcf45aa",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/logging.ts",
+      "sha256": "553513a00904f19fba92dd0da138c730ef006ae8e57fdc44ea9f76837267266d",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/maneuver.ts",
+      "sha256": "cbc3399399b5b4828b919741045f0f94204b5fe67ba18a14084e87720506e0d8",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/manual.ts",
+      "sha256": "4c1c36de77531c5e5f273932c5070d9ff6da316e88277b9be1fb727e59d73f7f",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/math.ts",
+      "sha256": "522cd0df0e208348536d04cafdc0c2237e46f52e2db6a6de808f1c6a8a0184d8",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/mod-menu.ts",
+      "sha256": "119d535ac485e66eb0180f2fc1c2738cafb776c3db5725c2b0dbdf75de098ce5",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/module-data.ts",
+      "sha256": "b00db9d79198d99fcb30f4345b57df9e55338b428d72250b9d1d553df5d02d04",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/modules-v2.ts",
+      "sha256": "6d8bec62241a404bb137f6ab36aeb3c5674cd82500fabf808179fe77c212d7a2",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/modules.ts",
+      "sha256": "6fa11e0bfd2943e6b85ea3f22319cbf898d90629656eb4698d2f3340eba7f41f",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/motion.ts",
+      "sha256": "5b10c28493b372830e8089a1d7aa46d374b299653b1465a541e8f1c66096dc27",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/node-transport.ts",
+      "sha256": "193f5c8999ea6576a01f7d5f05b83a61aad2047894a809c0b48e53ddd9f569d3",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/orbit.ts",
+      "sha256": "f8d28f6ebf52de495792c71420c0757bf8a30b6a937e88c2ef5e07ded7d8c777",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-designer.ts",
+      "sha256": "f7e0d8b9524a7b524376100ff865698e087c7ed76b406c890e4c6cb237e39f20",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-field.ts",
+      "sha256": "841f1f10c9652d5ec93389c201965566ee717121641d2fe864626a6d1580653e",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-field/bake.ts",
+      "sha256": "395946d52a55dda06dd27c4105e7a4e61e40050b744a37a1932357d222e1d740",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-field/definition.ts",
+      "sha256": "61c2919a6a872c6ffb002c3995a1bf618b506ca9301f6423fc4a6b6e97d81655",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-field/field.ts",
+      "sha256": "074a36ac91ec6fb62371643d5b4d7f3c922755476fa9aa3bb641b45f33060993",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-field/noise.ts",
+      "sha256": "f6861dfacbeba84e864fcff0656a1e20cf9a9cd616befa38598d7fd2e3ae8acb",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/planet-map.ts",
+      "sha256": "7631c3fcb4293336991cee0e93edb4f03d13283aaa245d741de25be81f672410",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/platform.ts",
+      "sha256": "58c256f0e4bbf7bfa68ee92d7e249744300dda32f98b1326e3e780598099d76c",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/player-view.ts",
+      "sha256": "861011541eff211d586a69af35572bf7a7a08162bc5627629e7c4404d2d11944",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/presentation.ts",
+      "sha256": "6c9fadefd731e049d823d2dd7b4b8828191b18ee3517662b4fc0d30ec93d642a",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/profiler.ts",
+      "sha256": "81c83e60ce9555c18ac093b771935643119e84685a6fd27b611e0aab02477d1d",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/render-air.ts",
+      "sha256": "cd7789b3ea39cd9a706ae8ada3718ccfcdd97a78866911010f34fbbb0a526e6a",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/render-math.ts",
+      "sha256": "3bdbdb14179b31fb40454085497cb39de65c997723dacbd88840d155da2a766e",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/render-overview.ts",
+      "sha256": "eada02862c1f10501fe19c93ccfaab07ae97f9bb32a98d64334a3114bd1a9451",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/rendering.ts",
+      "sha256": "2c0a613d27bc299841b9ae76a9afce714537fe7be6b3bb5cce8416da5460639b",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/rotation.ts",
+      "sha256": "595391911cebe7c44a7a18ca09d933b579252b69fdbb72fe55f8d3846ba19098",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/rules.ts",
+      "sha256": "d924e8e89942b7a798bb689af04844b7bf9e26828a65bd3dcf5e7a527cc03604",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/services.ts",
+      "sha256": "cac61da27a13243b8b2c99c33e86b657553cf554df6893c6ff11a14682cd3438",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/session-discovery.ts",
+      "sha256": "010d19a31c91a0c04bcd376a49592ae1762735f830fae4afbb9c93397b3fb00a",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/session.ts",
+      "sha256": "4900c339299ba95ed5c71def1f35770da9024cc4047857e51010fc3db63e3ef5",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/shader-format.ts",
+      "sha256": "d03815510aa634846ad65ba61bdb16e69250bfd7da12b6e84632895018752a38",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/smart-camera.ts",
+      "sha256": "2bf74ccada61e4648888c29a9a2cfaf2300c0c733daa5deee304f67f1926f331",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/state.ts",
+      "sha256": "7f2b23bfc7407bf779876f0e59965ce8fdf613507330317db1bbb25f8953dd1b",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/surface.ts",
+      "sha256": "710426f10e05f929d03d3247cf6a1649eb765471a95990acf35427789c519e49",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/tab-transport.ts",
+      "sha256": "97f76325d17c1f70a454b020e387e74ac5dd00626db50b602a7348fc302854fb",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/theme-customizer.ts",
+      "sha256": "b0b35674d185efd910fd8c314141b0c3887df515a450fea4821527157a8e1309",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/theme.ts",
+      "sha256": "a37528d41eadbe5b0fe1a99d82875ab0d04c41a766fb5b4b9d2628be6bea73d1",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/tile-revisions.ts",
+      "sha256": "84061afba19ee4eef3d5cbe5301c1cf38501d0f1ca72779b6609107ac3817cf1",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/transfers.ts",
+      "sha256": "fbd71b97653ffab463c0b26c5b7aedeb3ed1ebf45841cc39e15c06c62eb2057e",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/tutorials.ts",
+      "sha256": "017b061d6c125af0e972c991055859cbc36e78f02967bb391897591afefbf9a7",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/universe-saving.ts",
+      "sha256": "fa386f9ad549acf23aa88973807e53431efce926c153b05f476c70a6c9ea0e6e",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/universe.ts",
+      "sha256": "84de770c4004a5a209109893b087d4975c0054c7382e4858014c6d5c6b0e33a2",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/vehicles.ts",
+      "sha256": "004f162b252701637ebfd70a230bff92413597a2c785d6a0284a715751ed2bd3",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/view-hud.ts",
+      "sha256": "ebab71d2d0139a4e02fa9c482970f4d1fc5ffdebb12902c9035d2b2a88247027",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/webrtc-transport.ts",
+      "sha256": "e53d4860fcd50bd8c28736e2df8c6fd75c81bb04f16a6347a564cff784cfc774",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/window-content.ts",
+      "sha256": "0e95f3f18b9a677d7317f8a62fe0231d3bfb67e0f05701f0ffe698fc220a0d38",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/window-shell.ts",
+      "sha256": "82da81656669b460a1045e3c9c66b92ec7b381bc400cf28effa4815ddcfb22f2",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/windows.ts",
+      "sha256": "dc5b0b6d46b9b03472aababdcfda74365e5afad61f54e59f45437d4127607d47",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "game-api/world.ts",
+      "sha256": "1a680360228e45e0f60e42f8f7ee05245653b939363d858165e154059a62aa3f",
+      "license": "LicenseRef-Project",
+      "attribution": "Space Sim first-party public API"
+    },
+    {
+      "path": "src/factory.ts",
+      "sha256": "5bed7043b11929aad327e5539879e7a310716d4f81feccd47b75e9cb1ecfa771",
+      "license": "MIT",
+      "attribution": "Shared planet generator, Space Sim contributors. MIT.\nPublic game-api inputs: Space Sim contributors, MIT (LICENSE).\n"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "0d9bb20fdf9e8dfc60055fb79e4e5e78442e44e7f646921113c187562fc42bb3",
+      "license": "MIT",
+      "attribution": "Shared planet generator, Space Sim contributors. MIT.\nPublic game-api inputs: Space Sim contributors, MIT (LICENSE).\n"
+    }
+  ],
+  "sourceStatus": "included"
+}

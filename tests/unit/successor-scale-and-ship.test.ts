@@ -170,7 +170,7 @@ describe('finite circular contact against authoritative polar terrain', () => {
     }
   });
 
-  it('keeps stable support on rotating terrain and rejects malformed hulls and ocean combinations', () => {
+  it('keeps stable support on rotating terrain, rejects malformed hulls and supports submerged rock', () => {
     const profile = createSurfaceProfile(100, [0, 0, 0, 0]);
     const context = createSimulationContext({ contactRadiusMetres: 2.5, acceleration: 2 });
     const body = { id: 'test', radius: 100, mu: 100, rotation: { period: 1000, direction: -1 as const, phase: 0 } };
@@ -183,6 +183,7 @@ describe('finite circular contact against authoritative polar terrain', () => {
     for (const radius of [NaN, -1, 33]) expect(() => createSimulationContext({ contactRadiusMetres: radius })).toThrow();
     expect(() => captureVehicleDefinition({ id: 'test.ship/lander', name: 'lander', handling: { acceleration: 24, turnRate: .65, initialThrottle: .65, contactRadiusMetres: 33 } })).toThrow();
     const ocean = generateSurface({ radius: 100, surface: { kind: 'radial', generatorVersion: 1, sampleCount: 128, seed: 1, maxReliefMetres: 2, minFeatureWidthMetres: 24, mountainRangeCount: 0, craterCount: 0, orientationRadians: 0, seaRadiusMetres: 101 } });
-    expect(() => surfaceSupport(ocean, 0, 2.5)).toThrow('dry');
+    const wetSupport = surfaceSupport(ocean, 0, 2.5);
+    expect(wetSupport.centerRadiusMetres).toBeGreaterThan(wetSupport.surface.groundRadius);
   });
 });

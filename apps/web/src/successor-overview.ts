@@ -1,4 +1,4 @@
-import { linearColor, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
+import { buildPlanetMap, linearColor, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
 import { querySurface } from '../../../packages/sim-core/src/surface';
 import { appearanceAt, MATERIAL_DOMAINS, MATERIAL_SLOTS, type MaterialDomain } from './successor-materials';
 
@@ -61,7 +61,7 @@ function diffuseFace(samples: Uint8Array, columns: number, rows: number, palette
 export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): RenderOverview {
   const sectors = 8192, rows = 8, depthMetres = 16;
   const samples = new Uint8Array(sectors * rows);
-  const pad = profile.pads.find(p => p.id === 'landing-area')!;
+  const pad = profile.pads.find(p => p.id === 'landing-area') ?? { angleRadians: Math.PI / 2 };
   const palette = MATERIAL_SLOTS.map(id => [1, 3, 5].map(i => linearColor(parseInt(domain.colors[id].slice(i, i + 2), 16) / 255)));
   const levels: { sectors: number; fractions: Uint8Array }[] = [];
   let childSectors = sectors, child: Uint8Array | undefined;
@@ -90,13 +90,15 @@ export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): 
     }
     levels.unshift({ sectors: count, fractions }); child = fractions; childSectors = count;
   }
-  return { levels: diffuseFace(samples, sectors, rows, palette), surface: { sectors, rows, depthMetres, samples, levels, palette } };
+  const planet = profile.planet ? buildPlanetMap(profile) : undefined;
+  return { levels: planet?.levels ?? diffuseFace(samples, sectors, rows, palette), surface: { sectors, rows, depthMetres, samples, levels, palette },
+    ...(planet ? { planet: planet.planet } : {}) };
 }
 
 export class SuccessorOverview {
   private cache = new WeakMap<SurfaceProfile, Map<'planet' | 'moon', RenderOverview>>();
-  readonly stats = { summaryBytes: 0, generatedBodies: 0, descriptorSamples: 0, fineRequests: 0, buildMs: 0 };
-  clear(): void { this.cache = new WeakMap(); this.stats.summaryBytes = this.stats.generatedBodies = this.stats.descriptorSamples = this.stats.buildMs = 0; }
+  readonly stats = { summaryBytes: 0, generatedBodies: 0, descriptorSamples: 0, mapBytes: 0, mapPixels: 0, fineRequests: 0, buildMs: 0 };
+  clear(): void { this.cache = new WeakMap(); this.stats.summaryBytes = this.stats.generatedBodies = this.stats.descriptorSamples = this.stats.mapBytes = this.stats.mapPixels = this.stats.buildMs = 0; }
   forBody(profile: SurfaceProfile, body: 'planet' | 'moon'): RenderOverview {
     let domains = this.cache.get(profile);
     if (!domains) { domains = new Map(); this.cache.set(profile, domains); }
@@ -107,6 +109,11 @@ export class SuccessorOverview {
       this.stats.generatedBodies++; this.stats.descriptorSamples += 131072;
       this.stats.summaryBytes += summary.levels.reduce((sum, level) => sum + level.rgba.byteLength, 0)
         + summary.surface!.samples.byteLength + summary.surface!.levels.reduce((n, l) => n + l.fractions.byteLength, 0);
+      if (summary.planet) {
+        this.stats.mapBytes += summary.planet.storageBytes; this.stats.summaryBytes += summary.planet.storageBytes;
+        let pixels = 0; for (let i=3;i<summary.planet.rgba.length;i+=4) if (summary.planet.rgba[i]) pixels++;
+        this.stats.mapPixels += pixels; this.stats.descriptorSamples += pixels + profile.sampleCount;
+      }
     }
     return summary;
   }

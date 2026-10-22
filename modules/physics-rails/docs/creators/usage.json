@@ -13,6 +13,14 @@
       "text": "This authoritative module connects the core simulation motion engine to standard module slots. It provides context creation for simulation stepping, Keplerian orbit and conic trajectory solvers, celestial body reference frame transformations, surface elevation and water contact detection, and conservative rails sleep scheduling for coasting craft."
     },
     {
+      "type": "paragraph",
+      "text": "Optional contactRadiusMetres (0\u201332 m) treats state.position as a circular hull centre. Contact sweeps use the nearest rock or sea boundary; ground-only sweeps and support use solid rock, including seabed. Ocean buoyancy approximates submerged circle area under the local radial sea plane, with half-density equilibrium and water-relative drag; it is not a fluid solver. Its curvature error scales with hull radius / sea radius. Rotating floating support includes centripetal force balance. The 5 m/s inward radial water-entry limit is preserved; omit the radius for unchanged legacy point motion."
+    },
+    {
+      "type": "paragraph",
+      "text": "A physical surface may use the frozen kind: radial, generatorVersion: 1 recipe, or kind: planet, generatorVersion: 2 with shared PlanetFieldDefinition parameters, sampleCount and orientationRadians. V2 body radius must match radiusMetres. The same bounded bake supplies private collision samples and optional profile.planet map metadata. Map arrays are immutable by contract and cannot mutate collision samples. At most four v2 planet maps are permitted per universe; no fine cells are generated. Coverage sea level and pad flattening agree between map and equator. Existing v1 worlds and saves keep their original generator."
+    },
+    {
       "type": "heading",
       "text": "Provides and requires"
     },

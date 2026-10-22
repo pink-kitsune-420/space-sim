@@ -28,7 +28,9 @@ export function surfaceContactTolerance(profile: SurfaceProfile): number {
  */
 export function sweepSurface(profile: SurfaceProfile, start: Point, end: Point,
   options: SurfaceSweepOptions = {}): SurfaceSweep {
-  if (options.radiusMetres !== undefined && options.radiusMetres !== 0) return sweepDisc(profile, start, end, options);
+  if (options.radiusMetres !== undefined && options.radiusMetres !== 0) {
+    return profile.hasWater ? sweepWetDisc(profile, start, end, options) : sweepDisc(profile, start, end, options);
+  }
   if (profile.seaRadiusMetres === undefined || !profile.hasWater) return sweepGroundSurface(profile, start, end, options);
   options = { ...options, toleranceMetres: options.toleranceMetres ?? surfaceContactTolerance(profile) };
   // The union of rock and a sea disc. Each solver retains its convex proof;
@@ -61,6 +63,39 @@ export function sweepSurface(profile: SurfaceProfile, start: Point, end: Point,
 }
 
 const SEA_PROFILES = new WeakMap<SurfaceProfile, SurfaceProfile>();
+// At most one hull size per immutable profile, not an accumulating radius map.
+const SEA_HULL_PROFILES = new WeakMap<SurfaceProfile, { radius: number; profile: SurfaceProfile }>();
+
+/** A finite hull meets the union of sea and rock at its nearest contact, which
+ * can lie on a coastal wall away from the centre's radial query. */
+function sweepWetDisc(profile: SurfaceProfile, start: Point, end: Point, options: SurfaceSweepOptions): SurfaceSweep {
+  const radius = options.radiusMetres!;
+  if (!(radius > 0 && radius <= 32) || !Number.isFinite(radius)) throw new Error('Invalid circular hull sweep');
+  let sea = SEA_HULL_PROFILES.get(profile);
+  if (!sea || sea.radius !== radius) {
+    sea = { radius, profile: createSurfaceProfile(profile.seaRadiusMetres! + radius, [0, 0]) };
+    SEA_HULL_PROFILES.set(profile, sea);
+  }
+  const shared = { ...options, toleranceMetres: options.toleranceMetres ?? surfaceContactTolerance(profile) };
+  // A circle's Minkowski sum is another circle. The point solver proves even
+  // isolated tangencies without iterative distance advancement near the sea.
+  const water = sweepGroundSurface(sea.profile, start, end, { ...shared, radiusMetres: 0 });
+  if (water.status === 'failed') return { ...water, surfaceIdentity: profile.identity, verifiedFraction: 0 };
+  const remaining = (options.maxWork ?? SURFACE_SWEEP_MAX_WORK) - water.diagnostics.work;
+  if (remaining < 1) return { status: 'failed', reason: 'work-limit', verifiedFraction: 0,
+    surfaceIdentity: profile.identity, diagnostics: water.diagnostics };
+  const ground = sweepDisc(profile, start, end, { ...shared, maxWork: remaining });
+  const diagnostics = { toleranceMetres: Math.max(water.diagnostics.toleranceMetres, ground.diagnostics.toleranceMetres),
+    intervals: water.diagnostics.intervals + ground.diagnostics.intervals,
+    evaluations: water.diagnostics.evaluations + ground.diagnostics.evaluations,
+    work: water.diagnostics.work + ground.diagnostics.work };
+  if (ground.status === 'failed') return { ...ground, diagnostics,
+    verifiedFraction: Math.min(ground.verifiedFraction, water.status === 'hit' ? water.fraction : 1) };
+  if (water.status !== 'hit' || (ground.status === 'hit' && ground.fraction <= water.fraction)) return { ...ground, diagnostics };
+  const surface = querySurface(profile, dm.atan2(water.position.y, water.position.x));
+  return { ...water, surfaceIdentity: profile.identity, diagnostics,
+    surface: { ...surface, material: 'water', firstContactRadius: profile.seaRadiusMetres!, normal: water.surface.normal } };
+}
 
 /** Rock/seabed only, also used after a survivable water entry. */
 export function sweepGroundSurface(profile: SurfaceProfile, start: Point, end: Point,

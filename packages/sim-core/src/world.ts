@@ -149,7 +149,7 @@ export class World implements WorldControl {
   private nextAvatarNumber = 1;
 
   readonly configuration: WorldOptions['configuration'];
-  constructor(universe: UniverseDefinition, options: WorldOptions = {}) {
+  constructor(universe: UniverseDefinition, options: WorldOptions = {}, derivedPlanets?: ReadonlyMap<string, SurfaceProfile>) {
     this.vehicles = options.vehicles === undefined ? undefined : captureVehicleCatalog(options.vehicles);
     this.data = new ModuleDataStore(options.dataAdapters);
     this.configuration = options.configuration;
@@ -237,8 +237,16 @@ export class World implements WorldControl {
       const profiles = new Map<string, SurfaceProfile>();
       const identities = new Map<string, SurfaceProfile>();
       for (const body of this.system.getAllBodies()) if (body.surface && body.surfaceFeatures !== 'star') {
-        let profile = identities.get(this.context.services.surfaces.identity(body));
-        if (!profile) { profile = this.context.services.surfaces.generate(body); identities.set(this.context.services.surfaces.identity(body), profile); }
+        const identity = this.context.services.surfaces.identity(body);
+        let profile = identities.get(identity);
+        if (!profile) {
+          if (body.surface.generatorVersion === 2 && this.context.services.surfaces === BUILTIN_SERVICES.surfaces) {
+            const shared = derivedPlanets?.get(body.id);
+            if (shared?.identity === identity && shared.planet) profile = shared;
+          }
+          if (!profile) profile = this.context.services.surfaces.generate(body);
+          identities.set(this.context.services.surfaces.identity(body), profile);
+        }
         profiles.set(body.id, profile);
       }
       this.surfaces = profiles;
@@ -766,14 +774,14 @@ export class World implements WorldControl {
 
   setGodMode(shipId: string, enabled: boolean): void {
     const ship = this.require(shipId);
-    this.fleet.set(shipId, { ...ship, state: setGodMode(ship.state, enabled) });
+    this.fleet.set(shipId, { ...ship, state: setGodMode(ship.state, enabled, this.body(ship.bodyId)) });
     this.wake(shipId);
     this.touched(shipId);
   }
 
   setGodModeAll(enabled: boolean): void {
     for (const [id, ship] of this.fleet) {
-      this.fleet.set(id, { ...ship, state: setGodMode(ship.state, enabled) });
+      this.fleet.set(id, { ...ship, state: setGodMode(ship.state, enabled, this.body(ship.bodyId)) });
       this.wake(id);
       this.touched(id);
     }
@@ -1120,11 +1128,12 @@ export class World implements WorldControl {
     return computeSimulationFingerprint(lock);
   }
 
-  /** Clones all authoritative rule/RNG/ship state; derived caches belong to the clone. */
+  /** Clones all authoritative rule/RNG/ship state; mutable caches belong to the
+   * clone. Exact immutable built-in v2 profiles/maps are shared without rebaking. */
   cloneForPrediction(): World {
     const clone = new World(this.universe, { id: this.id, systemId: this.selectedSystemId,
       vehicles: this.vehicles, createContext: this.createContext, dataAdapters: this.dataAdapters, rules: this.rules, forces: this.forces, commands: this.commands, soloPreview: this.soloPreview,
-      lock: this.lock, simulationFingerprint: this.simulationFingerprint, saveVersion: this.saveVersion });
+      lock: this.lock, simulationFingerprint: this.simulationFingerprint, saveVersion: this.saveVersion }, this.surfaces);
     clone.tick = this.tick; clone.time = this.time; clone.nextShipNumber = this.nextShipNumber;
     if (this.physicsSolver) {
       clone.physicsSolver = this.physicsSolver.clone();

@@ -77,9 +77,10 @@ export function initialState(preset: Preset | string = 'pad'): State {
   };
 }
 
-/** Returns a new `State` with `godMode` set to `enabled` and `revision` incremented by `1`, recovering a `'crashed'` state when enabled: to `'landed'` on ground, or to `'flying'` with `water: 'submerged'` in water. Host-only (`packages/sim-core`; worlds expose `WorldControl.setGodMode`). */
-export function setGodMode(state: State, enabled: boolean): State {
-  return { ...state, godMode: enabled, revision: state.revision + 1,
+/** Returns a new `State` with `godMode` set to `enabled` and `revision` incremented by `1`, recovering a wreck to landed rock or submerged flight. Supply its body to carry a rotating water wreck from body-fixed support into inertial flight. Host-only (`packages/sim-core`; worlds expose `WorldControl.setGodMode`). */
+export function setGodMode(state: State, enabled: boolean, body?: Body): State {
+  const recovered = enabled && state.status === 'crashed' && state.water && body ? inertialState(state, body) : state;
+  return { ...recovered, godMode: enabled, revision: state.revision + 1,
     status: enabled && state.status === 'crashed' ? state.water ? 'flying' : 'landed' : state.status,
     water: enabled && state.status === 'crashed' && state.water ? 'submerged' : state.water };
 }
@@ -160,6 +161,28 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     if (lastSupport?.profile === profile && lastSupport.angle === angle) return lastSupport.value;
     const value = rawSupport(profile, angle, radius);
     lastSupport = { profile, angle, value }; return value;
+  };
+  const canFloat = (profile: SurfaceProfile, angle: number, equilibrium: number): boolean => !hullRadius
+    || equilibrium > surfaceSupport(profile, angle, hullRadius).centerRadiusMetres! + surfaceContactTolerance(profile);
+  let lastFloat: { profile: SurfaceProfile; mu: number; spin2: number; radius: number } | undefined;
+  const floatRadius = (profile: SurfaceProfile, angle: number, body: Body): number => {
+    const omega = spinRate(body), spin2 = omega * omega;
+    if (!hullRadius || !omega || profile.seaRadiusMetres === undefined) return waterFloatRadius(profile, angle, querySurface, hullRadius);
+    if (lastFloat?.profile === profile && lastFloat.mu === body.mu && lastFloat.spin2 === spin2) return lastFloat.radius;
+    const sea = profile.seaRadiusMetres;
+    const outward = (r: number) => spin2 * r - body.mu / (r * r)
+      * waterForces(profile, { x: r, y: 0 }, querySurface, hullRadius).gravityFactor;
+    let lo = sea, hi = sea + hullRadius;
+    // At breakup no static floating equilibrium exists; never snap to infinity.
+    let radius = Infinity;
+    if (outward(hi) < 0) {
+      for (let i = 0; i < 64 && hi - lo > surfaceContactTolerance(profile) / 8; i++) {
+        const mid = lo + (hi - lo) / 2;
+        if (outward(mid) > 0) lo = mid; else hi = mid;
+      }
+      radius = lo + (hi - lo) / 2;
+    }
+    lastFloat = { profile, mu: body.mu, spin2, radius }; return radius;
   };
   const capabilities = Object.freeze({ analyticCoast: analytic,
     rails: analytic && services.rails.compatible.some(b => b.dynamics === binding.dynamics && b.orbits === binding.orbits
@@ -292,7 +315,6 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     }
     if (state.status !== 'landed' && state.status !== 'flying' && state.status !== 'crashed') throw new Error('Invalid flight status');
     if (surface) validateMotionSurface(body, surface);
-    if (hullRadius && surface?.hasWater) throw new Error('Circular hulls require dry terrain');
     if (state.water !== undefined && (!surface?.seaRadiusMetres || (state.water !== 'submerged' && state.water !== 'floating'))) {
       throw new Error('Invalid water state: requires an ocean surface');
     }
@@ -305,7 +327,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const local = state.status === 'flying' ? rotate(state.position, -spinAngle(body, state.time)) : state.position;
     const ground = !surface ? body.radius : clear ? surface.bounds.maxRadius
       : querySurface(surface, dm.atan2(local.y, local.x)).groundRadius;
-    if (state.water && (radius > surface!.seaRadiusMetres! + tolerance
+    if (state.water && (radius > surface!.seaRadiusMetres! + hullRadius + tolerance
       || (state.water === 'submerged') !== (state.status === 'flying'))) {
       throw new Error('Invalid water state: medium, support and position disagree');
     }
@@ -313,9 +335,14 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       if (!surface) {
         if (radius < body.radius + hullRadius - tolerance) throw new Error('Invalid state: hull inside ground');
       } else if (!clear) {
-        const hull = sweepSurface(surface, local, local, { radiusMetres: hullRadius });
+        const hull = (surface.hasWater ? sweepGroundSurface : sweepSurface)(surface, local, local, { radiusMetres: hullRadius });
         if (hull.status === 'failed') throw new SurfaceContactError(hull);
-        if (state.status !== 'flying' && hull.status !== 'hit') throw new Error('Invalid hull support state');
+        if (state.status !== 'flying' && !state.water && hull.status !== 'hit') throw new Error('Invalid hull support state');
+        if (state.water === 'floating') {
+          const equilibrium = state.status === 'crashed' ? surface.seaRadiusMetres! + hullRadius
+            : floatRadius(surface, dm.atan2(local.y, local.x), body);
+          if (Math.abs(radius - equilibrium) > tolerance || hull.status === 'hit') throw new Error('Invalid hull floating support');
+        }
       }
       if (state.status !== 'flying' && magnitude(state.velocity) !== 0) throw new Error('Invalid hull support velocity');
     }
@@ -361,8 +388,8 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     const g0 = gravity(state.position, body);
     const radius = magnitude(state.position);
     const sea = surface?.seaRadiusMetres;
-    const inWater = sea !== undefined && (radius < sea || state.water !== undefined);
-    const f0 = surface && inWater ? waterForces(surface, fixed ? state.position : rotate(state.position, -theta0), querySurface) : { gravityFactor: 1, drag: 0 };
+    const inWater = sea !== undefined && (radius < sea + hullRadius || state.water !== undefined);
+    const f0 = surface && inWater ? waterForces(surface, fixed ? state.position : rotate(state.position, -theta0), querySurface, hullRadius) : { gravityFactor: 1, drag: 0 };
     const radialAcceleration = (engine0.x * state.position.x + engine0.y * state.position.y) / radius;
     // Rotation rate lives only in flight; every landing or settling return below drops it.
     const { angularVelocity: _spin, ...base } = state;
@@ -372,8 +399,8 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       // the floating support tolerance. Settle before buoyancy can kick it out
       // across a basin narrower than one normal 10-ms drift.
       if (surface && inWater && thrust === 0 && !a0?.x && !a0?.y) {
-        const angle = dm.atan2(state.position.y, state.position.x), equilibrium = waterFloatRadius(surface, angle, querySurface);
-        if (querySurface(surface, angle).waterDepth > 0 && Math.abs(radius - equilibrium) < 1e-4) {
+        const angle = dm.atan2(state.position.y, state.position.x), equilibrium = floatRadius(surface, angle, body);
+        if (querySurface(surface, angle).waterDepth > 0 && Math.abs(radius - equilibrium) < 1e-4 && canFloat(surface, angle, equilibrium)) {
           return { ...next, position: { x: equilibrium * dm.cos(angle), y: equilibrium * dm.sin(angle) }, water: 'floating' };
         }
       }
@@ -421,7 +448,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       const local = hullRadius ? point : { x: point.x * groundRadius / r, y: point.y * groundRadius / r };
       const contact = rotate(local, thetaHit);
       const gHit = gravity(contact, body);
-      const fHit = surface && inWater ? waterForces(surface, local, querySurface) : { gravityFactor: 1, drag: 0 };
+      const fHit = surface && inWater ? waterForces(surface, local, querySurface, hullRadius) : { gravityFactor: 1, drag: 0 };
       const aHit = transaction?.acceleration(state.time + dt * hit, contact, halfV);
       const engineHit = aHit ? { x: engine.x + aHit.x, y: engine.y + aHit.y } : engine;
       const uHit = groundVelocity(omega, contact);
@@ -458,7 +485,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
           surfaceIdentity: terrainHit.surfaceIdentity, impactVelocity: groundImpact, diagnostics: terrainHit.diagnostics } } : {}) };
     }
     const g1 = gravity(position, body);
-    const f1 = surface && sea !== undefined ? waterForces(surface, local1, querySurface) : { gravityFactor: 1, drag: 0 };
+    const f1 = surface && sea !== undefined ? waterForces(surface, local1, querySurface, hullRadius) : { gravityFactor: 1, drag: 0 };
     const a1 = transaction?.evaluate(state.time + dt, position, halfV, heading, wHalf);
     const engine1 = a1 ? { x: engine.x + a1.x, y: engine.y + a1.y } : engine;
     const u1 = groundVelocity(omega, position);
@@ -466,11 +493,11 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
       x: relativeKick(halfV.x, g1.x * f1.gravityFactor + engine1.x, f1.drag, dt / 2, u1.x),
       y: relativeKick(halfV.y, g1.y * f1.gravityFactor + engine1.y, f1.drag, dt / 2, u1.y),
     };
-    const wet = sea !== undefined && magnitude(position) <= sea;
+    const wet = sea !== undefined && magnitude(position) <= sea + hullRadius;
     if (surface && wet && thrust === 0 && !a1?.x && !a1?.y) {
-      const angle = dm.atan2(local1.y, local1.x), equilibrium = waterFloatRadius(surface, angle, querySurface);
+      const angle = dm.atan2(local1.y, local1.x), equilibrium = floatRadius(surface, angle, body);
       if (querySurface(surface, angle).waterDepth > 0 && Math.abs(magnitude(position) - equilibrium) < 1e-4
-        && dm.hypot(velocity.x - u1.x, velocity.y - u1.y) < .01) {
+        && dm.hypot(velocity.x - u1.x, velocity.y - u1.y) < .01 && canFloat(surface, angle, equilibrium)) {
         return { ...next, position: { x: equilibrium * dm.cos(angle), y: equilibrium * dm.sin(angle) },
           velocity: { x: 0, y: 0 }, status: 'landed', water: 'floating',
           ...(omega === 0 ? {} : { heading: normalizeAngle(heading - theta1) }) };
@@ -734,6 +761,7 @@ export function createSimulationContext(settings: Partial<VehicleDefaults> = {},
     cloneForPrediction: () => createSimulationContext(vehicle, options),
     dispose(): void {
       COAST_CACHE = new WeakMap(); GROUND_WINDOWS = new WeakMap();
+      lastSupport = undefined; lastFloat = undefined;
       budgetCaches = []; budgetTimes = undefined; budgetNext = 0;
     },
   });

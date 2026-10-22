@@ -2937,7 +2937,7 @@ it('creates procedural audio outputs, clamps levels and schedules Web Audio voic
   }
 });
 
-it('generates reference pages for all 55 public game-api stems, enforces JSDoc on public exports and splits oversized topics', () => {
+it('generates reference pages for all 58 public game-api stems, enforces JSDoc on public exports and splits oversized topics', () => {
   const result = generateReference();
   const { bundle, text, state } = result;
   expect(checkReference(result)).toEqual([]);
@@ -2945,7 +2945,10 @@ it('generates reference pages for all 55 public game-api stems, enforces JSDoc o
   expect(state.api.namespaces.get('deterministicMath')).toBe('math');
 
   const gameApiPages = bundle.pages.filter((page: { id: string }) => page.id.startsWith('api-reference/game-api/'));
-  expect(gameApiPages).toHaveLength(55);
+  expect(gameApiPages).toHaveLength(58);
+  expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/planet-field')).toBe(true);
+  expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/planet-map')).toBe(true);
+  expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/tile-revisions')).toBe(true);
   expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/render-overview')).toBe(true);
   expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/render-air')).toBe(true);
   expect(gameApiPages.some((page: { id: string }) => page.id === 'api-reference/game-api/math')).toBe(true);
@@ -2988,6 +2991,8 @@ it('keeps reference provenance stable across derived SDK inventory refreshes whi
     for (const source of descriptor.inputs ?? []) {
       if (source.path.startsWith('game-api/')) { source.sha256 = 'e'.repeat(64); refreshedInventory++; }
     }
+    const sdkInput = descriptor.inputs?.find((source: {path:string}) => source.path.startsWith('game-api/'));
+    if (sdkInput) descriptor.inputs.push({...sdkInput,path:'game-api/new-public-stem.ts',sha256:'d'.repeat(64)});
     return JSON.stringify(descriptor);
   } });
   expect(refreshed.bundle.provenance).toBe(original.bundle.provenance);
@@ -3009,6 +3014,13 @@ it('keeps reference provenance stable across derived SDK inventory refreshes whi
     return JSON.stringify(descriptor);
   } });
   expect(attributionChanged.bundle.provenance).not.toBe(original.bundle.provenance);
+  const sdkNoticeChanged = generateReference(original.state, { readInput: (path: string) => {
+    if (!path.endsWith('/module.json')) return readInput(path);
+    const descriptor = JSON.parse(readInput(path));
+    for (const source of descriptor.inputs ?? []) if (source.path.startsWith('game-api/')) source.attribution += ' SDK notice changed';
+    return JSON.stringify(descriptor);
+  } });
+  expect(sdkNoticeChanged.bundle.provenance).not.toBe(original.bundle.provenance);
 }, 30000);
 
 

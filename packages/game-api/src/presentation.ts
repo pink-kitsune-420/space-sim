@@ -1,4 +1,5 @@
 import type { RenderAir } from './render-air';
+import { TILE_CHUNK_REVISION_LIMITS, validateTileChunkRevision, type TileChunkRevision, type TileChunkRevisions } from './tile-revisions';
 import type { Controls, GhostEnd, GhostSample, State, Vec } from './state';
 import type { SurfaceProfile } from './surface';
 import type { Elements } from './orbit';
@@ -164,6 +165,8 @@ export interface RendererFeatures {
   readonly independentAir?: { readonly version: 1 };
   /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */
   readonly planetOverview?: { readonly version: 1 };
+  /** Body-fixed shared-field atlas and thin cover; Canvas may simplify sampling. */
+  readonly planetMap?: { readonly version: 1 };
   readonly shaders?: ShaderControl;
   readonly effects?: import('./platform').ShaderEffects;
   /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
@@ -176,6 +179,9 @@ export interface RendererFeatures {
     /** Cosmetic backing for air cells only; does not qualify underground gameplay. */
     readonly walls?: true;
     readonly buffers?: 'borrowed-through-draw';
+    /** Opt-in content identity/lifetime protocol; absence requires the legacy path.
+     * Support does not promise cached cells, shared masks or GPU residency. */
+    readonly revisions?: TileChunkRevisions;
   };
   /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,
    * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */
@@ -260,6 +266,9 @@ export type OverlayPrimitive =
       readonly clipPolygon?: readonly Vec[];
       readonly size: 32;
       readonly tiles: Uint16Array;
+      /** Optional explicit immutable-revision promise; never infer it from array identity.
+       * Omit when revisions are unsupported. Legacy arrays remain mutable between draws. */
+      readonly contentRevision?: TileChunkRevision;
       /** Optional 1,024 background palette IDs, shown through air at 55% brightness.
        * Cosmetic main-compatible walls only; the foreground masks its backing. */
       readonly walls?: Uint16Array;
@@ -278,16 +287,22 @@ export type OverlayPrimitive =
  * Missing or incompatible metadata is unsupported. Optional visuals may instead use
  * a declared vector fallback. Geometry-only version-1 providers remain compatible. */
 export function requireTileChunkFeatures(features: RendererFeatures | undefined,
-  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void {
+  required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean; readonly revisions?: boolean } = {}): void {
   const tile = features?.tileChunks;
+  const revisions = tile?.revisions;
   if (tile?.version !== 1 || tile.rotation !== true || tile.clipPolygon !== true || typeof features?.tilePalettes?.register !== 'function'
     || (required.lightEncoding && (tile.lightEncoding !== required.lightEncoding || tile.paletteEntries !== 1024))
-    || (required.walls && !tile.walls)) throw new Error('Renderer does not support the required tile profile.');
+    || (required.walls && !tile.walls)
+    || (required.revisions && (revisions?.version !== 1 || typeof revisions.release !== 'function'
+      || !Number.isSafeInteger(revisions.maxEntries) || revisions.maxEntries < 0 || revisions.maxEntries > TILE_CHUNK_REVISION_LIMITS.maxEntries
+      || !Number.isSafeInteger(revisions.maxBytes) || revisions.maxBytes < 0 || revisions.maxBytes > TILE_CHUNK_REVISION_LIMITS.maxBytes)))
+    throw new Error('Renderer does not support the required tile profile.');
 }
 
-/** Validate the opt-in supplied-light profile. Legacy arrays retain their semantics.
+/** Validate optional content revisions and the opt-in supplied-light profile. Legacy arrays retain their semantics.
  * Callers retain byte ownership; validation never copies or retains chunk buffers. */
 export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void {
+  if (chunk.contentRevision !== undefined) validateTileChunkRevision(chunk.contentRevision);
   if (chunk.lightEncoding === undefined) return;
   if (chunk.lightEncoding !== 'nibble') throw new Error('tile lightEncoding must be nibble');
   if (!(chunk.tiles instanceof Uint16Array) || chunk.tiles.length !== 1024

@@ -7,7 +7,7 @@ The same pages appear in the in-game Manual under Creators -> API reference. [pa
 Generated reference for documented modules and the game-api declarations they use.
 
 This reference is generated from module manifests, Creators guides and the public @space-sim/game-api declarations. Each module page lists the facts its manifest declares; each game-api page shows the exact declarations with their notes. Modules appear here once their Creators guide follows the module guide template.
-Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 0cb56ce2ab72ba4d
+Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 19f734114d1eed53
 Three versions are independent: a module version (semver, such as 0.1.0), the API identifier a module is written against (such as space-sim-game-api/2) and a file-format identifier (such as space-sim-flight-plans/1). The v2 API is pre-freeze and can still change.
 
 ## Modules
@@ -97,6 +97,8 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> node-transport.ts [api-reference/game-api/node-transport]
 -> orbit.ts [api-reference/game-api/orbit]
 -> planet-designer.ts [api-reference/game-api/planet-designer]
+-> planet-field.ts [api-reference/game-api/planet-field]
+-> planet-map.ts [api-reference/game-api/planet-map]
 -> platform.ts [api-reference/game-api/platform]
 -> player-view.ts [api-reference/game-api/player-view]
 -> presentation.ts [api-reference/game-api/presentation]
@@ -117,6 +119,7 @@ Three versions are independent: a module version (semver, such as 0.1.0), the AP
 -> tab-transport.ts [api-reference/game-api/tab-transport]
 -> theme.ts [api-reference/game-api/theme]
 -> theme-customizer.ts [api-reference/game-api/theme-customizer]
+-> tile-revisions.ts [api-reference/game-api/tile-revisions]
 -> transfers.ts [api-reference/game-api/transfers]
 -> tutorials.ts [api-reference/game-api/tutorials]
 -> universe.ts [api-reference/game-api/universe]
@@ -1771,9 +1774,10 @@ Public render.canvas@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 1, from 0.5 to 4, step 0.1. Canvas pixel ratio cap: Maximum backing pixels per CSS pixel. Lower values reduce raster cost and memory; higher values sharpen high-DPI output. Collision geometry is unchanged.
 
 ## Game API used
-AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale
+AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, PlanetCoverMesh, PlanetMapFrame, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, createTileChunkRevisions, daylight, getPathGeometry, hermiteControls, linearColor, overviewColor, pathFromShip, planetDisplayChannel, planetMapColor, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api planet-map.ts [api-reference/game-api/planet-map]
 -> game-api presentation.ts [api-reference/game-api/presentation]
 -> game-api render-air.ts [api-reference/game-api/render-air]
 -> game-api render-math.ts [api-reference/game-api/render-math]
@@ -1781,6 +1785,7 @@ AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TIL
 -> game-api rendering.ts [api-reference/game-api/rendering]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api surface.ts [api-reference/game-api/surface]
+-> game-api tile-revisions.ts [api-reference/game-api/tile-revisions]
 -> game-api vehicles.ts [api-reference/game-api/vehicles]
 
 ## Guide and example
@@ -1815,10 +1820,11 @@ Public render.webgl@1.0.0 service and lifecycle.
 - maxPixelRatio: number, default 2, from 0.5 to 4, step 0.1. WebGL pixel ratio cap: Maximum backing pixels per CSS pixel for scene rendering. Lower values reduce GPU work and framebuffer memory. Does not change bodies or collision.
 
 ## Game API used
-AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
+AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, PlanetCoverMesh, PlanetMapFrame, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderOverviewSurface, RenderPlanetMap, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, createTileChunkRevisions, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale
 -> game-api engine.ts [api-reference/game-api/engine]
 -> game-api modules.ts [api-reference/game-api/modules]
 -> game-api modules-v2.ts [api-reference/game-api/modules-v2]
+-> game-api planet-map.ts [api-reference/game-api/planet-map]
 -> game-api platform.ts [api-reference/game-api/platform]
 -> game-api presentation.ts [api-reference/game-api/presentation]
 -> game-api render-air.ts [api-reference/game-api/render-air]
@@ -1828,6 +1834,7 @@ AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE
 -> game-api shader-format.ts [api-reference/game-api/shader-format]
 -> game-api state.ts [api-reference/game-api/state]
 -> game-api surface.ts [api-reference/game-api/surface]
+-> game-api tile-revisions.ts [api-reference/game-api/tile-revisions]
 -> game-api universe.ts [api-reference/game-api/universe]
 -> game-api vehicles.ts [api-reference/game-api/vehicles]
 
@@ -5593,6 +5600,114 @@ Service key for the planet appearance designer factory (`ui.planet-designer@1.0.
 Used by: spacelab.planet-designer.
 -> API reference index [api-reference]
 
+=== game-api: planet-field.ts [api-reference/game-api/planet-field]
+Declarations from planet-field.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-field.ts.
+
+## PlanetField
+Caller-owned deterministic body-fixed sphere field; query into eight float64 slots. Pure mathematical instances remain usable after the factory is disposed.
+    export type PlanetField = ReturnType<typeof createPlanetField>;
+Used by: host or creator modules (not imported by shipped modules).
+
+## PlanetGenerator
+Reusable headless planet generator. At most two unfinished/untransferred bake jobs per service. Callers schedule job.step in a worker or between yields. Module disposal cancels owned jobs and rejects new calls; transferred data and pure fields remain caller-owned. It neither changes worlds nor installs physics.
+    export interface PlanetGenerator {
+      create(definition: PlanetFieldDefinition): PlanetField;
+      bake(definition: PlanetFieldDefinition, options: PlanetBakeOptions): PlanetBake;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PLANET_GENERATOR
+Optional authoritative world-generation service, supplied by an explicitly selected generator module. Renderer and climate consumers use its baked data.
+    export const PLANET_GENERATOR: ServiceKey<PlanetGenerator> = Object.freeze({ slot: 'planet.generator', version: '1.0.0' });
+Used by: host or creator modules (not imported by shipped modules).
+-> API reference index [api-reference]
+
+=== game-api: planet-map.ts [api-reference/game-api/planet-map]
+Declarations from planet-map.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/planet-map.ts.
+
+## buildPlanetMap
+Caller-owned bounded Cartesian colour projection from the actual v2 field, including its physical pads. Cold construction only, no fine terrain queries. Returns coarse fallback levels as well as the rich atlas; <=~1.1MiB/body.
+    export function buildPlanetMap(profile:SurfaceProfile):{planet:RenderPlanetMap;levels:RenderOverview['levels']};
+Used by: host or creator modules (not imported by shipped modules).
+
+## planetMapColor
+Bilinear unlit map sample in premultiplied linear RGBA. Body-fixed Cartesian x/y are unit-disc coordinates; writes four caller-owned slots without allocation. An optional matching physical profile reconstructs the last atlas texels from its exact equator. The fixed body-space band preserves wet/dry class and cover while the camera zooms; it queries at most two profile samples, never a field.
+    export function planetMapColor(map:RenderPlanetMap,x:number,y:number,out:Float64Array,profile?:SurfaceProfile):void;
+Used by: spacelab.render-canvas.
+
+## PlanetMapFrame
+Shared float64 camera frame for independently built renderers. All world differences are formed before projection; integer/fractional angular addresses keep fine cover stable at large zoom. update never samples a field or allocates.
+    export class PlanetMapFrame {
+     cameraRadius=0;referenceOffset=0;axisX=1;axisY=0;directionX=1;directionY=0;
+     angleIndex=0;angleFraction=0;opacity=0;sunX=-.6;sunY=.8;cloudPhase=0;clouds=false;air=false;
+     scale=1;rotation=0;visible=false;
+     update(body:RenderBody,camera:Camera,width:number,height:number):boolean{
+      const p=body.surface,map=body.overview?.planet;this.visible=false;if(!p||!map)return false;
+      const x=camera.center.x-body.position.x,y=camera.center.y-body.position.y,spin=body.rotation??0,c=Math.cos(spin),s=Math.sin(spin),bx=c*x+s*y,by=-s*x+c*y;
+      const distance=Math.hypot(bx,by),view=Math.hypot(width,height)/(2*camera.scale);
+      if(distance-view>p.bounds.maxRadius+1)return false;
+      const angle=Math.atan2(by,bx),axes=angle+camera.rotation+spin,index=((angle-p.orientationRadians)/TAU*p.sampleCount%p.sampleCount+p.sampleCount)%p.sampleCount;
+      this.cameraRadius=distance;this.referenceOffset=p.referenceRadius-distance;this.scale=camera.scale;this.rotation=camera.rotation+spin;
+      this.axisX=Math.cos(axes);this.axisY=Math.sin(axes);this.directionX=Math.cos(angle);this.directionY=Math.sin(angle);
+      this.angleIndex=Math.floor(index);this.angleFraction=index-this.angleIndex;
+      const global=Math.max(0,Math.min(1,(1.4-p.referenceRadius*camera.scale/Math.max(width,height))/.55));
+      const local=distance>p.bounds.minRadius*.7?Math.max(0,Math.min(1,(16*camera.scale-2)/6)):0;
+      this.opacity=global*(1-local);
+      if(this.opacity===0&&distance+view<(p.groundBounds??p.bounds).minRadius-16)return false;
+      const sun=body.sunDirection??body.air?.sunDirection;
+      this.sunX=sun?c*sun.x+s*sun.y:-.6;this.sunY=sun?-s*sun.x+c*sun.y:.8;
+      this.air=!!body.air&&body.air.mode!=='off';this.clouds=body.air?.mode==='clouds';this.cloudPhase=body.air?.phaseRadians??0;
+      this.visible=this.opacity>0||map.coverMetres*camera.scale>=.2;return this.visible;
+     }
+     /** CSS sample into seven caller-owned float64 slots: angular index/fraction,
+      * ground depth(m), radius/rim ratio, map x/y, ground elevation(m). No field query. */
+     sample(x:number,y:number,width:number,height:number,p:SurfaceProfile,out:Float64Array):void{
+      const sx=(x-width/2)/this.scale,sy=-(y-height/2)/this.scale,along=sx*this.axisX+sy*this.axisY,tangent=-sx*this.axisY+sy*this.axisX;
+      const radius=Math.hypot(this.cameraRadius+along,tangent),radial=this.cameraRadius>0?(2*this.cameraRadius*along+along*along+tangent*tangent)/(radius+this.cameraRadius):radius;
+      const local=this.angleFraction+Math.atan2(tangent,this.cameraRadius+along)*p.sampleCount/TAU,whole=Math.floor(local),fraction=local-whole;
+      const i=((this.angleIndex+whole)%p.sampleCount+p.sampleCount)%p.sampleCount,h=p.sampleElevation(i)*(1-fraction)+p.sampleElevation((i+1)%p.sampleCount)*fraction;
+      const ratio=radius/Math.max(p.referenceRadius+h,p.seaRadiusMetres??0),factor=radius>0?Math.min(1,ratio)/radius:0;
+      out[0]=i;out[1]=fraction;out[2]=this.referenceOffset+h-radial;out[3]=ratio;
+      out[4]=(this.directionX*(this.cameraRadius+along)-this.directionY*tangent)*factor;
+      out[5]=(this.directionY*(this.cameraRadius+along)+this.directionX*tangent)*factor;out[6]=h;
+     }
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## PlanetBoundaryPoint
+Structural canonical-boundary point, in CSS pixels plus body-fixed polar metres/radians. Existing terrain geometry remains the silhouette authority.
+    export interface PlanetBoundaryPoint{readonly x:number;readonly y:number;readonly angle:number;readonly radius:number}
+Used by: host or creator modules (not imported by shipped modules).
+
+## PlanetCoverMesh
+Bounded visible skin bands shared by Canvas and WebGL. Borrow vertices until next update; zero warm allocation, max512 quads. Shader/sampler still clips to exact ground/cover depth. A configurable CSS-pixel margin covers canonical chord error.
+    export class PlanetCoverMesh {
+     readonly vertices=new Float32Array(512*12);length=0;
+     update(map:RenderPlanetMap,frame:PlanetMapFrame,boundary:readonly PlanetBoundaryPoint[],width:number,height:number,marginPixels=1):void{
+      this.length=0;if(!frame.visible||map.coverMetres*frame.scale<.2)return;
+      const depth=map.coverMetres*frame.scale+marginPixels;
+      for(let i=1;i<boundary.length;i++){
+       const p=boundary[i-1]!,q=boundary[i]!;
+       if(Math.max(p.x,q.x)<-depth||Math.min(p.x,q.x)>width+depth||Math.max(p.y,q.y)<-depth||Math.min(p.y,q.y)>height+depth)continue;
+       if(this.length+12>this.vertices.length){this.length=0;return;}
+       const pa=p.angle+frame.rotation,qa=q.angle+frame.rotation,px=Math.cos(pa),py=-Math.sin(pa),qx=Math.cos(qa),qy=-Math.sin(qa);
+       const ax=p.x+px*marginPixels,ay=p.y+py*marginPixels,bx=q.x+qx*marginPixels,by=q.y+qy*marginPixels,cx=q.x-qx*depth,cy=q.y-qy*depth,dx=p.x-px*depth,dy=p.y-py*depth;
+       const v=this.vertices;let j=this.length;v[j++]=ax;v[j++]=ay;v[j++]=bx;v[j++]=by;v[j++]=cx;v[j++]=cy;v[j++]=ax;v[j++]=ay;v[j++]=cx;v[j++]=cy;v[j++]=dx;v[j++]=dy;this.length=j;
+      }
+     }
+    }
+Used by: spacelab.render-canvas, spacelab.render-webgl.
+
+## planetDisplayChannel
+Shared low-cost display conversion for simplified Canvas map sampling.
+    export function planetDisplayChannel(linear:number):number;
+Used by: spacelab.render-canvas.
+-> API reference index [api-reference]
+
 === game-api: platform.ts [api-reference/game-api/platform]
 Declarations from platform.ts used by documented modules.
 
@@ -6471,6 +6586,8 @@ Optional features of a renderer instance. Applications discover them here, never
       readonly independentAir?: { readonly version: 1 };
       /** Descriptor-derived polar summaries shaded inside the canonical radial surface. */
       readonly planetOverview?: { readonly version: 1 };
+      /** Body-fixed shared-field atlas and thin cover; Canvas may simplify sampling. */
+      readonly planetMap?: { readonly version: 1 };
       readonly shaders?: ShaderControl;
       readonly effects?: ShaderEffects;
       /** Version 1: unlit foreground chunks, body-local rotation and simple-polygon clipping.
@@ -6483,6 +6600,9 @@ Optional features of a renderer instance. Applications discover them here, never
         /** Cosmetic backing for air cells only; does not qualify underground gameplay. */
         readonly walls?: true;
         readonly buffers?: 'borrowed-through-draw';
+        /** Opt-in content identity/lifetime protocol; absence requires the legacy path.
+         * Support does not promise cached cells, shared masks or GPU residency. */
+        readonly revisions?: TileChunkRevisions;
       };
       /** Palette registration copies colors; replacement affects subsequent draws. Hex #RGB,
        * #RRGGBB or #RRGGBBAA; 1..1024 entries. Slot zero is always transparent. */
@@ -6584,6 +6704,9 @@ Declarative 2D vector overlay primitive (`'line'`, `'circle'`, `'text'`, or `'ti
           readonly clipPolygon?: readonly Vec[];
           readonly size: 32;
           readonly tiles: Uint16Array;
+          /** Optional explicit immutable-revision promise; never infer it from array identity.
+           * Omit when revisions are unsupported. Legacy arrays remain mutable between draws. */
+          readonly contentRevision?: TileChunkRevision;
           /** Optional 1,024 background palette IDs, shown through air at 55% brightness.
            * Cosmetic main-compatible walls only; the foreground masks its backing. */
           readonly walls?: Uint16Array;
@@ -6602,11 +6725,11 @@ Used by: builtin.maneuver-planner, builtin.navball, spacelab.academy-ui, spacela
 ## requireTileChunkFeatures
 Preflight essential tile requirements on the actual renderer before beginning play. Missing or incompatible metadata is unsupported. Optional visuals may instead use a declared vector fallback. Geometry-only version-1 providers remain compatible.
     export function requireTileChunkFeatures(features: RendererFeatures | undefined,
-      required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean } = {}): void;
+      required: { readonly lightEncoding?: 'nibble'; readonly walls?: boolean; readonly revisions?: boolean } = {}): void;
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 
 ## validateTileChunkProfile
-Validate the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers.
+Validate optional content revisions and the opt-in supplied-light profile. Legacy arrays retain their semantics. Callers retain byte ownership; validation never copies or retains chunk buffers.
     export function validateTileChunkProfile(chunk: Extract<OverlayPrimitive, { kind: 'tile-chunk' }>): void;
 Used by: spacelab.render-canvas, spacelab.render-webgl.
 
@@ -7220,8 +7343,26 @@ Filtered illustrative ground only. Levels are coarse-to-fine, body-fixed polar b
       /** Optional opaque, three-material canonical surface ribbon. The face is only a
        * filtered continuation of this circumference; it adds no latitude or geology. */
       readonly surface?: RenderOverviewSurface;
+      /** Optional shared-field north-pole map. Unsupported renderers retain levels. */
+      readonly planet?: RenderPlanetMap;
     }
 Used by: host or creator modules (not imported by shipped modules).
+
+## RenderPlanetMap
+Immutable appearance derived from one physical sphere field. Texture rows run from body-fixed y=-1 to+1; x likewise. Unit-disc centre is the north pole and its rim is the playable equator. No map pixel creates collision or geology.
+    export interface RenderPlanetMap {
+      readonly identity: string;
+      readonly projection: 'north-pole-equator-rim/1';
+      readonly size: number;
+      /** Straight sRGB RGBA, transparent outside the unit disc. */
+      readonly rgba: Uint8Array;
+      /** Straight sRGB RGBA at the physical profile's angular samples; alpha0 at sea. */
+      readonly equator: Uint8Array;
+      /** Decorative cover inside solid ground, in metres; never extends collision. */
+      readonly coverMetres: number;
+      readonly storageBytes: number;
+    }
+Used by: spacelab.render-webgl.
 
 ## RenderOverviewSurface
 Immutable compact surface quadrature. Packed samples hold two 2-bit palette indices (0..2) per angular/depth bin. Angular mips run coarse-to-fine, excluding the leaf; each pair of bytes holds material 0/1 coverage /255, with material 2 the residual. Depth rows remain independent for anisotropic physical filtering. Palette triples are linear RGB. <=8192 sectors, <=8 rows, <=13 mixture levels. All angles are body-fixed, depth is metres below canonical ground, not sea.
@@ -7233,7 +7374,7 @@ Immutable compact surface quadrature. Packed samples hold two 2-bit palette indi
       readonly palette: readonly (readonly number[])[];
       readonly levels: readonly { readonly sectors: number; readonly fractions: Uint8Array }[];
     }
-Used by: host or creator modules (not imported by shipped modules).
+Used by: spacelab.render-webgl.
 
 ## surfaceOverviewColor
 Sample a finite physical footprint of the canonical ribbon. Output is unlit, straight display RGB with alpha 1, matching unlit foreground palette identities. Zoom selects only filtering: no descriptor calls, allocations or fine demand. The optional radial footprint permits angular mesh filtering without washing unrelated depth bands into the visible skin. Angular/depth quantization is bounded by one leaf bin plus the filter support.
@@ -7244,7 +7385,7 @@ Used by: spacelab.render-canvas, spacelab.render-webgl.
 ## linearColor
 Convert an sRGB channel to linear light.
     export const linearColor = (v: number): number => …;
-Used by: host or creator modules (not imported by shipped modules).
+Used by: spacelab.render-canvas.
 
 ## displayColor
 Convert a linear-light channel to sRGB.
@@ -7506,7 +7647,8 @@ All geometry uses the public radial SurfaceProfile contract. Query, contact and 
       identity(body: Body): string;
       validate(body: Body, profile: SurfaceProfile): void;
       query(profile: SurfaceProfile, angle: number): SurfaceQuery;
-      /** Optional radiusMetres uses circular hull support on dry terrain; omitted is legacy point support. */
+      /** Optional radiusMetres uses circular hull support on solid terrain, including seabed;
+       * omitted is legacy point support. Floating equilibrium belongs to motion, not rock support. */
       support(profile: SurfaceProfile, angle: number, radiusMetres?: number): SurfaceSupport;
       sweep(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
       sweepGround(profile: SurfaceProfile, start: Vec, end: Vec, options?: SurfaceSweepOptions): SurfaceSweep;
@@ -8203,9 +8345,9 @@ Versioned surface authoring contract.
     }
 Used by: host or creator modules (not imported by shipped modules).
 
-## SurfaceDefinition
+## RadialSurfaceDefinition
 Deterministic radial terrain and sea generation recipe in SI metres and radians (`generatorVersion: 1`).
-    export interface SurfaceDefinition {
+    export interface RadialSurfaceDefinition {
       readonly kind: 'radial';
       readonly generatorVersion: 1;
       readonly seed: number;
@@ -8219,6 +8361,25 @@ Deterministic radial terrain and sea generation recipe in SI metres and radians 
       readonly seaRadiusMetres?: number;
       readonly pads?: readonly SurfacePadDefinition[];
     }
+Used by: host or creator modules (not imported by shipped modules).
+
+## PlanetSurfaceDefinition
+Version2 physical macro terrain: the same sphere field supplies the equatorial collision profile and a bounded whole-sphere map. Radius must match the body. The profile is polar-linear between fixed samples; this is not fine terrain.
+    export interface PlanetSurfaceDefinition extends PlanetFieldDefinition {
+      readonly kind: 'planet';
+      readonly sampleCount: number;
+      readonly orientationRadians: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## SurfaceDefinition
+Frozen v1 radial recipes and shared-field v2 recipes have separate physical identities.
+    export type SurfaceDefinition = RadialSurfaceDefinition | PlanetSurfaceDefinition;
+Used by: host or creator modules (not imported by shipped modules).
+
+## PlanetSurfaceMap
+World-owned macro map, immutable by contract. The private collision samples are deliberately omitted: mutating map arrays cannot change solid geometry.
+    export type PlanetSurfaceMap = Omit<PlanetBakeResult, 'equator'>;
 Used by: host or creator modules (not imported by shipped modules).
 
 ## SurfaceBounds
@@ -8278,9 +8439,15 @@ Private Float64 storage; reads/copies cannot mutate authoritative geometry. No c
       readonly coastAngles: readonly number[];
       readonly hasWater: boolean;
       readonly bounds: SurfaceBounds;
+      /** Optional v2 exact rock envelope before sea clamping. Visual culling uses this
+       * to retain submerged ground; contact continues to use bounds. */
+      readonly groundBounds?: SurfaceBounds;
       readonly features: readonly SurfaceFeature[];
       readonly pads: readonly SurfacePadDefinition[];
-      /** Elevations plus three interval arrays; excludes JS objects and identity text. */
+      /** Optional v2 shared field/map data. No fine cells or render palette. */
+      readonly planet?: PlanetSurfaceMap;
+      /** Elevations plus three interval arrays and optional v2 macro map storage;
+       * excludes JS objects and identity text. */
       readonly storageBytes: number;
       sampleElevation(index: number): number;
       intervalBounds(index: number): SurfaceBounds;
@@ -8294,7 +8461,8 @@ Geometric tolerance (`m`) and work budget options for continuous chord-vs-terrai
       /** Absolute geometric tolerance in metres; defaults to at least 1e-7 m. */
       readonly toleranceMetres?: number;
       /** Optional circular footprint radius in metres, [0, 32]. Hit.position is then the
-       * hull centre; hit.surface describes the nearest terrain contact. Dry ground only. */
+       * hull centre; hit.surface describes the nearest rock or sea contact. Ground-only
+       * sweeps ignore sea level and report the nearest solid rock, including seabed. */
       readonly radiusMetres?: number;
       /** Interval visits plus clearance evaluations, including root refinement. */
       readonly maxWork?: number;
@@ -8618,6 +8786,62 @@ Used by: spacelab.theme-customizer.
 Service key for the public theme customizer factory (`ui.theme-customizer@1.0.0`).
     export const THEME_CUSTOMIZERS: ServiceKey<ThemeCustomizerFactory> = Object.freeze({slot: 'ui.theme-customizer', version: '1.0.0'});
 Used by: spacelab.theme-customizer.
+-> API reference index [api-reference]
+
+=== game-api: tile-revisions.ts [api-reference/game-api/tile-revisions]
+Declarations from tile-revisions.ts used by documented modules.
+
+Import these names from @space-sim/game-api. Units are SI unless a note says otherwise. Source: packages/game-api/src/tile-revisions.ts.
+
+## TileChunkOwner
+Caller-owned presentation epoch shared by a world's views. Create a fresh owner for a new world/session. Disposal is idempotent and invalidates all of its revisions; it never edits terrain, simulation or saves. Object identity survives SDK bundling.
+    export interface TileChunkOwner {
+      readonly version: 1;
+      readonly disposed: boolean;
+      dispose(): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## TileChunkRevision
+Explicit opt-in immutable content identity. Arrays/clip points must stay unchanged for (owner,id,revision); advance revision after completed draws before reusing data. IDs/revisions are nonnegative safe integers. Revisions increase monotonically per ID; never wrap, restart or resubmit an older revision within the same owner. A revision covers the whole 32x32 chunk: IDs, walls, light/encoding, clip, tileMetres and paletteId. Origin/rotation/camera are transforms, not content. Palette registration has its own renderer invalidation. This is a producer promise, not mutation detection.
+    export interface TileChunkRevision {
+      readonly owner: TileChunkOwner;
+      readonly id: number;
+      readonly revision: number;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## TileChunkRevisions
+Optional revision protocol, not a caching/residency or performance guarantee. Future retained payload is bounded per renderer; native/GPU peak memory is separate. Different renderers/views own independent retention. Context/provider replacement discards local state; live owners may be reused with newly registered palettes.
+    export interface TileChunkRevisions {
+      readonly version: 1;
+      readonly maxEntries: number;
+      readonly maxBytes: number;
+      /** Drop this (owner,id)'s renderer-local versions; idempotent, including after disposal.
+       * Never disposes the shared owner or another view. Released content may draw again. */
+      release(content: TileChunkRevision): void;
+    }
+Used by: host or creator modules (not imported by shipped modules).
+
+## TILE_CHUNK_REVISION_LIMITS
+Upper policy limits for revision-keyed retained presentation payload per renderer. The protocol alone retains no content. Four existing game views permit at most 8 MiB.
+    export const TILE_CHUNK_REVISION_LIMITS = Object.freeze({ maxEntries: 512, maxBytes: 2 * 1024 * 1024 });
+Used by: host or creator modules (not imported by shipped modules).
+
+## createTileChunkOwner
+Allocate once per world/session, not once per frame or chunk. Drop producer references after all views finish; disposing one renderer must not dispose a shared owner.
+    export function createTileChunkOwner(): TileChunkOwner;
+Used by: host or creator modules (not imported by shipped modules).
+
+## validateTileChunkRevision
+Validate metadata without copying, retaining, hashing or claiming array immutability. allowDisposed is only for renderer-local release/cleanup, never for drawing. Owners are structurally checked so separately bundled SDK copies interoperate; no authority or security token is granted by this presentation-only protocol.
+    export function validateTileChunkRevision(raw: unknown, allowDisposed = false): asserts raw is TileChunkRevision;
+Used by: host or creator modules (not imported by shipped modules).
+
+## createTileChunkRevisions
+Renderer-author helper. release is local to this renderer; legacy draws retain no metadata/content. Actual caching, allocation and palette generations remain the renderer's responsibility under these caps. Cleanup callbacks must be idempotent.
+    export function createTileChunkRevisions(release?: (content: TileChunkRevision) => void): TileChunkRevisions;
+Used by: spacelab.render-canvas, spacelab.render-webgl.
 -> API reference index [api-reference]
 
 === game-api: transfers.ts [api-reference/game-api/transfers]
@@ -9116,8 +9340,9 @@ Authoritative spacecraft handling parameters in SI units: full-thrust `accelerat
       readonly turnRate: number;
       readonly initialThrottle: number;
       /** Optional circular hull radius in metres, [0, 32]; absent/zero retains legacy point contact.
-       * The state position is the hull centre. Dry terrain and smooth bodies are supported;
-       * finite hulls on ocean terrain are rejected rather than reinterpreted as point vessels. */
+       * The state position is the hull centre. Supports rock, seabed and ocean entry.
+       * Ocean buoyancy uses circular area beneath a local radial sea plane with half-density
+       * equilibrium; curvature is approximated to O(hull radius / sea radius). */
       readonly contactRadiusMetres?: number;
     }
 Used by: builtin.motion, spacelab.maneuver-burn.
@@ -11448,6 +11673,8 @@ Preserved numerical flight, analytic coasting, frame/contact services and indepe
 
 ## What it does
 This authoritative module connects the core simulation motion engine to standard module slots. It provides context creation for simulation stepping, Keplerian orbit and conic trajectory solvers, celestial body reference frame transformations, surface elevation and water contact detection, and conservative rails sleep scheduling for coasting craft.
+Optional contactRadiusMetres (0–32 m) treats state.position as a circular hull centre. Contact sweeps use the nearest rock or sea boundary; ground-only sweeps and support use solid rock, including seabed. Ocean buoyancy approximates submerged circle area under the local radial sea plane, with half-density equilibrium and water-relative drag; it is not a fluid solver. Its curvature error scales with hull radius / sea radius. Rotating floating support includes centripetal force balance. The 5 m/s inward radial water-entry limit is preserved; omit the radius for unchanged legacy point motion.
+A physical surface may use the frozen kind: radial, generatorVersion: 1 recipe, or kind: planet, generatorVersion: 2 with shared PlanetFieldDefinition parameters, sampleCount and orientationRadians. V2 body radius must match radiusMetres. The same bounded bake supplies private collision samples and optional profile.planet map metadata. Map arrays are immutable by contract and cannot mutate collision samples. At most four v2 planet maps are permitted per universe; no fine cells are generated. Coverage sea level and pad flattening agree between map and equator. Existing v1 worlds and saves keep their original generator.
 
 ## Provides and requires
 - Provides builtin.motion@1.0.0 as the unified authoritative motion provider capability.
@@ -11656,6 +11883,7 @@ Public render.canvas@1.0.0 service and lifecycle.
 
 ## What it does
 This module provides 2D scene and flight rendering using standard HTML5 Canvas 2D contexts. It projects double-precision celestial body positions, orbits, planetary surfaces, day and night lighting, craters, latitude parallels, trajectory lines, ship chevrons and throttle flames to screen coordinates using an independent camera transform. Render quality and pixel ratio caps never modify physical celestial bodies or collision geometry.
+Optional planetMap version1 consumes immutable north-pole Cartesian field atlases and equatorial skin colors from RenderOverview.planet. The equator stays the playable rim. PlanetMapFrame and PlanetCoverMesh are supported public SDK helpers shared across independently built renderers. Pass the matching SurfaceProfile as the optional fifth argument to planetMapColor to reconstruct the playable equator in the final atlas texels. The body-fixed band uses existing equatorial colors and physical sea heights without changing contact. WebGL uploads atlas, height and equator textures once per visible immutable map; its two-entry logical texture bound remains below4MiB. Map pixels and thin cover are appearance only; canonical SurfaceProfile geometry and ground contact remain authoritative. Unsupported renderers keep coarse overview levels.
 A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources.
 
 ## Provides and requires
@@ -11695,6 +11923,7 @@ Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover f
 Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-canvas/src/main.ts. Optional overview.surface continues an opaque three-material, 16 m canonical ribbon: <=8192 angular columns, <=8 depth rows, two packed 2-bit identities/leaf byte, <=13 angular-only mips with two coverage bytes/bin (third residual), linear RGB palette. Both providers filter physical footprints before detail readiness, without descriptor calls or fine chunks. Exact accepted palette identities remain at resolved coverage. Canvas may use fewer depth bands within its triangle cap; the complete canonical backing remains on overflow. Immutable arrays are borrowed, never modified by the provider. The optional surface path uses up to seven WebGL radial bands with shared vertex colors and restrained filled relief at existing profile feature anchors; Canvas keeps two broad gradient bands on the original canonical chords. WebGL angular refinement inserts points on canonical chords only, targets up to96 angular segments, simplifying small bodies, and never changes the canonical mask or contact. Physical surface colors stay unlit, matching foreground identities; only the globe face receives sphere/feature lighting and filtered presentation contrast. The successor face diffuses the circumference material mixture inward harmonically, retaining the actual filtered ribbon at the rim; this avoids polar spokes without inventing interior geology. Shared mesh vertices/colors tighten its WebGL surface-path cap to1536 triangles, within the general4096 limit. Source profile features supply filled relief only, never physical displacement. Angular and radial physical footprints are independent; the visible skin does not average unrelated deep bands. A rim-focused view transitions to the actual16m ribbon as it spans2..8px, independently of global body size. Globe-only continuation derives from the actual upper4m, with2.2x filtered display contrast; unlit physical colors and canonical targets remain unchanged.
 Fallback quality: Canvas defaults to one backing pixel per CSS pixel, low-quality backdrop without nebula/galaxies, no decorative clouds and two broad planet gradient bands. Explicit creator maxPixelRatio overrides remain supported. Flight controls, canonical terrain/contact, selected circumference targets and local material data remain supported. WebGL quality/preferences are independent and unchanged.
 Near-view summary agreement: WebGL inserts body-fixed atlas-aligned columns (~1.5m minimum spacing) within32m either side of the view centre, on the existing canonical chords. A visible-segment budget limits the physical skin to1280 triangles inside the1536 total atlas cap, adapting depth rows. Shared columns/colors keep storage bounded. Both providers filter actual angular mesh support independently from radial depth; Canvas keeps its coarse two-band fallback. No fine cells/chunks, new terrain authority or shader ABI are introduced. Outside the selected region and at finite atlas leaf support, mixtures remain approximate until fine detail is ready.
+Optional features.tileChunks.revisions version 1 understands contentRevision={owner,id,revision}. Create a fresh owner with createTileChunkOwner() once per world/session; IDs and monotonically increasing revisions are nonnegative safe integers. For an opted-in identity, keep tiles/walls/light/encoding/clip/tileMetres/paletteId unchanged until advancing the whole-chunk revision after completed draws. Origin, body rotation and camera transforms need no content revision. This is a producer promise, not copied snapshots or mutation detection. Chunks without metadata retain borrowed mutable-between-draw behavior; omit metadata for providers without this optional capability, or use requireTileChunkFeatures(features,{revisions:true}) for an essential consumer. revisionTileExample shows both tile and vector fallbacks. Palette replacement is independently renderer-owned and must invalidate any future palette-dependent cache. The protocol does not itself cache cells or promise performance/residency. Its per-renderer revision-payload retention policy is at most512 entries/2MiB logical bytes (up to8MiB for four game views), not native GPU/VM peak or a bound on producer data/palettes/framebuffers. release(contentRevision) drops only this renderer/view's retained versions of(owner,id), is idempotent and permits drawing again. It never disposes another view or the shared owner. After all world consumers finish, owner.dispose() invalidates its descriptors; create a fresh owner instead of wrapping/restarting revisions. Renderer/provider/context replacement discards renderer-local state; reuse a live owner only with a new compatible instance and palette registration. No automatic in-place lost-context recovery, partial dirty regions, terrain edits, physics or save authority is introduced.
 
 === WebGL 2 [spacelab.render-webgl/usage]
 Public render.webgl@1.0.0 service and lifecycle.
@@ -11702,6 +11931,7 @@ Public render.webgl@1.0.0 service and lifecycle.
 
 ## What it does
 This module provides GPU-accelerated WebGL 2 rendering for flight scenes, celestial bodies and planet designer previews. It compiles multi-pass GLSL shader packs (scene, vector and text stages) and procedural planet materials. Shader u_time follows real presentation seconds even while physics is paused. Presentation options allow independently toggling orbit guides and body labels without altering celestial bodies or trajectory physics.
+Optional planetMap version1 consumes immutable north-pole Cartesian field atlases and equatorial skin colors from RenderOverview.planet. The equator stays the playable rim. PlanetMapFrame and PlanetCoverMesh are supported public SDK helpers shared across independently built renderers. Pass the matching SurfaceProfile as the optional fifth argument to planetMapColor to reconstruct the playable equator in the final atlas texels. The body-fixed band uses existing equatorial colors and physical sea heights without changing contact. WebGL uploads atlas, height and equator textures once per visible immutable map; its two-entry logical texture bound remains below4MiB. Map pixels and thin cover are appearance only; canonical SurfaceProfile geometry and ground contact remain authoritative. Unsupported renderers keep coarse overview levels.
 A tile-chunk overlay may include walls: a Uint16Array of 1024 palette IDs. Zero is empty. A wall is visible only where the foreground tile is air, at 55% material brightness. Omitting walls preserves existing rendering. Walls are cosmetic: they do not create colliders or change simulation, saved state or terrain. Both renderers support this field; palette replacement updates background colors, and disposal releases their resources.
 
 ## Provides and requires
@@ -11742,6 +11972,7 @@ Tile conformance: actual features.tileChunks version 1 declares body-local rotat
 Optional RenderBody.air replaces legacy sky/glow, including mode off. Discover features.independentAir version 1 first. Modes air/clouds draw the same bounded radial shell in Canvas and WebGL, outside the union of canonical body ground masks and before trajectories/pads/hulls/overlay cues. Heights are metres above maximum terrain radius (or body radius); colors/opacity are normalized, phaseRadians is supplied in the body frame. The renderer never advances a clock or changes terrain/contact. Optional air.sunDirection uses the shared system direction without relighting ground. Missing air preserves legacy/Classic rendering. WebGL without stencil omits this optional capability; use an explicit clear/legacy fallback. No shader-pack ABI change, effect target, texture, physical weather or spherical projection is implied. The app controls low-tier cloud removal and pause/warp policy. See independentAirExample in examples/modules/render-webgl/src/main.ts. Near views include an opaque lighting-based sky (day/twilight/night), aligned to the local outward direction. It fades by altitude within heightMetres and by apparent body size for orbital maps. Canonical ground masking still applies; mode off retains the clear-space comparison.
 Optional features.planetOverview version 1 accepts RenderBody.overview: coarse-to-fine body-fixed polar summaries, premultiplied linear RGBA, <=2048 entries per level and <=12 levels. Providers filter tiny bodies and shade an illustrative sphere inside unchanged canonical terrain/coasts; no new topology or collision. Canvas uses two radial gradient bands (<=1024 triangles); WebGL uses four (<=4096 triangles). Canonical ground remains complete when absent or unsupported, while air and gameplay cues retain their order. No fine chunks, new textures, effect targets or v1 shader ABI changes. Descriptor and arrays stay immutable for their lifetime; replace the descriptor object on palette/content revision. See planetOverviewExample in examples/modules/render-webgl/src/main.ts. Optional overview.surface continues an opaque three-material, 16 m canonical ribbon: <=8192 angular columns, <=8 depth rows, two packed 2-bit identities/leaf byte, <=13 angular-only mips with two coverage bytes/bin (third residual), linear RGB palette. Both providers filter physical footprints before detail readiness, without descriptor calls or fine chunks. Exact accepted palette identities remain at resolved coverage. Canvas may use fewer depth bands within its triangle cap; the complete canonical backing remains on overflow. Immutable arrays are borrowed, never modified by the provider. The optional surface path uses up to seven WebGL radial bands with shared vertex colors and restrained filled relief at existing profile feature anchors; Canvas uses up to three broader gradient bands. Angular refinement inserts points on canonical chords only, targets up to96 angular segments, simplifying small bodies, and never changes the canonical mask or contact. Physical surface colors stay unlit, matching foreground identities; only the globe face receives sphere/feature lighting and filtered presentation contrast. The successor face diffuses the circumference material mixture inward harmonically, retaining the actual filtered ribbon at the rim; this avoids polar spokes without inventing interior geology. Shared mesh vertices/colors tighten its WebGL surface-path cap to1536 triangles, within the general4096 limit. Source profile features supply filled relief only, never physical displacement. Angular and radial physical footprints are independent; the visible skin does not average unrelated deep bands. A rim-focused view transitions to the actual16m ribbon as it spans2..8px, independently of global body size. Globe-only continuation derives from the actual upper4m, with2.2x filtered display contrast; unlit physical colors and canonical targets remain unchanged.
 Near-view summary agreement: WebGL inserts body-fixed atlas-aligned columns (~1.5m minimum spacing) within32m either side of the view centre, on the existing canonical chords. A visible-segment budget limits the physical skin to1280 triangles inside the1536 total atlas cap, adapting depth rows. Shared columns/colors keep storage bounded. Both providers filter actual angular mesh support independently from radial depth; Canvas keeps its coarse two-band fallback. No fine cells/chunks, new terrain authority or shader ABI are introduced. Outside the selected region and at finite atlas leaf support, mixtures remain approximate until fine detail is ready.
+Optional features.tileChunks.revisions version 1 understands contentRevision={owner,id,revision}. Create a fresh owner with createTileChunkOwner() once per world/session; IDs and monotonically increasing revisions are nonnegative safe integers. For an opted-in identity, keep tiles/walls/light/encoding/clip/tileMetres/paletteId unchanged until advancing the whole-chunk revision after completed draws. Origin, body rotation and camera transforms need no content revision. This is a producer promise, not copied snapshots or mutation detection. Chunks without metadata retain borrowed mutable-between-draw behavior; omit metadata for providers without this optional capability, or use requireTileChunkFeatures(features,{revisions:true}) for an essential consumer. revisionTileExample shows both tile and vector fallbacks. Palette replacement is independently renderer-owned and must invalidate any future palette-dependent cache. The protocol does not itself cache cells or promise performance/residency. Its per-renderer revision-payload retention policy is at most512 entries/2MiB logical bytes (up to8MiB for four game views), not native GPU/VM peak or a bound on producer data/palettes/framebuffers. release(contentRevision) drops only this renderer/view's retained versions of(owner,id), is idempotent and permits drawing again. It never disposes another view or the shared owner. After all world consumers finish, owner.dispose() invalidates its descriptors; create a fresh owner instead of wrapping/restarting revisions. Renderer/provider/context replacement discards renderer-local state; reuse a live owner only with a new compatible instance and palette registration. No automatic in-place lost-context recovery, partial dirty regions, terrain edits, physics or save authority is introduced.
 
 === Flight sessions [spacelab.session-flight/usage]
 Explicit flight protocol using privileged public engine ports and replaceable transports.

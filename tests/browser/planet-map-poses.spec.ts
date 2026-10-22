@@ -1,0 +1,8 @@
+import{test,expect}from'@playwright/test';
+import{build}from'vite';import{resolve}from'node:path';import{writeFile}from'node:fs/promises';
+test.beforeAll(async()=>{await build({configFile:false,logLevel:'error',resolve:{alias:{'@space-sim/game-api':resolve('packages/game-api/src/index.ts')}},build:{outDir:'dist',emptyOutDir:false,lib:{entry:resolve('tests/browser/fixtures/planet-map-poses.ts'),formats:['iife'],name:'PlanetMapPosesFixture',fileName:()=> 'planet-map-poses.js'}}});});
+test('actual planet pixels remain body-fixed through spin, pan, camera rotation and large coordinates, with thin cover above unchanged rock',async({page},info)=>{
+ test.setTimeout(120000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.route('**/planet-map-poses.html',r=>r.fulfill({contentType:'text/html',body:'<body style="margin:0">'}));await page.goto('/planet-map-poses.html');await page.addScriptTag({url:'/planet-map-poses.js'});
+ const r=await page.evaluate(()=>(window as unknown as{PlanetMapPoses:{run:()=>{anchored:{wrong:number;checked:number};panned:{wrong:number;checked:number};cover:{error:number;belowBefore:number[];belowAfter:number[];skyBefore:number[];skyAfter:number[]};error:number}}}).PlanetMapPoses.run());
+ expect(r.error).toBe(0);for(const pair of[r.anchored,r.panned]){expect(pair.checked).toBeGreaterThan(15000);expect(pair.wrong).toBe(0);}expect(r.cover.error).toBeLessThanOrEqual(3);expect(r.cover.belowAfter).toEqual(r.cover.belowBefore);expect(r.cover.skyAfter).toEqual(r.cover.skyBefore);expect(errors).toEqual([]);await writeFile(info.outputPath('planet-map-poses.json'),JSON.stringify(r,null,2));
+});

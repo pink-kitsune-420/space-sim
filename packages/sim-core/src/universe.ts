@@ -225,6 +225,7 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
   const validatedSystems: SystemDefinition[] = [];
   let totalSurfaceSamples = 0;
   let totalSurfaceFeatures = 0;
+  let totalPlanetBodies = 0;
 
   for (const rawSys of u.systems) {
     if (!rawSys || typeof rawSys !== 'object') throw new Error('System must be an object');
@@ -290,7 +291,9 @@ export function validateUniverse(raw: unknown): UniverseDefinition {
         }
         surface = validateSurfaceDefinition(b.surface, radius, `Body ${b.id} surface`);
         totalSurfaceSamples += surface.sampleCount;
-        totalSurfaceFeatures += surface.mountainRangeCount + surface.craterCount + (surface.pads?.length ?? 0);
+        totalSurfaceFeatures += (surface.generatorVersion === 1 ? surface.mountainRangeCount + surface.craterCount : 0) + (surface.pads?.length ?? 0);
+        if (surface.generatorVersion === 2 && ++totalPlanetBodies > SURFACE_LIMITS.maxPlanetBodies)
+          throw new Error(`Universe planet map budget exceeded: at most ${SURFACE_LIMITS.maxPlanetBodies} version2 bodies`);
         if (totalSurfaceSamples > SURFACE_LIMITS.maxUniverseSamples || totalSurfaceFeatures > SURFACE_LIMITS.maxUniverseFeatures) {
           throw new Error(`Universe surface budget exceeded: at most ${SURFACE_LIMITS.maxUniverseSamples} samples and ${SURFACE_LIMITS.maxUniverseFeatures} features`);
         }
@@ -407,6 +410,7 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
   }
 
   // Pre-calculate body values and resolve SOI
+  let planetBodies = 0;
   for (const b of system.bodies) {
     const parentDef = b.parentId ? system.bodies.find(p => p.id === b.parentId) : null;
     const radius = b.radius ?? b.radiusMetres ?? 512;
@@ -415,6 +419,8 @@ export function loadSystem(universe: UniverseDefinition, systemId?: string, surf
     const surfaceFeatures = bodySurfaceFeatures(b);
     // Also detach/validate typed callers' settings, not just JSON imports.
     const surface = b.surface === undefined ? undefined : validateSurfaceDefinition(b.surface, radius, `Body ${b.id} surface`);
+    if (surface?.generatorVersion === 2 && ++planetBodies > SURFACE_LIMITS.maxPlanetBodies)
+      throw new Error(`System planet map budget exceeded: at most ${SURFACE_LIMITS.maxPlanetBodies} version2 bodies`);
     if (surface && surfaceFeatures === 'star') throw new Error(`Body ${b.id} surface: terrain settings are not supported on stars`);
 
     // Typed callers skip validateUniverse, so check spin here too.

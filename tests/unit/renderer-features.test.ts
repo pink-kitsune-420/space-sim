@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CanvasRenderer as PortableCanvas } from '../../modules/render-canvas/src/canvas';
 import { legacyRenderPorts } from '../../packages/render-2d/src/compatibility';
-import { requireTileChunkFeatures } from '../../packages/game-api/src/index';
+import { createTileChunkOwner, requireTileChunkFeatures } from '../../packages/game-api/src/index';
 import type { OverlayPrimitive, RenderFrame } from '../../packages/game-api/src/index';
 import { CanvasRenderer, DEFAULT_SHADERS, WebGLRenderer } from '../../packages/render-2d/src/index';
 import { createSurfaceProfile } from '../../packages/sim-core/src/surface';
@@ -35,7 +35,7 @@ function fake2d() {
 
 function fakeGl(stencil = true) {
   const stats = { programs: 0, created: 0, colors: [] as number[][], draws: [] as string[], instancedDraws: [] as string[], texts: [] as string[],
-    buffers: new Set<object>(), tileUploads: [] as number[][] };
+    buffers: new Set<object>(), tileUploads: [] as number[][], colorMasks: [] as boolean[][] };
   let program: unknown, linked = 0;
   const gl = new Proxy({} as Record<string, unknown>, {
     get(_target, key) {
@@ -53,6 +53,7 @@ function fakeGl(stencil = true) {
         case 'getFragDataLocation': case 'getAttribLocation': return () => 0;
         case 'useProgram': return (p: unknown) => { program = p; };
         case 'uniform4f': return (_: unknown, ...rgba: number[]) => { stats.colors.push(rgba.map(c => +c.toFixed(2))); };
+        case 'colorMask': return (...rgba: boolean[]) => { stats.colorMasks.push(rgba); };
         case 'drawArrays': return (mode: number, _first: number, count: number) => { stats.draws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}`); };
         case 'drawArraysInstanced': return (mode: number, _first: number, count: number, primcount: number) => { stats.instancedDraws.push(`${(program as { id: number } | undefined)?.id}:${mode}:${count}:${primcount}`); };
         case 'getContextAttributes': return () => ({ stencil });
@@ -69,6 +70,22 @@ function fakeGl(stencil = true) {
 }
 
 describe('renderer features', () => {
+  it('qualifies revision metadata without caching mutable buffers or disposing another view owner', () => {
+    const owner=createTileChunkOwner(),tiles=new Uint16Array(1024);tiles[0]=1;
+    const contentRevision={owner,id:0,revision:0};
+    const chunk:Extract<OverlayPrimitive,{kind:'tile-chunk'}>={kind:'tile-chunk',space:'world',origin:{x:0,y:0},size:32,tileMetres:1,tiles,contentRevision};
+    const source=fakeGl(),gpu=new WebGLRenderer(source.canvas),drawing=fake2d(),cpu=new CanvasRenderer(drawing.canvas);
+    for(const renderer of [gpu,cpu])requireTileChunkFeatures(renderer.features,{revisions:true});
+    gpu.draw(frame([chunk]));cpu.draw(frame([chunk]));
+    contentRevision.revision++;tiles[0]=2;
+    gpu.draw(frame([{...chunk,origin:{x:1,y:2},rotationRadians:.2}]));cpu.draw(frame([chunk]));
+    expect(source.stats.tileUploads.at(-1)![0]).toBe(2);
+    gpu.features.tileChunks!.revisions!.release(contentRevision);expect(owner.disposed).toBe(false);
+    gpu.dispose();cpu.draw(frame([chunk]));expect(owner.disposed).toBe(false);
+    owner.dispose();expect(()=>cpu.draw(frame([{...chunk,origin:{x:1e9,y:1e9}}]))).toThrow('disposed');
+    expect(()=>gpu.features.tileChunks!.revisions!.release(contentRevision)).not.toThrow();
+    cpu.features.tileChunks!.revisions!.release(contentRevision);cpu.dispose();
+  });
   it('caps the fallback backdrop while honoring an explicit creator resolution override', () => {
     const source = fake2d(), themes: unknown[] = [];
     const renderer = new PortableCanvas(source.canvas, { ...legacyRenderPorts, maxPixelRatio: 2,
@@ -319,6 +336,43 @@ describe('renderer features', () => {
       expect(gl.stats.draws.some(draw => draw.endsWith(`:${'TRIANGLE_FAN'.length}:5`))).toBe(true);
       wr.dispose(); expect(gl.stats.programs).toBe(0);
     }
+  });
+
+  it('rejects invisible clip footprints before tile uploads/fills and preserves the following mutable chunk', () => {
+    const tiles = new Uint16Array(1024).fill(1);
+    const hidden: Extract<OverlayPrimitive, {kind:'tile-chunk'}> = { kind:'tile-chunk',space:'world',origin:{x:0,y:0},
+      size:32,tileMetres:100,tiles,clipPolygon:[{x:600,y:0},{x:601,y:0},{x:601,y:1},{x:600,y:1}] };
+    const visible = { ...hidden, tileMetres:1, clipPolygon:[{x:0,y:0},{x:2,y:0},{x:2,y:2},{x:0,y:2}] };
+    const source = fakeGl(), gpu = new WebGLRenderer(source.canvas);
+    gpu.draw(frame([hidden]));
+    expect(source.stats.instancedDraws).toHaveLength(0); expect(source.stats.tileUploads).toHaveLength(0);
+    expect(source.stats.colorMasks.some(mask => mask.every(value => !value))).toBe(false);
+    gpu.draw(frame([hidden, visible]));
+    expect(source.stats.instancedDraws).toHaveLength(1); expect(source.stats.tileUploads).toHaveLength(1);
+    expect(source.stats.colorMasks.at(-1)).toEqual([true,true,true,true]);
+    tiles[0] = 2; gpu.draw(frame([hidden, visible]));
+    expect(source.stats.tileUploads.at(-1)![0]).toBe(2);
+    gpu.dispose(); expect(source.stats.buffers.size).toBe(0);
+
+    const drawing = fake2d(), cpu = new CanvasRenderer(drawing.canvas);
+    cpu.draw(frame([hidden]));
+    expect(drawing.calls.filter(c => c === 'clip(evenodd)')).toHaveLength(0);
+    expect(drawing.calls.some(c => c.endsWith(',100,100)') && c.startsWith('fillRect('))).toBe(false);
+    cpu.draw(frame([hidden, visible])); expect(drawing.calls).toContain('clip(evenodd)');
+    expect(drawing.calls).toContain('fillRect(0,0,1,1)'); cpu.dispose();
+  });
+
+  it('retains touching clip edges and validates offscreen nibble buffers before culling', () => {
+    const tiles = new Uint16Array(1024).fill(1);
+    const chunk: Extract<OverlayPrimitive, {kind:'tile-chunk'}> = { kind:'tile-chunk',space:'world',origin:{x:200-.125,y:0},
+      size:32,tileMetres:1,tiles,clipPolygon:[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}] };
+    const source = fakeGl(), gpu = new WebGLRenderer(source.canvas); gpu.draw(frame([chunk]));
+    expect(source.stats.instancedDraws).toHaveLength(1);
+    const drawing = fake2d(), cpu = new CanvasRenderer(drawing.canvas);cpu.draw(frame([chunk]));
+    expect(drawing.calls).toContain('clip(evenodd)');
+    const invalid = { ...chunk,origin:{x:1e9,y:1e9},lightEncoding:'nibble' as const,light:new Uint8Array(1024).fill(16) };
+    expect(() => gpu.draw(frame([invalid]))).toThrow(); expect(() => cpu.draw(frame([invalid]))).toThrow();
+    gpu.dispose();cpu.dispose();
   });
 
   it('renders 32x32 tile chunks with instanced draw calls in WebGL 2 and fillRect in Canvas 2D', () => {

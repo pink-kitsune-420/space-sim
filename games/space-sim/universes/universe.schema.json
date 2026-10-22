@@ -422,6 +422,16 @@
   },
   "$defs": {
     "surface": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/surfaceV1"
+        },
+        {
+          "$ref": "#/$defs/surfaceV2"
+        }
+      ]
+    },
+    "surfaceV1": {
       "type": "object",
       "description": "Optional physical terrain shared by rendering, browser flight and prediction. Runtime also checks radius/relief, width/resolution, pads, finite slope and aggregate budgets. Stars cannot define terrain.",
       "additionalProperties": false,
@@ -521,6 +531,159 @@
           "exclusiveMinimum": 0,
           "description": "Optional fixed sea radius in metres. Runtime requires it at most radius + maxReliefMetres; all pads must be strictly above it. Ground remains seabed."
         }
+      }
+    },
+    "surfaceV2": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Shared generator v2 sphere field, fixed macro map and polar-linear equatorial physical profile. Runtime enforces four sample intervals across the highest octave, finite bounds, dry pads and a four-planet map budget. Legacy generator v1 remains unchanged.",
+      "required": [
+        "kind",
+        "generatorVersion",
+        "seed",
+        "recipe",
+        "radiusMetres",
+        "maxReliefMetres",
+        "sampleCount",
+        "orientationRadians",
+        "continentWavelengthMetres",
+        "rangeWavelengthMetres",
+        "hillWavelengthMetres",
+        "octaves"
+      ],
+      "properties": {
+        "kind": {
+          "const": "planet"
+        },
+        "generatorVersion": {
+          "const": 2
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "recipe": {
+          "enum": [
+            "rocky",
+            "arid",
+            "oceanic",
+            "icy",
+            "volcanic"
+          ]
+        },
+        "radiusMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000000000.0,
+          "description": "Must exactly match the body radius."
+        },
+        "maxReliefMetres": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Absolute bound on signed elevation above/below reference radius; must be strictly less than radius."
+        },
+        "sampleCount": {
+          "enum": [
+            32,
+            64,
+            128,
+            256,
+            512,
+            1024,
+            2048,
+            4096,
+            8192,
+            16384,
+            32768,
+            65536
+          ],
+          "description": "Fixed physical equator resolution; not camera LOD."
+        },
+        "orientationRadians": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 6.283185307179586,
+          "description": "Counterclockwise angle from inertial +X to sample zero; fixed, non-rotating local frame."
+        },
+        "continentWavelengthMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rangeWavelengthMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hillWavelengthMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "octaves": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "seaRadiusMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "waterCoverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pads": {
+          "type": "array",
+          "maxItems": 64,
+          "description": "Nonoverlapping equatorial spherical cap cores. Shared field flattening precedes both physical profile and map baking. Runtime checks core/shoulder sampling, overlap and final resolved dry sea support.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "angleRadians",
+              "widthMetres",
+              "elevationMetres"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$"
+              },
+              "angleRadians": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 6.283185307179586
+              },
+              "widthMetres": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "elevationMetres": {
+                "type": "number"
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "padShoulderMetres": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "not": {
+        "required": [
+          "seaRadiusMetres",
+          "waterCoverage"
+        ]
+      },
+      "dependentRequired": {
+        "pads": [
+          "padShoulderMetres"
+        ],
+        "padShoulderMetres": [
+          "pads"
+        ]
       }
     }
   }

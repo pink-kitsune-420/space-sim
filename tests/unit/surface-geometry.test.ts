@@ -229,7 +229,10 @@ describe('version 1 deterministic terrain', () => {
     for (const system of universe.systems) {
       const loaded = loadSystem(universe, system.id), body = loaded.rootBody;
       const p = generateSurface(body);
-      expect(p.features).toHaveLength(body.surface!.mountainRangeCount + body.surface!.craterCount);
+      const legacy = body.surface;
+      expect(legacy?.generatorVersion).toBe(1);
+      if (legacy?.generatorVersion !== 1) throw Error('Expected frozen v1 fixture');
+      expect(p.features).toHaveLength(legacy.mountainRangeCount + legacy.craterCount);
       expect(p.bounds.maxRadius).toBeGreaterThan(p.bounds.minRadius);
       expect(loaded.initialState('orbit').state.position.y).toBeGreaterThan(p.bounds.maxRadius);
     }
