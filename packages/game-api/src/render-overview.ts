@@ -29,17 +29,18 @@ export interface RenderOverviewSurface {
 /** Sample a finite physical footprint of the canonical ribbon. Output is unlit,
  * straight display RGB with alpha 1, matching unlit foreground palette identities.
  * Zoom selects only filtering: no descriptor calls, allocations or fine demand.
- * Angular/depth quantization is bounded by one leaf bin plus the filter support. */
+ * The optional radial footprint permits angular mesh filtering without washing
+ * unrelated depth bands into the visible skin. Angular/depth quantization is bounded by one leaf bin plus the filter support. */
 export function surfaceOverviewColor(body: RenderBody, angle: number, depthMetres: number, footprintMetres: number,
-  out: Float64Array): boolean {
+  out: Float64Array, radialFootprintMetres = footprintMetres): boolean {
   const s = body.overview?.surface;
   if (!s || s.sectors < 1 || s.sectors > 8192 || s.rows < 1 || s.rows > 8 || s.levels.length > 13
     || s.samples.length !== s.sectors * s.rows || s.palette.length !== 3 || !(s.depthMetres > 0)
     || !Number.isInteger(s.rows) || Math.log2(s.sectors) !== s.levels.length
-    || !Number.isFinite(angle + depthMetres + footprintMetres) || !(body.radius > 0)) return false;
+    || !Number.isFinite(angle + depthMetres + footprintMetres + radialFootprintMetres) || !(body.radius > 0)) return false;
   out.fill(0);
   const a = ((angle / (2 * Math.PI)) % 1 + 1) % 1;
-  const footprint = Math.max(s.depthMetres / s.rows, footprintMetres);
+  const footprint = Math.max(s.depthMetres / s.rows, radialFootprintMetres);
   const lo = Math.max(0, Math.min(s.depthMetres, depthMetres) - footprint / 2);
   const hi = Math.min(s.depthMetres, Math.max(0, depthMetres) + footprint / 2);
   const target = Math.max(1, Math.min(s.sectors, 2 * Math.PI * body.radius / Math.max(1e-12, footprintMetres)));
@@ -166,8 +167,8 @@ export function overviewColor(body: RenderBody, angle: number, radiusFraction: n
   const u = Math.max(0, Math.min(1, radiusFraction));
   if (surface && u > .88) {
     const red = out[0]!, green = out[1]!, blue = out[2]!;
-    const footprint = 2 * Math.PI * body.radius * Math.max(3, footprintPixels / 128) / Math.max(1, footprintPixels * u);
-    if (!surfaceOverviewColor(body, angle, (1 - u) * surface.depthMetres, footprint, out)) return false;
+    const footprint = 2 * Math.PI * body.radius * Math.max(3, footprintPixels / 96) / Math.max(1, footprintPixels * u);
+    if (!surfaceOverviewColor(body, angle, (1 - u) * surface.depthMetres, footprint, out, 2 * Math.PI * body.radius / Math.max(1, footprintPixels))) return false;
     const rim = Math.min(1, (u - .88) / .12), t = rim * rim * (3 - 2 * rim);
     out[0] = red * (1 - t) + linearColor(out[0]!) * t;
     out[1] = green * (1 - t) + linearColor(out[1]!) * t;
@@ -181,7 +182,7 @@ export function overviewColor(body: RenderBody, angle: number, radiusFraction: n
   for (let c = 0; c < 3; c++) {
     const color = displayColor(alpha > 0 ? out[c]! / alpha : 0);
     const mean = displayColor(levels[0]!.rgba[c]!);
-    out[c] = (surface ? Math.max(0, Math.min(1, mean + (color - mean) * 1.8)) : color) * light * relief;
+    out[c] = (surface ? Math.max(0, Math.min(1, mean + (color - mean) * 2.2)) : color) * light * relief;
   }
   out[3] = alpha;
   return out.every(Number.isFinite);

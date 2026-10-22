@@ -4,18 +4,18 @@ import { appearanceAt, MATERIAL_DOMAINS, MATERIAL_SLOTS, type MaterialDomain } f
 
 /** Harmonic continuation of the actual circumference mixture. High angular
  * frequencies decay inward as r^n instead of turning into polar spokes. This is
- * an illustration of the same boundary, never a new interior geography authority.
+ * an illustration of the visible upper4m, never a new interior geography authority.
  * Integrate each polar bin by area before constructing its linear-light mips. */
 function diffuseFace(samples: Uint8Array, columns: number, rows: number, palette: readonly (readonly number[])[]): RenderOverview['levels'] {
-  const sectors = 64, rings = 8, modes = 31, edge = new Float64Array(sectors * 3);
+  const sectors = 64, rings = 8, modes = 31, topRows = Math.min(rows, 2), edge = new Float64Array(sectors * 3);
   for (let x = 0; x < sectors; x++) {
     const count = [0, 0, 0], stride = columns / sectors;
-    for (let y = 0; y < rows; y++) for (let dx = 0; dx < stride; dx++) {
+    for (let y = 0; y < topRows; y++) for (let dx = 0; dx < stride; dx++) {
       const pair = samples[y * columns + x * stride + dx]!;
       count[pair & 3]!++; count[(pair >> 2) & 3]!++;
     }
     for (let c = 0; c < 3; c++) for (let material = 0; material < 3; material++)
-      edge[x * 3 + c] = edge[x * 3 + c]! + count[material]! * palette[material]![c]! / (rows * stride * 2);
+      edge[x * 3 + c] = edge[x * 3 + c]! + count[material]! * palette[material]![c]! / (topRows * stride * 2);
   }
   const coefficients = new Float64Array((modes + 1) * 6);
   for (let n = 0; n <= modes; n++) for (let x = 0; x < sectors; x++) {

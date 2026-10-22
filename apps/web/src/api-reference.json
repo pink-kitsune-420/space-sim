@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d8c08ec813d0ae75",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7e14d3239542fcc6",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest d8c08ec813d0ae75"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 7e14d3239542fcc6"
         },
         {
           "type": "paragraph",
@@ -14313,11 +14313,11 @@
         },
         {
           "type": "paragraph",
-          "text": "Sample a finite physical footprint of the canonical ribbon. Output is unlit, straight display RGB with alpha 1, matching unlit foreground palette identities. Zoom selects only filtering: no descriptor calls, allocations or fine demand. Angular/depth quantization is bounded by one leaf bin plus the filter support."
+          "text": "Sample a finite physical footprint of the canonical ribbon. Output is unlit, straight display RGB with alpha 1, matching unlit foreground palette identities. Zoom selects only filtering: no descriptor calls, allocations or fine demand. The optional radial footprint permits angular mesh filtering without washing unrelated depth bands into the visible skin. Angular/depth quantization is bounded by one leaf bin plus the filter support."
         },
         {
           "type": "code",
-          "text": "export function surfaceOverviewColor(body: RenderBody, angle: number, depthMetres: number, footprintMetres: number,\n  out: Float64Array): boolean;"
+          "text": "export function surfaceOverviewColor(body: RenderBody, angle: number, depthMetres: number, footprintMetres: number,\n  out: Float64Array, radialFootprintMetres = footprintMetres): boolean;"
         },
         {
           "type": "paragraph",

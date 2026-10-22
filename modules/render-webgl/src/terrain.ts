@@ -227,7 +227,7 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   const glowPx = Math.min(18, Math.max(2, profile.bounds.maxRadius * camera.scale * 0.05));
   const glow = glowPx / camera.scale;
   let overviewTriangles = 0, overviewOverflow = false;
-  const triangleCap = body.overview?.surface ? 2048 : 4096;
+  const triangleCap = body.overview?.surface ? 1536 : 4096;
   let overviewColors = new WeakMap<object, Color>();
   const overviewSample = new Float64Array(4);
   const colorQueries = new Map<number, ReturnType<RenderGeometry['querySurface']>>();
@@ -342,13 +342,19 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   // Bounded pseudo-sphere color only; the exact canonical rim/coasts above remain
   // authoritative. Keep the original complete ground underneath every fade/loading state.
   const originalFaceCount = faces.length;
-  const amount = body.overview ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
+  const globeAmount = body.overview ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
+  // A rim-focused camera resolves physical depth before a small body's global
+  // size threshold. Keep globe illustration out of that actual selected ground.
+  const localBlend = body.overview?.surface && localDistance > profile.bounds.minRadius * .7
+    ? Math.max(0, Math.min(1, (body.overview.surface.depthMetres * camera.scale - 2) / 6)) : 0;
+  const amount = globeAmount * (1 - localBlend);
   overviewOpacity = amount;
   // Extra vertices refine only the color mesh. Every inserted rim vertex lies
   // on the existing canonical chord, leaving the silhouette and air mask exact.
   const overviewBoundary: TerrainPoint[] = [];
   if (body.overview?.surface && amount > 0 && boundary.length > 1) {
-    const extras = Math.max(0, 128 - (boundary.length - 1));
+    const target = Math.min(96, Math.max(16, 8 * Math.ceil(TAU * profile.referenceRadius * camera.scale / 40)));
+    const extras = Math.max(0, target - (boundary.length - 1));
     let length = 0, distance = 0, used = 0;
     for (let i = 1; i < boundary.length; i++) length += Math.hypot(boundary[i]!.x - boundary[i - 1]!.x, boundary[i]!.y - boundary[i - 1]!.y);
     overviewBoundary.push(boundary[0]!);

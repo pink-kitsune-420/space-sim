@@ -1,4 +1,4 @@
-import { requireTileChunkFeatures } from '@space-sim/game-api';
+import { requireTileChunkFeatures, surfaceOverviewColor } from '@space-sim/game-api';
 import { WEBGL_DRAWING, type BodyPreview, type ModuleInitializationV2, type Render2DOptions, type SceneRenderer, type ServiceKey, type ShaderPack, type WebGLRendererFactory } from '@space-sim/game-api';
 
 export interface WebGLRendererResult {
@@ -99,4 +99,10 @@ export function planetOverviewExample(body: import('@space-sim/game-api').Render
 export function surfaceOverviewExample(): import('@space-sim/game-api').RenderOverviewSurface {
   return { sectors: 1, rows: 1, depthMetres: 16, samples: new Uint8Array([0]),
     levels: [], palette: [[.15, .12, .10], [.08, .11, .13], [.05, .06, .07]] };
+}
+
+/** Filter32m along the rim while retaining a2m-deep physical footprint. Coarse
+ * angular mesh sampling must not mix unrelated depth bands into the visible skin. */
+export function sampleSurfaceOverviewExample(body: import('@space-sim/game-api').RenderBody, out: Float64Array): boolean {
+  return surfaceOverviewColor(body, Math.PI / 2, 2, 32, out, 2);
 }

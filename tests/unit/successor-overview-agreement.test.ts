@@ -180,8 +180,38 @@ it('shares overview mesh points and colors inside a tightened transport/storage 
     const g = wg(body, { center: { x: 0, y: 0 }, rotation: .3, scale: 90 / p.referenceRadius }, 800, 600, { querySurface });
     const faces = g.faces.filter(f => f.overview), points = faces.flatMap(f => f.points), colors = faces.flatMap(f => f.vertexColors ?? []);
     expect(faces.length).toBeGreaterThan(0);
-    expect(faces.reduce((n, f) => n + f.points.length - 2, 0)).toBeLessThanOrEqual(2048);
+    expect(faces.reduce((n, f) => n + f.points.length - 2, 0)).toBeLessThanOrEqual(1536);
     expect(new Set(points).size).toBeLessThan(points.length * .4);
     expect(new Set(colors).size).toBeLessThan(colors.length * .4);
+  } } finally { candidate.dispose(); }
+});
+
+it('filters angular coverage independently from the physical radial footprint', () => {
+  const surface: RenderOverviewSurface = { sectors: 2, rows: 2, depthMetres: 16,
+    samples: new Uint8Array([0, 5, 10, 10]), palette: [[0, 0, 0], [1, 1, 1], [.2, .2, .2]],
+    levels: [{ sectors: 1, fractions: new Uint8Array([128, 127, 0, 0]) }] };
+  const body = { id: '', name: '', radius: 100, position: { x: 0, y: 0 }, overview: { levels: [], surface } }, out = new Float64Array(4);
+  surfaceOverviewColor(body, 1, 4, 1000, out, 1);
+  expect(linearColor(out[0]!)).toBeCloseTo(127 / 255, 6);
+  surfaceOverviewColor(body, 1, 12, 1000, out, 1);
+  expect(linearColor(out[0]!)).toBeCloseTo(.2, 6);
+});
+
+it('shows actual physical depth at a rim-focused intermediate view even on the smaller body', () => {
+  const { world, candidate } = setup();
+  try { for (const id of ['planet', 'moon'] as const) for (const geometry of [cg, wg]) {
+    const p = world.surface(id)!, overview = buildOverview(p, MATERIAL_DOMAINS[id]);
+    const g = geometry({ id, name: '', radius: p.referenceRadius, position: { x: 0, y: 0 }, surface: p, overview },
+      { center: { x: 0, y: p.referenceRadius }, rotation: 0, scale: 1 }, 1000, 800, { querySurface });
+    const depths = g.faces.filter(f => f.overview).flatMap(f => f.points).map(point => {
+      // Independently undo this known camera in world coordinates; inspect the
+      // canonical profile, not renderer metadata or a material sampling helper.
+      const x = point.x - 500, y = p.referenceRadius + 400 - point.y;
+      return querySurface(p, Math.atan2(y, x)).groundRadius - Math.hypot(x, y);
+    });
+    expect(depths.length).toBeGreaterThan(0);
+    expect(Math.min(...depths)).toBeGreaterThan(-.6);
+    expect(Math.max(...depths)).toBeGreaterThan(12);
+    expect(Math.max(...depths)).toBeLessThan(16.6);
   } } finally { candidate.dispose(); }
 });
