@@ -95,7 +95,7 @@ it('preserves the exact canonical rim, air-mask faces and bounded geometry in bo
       expect(shaded.groundClip).toEqual(plain.groundClip); expect(shaded.boundary).toEqual(plain.boundary);
       expect(shaded.faces.filter(f => !f.overview)).toEqual(plain.faces);
       const added = shaded.faces.filter(f => f.overview);
-      expect(added.length).toBeGreaterThan(0); expect(added.reduce((sum, f) => sum + f.points.length - 2, 0)).toBeLessThanOrEqual(geometry === canvasGeometry ? 1024 : 8192);
+      expect(added.length).toBeGreaterThan(0); expect(added.reduce((sum, f) => sum + f.points.length - 2, 0)).toBeLessThanOrEqual(geometry === canvasGeometry ? 1024 : 4096);
       expect(shaded.accents).toEqual(plain.accents);
     }
   } } finally { candidate.dispose(); }
@@ -131,7 +131,7 @@ it('separates body material domains even when callers share the same immutable p
   try { const p = world.surface('planet')!, o = new SuccessorOverview();
     const primus = o.forBody(p, 'planet'), parvus = o.forBody(p, 'moon');
     expect(primus).not.toEqual(parvus); expect(o.forBody(p, 'planet')).toBe(primus); expect(o.forBody(p, 'moon')).toBe(parvus);
-    expect(o.stats.generatedBodies).toBe(2); expect(o.stats.descriptorSamples).toBe(65536);
+    expect(o.stats.generatedBodies).toBe(2); expect(o.stats.descriptorSamples).toBe(262144);
   } finally { candidate.dispose(); }
 });
 

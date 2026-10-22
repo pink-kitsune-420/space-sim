@@ -1,6 +1,6 @@
 {
   "format": "spacelab-api-reference/1",
-  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6a35043e9d929915",
+  "provenance": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 487ed72f82458541",
   "modules": [
     "spacelab.academy-ui",
     "spacelab.alarm-panel",
@@ -75,7 +75,7 @@
         },
         {
           "type": "paragraph",
-          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 6a35043e9d929915"
+          "text": "Spacelab package 0.6.5-alpha · API space-sim-game-api/2 · manifest space-sim-module/2 · source digest 487ed72f82458541"
         },
         {
           "type": "paragraph",
@@ -5137,7 +5137,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, CANVAS_DRAWING, CORE_MOTION, Camera, CanvasRendererFactory, DEFAULT_TILE_PALETTE_HEX, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderShip, RenderThemeOptions, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, State, SurfaceProfile, TWILIGHT_COLOR, VEHICLE_MARKER, Vec, VehicleAppearance, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -5276,7 +5276,7 @@
         },
         {
           "type": "paragraph",
-          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
+          "text": "AirMesh, AppearanceStyle, BodyPreview, CORE_MOTION, Camera, DEFAULT_TILE_PALETTE_HEX, Disposable, ModuleInitializationV2, NIGHT_LEVEL, OverlayPrimitive, Render2DOptions, RenderBody, RenderFrame, RenderGeometry, RenderMaterial, RenderPostEffect, RenderShip, RenderTimer, Renderer, RendererFeatures, SceneFrame, SceneRenderer, ServiceKey, ShaderEffects, ShaderPack, ShaderPass, ShaderSources, State, SurfaceProfile, TWILIGHT_COLOR, ThemeBackdropStyle, ThemeGridStyle, VEHICLE_MARKER, Vec, VehicleAppearance, WEBGL_DRAWING, WebGLRendererFactory, createProjector, daylight, getPathGeometry, hermiteControls, overviewColor, parseShaderDefinition, pathFromShip, requireTileChunkFeatures, skyLight, surfaceOverviewColor, trajectoryMarkers, twilight, validateShaderDefinition, validateTileChunkProfile, vehicleArtworkScale"
         },
         {
           "type": "link",
@@ -14285,11 +14285,43 @@
         },
         {
           "type": "code",
-          "text": "export interface RenderOverview {\n  readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];\n}"
+          "text": "export interface RenderOverview {\n  readonly levels: readonly { readonly sectors: number; readonly rings: number; readonly rgba: Float32Array }[];\n  /** Optional opaque, three-material canonical surface ribbon. The face is only a\n   * filtered continuation of this circumference; it adds no latitude or geology. */\n  readonly surface?: RenderOverviewSurface;\n}"
         },
         {
           "type": "paragraph",
           "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "RenderOverviewSurface"
+        },
+        {
+          "type": "paragraph",
+          "text": "Immutable compact surface quadrature. Packed samples hold two 2-bit palette indices (0..2) per angular/depth bin. Angular mips run coarse-to-fine, excluding the leaf; each pair of bytes holds material 0/1 coverage /255, with material 2 the residual. Depth rows remain independent for anisotropic physical filtering. Palette triples are linear RGB. <=8192 sectors, <=8 rows, <=13 mixture levels. All angles are body-fixed, depth is metres below canonical ground, not sea."
+        },
+        {
+          "type": "code",
+          "text": "export interface RenderOverviewSurface {\n  readonly sectors: number;\n  readonly rows: number;\n  readonly depthMetres: number;\n  readonly samples: Uint8Array;\n  readonly palette: readonly (readonly number[])[];\n  readonly levels: readonly { readonly sectors: number; readonly fractions: Uint8Array }[];\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: host or creator modules (not imported by shipped modules)."
+        },
+        {
+          "type": "heading",
+          "text": "surfaceOverviewColor"
+        },
+        {
+          "type": "paragraph",
+          "text": "Sample a finite physical footprint of the canonical ribbon. Output is unlit, straight display RGB with alpha 1, matching unlit foreground palette identities. Zoom selects only filtering: no descriptor calls, allocations or fine demand. Angular/depth quantization is bounded by one leaf bin plus the filter support."
+        },
+        {
+          "type": "code",
+          "text": "export function surfaceOverviewColor(body: RenderBody, angle: number, depthMetres: number, footprintMetres: number,\n  out: Float64Array): boolean;"
+        },
+        {
+          "type": "paragraph",
+          "text": "Used by: spacelab.render-canvas, spacelab.render-webgl."
         },
         {
           "type": "heading",

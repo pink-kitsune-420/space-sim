@@ -1,41 +1,50 @@
 import { linearColor, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
-import { appearanceAt, MATERIAL_DOMAINS, type MaterialDomain } from './successor-materials';
+import { querySurface } from '../../../packages/sim-core/src/surface';
+import { appearanceAt, MATERIAL_DOMAINS, MATERIAL_SLOTS, type MaterialDomain } from './successor-materials';
 
-/** 512 body-fixed polar bins, 64 equal-area stratified samples per bin. Bounded
- * quadrature of the accepted descriptor, not a generated fine-cell planet. */
+/** Bounded quadrature of the actual 16m surface ribbon, not the disc interior or
+ * fine cells. Original pad tangent X points clockwise; remote targets never reset
+ * that frame. Two angular strata/bin, with 2m radial support, cost 131072 queries.
+ * Packed identities and angular-only mixture mips keep both bodies below 512KiB. */
 export function buildOverview(profile: SurfaceProfile, domain: MaterialDomain): RenderOverview {
-  const sectors = 64, rings = 8, rgba = new Float32Array(sectors * rings * 4);
-  const pad = profile.pads.find(p => p.id === 'landing-area')!, ca = Math.cos(pad.angleRadians), sa = Math.sin(pad.angleRadians);
-  const palette = Object.fromEntries(Object.entries(domain.colors).map(([id, hex]) => [id,
-    [1, 3, 5].map(i => linearColor(parseInt(hex.slice(i, i + 2), 16) / 255))]));
-  for (let y = 0; y < rings; y++) for (let x = 0; x < sectors; x++) {
-    const i = (y * sectors + x) * 4;
-    for (let sy = 0; sy < 8; sy++) for (let sx = 0; sx < 8; sx++) {
-      const a = (x + (sx + .5) / 8) * 2 * Math.PI / sectors;
-      const r = profile.bounds.maxRadius * Math.sqrt((y * y + ((sy + .5) / 8) * (2 * y + 1)) / (rings * rings));
-      const bx = r * Math.cos(a), by = r * Math.sin(a);
-      const id = appearanceAt(domain, -bx * sa + by * ca, bx * ca + by * sa - profile.referenceRadius);
-      for (let c = 0; c < 3; c++) rgba[i + c] = rgba[i + c]! + palette[id]![c]! / 64;
+  const sectors = 8192, rows = 8, depthMetres = 16;
+  const samples = new Uint8Array(sectors * rows);
+  const pad = profile.pads.find(p => p.id === 'landing-area')!;
+  const palette = MATERIAL_SLOTS.map(id => [1, 3, 5].map(i => linearColor(parseInt(domain.colors[id].slice(i, i + 2), 16) / 255)));
+  const levels: { sectors: number; fractions: Uint8Array }[] = [];
+  let childSectors = sectors, child: Uint8Array | undefined;
+  for (let x = 0; x < sectors; x++) for (let stratum = 0; stratum < 2; stratum++) {
+    const a = (x + (stratum + .5) / 2) * 2 * Math.PI / sectors;
+    const r = querySurface(profile, a).groundRadius, d = a - pad.angleRadians;
+    const c = Math.cos(d), s = Math.sin(d);
+    for (let y = 0; y < rows; y++) {
+      const radius = r - (y + .5) * depthMetres / rows;
+      const id = appearanceAt(domain, -radius * s, radius * c - profile.referenceRadius);
+      samples[y * sectors + x] = samples[y * sectors + x]! | (MATERIAL_SLOTS.indexOf(id) << (stratum * 2));
     }
-    rgba[i + 3] = 1;
   }
-  const levels = [{ sectors, rings, rgba }];
-  while (levels[0]!.sectors > 1 || levels[0]!.rings > 1) {
-    const child = levels[0]!, sectors = Math.max(1, child.sectors / 2), rings = Math.max(1, child.rings / 2);
-    const rgba = new Float32Array(sectors * rings * 4);
-    for (let y = 0; y < rings; y++) for (let x = 0; x < sectors; x++) {
-      let weight = 0;
-      for (let dy = 0; dy < (child.rings > 1 ? 2 : 1); dy++) for (let dx = 0; dx < 2; dx++) {
-        const cy = y * (child.rings > 1 ? 2 : 1) + dy, w = 2 * cy + 1;
-        const ci = (cy * child.sectors + x * 2 + dx) * 4;
-        weight += w;
-        for (let c = 0; c < 4; c++) rgba[(y * sectors + x) * 4 + c] = rgba[(y * sectors + x) * 4 + c]! + child.rgba[ci + c]! * w;
+  while (childSectors > 1) {
+    const count = childSectors / 2, fractions = new Uint8Array(count * rows * 2);
+    for (let y = 0; y < rows; y++) for (let x = 0; x < count; x++) {
+      let first = 0, second = 0;
+      for (let dx = 0; dx < 2; dx++) {
+        if (child) { const i = (y * childSectors + x * 2 + dx) * 2; first += child[i]! / 2; second += child[i + 1]! / 2; }
+        else { const packed = samples[y * sectors + x * 2 + dx]!;
+          for (const id of [packed & 3, packed >> 2]) { if (id === 0) first += 255 / 4; if (id === 1) second += 255 / 4; }
+        }
       }
-      for (let c = 0; c < 4; c++) rgba[(y * sectors + x) * 4 + c] = rgba[(y * sectors + x) * 4 + c]! / weight;
+      const i = (y * count + x) * 2;
+      fractions[i] = Math.round(first); fractions[i + 1] = Math.min(255 - fractions[i]!, Math.round(second));
     }
-    levels.unshift({ sectors, rings, rgba });
+    levels.unshift({ sectors: count, fractions }); child = fractions; childSectors = count;
   }
-  return { levels };
+  const rgba = new Float32Array(4);
+  for (let y = 0; y < rows; y++) {
+    const f = levels[0]!.fractions, a = f[y * 2]! / 255, b = f[y * 2 + 1]! / 255;
+    for (let c = 0; c < 3; c++) rgba[c] = rgba[c]! + (a * palette[0]![c]! + b * palette[1]![c]! + (1 - a - b) * palette[2]![c]!) / rows;
+  }
+  rgba[3] = 1;
+  return { levels: [{ sectors: 1, rings: 1, rgba }], surface: { sectors, rows, depthMetres, samples, levels, palette } };
 }
 
 export class SuccessorOverview {
@@ -49,8 +58,9 @@ export class SuccessorOverview {
     if (!summary) {
       const started = performance.now();
       summary = buildOverview(profile, MATERIAL_DOMAINS[body]); this.stats.buildMs += performance.now() - started; domains.set(body, summary);
-      this.stats.generatedBodies++; this.stats.descriptorSamples += 32768;
-      this.stats.summaryBytes += summary.levels.reduce((sum, level) => sum + level.rgba.byteLength, 0);
+      this.stats.generatedBodies++; this.stats.descriptorSamples += 131072;
+      this.stats.summaryBytes += summary.levels.reduce((sum, level) => sum + level.rgba.byteLength, 0)
+        + summary.surface!.samples.byteLength + summary.surface!.levels.reduce((n, l) => n + l.fractions.byteLength, 0);
     }
     return summary;
   }

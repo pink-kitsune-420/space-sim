@@ -69,3 +69,10 @@ export function planetOverviewExample(body: import('@space-sim/game-api').Render
   if (!features.planetOverview) return body;
   return { ...body, overview: { levels: [{ sectors: 1, rings: 1, rgba: new Float32Array([.15, .12, .10, 1]) }] } };
 }
+
+/** Constant three-material ribbon transport. A real host supplies descriptor-derived
+ * immutable packed identities and angular mips; the renderer never generates cells. */
+export function surfaceOverviewExample(): import('@space-sim/game-api').RenderOverviewSurface {
+  return { sectors: 1, rows: 1, depthMetres: 16, samples: new Uint8Array([0]),
+    levels: [], palette: [[.15, .12, .10], [.08, .11, .13], [.05, .06, .07]] };
+}

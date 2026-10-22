@@ -1,7 +1,7 @@
 /** Licensed local renderer helper; first-party MIT source, see NOTICE. */
 import type { RenderGeometry, SurfaceProfile } from '@space-sim/game-api';
 import type { Camera, RenderBody } from './frame';
-import { overviewColor } from '@space-sim/game-api';
+import { overviewColor, surfaceOverviewColor } from '@space-sim/game-api';
 import { daylight, skyLight, twilight, TWILIGHT_COLOR } from './lighting';
 
 const TAU = 2 * Math.PI;
@@ -313,23 +313,73 @@ export function terrainGeometry(body: RenderBody & { surface: SurfaceProfile }, 
   // authoritative. Keep the original complete ground underneath every fade/loading state.
   const originalFaceCount = faces.length;
   const amount = body.overview ? Math.max(0, Math.min(1, (1.4 - profile.referenceRadius * camera.scale / Math.max(width, height)) / .55)) : 0;
-  if (amount > 0 && boundary.length <= 257) {
-    const rings = 2, sample = new Float64Array(4), outer = new Float64Array(4);
+  // Extra vertices refine only the color mesh. Every inserted rim vertex lies
+  // on the existing canonical chord, leaving the silhouette and air mask exact.
+  const overviewBoundary: TerrainPoint[] = [];
+  if (body.overview?.surface && amount > 0 && boundary.length > 1) {
+    const extras = Math.max(0, 96 - (boundary.length - 1));
+    let length = 0, distance = 0, used = 0;
+    for (let i = 1; i < boundary.length; i++) length += Math.hypot(boundary[i]!.x - boundary[i - 1]!.x, boundary[i]!.y - boundary[i - 1]!.y);
+    overviewBoundary.push(boundary[0]!);
     for (let i = 1; i < boundary.length; i++) {
-      const p = boundary[i - 1]!, q = boundary[i]!, angle = (p.angle + q.angle) / 2;
+      const p = boundary[i - 1]!, q = boundary[i]!;
+      distance += Math.hypot(q.x - p.x, q.y - p.y);
+      const next = i === boundary.length - 1 ? extras : Math.floor(distance / length * extras);
+      const divisions = next - used + 1; used = next;
+      for (let j = 1; j < divisions; j++) {
+        const t = j / divisions, bx = p.radius * Math.cos(p.angle) * (1 - t) + q.radius * Math.cos(q.angle) * t;
+        const by = p.radius * Math.sin(p.angle) * (1 - t) + q.radius * Math.sin(q.angle) * t;
+        const a = Math.atan2(by, bx), expected = p.angle + (q.angle - p.angle) * t;
+        overviewBoundary.push({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t,
+          radius: Math.hypot(bx, by), angle: a + TAU * Math.round((expected - a) / TAU) });
+      }
+      overviewBoundary.push(q);
+    }
+  } else overviewBoundary.push(...boundary);
+  if (amount > 0 && boundary.length <= 257) {
+    const rings = body.overview?.surface ? Math.max(1, Math.min(3, Math.floor((1024 - 32) / ((overviewBoundary.length - 1) * 2)))) : 2, sample = new Float64Array(4), outer = new Float64Array(4);
+    for (let i = 1; i < overviewBoundary.length; i++) {
+      const p = overviewBoundary[i - 1]!, q = overviewBoundary[i]!, angle = (p.angle + q.angle) / 2;
       const ground = querySurface(profile, angle), radius = (p.radius + q.radius) / 2;
       for (let ring = 0; ring < rings; ring++) {
         const lo = ring / rings, hi = (ring + 1) / rings, fraction = (lo + hi) / 2;
-        if (!overviewColor(body, angle, lo, 2 * Math.PI * profile.referenceRadius * camera.scale, sample)) continue;
+        if (!overviewColor(body, angle, body.overview?.surface ? lo * radius / profile.bounds.maxRadius : lo, 2 * Math.PI * profile.referenceRadius * camera.scale, sample)) continue;
         // Same illustrative coast taper as the original terrain, never invented water.
         const landDepth = profile.hasWater ? Math.min(radius * .75, Math.max(0, radius - profile.seaRadiusMetres!) * 8) : radius;
         const water = profile.hasWater && (ground.material === 'water' || radius * fraction < radius - landDepth);
-        overviewColor(body, angle, hi, 2 * Math.PI * profile.referenceRadius * camera.scale, outer);
+        overviewColor(body, angle, body.overview?.surface ? hi * radius / profile.bounds.maxRadius : hi, 2 * Math.PI * profile.referenceRadius * camera.scale, outer);
         const endColor: Color = water ? [outer[0]! * .20, outer[1]! * .55, outer[2]! * .85, amount * outer[3]!] : [outer[0]!, outer[1]!, outer[2]!, amount * outer[3]!];
         const color: Color = water ? [sample[0]! * .20, sample[1]! * .55, sample[2]! * .85, amount * sample[3]!] : [sample[0]!, sample[1]!, sample[2]!, amount * sample[3]!];
         face([project(p.angle, p.radius * lo), project(q.angle, q.radius * lo),
           project(q.angle, q.radius * hi), project(p.angle, p.radius * hi)], color,
             { from: project(angle, radius * lo), to: project(angle, radius * hi), color: endColor }, true);
+      }
+    }
+  }
+  // Continue the same material field in physical metres before foreground cells
+  // are ready. This is immutable summary sampling, never a fine-patch request.
+  // Water/coasts keep their canonical pass; this ribbon only covers dry ground.
+  const surface = body.overview?.surface;
+  if (surface && amount < 1) {
+    const segments = boundary.length - 1;
+    const available = 1024 - overviewTriangles - 32;
+    const rows = Math.min(surface.rows, Math.floor(available / Math.max(1, segments * 2)));
+    const sample = new Float64Array(4), outer = new Float64Array(4);
+
+    for (let i = 1; i < boundary.length && rows > 0; i++) {
+      const p = boundary[i - 1]!, q = boundary[i]!, angle = (p.angle + q.angle) / 2;
+      if (querySurface(profile, angle).material === 'water') continue;
+      const radius = (p.radius + q.radius) / 2;
+      for (let row = 0; row < rows; row++) {
+        const lo = row * surface.depthMetres / rows, hi = (row + 1) * surface.depthMetres / rows;
+        const footprint = Math.max(1 / camera.scale, surface.depthMetres / rows);
+        if (!surfaceOverviewColor(body, angle, lo, footprint, sample)) continue;
+        surfaceOverviewColor(body, angle, hi, footprint, outer);
+        const color: Color = [sample[0]!, sample[1]!, sample[2]!, 1 - amount];
+        const endColor: Color = [outer[0]!, outer[1]!, outer[2]!, 1 - amount];
+        face([project(p.angle, p.radius - lo), project(q.angle, q.radius - lo),
+          project(q.angle, q.radius - hi), project(p.angle, p.radius - hi)], color,
+          { from: project(angle, radius - lo), to: project(angle, radius - hi), color: endColor }, true);
       }
     }
   }
