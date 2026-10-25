@@ -1,9 +1,5 @@
-/*
- * Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-Project
- * Proprietary Space Sim game code; personal, non-commercial evaluation only.
- * See ../../../games/space-sim-successor/LICENSE-GAME.txt for the full terms.
- */
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
 
 import type { PlanetBakeResult, RenderOverview } from '../../../packages/game-api/src/index';
 

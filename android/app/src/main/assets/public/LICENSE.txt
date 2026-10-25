@@ -1,6 +1,82 @@
+Split-License Router
+====================
+
+Copyright (c) 2026 pink-kitsune-420
+
+This monorepo contains MIT-licensed engine software and proprietary game
+materials. The MIT grant below applies only to the engine scope. Both
+complete license texts follow this router; a bundled copy of this file as
+LICENSE.txt carries the same scope and terms.
+
+MIT ENGINE SCOPE
+
+The core Spacelab Engine in packages/* and modules/*, its public APIs
+(including packages/game-api), reusable rendering, physics, editor tools,
+shared libraries and generic host runners are MIT-licensed, except for the
+explicit proprietary artwork definition identified below. Commercial use,
+modification and redistribution of the engine and APIs are permitted under
+the MIT terms. Game-specific code is not a generic host runner merely
+because it is stored in apps/web/src/.
+
+PROPRIETARY GAME SCOPE — ALL RIGHTS RESERVED
+
+All apps/web/src/successor-*.ts files and the following paths are covered:
+
+  games/space-sim/**
+  games/space-sim-successor/**
+  apps/web/src/academy-flight.ts
+  apps/web/src/bundled-games.ts
+  apps/web/src/default-launch.ts
+  apps/web/src/flight-host.ts
+  apps/web/src/flight-manual.ts
+  apps/web/src/flight-windows.ts
+  apps/web/src/manual-content.ts
+  apps/web/src/starter-product-format.ts
+  apps/web/src/starter-products.ts
+  apps/web/src/successor-air.ts
+  apps/web/src/successor-comparison.ts
+  apps/web/src/successor-focus.ts
+  apps/web/src/successor-materials.ts
+  apps/web/src/successor-overview.ts
+  apps/web/src/successor-tile-demand.ts
+  apps/web/src/successor-tile-patch.ts
+  apps/web/src/successor-tile-store.ts
+  apps/web/src/successor-tiles.ts
+  apps/web/src/target-modules.ts
+  scripts/starter-products.ts
+
+Also proprietary: only the surveyLanderAppearance artwork definition in
+modules/appearance-trainer/src/index.ts, as marked by scoped notices.
+The module API, trainerAppearance, trainerArtwork and remaining module code
+remain MIT; see modules/appearance-trainer/LICENSE.
+
+The proprietary scope includes bundled Space Sim / Space Sim Successor
+exports such as space-sim.spacegame, space-sim-successor.spacegame,
+space-sim.spaceuniverse, their bundled universes/ packages and game assets
+and products derived from proprietary sources. It applies to those same
+materials in browser ZIPs, offline players, Android public/ assets, desktop
+and server bundles, and release downloads, regardless of their location
+or whether the original source directory structure is preserved.
+
+LicenseRef-Project in these game files and package manifests identifies
+the proprietary game license reproduced below and in LICENSE-GAME.txt in
+each game directory. Commercial use, resale and redistribution of these
+games, universes and assets are prohibited without prior written permission.
+Local, personal, non-commercial evaluation is permitted on the terms below.
+
+Other example games and deprecated games/space-sim-nextgen retain their
+existing licenses. File extensions alone do not make independently
+authored .spacegame or .spaceuniverse files proprietary. Shared engine
+code and APIs retain their MIT license when used by a proprietary game.
+Third-party components retain their respective licenses and notices;
+see CREDITS.md and bundled notices such as NODE-LICENSE.txt.
+
+Engine MIT License
+==================
+
 MIT License
 
-Copyright (c) 2026 Spacelab Contributors
+Copyright (c) 2026 pink-kitsune-420
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +95,67 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Space Sim / Space Sim Successor Game and Assets License
+======================================================
+
+Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+SPDX-License-Identifier: LicenseRef-Project
+
+1. Scope and ownership
+
+This proprietary license covers the Space Sim (Space Sim Classic) and
+Space Sim Successor (Space Sim Tiles Demo) games and their game-specific
+source code, scripts, configurations, missions, ship definitions, universes,
+levels, 3D models, textures, audio, lore, UI, artwork and branding. It also
+covers the bundled game packages (.spacegame), universe packages
+(.spaceuniverse), universes/ content, and generated game assets derived
+from those proprietary sources, including copies in browser, offline,
+desktop, server and Android distributions. The root LICENSE identifies
+the proprietary game implementation files outside the game directories.
+These materials are the exclusive proprietary property of pink-kitsune-420.
+
+2. Limited permission for personal evaluation
+
+These materials are provided solely as a reference implementation and for
+local, personal evaluation of the Spacelab Engine. You may view, compile
+and run them locally for your own personal, non-commercial use. This
+limited permission does not authorize public hosting or distribution.
+
+3. Prohibited uses
+
+Without explicit prior written permission from the copyright holder,
+you may NOT use the games, universes or assets commercially; sell, resell,
+rent, license, sublicense or otherwise monetize them; or redistribute,
+publish, publicly host, repackage or distribute them, in whole or in part.
+You may NOT distribute modified versions, derivative game packages,
+standalone assets or universes, or incorporate these proprietary materials
+into another distributed or commercial product. These restrictions apply
+to source, compiled and packaged forms, whether provided for payment or
+free of charge. No permission to use the game branding is granted beyond
+the local evaluation described above.
+
+4. Engine and third-party exclusions
+
+The Spacelab Engine, public APIs, reusable libraries, generic host runners
+and shared tools remain subject to their MIT license, as identified in the
+root LICENSE and LICENSE-ENGINE.txt. Using them does not grant rights to
+the proprietary game materials. Third-party materials retain their own
+licenses and notices. This license does not change the ownership or
+licenses of independently authored games, universes or assets.
+
+5. Reservation of rights
+
+All rights not expressly granted for personal evaluation are reserved.
+Any permission beyond that limited grant must be obtained in writing
+from pink-kitsune-420. No other license is granted by implication.
+
+6. Disclaimer of warranty and limitation of liability
+
+THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS
+OR THEIR USE.

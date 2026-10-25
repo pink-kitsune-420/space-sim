@@ -4,9 +4,11 @@
 
 **Spacelab** and its default bundled game **Space Sim** are modern, browser-first 2D orbital space flight simulation software.
 
-The name is inspired by the joint ESA/NASA orbital laboratory missions. This project is an independent open-source software project and is not affiliated with, endorsed by, or sponsored by NASA or ESA.
+The name is inspired by the joint ESA/NASA orbital laboratory missions. This project includes the independent, open-source Spacelab Engine and proprietary Space Sim games. It is not affiliated with, endorsed by, or sponsored by NASA or ESA.
 
 All simulation physics, orbital mechanics, Kepler propagators, Canvas 2D and WebGL 2 GPU shader renderers, flight HUDs, multiplayer networking, and application plumbing are first-party code authored specifically for this project.
+
+The successor survey lander, static human reference, trial terrain recipes and prepared starter-world macro/profile/map products are original first-party Space Sim game assets. Game configurations and products derived from proprietary game sources are covered by games/space-sim-successor/LICENSE-GAME.txt. Reusable engine rendering, physics, public APIs and shared tools remain MIT under LICENSE-ENGINE.txt. Prepared products are generated solely by the project's deterministic field and map tools.
 
 Engine rumble and flight sound effects are synthesized by original first-party code under the project's MIT license, using generated noise and oscillators. No third-party sound recordings, samples or instrument libraries are bundled.
 
@@ -49,3 +51,7 @@ The following open-source tools and libraries are used during development, testi
 - **tauri-build** ([MIT](https://github.com/tauri-apps/tauri/blob/dev/LICENSE-MIT) OR [Apache-2.0](https://github.com/tauri-apps/tauri/blob/dev/LICENSE-APACHE-2.0)) — The Tauri Programme within The Commons Conservancy
 
 All npm development dependencies conform to permissive, commercially-friendly open-source licensing allowlists, verified statically by `npm run check:licenses`. Android (Gradle) and Rust (Cargo) dependencies are reviewed manually.
+
+Space Sim Classic (`games/space-sim`) and Space Sim Tiles Demo (`games/space-sim-successor`) contain proprietary first-party game content under their respective LICENSE-GAME.txt files. Copyright (c) 2026 pink-kitsune-420. All Rights Reserved. They reuse the MIT-licensed Spacelab Engine and shared modules.
+
+The successor bounded surface tile prototype, muted aggregate palette, clipping geometry and comparison controls are original first-party proprietary Space Sim game work. LICENSE lists the exact game implementation files outside the game directories. Public engine APIs and reusable libraries remain MIT; deprecated games/space-sim-nextgen retains its existing license.

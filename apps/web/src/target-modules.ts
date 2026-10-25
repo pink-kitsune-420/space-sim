@@ -1,3 +1,6 @@
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
+
 import manualInitialize from '../../../modules/manual/src/index';
 import manualDescriptor from '../../../modules/manual/module.json';
 import manualGuide from '../../../modules/manual/docs/creators/usage.json';

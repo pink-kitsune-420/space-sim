@@ -1,5 +1,63 @@
+Space Sim / Space Sim Successor Game and Assets License
+======================================================
+
 Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+SPDX-License-Identifier: LicenseRef-Project
 
-All Space Sim game source code, scripts, configurations, 3D models, textures, audio, lore, UI, and branding associated with the Space Sim game are the exclusive proprietary property of pink-kitsune-420.
+1. Scope and ownership
 
-They are provided in this repository solely as a reference implementation and for local, personal evaluation of the Spacelab Engine. You may view and compile these files locally for personal, non-commercial use. You may NOT redistribute, sublicence, repackage, modify for distribution, or sell the Space Sim game or any of its assets, in whole or in part, without explicit written permission from the copyright holder.
+This proprietary license covers the Space Sim (Space Sim Classic) and
+Space Sim Successor (Space Sim Tiles Demo) games and their game-specific
+source code, scripts, configurations, missions, ship definitions, universes,
+levels, 3D models, textures, audio, lore, UI, artwork and branding. It also
+covers the bundled game packages (.spacegame), universe packages
+(.spaceuniverse), universes/ content, and generated game assets derived
+from those proprietary sources, including copies in browser, offline,
+desktop, server and Android distributions. The root LICENSE identifies
+the proprietary game implementation files outside the game directories.
+These materials are the exclusive proprietary property of pink-kitsune-420.
+
+2. Limited permission for personal evaluation
+
+These materials are provided solely as a reference implementation and for
+local, personal evaluation of the Spacelab Engine. You may view, compile
+and run them locally for your own personal, non-commercial use. This
+limited permission does not authorize public hosting or distribution.
+
+3. Prohibited uses
+
+Without explicit prior written permission from the copyright holder,
+you may NOT use the games, universes or assets commercially; sell, resell,
+rent, license, sublicense or otherwise monetize them; or redistribute,
+publish, publicly host, repackage or distribute them, in whole or in part.
+You may NOT distribute modified versions, derivative game packages,
+standalone assets or universes, or incorporate these proprietary materials
+into another distributed or commercial product. These restrictions apply
+to source, compiled and packaged forms, whether provided for payment or
+free of charge. No permission to use the game branding is granted beyond
+the local evaluation described above.
+
+4. Engine and third-party exclusions
+
+The Spacelab Engine, public APIs, reusable libraries, generic host runners
+and shared tools remain subject to their MIT license, as identified in the
+root LICENSE and LICENSE-ENGINE.txt. Using them does not grant rights to
+the proprietary game materials. Third-party materials retain their own
+licenses and notices. This license does not change the ownership or
+licenses of independently authored games, universes or assets.
+
+5. Reservation of rights
+
+All rights not expressly granted for personal evaluation are reserved.
+Any permission beyond that limited grant must be obtained in writing
+from pink-kitsune-420. No other license is granted by implication.
+
+6. Disclaimer of warranty and limitation of liability
+
+THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT
+PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDER SHALL NOT BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS
+OR THEIR USE.

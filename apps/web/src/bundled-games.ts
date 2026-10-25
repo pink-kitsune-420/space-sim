@@ -1,3 +1,6 @@
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
+
 import { canonicalJson } from '../../../packages/game-runtime/src/authoritative';
 import { validatePackage, validateGameCatalog, type GamePackage, type GameCatalog } from '../../../packages/game-library/src/archive';
 import catalogJson from '../../../games/catalog.json' with { type: 'json' };

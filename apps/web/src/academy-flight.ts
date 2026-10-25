@@ -1,3 +1,6 @@
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
+
 import type { AcademyFlight, AcademyPractice, Elements, SessionRead, State, Vec, WorldRead } from '../../../packages/game-api/src/index';
 
 /** Pure practice placement over the selected public body/ephemeris contracts. */

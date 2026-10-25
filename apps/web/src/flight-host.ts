@@ -1,3 +1,6 @@
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
+
 import { validateUniverse } from '../../../packages/sim-core/src/universe';
 import { overviewWork } from './successor-overview';
 import { MATERIAL_DOMAINS } from './successor-materials';

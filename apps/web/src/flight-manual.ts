@@ -1,3 +1,6 @@
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
+
 import { ACTION_DEFINITIONS, formatKeyCode, isFlightAction, type ActionCategory, type ActionId, type KeyBindings } from './input-config';
 import { formatControllerButton, type ControllerProfile, type GamepadDiagnostic } from './gamepad';
 import { keyboardOwner, padOwner, type LocalPlayersConfig } from './local-players';

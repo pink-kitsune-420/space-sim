@@ -2,7 +2,7 @@
 
 A free, open-source toolkit for modular 2D space games. **Space Sim**, the bundled orbital flight game, combines double-precision Keplerian mechanics, terrain and ocean landings, and multiplayer in a minimalist vector world.
 
-**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[MIT license](LICENSE)** · **[API reference](https://pink-kitsune-420.github.io/space-sim/API-REFERENCE.html)**
+**[Play in your browser](https://pink-kitsune-420.github.io/space-sim/)** · **[Downloads](https://github.com/pink-kitsune-420/space-sim/releases)** · **[Licensing](LICENSE)** · **[API reference](https://pink-kitsune-420.github.io/space-sim/API-REFERENCE.html)**
 
 Spacelab is in alpha. Module contracts and file tooling are still evolving.
 
@@ -73,6 +73,10 @@ See the [server README](apps/server/README.md) for persistent worlds, custom gam
 
 ## License and credits
 
-The **Spacelab Engine**, public APIs and shared tools are first-party and [MIT-licensed](LICENSE-ENGINE.txt), including for commercial use. **Space Sim Classic** and **Space Sim Tiles Demo** are proprietary, all rights reserved, with local personal, non-commercial evaluation permitted: see [Classic terms](games/space-sim/LICENSE-GAME.txt), [Tiles Demo terms](games/space-sim-successor/LICENSE-GAME.txt) and the [complete licensing scope](LICENSE), which also lists game-specific files outside those directories. Deprecated Nextgen retains its existing license.
+The **Spacelab Engine** (`packages/*`, `modules/*`, public APIs, shared tools and generic host runners) is [MIT-licensed](LICENSE-ENGINE.txt), including for commercial use, apart from the explicitly marked survey lander artwork definition.
+
+**Space Sim Classic** (`games/space-sim`) and **Space Sim Successor / Tiles Demo** (`games/space-sim-successor`) are **Proprietary — All Rights Reserved**. This includes their bundled `.spacegame` and `.spaceuniverse` files, `universes/` packages, game assets, and game-specific implementations in `apps/web/src/` such as `successor-*.ts`, `academy-flight.ts`, `flight-host.ts`, `flight-manual.ts`, `flight-windows.ts`, `manual-content.ts`, `bundled-games.ts` and `starter-products.ts`. The [Split-License Router](LICENSE) lists every covered implementation file and includes both complete license texts. The same terms apply to copies in browser ZIPs, offline players, Android assets and other distributions.
+
+The games and their universes and assets may be viewed, compiled and run locally for personal, non-commercial evaluation. Commercial use, resale and redistribution require prior written permission: see the full [Classic game license](games/space-sim/LICENSE-GAME.txt) and [Successor game license](games/space-sim-successor/LICENSE-GAME.txt). Deprecated Nextgen and other example games retain their existing licenses; these restrictions do not apply to independently authored game or universe packages.
 
 Copyright (c) 2026 pink-kitsune-420. The web player has no third-party runtime dependencies. Standalone desktop and server executables also bundle Node.js. Attribution, third-party licenses and build-tool notices are in [CREDITS.md](CREDITS.md).

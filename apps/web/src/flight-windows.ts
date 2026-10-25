@@ -1,3 +1,6 @@
+// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+// SPDX-License-Identifier: LicenseRef-Project
+
 import { FloatingWindow } from './floating-window';
 import type { Workspace } from './workspace';
 
