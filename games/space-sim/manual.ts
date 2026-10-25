@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+ * SPDX-License-Identifier: LicenseRef-Project
+ * Proprietary Space Sim game code; personal, non-commercial evaluation only.
+ * See LICENSE-GAME.txt for the full terms.
+ */
+
 /** In-game Manual text. Two audiences only: players and creators.
  *
  * Writing style: short plain sentences a beginner can follow, then an optional

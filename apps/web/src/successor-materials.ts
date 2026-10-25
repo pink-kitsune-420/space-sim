@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+ * SPDX-License-Identifier: LicenseRef-Project
+ * Proprietary Space Sim game code; personal, non-commercial evaluation only.
+ * See ../../../games/space-sim-successor/LICENSE-GAME.txt for the full terms.
+ */
+
 /** Decorative appearance only: these IDs never describe collision or resources.
  * Slots are renderer transport values and are deliberately separate from identity. */
 export const APPEARANCE_IDS = ['warm-aggregate', 'cool-aggregate', 'dark-aggregate'] as const;

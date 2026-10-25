@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+ * SPDX-License-Identifier: LicenseRef-Project
+ * Proprietary Space Sim game code; personal, non-commercial evaluation only.
+ * See ../../../games/space-sim-successor/LICENSE-GAME.txt for the full terms.
+ */
+
 import { createPlanetBake, type PlanetSurfaceDefinition, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
 import { sha256Bytes } from '../../../packages/game-runtime/src/authoritative';
 import { planetDefinitionForSamples, PLANET_SURFACE_MAP } from '../../../packages/sim-core/src/planet-surface';

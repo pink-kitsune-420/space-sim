@@ -73,4 +73,6 @@ See the [server README](apps/server/README.md) for persistent worlds, custom gam
 
 ## License and credits
 
-Spacelab's application code is first-party and [MIT-licensed](LICENSE), with no third-party runtime dependencies in the web player. Standalone desktop and server executables also bundle Node.js. Attribution and build-tool notices are in [CREDITS.md](CREDITS.md).
+The **Spacelab Engine**, public APIs and shared tools are first-party and [MIT-licensed](LICENSE-ENGINE.txt), including for commercial use. **Space Sim Classic** and **Space Sim Tiles Demo** are proprietary, all rights reserved, with local personal, non-commercial evaluation permitted: see [Classic terms](games/space-sim/LICENSE-GAME.txt), [Tiles Demo terms](games/space-sim-successor/LICENSE-GAME.txt) and the [complete licensing scope](LICENSE), which also lists game-specific files outside those directories. Deprecated Nextgen retains its existing license.
+
+Copyright (c) 2026 pink-kitsune-420. The web player has no third-party runtime dependencies. Standalone desktop and server executables also bundle Node.js. Attribution, third-party licenses and build-tool notices are in [CREDITS.md](CREDITS.md).

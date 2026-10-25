@@ -1,0 +1,5 @@
+Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+
+All Space Sim game source code, scripts, configurations, 3D models, textures, audio, lore, UI, and branding associated with the Space Sim game are the exclusive proprietary property of pink-kitsune-420.
+
+They are provided in this repository solely as a reference implementation and for local, personal evaluation of the Spacelab Engine. You may view and compile these files locally for personal, non-commercial use. You may NOT redistribute, sublicence, repackage, modify for distribution, or sell the Space Sim game or any of its assets, in whole or in part, without explicit written permission from the copyright holder.

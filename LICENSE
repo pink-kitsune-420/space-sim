@@ -1,6 +1,59 @@
+Spacelab Engine and Space Sim licensing
+=====================================
+
+Copyright (c) 2026 pink-kitsune-420
+
+This repository contains software under two distinct licenses.
+
+The Spacelab Engine, public APIs (including packages/game-api), reusable
+libraries, rendering, physics, editor and shared tools are licensed under
+the MIT License in LICENSE-ENGINE.txt. The MIT grant permits commercial
+use, modification and redistribution of the engine and APIs, subject to
+its terms. It does not grant rights to the proprietary game content below.
+
+The following first-party paths are proprietary Space Sim game material:
+
+  games/space-sim/**
+  games/space-sim-successor/**
+  apps/web/src/default-launch.ts
+  apps/web/src/starter-product-format.ts
+  apps/web/src/starter-products.ts
+  apps/web/src/successor-air.ts
+  apps/web/src/successor-comparison.ts
+  apps/web/src/successor-focus.ts
+  apps/web/src/successor-materials.ts
+  apps/web/src/successor-overview.ts
+  apps/web/src/successor-tile-demand.ts
+  apps/web/src/successor-tile-patch.ts
+  apps/web/src/successor-tile-store.ts
+  apps/web/src/successor-tiles.ts
+  scripts/starter-products.ts
+
+Also proprietary: the surveyLanderAppearance artwork definition only in
+modules/appearance-trainer/src/index.ts, as marked by scoped source notices.
+The module API, trainerAppearance, trainerArtwork and remaining module code
+remain MIT; see modules/appearance-trainer/LICENSE.
+
+The proprietary scope includes Space Sim Classic and Space Sim Tiles Demo,
+their game content and assets, the listed tile-demo implementations, and
+generated game content derived from these proprietary sources. Its terms
+are reproduced below and in LICENSE-GAME.txt inside each game directory.
+SPDX-License-Identifier: LicenseRef-Project in these game files refers to
+these proprietary terms, not to the engine MIT license.
+
+All remaining first-party files retain their existing MIT licensing,
+including games/space-sim-nextgen (deprecated), other example games,
+shared hosts and build tools. Shared code and public APIs used by a game
+remain MIT; their inclusion does not make the proprietary game MIT.
+Third-party components retain their respective licenses and notices;
+see CREDITS.md and bundled notices such as NODE-LICENSE.txt.
+
+Engine MIT License
+==================
+
 MIT License
 
-Copyright (c) 2026 Spacelab Contributors
+Copyright (c) 2026 pink-kitsune-420
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +72,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Space Sim Game & Assets License
+===============================
+
+Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
+
+All Space Sim game source code, scripts, configurations, 3D models, textures, audio, lore, UI, and branding associated with the Space Sim game are the exclusive proprietary property of pink-kitsune-420.
+
+They are provided in this repository solely as a reference implementation and for local, personal evaluation of the Spacelab Engine. You may view and compile these files locally for personal, non-commercial use. You may NOT redistribute, sublicence, repackage, modify for distribution, or sell the Space Sim game or any of its assets, in whole or in part, without explicit written permission from the copyright holder.
