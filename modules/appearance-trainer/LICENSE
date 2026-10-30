@@ -1,13 +1,3 @@
-Licensing scope
-===============
-
-The MIT License below applies to this module's shared code, public API,
-trainerAppearance and trainerArtwork. The surveyLanderAppearance artwork
-definition in src/index.ts is excluded from that MIT grant. That artwork is
-Copyright (c) 2026 pink-kitsune-420. All Rights Reserved., under the terms in
-../../games/space-sim-successor/LICENSE-GAME.txt (LicenseRef-Project).
-The API that contributes vehicle appearances remains MIT.
-
 MIT License
 
 Copyright (c) 2026 Spacelab Contributors

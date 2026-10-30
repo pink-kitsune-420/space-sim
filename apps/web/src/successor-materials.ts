@@ -1,5 +1,5 @@
-// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
-// SPDX-License-Identifier: LicenseRef-Project
+// Copyright (c) 2026 pink-kitsune-420
+// SPDX-License-Identifier: MIT
 
 /** Decorative appearance only: these IDs never describe collision or resources.
  * Slots are renderer transport values and are deliberately separate from identity. */

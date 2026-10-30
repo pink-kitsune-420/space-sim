@@ -3,75 +3,58 @@ Split-License Router
 
 Copyright (c) 2026 pink-kitsune-420
 
-This monorepo contains MIT-licensed engine software and proprietary game
-materials. The MIT grant below applies only to the engine scope. Both
-complete license texts follow this router; a bundled copy of this file as
-LICENSE.txt carries the same scope and terms.
+This repository contains MIT-licensed software and two games whose original
+content is available for non-commercial use under the game license below.
+Both complete license texts follow this router. Bundled LICENSE.txt copies
+carry the same scope and terms.
 
-MIT ENGINE SCOPE
+MIT SCOPE
 
-The core Spacelab Engine in packages/* and modules/*, its public APIs
-(including packages/game-api), reusable rendering, physics, editor tools,
-shared libraries and generic host runners are MIT-licensed, except for the
-explicit proprietary artwork definition identified below. Commercial use,
-modification and redistribution of the engine and APIs are permitted under
-the MIT terms. Game-specific code is not a generic host runner merely
-because it is stored in apps/web/src/.
+First-party code, documentation and reusable assets outside the two game
+scopes below are MIT-licensed. This includes packages/*, modules/*, public
+APIs, all application and host code in apps/*, build tools in scripts/*,
+and reusable artwork. Commercial use, modification, redistribution and
+sale of this MIT material are permitted under the MIT terms. Other games
+and third-party or vendored materials retain their existing licenses.
 
-PROPRIETARY GAME SCOPE — ALL RIGHTS RESERVED
+GAME SCOPE — NON-COMMERCIAL USE; SALE REQUIRES PERMISSION
 
-All apps/web/src/successor-*.ts files and the following paths are covered:
+Only original first-party content authored for these games is covered:
 
-  games/space-sim/**
-  games/space-sim-successor/**
-  apps/web/src/academy-flight.ts
-  apps/web/src/bundled-games.ts
-  apps/web/src/default-launch.ts
-  apps/web/src/flight-host.ts
-  apps/web/src/flight-manual.ts
-  apps/web/src/flight-windows.ts
-  apps/web/src/manual-content.ts
-  apps/web/src/starter-product-format.ts
-  apps/web/src/starter-products.ts
-  apps/web/src/successor-air.ts
-  apps/web/src/successor-comparison.ts
-  apps/web/src/successor-focus.ts
-  apps/web/src/successor-materials.ts
-  apps/web/src/successor-overview.ts
-  apps/web/src/successor-tile-demand.ts
-  apps/web/src/successor-tile-patch.ts
-  apps/web/src/successor-tile-store.ts
-  apps/web/src/successor-tiles.ts
-  apps/web/src/target-modules.ts
-  scripts/starter-products.ts
+  games/space-sim/**            Space Sim / Space Sim Classic
+  games/space-sim-successor/**  Space Sim Successor / Space Sim Tiles Demo
 
-Also proprietary: only the surveyLanderAppearance artwork definition in
-modules/appearance-trainer/src/index.ts, as marked by scoped notices.
-The module API, trainerAppearance, trainerArtwork and remaining module code
-remain MIT; see modules/appearance-trainer/LICENSE.
+Within games/space-sim/universes/, these are excluded from the game scope
+and available under LICENSE-ENGINE.txt (MIT), to the extent copyright applies:
 
-The proprietary scope includes bundled Space Sim / Space Sim Successor
-exports such as space-sim.spacegame, space-sim-successor.spacegame,
-space-sim.spaceuniverse, their bundled universes/ packages and game assets
-and products derived from proprietary sources. It applies to those same
-materials in browser ZIPs, offline players, Android public/ assets, desktop
-and server bundles, and release downloads, regardless of their location
-or whether the original source directory structure is preserved.
+  astronomy/**
+  catalog.json
+  universe.schema.json
+  README.md
 
-LicenseRef-Project in these game files and package manifests identifies
-the proprietary game license reproduced below and in LICENSE-GAME.txt in
-each game directory. Non-commercial use, modification, public forks,
-redistribution and hosting of original or modified games and assets are
-permitted free of charge on the terms below, including complete builds
-and free app-store releases. Selling or commercially monetizing these
-materials requires prior written permission.
+Original fictional universes in sandbox/ remain part of the game scope.
+No exclusive rights are claimed in astronomical facts, real-world names,
+physical laws or scientific data. This license does not claim ownership of,
+or grant rights in, third-party fictional universes, characters, settings,
+artwork or other material. Their rights and licenses remain with their owners.
 
-Other example games and deprecated games/space-sim-nextgen retain their
-existing licenses. File extensions alone do not make independently
-authored .spacegame or .spaceuniverse files proprietary. Shared engine
-code and APIs retain their MIT license when used by a proprietary game.
-Third-party components retain their respective licenses and notices;
-see CREDITS.md and bundled notices such as NODE-LICENSE.txt.
+The game license follows covered content into copies and derivatives,
+including .spacegame and .spaceuniverse packages, generated starter-world
+products, browser ZIPs, offline players, desktop/server bundles and Android
+assets. Bundling MIT or third-party material with game content does not
+change the license of that MIT or third-party material. File extensions
+alone do not make independently authored packages subject to this license.
+
+You may play, modify, fork, redistribute and host the covered games free
+of charge for non-commercial purposes, including complete builds and free
+app-store releases, subject to the game license below. Selling copies or
+commercially monetizing them, including modified copies, requires prior
+written permission whether or not their name or branding is changed.
+
+LicenseRef-Project refers to the applicable project license for the source:
+the game license for covered game content, or MIT for material in the MIT
+scope above. It does not override third-party notices or excluded licenses.
+See CREDITS.md and bundled notices such as NODE-LICENSE.txt.
 
 Engine MIT License
 ==================
@@ -106,16 +89,21 @@ SPDX-License-Identifier: LicenseRef-Project
 
 1. Scope and ownership
 
-This proprietary license covers the Space Sim (Space Sim Classic) and
-Space Sim Successor (Space Sim Tiles Demo) games and their game-specific
-source code, scripts, configurations, missions, ship definitions, universes,
-levels, 3D models, textures, audio, lore, UI, artwork and branding. It also
-covers the bundled game packages (.spacegame), universe packages
-(.spaceuniverse), universes/ content, and generated game assets derived
-from those proprietary sources, including copies in browser, offline,
-desktop, server and Android distributions. The root LICENSE identifies
-the proprietary game implementation files outside the game directories.
-These materials are the exclusive proprietary property of pink-kitsune-420.
+This license covers only original first-party content authored for Space
+Sim (Space Sim Classic) in games/space-sim/ and Space Sim Successor
+(Space Sim Tiles Demo) in games/space-sim-successor/. This includes their
+game configurations, manual, original fictional universes, missions, ship
+and level definitions, game-specific assets, lore, artwork and branding,
+except for the exclusions in section 5 and the root LICENSE.
+
+The same terms cover copies and derivatives of that content in source,
+compiled or packaged form, including .spacegame and .spaceuniverse files,
+generated starter-world products, browser builds, offline players, desktop,
+server and Android distributions. Changing a name, package identifier,
+appearance or distribution format does not remove these terms.
+
+Copyright is claimed only in original material authored for these games,
+not in real-world facts or material belonging to others.
 
 2. Permission for non-commercial use, mods and forks
 
@@ -156,16 +144,30 @@ original or a modified game on the Apple App Store, Google Play, another
 storefront or your own website, and monetizing game copies or access
 through advertising, subscriptions or in-app purchases. Offering a free
 download does not permit these forms of monetization. These restrictions
-apply to source, compiled and packaged forms, including hosted services.
+apply to source, compiled and packaged forms, including hosted services,
+whether or not you change the game's name, branding or content.
 
 5. Engine and third-party exclusions
 
-The Spacelab Engine, public APIs, reusable libraries, generic host runners
-and shared tools remain subject to their MIT license, as identified in the
-root LICENSE and LICENSE-ENGINE.txt. Using them does not grant rights to
-the proprietary game materials. Third-party materials retain their own
-licenses and notices. This license does not change the ownership or
-licenses of independently authored games, universes or assets.
+The Spacelab Engine, public APIs, modules, reusable artwork, libraries,
+application and host code, and build tools outside the two game directories
+remain MIT-licensed under the root LICENSE and LICENSE-ENGINE.txt. Their
+use by these games does not change their license. This game license does
+not restrict independently authored games built with that MIT software.
+
+The astronomy/ universe definitions, universe catalog, shared schema and
+universe-library README in games/space-sim/universes/ are also excluded
+and available under LICENSE-ENGINE.txt (MIT), to the extent copyright
+applies. No exclusive rights are claimed in astronomical facts, real-world
+names, physical laws or scientific data.
+
+This license claims no ownership of third-party fictional universes,
+characters, settings, names, artwork or other third-party material, and
+grants no rights in them. Third-party materials retain their own licenses
+and notices. Other example games, deprecated games/space-sim-nextgen,
+and independently authored games, universes and assets retain their own
+licenses. A file extension or inclusion in a game bundle does not bring
+otherwise excluded material under this license.
 
 6. Reservation of rights
 

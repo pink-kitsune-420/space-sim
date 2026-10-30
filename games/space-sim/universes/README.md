@@ -42,3 +42,7 @@ import in [builtin.ts](../../../packages/scenarios/builtin.ts). The default mode
 imported through the simulation core's [universe.ts](../../../packages/sim-core/src/universe.ts).
 Static imports keep the standalone HTML and headless server portable. Users can
 import custom universe files at runtime without rebuilding the application.
+
+## Licensing
+
+The original fictional universes in `sandbox/` are covered by the [Classic game license](../LICENSE-GAME.txt): non-commercial use and sharing are permitted; sale or commercial monetization requires written permission. The `astronomy/` definitions, `catalog.json`, `universe.schema.json` and this README are available under [MIT](../../../LICENSE-ENGINE.txt), to the extent copyright applies. Astronomical facts and real-world names are not claimed as proprietary. Third-party fictional settings and other third-party material retain their owners' rights; the game license grants no rights in them. Exporting or bundling a universe does not change its applicable license.

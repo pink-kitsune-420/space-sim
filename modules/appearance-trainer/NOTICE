@@ -1,3 +1,1 @@
-Space Sim first-party trainer chevron and throttle-flame vector artwork, extracted from the Canvas and WebGL renderers. Licensed under MIT.
-
-The surveyLanderAppearance artwork definition in src/index.ts is proprietary Space Sim artwork: Copyright (c) 2026 pink-kitsune-420. All Rights Reserved. See ../../games/space-sim-successor/LICENSE-GAME.txt. Shared module code, public APIs and the trainer chevron remain MIT; see LICENSE.
+Space Sim first-party trainer chevron, throttle-flame and survey lander vector artwork. Shared module code and all included artwork are licensed under MIT; see LICENSE.

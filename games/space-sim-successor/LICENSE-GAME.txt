@@ -6,16 +6,21 @@ SPDX-License-Identifier: LicenseRef-Project
 
 1. Scope and ownership
 
-This proprietary license covers the Space Sim (Space Sim Classic) and
-Space Sim Successor (Space Sim Tiles Demo) games and their game-specific
-source code, scripts, configurations, missions, ship definitions, universes,
-levels, 3D models, textures, audio, lore, UI, artwork and branding. It also
-covers the bundled game packages (.spacegame), universe packages
-(.spaceuniverse), universes/ content, and generated game assets derived
-from those proprietary sources, including copies in browser, offline,
-desktop, server and Android distributions. The root LICENSE identifies
-the proprietary game implementation files outside the game directories.
-These materials are the exclusive proprietary property of pink-kitsune-420.
+This license covers only original first-party content authored for Space
+Sim (Space Sim Classic) in games/space-sim/ and Space Sim Successor
+(Space Sim Tiles Demo) in games/space-sim-successor/. This includes their
+game configurations, manual, original fictional universes, missions, ship
+and level definitions, game-specific assets, lore, artwork and branding,
+except for the exclusions in section 5 and the root LICENSE.
+
+The same terms cover copies and derivatives of that content in source,
+compiled or packaged form, including .spacegame and .spaceuniverse files,
+generated starter-world products, browser builds, offline players, desktop,
+server and Android distributions. Changing a name, package identifier,
+appearance or distribution format does not remove these terms.
+
+Copyright is claimed only in original material authored for these games,
+not in real-world facts or material belonging to others.
 
 2. Permission for non-commercial use, mods and forks
 
@@ -56,16 +61,30 @@ original or a modified game on the Apple App Store, Google Play, another
 storefront or your own website, and monetizing game copies or access
 through advertising, subscriptions or in-app purchases. Offering a free
 download does not permit these forms of monetization. These restrictions
-apply to source, compiled and packaged forms, including hosted services.
+apply to source, compiled and packaged forms, including hosted services,
+whether or not you change the game's name, branding or content.
 
 5. Engine and third-party exclusions
 
-The Spacelab Engine, public APIs, reusable libraries, generic host runners
-and shared tools remain subject to their MIT license, as identified in the
-root LICENSE and LICENSE-ENGINE.txt. Using them does not grant rights to
-the proprietary game materials. Third-party materials retain their own
-licenses and notices. This license does not change the ownership or
-licenses of independently authored games, universes or assets.
+The Spacelab Engine, public APIs, modules, reusable artwork, libraries,
+application and host code, and build tools outside the two game directories
+remain MIT-licensed under the root LICENSE and LICENSE-ENGINE.txt. Their
+use by these games does not change their license. This game license does
+not restrict independently authored games built with that MIT software.
+
+The astronomy/ universe definitions, universe catalog, shared schema and
+universe-library README in games/space-sim/universes/ are also excluded
+and available under LICENSE-ENGINE.txt (MIT), to the extent copyright
+applies. No exclusive rights are claimed in astronomical facts, real-world
+names, physical laws or scientific data.
+
+This license claims no ownership of third-party fictional universes,
+characters, settings, names, artwork or other third-party material, and
+grants no rights in them. Third-party materials retain their own licenses
+and notices. Other example games, deprecated games/space-sim-nextgen,
+and independently authored games, universes and assets retain their own
+licenses. A file extension or inclusion in a game bundle does not bring
+otherwise excluded material under this license.
 
 6. Reservation of rights
 

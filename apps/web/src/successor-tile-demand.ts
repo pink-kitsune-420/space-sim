@@ -1,5 +1,5 @@
-// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
-// SPDX-License-Identifier: LicenseRef-Project
+// Copyright (c) 2026 pink-kitsune-420
+// SPDX-License-Identifier: MIT
 
 import type { Camera, RenderBody, SurfaceProfile, Vec } from '../../../packages/game-api/src/index';
 import { TILE_PATCH } from './successor-tile-patch';

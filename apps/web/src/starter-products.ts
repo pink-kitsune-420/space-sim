@@ -1,5 +1,5 @@
-// Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
-// SPDX-License-Identifier: LicenseRef-Project
+// Copyright (c) 2026 pink-kitsune-420
+// SPDX-License-Identifier: MIT
 
 import { createPlanetBake, type PlanetSurfaceDefinition, type RenderOverview, type SurfaceProfile } from '../../../packages/game-api/src/index';
 import { sha256Bytes } from '../../../packages/game-runtime/src/authoritative';

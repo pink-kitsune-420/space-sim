@@ -3,13 +3,7 @@ import { TRAINER_VEHICLE_ID, captureVehicleAppearance, createVehicleArtwork, typ
 export const trainerAppearance = captureVehicleAppearance({ vehicleId: TRAINER_VEHICLE_ID,
   hull: [{ x: 11, y: 0 }, { x: -7, y: -6 }, { x: -4, y: 0 }, { x: -7, y: 6 }],
   flame: { x: -7, halfWidth: 3, length: 8, throttleLength: 15 } });
-/*
- * BEGIN PROPRIETARY SPACE SIM ARTWORK
- * Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-Project
- * Only the surveyLanderAppearance artwork definition below is proprietary.
- * See ../../../games/space-sim-successor/LICENSE-GAME.txt for the full terms.
- */
+/* Original first-party survey lander artwork, licensed under this module's MIT license. */
 /** Five-metre circular survey lander: SI protective hull, glazed cabin, engine bell, RCS ports and side hatch.
  * Its paired authoritative handling must request contactRadiusMetres=2.5. */
 export const surveyLanderAppearance = captureVehicleAppearance({ vehicleId: TRAINER_VEHICLE_ID, metresPerUnit: 1,
@@ -32,7 +26,6 @@ export const surveyLanderAppearance = captureVehicleAppearance({ vehicleId: TRAI
     [{ x: -.9, y: 1.1 }, { x: -2.15, y: 1.2 }],
   ],
   flame: { x: -2.2, halfWidth: .65, length: .4, throttleLength: 2 } });
-/* END PROPRIETARY SPACE SIM ARTWORK; remaining module code is MIT. */
 /** Compatibility injection while default manifest startup remains Phase 4. */
 export const trainerArtwork = createVehicleArtwork([trainerAppearance]);
 

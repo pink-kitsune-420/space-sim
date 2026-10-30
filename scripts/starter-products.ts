@@ -1,8 +1,7 @@
 /*
- * Copyright (c) 2026 pink-kitsune-420. All Rights Reserved.
- * SPDX-License-Identifier: LicenseRef-Project
- * Proprietary Space Sim game code; personal, non-commercial use and modding permitted.
- * See ../games/space-sim-successor/LICENSE-GAME.txt for the full terms.
+ * Copyright (c) 2026 pink-kitsune-420
+ * SPDX-License-Identifier: MIT
+ * Generated products retain the license of their source game content.
  */
 
 /** Build-only entry compiled with the existing Vite toolchain. No live sessions. */
