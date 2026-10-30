@@ -60,11 +60,11 @@ or whether the original source directory structure is preserved.
 
 LicenseRef-Project in these game files and package manifests identifies
 the proprietary game license reproduced below and in LICENSE-GAME.txt in
-each game directory. Personal, non-commercial play and modding, including
-sharing free mods for use with a separately obtained, authorized copy of
-the game, are permitted on the terms below. Commercial exploitation and
-redistribution of the complete games or repackaged applications require
-prior written permission, including app-store releases.
+each game directory. Non-commercial use, modification, public forks,
+redistribution and hosting of original or modified games and assets are
+permitted free of charge on the terms below, including complete builds
+and free app-store releases. Selling or commercially monetizing these
+materials requires prior written permission.
 
 Other example games and deprecated games/space-sim-nextgen retain their
 existing licenses. File extensions alone do not make independently
@@ -117,50 +117,46 @@ desktop, server and Android distributions. The root LICENSE identifies
 the proprietary game implementation files outside the game directories.
 These materials are the exclusive proprietary property of pink-kitsune-420.
 
-2. Permission for personal use and modding
+2. Permission for non-commercial use, mods and forks
 
-You may view, copy, compile, run and modify these materials for your own
-personal, non-commercial play, evaluation and mod development. You may
-create and use mods, including add-ons, patches, translations, custom
-missions, ships, universes and changes to gameplay, code or assets. You
-may run non-commercial multiplayer sessions using your copy of the game;
-this does not authorize distributing or publicly hosting the game client.
+You may view, copy, compile, run, modify and create derivative works from
+these materials for non-commercial purposes. This includes playing the
+games, creating mods, maintaining public source-code forks, making
+modified builds, and creating custom missions, ships, universes, code
+and assets.
 
-3. Permission to share free mods
+You may publish, redistribute and publicly host the original or modified
+materials, in whole or in part, free of charge for non-commercial use.
+This includes complete game builds, repackaged applications, standalone
+forks, browser-hosted copies, multiplayer servers and free app-store
+releases. Recipients do not need to obtain a separate copy of the original
+game. These permissions apply to source, compiled and packaged forms.
 
-You may publish, distribute and let others use your mods free of charge
-for non-commercial use with a separately obtained, authorized copy of the
-game. Distribute mods as add-ons, patches or replacement files, rather
-than as a complete game or a standalone repackaged application. A mod may
-include modified game code or assets, and portions of the original
-materials reasonably necessary for the mod, but may not bundle the
-unmodified game, substantially reproduce it, or serve as a substitute for
-obtaining it separately. Merely renaming or repackaging the game is not
-a mod under this permission.
+3. Conditions for sharing
 
-Keep applicable copyright and attribution notices, include this license
-with any proprietary game materials you distribute, and clearly identify
-your mod and its changes as unofficial. You may use the game name to
-describe compatibility, but may not imply official status or endorsement.
-Recipients may use, modify and share included proprietary game materials
-only under this license. You retain ownership of your original
-contributions; this permission does not transfer ownership of the game
-materials or let you relicense them.
+Keep applicable copyright and attribution notices and include this license
+with any proprietary game materials you distribute. Clearly identify
+unofficial distributions, mods and forks as unofficial, and describe any
+changes you make. You may use the game name to identify the original game
+or describe compatibility, but may not imply official status or endorsement.
 
-4. Prohibited uses
+Recipients receive the same permissions under this license to use,
+modify, host and redistribute included proprietary game materials. You
+may not relicense those materials or impose terms that remove these
+permissions. You retain ownership of your original contributions; this
+license does not transfer ownership of the original game materials.
 
-Except for the permissions in sections 2 and 3, you may NOT redistribute,
-publish, publicly host or repackage these proprietary materials, in whole
-or in part, without prior written permission from the copyright holder.
-You may NOT sell, resell, rent, sublicense, charge for access to, or
-otherwise commercially exploit the games, their proprietary materials,
-or mods containing or derived from those materials without that permission.
-This includes selling the original or a modified game on the Apple App
-Store, Google Play, another storefront or your own website, and monetizing
-copies through advertising, subscriptions or in-app purchases. Publishing
-a complete game or repackaged application requires permission even if
-it is offered free of charge. These restrictions apply to source,
-compiled and packaged forms.
+4. No sale or commercial monetization
+
+Without prior written permission from the copyright holder, you may NOT
+sell, resell, rent, charge for access to, or otherwise commercially exploit
+the games, their proprietary materials, or mods, forks and other works
+containing or derived from those materials. This includes selling the
+original or a modified game on the Apple App Store, Google Play, another
+storefront or your own website, and monetizing game copies or access
+through advertising, subscriptions or in-app purchases. Offering a free
+download does not permit these forms of monetization. These restrictions
+apply to source, compiled and packaged forms, including hosted services.
 
 5. Engine and third-party exclusions
 
