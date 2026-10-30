@@ -60,9 +60,11 @@ or whether the original source directory structure is preserved.
 
 LicenseRef-Project in these game files and package manifests identifies
 the proprietary game license reproduced below and in LICENSE-GAME.txt in
-each game directory. Commercial use, resale and redistribution of these
-games, universes and assets are prohibited without prior written permission.
-Local, personal, non-commercial evaluation is permitted on the terms below.
+each game directory. Personal, non-commercial play and modding, including
+sharing free mods for use with a separately obtained, authorized copy of
+the game, are permitted on the terms below. Commercial exploitation and
+redistribution of the complete games or repackaged applications require
+prior written permission, including app-store releases.
 
 Other example games and deprecated games/space-sim-nextgen retain their
 existing licenses. File extensions alone do not make independently
@@ -115,27 +117,52 @@ desktop, server and Android distributions. The root LICENSE identifies
 the proprietary game implementation files outside the game directories.
 These materials are the exclusive proprietary property of pink-kitsune-420.
 
-2. Limited permission for personal evaluation
+2. Permission for personal use and modding
 
-These materials are provided solely as a reference implementation and for
-local, personal evaluation of the Spacelab Engine. You may view, compile
-and run them locally for your own personal, non-commercial use. This
-limited permission does not authorize public hosting or distribution.
+You may view, copy, compile, run and modify these materials for your own
+personal, non-commercial play, evaluation and mod development. You may
+create and use mods, including add-ons, patches, translations, custom
+missions, ships, universes and changes to gameplay, code or assets. You
+may run non-commercial multiplayer sessions using your copy of the game;
+this does not authorize distributing or publicly hosting the game client.
 
-3. Prohibited uses
+3. Permission to share free mods
 
-Without explicit prior written permission from the copyright holder,
-you may NOT use the games, universes or assets commercially; sell, resell,
-rent, license, sublicense or otherwise monetize them; or redistribute,
-publish, publicly host, repackage or distribute them, in whole or in part.
-You may NOT distribute modified versions, derivative game packages,
-standalone assets or universes, or incorporate these proprietary materials
-into another distributed or commercial product. These restrictions apply
-to source, compiled and packaged forms, whether provided for payment or
-free of charge. No permission to use the game branding is granted beyond
-the local evaluation described above.
+You may publish, distribute and let others use your mods free of charge
+for non-commercial use with a separately obtained, authorized copy of the
+game. Distribute mods as add-ons, patches or replacement files, rather
+than as a complete game or a standalone repackaged application. A mod may
+include modified game code or assets, and portions of the original
+materials reasonably necessary for the mod, but may not bundle the
+unmodified game, substantially reproduce it, or serve as a substitute for
+obtaining it separately. Merely renaming or repackaging the game is not
+a mod under this permission.
 
-4. Engine and third-party exclusions
+Keep applicable copyright and attribution notices, include this license
+with any proprietary game materials you distribute, and clearly identify
+your mod and its changes as unofficial. You may use the game name to
+describe compatibility, but may not imply official status or endorsement.
+Recipients may use, modify and share included proprietary game materials
+only under this license. You retain ownership of your original
+contributions; this permission does not transfer ownership of the game
+materials or let you relicense them.
+
+4. Prohibited uses
+
+Except for the permissions in sections 2 and 3, you may NOT redistribute,
+publish, publicly host or repackage these proprietary materials, in whole
+or in part, without prior written permission from the copyright holder.
+You may NOT sell, resell, rent, sublicense, charge for access to, or
+otherwise commercially exploit the games, their proprietary materials,
+or mods containing or derived from those materials without that permission.
+This includes selling the original or a modified game on the Apple App
+Store, Google Play, another storefront or your own website, and monetizing
+copies through advertising, subscriptions or in-app purchases. Publishing
+a complete game or repackaged application requires permission even if
+it is offered free of charge. These restrictions apply to source,
+compiled and packaged forms.
+
+5. Engine and third-party exclusions
 
 The Spacelab Engine, public APIs, reusable libraries, generic host runners
 and shared tools remain subject to their MIT license, as identified in the
@@ -144,13 +171,13 @@ the proprietary game materials. Third-party materials retain their own
 licenses and notices. This license does not change the ownership or
 licenses of independently authored games, universes or assets.
 
-5. Reservation of rights
+6. Reservation of rights
 
-All rights not expressly granted for personal evaluation are reserved.
-Any permission beyond that limited grant must be obtained in writing
+All rights not expressly granted by this license are reserved.
+Any permission beyond these grants must be obtained in writing
 from pink-kitsune-420. No other license is granted by implication.
 
-6. Disclaimer of warranty and limitation of liability
+7. Disclaimer of warranty and limitation of liability
 
 THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
